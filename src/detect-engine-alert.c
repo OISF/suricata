@@ -191,13 +191,22 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
     SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x", PcapPacketCntGet(p), s->id,
             pa->action, pa->flags);
 
+    bool is_fw_rule = s->flags & SIG_FLAG_FIREWALL ? true : false;
     /* REJECT also sets ACTION_DROP, just make it more visible with this check */
     if (pa->action & ACTION_DROP_REJECT) {
-        uint8_t drop_reason = PKT_DROP_REASON_RULES;
-        if (s->detect_table == DETECT_TABLE_PACKET_PRE_STREAM) {
-            drop_reason = PKT_DROP_REASON_STREAM_PRE_HOOK;
-        } else if (s->detect_table == DETECT_TABLE_PACKET_PRE_FLOW) {
-            drop_reason = PKT_DROP_REASON_FLOW_PRE_HOOK;
+        uint8_t drop_reason = is_fw_rule ? PKT_DROP_REASON_FW_RULES : PKT_DROP_REASON_RULES;
+        if (is_fw_rule) {
+            if (s->detect_table == DETECT_TABLE_PACKET_PRE_STREAM) {
+                drop_reason = PKT_DROP_REASON_FW_STREAM_PRE_HOOK;
+            } else if (s->detect_table == DETECT_TABLE_PACKET_PRE_FLOW) {
+                drop_reason = PKT_DROP_REASON_FW_FLOW_PRE_HOOK;
+            }
+        } else {
+            if (s->detect_table == DETECT_TABLE_PACKET_PRE_STREAM) {
+                drop_reason = PKT_DROP_REASON_STREAM_PRE_HOOK;
+            } else if (s->detect_table == DETECT_TABLE_PACKET_PRE_FLOW) {
+                drop_reason = PKT_DROP_REASON_FLOW_PRE_HOOK;
+            }
         }
 
         /* PacketDrop will update the packet action, too */
@@ -540,7 +549,7 @@ static inline void PacketAlertFinalizeProcessQueue(
 
         /* skip firewall sigs following a drop: IDS mode still shows alerts after an alert. */
         if ((s->flags & SIG_FLAG_FIREWALL) && dropped) {
-            p->alerts.discarded++;
+            p->alerts.firewall_discarded++;
 
             /* Thresholding removes this alert */
         } else if (res == 0 || res == 2 || (s->action & (ACTION_ALERT | ACTION_PASS)) == 0) {

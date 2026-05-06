@@ -923,6 +923,10 @@ const char *PktSrcToString(enum PktSrcEnum pkt_src)
 
 const char *PacketDropReasonToString(enum PacketDropReason r)
 {
+    // TODOs
+    // Declare the a char[] first
+    // add the drop reason to it, based on case
+    // add prefix "ips.drop_reason" or "ips.drop_reason.firewall" accordingly
     switch (r) {
         case PKT_DROP_REASON_DECODE_ERROR:
             return "decode error";
@@ -950,20 +954,26 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
             return "applayer memcap";
         case PKT_DROP_REASON_RULES:
             return "rules";
+        case PKT_DROP_REASON_FW_RULES:
+            return "firewall rules";
         case PKT_DROP_REASON_RULES_THRESHOLD:
             return "threshold detection_filter";
         case PKT_DROP_REASON_NFQ_ERROR:
             return "nfq error";
         case PKT_DROP_REASON_INNER_PACKET:
             return "tunnel packet drop";
-        case PKT_DROP_REASON_DEFAULT_PACKET_POLICY:
-            return "default packet policy";
-        case PKT_DROP_REASON_DEFAULT_APP_POLICY:
-            return "default app policy";
+        case PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY:
+            return "firewall default packet policy";
+        case PKT_DROP_REASON_FW_DEFAULT_APP_POLICY:
+            return "firewall default app policy";
         case PKT_DROP_REASON_STREAM_PRE_HOOK:
             return "pre stream hook";
+        case PKT_DROP_REASON_FW_STREAM_PRE_HOOK:
+            return "firewall pre stream hook";
         case PKT_DROP_REASON_FLOW_PRE_HOOK:
             return "pre flow hook";
+        case PKT_DROP_REASON_FW_FLOW_PRE_HOOK:
+            return "firewall pre flow hook";
         case PKT_DROP_REASON_NOT_SET:
         case PKT_DROP_REASON_MAX:
             return NULL;
@@ -973,6 +983,10 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
 
 static const char *PacketDropReasonToJsonString(enum PacketDropReason r)
 {
+    // TODOs
+    // Declare the a char[] first
+    // add the drop reason to it, based on case
+    // add prefix "ips.drop_reason" or "ips.drop_reason.firewall" accordingly
     switch (r) {
         case PKT_DROP_REASON_DECODE_ERROR:
             return "ips.drop_reason.decode_error";
@@ -1000,20 +1014,26 @@ static const char *PacketDropReasonToJsonString(enum PacketDropReason r)
             return "ips.drop_reason.applayer_memcap";
         case PKT_DROP_REASON_RULES:
             return "ips.drop_reason.rules";
+        case PKT_DROP_REASON_FW_RULES:
+            return "ips.drop_reason.firewall.rules";
         case PKT_DROP_REASON_RULES_THRESHOLD:
             return "ips.drop_reason.threshold_detection_filter";
         case PKT_DROP_REASON_NFQ_ERROR:
             return "ips.drop_reason.nfq_error";
         case PKT_DROP_REASON_INNER_PACKET:
             return "ips.drop_reason.tunnel_packet_drop";
-        case PKT_DROP_REASON_DEFAULT_PACKET_POLICY:
-            return "ips.drop_reason.default_packet_policy";
-        case PKT_DROP_REASON_DEFAULT_APP_POLICY:
-            return "ips.drop_reason.default_app_policy";
+        case PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY:
+            return "ips.drop_reason.firewall.default_packet_policy";
+        case PKT_DROP_REASON_FW_DEFAULT_APP_POLICY:
+            return "ips.drop_reason.firewall.default_app_policy";
         case PKT_DROP_REASON_STREAM_PRE_HOOK:
             return "ips.drop_reason.pre_stream_hook";
+        case PKT_DROP_REASON_FW_STREAM_PRE_HOOK:
+            return "ips.drop_reason.firewall.pre_stream_hook";
         case PKT_DROP_REASON_FLOW_PRE_HOOK:
             return "ips.drop_reason.pre_flow_hook";
+        case PKT_DROP_REASON_FW_FLOW_PRE_HOOK:
+            return "ips.drop_reason.firewall.pre_flow_hook";
         case PKT_DROP_REASON_NOT_SET:
         case PKT_DROP_REASON_MAX:
             return NULL;

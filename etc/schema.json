@@ -7302,7 +7302,7 @@
                         },
                         "alert_queue_overflow": {
                             "type": "integer",
-                            "description": "Count of alerts discarded due to alert queue overflow or a drop in firewall mode"
+                            "description": "Count of alerts discarded due to alert queue overflow"
                         },
                         "alerts_suppressed": {
                             "type": "integer",
@@ -7335,6 +7335,16 @@
                                         "type": "integer",
                                         "description": "Count of rules that were skipped due to missing requirements"
                                     }
+                                }
+                            }
+                        },
+                        "firewall": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "discarded_alerts": {
+                                    "type": "integer",
+                                    "description": "Count of alerts discarded due to a drop while in firewall mode"
                                 }
                             }
                         },
@@ -7890,13 +7900,11 @@
                                 },
                                 "default_app_policy": {
                                     "type": "integer",
-                                    "description":
-                                            "Number of packets dropped due to default app policy"
+                                    "description": "count of packets dropped due to firewall's default app-layer drop policy"
                                 },
                                 "default_packet_policy": {
                                     "type": "integer",
-                                    "description":
-                                            "Number of packets dropped due to default packet policy"
+                                    "description": "count of packets dropped due to firewall's default packet drop policy"
                                 },
                                 "defrag_error": {
                                     "type": "integer",
@@ -7907,6 +7915,34 @@
                                     "type": "integer",
                                     "description":
                                             "Number of packets dropped due to defrag memcap exception policy"
+                                },
+                                "firewall": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "default_app_policy": {
+                                            "type": "integer",
+                                            "description":
+                                                    "Number of packets dropped due to firewall's mode default app policy"
+                                        },
+                                        "default_packet_policy": {
+                                            "type": "integer",
+                                            "description":
+                                                    "Number of packets dropped due to firewall's mode default packet policy"
+                                        },
+                                        "pre_flow_hook": {
+                                            "type": "integer",
+                                            "description": "Number of packets dropped due to pre-flow hook"
+                                        },
+                                        "pre_stream_hook": {
+                                            "type": "integer",
+                                            "description": "Number of packets dropped due to pre-stream hook"
+                                        },
+                                        "rules": {
+                                            "type": "integer",
+                                            "description": "Number of packets dropped due to firewall rules"
+                                        }
+                                    }
                                 },
                                 "flow_drop": {
                                     "type": "integer",

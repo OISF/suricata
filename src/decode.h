@@ -287,6 +287,7 @@ extern uint16_t packet_alert_max;
 typedef struct PacketAlerts_ {
     uint16_t cnt;
     uint16_t discarded;
+    uint16_t firewall_discarded;
     uint16_t suppressed;
     PacketAlert *alerts;
     /* single pa used when we're dropping,
@@ -388,18 +389,21 @@ enum PacketDropReason {
     PKT_DROP_REASON_APPLAYER_ERROR,
     PKT_DROP_REASON_APPLAYER_MEMCAP,
     PKT_DROP_REASON_RULES,
+    PKT_DROP_REASON_FW_RULES,
     PKT_DROP_REASON_RULES_THRESHOLD, /**< detection_filter in action */
     PKT_DROP_REASON_STREAM_ERROR,
     PKT_DROP_REASON_STREAM_MEMCAP,
     PKT_DROP_REASON_STREAM_MIDSTREAM,
     PKT_DROP_REASON_STREAM_REASSEMBLY,
     PKT_DROP_REASON_STREAM_URG,
-    PKT_DROP_REASON_NFQ_ERROR,             /**< no nfq verdict, must be error */
-    PKT_DROP_REASON_INNER_PACKET,          /**< drop issued by inner (tunnel) packet */
-    PKT_DROP_REASON_DEFAULT_PACKET_POLICY, /**< drop issued by default packet policy */
-    PKT_DROP_REASON_DEFAULT_APP_POLICY,    /**< drop issued by default app policy */
-    PKT_DROP_REASON_STREAM_PRE_HOOK,       /**< drop issued in the pre_stream hook */
-    PKT_DROP_REASON_FLOW_PRE_HOOK,         /**< drop issued in the pre_flow hook */
+    PKT_DROP_REASON_NFQ_ERROR,                /**< no nfq verdict, must be error */
+    PKT_DROP_REASON_INNER_PACKET,             /**< drop issued by inner (tunnel) packet */
+    PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY, /**< drop issued by default packet policy */
+    PKT_DROP_REASON_FW_DEFAULT_APP_POLICY,    /**< drop issued by default app policy */
+    PKT_DROP_REASON_STREAM_PRE_HOOK,          /**< drop issued in the pre_stream hook */
+    PKT_DROP_REASON_FW_STREAM_PRE_HOOK,       /**< drop issued in the pre_stream hook */
+    PKT_DROP_REASON_FLOW_PRE_HOOK,            /**< drop issued in the pre_flow hook */
+    PKT_DROP_REASON_FW_FLOW_PRE_HOOK,         /**< drop issued in the pre_flow hook */
     PKT_DROP_REASON_MAX,
 };
 
