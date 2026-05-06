@@ -74,7 +74,8 @@ void PacketInit(Packet *p)
 {
     SCSpinInit(&p->persistent.tunnel_lock, 0);
     p->alerts.alerts = PacketAlertCreate();
-    p->livedev = NULL;
+    p->livedev_id = 0;
+    p->livedev_dst_id = 0;
 }
 
 void PacketReleaseRefs(Packet *p)
@@ -150,7 +151,8 @@ void PacketReinit(Packet *p)
     p->prev = NULL;
     p->tunnel_verdicted = false;
     p->root = NULL;
-    p->livedev = NULL;
+    p->livedev_id = 0;
+    p->livedev_dst_id = 0;
     PACKET_PROFILING_RESET(p);
     p->tenant_id = 0;
     p->nb_decoded_layers = 0;
@@ -185,7 +187,7 @@ inline void SCPacketSetReleasePacket(Packet *p, void (*ReleasePacket)(Packet *p)
 
 inline void SCPacketSetLiveDevice(Packet *p, LiveDevice *device)
 {
-    p->livedev = device;
+    p->livedev_id = LiveDeviceGetId(device);
 }
 
 inline void SCPacketSetDatalink(Packet *p, int datalink)

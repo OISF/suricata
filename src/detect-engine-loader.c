@@ -50,6 +50,8 @@
 #include <glob.h>
 #endif
 
+#include "app-layer-parser.h"
+
 extern int rule_reload;
 extern int engine_analysis;
 static bool fp_engine_analysis_set = false;
@@ -319,7 +321,7 @@ static int LoadFirewallRuleFiles(DetectEngineCtx *de_ctx)
             de_ctx->sig_stat.good_sigs_total += good_sigs;
         }
 
-        return 0;
+        return DetectFirewallLoadDefaultPolicies(de_ctx);
     }
 
     SCConfNode *default_fw_rule_path = SCConfGetNode("firewall.rule-path");
@@ -359,7 +361,8 @@ static int LoadFirewallRuleFiles(DetectEngineCtx *de_ctx)
             de_ctx->sig_stat.good_sigs_total += good_sigs;
         }
     }
-    return 0;
+
+    return DetectFirewallLoadDefaultPolicies(de_ctx);
 }
 
 /**

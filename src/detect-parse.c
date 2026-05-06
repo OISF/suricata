@@ -1548,13 +1548,14 @@ static uint8_t ActionStringToFlags(const char *action)
  *        to its Signature instance.
  *
  * \param s      Pointer to the Signature instance to which the action belongs.
- * \param action Pointer to the action string used by the Signature.
+ * \param action_in Pointer to the action string used by the Signature.
  *
  * \retval  0 On successfully parsing the action string and adding it to the
  *            Signature.
  * \retval -1 On failure.
  */
-static int SigParseAction(Signature *s, const char *action_in)
+static int SigParseActionDo(const char *action_in, const int idx, const bool fw_rule,
+        uint8_t *action_out, uint8_t *scope_out)
 {
     char action[32];
     strlcpy(action, action_in, sizeof(action));
@@ -1577,6 +1578,23 @@ static int SigParseAction(Signature *s, const char *action_in)
     if (flags == 0)
         return -1;
 
+    if (fw_rule) {
+        if (idx == 0 &&
+                !(flags & (ACTION_ACCEPT | ACTION_DROP | ACTION_REJECT_ANY | ACTION_CONFIG))) {
+            SCLogError("only accept, config, drop and reject actions allowed as primary action "
+                       "firewall "
+                       "rules");
+            return -1;
+        }
+        if (idx > 0 &&
+                (flags & (ACTION_ACCEPT | ACTION_DROP | ACTION_REJECT_ANY | ACTION_CONFIG))) {
+            SCLogError("accept, config, drop and reject actions not allowed as secondary action "
+                       "firewall "
+                       "rules");
+            return -1;
+        }
+    }
+
     /* parse scope, if any */
     if (o) {
         uint8_t scope_flags = 0;
@@ -1591,7 +1609,6 @@ static int SigParseAction(Signature *s, const char *action_in)
                         o, action_in);
                 return -1;
             }
-            s->action_scope = scope_flags;
         } else if (flags & (ACTION_ACCEPT)) {
             if (strcmp(o, "packet") == 0) {
                 scope_flags = (uint8_t)ACTION_SCOPE_PACKET;
@@ -1608,7 +1625,6 @@ static int SigParseAction(Signature *s, const char *action_in)
                         o, action_in);
                 return -1;
             }
-            s->action_scope = scope_flags;
         } else if (flags & (ACTION_CONFIG)) {
             if (strcmp(o, "packet") == 0) {
                 scope_flags = (uint8_t)ACTION_SCOPE_PACKET;
@@ -1617,33 +1633,60 @@ static int SigParseAction(Signature *s, const char *action_in)
                         action_in);
                 return -1;
             }
-            s->action_scope = scope_flags;
         } else {
             SCLogError("invalid action scope '%s' in action '%s': scope only supported for actions "
                        "'drop', 'pass' and 'reject'",
                     o, action_in);
             return -1;
         }
+        if (*scope_out != 0 && *scope_out != scope_flags) {
+            SCLogError("multi-action rules cannot use different action scopes");
+            return -1;
+        }
+        *scope_out = scope_flags;
     }
 
     /* require explicit action scope for fw rules */
-    if (s->init_data->firewall_rule && s->action_scope == 0) {
+    if (fw_rule && *scope_out == 0) {
         SCLogError("firewall rules require setting an explicit action scope");
         return -1;
     }
 
-    if (!s->init_data->firewall_rule && (flags & ACTION_ACCEPT)) {
+    if (!fw_rule && (flags & ACTION_ACCEPT)) {
         SCLogError("'accept' action only supported for firewall rules");
         return -1;
     }
+    *action_out |= flags;
+    return 0;
+}
 
-    if (s->init_data->firewall_rule && (flags & ACTION_PASS)) {
-        SCLogError("'pass' action not supported for firewall rules");
-        return -1;
+static int SigParseAction(Signature *s, const char *action_in)
+{
+    /* multi-action rules are only supported for firewall rules at this time. */
+    if (!s->init_data->firewall_rule)
+        return SigParseActionDo(action_in, 0, false, &s->action, &s->action_scope);
+
+    int r = 0;
+    char *copy = SCStrdup(action_in);
+    if (copy == NULL)
+        FatalError("could not duplicate opt string");
+
+    int i = 0;
+    char *xsaveptr = NULL;
+    char *a = strtok_r(copy, ",", &xsaveptr);
+    while (a != NULL) {
+        if (SigParseActionDo(a, i, true, &s->action, &s->action_scope) < 0) {
+            r = -1;
+            break;
+        }
+        a = strtok_r(NULL, ",", &xsaveptr);
+        i++;
     }
 
-    s->action = flags;
-    return 0;
+    SCFree(copy);
+
+    SCLogDebug("s->action %02x", s->action);
+    return r;
 }
 
 /**
@@ -2488,6 +2531,25 @@ static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Sign
                    "explicit hook",
                 s->id);
         return false;
+    }
+    if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+        switch (s->action_scope) {
+            case ACTION_SCOPE_PACKET:
+                if (!(DetectProtoContainsProto(&s->init_data->proto, IPPROTO_UDP))) {
+                    if (s->action & (ACTION_ACCEPT | ACTION_DROP)) {
+                        SCLogError("rule %u uses action scope \"packet\" for an non-UDP app hook",
+                                s->id);
+                        return false;
+                    }
+                }
+                break;
+            case ACTION_SCOPE_FLOW:
+            case ACTION_SCOPE_AUTO:
+            case ACTION_SCOPE_TX:
+            case ACTION_SCOPE_HOOK:
+                // supported for app hooks
+                break;
+        }
     }
     return true;
 }
@@ -3660,6 +3722,85 @@ void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *detect_par
     if (!DetectSetupParseRegexesOpts(parse_str, detect_parse, 0)) {
         FatalError("pcre compile and study failed");
     }
+}
+
+int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
+{
+    char prefix[96] = "firewall.policies";
+    if (strlen(de_ctx->config_prefix) > 0) {
+        snprintf(prefix, sizeof(prefix), "%s.firewall.policies", de_ctx->config_prefix);
+    }
+
+    struct DetectFirewallAppPolicy *app_fw_policies =
+            SCCalloc(g_alproto_max, sizeof(struct DetectFirewallAppPolicy));
+    if (app_fw_policies == NULL)
+        return -1;
+
+    for (AppProto a = 0; a < g_alproto_max; a++) {
+        for (int i = 0; i < 48; i++) {
+            app_fw_policies[a].ts[i].action = ACTION_DROP;
+            app_fw_policies[a].ts[i].action_scope = ACTION_SCOPE_FLOW;
+            app_fw_policies[a].tc[i].action = ACTION_DROP;
+            app_fw_policies[a].tc[i].action_scope = ACTION_SCOPE_FLOW;
+        }
+
+        if (!AppProtoIsValid(a))
+            continue;
+
+        const char *app_name = AppProtoToString(a);
+        const uint8_t complete_state_ts =
+                (const uint8_t)AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOSERVER);
+        for (uint8_t state = 0; state <= complete_state_ts; state++) {
+            const char *name =
+                    AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOSERVER);
+
+            if (name == NULL) {
+                if (state == 0)
+                    name = "request-started";
+                else if (state == complete_state_ts)
+                    name = "request-complete";
+                if (name == NULL)
+                    continue;
+            }
+            char *nname = SCStrdup(name);
+            if (nname == NULL)
+                continue;
+            for (int i = 0; nname[i] != '\0'; i++) {
+                if (nname[i] == '_')
+                    nname[i] = '-';
+            }
+
+            char policy_name[256];
+            int r = snprintf(policy_name, sizeof(policy_name), "%s.%s.%s", prefix, app_name, nname);
+            SCFree(nname);
+            if (r < 0 || (size_t)r >= sizeof(policy_name)) {
+                FatalError("internal error: failed to assemble firewall policy config string");
+            }
+
+            SCConfNode *policy_actions = SCConfGetNode(policy_name);
+            if (policy_actions == NULL) {
+                SCLogDebug("fw: no policy at %s", policy_name);
+                continue;
+            }
+
+            uint8_t action = 0;
+            uint8_t action_scope = 0;
+            int idx = 0;
+            SCConfNode *paction = NULL;
+            TAILQ_FOREACH (paction, &policy_actions->head, next) {
+                SCLogNotice("fw: %s => %s", policy_name, paction->val);
+                if (SigParseActionDo(paction->val, idx, true, &action, &action_scope) < 0)
+                    return -1;
+                idx++;
+            }
+            SCLogNotice("fw: %s => action %02x scope %02x", policy_name, action, action_scope);
+            app_fw_policies[a].ts[state].action = action;
+            app_fw_policies[a].ts[state].action_scope = action_scope;
+        }
+    }
+    de_ctx->fw_app_policy = app_fw_policies;
+
+    return 0;
 }
 
 /*

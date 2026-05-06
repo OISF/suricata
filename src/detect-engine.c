@@ -2738,6 +2738,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     if (de_ctx->non_pf_engine_names) {
         HashTableFree(de_ctx->non_pf_engine_names);
     }
+    SCFree(de_ctx->fw_app_policy);
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
@@ -4516,7 +4517,7 @@ static uint32_t DetectEngineTenantGetIdFromVlanId(const void *ctx, const Packet 
 static uint32_t DetectEngineTenantGetIdFromLivedev(const void *ctx, const Packet *p)
 {
     const DetectEngineThreadCtx *det_ctx = ctx;
-    const LiveDevice *ld = p->livedev;
+    const LiveDevice *ld = LiveDeviceGetById(p->livedev_id);
 
     if (ld == NULL || det_ctx == NULL)
         return 0;
