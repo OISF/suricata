@@ -303,7 +303,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                                             let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
 
                                             let mut frankenfid = pd.fid.to_vec();
-                                            frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+                                            frankenfid.extend_from_slice(&r.ssn_id.to_be_bytes());
 
                                             let filename = match state.guid2name_cache.get(&frankenfid) {
                                                 Some(n) => n.to_vec(),
@@ -338,7 +338,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                                             newname.retain(|&i|i != 0x00);
 
                                             let mut frankenfid = pd.fid.to_vec();
-                                            frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+                                            frankenfid.extend_from_slice(&r.ssn_id.to_be_bytes());
 
                                             let oldname = match state.guid2name_cache.get(&frankenfid) {
                                                 Some(n) => n.to_vec(),
@@ -403,7 +403,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                     // store read fid,offset in map
                     let fid_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_OFFSET);
                     let mut fid = rr.fid.to_vec();
-                    fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+                    fid.extend_from_slice(&r.ssn_id.to_be_bytes());
                     let fidoff = SMBFileGUIDOffset::new(fid, rr.offset);
                     state.read_offset_cache.put(fid_key, fidoff);
                 },
@@ -533,7 +533,7 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
             match parse_smb1_close_request_record(r.data) {
                 Ok((_, cd)) => {
                     let mut fid = cd.fid.to_vec();
-                    fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+                    fid.extend_from_slice(&r.ssn_id.to_be_bytes());
 
                     let _name = state.guid2name_cache.pop(&fid);
                     state.ssn2vec_cache.put(SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID), fid.to_vec());
@@ -730,7 +730,7 @@ fn smb1_response_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, an
                             p.retain(|&i|i != 0x00);
 
                             let mut fid = cr.fid.to_vec();
-                            fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+                            fid.extend_from_slice(&r.ssn_id.to_be_bytes());
                             SCLogDebug!("SMB1_COMMAND_NT_CREATE_ANDX fid {:?}", fid);
                             SCLogDebug!("fid {:?} name {:?}", fid, p);
                             _ = state.guid2name_cache.put(fid, p);
@@ -859,7 +859,7 @@ pub fn smb1_trans_request_record(state: &mut SMBState, r: &SmbRecord)
                         pipe.fid.to_vec());
 
                 let mut frankenfid = pipe.fid.to_vec();
-                frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+                frankenfid.extend_from_slice(&r.ssn_id.to_be_bytes());
 
                 let (_filename, is_dcerpc) = state.get_service_for_guid(&frankenfid);
 
@@ -896,7 +896,7 @@ pub fn smb1_trans_response_record(state: &mut SMBState, r: &SmbRecord)
             SCLogDebug!("FID {:?}", fid);
 
             let mut frankenfid = fid.to_vec();
-            frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+            frankenfid.extend_from_slice(&r.ssn_id.to_be_bytes());
 
             let (_filename, is_dcerpc) = state.get_service_for_guid(&frankenfid);
 
@@ -948,7 +948,7 @@ pub fn smb1_write_request_record(state: &mut SMBState, r: &SmbRecord, andx_offse
                 return;
             }
             let mut file_fid = rd.fid.to_vec();
-            file_fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+            file_fid.extend_from_slice(&r.ssn_id.to_be_bytes());
             SCLogDebug!("SMBv1 WRITE: FID {:?} offset {}",
                     file_fid, rd.offset);
 

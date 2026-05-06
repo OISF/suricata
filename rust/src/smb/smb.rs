@@ -697,14 +697,6 @@ impl SMBTree {
     }
 }
 
-pub fn u32_as_bytes(i: u32) -> [u8;4] {
-    let o1: u8 = ((i >> 24) & 0xff) as u8;
-    let o2: u8 = ((i >> 16) & 0xff) as u8;
-    let o3: u8 = ((i >> 8)  & 0xff) as u8;
-    let o4: u8 =  (i        & 0xff) as u8;
-    return [o1, o2, o3, o4]
-}
-
 #[derive(Debug)]
 pub struct SMBState<> {
     pub state_data: AppLayerStateData,
