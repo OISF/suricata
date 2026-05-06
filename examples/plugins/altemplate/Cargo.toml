@@ -12,6 +12,7 @@ libc = "~0.2.82"
 suricata = { path = "../../../rust/" }
 suricata-sys = { path = "../../../rust/sys" }
 suricata-ffi = { path = "../../../rust/ffi" }
+suricata-derive = { path = "../../../rust/derive" }
 
 [features]
 default = ["suricata8"]
