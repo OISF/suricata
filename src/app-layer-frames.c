@@ -856,7 +856,8 @@ void FramesPrune(Flow *f, Packet *p)
 
     TcpSession *ssn = f->protoctx;
 
-    if (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) {
+    if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) &&
+            (p->flags & PKT_PSEUDO_DETECTLOG_FLUSH) == 0) {
         AppLayerFramesFreeContainer(f);
         return;
     }
