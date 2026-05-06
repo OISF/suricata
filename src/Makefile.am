@@ -247,6 +247,7 @@ noinst_HEADERS = \
 	detect-metadata.h \
 	detect-modbus.h \
 	detect-msg.h \
+	detect-multi.h \
 	detect-nfs-version.h \
 	detect-noalert.h \
 	detect-nocase.h \
@@ -824,6 +825,7 @@ libsuricata_c_a_SOURCES = \
 	detect-metadata.c \
 	detect-modbus.c \
 	detect-msg.c \
+	detect-multi.c \
 	detect-nfs-version.c \
 	detect-noalert.c \
 	detect-nocase.c \
