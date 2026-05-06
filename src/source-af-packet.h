@@ -121,6 +121,9 @@ typedef struct AFPIfaceConfig_
 #ifdef HAVE_PACKET_EBPF
     struct ebpf_timeout_config ebpf_t_config;
 #endif
+#ifdef AFPACKET_TEST_REPLAY
+    uint32_t max_packets;
+#endif
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
 } AFPIfaceConfig;
@@ -202,5 +205,10 @@ void AFPPeersListClean(void);
 int AFPGetLinkType(const char *ifname);
 
 int AFPIsFanoutSupported(uint16_t cluster_id);
+
+#ifdef HAVE_PACKET_EBPF
+typedef struct Packet_ Packet;
+void AFPReadCopyBypass(Packet *dst, Packet *src);
+#endif
 
 #endif /* SURICATA_SOURCE_AFP_H */
