@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -299,6 +299,66 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
     return 0;
 }
 
+/* Sentinel marking a consumed cache slot. Bucket depths and counts will
+ * never reach UINT32_MAX in practice, so it's safe to repurpose. */
+#define THASH_BUCKET_STATS_SENTINEL UINT32_MAX
+
+/* Single combined scan that refills both cached values. Takes each bucket
+ * lock briefly to read a stable hb->len. Cross-bucket atomicity is not
+ * guaranteed, but per-bucket values are consistent with the hot path. */
+static void THashRefreshBucketStats(THashTableContext *t, uint32_t *max_out, uint32_t *nonempty_out)
+{
+    uint32_t max = 0;
+    uint32_t nonempty = 0;
+    for (uint32_t i = 0; i < t->config.hash_size; i++) {
+        THashHashRow *hb = &t->array[i];
+        HRLOCK_LOCK(hb);
+        uint32_t len = hb->len;
+        HRLOCK_UNLOCK(hb);
+        if (len > 0) {
+            nonempty++;
+            if (len > max)
+                max = len;
+        }
+    }
+    t->bucket_stats_max = max;
+    t->bucket_stats_nonempty = nonempty;
+    *max_out = max;
+    *nonempty_out = nonempty;
+}
+
+uint64_t THashGetterMaxBucketDepth(void *ctx)
+{
+    THashTableContext *t = ctx;
+    uint32_t max;
+    if (t->bucket_stats_max == THASH_BUCKET_STATS_SENTINEL) {
+        uint32_t nonempty;
+        THashRefreshBucketStats(t, &max, &nonempty);
+    } else {
+        // refreshed value
+        max = t->bucket_stats_max;
+    }
+    t->bucket_stats_max = THASH_BUCKET_STATS_SENTINEL;
+    return max;
+}
+
+uint64_t THashGetterAvgBucketDepth(void *ctx)
+{
+    THashTableContext *t = ctx;
+    uint32_t nonempty;
+    if (t->bucket_stats_nonempty == THASH_BUCKET_STATS_SENTINEL) {
+        uint32_t max;
+        THashRefreshBucketStats(t, &max, &nonempty);
+    } else {
+        // refreshed value
+        nonempty = t->bucket_stats_nonempty;
+    }
+    t->bucket_stats_nonempty = THASH_BUCKET_STATS_SENTINEL;
+    if (nonempty == 0)
+        return 0;
+    return SC_ATOMIC_GET(t->counter) / nonempty;
+}
+
 THashTableContext *THashInit(const char *cnf_prefix, uint32_t data_size,
         int (*DataSet)(void *, void *), void (*DataFree)(void *),
         uint32_t (*DataHash)(uint32_t, void *), bool (*DataCompare)(void *, void *),
@@ -331,12 +391,15 @@ THashTableContext *THashInit(const char *cnf_prefix, uint32_t data_size,
     SC_ATOMIC_INIT(ctx->counter);
     SC_ATOMIC_INIT(ctx->memuse);
     SC_ATOMIC_INIT(ctx->prune_idx);
+    ctx->bucket_stats_max = THASH_BUCKET_STATS_SENTINEL;
+    ctx->bucket_stats_nonempty = THASH_BUCKET_STATS_SENTINEL;
     THashDataQueueInit(&ctx->spare_q);
 
     if (THashInitConfig(ctx, cnf_prefix) < 0) {
         THashShutdown(ctx);
-        ctx = NULL;
+        return NULL;
     }
+
     return ctx;
 }
 
@@ -468,6 +531,7 @@ uint32_t THashExpire(THashTableContext *ctx, const SCTime_t ts)
                     hb->head = h->next;
                 if (hb->tail == h)
                     hb->tail = h->prev;
+                hb->len--;
                 h->next = NULL;
                 h->prev = NULL;
                 SCLogDebug("timeout: removing data %p", h);
@@ -522,6 +586,7 @@ void THashCleanup(THashTableContext *ctx)
                     hb->head = h->next;
                 if (hb->tail == h)
                     hb->tail = h->prev;
+                hb->len--;
                 h->next = NULL;
                 h->prev = NULL;
                 if (ctx->config.DataSize) {
@@ -656,6 +721,7 @@ THashGetFromHash (THashTableContext *ctx, void *data)
         /* data is locked */
         hb->head = h;
         hb->tail = h;
+        hb->len++;
 
         /* initialize and return */
         (void) THashIncrUsecnt(h);
@@ -688,6 +754,7 @@ THashGetFromHash (THashTableContext *ctx, void *data)
                 /* data is locked */
 
                 h->prev = ph;
+                hb->len++;
 
                 /* initialize and return */
                 (void) THashIncrUsecnt(h);
@@ -858,6 +925,7 @@ static THashData *THashGetUsed(THashTableContext *ctx, uint32_t data_size)
             hb->head = h->next;
         if (hb->tail == h)
             hb->tail = h->prev;
+        hb->len--;
 
         h->next = NULL;
         h->prev = NULL;
@@ -919,6 +987,7 @@ int THashRemoveFromHash (THashTableContext *ctx, void *data)
             hb->head = h->next;
         if (hb->tail == h)
             hb->tail = h->prev;
+        hb->len--;
 
         h->next = NULL;
         h->prev = NULL;

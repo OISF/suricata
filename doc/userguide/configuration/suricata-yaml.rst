@@ -824,6 +824,11 @@ Thresholding uses a central hash table for tracking thresholds of the types: by_
 ``detect.thresholds.hash-size`` controls the number of hash rows in the hash table.
 ``detect.thresholds.memcap`` controls how much memory can be used for the hash table and the data stored in it.
 
+The stats counters ``detect.thresholds.avg_bucket_depth`` and
+``detect.thresholds.max_bucket_depth`` report the current collision
+pressure in the hash table. If ``max_bucket_depth`` is consistently
+high, increasing ``hash-size`` will improve lookup performance.
+
 .. _pattern-matcher-settings:
 
 Pattern matcher settings
