@@ -22,6 +22,7 @@ pub const SIGMATCH_INFO_UINT64: u32 = 131072;
 pub const SIGMATCH_INFO_MULTI_UINT: u32 = 262144;
 pub const SIGMATCH_INFO_ENUM_UINT: u32 = 524288;
 pub const SIGMATCH_INFO_BITFLAGS_UINT: u32 = 1048576;
+pub const SIGMATCH_TRANSFORM_CAN_FAIL: u32 = 2097152;
 pub type __intmax_t = ::std::os::raw::c_long;
 pub type intmax_t = __intmax_t;
 #[repr(u32)]
@@ -714,6 +715,9 @@ extern "C" {
 }
 extern "C" {
     pub fn SCInspectionBufferTruncate(buffer: *mut InspectionBuffer, buf_len: u32);
+}
+extern "C" {
+    pub fn SCInspectionBufferSetError(buffer: *mut InspectionBuffer);
 }
 extern "C" {
     pub fn SCInspectionBufferGet(

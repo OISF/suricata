@@ -280,6 +280,7 @@ static inline InspectionBuffer *FiledataWithXformsGetDataCallback(DetectEngineTh
     InspectionBufferSetupMulti(
             det_ctx, buffer, transforms, base_buffer->inspect, base_buffer->inspect_len);
     buffer->inspect_offset = base_buffer->inspect_offset;
+    buffer->flags &= ~DETECT_CI_FLAGS_ERROR;
     SCLogDebug("xformed buffer %p size %u", buffer, buffer->inspect_len);
     SCReturnPtr(buffer, "InspectionBuffer");
 }
@@ -428,6 +429,7 @@ static InspectionBuffer *FiledataGetDataCallback(DetectEngineThreadCtx *det_ctx,
     SCLogDebug("data_len %u", data_len);
     /* update inspected tracker */
     buffer->inspect_offset = offset;
+    buffer->flags &= ~DETECT_CI_FLAGS_ERROR;
 
     if (ips && file_size < cur_file->inspect_min_size) {
         // don't update content_inspected yet
