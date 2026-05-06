@@ -59,14 +59,14 @@ pub fn detect_parse_vlan_id(s: &str) -> Option<DetectUintArrayData<u16>> {
                     end: a.end,
                 });
             }
-            DetectUintIndex::Index((_, i)) => {
-                if !(-VLAN_MAX_LAYERS..=VLAN_MAX_LAYERS - 1).contains(&i) {
-                    SCLogError!(
-                        "vlan id index should belong in range {:?}",
-                        (-VLAN_MAX_LAYERS..=VLAN_MAX_LAYERS - 1)
-                    );
-                    return None;
-                }
+            DetectUintIndex::Index((_, i))
+                if !(-VLAN_MAX_LAYERS..=VLAN_MAX_LAYERS - 1).contains(&i) =>
+            {
+                SCLogError!(
+                    "vlan id index should belong in range {:?}",
+                    (-VLAN_MAX_LAYERS..=VLAN_MAX_LAYERS - 1)
+                );
+                return None;
             }
             _ => {}
         }

@@ -374,17 +374,13 @@ impl NFSState {
                     SCLogDebug!("OPENv4: status {} opendata {:?}", _s, _rd);
                     insert_filename_with_getfh = true;
                 }
-                Nfs4ResponseContent::GetFH(_s, Some(ref rd)) => {
-                    if insert_filename_with_getfh {
-                        self.namemap
-                            .insert(rd.value.to_vec(), xidmap.file_name.to_vec());
-                    }
+                Nfs4ResponseContent::GetFH(_s, Some(ref rd)) if insert_filename_with_getfh => {
+                    self.namemap
+                        .insert(rd.value.to_vec(), xidmap.file_name.to_vec());
                 }
-                Nfs4ResponseContent::PutRootFH(s) => {
-                    if s == NFS4_OK && xidmap.file_name.is_empty() {
+                Nfs4ResponseContent::PutRootFH(s) if s == NFS4_OK && xidmap.file_name.is_empty() => {
                         xidmap.file_name = b"<mount_root>".to_vec();
                         SCLogDebug!("filename {:?}", xidmap.file_name);
-                    }
                 }
                 _ => {}
             }

@@ -350,10 +350,8 @@ fn parse_bytemath(input: &str) -> IResult<&str, DetectByteMathData, RuleParseErr
     // Using left/right shift further restricts the value of nbytes. Note that
     // validation has already ensured nbytes is in [1..10]
     match byte_math.oper {
-        ByteMathOperator::LeftShift | ByteMathOperator::RightShift => {
-            if byte_math.nbytes > 4 {
-                return Err(make_error(format!("nbytes must be 1 through 4 (inclusive) when used with \"<<\" or \">>\"; {} is not valid", byte_math.nbytes)));
-            }
+        ByteMathOperator::LeftShift | ByteMathOperator::RightShift  if byte_math.nbytes > 4 => {
+            return Err(make_error(format!("nbytes must be 1 through 4 (inclusive) when used with \"<<\" or \">>\"; {} is not valid", byte_math.nbytes)));
         }
         _ => {}
     };
