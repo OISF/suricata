@@ -3377,6 +3377,43 @@ jobs:
           python3 $(which suricata-update) -V
       - run: suricatasc -h
 
+  freebsd-unit-tests:
+    name: FreeBSD (unit tests)
+    runs-on: ubuntu-latest
+    needs: [prepare-deps]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Downloading prep archive
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: prep
+          path: prep
+      - uses: vmactions/freebsd-vm@d1e65811565151536c0c894fff74f06351ed26e6
+        with:
+          release: "15.0"
+          arch: x86_64
+          usesh: true
+          sync: rsync
+          copyback: false
+          prepare: |
+            pkg install -y \
+              autoconf \
+              automake \
+              rust-cbindgen \
+              jansson \
+              libpcap \
+              libtool \
+              libyaml \
+              pcre2 \
+              pkgconf \
+              rust
+          run: |
+            tar xf prep/suricata-update.tar.gz
+            ./autogen.sh
+            ./configure --enable-warnings --enable-unittests
+            make -j$(sysctl -n hw.ncpu)
+            ./src/suricata -u -l /tmp/
+
   windows-msys2-mingw64-npcap:
     name: Windows MSYS2 MINGW64 (NPcap)
     runs-on: windows-latest
