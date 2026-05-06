@@ -34,11 +34,13 @@ typedef struct DetectDatasetData_ {
     DataJsonType json;
     char json_key[SIG_JSON_CONTENT_KEY_LEN];
     void *id; /* pointer to the triggering signature */
+    // for postmatch to retrieve the buffer(s)
+    int list;
+    int thread_ctx_id;
 } DetectDatasetData;
 
-int DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx,
-    const DetectDatasetData *sd,
-    const uint8_t *data, const uint32_t data_len);
+uint8_t DetectDatasetBufferMatch(DetectEngineThreadCtx *det_ctx, const DetectDatasetData *sd,
+        const uint8_t *data, const uint32_t data_len, uint32_t local_id);
 
 /* prototypes */
 void DetectDatasetRegister (void);
