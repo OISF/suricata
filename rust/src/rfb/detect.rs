@@ -32,9 +32,9 @@ use std::os::raw::{c_int, c_void};
 use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordRegister,
-    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
-    Signature,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister,
+    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 unsafe extern "C" fn rfb_name_get(

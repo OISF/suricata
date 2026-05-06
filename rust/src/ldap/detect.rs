@@ -31,9 +31,10 @@ use crate::ldap::types::*;
 use ldap_parser::ldap::{LdapMessage, ProtocolOp};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordRegister,
-    SCDetectHelperMultiBufferMpmRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister,
+    SCDetectHelperKeywordRegister, SCDetectHelperMultiBufferMpmRegister,
+    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
+    Signature,
 };
 
 use std::ffi::CStr;
