@@ -2032,7 +2032,7 @@ AppLayerProtoDetectThreadCtx *AppLayerProtoDetectGetCtxThread(void)
         for (j = 0; j < 2; j++) {
             mpm_ctx = &alpd_ctx.ctx_ipp[i].ctx_pm[j].mpm_ctx;
             mpm_tctx = &alpd_tctx->mpm_tctx[i][j];
-            MpmInitThreadCtx(mpm_tctx, mpm_ctx->mpm_type);
+            MpmInitThreadCtx(mpm_tctx, mpm_ctx, mpm_ctx->mpm_type);
         }
     }
 
@@ -2062,7 +2062,7 @@ void AppLayerProtoDetectDestroyCtxThread(AppLayerProtoDetectThreadCtx *alpd_tctx
         for (dir = 0; dir < 2; dir++) {
             mpm_ctx = &alpd_ctx.ctx_ipp[ipproto_map].ctx_pm[dir].mpm_ctx;
             mpm_tctx = &alpd_tctx->mpm_tctx[ipproto_map][dir];
-            MpmDestroyThreadCtx(mpm_tctx, mpm_ctx->mpm_type);
+            MpmDestroyThreadCtx(mpm_tctx, mpm_ctx, mpm_ctx->mpm_type);
         }
     }
     PmqFree(&alpd_tctx->pmq);

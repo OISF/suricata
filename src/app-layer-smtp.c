@@ -1556,7 +1556,7 @@ static void *SMTPLocalStorageAlloc(void)
     if (unlikely(td->smtp_mpm_thread_ctx == NULL)) {
         exit(EXIT_FAILURE);
     }
-    MpmInitThreadCtx(td->smtp_mpm_thread_ctx, SMTP_MPM);
+    MpmInitThreadCtx(td->smtp_mpm_thread_ctx, smtp_mpm_ctx, SMTP_MPM);
     return td;
 }
 
@@ -1570,7 +1570,7 @@ static void SMTPLocalStorageFree(void *ptr)
         }
 
         if (td->smtp_mpm_thread_ctx != NULL) {
-            MpmDestroyThreadCtx(td->smtp_mpm_thread_ctx, SMTP_MPM);
+            MpmDestroyThreadCtx(td->smtp_mpm_thread_ctx, smtp_mpm_ctx, SMTP_MPM);
             SCFree(td->smtp_mpm_thread_ctx);
         }
 

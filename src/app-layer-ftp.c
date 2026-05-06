@@ -197,7 +197,7 @@ static void *FTPLocalStorageAlloc(void)
     if (unlikely(td->ftp_mpm_thread_ctx == NULL)) {
         exit(EXIT_FAILURE);
     }
-    MpmInitThreadCtx(td->ftp_mpm_thread_ctx, FTP_MPM);
+    MpmInitThreadCtx(td->ftp_mpm_thread_ctx, ftp_mpm_ctx, FTP_MPM);
     return td;
 }
 
@@ -211,7 +211,7 @@ static void FTPLocalStorageFree(void *ptr)
         }
 
         if (td->ftp_mpm_thread_ctx != NULL) {
-            MpmDestroyThreadCtx(td->ftp_mpm_thread_ctx, FTP_MPM);
+            MpmDestroyThreadCtx(td->ftp_mpm_thread_ctx, ftp_mpm_ctx, FTP_MPM);
             SCFree(td->ftp_mpm_thread_ctx);
         }
 
