@@ -84,7 +84,7 @@ int SCDetectRegisterMpmGeneric(const char *name, const char *desc, AppProto alpr
 }
 
 int SCDetectHelperBufferProgressMpmRegister(const char *name, const char *desc, AppProto alproto,
-        uint8_t direction, InspectionSingleBufferGetDataPtr GetData, int progress)
+        uint8_t direction, InspectionSingleBufferGetDataPtr GetData, uint8_t progress)
 {
     if (direction & STREAM_TOSERVER) {
         DetectAppLayerInspectEngineRegisterSingle(name, alproto, SIG_FLAG_TOSERVER, progress,
@@ -103,7 +103,8 @@ int SCDetectHelperBufferProgressMpmRegister(const char *name, const char *desc, 
 }
 
 int SCDetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc,
-        AppProto alproto, uint8_t direction, InspectionMultiBufferGetDataPtr GetData, int progress)
+        AppProto alproto, uint8_t direction, InspectionMultiBufferGetDataPtr GetData,
+        uint8_t progress)
 {
     if (direction & STREAM_TOSERVER) {
         DetectAppLayerMultiRegister(name, alproto, SIG_FLAG_TOSERVER, progress, GetData, 2);
