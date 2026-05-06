@@ -1026,6 +1026,13 @@ static void DNP3HandleUserDataResponse(
         DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_MALFORMED);
         return;
     }
+    // a data link frame has its size on one byte,
+    // and transport layer has sequence in 0-63
+    if (tx->buffer_len > 63 * 0xff) {
+        DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_TOO_LONG_REASS);
+        tx->done = 1;
+        return;
+    }
 
     if (!DNP3_TH_FIN(th)) {
         return;
