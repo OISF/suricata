@@ -47,6 +47,7 @@
 #include "util-dpdk-ice.h"
 #include "util-dpdk-ixgbe.h"
 #include "util-dpdk-rss.h"
+#include "util-dpdk-rte-flow.h"
 #include "util-time.h"
 #include "util-conf.h"
 #include "suricata.h"
@@ -105,6 +106,8 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
         const struct rte_eth_conf *port_conf);
 static int DeviceValidateOutIfaceConfig(DPDKIfaceConfig *iconf);
 static int DeviceConfigureIPS(DPDKIfaceConfig *iconf);
+static int DeviceConfigureDynamicBypass(
+        DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info);
 static int DeviceConfigure(DPDKIfaceConfig *iconf);
 static void *ParseDpdkConfigAndConfigureDevice(const char *iface);
 static void DPDKDerefConfig(void *conf);
@@ -143,21 +146,9 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
     .tx_descriptors = "tx-descriptors",
     .copy_mode = "copy-mode",
     .copy_iface = "copy-iface",
+    .drop_filter = "drop-filter",
+    .capture_bypass = "capture-bypass",
 };
-
-/**
- * \brief Input is a number of which we want to find the greatest divisor up to max_num (inclusive).
- * The divisor is returned.
- */
-static uint32_t GreatestDivisorUpTo(uint32_t num, uint32_t max_num)
-{
-    for (uint32_t i = max_num; i >= 2; i--) {
-        if (num % i == 0) {
-            return i;
-        }
-    }
-    return 1;
-}
 
 /**
  * \brief Input is a number of which we want to find the greatest power of 2 up to num. The power of
@@ -339,7 +330,15 @@ static void DPDKDerefConfig(void *conf)
     DPDKIfaceConfig *iconf = (DPDKIfaceConfig *)conf;
 
     if (SC_ATOMIC_SUB(iconf->ref, 1) == 1) {
-        DPDKDeviceResourcesDeinit(&iconf->pkt_mempools);
+        if (iconf->dpdk_dev_resources != NULL &&
+                iconf->dpdk_dev_resources->rte_flow_bypass_data != NULL) {
+            if (iconf->dpdk_dev_resources->rte_flow_bypass_data->bypass_mp != NULL) {
+                rte_mempool_free(iconf->dpdk_dev_resources->rte_flow_bypass_data->bypass_mp);
+                iconf->dpdk_dev_resources->rte_flow_bypass_data->bypass_mp = NULL;
+            }
+        }
+        DPDKDeviceResourcesDeinit(&iconf->dpdk_dev_resources);
+        iconf->RteRulesFree(&iconf->drop_filter);
         SCFree(iconf);
     }
     SCReturn;
@@ -357,6 +356,7 @@ static void ConfigInit(DPDKIfaceConfig **iconf)
     SC_ATOMIC_INIT(ptr->ref);
     (void)SC_ATOMIC_ADD(ptr->ref, 1);
     ptr->DerefFunc = DPDKDerefConfig;
+    ptr->RteRulesFree = RteFlowRuleStorageFree;
     ptr->flags = 0;
 
     *iconf = ptr;
@@ -633,15 +633,6 @@ static int ConfigSetMempoolSize(
     }
 
     SCReturnInt(0);
-}
-
-static uint32_t MempoolCacheSizeCalculate(uint32_t mp_sz)
-{
-    // It is advised to have mempool cache size lower or equal to:
-    //   RTE_MEMPOOL_CACHE_MAX_SIZE (by default 512) and "mempool-size / 1.5"
-    // and at the same time "mempool-size modulo cache_size == 0".
-    uint32_t max_cache_size = MIN(RTE_MEMPOOL_CACHE_MAX_SIZE, (uint32_t)(mp_sz / 1.5));
-    return GreatestDivisorUpTo(mp_sz, max_cache_size);
 }
 
 static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_str)
@@ -1069,6 +1060,15 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     if (retval < 0)
         SCReturnInt(retval);
 
+    retval = ConfigLoadRteFlowRules(if_root, dpdk_yaml.drop_filter, &iconf->drop_filter);
+    if (retval < 0)
+        SCReturnInt(retval);
+
+    /* Global flag dpdk.capture-bypass is set to each interface */
+    retval = ConfigSetCaptureBypass(iconf);
+    if (retval < 0)
+        SCReturnInt(retval);
+
     SCReturnInt(0);
 }
 
@@ -1487,11 +1487,11 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
     struct rte_eth_rxconf rxq_conf;
     struct rte_eth_txconf txq_conf;
 
-    retval = DPDKDeviceResourcesInit(&(iconf->pkt_mempools), iconf->nb_rx_queues);
+    retval = DPDKDeviceResourcesInit(&(iconf->dpdk_dev_resources), iconf->nb_rx_queues);
     if (retval < 0) {
         goto cleanup;
     }
-
+    iconf->dpdk_dev_resources->port_id = iconf->port_id;
     // +4 for VLAN header
     uint16_t mtu_size = iconf->mtu + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN + 4;
     uint16_t mbuf_size = ROUNDUP(mtu_size, 1024) + RTE_PKTMBUF_HEADROOM;
@@ -1503,9 +1503,9 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
     for (int i = 0; i < iconf->nb_rx_queues; i++) {
         char mempool_name[64];
         snprintf(mempool_name, sizeof(mempool_name), "mp_%d_%.20s", i, iconf->iface);
-        iconf->pkt_mempools->pkt_mp[i] = rte_pktmbuf_pool_create(mempool_name,
+        iconf->dpdk_dev_resources->pkt_mp[i] = rte_pktmbuf_pool_create(mempool_name,
                 iconf->queue_mempool_size, q_mp_cache_sz, 0, mbuf_size, (int)iconf->socket_id);
-        if (iconf->pkt_mempools->pkt_mp[i] == NULL) {
+        if (iconf->dpdk_dev_resources->pkt_mp[i] == NULL) {
             retval = -rte_errno;
             SCLogError("%s: rte_pktmbuf_pool_create failed with code %d (mempool: %s) - %s",
                     iconf->iface, rte_errno, mempool_name, rte_strerror(rte_errno));
@@ -1529,7 +1529,8 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
                 rxq_conf.rx_free_thresh, rxq_conf.rx_drop_en);
 
         retval = rte_eth_rx_queue_setup(iconf->port_id, queue_id, iconf->nb_rx_desc,
-                (unsigned int)iconf->socket_id, &rxq_conf, iconf->pkt_mempools->pkt_mp[queue_id]);
+                (unsigned int)iconf->socket_id, &rxq_conf,
+                iconf->dpdk_dev_resources->pkt_mp[queue_id]);
         if (retval < 0) {
             SCLogError("%s: failed to setup RX queue %u: %s", iconf->iface, queue_id,
                     rte_strerror(-retval));
@@ -1560,7 +1561,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
     SCReturnInt(0);
 
 cleanup:
-    DPDKDeviceResourcesDeinit(&iconf->pkt_mempools);
+    DPDKDeviceResourcesDeinit(&iconf->dpdk_dev_resources);
     SCReturnInt(retval);
 }
 
@@ -1651,6 +1652,23 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
     SCReturnInt(0);
 }
 
+static int DeviceConfigureDynamicBypass(
+        DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
+{
+    SCEnter();
+    int retval = 0;
+    if (!(iconf->capture_bypass_enabled)) {
+        SCReturnInt(retval);
+    }
+    const char *driver_name = dev_info->driver_name;
+    if (strcmp(driver_name, "mlx5_pci") == 0) {
+        retval = RteBypassInit(iconf, driver_name);
+    }
+
+    if (retval == 0)
+        SCLogConfig("%s rte_flow capture bypass enabled", iconf->iface);
+    SCReturnInt(retval);
+}
 /**
  * Function verifies changes in e.g. device info after configuration has
  * happened. Sometimes (e.g. DPDK Bond PMD with Intel NICs i40e/ixgbe) change
@@ -1828,6 +1846,10 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         SCReturnInt(retval);
     }
 
+    retval = DeviceConfigureDynamicBypass(iconf, &dev_info);
+    if (retval < 0) {
+        SCReturnInt(retval);
+    }
     SCReturnInt(0);
 }
 
@@ -1877,8 +1899,8 @@ static void *ParseDpdkConfigAndConfigureDevice(const char *iface)
     if (ldev_instance == NULL) {
         FatalError("Device %s is not registered as a live device", iface);
     }
-    ldev_instance->dpdk_vars = iconf->pkt_mempools;
-    iconf->pkt_mempools = NULL;
+    ldev_instance->dpdk_vars = iconf->dpdk_dev_resources;
+    iconf->dpdk_dev_resources = NULL;
     return iconf;
 }
 

@@ -239,3 +239,114 @@ Encapsulation stripping
 Suricata supports stripping the hardware-offloaded encapsulation stripping on
 the supported NICs. Currently, VLAN encapsulation stripping is supported.
 VLAN encapsulation stripping can be enabled with `vlan-strip-offload`.
+
+Drop filter
+-----------
+
+The drop filter can improve Suricata's performance by filtering
+user-predefined traffic patterns directly in the NIC. The user can
+specify unwanted traffic patterns before starting Suricata. The specified 
+traffic is not going to be inspected by Suricata and will be ignored for the whole run of the program.
+On some PMDs, the statistics of matched rules are gathered and stored in eve.json 
+in the field ``stats.capture.dpdk.rte_flow_filtered``.
+
+The syntax for the drop filter in Suricata is similar to the dpdk-testpmd application
+rule syntax, although only the "pattern" section is applicable in Suricata.
+The user can define multiple rules, either to match a specific flow
+or a broad section of incoming network traffic (e.g., using ip and port masks, matching on specific protocols ...).
+
+Patterns currently supported by this feature are listed in
+"src/util-dpdk-rte-flow-pattern.c" in ``enum index next_item[]``
+and their corresponding attributes in ``enum index item_<pattern>[]``.
+
+.. literalinclude:: ../../../src/util-dpdk-rte-flow-pattern.c
+    :language: c
+    :start-at: /* --- start pattern enum --- */
+    :end-at: /* --- end pattern enum --- */
+
+
+This feature is supported and tested only on NICs with mlx5, ice, and i40e drivers.
+Some of the drivers also support collecting statistics about dropped traffic.
+The level of functionality varies between these cards, as specified below:
+
+* ice:
+
+  The driver does not support broad (wildcard) patterns; some pattern item must 
+  be specified, e.g., ``pattern eth / ipv4 / end`` raises an error but
+  ``pattern eth / ipv4 src is x / end`` or ``pattern eth / ipv4 / tcp src is x`` works fine.
+  It also supports gathering statistics of the filtered packets, but only
+  when none of the rules use wildcard patterns (e.g., mask cannot be used).
+
+* i40e:
+
+  The driver does not support different item sets on the same pattern item type,
+  e.g., if the first rule is in the form ``pattern eth / ipv4 src is x / end``,
+  then any other rule containing an ipv4 pattern type must exclusively use the src attribute.
+  Statistics of the filtered packets are not supported.
+
+* mlx5:
+
+  The driver is the most versatile PMD, supporting a wide range of patterns.
+  It also supports gathering statistics of the filtered packets without any other constraints.
+
+
+The configuration for the drop filter can be found and modified in the
+DPDK section of suricata.yaml file.
+
+Below is a sample configuration that demonstrates how to filter a specific flow and a range of flows:
+
+::
+
+  ...
+  dpdk:
+      eal-params:
+        proc-type: primary
+
+      interfaces:
+        - interface: 0000:3b:00.0
+          drop-filter:
+            - rule: "pattern eth / ipv4 src is 192.11.120.50 / tcp / end"
+            - rule: "pattern eth / ipv4 src is 170.22.40.0 src mask 255.255.255.0 / tcp / end"
+
+Dynamic bypass
+--------------
+
+Suricata in IDS mode supports hardware accelerated flow bypass directly in the NIC.
+The capabilities of the bypass, such as how many flows can be bypassed in the hardware before 
+switching to software bypass, depend on the underlying hardware and the Poll Mode Driver.
+
+The DPDK hardware bypass can be enabled/disabled in the suricata.yaml file, via the ``capture-bypass`` option.
+The ``dpdk.bypass-info-mp-size`` option sets the number of flows that can be bypassed at once. 
+By default, this number is set to the maximum capabilities of the NIC in use, which can be in order of millions of flows.
+The ``auto`` option also sets this value to maximum.
+As the memory for bypassed flows is preallocated, in the case the expected number of bypassed flows is not high,
+it is possible to save memory by lowering this value, although it is recommended to set 
+the number to a power of 2 for efficiency reasons.
+
+The global bypass statistics are gathered in eve.json (in the flow section) and stats.log (flow_bypassed.*).
+
+Limitations:
+
+* Mellanox NICs with the mlx5_core PMD are currently the only supported NICs for this feature.
+
+* Mellanox NICs support offload of around 2 million flows at once, after the limit is reached, 
+  Suricata switches to software bypass. Although the NIC can handle more than 4 million hardware rules,
+  we need 2 rules for each direction of the flow.
+
+* The underlying hardware rules are taken from the same resources as the rules for `drop-filter`, meaning
+  defining more rules in the `drop-filter` decreases the capacity of rules for hardware bypass.
+
+* The feature can be used on multiple interfaces at the same time, but only if the interfaces are on the same NIC.
+  The capacity of the bypassed flows is shared across the interfaces.
+
+
+Below is an example configuration with bypass enabled and the capacity of bypassed flows set to maximum: 
+::
+
+  ...
+  dpdk:
+      eal-params:
+        proc-type: primary
+
+      capture-bypass: yes
+      bypass-info-mp-size: auto 

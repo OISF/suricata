@@ -258,11 +258,11 @@ static int LiveSafeDeviceName(const char *devname, char *newdevname, size_t dest
 }
 
 /**
- *  \brief Get a pointer to the device at idx
+ *  \brief Get a pointer to the device by name
  *
- *  \param number idx of the device in our list
+ *  \param str name of the device in our list
  *
- *  \retval ptr pointer to the string containing the device
+ *  \retval ptr pointer to the device instance
  *  \retval NULL on error
  */
 LiveDevice *LiveGetDevice(const char *name)
@@ -278,6 +278,30 @@ LiveDevice *LiveGetDevice(const char *name)
         if (!strcmp(name, pd->dev)) {
             return pd;
         }
+    }
+
+    return NULL;
+}
+
+/**
+ *  \brief Get a pointer to the device at idx
+ *
+ *  \param number idx of the device in our list
+ *
+ *  \retval ptr pointer to the device instance
+ *  \retval NULL on error
+ */
+LiveDevice *LiveGetDeviceByIdx(int number)
+{
+    int i = 0;
+    LiveDevice *pd;
+
+    TAILQ_FOREACH (pd, &live_devices, next) {
+        if (i == number) {
+            return pd;
+        }
+
+        i++;
     }
 
     return NULL;
@@ -342,6 +366,18 @@ int LiveDeviceListClean(void)
     }
     TAILQ_FOREACH_SAFE(pd, &live_devices, next, tpd) {
         if (live_devices_stats) {
+#ifdef CAPTURE_OFFLOAD
+            SCLogNotice("%s: packets: %" PRIu64 ", bypassed: %" PRIu64 ", drops: %" PRIu64
+                        " (%.2f%%), invalid chksum: %" PRIu64,
+                    pd->dev, SC_ATOMIC_GET(pd->pkts), SC_ATOMIC_GET(pd->bypassed),
+                    SC_ATOMIC_GET(pd->drop),
+                    SC_ATOMIC_GET(pd->pkts) > 0
+                            ? 100 * ((double)SC_ATOMIC_GET(pd->drop)) /
+                                      ((double)SC_ATOMIC_GET(pd->pkts) +
+                                              (double)SC_ATOMIC_GET(pd->bypassed))
+                            : 0,
+                    SC_ATOMIC_GET(pd->invalid_checksums));
+#else
             SCLogNotice("%s: packets: %" PRIu64 ", drops: %" PRIu64
                         " (%.2f%%), invalid chksum: %" PRIu64,
                     pd->dev, SC_ATOMIC_GET(pd->pkts), SC_ATOMIC_GET(pd->drop),
@@ -349,6 +385,7 @@ int LiveDeviceListClean(void)
                                                           (double)SC_ATOMIC_GET(pd->pkts)
                                                 : 0,
                     SC_ATOMIC_GET(pd->invalid_checksums));
+#endif
         }
 
         RestoreIfaceOffloading(pd);
