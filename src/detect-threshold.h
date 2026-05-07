@@ -48,10 +48,15 @@
 #define TH_ACTION_REJECT    0x20
 
 /* distinct counting support (for detection_filter) */
+#define DF_UNIQUE_IP_MAX_COUNT                                                                     \
+    10000 /**< max count for IP-based unique_on (buffer is count * sizeof(Address)) */
+
 enum DetectThresholdUniqueOn {
     DF_UNIQUE_NONE = 0,
     DF_UNIQUE_SRC_PORT,
     DF_UNIQUE_DST_PORT,
+    DF_UNIQUE_SRC_IP,
+    DF_UNIQUE_DST_IP,
 };
 
 /**
