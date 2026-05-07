@@ -80,10 +80,8 @@ pub(crate) enum DCEOpnumData {
 fn match_backuuid(
     tx: &DCERPCTransaction, state: &mut DCERPCState, if_data: &mut DCEIfaceData,
 ) -> c_int {
-    let mut ret = 0;
     if !state.interface_uuids.is_empty() {
         for uuidentry in &state.interface_uuids {
-            ret = 1;
             // if any_frag is not enabled, we need to match only against the first fragment
             if if_data.any_frag == 0 && (uuidentry.flags & DCERPC_UUID_ENTRY_FLAG_FF == 0) {
                 SCLogDebug!("any frag not enabled");
@@ -91,21 +89,23 @@ fn match_backuuid(
             }
             // if the uuid has been rejected(uuidentry->result == 1), we skip to the next uuid
             if !uuidentry.acked || uuidentry.result != 0 {
-                ret = 0;
                 SCLogDebug!("Skipping to next UUID");
                 continue;
             }
 
+            let mut same = true;
             for i in 0..16 {
                 if if_data.if_uuid[i] != uuidentry.uuid[i] {
                     SCLogDebug!("Iface UUID and BINDACK Accepted UUID does not match");
-                    ret = 0;
+                    same = false;
                     break;
                 }
             }
+            if !same {
+                continue;
+            }
             let ctxid = tx.get_req_ctxid();
-            ret &= (uuidentry.ctxid == ctxid) as c_int;
-            if ret == 0 {
+            if uuidentry.ctxid != ctxid {
                 SCLogDebug!("CTX IDs/UUIDs do not match");
                 continue;
             }
@@ -113,17 +113,15 @@ fn match_backuuid(
             if let Some(x) = &if_data.du16 {
                 if !detect_match_uint(x, uuidentry.version) {
                     SCLogDebug!("Interface version did not match");
-                    ret &= 0;
+                    continue
                 }
             }
 
-            if ret == 1 {
-                return 1;
-            }
+            return 1;
         }
     }
 
-    return ret;
+    return 0;
 }
 
 fn parse_iface_data(arg: &str) -> Result<DCEIfaceData, ()> {
