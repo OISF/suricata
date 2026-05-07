@@ -1489,7 +1489,8 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         SCJbSetString(ctx.js, "buffer", name);
 
         SigMatchData *smd = pkt_mpm ? pkt_mpm->smd : app_mpm->smd;
-        if (smd == NULL && mpm_list == DETECT_SM_LIST_PMATCH) {
+        if (smd == NULL) {
+            DEBUG_VALIDATE_BUG_ON(mpm_list != DETECT_SM_LIST_PMATCH);
             smd = s->sm_arrays[mpm_list];
         }
         do {
