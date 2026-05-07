@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -3313,8 +3313,8 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     AlertQueueInit(det_ctx);
 
     /* byte_extract storage */
-    det_ctx->byte_values = SCMalloc(sizeof(*det_ctx->byte_values) *
-                                  (de_ctx->byte_extract_max_local_id + 1));
+    det_ctx->byte_values_len = de_ctx->byte_extract_max_local_id + 1;
+    det_ctx->byte_values = SCMalloc(sizeof(*det_ctx->byte_values) * det_ctx->byte_values_len);
     if (det_ctx->byte_values == NULL) {
         return TM_ECODE_FAILED;
     }
