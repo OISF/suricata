@@ -1,4 +1,4 @@
-/* Copyright (C) 2019-2022 Open Information Security Foundation
+/* Copyright (C) 2019-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,9 +18,10 @@
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
 use crate::sdp::parser::{sdp_parse_message, SdpMessage};
-use nom8::bytes::streaming::{tag, take, take_while, take_while1};
+use nom8::bytes::streaming::{tag, take, take_until, take_while, take_while1};
 use nom8::character::streaming::{char, crlf};
 use nom8::combinator::{map, map_res, opt};
+use nom8::error::{Error, ErrorKind};
 use nom8::sequence::delimited;
 use nom8::{AsChar, Err, IResult, Needed, Parser};
 use std;
@@ -109,6 +110,17 @@ fn expand_header_name(h: &str) -> &str {
         "t" => "To",
         "v" => "Via",
         _ => h,
+    }
+}
+
+pub fn sip_probe_protocol(i: &[u8]) -> IResult<&[u8], ()> {
+    if tag::<_, _, Error<&[u8]>>("SIP/").parse(i).is_ok() {
+        return Ok((i, ()));
+    }
+    if take_until::<_, _, Error<&[u8]>>("SIP/").parse(i).is_ok() {
+        Ok((i, ()))
+    } else {
+        Err(Err::Error(Error::new(i, ErrorKind::Tag)))
     }
 }
 
@@ -211,7 +223,12 @@ fn header_value(i: &[u8]) -> IResult<&[u8], &str> {
 
 #[inline]
 fn hcolon(i: &[u8]) -> IResult<&[u8], char> {
-    delimited(take_while(|c: u8| c.is_space()), char(':'), take_while(|c: u8| c.is_space())).parse(i)
+    delimited(
+        take_while(|c: u8| c.is_space()),
+        char(':'),
+        take_while(|c: u8| c.is_space()),
+    )
+    .parse(i)
 }
 
 fn message_header(i: &[u8]) -> IResult<&[u8], Header> {
@@ -357,6 +374,18 @@ mod tests {
 
         let (_rem, result) = parse_version(buf).unwrap();
         assert_eq!(result, "SIP/2.0");
+    }
+
+    #[test]
+    fn test_probe_sip_request() {
+        let buf = b"REGISTER sip:sip.example.com SIP/2.0\r\n";
+        assert!(sip_probe_protocol(buf).is_ok());
+    }
+
+    #[test]
+    fn test_probe_sip_response() {
+        let buf = b"SIP/2.0 200 OK\r\n";
+        assert!(sip_probe_protocol(buf).is_ok());
     }
 
     #[test]

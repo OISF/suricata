@@ -20,7 +20,8 @@
 use crate::applayer::{self, *};
 use crate::core;
 use crate::core::{
-    sc_app_layer_parser_trigger_raw_stream_inspection, ALPROTO_UNKNOWN, IPPROTO_TCP, IPPROTO_UDP,
+    sc_app_layer_parser_trigger_raw_stream_inspection, ALPROTO_FAILED, ALPROTO_UNKNOWN,
+    IPPROTO_TCP, IPPROTO_UDP,
 };
 use crate::direction::Direction;
 use crate::flow::Flow;
@@ -33,7 +34,7 @@ use std::ffi::CString;
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
     SCAppLayerParserRegisterLogger, SCAppLayerParserStateIssetFlag,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPMRegisterPatternCS,
+    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPMRegisterPatternCSwPP,
 };
 
 // app-layer-frame-documentation tag start: FrameType enum
@@ -157,9 +158,7 @@ impl SIPState {
         }
     }
 
-    fn parse_request_tcp(
-        &mut self, flow: *mut Flow, stream_slice: StreamSlice,
-    ) -> AppLayerResult {
+    fn parse_request_tcp(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if input.is_empty() {
             return AppLayerResult::ok();
@@ -256,9 +255,7 @@ impl SIPState {
         }
     }
 
-    fn parse_response_tcp(
-        &mut self, flow: *mut Flow, stream_slice: StreamSlice,
-    ) -> AppLayerResult {
+    fn parse_response_tcp(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if input.is_empty() {
             return AppLayerResult::ok();
@@ -496,6 +493,20 @@ unsafe extern "C" fn sip_parse_response_tcp(
     state.parse_response_tcp(flow, stream_slice)
 }
 
+unsafe extern "C" fn sip_probing_parser(
+    _f: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
+) -> AppProto {
+    if input.is_null() || input_len == 0 {
+        return ALPROTO_UNKNOWN;
+    }
+    let buf = std::slice::from_raw_parts(input, input_len as usize);
+    match sip_probe_protocol(buf) {
+        Ok(_) => ALPROTO_SIP,
+        Err(Err::Incomplete(_)) => ALPROTO_UNKNOWN,
+        Err(_) => ALPROTO_FAILED,
+    }
+}
+
 fn register_pattern_probe(proto: u8) -> i8 {
     let methods: Vec<&str> = vec![
         "REGISTER\0",
@@ -515,31 +526,40 @@ fn register_pattern_probe(proto: u8) -> i8 {
     unsafe {
         for method in methods {
             let depth = (method.len() - 1) as u16;
-            r |= SCAppLayerProtoDetectPMRegisterPatternCS(
+            r |= SCAppLayerProtoDetectPMRegisterPatternCSwPP(
                 proto,
                 ALPROTO_SIP,
                 method.as_ptr() as *const std::os::raw::c_char,
                 depth,
                 0,
                 Direction::ToServer as u8,
+                Some(sip_probing_parser),
+                0,
+                0,
             );
         }
-        r |= SCAppLayerProtoDetectPMRegisterPatternCS(
+        r |= SCAppLayerProtoDetectPMRegisterPatternCSwPP(
             proto,
             ALPROTO_SIP,
             b"SIP/2.0\0".as_ptr() as *const std::os::raw::c_char,
             8,
             0,
             Direction::ToClient as u8,
+            Some(sip_probing_parser),
+            0,
+            0,
         );
         if proto == core::IPPROTO_UDP {
-            r |= SCAppLayerProtoDetectPMRegisterPatternCS(
+            r |= SCAppLayerProtoDetectPMRegisterPatternCSwPP(
                 proto,
                 ALPROTO_SIP,
                 "UPDATE\0".as_ptr() as *const std::os::raw::c_char,
                 "UPDATE".len() as u16,
                 0,
                 Direction::ToServer as u8,
+                Some(sip_probing_parser),
+                0,
+                0,
             );
         }
     }
