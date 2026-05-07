@@ -53,7 +53,7 @@
 #include "util-debug.h"
 #include "util-conf.h"
 
-#define PARSE_REGEX         "^([a-z]+)(?:,\\s*(.*))?"
+#define PARSE_REGEX         "^([a-z]+)(?:,\\s*(.*))?$"
 static DetectParseRegex parse_regex;
 
 #define MAX_TOKENS 100
