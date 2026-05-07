@@ -163,7 +163,7 @@ static uint16_t DNP3ComputeCRC(const uint8_t *buf, uint32_t len)
     uint16_t crc = 0;
     int idx;
 
-    while (len--) {
+    for (uint32_t i = 0; i < len; i++) {
         idx = (crc ^ *byte) & 0xff;
         crc = (crc_table[idx] ^ (crc >> 8)) & 0xffff;
         byte++;
