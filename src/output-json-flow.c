@@ -52,6 +52,7 @@
 #include "stream-tcp-private.h"
 #include "flow-storage.h"
 #include "util-exception-policy.h"
+#include "flow-util.h"
 
 static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f, OutputJsonCommonSettings *cfg)
 {
@@ -106,8 +107,9 @@ static SCJsonBuilder *CreateEveHeaderFromFlow(const Flow *f, OutputJsonCommonSet
 #endif
 
     /* input interface */
-    if (f->livedev) {
-        SCJbSetString(jb, "in_iface", f->livedev->dev);
+    struct LiveDevice_ *ldev = FlowGetLiveDev(f);
+    if (ldev != NULL) {
+        SCJbSetString(jb, "in_iface", ldev->dev);
     }
 
     JB_SET_STRING(jb, "event_type", "flow");
