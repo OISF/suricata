@@ -231,6 +231,9 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, SCJsonBuilder *js, 
     SCJbOpenObject(js, "alert");
 
     SCJbSetString(js, "action", action);
+    if (EngineModeIsFirewall()) {
+        SCJbSetString(js, "engine", (pa->s->flags & SIG_FLAG_FIREWALL) ? "fw" : "td");
+    }
     SCJbSetUint(js, "gid", pa->s->gid);
     SCJbSetUint(js, "signature_id", pa->s->id);
     SCJbSetUint(js, "rev", pa->s->rev);
