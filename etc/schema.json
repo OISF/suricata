@@ -21,6 +21,14 @@
                     "additionalProperties": true,
                     "description": "Extra context data created by keywords such as dataset with JSON"
                 },
+                "engine": {
+                    "type": "string",
+                    "enum": [
+                        "fw",
+                        "td"
+                    ],
+                    "description": "Engine that generated the alert in firewall mode: fw for firewall rules, td for threat detect rules."
+                },
                 "gid": {
                     "type": "integer"
                 },

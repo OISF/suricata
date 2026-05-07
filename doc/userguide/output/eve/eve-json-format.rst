@@ -405,6 +405,10 @@ It can also contain information about Source and Target of the attack in the
 ``alert.source`` and ``alert.target`` field if target keyword is used in
 the signature.
 
+In firewall mode, the ``alert.engine`` field identifies which rule engine
+generated the alert: ``fw`` for firewall rules and ``td`` for threat detect
+rules. This field is omitted outside of firewall mode.
+
 This event will also have the ``pcap_cnt`` field, when running in pcap mode, to
 indicate which packet triggered the signature.
 
