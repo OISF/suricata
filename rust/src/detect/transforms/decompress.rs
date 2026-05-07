@@ -20,8 +20,8 @@ use crate::detect::SIGMATCH_OPTIONAL_OPT;
 use flate2::bufread::{GzDecoder, ZlibDecoder};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
-    SCDetectSignatureAddTransform, SCInspectionBufferCheckAndExpand, SCInspectionBufferTruncate,
-    SCTransformTableElmt, Signature,
+    SCDetectSignatureAddTransform, SCInspectionBufferCheckAndExpand, SCInspectionBufferInPlace,
+    SCInspectionBufferTruncate, SCTransformTableElmt, Signature,
 };
 
 use std::ffi::CStr;
@@ -132,26 +132,27 @@ unsafe fn decompress_transform(
     if input.is_null() || input_len == 0 {
         return;
     }
-    let input = build_slice!(input, input_len as usize);
+    let tmp;
+    let slice_input = if SCInspectionBufferInPlace(buffer) {
+        // need a temporary buffer as we cannot do the transfom in place
+        // rather copy the input which should be smaller than the decompressed output
+        // (Transform is tried in place when there are multiple chained transforms)
+        // needs to happen before possible realloc in SCInspectionBufferCheckAndExpand
+        tmp = build_slice!(input, input_len as usize).to_vec();
+        &tmp
+    } else {
+        build_slice!(input, input_len as usize)
+    };
+
     let output = SCInspectionBufferCheckAndExpand(buffer, ctx.max_size);
     if output.is_null() {
         // allocation failure
         return;
     }
     let buf = std::slice::from_raw_parts_mut(output, ctx.max_size as usize);
-    let mut tmp = Vec::new();
-    let input = if std::ptr::eq(output, input.as_ptr()) {
-        // need a temporary buffer as we cannot do the transfom in place
-        // rather copy the input which should be smaller than the decompressed output
-        // (Transform is tried in place when there are multiple chaines transforms)
-        tmp.extend_from_slice(input);
-        &tmp
-    } else {
-        input
-    };
 
     //  this succeeds if decompressed data > max_size, but we get nb = max_size
-    if let Some(nb) = decompress_fn(input, buf) {
+    if let Some(nb) = decompress_fn(slice_input, buf) {
         SCInspectionBufferTruncate(buffer, nb);
     } else {
         // decompression failure
