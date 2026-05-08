@@ -411,6 +411,13 @@ int DetectDatasetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         if (SetupSavePath(de_ctx, save, sizeof(save)) != 0)
             return -1;
         strlcpy(load, save, sizeof(load));
+    } else if (strlen(save) != 0 && strlen(load) != 0) {
+        /* both 'load' and 'save' set with different paths: resolve each
+         * independently. */
+        if (SetupSavePath(de_ctx, save, sizeof(save)) != 0)
+            return -1;
+        if (SetupLoadPath(de_ctx, load, sizeof(load)) != 0)
+            return -1;
     }
 
     SCLogDebug("name '%s' load '%s' save '%s'", name, load, save);
