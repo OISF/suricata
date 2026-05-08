@@ -589,7 +589,7 @@ static int UtilSpmBasicSearchNocaseTest01(void)
     uint8_t *found = BasicSearchNocaseWrapper(text, needle, 1);
     //printf("found: %s\n", found);
     FAIL_IF_NULL(found);
-    PASS;    
+    PASS;
 }
 
 /**
