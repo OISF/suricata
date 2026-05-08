@@ -1633,6 +1633,17 @@ jobs:
           CARGO_INCREMENTAL: 0
       - run: llvm-profdata-19 merge -o ct.profdata /tmp/ct.profraw
       - run: llvm-cov-19 export $(find rust/target/debug/deps/ -type f -regex 'rust/target/debug/deps/suricata\-[a-z0-9]+$') -instr-profile=ct.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" --skip-branches >> coverage.lcov
+      - run: |
+          cargo build --manifest-path examples/plugins/rust/Cargo.toml
+          rm -f /tmp/eve.json /tmp/rust-plugin-*.profraw
+          ./src/suricata -S /dev/null --plugin ./examples/plugins/rust/target/debug/libsuricata_rust_plugin.so --runmode=single -l /tmp -c suricata.yaml -k none -r qa/docker/pcaps/tls.pcap
+          test "$(jq -c 'select(.foobar and .rust_wrapped)' /tmp/eve.json | wc -l)" != "0"
+          llvm-profdata-19 merge -o rust-plugin.profdata /tmp/rust-plugin-*.profraw
+          llvm-cov-19 export ./examples/plugins/rust/target/debug/libsuricata_rust_plugin.so -instr-profile=rust-plugin.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" --skip-branches >> coverage.lcov
+        env:
+          RUSTFLAGS: "-C instrument-coverage"
+          CARGO_INCREMENTAL: 0
+          LLVM_PROFILE_FILE: "/tmp/rust-plugin-%p-%m.profraw"
       - name: Upload coverage.lcov artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
