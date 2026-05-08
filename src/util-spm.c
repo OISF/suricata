@@ -575,10 +575,8 @@ static int UtilSpmBasicSearchTest01(void)
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchWrapper(text, needle, 1);
     //printf("found: %s\n", found);
-    if (found != NULL)
-        return 1;
-    else
-        return 0;
+    FAIL_IF_NULL(found);
+    PASS;
 }
 
 /**
@@ -590,10 +588,8 @@ static int UtilSpmBasicSearchNocaseTest01(void)
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchNocaseWrapper(text, needle, 1);
     //printf("found: %s\n", found);
-    if (found != NULL)
-        return 1;
-    else
-        return 0;
+    FAIL_IF_NULL(found);
+    PASS;    
 }
 
 /**
@@ -605,10 +601,8 @@ static int UtilSpmBs2bmSearchTest01(void)
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmWrapper(text, needle, 1);
     //printf("found: %s\n", found);
-    if (found != NULL)
-        return 1;
-    else
-        return 0;
+    FAIL_IF_NULL(found);
+    PASS;
 }
 
 /**
@@ -620,10 +614,8 @@ static int UtilSpmBs2bmSearchNocaseTest01(void)
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmNocaseWrapper(text, needle, 1);
     //printf("found: %s\n", found);
-    if (found != NULL)
-        return 1;
-    else
-        return 0;
+    FAIL_IF_NULL(found);
+    PASS;
 }
 
 /**
@@ -635,10 +627,8 @@ static int UtilSpmBoyerMooreSearchTest01(void)
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreWrapper(text, needle, 1);
     //printf("found: %s\n", found);
-    if (found != NULL)
-        return 1;
-    else
-        return 0;
+    FAIL_IF_NULL(found);
+    PASS;
 }
 
 /**
@@ -650,10 +640,8 @@ static int UtilSpmBoyerMooreSearchNocaseTest01(void)
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreNocaseWrapper(text, needle, 1);
     //printf("found: %s\n", found);
-    if (found != NULL)
-        return 1;
-    else
-        return 0;
+    FAIL_IF_NULL(found);
+    PASS;
 }
 
 /**
@@ -674,10 +662,8 @@ static int UtilSpmBoyerMooreSearchNocaseTestIssue130(void)
                 "Expires: Mon, 23 Feb 2009 13:31:49 GMT\r\n\r\n";
     uint8_t *found = BoyerMooreNocaseWrapper(text, needle, 1);
     //printf("found: %s\n", found);
-    if (found != NULL)
-        return 1;
-    else
-        return 0;
+    FAIL_IF_NULL(found);
+    PASS;
 }
 
 /* Generic tests that should not match */
@@ -687,10 +673,8 @@ static int UtilSpmBasicSearchTest02(void)
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchWrapper(text, needle, 1);
     //printf("found: %s\n", found);
-    if (found != NULL)
-        return 0;
-    else
-        return 1;
+    FAIL_IF_NOT_NULL(found);
+    PASS;
 }
 
 static int UtilSpmBasicSearchNocaseTest02(void)
@@ -699,10 +683,8 @@ static int UtilSpmBasicSearchNocaseTest02(void)
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BasicSearchNocaseWrapper(text, needle, 1);
     //printf("found: %s\n", found);
-    if (found != NULL)
-        return 0;
-    else
-        return 1;
+    FAIL_IF_NOT_NULL(found);
+    PASS;
 }
 
 static int UtilSpmBs2bmSearchTest02(void)
@@ -711,10 +693,8 @@ static int UtilSpmBs2bmSearchTest02(void)
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmWrapper(text, needle, 1);
     //printf("found: %s\n", found);
-    if (found != NULL)
-        return 0;
-    else
-        return 1;
+    FAIL_IF_NOT_NULL(found);
+    PASS;
 }
 
 static int UtilSpmBs2bmSearchNocaseTest02(void)
@@ -723,10 +703,8 @@ static int UtilSpmBs2bmSearchNocaseTest02(void)
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = Bs2bmNocaseWrapper(text, needle, 1);
     //printf("found: %s\n", found);
-    if (found != NULL)
-        return 0;
-    else
-        return 1;
+    FAIL_IF_NOT_NULL(found);
+    PASS;
 }
 
 static int UtilSpmBoyerMooreSearchTest02(void)
@@ -735,10 +713,8 @@ static int UtilSpmBoyerMooreSearchTest02(void)
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreWrapper(text, needle, 1);
     //printf("found: %s\n", found);
-    if (found != NULL)
-        return 0;
-    else
-        return 1;
+    FAIL_IF_NOT_NULL(found);
+    PASS;
 }
 
 static int UtilSpmBoyerMooreSearchNocaseTest02(void)
@@ -747,10 +723,8 @@ static int UtilSpmBoyerMooreSearchNocaseTest02(void)
     uint8_t *text = (uint8_t *)"aBcDeFgHiJkLmNoPqRsTuVwXyZ";
     uint8_t *found = BoyerMooreNocaseWrapper(text, needle, 1);
     //printf("found: %s\n", found);
-    if (found != NULL)
-        return 0;
-    else
-        return 1;
+    FAIL_IF_NOT_NULL(found);
+    PASS;
 }
 
 /**
@@ -1172,21 +1146,21 @@ static int UtilSpmSearchOffsetsTest01(void)
             found = BasicSearchWrapper((uint8_t *)text[i][j], (uint8_t *)needle[i], 1);
             if (found == 0) {
                 printf("Error1 searching for %s in text %s\n", needle[i], text[i][j]);
-                return 0;
+                FAIL;
             }
             found = Bs2bmWrapper((uint8_t *)text[i][j], (uint8_t *)needle[i], 1);
             if (found == 0) {
                 printf("Error2 searching for %s in text %s\n", needle[i], text[i][j]);
-                return 0;
+                FAIL;
             }
             found = BoyerMooreWrapper((uint8_t *)text[i][j], (uint8_t *)needle[i], 1);
             if (found == 0) {
                 printf("Error3 searching for %s in text %s\n", needle[i], text[i][j]);
-                return 0;
+                FAIL;
             }
         }
     }
-    return 1;
+    PASS;
 }
 
 /**
@@ -1608,21 +1582,21 @@ static int UtilSpmSearchOffsetsNocaseTest01(void)
             found = BasicSearchNocaseWrapper((uint8_t *)text[i][j], (uint8_t *)needle[i], 1);
             if (found == 0) {
                 printf("Error1 searching for %s in text %s\n", needle[i], text[i][j]);
-                return 0;
+                FAIL;
             }
             found = Bs2bmNocaseWrapper((uint8_t *)text[i][j], (uint8_t *)needle[i], 1);
             if (found == 0) {
                 printf("Error2 searching for %s in text %s\n", needle[i], text[i][j]);
-                return 0;
+                FAIL;
             }
             found = BoyerMooreNocaseWrapper((uint8_t *)text[i][j], (uint8_t *)needle[i], 1);
             if (found == 0) {
                 printf("Error3 searching for %s in text %s\n", needle[i], text[i][j]);
-                return 0;
+                FAIL;
             }
         }
     }
-    return 1;
+    PASS;
 }
 
 #ifdef ENABLE_SEARCH_STATS
@@ -1675,23 +1649,23 @@ static int UtilSpmSearchStatsTest01(void)
         found = BasicSearchWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with Bs2BmSearch:", i+1);
         found = Bs2bmWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with BoyerMooreSearch:", i+1);
         found = BoyerMooreWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("\n");
     }
-    return 1;
+    PASS;
 }
 
 /**
@@ -1743,23 +1717,23 @@ static int UtilSpmSearchStatsTest02(void)
         found = BasicSearchWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with Bs2BmSearch:", i+1);
         found = Bs2bmWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with BoyerMooreSearch:", i+1);
         found = BoyerMooreWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("\n");
     }
-    return 1;
+    PASS;
 }
 
 
@@ -1809,23 +1783,23 @@ static int UtilSpmSearchStatsTest03(void)
         found = BasicSearchWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with Bs2BmSearch:", i+1);
         found = Bs2bmWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with BoyerMooreSearch:", i+1);
         found = BoyerMooreWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("\n");
     }
-    return 1;
+    PASS;
 }
 
 /**
@@ -1878,29 +1852,29 @@ static int UtilSpmSearchStatsTest04(void)
         found = BasicSearchCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with Bs2BmSearch (Building Context):", i + 1);
         found = Bs2bmCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with BoyerMooreSearch (Building Context):", i + 1);
         found = BoyerMooreCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with SpmSearch (Building Context):", i + 1);
         found = RawCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("\n");
     }
-    return 1;
+    PASS;
 }
 
 /**
@@ -1952,23 +1926,23 @@ static int UtilSpmSearchStatsTest05(void)
         found = BasicSearchCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with Bs2BmSearch (Building Context):", i+1);
         found = Bs2bmCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with BoyerMooreSearch (Building Context):", i+1);
         found = BoyerMooreCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("\n");
     }
-    return 1;
+    PASS;
 }
 
 
@@ -1996,23 +1970,23 @@ static int UtilSpmSearchStatsTest06(void)
         found = BasicSearchCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with Bs2BmSearch (Building Context):", i+1);
         found = Bs2bmCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with BoyerMooreSearch (Building Context):", i+1);
         found = BoyerMooreCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("\n");
     }
-    return 1;
+    PASS;
 }
 
 static int UtilSpmSearchStatsTest07(void)
@@ -2039,23 +2013,23 @@ static int UtilSpmSearchStatsTest07(void)
         found = BasicSearchCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with Bs2BmSearch (Building Context):", i+1);
         found = Bs2bmCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with BoyerMooreSearch (Building Context):", i+1);
         found = BoyerMooreCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("\n");
     }
-    return 1;
+    PASS;
 }
 
 /**
@@ -2107,23 +2081,23 @@ static int UtilSpmNocaseSearchStatsTest01(void)
         found = BasicSearchNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with Bs2BmSearch:", i+1);
         found = Bs2bmNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with BoyerMooreSearch:", i+1);
         found = BoyerMooreNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("\n");
     }
-    return 1;
+    PASS;
 }
 
 static int UtilSpmNocaseSearchStatsTest02(void)
@@ -2172,23 +2146,23 @@ static int UtilSpmNocaseSearchStatsTest02(void)
         found = BasicSearchNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with Bs2BmSearch:", i+1);
         found = Bs2bmNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with BoyerMooreSearch:", i+1);
         found = BoyerMooreNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("\n");
     }
-    return 1;
+    PASS;
 }
 
 
@@ -2216,23 +2190,23 @@ static int UtilSpmNocaseSearchStatsTest03(void)
         found = BasicSearchNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with Bs2BmSearch:", i+1);
         found = Bs2bmNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with BoyerMooreSearch:", i+1);
         found = BoyerMooreNocaseWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("\n");
     }
-    return 1;
+    PASS;
 }
 
 /**
@@ -2284,23 +2258,23 @@ static int UtilSpmNocaseSearchStatsTest04(void)
         found = BasicSearchNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with Bs2BmSearch (Building Context):", i+1);
         found = Bs2bmNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with BoyerMooreSearch (Building Context):", i+1);
         found = BoyerMooreNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("\n");
     }
-    return 1;
+    PASS;
 }
 
 static int UtilSpmNocaseSearchStatsTest05(void)
@@ -2349,23 +2323,23 @@ static int UtilSpmNocaseSearchStatsTest05(void)
         found = BasicSearchNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with Bs2BmSearch (Building Context):", i+1);
         found = Bs2bmNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with BoyerMooreSearch (Building Context):", i+1);
         found = BoyerMooreNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("\n");
     }
-    return 1;
+    PASS;
 }
 
 
@@ -2393,23 +2367,23 @@ static int UtilSpmNocaseSearchStatsTest06(void)
         found = BasicSearchNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with Bs2BmSearch (Building Context):", i+1);
         found = Bs2bmNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with BoyerMooreSearch (Building Context):", i+1);
         found = BoyerMooreNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("\n");
     }
-    return 1;
+    PASS;
 }
 
 static int UtilSpmNocaseSearchStatsTest07(void)
@@ -2436,23 +2410,23 @@ static int UtilSpmNocaseSearchStatsTest07(void)
         found = BasicSearchNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error1 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with Bs2BmSearch (Building Context):", i+1);
         found = Bs2bmNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error2 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("Pattern length %d with BoyerMooreSearch (Building Context):", i+1);
         found = BoyerMooreNocaseCtxWrapper((uint8_t *)text[i], (uint8_t *)needle[i], STATS_TIMES);
         if (found == 0) {
             printf("Error3 searching for %s in text %s\n", needle[i], text[i]);
-            return 0;
+            FAIL;
         }
         printf("\n");
     }
-    return 1;
+    PASS;
 }
 #endif
 
@@ -2473,54 +2447,34 @@ typedef struct SpmTestData_ {
 /* Helper function to conduct a search with a particular SPM matcher. */
 static int SpmTestSearch(const SpmTestData *d, uint8_t matcher)
 {
-    int ret = 1;
     SpmGlobalThreadCtx *global_thread_ctx = NULL;
     SpmThreadCtx *thread_ctx = NULL;
     SpmCtx *ctx = NULL;
     uint8_t *found = NULL;
 
     global_thread_ctx = SpmInitGlobalThreadCtx(matcher);
-    if (global_thread_ctx == NULL) {
-        ret = 0;
-        goto exit;
-    }
+    FAIL_IF_NULL(global_thread_ctx);
 
     ctx = SpmInitCtx((const uint8_t *)d->needle, d->needle_len, d->nocase,
                      global_thread_ctx);
-    if (ctx == NULL) {
-        ret = 0;
-        goto exit;
-    }
+    FAIL_IF_NULL(ctx);
 
     thread_ctx = SpmMakeThreadCtx(global_thread_ctx);
-    if (thread_ctx == NULL) {
-        ret = 0;
-        goto exit;
-    }
+    FAIL_IF_NULL(thread_ctx);
 
     found = SpmScan(ctx, thread_ctx, (const uint8_t *)d->haystack,
                     d->haystack_len);
     if (found == NULL) {
-        if (d->match_offset != SPM_NO_MATCH) {
-            printf("  should have matched at %" PRIu32 " but didn't\n",
-                   d->match_offset);
-            ret = 0;
-        }
+        FAIL_IF(d->match_offset != SPM_NO_MATCH);
     } else {
         uint32_t offset = (uint32_t)(found - (const uint8_t *)d->haystack);
-        if (offset != d->match_offset) {
-            printf("  should have matched at %" PRIu32
-                   " but matched at %" PRIu32 "\n",
-                   d->match_offset, offset);
-            ret = 0;
-        }
+        FAIL_IF(offset != d->match_offset);
     }
 
-exit:
     SpmDestroyCtx(ctx);
     SpmDestroyThreadCtx(thread_ctx);
     SpmDestroyGlobalThreadCtx(global_thread_ctx);
-    return ret;
+    PASS;
 }
 
 static int SpmSearchTest01(void) {
@@ -2595,8 +2549,6 @@ static int SpmSearchTest02(void) {
         "Suricata", "CAPS LOCK", "mIxEd cAsE",
     };
 
-    int ret = 1;
-
     uint8_t matcher;
     for (matcher = 0; matcher < SPM_TABLE_SIZE; matcher++) {
         const SpmTableElmt *m = &spm_table[matcher];
@@ -2616,10 +2568,7 @@ static int SpmSearchTest02(void) {
                 d.needle_len = (uint16_t)strlen(needle);
                 uint16_t haystack_len = prefix + d.needle_len;
                 char *haystack = SCMalloc(haystack_len);
-                if (haystack == NULL) {
-                    printf("alloc failure\n");
-                    return 0;
-                }
+                FAIL_IF_NULL(haystack);
                 memset(haystack, ' ', haystack_len);
                 memcpy(haystack + prefix, d.needle, d.needle_len);
                 d.haystack = haystack;
@@ -2630,7 +2579,7 @@ static int SpmSearchTest02(void) {
                 /* Case-sensitive scan */
                 if (SpmTestSearch(&d, matcher) == 0) {
                     printf("  test %" PRIu32 ": fail (case-sensitive)\n", i);
-                    ret = 0;
+                    FAIL;
                 }
 
                 /* Case-insensitive scan */
@@ -2641,7 +2590,7 @@ static int SpmSearchTest02(void) {
                 }
                 if (SpmTestSearch(&d, matcher) == 0) {
                     printf("  test %" PRIu32 ": fail (case-insensitive)\n", i);
-                    ret = 0;
+                    FAIL;
                 }
 
                 SCFree(haystack);
@@ -2650,7 +2599,7 @@ static int SpmSearchTest02(void) {
         printf("  %" PRIu32 " tests passed\n", i);
     }
 
-    return ret;
+    PASS;
 }
 
 /* Register unittests */
