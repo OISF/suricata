@@ -195,6 +195,36 @@ pub fn parse_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
     }
 }
 
+fn find_overload_value(options: &[DHCPOption]) -> u8 {
+    for opt in options {
+        if opt.code == DHCP_OPT_OVERLOAD {
+            if let DHCPOptionWrapper::Generic(ref g) = opt.option {
+                if !g.data.is_empty() {
+                    return g.data[0];
+                }
+            }
+        }
+    }
+    0
+}
+
+fn parse_overloaded_field(field: &[u8], options: &mut Vec<DHCPOption>) {
+    let mut next = field;
+    while !next.is_empty() {
+        match parse_option(next) {
+            Ok((rem, option)) => {
+                let done = option.code == DHCP_OPT_END;
+                options.push(option);
+                next = rem;
+                if done {
+                    break;
+                }
+            }
+            Err(_) => break,
+        }
+    }
+}
+
 pub fn parse_dhcp(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
     match parse_header(input) {
         Ok((rem, header)) => {
@@ -218,6 +248,14 @@ pub fn parse_dhcp(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
                     }
                 }
             }
+            let overload = find_overload_value(&options);
+            if overload & 0x01 != 0 {
+                parse_overloaded_field(&header.bootfilename, &mut options);
+            }
+            if overload & 0x02 != 0 {
+                parse_overloaded_field(&header.servername, &mut options);
+            }
+
             let message = DHCPMessage {
                 header,
                 options,
@@ -272,6 +310,180 @@ mod tests {
         assert_eq!(message.options[2].code, DHCP_OPT_REQUESTED_IP);
         assert_eq!(message.options[3].code, DHCP_OPT_PARAMETER_LIST);
         assert_eq!(message.options[4].code, DHCP_OPT_END);
+    }
+
+    #[test]
+    fn test_parse_sname_overload() {
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&[BOOTP_REPLY, 1, 6, 0]);
+        buf.extend_from_slice(&[0x24, 0x59, 0x3b, 0x3e, 0, 0, 0, 0]);
+        buf.extend_from_slice(&[0; 16]);
+        buf.extend_from_slice(&[0; 16]);
+        let mut sname = vec![
+            0x06, 0x04, 10, 100, 0, 2, 0x03, 0x04, 10, 100, 0, 2, 0x0f, 0x09, b'e', b'v', b'i',
+            b'l', b'.', b'c', b'o', b'r', b'p', 0xff,
+        ];
+        sname.resize(64, 0);
+        buf.extend_from_slice(&sname);
+        buf.extend_from_slice(&[0; 128]);
+        buf.extend_from_slice(&[0x63, 0x82, 0x53, 0x63]);
+        buf.extend_from_slice(&[0x35, 0x01, DHCP_TYPE_ACK, 0x34, 0x01, 0x02, 0xff]);
+
+        let (_rem, message) = parse_dhcp(&buf).unwrap();
+        assert!(!message.malformed_options);
+        assert!(!message.truncated_options);
+
+        let codes: Vec<u8> = message.options.iter().map(|o| o.code).collect();
+        assert!(codes.contains(&DHCP_OPT_OVERLOAD));
+        assert!(codes.contains(&DHCP_OPT_DNS_SERVER));
+        assert!(codes.contains(&DHCP_OPT_ROUTERS));
+        assert!(codes.contains(&15));
+
+        let dns = message
+            .options
+            .iter()
+            .find(|o| o.code == DHCP_OPT_DNS_SERVER)
+            .expect("DNS option missing");
+        if let DHCPOptionWrapper::Generic(ref g) = dns.option {
+            assert_eq!(g.data, vec![10, 100, 0, 2]);
+        } else {
+            panic!("DNS option had wrong wrapper variant");
+        }
+    }
+
+    #[test]
+    fn test_parse_no_overload_leaves_sname_alone() {
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&[BOOTP_REPLY, 1, 6, 0]);
+        buf.extend_from_slice(&[0; 8]);
+        buf.extend_from_slice(&[0; 16]);
+        buf.extend_from_slice(&[0; 16]);
+        let mut sname = vec![0x06, 0x04, 10, 100, 0, 2, 0xff];
+        sname.resize(64, 0);
+        buf.extend_from_slice(&sname);
+        buf.extend_from_slice(&[0; 128]);
+        buf.extend_from_slice(&[0x63, 0x82, 0x53, 0x63]);
+        buf.extend_from_slice(&[0x35, 0x01, DHCP_TYPE_ACK, 0xff]);
+
+        let (_rem, message) = parse_dhcp(&buf).unwrap();
+        let codes: Vec<u8> = message.options.iter().map(|o| o.code).collect();
+        assert!(!codes.contains(&DHCP_OPT_DNS_SERVER));
+    }
+
+    #[test]
+    fn test_parse_file_overload() {
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&[BOOTP_REPLY, 1, 6, 0]);
+        buf.extend_from_slice(&[0; 8]);
+        buf.extend_from_slice(&[0; 16]);
+        buf.extend_from_slice(&[0; 16]);
+        let mut sname = b"tftp.example.com\0".to_vec();
+        sname.resize(64, 0);
+        buf.extend_from_slice(&sname);
+        let mut file = vec![12, 0x05, b'h', b'o', b's', b't', b'1', 0xff];
+        file.resize(128, 0);
+        buf.extend_from_slice(&file);
+        buf.extend_from_slice(&[0x63, 0x82, 0x53, 0x63]);
+        buf.extend_from_slice(&[0x35, 0x01, DHCP_TYPE_ACK, 0x34, 0x01, 0x01, 0xff]);
+
+        let (_rem, message) = parse_dhcp(&buf).unwrap();
+        let codes: Vec<u8> = message.options.iter().map(|o| o.code).collect();
+        assert!(codes.contains(&DHCP_OPT_HOSTNAME));
+        assert!(!codes.contains(&DHCP_OPT_DNS_SERVER));
+        assert!(!codes.contains(&DHCP_OPT_ROUTERS));
+    }
+
+    #[test]
+    fn test_parse_overload_both() {
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&[BOOTP_REPLY, 1, 6, 0]);
+        buf.extend_from_slice(&[0; 8]);
+        buf.extend_from_slice(&[0; 16]);
+        buf.extend_from_slice(&[0; 16]);
+        let mut sname = vec![0x06, 0x04, 9, 9, 9, 9, 0xff];
+        sname.resize(64, 0);
+        buf.extend_from_slice(&sname);
+        let mut file = vec![0x03, 0x04, 8, 8, 8, 8, 0xff];
+        file.resize(128, 0);
+        buf.extend_from_slice(&file);
+        buf.extend_from_slice(&[0x63, 0x82, 0x53, 0x63]);
+        buf.extend_from_slice(&[0x35, 0x01, DHCP_TYPE_ACK, 0x34, 0x01, 0x03, 0xff]);
+
+        let (_rem, message) = parse_dhcp(&buf).unwrap();
+        let dns = message
+            .options
+            .iter()
+            .find(|o| o.code == DHCP_OPT_DNS_SERVER)
+            .unwrap();
+        let router = message
+            .options
+            .iter()
+            .find(|o| o.code == DHCP_OPT_ROUTERS)
+            .unwrap();
+        if let DHCPOptionWrapper::Generic(ref g) = dns.option {
+            assert_eq!(g.data, vec![9, 9, 9, 9]);
+        } else {
+            panic!()
+        }
+        if let DHCPOptionWrapper::Generic(ref g) = router.option {
+            assert_eq!(g.data, vec![8, 8, 8, 8]);
+        } else {
+            panic!()
+        }
+    }
+
+    #[test]
+    fn test_parse_overload_garbage_field_is_safe() {
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&[BOOTP_REPLY, 1, 6, 0]);
+        buf.extend_from_slice(&[0; 8]);
+        buf.extend_from_slice(&[0; 16]);
+        buf.extend_from_slice(&[0; 16]);
+        let mut sname = vec![0x06, 0xfe, 0xaa, 0xbb];
+        sname.resize(64, 0);
+        buf.extend_from_slice(&sname);
+        buf.extend_from_slice(&[0; 128]);
+        buf.extend_from_slice(&[0x63, 0x82, 0x53, 0x63]);
+        buf.extend_from_slice(&[0x35, 0x01, DHCP_TYPE_ACK, 0x34, 0x01, 0x02, 0xff]);
+
+        let result = parse_dhcp(&buf);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_real_pcap_offer_with_sname_overload() {
+        let pcap = include_bytes!("sname_overload.pcap");
+        let payload = &pcap[1143..];
+        let (_rem, message) = parse_dhcp(payload).unwrap();
+        assert_eq!(message.header.opcode, BOOTP_REPLY);
+        assert_eq!(message.header.txid, 0x24593b3e);
+        assert_eq!(message.header.yourip, &[10, 100, 0, 50]);
+        assert!(!message.malformed_options);
+        assert!(!message.truncated_options);
+
+        let codes: Vec<u8> = message.options.iter().map(|o| o.code).collect();
+        assert!(codes.contains(&DHCP_OPT_TYPE));
+        assert!(codes.contains(&DHCP_OPT_OVERLOAD));
+        assert!(codes.contains(&DHCP_OPT_DNS_SERVER));
+        assert!(codes.contains(&DHCP_OPT_ROUTERS));
+        assert!(codes.contains(&15));
+
+        let dns = message
+            .options
+            .iter()
+            .find(|o| o.code == DHCP_OPT_DNS_SERVER)
+            .unwrap();
+        if let DHCPOptionWrapper::Generic(ref g) = dns.option {
+            assert_eq!(g.data, vec![10, 100, 0, 2]);
+        } else {
+            panic!("DNS option had wrong wrapper variant");
+        }
+        let domain = message.options.iter().find(|o| o.code == 15).unwrap();
+        if let DHCPOptionWrapper::Generic(ref g) = domain.option {
+            assert_eq!(g.data, b"evil.corp");
+        } else {
+            panic!("domain option had wrong wrapper variant");
+        }
     }
 
     #[test]
