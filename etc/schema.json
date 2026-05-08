@@ -4350,6 +4350,21 @@
                     "type": "string",
                     "description": "Date of the end of the flow"
                 },
+                "exception_policy": {
+                    "type": "array",
+                    "properties": {
+                        "policy": {
+                            "type": "string",
+                            "description": "Which exception policy was applied"
+                        },
+                        "target": {
+                            "type": "string",
+                            "description": "What triggered the exception"
+                        }
+                    },
+                    "description":
+                            "The exception policy(ies) triggered by the flow. Not logged if none was triggered"
+                },
                 "max_ttl": {
                     "type": "integer",
                     "description": "Maximum observed Time-To-Live (TTL) value"

@@ -46,6 +46,7 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 #include "output-json.h"
+#include "output-json-flow.h"
 #include "output-json-netflow.h"
 
 #include "stream-tcp-private.h"
@@ -211,6 +212,12 @@ static void NetFlowLogEveToServer(SCJsonBuilder *js, Flow *f)
         }
     }
 
+    if (f->applied_exception_policy != 0) {
+        SCJbOpenArray(js, "exception_policy");
+        EveExceptionPolicyLog(js, f->applied_exception_policy);
+        SCJbClose(js); /* close array */
+    }
+
     /* Close netflow. */
     SCJbClose(js);
 
@@ -262,6 +269,12 @@ static void NetFlowLogEveToClient(SCJsonBuilder *js, Flow *f)
         if (tx_id) {
             SCJbSetUint(js, "tx_cnt", tx_id);
         }
+    }
+
+    if (f->applied_exception_policy != 0) {
+        SCJbOpenArray(js, "exception_policy");
+        EveExceptionPolicyLog(js, f->applied_exception_policy);
+        SCJbClose(js); /* close array */
     }
 
     /* Close netflow. */
