@@ -227,7 +227,7 @@ void EveAddFlow(Flow *f, SCJsonBuilder *js)
     SCJbSetString(js, "start", timebuf1);
 }
 
-static void EveExceptionPolicyLog(SCJsonBuilder *js, uint16_t flag)
+void EveExceptionPolicyLog(SCJsonBuilder *js, uint16_t flag)
 {
     if (flag & EXCEPTION_TARGET_FLAG_DEFRAG_MEMCAP) {
         SCJbStartObject(js);
