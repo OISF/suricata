@@ -353,7 +353,7 @@ static void TcpSegmentPoolCleanup(void *ptr)
         return;
 
     TcpSegment *seg = (TcpSegment *)ptr;
-    if (seg && seg->pcap_hdr_storage) {
+    if (seg->pcap_hdr_storage) {
         if (seg->pcap_hdr_storage->pkt_hdr) {
             SCFree(seg->pcap_hdr_storage->pkt_hdr);
             StreamTcpReassembleDecrMemuse(seg->pcap_hdr_storage->alloclen);
