@@ -41,9 +41,8 @@
  *  \param thread number of threads this is for. Can start with 1 and be expanded.
  *  Other params are as for PoolInit()
  */
-PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size,
-        uint32_t elt_size,  void *(*Alloc)(void), int (*Init)(void *, void *),
-        void *InitData,  void (*Cleanup)(void *), void (*Free)(void *))
+PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size, uint32_t elt_size,
+        void *(*Alloc)(void), int (*Init)(void *, void *), void *InitData, void (*Cleanup)(void *))
 {
     sc_errno = SC_OK;
 
@@ -77,7 +76,7 @@ PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size,
 //        SCLogDebug("size %u prealloc_size %u elt_size %u Alloc %p Init %p InitData %p Cleanup %p Free %p",
 //                size, prealloc_size, elt_size,
 //                Alloc, Init, InitData, Cleanup, Free);
-        e->pool = PoolInit(size, prealloc_size, elt_size, Alloc, Init, InitData, Cleanup, Free);
+        e->pool = PoolInit(size, prealloc_size, elt_size, Alloc, Init, InitData, Cleanup, NULL);
         SCMutexUnlock(&e->lock);
         if (e->pool == NULL) {
             SCLogDebug("error");
@@ -258,8 +257,7 @@ void PoolThreadTestFree(void *data)
 static int PoolThreadTestInit01(void)
 {
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10, PoolThreadTestAlloc,
-                                    NULL, NULL, NULL, NULL);
+            10, 5, 10, PoolThreadTestAlloc, NULL, NULL, NULL);
     FAIL_IF(pt == NULL);
     PoolThreadFree(pt);
     PASS;
@@ -270,9 +268,7 @@ static int PoolThreadTestInit02(void)
     int i = 123;
 
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10,
-                                    PoolThreadTestAlloc, PoolThreadTestInit,
-                                    &i, PoolThreadTestFree, NULL);
+            10, 5, 10, PoolThreadTestAlloc, PoolThreadTestInit, &i, PoolThreadTestFree);
     FAIL_IF(pt == NULL);
     PoolThreadFree(pt);
     PASS;
@@ -281,8 +277,7 @@ static int PoolThreadTestInit02(void)
 static int PoolThreadTestGet01(void)
 {
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10, PoolThreadTestAlloc,
-                                    NULL, NULL, NULL, NULL);
+            10, 5, 10, PoolThreadTestAlloc, NULL, NULL, NULL);
     FAIL_IF(pt == NULL);
 
     void *data = PoolThreadGetById(pt, 3);
@@ -300,8 +295,7 @@ static int PoolThreadTestGet02(void)
     int i = 123;
 
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10, PoolThreadTestAlloc,
-                                    PoolThreadTestInit, &i, PoolThreadTestFree, NULL);
+            10, 5, 10, PoolThreadTestAlloc, PoolThreadTestInit, &i, PoolThreadTestFree);
     FAIL_IF_NULL(pt);
 
     void *data = PoolThreadGetById(pt, 3);
@@ -321,8 +315,7 @@ static int PoolThreadTestReturn01(void)
     int i = 123;
 
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10, PoolThreadTestAlloc,
-                                    PoolThreadTestInit, &i, PoolThreadTestFree, NULL);
+            10, 5, 10, PoolThreadTestAlloc, PoolThreadTestInit, &i, PoolThreadTestFree);
     FAIL_IF_NULL(pt);
 
     void *data = PoolThreadGetById(pt, 3);
@@ -346,8 +339,7 @@ static int PoolThreadTestReturn01(void)
 static int PoolThreadTestGrow01(void)
 {
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10, PoolThreadTestAlloc,
-                                    NULL, NULL, NULL, NULL);
+            10, 5, 10, PoolThreadTestAlloc, NULL, NULL, NULL);
     FAIL_IF_NULL(pt);
     FAIL_IF(PoolThreadExpand(pt) < 0);
 
@@ -360,8 +352,7 @@ static int PoolThreadTestGrow02(void)
     int i = 123;
 
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10, PoolThreadTestAlloc,
-                                    PoolThreadTestInit, &i, PoolThreadTestFree, NULL);
+            10, 5, 10, PoolThreadTestAlloc, PoolThreadTestInit, &i, PoolThreadTestFree);
     FAIL_IF_NULL(pt);
     FAIL_IF(PoolThreadExpand(pt) < 0);
 
@@ -374,8 +365,7 @@ static int PoolThreadTestGrow03(void)
     int i = 123;
 
     PoolThread *pt = PoolThreadInit(4, /* threads */
-                                    10, 5, 10, PoolThreadTestAlloc,
-                                    PoolThreadTestInit, &i, PoolThreadTestFree, NULL);
+            10, 5, 10, PoolThreadTestAlloc, PoolThreadTestInit, &i, PoolThreadTestFree);
     FAIL_IF_NULL(pt);
     FAIL_IF(PoolThreadExpand(pt) < 0);
 
