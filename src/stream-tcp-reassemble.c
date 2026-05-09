@@ -267,9 +267,7 @@ static void *TcpSegmentPoolAlloc(void)
         return NULL;
     }
 
-    TcpSegment *seg = NULL;
-
-    seg = SCMalloc(sizeof (TcpSegment));
+    TcpSegment *seg = SCMalloc(sizeof(TcpSegment));
     if (unlikely(seg == NULL))
         return NULL;
 
@@ -287,18 +285,17 @@ static void *TcpSegmentPoolAlloc(void)
                        "TcpSegmentPcapHdrStorage");
             SCFree(seg);
             return NULL;
-        } else {
-            seg->pcap_hdr_storage->alloclen = sizeof(uint8_t) * TCPSEG_PKT_HDR_DEFAULT_SIZE;
-            seg->pcap_hdr_storage->pkt_hdr =
-                    SCCalloc(1, sizeof(uint8_t) * TCPSEG_PKT_HDR_DEFAULT_SIZE);
-            if (seg->pcap_hdr_storage->pkt_hdr == NULL) {
-                SCLogDebug("Unable to allocate memory for "
-                           "packet header data within "
-                           "TcpSegmentPcapHdrStorage");
-                SCFree(seg->pcap_hdr_storage);
-                SCFree(seg);
-                return NULL;
-            }
+        }
+
+        seg->pcap_hdr_storage->alloclen = sizeof(uint8_t) * TCPSEG_PKT_HDR_DEFAULT_SIZE;
+        seg->pcap_hdr_storage->pkt_hdr = SCCalloc(1, sizeof(uint8_t) * TCPSEG_PKT_HDR_DEFAULT_SIZE);
+        if (seg->pcap_hdr_storage->pkt_hdr == NULL) {
+            SCLogDebug("Unable to allocate memory for "
+                       "packet header data within "
+                       "TcpSegmentPcapHdrStorage");
+            SCFree(seg->pcap_hdr_storage);
+            SCFree(seg);
+            return NULL;
         }
 
         StreamTcpReassembleIncrMemuse(memuse);
