@@ -2124,7 +2124,6 @@ TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
     TcpSegment *seg = StreamTcpThreadCacheGetSegment();
     if (seg) {
         StatsCounterIncr(&tv->stats, ra_ctx->counter_tcp_segment_from_cache);
-        memset(&seg->sbseg, 0, sizeof(seg->sbseg));
         return seg;
     }
 
