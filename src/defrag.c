@@ -114,18 +114,6 @@ DefragFragReset(Frag *frag)
 }
 
 /**
- * \brief Allocate a new frag for use in a pool.
- */
-static int
-DefragFragInit(void *data, void *initdata)
-{
-    Frag *frag = data;
-
-    memset(frag, 0, sizeof(*frag));
-    return 1;
-}
-
-/**
  * \brief Free all frags associated with a tracker.
  */
 void
@@ -173,8 +161,8 @@ DefragContextNew(void)
         frag_pool_size = DEFAULT_DEFRAG_POOL_SIZE;
     }
     uint32_t frag_pool_prealloc = (uint32_t)frag_pool_size / 2;
-    dc->frag_pool = PoolInit((uint32_t)frag_pool_size, frag_pool_prealloc, sizeof(Frag), NULL,
-            DefragFragInit, NULL, NULL);
+    dc->frag_pool = PoolInit(
+            (uint32_t)frag_pool_size, frag_pool_prealloc, sizeof(Frag), NULL, NULL, NULL, NULL);
     if (dc->frag_pool == NULL) {
         FatalError("Defrag: Failed to initialize fragment pool.");
     }
