@@ -856,7 +856,7 @@ void StreamTcpInitConfig(bool quiet)
             ssn_pool = PoolThreadInit(1, /* thread */
                     0,                   /* unlimited */
                     stream_config.prealloc_sessions, sizeof(TcpSession), StreamTcpSessionPoolAlloc,
-                    StreamTcpSessionPoolInit, NULL, StreamTcpSessionPoolCleanup);
+                    StreamTcpSessionPoolInit, StreamTcpSessionPoolCleanup);
         }
         SCMutexUnlock(&ssn_pool_mutex);
     }
@@ -6221,7 +6221,7 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
         ssn_pool = PoolThreadInit(1, /* thread */
                 0,                   /* unlimited */
                 stream_config.prealloc_sessions, sizeof(TcpSession), StreamTcpSessionPoolAlloc,
-                StreamTcpSessionPoolInit, NULL, StreamTcpSessionPoolCleanup);
+                StreamTcpSessionPoolInit, StreamTcpSessionPoolCleanup);
         stt->ssn_pool_id = 0;
         SCLogDebug("pool size %d, thread ssn_pool_id %d", PoolThreadSize(ssn_pool), stt->ssn_pool_id);
     } else {
