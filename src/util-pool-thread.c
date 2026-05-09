@@ -76,7 +76,7 @@ PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size, u
 //        SCLogDebug("size %u prealloc_size %u elt_size %u Alloc %p Init %p InitData %p Cleanup %p Free %p",
 //                size, prealloc_size, elt_size,
 //                Alloc, Init, InitData, Cleanup, Free);
-        e->pool = PoolInit(size, prealloc_size, elt_size, Alloc, Init, InitData, Cleanup, NULL);
+        e->pool = PoolInit(size, prealloc_size, elt_size, Alloc, Init, InitData, Cleanup);
         SCMutexUnlock(&e->lock);
         if (e->pool == NULL) {
             SCLogDebug("error");
@@ -126,16 +126,14 @@ int PoolThreadExpand(PoolThread *pt)
     settings.Init = e->pool->Init;
     settings.InitData = e->pool->InitData;
     settings.Cleanup = e->pool->Cleanup;
-    settings.Free = e->pool->Free;
     SCMutexUnlock(&e->lock);
 
     e = &pt->array[newsize - 1];
     memset(e, 0x00, sizeof(*e));
     SCMutexInit(&e->lock, NULL);
     SCMutexLock(&e->lock);
-    e->pool = PoolInit(settings.max_buckets, settings.preallocated,
-            settings.elt_size, settings.Alloc, settings.Init, settings.InitData,
-            settings.Cleanup, settings.Free);
+    e->pool = PoolInit(settings.max_buckets, settings.preallocated, settings.elt_size,
+            settings.Alloc, settings.Init, settings.InitData, settings.Cleanup);
     SCMutexUnlock(&e->lock);
     if (e->pool == NULL) {
         SCLogError("pool grow failed");
