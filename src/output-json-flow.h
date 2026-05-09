@@ -27,5 +27,6 @@
 void JsonFlowLogRegister(void);
 void EveAddFlow(Flow *f, SCJsonBuilder *js);
 void EveAddAppProto(Flow *f, SCJsonBuilder *js);
+void EveExceptionPolicyLog(SCJsonBuilder *js, uint16_t flag);
 
 #endif /* SURICATA_OUTPUT_JSON_FLOW_H */
