@@ -20,7 +20,7 @@ jobs:
   scan-build:
     name: Scan-build
     runs-on: ubuntu-latest
-    container: ubuntu:25.04
+    container: ubuntu:26.04
     steps:
       - name: Cache scan-build
         uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
@@ -38,8 +38,8 @@ jobs:
                 automake \
                 cargo \
                 cbindgen \
-                clang-20 \
-                clang-tools-20 \
+                clang-22 \
+                clang-tools-22 \
                 dpdk-dev \
                 git \
                 libtool \
@@ -62,7 +62,7 @@ jobs:
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
                 liblz4-dev \
-                llvm-20-dev \
+                llvm-22-dev \
                 make \
                 python3-yaml \
                 rustc \
@@ -73,41 +73,89 @@ jobs:
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - run: ./scripts/bundle.sh
       - run: ./autogen.sh
-      - run: scan-build-20 ./configure --enable-warnings --enable-dpdk --enable-nfqueue --enable-nflog
+      - run: scan-build-22 ./configure --enable-warnings --enable-dpdk --enable-nfqueue --enable-nflog
         env:
-          CC: clang-20
+          CC: clang-22
       # disable security.insecureAPI.DeprecatedOrUnsafeBufferHandling explicitly as
       # this will require significant effort to address.
+      # disable optin.core.EnumCastOutOfRange as it trips up capng's enum values as
+      # flags handling.
       - run: |
-          scan-build-20 --status-bugs --exclude rust \
+          scan-build-22 --status-bugs --exclude "$(pwd)/rust/" \
                 -o scan-build-report/ \
-                -enable-checker valist.Uninitialized \
-                -enable-checker valist.CopyToSelf \
-                -enable-checker valist.Unterminated \
-                -enable-checker security.insecureAPI.bcmp \
-                -enable-checker security.insecureAPI.bcopy \
-                -enable-checker security.insecureAPI.bzero \
-                -enable-checker security.insecureAPI.rand \
-                -enable-checker security.insecureAPI.strcpy \
-                -enable-checker security.insecureAPI.decodeValueOfObjCType \
-                -enable-checker security.FloatLoopCounter \
-                -enable-checker optin.portability.UnixAPI \
-                -enable-checker optin.performance.GCDAntipattern \
+                -enable-checker core.BitwiseShift \
+                -enable-checker core.CallAndMessage \
+                -enable-checker core.DivideZero \
+                -enable-checker core.FixedAddressDereference \
+                -enable-checker core.NonNullParamChecker \
+                -enable-checker core.NullDereference \
+                -enable-checker core.NullPointerArithm \
+                -enable-checker core.StackAddressEscape \
+                -enable-checker core.UndefinedBinaryOperatorResult \
+                -enable-checker core.VLASize \
+                -enable-checker core.uninitialized.ArraySubscript \
+                -enable-checker core.uninitialized.Assign \
+                -enable-checker core.uninitialized.Branch \
+                -enable-checker core.uninitialized.CapturedBlockVariable \
+                -enable-checker core.uninitialized.NewArraySize \
+                -enable-checker core.uninitialized.UndefReturn \
+                \
+                -enable-checker deadcode.DeadStores \
+                \
                 -enable-checker nullability.NullableReturnedFromNonnull \
                 -enable-checker nullability.NullablePassedToNonnull \
                 -enable-checker nullability.NullableDereferenced \
+                -enable-checker nullability.NullReturnedFromNonnull \
+                \
+                -enable-checker optin.performance.GCDAntipattern \
+                -disable-checker optin.core.EnumCastOutOfRange \
                 -enable-checker optin.performance.Padding \
+                -enable-checker optin.portability.UnixAPI \
+                -enable-checker optin.taint.GenericTaint \
+                -enable-checker optin.taint.TaintedAlloc \
+                -enable-checker optin.taint.TaintedDiv \
+                \
+                -enable-checker security.ArrayBound \
+                -enable-checker security.FloatLoopCounter \
                 -enable-checker security.MmapWriteExec \
                 -enable-checker security.PointerSub \
                 -enable-checker security.PutenvStackArray \
                 -enable-checker security.SetgidSetuidOrder \
+                -enable-checker security.VAList \
                 -enable-checker security.cert.env.InvalidPtr \
+                \
+                -enable-checker security.insecureAPI.UncheckedReturn \
+                -enable-checker security.insecureAPI.bcmp \
+                -enable-checker security.insecureAPI.bcopy \
+                -enable-checker security.insecureAPI.bzero \
+                -enable-checker security.insecureAPI.decodeValueOfObjCType \
+                -enable-checker security.insecureAPI.getpw \
+                -enable-checker security.insecureAPI.gets \
+                -enable-checker security.insecureAPI.mkstemp \
+                -enable-checker security.insecureAPI.mktemp \
+                -enable-checker security.insecureAPI.rand \
+                -enable-checker security.insecureAPI.strcpy \
+                -enable-checker security.insecureAPI.vfork \
                 \
                 -disable-checker security.insecureAPI.DeprecatedOrUnsafeBufferHandling \
                 \
+                -enable-checker unix.API \
+                -enable-checker unix.BlockInCriticalSection \
+                -enable-checker unix.Chroot \
+                -enable-checker unix.Errno \
+                -enable-checker unix.Malloc \
+                -enable-checker unix.MallocSizeof \
+                -enable-checker unix.MismatchedDeallocator \
+                -enable-checker unix.StdCLibraryFunctions \
+                -enable-checker unix.Stream \
+                -enable-checker unix.Vfork \
+                -enable-checker unix.cstring.BadSizeArg \
+                -enable-checker unix.cstring.NotNullTerminated \
+                -enable-checker unix.cstring.NullArg \
+                \
                 make
         env:
-          CC: clang-20
+          CC: clang-22
       - name: 'Upload Scan Build Results'
         uses: actions/upload-artifact@v7.0.1
         if: always()
