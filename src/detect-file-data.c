@@ -186,6 +186,9 @@ static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
 
     /* add protocol specific settings here */
 
+    /* help scan-build understand the protocol specific logic is within the array bounds. */
+    DEBUG_VALIDATE_BUG_ON(ALPROTO_SMTP >= g_alproto_max);
+
     /* SMTP */
     de_ctx->filedata_config[ALPROTO_SMTP].content_limit = smtp_config.content_limit;
     de_ctx->filedata_config[ALPROTO_SMTP].content_inspect_min_size =
