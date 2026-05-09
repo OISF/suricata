@@ -583,6 +583,7 @@ static void SetBpfStringFromFile(char *filename)
         exit(EXIT_FAILURE);
     }
     fclose(fp);
+    DEBUG_VALIDATE_BUG_ON(nm >= bpf_len); // help scan-build
     bpf_filter[nm] = '\0';
 
     if(strlen(bpf_filter) > 0) {
