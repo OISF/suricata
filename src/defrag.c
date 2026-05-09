@@ -926,32 +926,12 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             r = Defrag4Reassemble(tv, tracker, p);
             if (r != NULL && tv != NULL && dtv != NULL) {
                 StatsIncr(tv, dtv->counter_defrag_ipv4_reassembled);
-                const uint32_t len = GET_PKT_LEN(r) - (uint32_t)tracker->ip_hdr_offset;
-                DEBUG_VALIDATE_BUG_ON(len > UINT16_MAX);
-                if (DecodeIPV4(tv, dtv, r, GET_PKT_DATA(r) + tracker->ip_hdr_offset,
-                            (uint16_t)len) != TM_ECODE_OK) {
-                    r->root = NULL;
-                    TmqhOutputPacketpool(tv, r);
-                    r = NULL;
-                } else {
-                    PacketDefragPktSetupParent(p);
-                }
             }
         }
         else if (tracker->af == AF_INET6) {
             r = Defrag6Reassemble(tv, tracker, p);
             if (r != NULL && tv != NULL && dtv != NULL) {
                 StatsIncr(tv, dtv->counter_defrag_ipv6_reassembled);
-                const uint32_t len = GET_PKT_LEN(r) - (uint32_t)tracker->ip_hdr_offset;
-                DEBUG_VALIDATE_BUG_ON(len > UINT16_MAX);
-                if (DecodeIPV6(tv, dtv, r, GET_PKT_DATA(r) + tracker->ip_hdr_offset,
-                            (uint16_t)len) != TM_ECODE_OK) {
-                    r->root = NULL;
-                    TmqhOutputPacketpool(tv, r);
-                    r = NULL;
-                } else {
-                    PacketDefragPktSetupParent(p);
-                }
             }
         }
     }
@@ -1100,7 +1080,37 @@ Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
     }
 
     Packet *rp = DefragInsertFrag(tv, dtv, tracker, p);
+
+    /* Capture tracker fields while still holding the lock. ip_hdr_offset is set
+     * inside DefragInsertFrag when the first fragment (offset 0) is inserted, so
+     * it must be read after that call returns. */
+    int tracker_af = tracker->af;
+    uint16_t tracker_ip_hdr_offset = tracker->ip_hdr_offset;
+
+    /* Release the tracker lock BEFORE decoding the reassembled packet.
+     * This prevents re-entrant Defrag() calls (via tunnel decode) from
+     * deadlocking on tracker locks held by other threads. */
     DefragTrackerRelease(tracker);
+
+    if (rp != NULL) {
+        const uint32_t len = GET_PKT_LEN(rp) - (uint32_t)tracker_ip_hdr_offset;
+        DEBUG_VALIDATE_BUG_ON(len > UINT16_MAX);
+        int decode_rc;
+        if (tracker_af == AF_INET) {
+            decode_rc = DecodeIPV4(
+                    tv, dtv, rp, GET_PKT_DATA(rp) + tracker_ip_hdr_offset, (uint16_t)len);
+        } else {
+            decode_rc = DecodeIPV6(
+                    tv, dtv, rp, GET_PKT_DATA(rp) + tracker_ip_hdr_offset, (uint16_t)len);
+        }
+        if (decode_rc != TM_ECODE_OK) {
+            rp->root = NULL;
+            TmqhOutputPacketpool(tv, rp);
+            rp = NULL;
+        } else {
+            PacketDefragPktSetupParent(p);
+        }
+    }
 
     return rp;
 }
