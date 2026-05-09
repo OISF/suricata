@@ -418,7 +418,7 @@ static void *StreamTcpSessionPoolAlloc(void)
     return ptr;
 }
 
-static int StreamTcpSessionPoolInit(void *data, void* initdata)
+static int StreamTcpSessionPoolInit(void *data)
 {
     memset(data, 0, sizeof(TcpSession));
     StreamTcpIncrMemuse((uint64_t)sizeof(TcpSession));

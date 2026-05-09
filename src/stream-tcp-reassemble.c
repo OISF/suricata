@@ -309,7 +309,7 @@ static void *TcpSegmentPoolAlloc(void)
     return seg;
 }
 
-static int TcpSegmentPoolInit(void *data, void *initdata)
+static int TcpSegmentPoolInit(void *data)
 {
     TcpSegment *seg = (TcpSegment *) data;
     TcpSegmentPcapHdrStorage *pcap_hdr;

@@ -161,8 +161,8 @@ DefragContextNew(void)
         frag_pool_size = DEFAULT_DEFRAG_POOL_SIZE;
     }
     uint32_t frag_pool_prealloc = (uint32_t)frag_pool_size / 2;
-    dc->frag_pool = PoolInit(
-            (uint32_t)frag_pool_size, frag_pool_prealloc, sizeof(Frag), NULL, NULL, NULL, NULL);
+    dc->frag_pool =
+            PoolInit((uint32_t)frag_pool_size, frag_pool_prealloc, sizeof(Frag), NULL, NULL, NULL);
     if (dc->frag_pool == NULL) {
         FatalError("Defrag: Failed to initialize fragment pool.");
     }
