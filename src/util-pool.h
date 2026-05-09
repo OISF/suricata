@@ -61,7 +61,6 @@ typedef struct Pool_ {
     int (*Init)(void *, void *);
     void *InitData;
     void (*Cleanup)(void *);
-    void (*Free)(void *);
 
     uint32_t elt_size;
     uint32_t outstanding;       /**< counter of data items 'in use'. Pretty much
@@ -72,7 +71,8 @@ typedef struct Pool_ {
 } Pool;
 
 /* prototypes */
-Pool* PoolInit(uint32_t, uint32_t, uint32_t, void *(*Alloc)(void), int (*Init)(void *, void *), void *, void (*Cleanup)(void *), void (*Free)(void *));
+Pool *PoolInit(uint32_t, uint32_t, uint32_t, void *(*Alloc)(void), int (*Init)(void *, void *),
+        void *, void (*Cleanup)(void *));
 void PoolFree(Pool *);
 
 void *PoolGet(Pool *);
