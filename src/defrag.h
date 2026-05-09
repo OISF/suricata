@@ -47,12 +47,12 @@ typedef struct Frag_ {
     uint16_t offset;            /**< The offset of this fragment, already
                                  *   multiplied by 8. */
 
-    uint32_t len; /**< The length of this fragment. */
-
     uint8_t hlen;               /**< The length of this fragments IP header. */
 
     uint8_t more_frags:4;       /**< More frags? */
     uint8_t skip:4;             /**< Skip this fragment during re-assembly. */
+
+    uint32_t len; /**< The length of this fragment. */
 
     uint16_t frag_hdr_offset;   /**< Offset in the packet where the frag
                                  * header starts. */
