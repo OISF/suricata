@@ -567,12 +567,9 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv)
     SCMutexLock(&segment_thread_pool_mutex);
     if (segment_thread_pool == NULL) {
         segment_thread_pool = PoolThreadInit(1, /* thread */
-                0, /* unlimited */
-                stream_config.prealloc_segments,
-                sizeof(TcpSegment),
-                TcpSegmentPoolAlloc,
-                TcpSegmentPoolInit, NULL,
-                TcpSegmentPoolCleanup, NULL);
+                0,                              /* unlimited */
+                stream_config.prealloc_segments, sizeof(TcpSegment), TcpSegmentPoolAlloc,
+                TcpSegmentPoolInit, NULL, TcpSegmentPoolCleanup);
         ra_ctx->segment_thread_pool_id = 0;
         SCLogDebug("pool size %d, thread segment_thread_pool_id %d",
                 PoolThreadSize(segment_thread_pool),
