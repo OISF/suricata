@@ -3239,6 +3239,13 @@ Fields
 * "pkts": total number of packets to client
 * "start": date of start of the flow
 * "tx_cnt": number of transactions seen in the flow (only present if flow has an application layer)
+* "exception_policy": array consisting of exception policies that have been triggered by
+  the flow:
+
+    * "target": if an exception policy was triggered, what setting exceptions
+      led to this (cf. :ref:`Exception Policy - Specific Settings<eps_settings>`).
+    * "policy": if an exception policy was triggered, what policy was applied
+      (to the flow or to any packet(s) from it).
 
 Example ::
 
