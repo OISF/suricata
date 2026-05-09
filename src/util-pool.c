@@ -45,14 +45,6 @@
 #include "util-debug.h"
 #include "util-validate.h"
 
-static int PoolMemset(void *pitem, void *initdata)
-{
-    Pool *p = (Pool *) initdata;
-
-    memset(pitem, 0, p->elt_size);
-    return 1;
-}
-
 /**
  * \brief Check if data is preallocated
  * \note make sure to call with nonnull pointers
@@ -61,6 +53,15 @@ static bool PoolDataPreAllocated(Pool *p, void *data)
 {
     ptrdiff_t delta = data - p->data_buffer;
     return delta >= 0 && delta <= p->data_buffer_size;
+}
+
+static bool PoolInitData(const Pool *p, void *data)
+{
+    if (p->Init != NULL) {
+        return p->Init(data) == 1;
+    }
+    memset(data, 0, p->elt_size);
+    return true;
 }
 
 /** \brief Init a Pool
@@ -75,12 +76,11 @@ static bool PoolDataPreAllocated(Pool *p, void *data)
  * \param elt_size Memory size of an element
  * \param Alloc An allocation function or NULL to use a standard SCMalloc
  * \param Init An init function or NULL to use a standard memset to 0
- * \param InitData Init data
  * \param Cleanup a free function or NULL if no special treatment is needed
  * \retval the allocated Pool
  */
 Pool *PoolInit(const uint32_t size, const uint32_t prealloc_size, const uint32_t elt_size,
-        void *(*Alloc)(void), int (*Init)(void *, void *), void *InitData, void (*Cleanup)(void *))
+        void *(*Alloc)(void), int (*Init)(void *), void (*Cleanup)(void *))
 {
     sc_errno = SC_OK;
 
@@ -112,12 +112,7 @@ Pool *PoolInit(const uint32_t size, const uint32_t prealloc_size, const uint32_t
     p->data_buffer_size = prealloc_size * elt_size;
     p->Alloc = Alloc;
     p->Init = Init;
-    p->InitData = InitData;
     p->Cleanup = Cleanup;
-    if (p->Init == NULL) {
-        p->Init = PoolMemset;
-        p->InitData = p;
-    }
 
     /* alloc the buckets and place them in the empty list */
     if (size > 0) {
@@ -162,7 +157,7 @@ Pool *PoolInit(const uint32_t size, const uint32_t prealloc_size, const uint32_t
                 sc_errno = SC_ENOMEM;
                 goto error;
             }
-            if (p->Init(pb->data, p->InitData) != 1) {
+            if (PoolInitData(p, pb->data) == false) {
                 SCFree(pb->data);
                 SCFree(pb);
                 sc_errno = SC_EINVAL;
@@ -181,7 +176,7 @@ Pool *PoolInit(const uint32_t size, const uint32_t prealloc_size, const uint32_t
             }
 
             pb->data = (char *)p->data_buffer + i * elt_size;
-            if (p->Init(pb->data, p->InitData) != 1) {
+            if (PoolInitData(p, pb->data) == false) {
                 pb->data = NULL;
                 sc_errno = SC_EINVAL;
                 goto error;
@@ -279,7 +274,7 @@ void *PoolGet(Pool *p)
             }
 
             if (pitem != NULL) {
-                if (p->Init(pitem, p->InitData) != 1) {
+                if (PoolInitData(p, pitem) == false) {
                     SCFree(pitem);
                     SCReturnPtr(NULL, "void");
                 }
@@ -360,14 +355,6 @@ static void *PoolTestAlloc(void)
         return NULL;
     return ptr;
 }
-static int PoolTestInitArg(void *data, void *allocdata)
-{
-    size_t len = strlen((char *)allocdata) + 1;
-    char *str = data;
-    if (str != NULL)
-        strlcpy(str,(char *)allocdata,len);
-    return 1;
-}
 
 static void PoolTestFree(void *ptr)
 {
@@ -375,7 +362,7 @@ static void PoolTestFree(void *ptr)
 
 static int PoolTestInit01 (void)
 {
-    Pool *p = PoolInit(10, 5, 10, PoolTestAlloc, NULL, NULL, PoolTestFree);
+    Pool *p = PoolInit(10, 5, 10, PoolTestAlloc, NULL, PoolTestFree);
     FAIL_IF_NOT(p != NULL);
 
     PoolFree(p);
@@ -384,7 +371,7 @@ static int PoolTestInit01 (void)
 
 static int PoolTestInit02 (void)
 {
-    Pool *p = PoolInit(10, 5, 10, PoolTestAlloc, NULL, NULL, PoolTestFree);
+    Pool *p = PoolInit(10, 5, 10, PoolTestAlloc, NULL, PoolTestFree);
     FAIL_IF_NOT(p != NULL);
 
     FAIL_IF_NOT(p->alloc_stack != NULL);
@@ -401,7 +388,7 @@ static int PoolTestInit02 (void)
 
 static int PoolTestInit03 (void)
 {
-    Pool *p = PoolInit(10, 5, 10, PoolTestAlloc, NULL, NULL, PoolTestFree);
+    Pool *p = PoolInit(10, 5, 10, PoolTestAlloc, NULL, PoolTestFree);
     FAIL_IF_NOT(p != NULL);
 
     void *data = PoolGet(p);
@@ -417,14 +404,11 @@ static int PoolTestInit03 (void)
 
 static int PoolTestInit04 (void)
 {
-    Pool *p = PoolInit(
-            10, 5, strlen("test") + 1, NULL, PoolTestInitArg, (void *)"test", PoolTestFree);
+    Pool *p = PoolInit(10, 5, strlen("test") + 1, NULL, NULL, PoolTestFree);
     FAIL_IF_NOT(p != NULL);
 
     char *str = PoolGet(p);
     FAIL_IF_NOT(str != NULL);
-
-    FAIL_IF_NOT(strcmp(str, "test") == 0);
 
     FAIL_IF_NOT(p->alloc_stack_size == 4);
 
@@ -436,7 +420,7 @@ static int PoolTestInit04 (void)
 
 static int PoolTestInit05 (void)
 {
-    Pool *p = PoolInit(10, 5, 10, PoolTestAlloc, NULL, NULL, PoolTestFree);
+    Pool *p = PoolInit(10, 5, 10, PoolTestAlloc, NULL, PoolTestFree);
     FAIL_IF_NOT(p != NULL);
 
     void *data = PoolGet(p);
@@ -459,7 +443,7 @@ static int PoolTestInit05 (void)
 
 static int PoolTestInit06 (void)
 {
-    Pool *p = PoolInit(1, 0, 10, PoolTestAlloc, NULL, NULL, PoolTestFree);
+    Pool *p = PoolInit(1, 0, 10, PoolTestAlloc, NULL, PoolTestFree);
     FAIL_IF_NOT(p != NULL);
 
     FAIL_IF_NOT(p->allocated == 0);
@@ -486,7 +470,7 @@ static int PoolTestInit06 (void)
 /** \test pool with unlimited size */
 static int PoolTestInit07 (void)
 {
-    Pool *p = PoolInit(0, 1, 10, PoolTestAlloc, NULL, NULL, PoolTestFree);
+    Pool *p = PoolInit(0, 1, 10, PoolTestAlloc, NULL, PoolTestFree);
     FAIL_IF_NOT(p != NULL);
 
     FAIL_IF_NOT(p->max_buckets == 0);
