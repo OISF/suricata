@@ -2283,7 +2283,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     uint32_t i = 0;
 
     /* count detect threads in use */
-    uint32_t no_of_detect_tvs = TmThreadCountThreadsByTmmFlags(TM_FLAG_FLOWWORKER_TM);
+    const uint32_t no_of_detect_tvs = TmThreadCountThreadsByTmmFlags(TM_FLAG_FLOWWORKER_TM);
     /* can be zero in unix socket mode */
     if (no_of_detect_tvs == 0) {
         return 0;
@@ -2347,7 +2347,9 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
             }
             SCLogDebug("swapping new det_ctx - %p with older one - %p",
                        new_det_ctx[i], SC_ATOMIC_GET(s->slot_data));
-            FlowWorkerReplaceDetectCtx(SC_ATOMIC_GET(s->slot_data), new_det_ctx[i++]);
+            DEBUG_VALIDATE_BUG_ON(i >= no_of_detect_tvs);
+            FlowWorkerReplaceDetectCtx(SC_ATOMIC_GET(s->slot_data), new_det_ctx[i]);
+            i++;
             break;
         }
     }
