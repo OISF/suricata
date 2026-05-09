@@ -753,7 +753,9 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                 s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
                 s->init_data->is_rule_state_dependant = true;
 
-                uint32_t sids_array_size = array[i].set_sids_idx;
+                const uint32_t sids_array_size = array[i].set_sids_idx;
+                if (sids_array_size == 0)
+                    continue;
 
                 // save information about flowbits that affect this rule's state
                 if (s->init_data->rule_state_dependant_sids_array == NULL) {
