@@ -1907,6 +1907,12 @@ spm-algo: auto
 # Suricata is multi-threaded. Here the threading can be influenced.
 threading:
   set-cpu-affinity: no
+  # When set-cpu-affinity is enabled, also bind thread heap allocations
+  # to the local NUMA node so per-flow, per-thread and packet pool memory
+  # stays on the same NUMA as the worker CPU. Requires libnuma at build
+  # time (already present when DPDK or Napatech is enabled). Has no effect
+  # on single-NUMA systems.
+  set-memory-affinity: no
   autopin: no
   # Tune cpu affinity of threads. Each family of threads can be bound
   # to specific CPUs.
