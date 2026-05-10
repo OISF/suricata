@@ -67,16 +67,15 @@ static inline void PrefilterAddSids(
             if (PrefilterAddSidsResize(pmq, new_size) == 0) {
                 // Failed to allocate larger memory for all the SIDS, but
                 // keep as many as we can.
-                sids_size = pmq->rule_id_array_size - pmq->rule_id_array_cnt;
+                sids_size = MIN(sids_size, (pmq->rule_id_array_size - pmq->rule_id_array_cnt));
             }
         }
         SCLogDebug("Adding %u sids", sids_size);
         // Add SIDs for this pattern to the end of the array
         SigIntId *ptr = pmq->rule_id_array + pmq->rule_id_array_cnt;
-        SigIntId *end = ptr + sids_size;
-        do {
-            *ptr++ = *sids++;
-        } while (ptr != end);
+        for (uint32_t i = 0; i < sids_size; i++) {
+            *ptr++ = sids[i];
+        }
         pmq->rule_id_array_cnt += sids_size;
     }
 }
