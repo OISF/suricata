@@ -782,6 +782,7 @@ static int StatsOutput(ThreadVars *tv)
         /* loop counters and handle them. This includes the global counters, which
          * access the StatsCounters but don't modify them. */
         for (uint16_t i = 1; i < table_size; i++) {
+            DEBUG_VALIDATE_BUG_ON(i >= max_id); // help scan-build
             const StatsCounter *pc = sts->ctx->pc_array[i];
             thread_table[pc->gid].type = pc->type;
 
@@ -794,6 +795,7 @@ static int StatsOutput(ThreadVars *tv)
                         thread_table[pc->gid].value = pc->Func();
                     break;
                 case STATS_TYPE_AVERAGE:
+                    DEBUG_VALIDATE_BUG_ON(i + 1 >= max_id); // help scan-build
                     thread_table[pc->gid].value = thread_table_from_private[i].v;
                     thread_table[pc->gid].updates = thread_table_from_private[i + 1].v;
                     /* skip updates row */
