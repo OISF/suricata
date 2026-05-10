@@ -153,6 +153,8 @@ jobs:
                 -enable-checker unix.cstring.NotNullTerminated \
                 -enable-checker unix.cstring.NullArg \
                 \
+                -analyzer-config optin.taint.TaintPropagation:Config="$(pwd)/qa/sb-taint-config.yaml" \
+                \
                 make
         env:
           CC: clang-22

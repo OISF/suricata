@@ -45,6 +45,11 @@ extern "C"
 /* clang analyzer acts as DEBUG_VALIDATION in some places, so
  * force this so #ifdef DEBUG_VALIDATION code gets included */
 #define DEBUG_VALIDATION 1
+
+    /* function prototype to be used to filter taints. To be used
+     * through the DEBUG_VALIDATE_MARK_SANITIZED macro. The scan-build
+     * taint config will then consider this in the taint analysis. */
+    void ScanBuildMarkSanitized(const void *);
 #endif
 
 #if defined(__has_feature)
