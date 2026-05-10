@@ -488,6 +488,7 @@ void RunModeRegisterNewRunMode(enum SCRunModes runmode, const char *name, const 
                 name);
     }
 
+    DEBUG_VALIDATE_BUG_ON(runmode >= RUNMODE_USER_MAX);
     void *ptmp = SCRealloc(runmodes[runmode].runmodes,
                      (runmodes[runmode].cnt + 1) * sizeof(RunMode));
     if (ptmp == NULL) {

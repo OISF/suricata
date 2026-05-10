@@ -166,6 +166,7 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, const char *sig_file, int 
 
         /* Check if we have a trailing newline, and remove it */
         len = strlen(line);
+        DEBUG_VALIDATE_BUG_ON(len >= sizeof(line)); // help scan-build
         if (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
             line[len - 1] = '\0';
         }
