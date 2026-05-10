@@ -45,6 +45,8 @@ extern "C"
 /* clang analyzer acts as DEBUG_VALIDATION in some places, so
  * force this so #ifdef DEBUG_VALIDATION code gets included */
 #define DEBUG_VALIDATION 1
+
+    void ScanBuildMarkSanitized(const void *);
 #endif
 
 #if defined(__has_feature)

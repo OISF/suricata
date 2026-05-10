@@ -187,6 +187,7 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
     }
 #endif
 
+    DEBUG_VALIDATE_MARK_SANITIZED(fd);
     if (SCThresholdConfParseFile(de_ctx, fd) < 0) {
         SCLogWarning("Error loading threshold configuration from %s", filename);
         SCThresholdConfDeInitContext(de_ctx, fd);

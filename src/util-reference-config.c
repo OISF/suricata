@@ -126,6 +126,7 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
         }
     }
 
+    DEBUG_VALIDATE_MARK_SANITIZED(fd);
     return fd;
 }
 

@@ -1,0 +1,12 @@
+# taint yaml for scan-build, to be loaded as
+# `-analyzer-config optin.taint.TaintPropagation:Config=../qa/sb-taint-config.yaml`
+#
+# See further:
+# https://rocm.docs.amd.com/projects/llvm-project/en/latest/LLVM/clang/html/analyzer/user-docs/TaintAnalysisConfiguration.html
+# https://clang.llvm.org/docs/analyzer/checkers.html#optin-taint-generictaint
+#
+# Generic no-op to signal to scan-build a taint source as sanitized
+# (i.e. not to be propagated)
+Filters:
+  - Name: ScanBuildMarkSanitized
+    Args: [0]

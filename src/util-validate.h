@@ -94,12 +94,20 @@
 
 #define DEBUG_VALIDATE_BUG_ON(exp) BUG_ON((exp))
 
+#if defined(__clang_analyzer__)
+#define DEBUG_VALIDATE_MARK_SANITIZED(ptr) ScanBuildMarkSanitized((ptr))
+#else
+#define DEBUG_VALIDATE_MARK_SANITIZED(ptr)
+#endif
+
 #else /* DEBUG_VALIDATE */
 
 #define DEBUG_ASSERT_FLOW_LOCKED(f)
 #define DEBUG_VALIDATE_FLOW(f)
 #define DEBUG_VALIDATE_PACKET(p)
 #define DEBUG_VALIDATE_BUG_ON(exp)
+
+#define DEBUG_VALIDATE_MARK_SANITIZED(ptr)
 
 #endif /* DEBUG_VALIDATE */
 

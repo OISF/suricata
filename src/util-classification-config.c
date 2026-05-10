@@ -136,6 +136,7 @@ static FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FI
         }
     }
 
+    DEBUG_VALIDATE_MARK_SANITIZED(fd);
     return fd;
 }
 
