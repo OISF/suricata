@@ -1219,11 +1219,11 @@ mod test {
     }
 
     #[test]
-    #[cfg(not(feature = "debug-validate"))]
     fn test_array_in_object() -> Result<(), JsonError> {
         let mut js = JsonBuilder::try_new_object().unwrap();
 
         // Attempt to add an item, should fail.
+        #[cfg(not(feature = "debug-validate"))]
         assert_eq!(
             js.append_string("will fail").err().unwrap(),
             JsonError::InvalidState
