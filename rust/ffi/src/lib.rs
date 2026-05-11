@@ -19,6 +19,7 @@ pub mod applayer;
 pub mod conf;
 pub mod debug;
 pub mod detect;
+pub mod direction;
 pub mod eve;
 pub mod flow;
 pub mod jsonbuilder;
