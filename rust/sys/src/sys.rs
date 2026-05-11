@@ -720,6 +720,9 @@ extern "C" {
         det_ctx: *mut DetectEngineThreadCtx, list_id: ::std::os::raw::c_int,
     ) -> *mut InspectionBuffer;
 }
+extern "C" {
+    pub fn SCInspectionBufferInPlace(buffer: *const InspectionBuffer) -> bool;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct SigMatchCtx_ {

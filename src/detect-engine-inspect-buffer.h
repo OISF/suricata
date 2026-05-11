@@ -72,5 +72,6 @@ void InspectionBufferSetupMulti(DetectEngineThreadCtx *det_ctx, InspectionBuffer
         const DetectEngineTransforms *transforms, const uint8_t *data, const uint32_t data_len);
 InspectionBuffer *InspectionBufferMultipleForListGet(
         DetectEngineThreadCtx *det_ctx, const int list_id, uint32_t local_id);
+bool SCInspectionBufferInPlace(const InspectionBuffer *buffer);
 
 #endif /* SURICATA_DETECT_ENGINE_INSPECT_BUFFER_H */
