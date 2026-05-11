@@ -255,3 +255,10 @@ void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_l
         buffer->initialized = true;
     }
 }
+
+// Returns wether the inspection buffer will make the transform run in-place
+// Especially useful for transforms that produces an output longer than the input
+bool SCInspectionBufferInPlace(const InspectionBuffer *buffer)
+{
+    return buffer->inspect == buffer->buf;
+}

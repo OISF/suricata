@@ -242,6 +242,9 @@ extern "C" {
 extern "C" {
     pub fn SCInspectionBufferTruncate(buffer: *mut InspectionBuffer, buf_len: u32);
 }
+extern "C" {
+    pub fn SCInspectionBufferInPlace(buffer: *const InspectionBuffer) -> bool;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Flow_ {
