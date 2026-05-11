@@ -43,7 +43,7 @@ RUST_FEATURES +=	debug
 endif
 
 if DEBUG_VALIDATION
-RUST_FEATURES +=	debug-validate
+RUST_FEATURES +=	debug-validate suricata-ffi/debug-validate
 endif
 
 if RUST_CROSS_COMPILE 
