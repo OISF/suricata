@@ -44,8 +44,9 @@ typedef struct AppLayerGetFileState AppLayerGetFileState;
 /* for use with the detect_progress_ts|detect_progress_tc fields */
 
 /** should inspection be skipped in that direction */
-#define APP_LAYER_TX_SKIP_INSPECT_TS BIT_U8(0)
-#define APP_LAYER_TX_SKIP_INSPECT_TC BIT_U8(1)
+// defined in rust
+// #define APP_LAYER_TX_SKIP_INSPECT_TS BIT_U8(0)
+// #define APP_LAYER_TX_SKIP_INSPECT_TC BIT_U8(1)
 /** is tx fully inspected? */
 #define APP_LAYER_TX_INSPECTED_TS BIT_U8(2)
 #define APP_LAYER_TX_INSPECTED_TC BIT_U8(3)

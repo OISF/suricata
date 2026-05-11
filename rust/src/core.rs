@@ -44,9 +44,9 @@ macro_rules!BIT_U8 {
     ($x:expr) => (1 << $x);
 }
 
-macro_rules!BIT_U16 {
+/*unused macro_rules!BIT_U16 {
     ($x:expr) => (1 << $x);
-}
+}*/
 
 macro_rules!BIT_U32 {
     ($x:expr) => (1 << $x);

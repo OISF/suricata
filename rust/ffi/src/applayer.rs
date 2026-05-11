@@ -63,6 +63,18 @@ pub const APP_LAYER_PARSER_SFRAME_TC: u16 = 1 << 10;
 /* Flags for AppLayerParserProtoCtx. */
 pub const APP_LAYER_PARSER_OPT_ACCEPT_GAPS: u32 = 1 << 0;
 
+// Other flags are defined in C app-layer-parser.h
+/** should inspection be skipped in that direction */
+pub const APP_LAYER_TX_SKIP_INSPECT_TS: u8 = 1 << 0;
+pub const APP_LAYER_TX_SKIP_INSPECT_TC: u8 = 1 << 1;
+
+// Other flags are defined in C flow.h
+/* File flags */
+pub const FLOWFILE_NO_STORE_TS: u16 = 1 << 2;
+pub const FLOWFILE_NO_STORE_TC: u16 = 1 << 3;
+pub const FLOWFILE_STORE_TS: u16 = 1 << 12;
+pub const FLOWFILE_STORE_TC: u16 = 1 << 13;
+
 pub trait AppLayerResultRust {
     fn ok() -> Self;
     fn err() -> Self;
