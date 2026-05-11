@@ -17,4 +17,4 @@ exclude = [
     "IPPROTO_UDP",
 ]
 
-item_types = ["constants"]
+item_types = ["constants", "functions"]

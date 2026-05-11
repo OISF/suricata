@@ -18,6 +18,7 @@
 //! App-layer utils.
 
 use crate::cast_pointer;
+use crate::direction::Direction;
 use std::ffi::CStr;
 pub use suricata_sys::sys::AppLayerEventType;
 use suricata_sys::sys::{
@@ -339,4 +340,92 @@ pub unsafe fn get_event_info_by_id<T: AppLayerEvent>(
         return 0;
     }
     -1
+}
+
+#[cfg(not(any(test, feature = "testing")))]
+use suricata_sys::sys::{SCAppLayerDecoderEventsSetEventRaw, SCAppLayerTxDataCleanup};
+
+#[derive(Debug, Default, Eq, PartialEq)]
+pub struct AppLayerTxData(pub suricata_sys::sys::AppLayerTxData);
+
+impl AppLayerTxData {
+    /// Create new AppLayerTxData for a transaction that covers both
+    /// directions.
+    pub fn new() -> Self {
+        Self(suricata_sys::sys::AppLayerTxData {
+            updated_tc: true,
+            updated_ts: true,
+            ..Default::default()
+        })
+    }
+
+    /// Create new AppLayerTxData for a transaction in a single
+    /// direction.
+    pub fn for_direction(direction: Direction) -> Self {
+        let (flags, updated_ts, updated_tc) = match direction {
+            Direction::ToServer => (APP_LAYER_TX_SKIP_INSPECT_TC, true, false),
+            Direction::ToClient => (APP_LAYER_TX_SKIP_INSPECT_TS, false, true),
+        };
+        Self(suricata_sys::sys::AppLayerTxData {
+            updated_tc,
+            updated_ts,
+            flags,
+            ..Default::default()
+        })
+    }
+
+    pub fn init_files_opened(&mut self) {
+        self.0.files_opened = 1;
+    }
+
+    pub fn incr_files_opened(&mut self) {
+        self.0.files_opened += 1;
+    }
+
+    pub fn set_event(&mut self, _event: u8) {
+        #[cfg(not(any(test, feature = "testing")))]
+        unsafe {
+            SCAppLayerDecoderEventsSetEventRaw(&mut self.0.events, _event);
+        }
+    }
+
+    pub fn update_file_flags(&mut self, state_flags: u16) {
+        unsafe {
+            SCTxDataUpdateFileFlags(&mut self.0, state_flags);
+        }
+    }
+}
+
+impl Drop for AppLayerTxData {
+    fn drop(&mut self) {
+        #[cfg(not(any(test, feature = "testing")))]
+        unsafe {
+            SCAppLayerTxDataCleanup(&mut self.0);
+        }
+    }
+}
+
+/// # Safety
+///
+/// the caller must provide a valid AppLayerTxData pointer
+#[no_mangle]
+pub unsafe extern "C" fn SCTxDataUpdateFileFlags(
+    txd: &mut suricata_sys::sys::AppLayerTxData, state_flags: u16,
+) {
+    if (txd.file_flags & state_flags) != state_flags {
+        let mut nf = state_flags;
+        // With keyword filestore:both,flow :
+        // There may be some opened unclosed file in one direction without filestore
+        // As such it has tx file_flags had FLOWFILE_NO_STORE_TS or TC
+        // But a new file in the other direction may trigger filestore:both,flow
+        // And thus set state_flags FLOWFILE_STORE_TS
+        // If the file was opened without storing it, do not try to store just the end of it
+        if (txd.file_flags & FLOWFILE_NO_STORE_TS) != 0 && (state_flags & FLOWFILE_STORE_TS) != 0 {
+            nf &= !FLOWFILE_STORE_TS;
+        }
+        if (txd.file_flags & FLOWFILE_NO_STORE_TC) != 0 && (state_flags & FLOWFILE_STORE_TC) != 0 {
+            nf &= !FLOWFILE_STORE_TC;
+        }
+        txd.file_flags |= nf;
+    }
 }
