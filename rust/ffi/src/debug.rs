@@ -191,3 +191,36 @@ macro_rules! SCFatalErrorOnInit {
         $crate::debug::fatalerror(&format!($($arg)*));
     }
 }
+
+#[cfg(not(feature = "debug-validate"))]
+#[macro_export]
+macro_rules! debug_validate_fail (
+  ($msg:expr) => {};
+);
+
+#[cfg(feature = "debug-validate")]
+#[macro_export]
+macro_rules! debug_validate_fail (
+  ($msg:expr) => {
+    // Wrap in a conditional to prevent unreachable code warning in caller.
+    if true {
+      panic!($msg);
+    }
+  };
+);
+
+#[cfg(not(feature = "debug-validate"))]
+#[macro_export]
+macro_rules! debug_validate_bug_on (
+  ($item:expr) => {};
+);
+
+#[cfg(feature = "debug-validate")]
+#[macro_export]
+macro_rules! debug_validate_bug_on (
+  ($item:expr) => {
+    if $item {
+        panic!("Condition check failed");
+    }
+  };
+);
