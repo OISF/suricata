@@ -51,6 +51,7 @@
 #include "util-conf.h"
 #include "suricata.h"
 #include "util-affinity.h"
+#include "conf-yaml-loader.h"
 
 #ifdef HAVE_DPDK
 
@@ -379,42 +380,79 @@ static void ConfigSetIface(DPDKIfaceConfig *iconf, const char *entry_str)
     SCReturn;
 }
 
+static int32_t remaining_auto_cpus = -1; // -1 means not initialized
+
+/**
+ * \brief Initialize the number of remaining auto-assigned threads.
+ * \retval 0 on success, -EINVAL on invalid input
+ */
+static int AutoRemainingThreadsInit(uint16_t sched_cpus, uint16_t live_dev_count)
+{
+    if (remaining_auto_cpus != -1) {
+        return 0;
+    }
+
+    if (sched_cpus == 0) {
+        SCLogError("No worker CPU cores with affinity were configured");
+        return -EINVAL;
+    }
+    if (live_dev_count == 0) {
+        SCLogError("No devices configured");
+        return -EINVAL;
+    }
+    remaining_auto_cpus = sched_cpus % live_dev_count;
+    return 0;
+}
+
+/**
+ * \brief Decrease the number of remaining auto-assigned threads by one
+ * \retval true if a leftover thread was consumed, false otherwise
+ */
+static bool AutoRemainingThreadsUsedOne(void)
+{
+    if (remaining_auto_cpus <= 0) {
+        return false;
+    }
+
+    remaining_auto_cpus--;
+    return true;
+}
+
 static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
-    static uint16_t remaining_auto_cpus = UINT16_MAX; // uninitialized
     if (!threading_set_cpu_affinity) {
         SCLogError("DPDK runmode requires configured thread affinity");
         SCReturnInt(-EINVAL);
     }
 
     bool wtaf_periface = true;
-    ThreadsAffinityType *wtaf = GetAffinityTypeForNameAndIface("worker-cpu-set", iconf->iface);
+    ThreadsAffinityType *wtaf = AffinityTypeGetByIfaceOrCpuset("worker-cpu-set", iconf->iface);
     if (wtaf == NULL) {
         wtaf_periface = false;
-        wtaf = GetAffinityTypeForNameAndIface("worker-cpu-set", NULL); // mandatory
+        wtaf = AffinityTypeGetByIfaceOrCpuset("worker-cpu-set", NULL); // mandatory
         if (wtaf == NULL) {
             SCLogError("Specify worker-cpu-set list in the threading section");
             SCReturnInt(-EINVAL);
         }
     }
-    ThreadsAffinityType *mtaf = GetAffinityTypeForNameAndIface("management-cpu-set", NULL);
+    ThreadsAffinityType *mtaf = AffinityTypeGetByIfaceOrCpuset("management-cpu-set", NULL);
     if (mtaf == NULL) {
         SCLogError("Specify management-cpu-set list in the threading section");
         SCReturnInt(-EINVAL);
     }
-    uint16_t sched_cpus = UtilAffinityGetAffinedCPUNum(wtaf);
+    uint16_t sched_cpus = AffinityGetAffinedCPUNum(wtaf);
     if (sched_cpus == UtilCpuGetNumProcessorsOnline()) {
         SCLogWarning(
                 "\"all\" specified in worker CPU cores affinity, excluding management threads");
-        UtilAffinityCpusExclude(wtaf, mtaf);
-        sched_cpus = UtilAffinityGetAffinedCPUNum(wtaf);
+        AffinityCpusSubtract(wtaf, mtaf);
+        sched_cpus = AffinityGetAffinedCPUNum(wtaf);
     }
 
     if (sched_cpus == 0) {
         SCLogError("No worker CPU cores with configured affinity were configured");
         SCReturnInt(-EINVAL);
-    } else if (UtilAffinityCpusOverlap(wtaf, mtaf) != 0) {
+    } else if (AffinityCpusOverlap(wtaf, mtaf)) {
         SCLogWarning("Worker threads should not overlap with management threads in the CPU core "
                      "affinity configuration");
     }
@@ -448,16 +486,11 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
             SCReturnInt(-ERANGE);
         }
 
-        if (remaining_auto_cpus == UINT16_MAX) {
-            // first time auto-assignment
-            remaining_auto_cpus = sched_cpus % live_dev_count;
-            if (remaining_auto_cpus > 0) {
-                iconf->threads++;
-                remaining_auto_cpus--;
-            }
-        } else if (remaining_auto_cpus > 0) {
+        int init_ret = AutoRemainingThreadsInit(sched_cpus, live_dev_count);
+        if (init_ret < 0)
+            SCReturnInt(init_ret);
+        if (AutoRemainingThreadsUsedOne()) {
             iconf->threads++;
-            remaining_auto_cpus--;
         }
         SCLogConfig("%s: auto-assigned %u threads", iconf->iface, iconf->threads);
         SCReturnInt(0);
@@ -469,7 +502,7 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
         SCReturnInt(-EINVAL);
     }
 
-    if (iconf->threads <= 0) {
+    if (iconf->threads == 0) {
         SCLogError("%s: positive number of threads required", iconf->iface);
         SCReturnInt(-ERANGE);
     }
@@ -1080,10 +1113,10 @@ static bool ConfigThreadsGenericIsValid(uint16_t iface_threads, ThreadsAffinityT
         SCLogError("Specify worker-cpu-set list in the threading section");
         return false;
     }
-    if (total_cpus > UtilAffinityGetAffinedCPUNum(wtaf)) {
+    if (total_cpus > AffinityGetAffinedCPUNum(wtaf)) {
         SCLogError("Interfaces requested more cores than configured in the worker-cpu-set "
                    "threading section (requested %d configured %d",
-                total_cpus, UtilAffinityGetAffinedCPUNum(wtaf));
+                total_cpus, AffinityGetAffinedCPUNum(wtaf));
         return false;
     }
 
@@ -1092,10 +1125,10 @@ static bool ConfigThreadsGenericIsValid(uint16_t iface_threads, ThreadsAffinityT
 
 static bool ConfigThreadsInterfaceIsValid(uint16_t iface_threads, ThreadsAffinityType *itaf)
 {
-    if (iface_threads > UtilAffinityGetAffinedCPUNum(itaf)) {
+    if (iface_threads > AffinityGetAffinedCPUNum(itaf)) {
         SCLogError("Interface requested more cores than configured in the interface-specific "
                    "threading section (requested %d configured %d",
-                iface_threads, UtilAffinityGetAffinedCPUNum(itaf));
+                iface_threads, AffinityGetAffinedCPUNum(itaf));
         return false;
     }
 
@@ -1104,8 +1137,8 @@ static bool ConfigThreadsInterfaceIsValid(uint16_t iface_threads, ThreadsAffinit
 
 static bool ConfigIsThreadingValid(uint16_t iface_threads, const char *iface)
 {
-    ThreadsAffinityType *itaf = GetAffinityTypeForNameAndIface("worker-cpu-set", iface);
-    ThreadsAffinityType *wtaf = GetAffinityTypeForNameAndIface("worker-cpu-set", NULL);
+    ThreadsAffinityType *itaf = AffinityTypeGetByIfaceOrCpuset("worker-cpu-set", iface);
+    ThreadsAffinityType *wtaf = AffinityTypeGetByIfaceOrCpuset("worker-cpu-set", NULL);
     if (itaf && !ConfigThreadsInterfaceIsValid(iface_threads, itaf)) {
         return false;
     } else if (itaf == NULL && !ConfigThreadsGenericIsValid(iface_threads, wtaf)) {
@@ -2005,6 +2038,464 @@ int RunModeIdsDpdkWorkers(void)
 #endif /* HAVE_DPDK */
     SCReturnInt(0);
 }
+
+#if defined(HAVE_DPDK) && defined(UNITTESTS)
+
+/**
+ * \brief Reset the remaining auto-assigned threads count so next call of
+ * AutoRemainingThreadsInit() will recalculate the number of remaining
+ * auto-assigned threads.
+ */
+static void AutoRemainingThreadsReset(void)
+{
+    remaining_auto_cpus = -1;
+}
+
+static bool saved_threading_set_cpu_affinity;
+
+static void DPDKRunmodeSetThreadsDeinit(void)
+{
+    threading_set_cpu_affinity = saved_threading_set_cpu_affinity;
+    LiveDeviceListClean();
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+}
+
+/**
+ * \brief Initialize DPDK runmode test: backup config, load YAML, load affinity,
+ * build device list, and initialize auto-remaining threads.
+ * On error, cleans up before returning.
+ * \retval 0 on success, negative errno on error
+ */
+static int DPDKRunmodeSetThreadsInit(const char *input, size_t input_len)
+{
+    saved_threading_set_cpu_affinity = threading_set_cpu_affinity;
+    SCConfCreateContextBackup();
+    SCConfInit();
+    AffinityReset();
+    LiveDeviceListClean();
+    AutoRemainingThreadsReset();
+    int ret = SCConfYamlLoadString(input, input_len);
+    if (ret != 0) {
+        DPDKRunmodeSetThreadsDeinit();
+        return -EINVAL;
+    }
+
+    int affinity = 0;
+    if (SCConfGetBool("threading.set-cpu-affinity", &affinity) == 1) {
+        threading_set_cpu_affinity = (affinity == 1);
+    }
+
+    if (threading_set_cpu_affinity) {
+        ret = AffinityLoadFromConfig();
+        if (ret < 0) {
+            DPDKRunmodeSetThreadsDeinit();
+            return ret;
+        }
+    }
+
+    LiveBuildDeviceListCustom("unittest-ifaces", "iface");
+    LiveDeviceFinalize();
+    return 0;
+}
+
+/**
+ * \brief Management CPU set excludes all available CPUs from the Worker CPU set
+ */
+static int DPDKRunmodeSetThreads01(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ \"all\" ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"all\" ]\n\
+";
+
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    if (ret == -ERANGE)
+        SKIP("not enough cpus in the system");
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf = { 0 };
+    int r = ConfigSetThreads(&iconf, "1");
+    FAIL_IF_NOT(r == -EINVAL);
+
+    DPDKRunmodeSetThreadsDeinit();
+
+    PASS;
+}
+
+/**
+ * \brief Worker "all" minus management CPU 0 yields remaining online CPUs
+ */
+static int DPDKRunmodeSetThreads02(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ 0 ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"all\" ]\n\
+";
+
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    if (ret == -ERANGE)
+        SKIP("not enough cpus in the system");
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf = { 0 };
+    int r = ConfigSetThreads(&iconf, "auto");
+    FAIL_IF_NOT(iconf.threads == UtilCpuGetNumProcessorsOnline() - 1);
+    FAIL_IF_NOT(r == 0);
+
+    DPDKRunmodeSetThreadsDeinit();
+    PASS;
+}
+
+/**
+ * \brief Management/Worker CPU set exclusion leaves 2 CPUs available
+ */
+static int DPDKRunmodeSetThreads03(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ 0 ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"1-2\" ]\n\
+";
+
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    if (ret == -ERANGE)
+        SKIP("not enough cpus in the system");
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf = { 0 };
+    int r = ConfigSetThreads(&iconf, "auto");
+    FAIL_IF_NOT(iconf.threads == 2);
+    FAIL_IF_NOT(r == 0);
+
+    DPDKRunmodeSetThreadsDeinit();
+    PASS;
+}
+
+/**
+ * \brief Auto assignment of 1 CPU per interface
+ */
+static int DPDKRunmodeSetThreads04(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev1\n\
+  - iface: test_dev2\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ 0 ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"1-2\" ]\n\
+";
+
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    if (ret == -ERANGE)
+        SKIP("not enough cpus in the system");
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf1 = { 0 };
+    int r1 = ConfigSetThreads(&iconf1, "auto");
+    DPDKIfaceConfig iconf2 = { 0 };
+    int r2 = ConfigSetThreads(&iconf2, "auto");
+    FAIL_IF_NOT(iconf1.threads == 1);
+    FAIL_IF_NOT(r1 == 0);
+    FAIL_IF_NOT(iconf2.threads == 1);
+    FAIL_IF_NOT(r2 == 0);
+
+    DPDKRunmodeSetThreadsDeinit();
+    PASS;
+}
+
+/**
+ * \brief Auto assignment test with 2 CPUs available for the first interface
+ */
+static int DPDKRunmodeSetThreads05(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev1\n\
+  - iface: test_dev2\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ 0 ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"1-3\" ]\n\
+";
+
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    if (ret == -ERANGE)
+        SKIP("not enough cpus in the system");
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf1 = { 0 }; // test_dev1
+    int r1 = ConfigSetThreads(&iconf1, "auto");
+    DPDKIfaceConfig iconf2 = { 0 }; // test_dev2
+    int r2 = ConfigSetThreads(&iconf2, "auto");
+    FAIL_IF_NOT(iconf1.threads == 2);
+    FAIL_IF_NOT(r1 == 0);
+    FAIL_IF_NOT(iconf2.threads == 1);
+    FAIL_IF_NOT(r2 == 0);
+
+    DPDKRunmodeSetThreadsDeinit();
+    PASS;
+}
+
+/**
+ * \brief Sanity test for the ConfigSetThreads function
+ */
+static int DPDKRunmodeSetThreads06(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ 0 ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"1-2\" ]\n\
+";
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    if (ret == -ERANGE)
+        SKIP("not enough cpus in the system");
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf = { 0 };
+    int r = ConfigSetThreads(&iconf, "-2");
+    FAIL_IF_NOT(r == -EINVAL);
+
+    memset(&iconf, 0, sizeof(iconf));
+    r = ConfigSetThreads(&iconf, "0");
+    FAIL_IF_NOT(r == -ERANGE);
+
+    memset(&iconf, 0, sizeof(iconf));
+    r = ConfigSetThreads(&iconf, "abc");
+    FAIL_IF_NOT(r == -EINVAL);
+
+    memset(&iconf, 0, sizeof(iconf));
+    r = ConfigSetThreads(&iconf, "99999999999999");
+    FAIL_IF(r == 0);
+
+    memset(&iconf, 0, sizeof(iconf));
+    r = ConfigSetThreads(&iconf, "1");
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.threads == 1);
+
+    memset(&iconf, 0, sizeof(iconf));
+    r = ConfigSetThreads(&iconf, "2");
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.threads == 2);
+
+    DPDKRunmodeSetThreadsDeinit();
+    PASS;
+}
+
+/**
+ * \brief Test auto assignment of threads to ifaces based on both generic and
+ * per-interface CPU affinity config
+ */
+static int DPDKRunmodeSetThreads07(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev1\n\
+  - iface: test_dev2\n\
+  - iface: test_dev3\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ 0 ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"2-3\" ]\n\
+      interface-specific-cpu-set:\n\
+        - interface: \"test_dev1\"\n\
+          cpu: [ 1 ]\n\
+";
+
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    if (ret == -ERANGE)
+        SKIP("not enough cpus in the system");
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf1 = { .iface = "test_dev1" };
+    int r1 = ConfigSetThreads(&iconf1, "auto");
+    DPDKIfaceConfig iconf2 = { .iface = "test_dev2" };
+    int r2 = ConfigSetThreads(&iconf2, "auto");
+    DPDKIfaceConfig iconf3 = { .iface = "test_dev3" };
+    int r3 = ConfigSetThreads(&iconf3, "auto");
+    FAIL_IF_NOT(iconf1.threads == 1);
+    FAIL_IF_NOT(r1 == 0);
+    FAIL_IF_NOT(iconf2.threads == 1);
+    FAIL_IF_NOT(r2 == 0);
+    FAIL_IF_NOT(iconf3.threads == 1);
+    FAIL_IF_NOT(r3 == 0);
+
+    DPDKRunmodeSetThreadsDeinit();
+    PASS;
+}
+
+/**
+ * \brief Auto assignment with more interfaces than CPUs
+ */
+static int DPDKRunmodeSetThreads08(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev1\n\
+  - iface: test_dev2\n\
+  - iface: test_dev3\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ 0 ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"1-2\" ]\n\
+";
+
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    if (ret == -ERANGE)
+        SKIP("not enough cpus in the system");
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf1 = { 0 };
+    int r1 = ConfigSetThreads(&iconf1, "auto");
+    FAIL_IF_NOT(r1 == -ERANGE);
+
+    DPDKRunmodeSetThreadsDeinit();
+    PASS;
+}
+
+static int DPDKRunmodeSetMempoolCacheSize01(void)
+{
+    DPDKIfaceConfig iconf = { 0 };
+    const char *entry_str;
+
+    entry_str = NULL;
+    int r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF_NOT(r == -EINVAL);
+
+    entry_str = "";
+    r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF_NOT(r == -EINVAL);
+
+    entry_str = "-1";
+    r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF_NOT(r == -EINVAL);
+
+    entry_str = "999999999999999999";
+    r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF_NOT(r == -EINVAL);
+
+    PASS;
+}
+
+static int DPDKRunmodeSetMempoolCacheSize02(void)
+{
+    DPDKIfaceConfig iconf = { 0 };
+    char entry_str[32];
+
+    snprintf(entry_str, sizeof(entry_str), "auto");
+    iconf.queue_mempool_size = 1023;
+    int r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.mempool_cache_size_auto);
+    iconf.mempool_cache_size = MempoolCacheSizeCalculate(iconf.queue_mempool_size);
+    FAIL_IF(iconf.mempool_cache_size >= RTE_MEMPOOL_CACHE_MAX_SIZE);
+    FAIL_IF(iconf.mempool_cache_size >= iconf.queue_mempool_size / 1.5);
+    FAIL_IF_NOT(iconf.queue_mempool_size % iconf.mempool_cache_size == 0);
+
+    PASS;
+}
+
+static int DPDKRunmodeSetMempoolCacheSize03(void)
+{
+    DPDKIfaceConfig iconf = { 0 };
+    char entry_str[32];
+
+    snprintf(entry_str, sizeof(entry_str), "%d", 1);
+    iconf.queue_mempool_size = 1023;
+    int r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.mempool_cache_size == 1);
+
+    PASS;
+}
+
+static int DPDKRunmodeSetMempoolCacheSize04(void)
+{
+    DPDKIfaceConfig iconf = { 0 };
+    char entry_str[32];
+
+    snprintf(entry_str, sizeof(entry_str), "%d", RTE_MEMPOOL_CACHE_MAX_SIZE + 1);
+    int r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    PASS;
+}
+
+/**
+ * \brief Register DPDK runmode unit tests for threads and mempool cache size.
+ */
+void RunmodeDpdkRegisterTests(void)
+{
+
+    UtRegisterTest("DPDKRunmodeSetThreads01", DPDKRunmodeSetThreads01);
+    UtRegisterTest("DPDKRunmodeSetThreads02", DPDKRunmodeSetThreads02);
+    UtRegisterTest("DPDKRunmodeSetThreads03", DPDKRunmodeSetThreads03);
+    UtRegisterTest("DPDKRunmodeSetThreads04", DPDKRunmodeSetThreads04);
+    UtRegisterTest("DPDKRunmodeSetThreads05", DPDKRunmodeSetThreads05);
+    UtRegisterTest("DPDKRunmodeSetThreads06", DPDKRunmodeSetThreads06);
+    UtRegisterTest("DPDKRunmodeSetThreads07", DPDKRunmodeSetThreads07);
+    UtRegisterTest("DPDKRunmodeSetThreads08", DPDKRunmodeSetThreads08);
+    UtRegisterTest("DPDKRunmodeSetMempoolCacheSize01", DPDKRunmodeSetMempoolCacheSize01);
+    UtRegisterTest("DPDKRunmodeSetMempoolCacheSize02", DPDKRunmodeSetMempoolCacheSize02);
+    UtRegisterTest("DPDKRunmodeSetMempoolCacheSize03", DPDKRunmodeSetMempoolCacheSize03);
+    UtRegisterTest("DPDKRunmodeSetMempoolCacheSize04", DPDKRunmodeSetMempoolCacheSize04);
+}
+#endif /* UNITTESTS and HAVE_DPDK */
 
 /**
  * @}
