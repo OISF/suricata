@@ -26,8 +26,8 @@ use std::os::raw::{c_int, c_void};
 use super::constant::{EnipCommand, EnipStatus};
 use super::enip::{EnipTransaction, ALPROTO_ENIP};
 use super::parser::{
-    CipData, CipDir, EnipCipRequestPayload, EnipCipResponsePayload, EnipItemPayload, EnipPayload,
-    CIP_MULTIPLE_SERVICE,
+    CipData, CipDir, EnipCipPathSegment, EnipCipRequestPayload, EnipCipResponsePayload,
+    EnipItemPayload, EnipPayload, CIP_MULTIPLE_SERVICE,
 };
 
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
@@ -294,18 +294,34 @@ fn enip_get_status(tx: &EnipTransaction, direction: Direction) -> Option<u32> {
     return None;
 }
 
+macro_rules! get_enip_segment_val {
+    ($segment_type:expr) => {
+        |seg: &EnipCipPathSegment| {
+            if seg.segment_type >> 2 == $segment_type {
+                Some(seg.value)
+            } else {
+                None
+            }
+        }
+    };
+}
+
 fn enip_cip_match_segment(
-    d: &CipData, ctx: &DetectUintData<u32>, segment_type: u8,
+    d: &CipData, ctx: &DetectUintArrayData<u32>, segment_type: u8, done: bool,
 ) -> std::os::raw::c_int {
     if let CipDir::Request(req) = &d.cipdir {
-        for seg in req.path.iter() {
-            if seg.segment_type >> 2 == segment_type && detect_match_uint(ctx, seg.value) {
-                return 1;
-            }
+        let r = detect_uint_match_at_index::<EnipCipPathSegment, u32>(
+            &req.path,
+            ctx,
+            get_enip_segment_val!(segment_type),
+            done,
+        );
+        if r == 1 {
+            return 1;
         }
         if let EnipCipRequestPayload::Multiple(m) = &req.payload {
             for p in m.packet_list.iter() {
-                if enip_cip_match_segment(p, ctx, segment_type) == 1 {
+                if enip_cip_match_segment(p, ctx, segment_type, done) == 1 {
                     return 1;
                 }
             }
@@ -315,13 +331,13 @@ fn enip_cip_match_segment(
 }
 
 fn enip_tx_has_cip_segment(
-    tx: &EnipTransaction, ctx: &DetectUintData<u32>, segment_type: u8,
+    tx: &EnipTransaction, ctx: &DetectUintArrayData<u32>, segment_type: u8,
 ) -> std::os::raw::c_int {
     if let Some(pdu) = &tx.request {
         if let EnipPayload::Cip(c) = &pdu.payload {
             for item in c.items.iter() {
                 if let EnipItemPayload::Data(d) = &item.payload {
-                    return enip_cip_match_segment(&d.cip, ctx, segment_type);
+                    return enip_cip_match_segment(&d.cip, ctx, segment_type, tx.done);
                 }
             }
         }
@@ -329,7 +345,9 @@ fn enip_tx_has_cip_segment(
     return 0;
 }
 
-fn enip_cip_match_attribute(d: &CipData, ctx: &DetectUintArrayData<u32>, done: bool) -> std::os::raw::c_int {
+fn enip_cip_match_attribute(
+    d: &CipData, ctx: &DetectUintArrayData<u32>, done: bool,
+) -> std::os::raw::c_int {
     if let CipDir::Request(req) = &d.cipdir {
         let mut vals = Vec::new();
         for seg in req.path.iter() {
@@ -609,7 +627,7 @@ unsafe extern "C" fn cip_class_setup(
     if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = SCDetectU32Parse(raw) as *mut c_void;
+    let ctx = SCDetectU32ArrayParse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -633,14 +651,14 @@ unsafe extern "C" fn cip_class_match(
     tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
-    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u32>);
     return enip_tx_has_cip_segment(tx, ctx, 8);
 }
 
 unsafe extern "C" fn cip_class_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
-    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    SCDetectU32Free(ctx);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u32>);
+    SCDetectU32ArrayFree(ctx);
 }
 
 unsafe extern "C" fn vendor_id_setup(
@@ -1222,7 +1240,7 @@ unsafe extern "C" fn cip_instance_setup(
     if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = SCDetectU32Parse(raw) as *mut c_void;
+    let ctx = SCDetectU32ArrayParse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -1246,14 +1264,14 @@ unsafe extern "C" fn cip_instance_match(
     tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
-    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u32>);
     return enip_tx_has_cip_segment(tx, ctx, 9);
 }
 
 unsafe extern "C" fn cip_instance_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
-    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    SCDetectU32Free(ctx);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u32>);
+    SCDetectU32ArrayFree(ctx);
 }
 
 unsafe extern "C" fn cip_extendedstatus_setup(
