@@ -5125,6 +5125,11 @@ void DetectLowerSetupCallback(
 void SCDetectEngineRegisterRateFilterCallback(SCDetectRateFilterFunc fn, void *arg)
 {
     DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    if (de_ctx == NULL) {
+        SCLogError("no detection engine available for rate filter callback registration");
+        return;
+    }
+
     de_ctx->RateFilterCallback = fn;
     de_ctx->rate_filter_callback_arg = arg;
     DetectEngineDeReference(&de_ctx);
