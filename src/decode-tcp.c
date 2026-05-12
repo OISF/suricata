@@ -39,6 +39,11 @@
 #include "util-optimize.h"
 #include "flow.h"
 
+static inline uint16_t DecodeTCPGetU16(const uint8_t *d)
+{
+    return (uint16_t)(((uint16_t)d[0] << 8) | (uint16_t)d[1]);
+}
+
 static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
 {
     uint8_t tcp_opt_cnt = 0;
@@ -106,7 +111,7 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                             ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
                         } else {
                             p->l4.vars.tcp.mss_set = true;
-                            p->l4.vars.tcp.mss = SCNtohs(*(uint16_t *)(tcp_opts[tcp_opt_cnt].data));
+                            p->l4.vars.tcp.mss = DecodeTCPGetU16(tcp_opts[tcp_opt_cnt].data);
                         }
                     }
                     break;
@@ -173,7 +178,7 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                 case TCP_OPT_EXP2:
                     SCLogDebug("TCP EXP option, len %u", olen);
                     if (olen == 4 || olen == 12) {
-                        uint16_t magic = SCNtohs(*(uint16_t *)tcp_opts[tcp_opt_cnt].data);
+                        uint16_t magic = DecodeTCPGetU16(tcp_opts[tcp_opt_cnt].data);
                         if (magic == 0xf989) {
                             if (p->l4.vars.tcp.tfo_set) {
                                 ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
