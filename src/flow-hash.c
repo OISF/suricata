@@ -951,7 +951,10 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, FlowLookupStruct *fls, Packet *p, Flow
         const bool our_flow = FlowCompare(f, p) != 0;
         if (our_flow || timeout_check) {
             FLOWLOCK_WRLOCK(f);
-            const bool timedout = (timeout_check && FlowIsTimedOut(tv_id, f, p->ts, emerg));
+            bool timedout = (timeout_check && FlowIsTimedOut(tv_id, f, p->ts, emerg));
+#ifdef CAPTURE_OFFLOAD
+            timedout &= (f->flow_state != FLOW_STATE_CAPTURE_BYPASSED);
+#endif /* CAPTURE_OFFLOAD */
             if (timedout) {
                 next_f = f->next;
                 MoveToWorkQueue(tv, fls, fb, f, prev_f);
@@ -1064,7 +1067,7 @@ Flow *FlowGetExistingFlowFromFlowId(uint64_t flow_id)
  *  \param hash Value of the flow hash
  *  \retval f *LOCKED* flow or NULL
  */
-static Flow *FlowGetExistingFlowFromHash(FlowKey *key, const uint32_t hash)
+Flow *FlowGetExistingFlowFromHash(FlowKey *key, const uint32_t hash)
 {
     /* get our hash bucket and lock it */
     FlowBucket *fb = &flow_hash[hash % flow_config.hash_size];

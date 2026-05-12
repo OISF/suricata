@@ -26,6 +26,21 @@
 
 #include "util-dpdk-common.h"
 #include "util-device.h"
+#include "util-dpdk-rte-flow-structs.h"
+
+typedef struct {
+    struct rte_mempool **pkt_mp;
+    uint16_t pkt_mp_cnt;
+    uint16_t pkt_mp_capa;
+#ifdef HAVE_DPDK
+    RteFlowRuleStorage *drop_filter;
+    RteFlowBypassData *rte_flow_bypass_data;
+#endif /* HAVE_DPDK */
+    uint16_t port_id;
+} DPDKDeviceResources;
+
+int DPDKDeviceResourcesInit(DPDKDeviceResources **dpdk_vars, uint16_t mp_cnt);
+void DPDKDeviceResourcesDeinit(DPDKDeviceResources **dpdk_vars);
 
 void DPDKCleanupEAL(void);
 

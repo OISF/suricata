@@ -35,8 +35,10 @@
 #include "util-dpdk-rss.h"
 #include "util-debug.h"
 #include "util-dpdk-bonding.h"
+#include "util-dpdk-rte-flow.h"
 
 #ifdef HAVE_DPDK
+static bool RteFlowRulesContainPatternWildcard(RteFlowRuleStorage *);
 
 static void iceDeviceSetRSSHashFunction(uint64_t *rss_hf)
 {
@@ -122,6 +124,62 @@ void iceDeviceSetRSSConf(struct rte_eth_rss_conf *rss_conf)
 {
     iceDeviceSetRSSHashFunction(&rss_conf->rss_hf);
     rss_conf->rss_key_len = 52;
+}
+
+/**
+ * \brief Check and log whether pattern is broad / not-specific
+ *        as ice does not support these patterns with counter
+ *        enabled
+ * \param items array of pattern items
+ * \return true if pattern is broad / wildcard, false otherwise
+ */
+bool iceDeviceRteFlowPatternError(struct rte_flow_item *items)
+{
+    SCEnter();
+    int i = 0;
+    while (items[i].type != RTE_FLOW_ITEM_TYPE_END) {
+        if (items[i].spec != NULL) {
+            SCReturnBool(false);
+        }
+        ++i;
+    }
+    SCReturnBool(true);
+}
+
+/**
+ * \brief Checks whether at least one pattern contains wildcard matching
+ *
+ * \param rule_storage struct contaning number of rules, their string instances and rte_flow
+ *        handlers
+ * \return true if any pattern contains wildcard matching, false otherwise
+ */
+static bool RteFlowRulesContainPatternWildcard(RteFlowRuleStorage *rule_storage)
+{
+    for (size_t i = 0; i < rule_storage->rule_cnt; i++) {
+        char *pattern = rule_storage->rules[i];
+        if (strstr(pattern, " mask ") != NULL || (strstr(pattern, " last ") != NULL))
+            return true;
+    }
+    return false;
+}
+
+/**
+ * \brief Decide based on the pattern whether rte_flow rules should
+ *        support gathering statistic or not
+ * \param rule_storage struct contaning number of rules and their string instances
+ * \param port_name name of the port
+ * \return true if any pattern contains wildcard, false otherwise
+ */
+bool iceDeviceDecideRteFlowActionType(RteFlowRuleStorage *rule_storage, const char *port_name)
+{
+    if (RteFlowRulesContainPatternWildcard(rule_storage)) {
+        SCLogWarning(
+                "%s: gathering statistic for the rte_flow rule is disabled because of wildcard "
+                "pattern (ice PMD specific)",
+                port_name);
+        return false;
+    }
+    return true;
 }
 
 #endif /* HAVE_DPDK */
