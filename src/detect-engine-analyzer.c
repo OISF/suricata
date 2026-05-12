@@ -2102,11 +2102,70 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
 
 #include "app-layer-parser.h"
 
+static const char *ActionScopeToString(enum ActionScope s)
+{
+    switch (s) {
+        case ACTION_SCOPE_PACKET:
+            return "packet";
+        case ACTION_SCOPE_FLOW:
+            return "flow";
+            break;
+        case ACTION_SCOPE_HOOK:
+            return "hook";
+        case ACTION_SCOPE_TX:
+            return "tx";
+        case ACTION_SCOPE_AUTO:
+            return "auto";
+    }
+    DEBUG_VALIDATE_BUG_ON(1);
+    return "unknown";
+}
+
+static void AddPolicy(const DetectEngineCtx *de_ctx, RuleAnalyzer *ctx, const AppProto a,
+        const uint8_t state, const uint8_t direction)
+{
+    char policy_string[64] = "";
+    const struct DetectFirewallPolicy *p = NULL;
+    const struct DetectFirewallAppPolicy *app_fw_policies = de_ctx->fw_app_policy;
+    if (direction == STREAM_TOSERVER) {
+        p = &app_fw_policies[a].ts[state];
+    } else {
+        p = &app_fw_policies[a].tc[state];
+    }
+    const char *as = ActionScopeToString(p->action_scope);
+    DEBUG_VALIDATE_BUG_ON(as == NULL);
+    if (as == NULL)
+        return;
+    if (p->action & ACTION_REJECT_ANY) {
+        if (p->action & ACTION_REJECT_DST) {
+            snprintf(policy_string, sizeof(policy_string), "rejectdst:%s", as);
+        } else if (p->action & ACTION_REJECT_BOTH) {
+            snprintf(policy_string, sizeof(policy_string), "rejectboth:%s", as);
+        } else {
+            snprintf(policy_string, sizeof(policy_string), "rejectsrc:%s", as);
+        }
+    } else if (p->action & ACTION_DROP) {
+        snprintf(policy_string, sizeof(policy_string), "drop:%s", as);
+    } else if (p->action & ACTION_ACCEPT) {
+        snprintf(policy_string, sizeof(policy_string), "accept:%s", as);
+    } else {
+        DEBUG_VALIDATE_BUG_ON(1);
+    }
+    if (p->action & ACTION_PASS) {
+        if (p->action_scope == ACTION_SCOPE_FLOW) {
+            strlcat(policy_string, ",pass:flow", sizeof(policy_string));
+        } else {
+            DEBUG_VALIDATE_BUG_ON(1);
+        }
+    }
+    SCJbSetString(ctx->js, "policy", policy_string);
+}
+
 static void FirewallAddRulesForState(const DetectEngineCtx *de_ctx, const AppProto a,
         const uint8_t state, const uint8_t direction, RuleAnalyzer *ctx)
 {
     uint32_t accept_rules = 0;
-    SCJbSetString(ctx->js, "policy", "drop:flow");
+    AddPolicy(de_ctx, ctx, a, state, direction);
     SCJbOpenArray(ctx->js, "rules");
     for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
         if ((s->flags & SIG_FLAG_FIREWALL) == 0)
