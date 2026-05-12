@@ -56,6 +56,9 @@ static int LuaFlowintRegister(lua_State *L)
     if (*flowvar_id == 0) {
         return luaL_error(L, "failed to register flowvar");
     }
+    if (ld->flowints >= DETECT_LUA_MAX_FLOWINTS) {
+        return luaL_error(L, "too many flowints registered");
+    }
     ld->flowint[ld->flowints++] = *flowvar_id;
 
     luaL_getmetatable(L, suricata_flowint_mt);
