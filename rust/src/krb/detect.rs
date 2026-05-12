@@ -33,7 +33,7 @@ use crate::detect::uint::{
 };
 use crate::detect::{
     helper_keyword_register_multi_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
-    SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT32,
+    SIGMATCH_INFO_UINT32,
 };
 use kerberos_parser::krb5::EncryptionType;
 
@@ -537,7 +537,7 @@ pub unsafe extern "C" fn SCDetectKrb5Register() {
         AppLayerTxMatch: Some(krb5_msg_type_match),
         Setup: Some(krb5_msg_type_setup),
         Free: Some(krb5_msg_type_free),
-        flags: SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT | SIGMATCH_INFO_UINT32,
+        flags: SIGMATCH_INFO_ENUM_UINT | SIGMATCH_INFO_UINT32,
     };
     G_KRB5_MSG_TYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_KRB5_GENERIC_BUFFER_ID = SCDetectHelperBufferProgressRegister(
