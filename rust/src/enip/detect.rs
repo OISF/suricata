@@ -32,9 +32,10 @@ use super::parser::{
 
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
-    detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU16Free, SCDetectU16Match,
-    SCDetectU16Parse, SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse, SCDetectU8Free,
-    SCDetectU8Match, SCDetectU8Parse,
+    detect_match_uint, detect_parse_uint_enum, detect_uint_match_at_index, DetectUintArrayData,
+    DetectUintData, DetectUintIndex, SCDetectU16Free, SCDetectU16Match, SCDetectU16Parse,
+    SCDetectU32ArrayFree, SCDetectU32ArrayParse, SCDetectU32Free, SCDetectU32Match,
+    SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match, SCDetectU8Parse,
 };
 use crate::detect::{
     helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
@@ -328,49 +329,63 @@ fn enip_tx_has_cip_segment(
     return 0;
 }
 
-fn enip_cip_match_attribute(d: &CipData, ctx: &DetectUintData<u32>) -> std::os::raw::c_int {
+fn enip_cip_match_attribute(d: &CipData, ctx: &DetectUintArrayData<u32>, done: bool) -> std::os::raw::c_int {
     if let CipDir::Request(req) = &d.cipdir {
+        let mut vals = Vec::new();
         for seg in req.path.iter() {
-            if seg.segment_type >> 2 == 12 && detect_match_uint(ctx, seg.value) {
-                return 1;
+            if seg.segment_type >> 2 == 12 {
+                if ctx.index != DetectUintIndex::Any {
+                    vals.push(seg.value);
+                } else if detect_match_uint(&ctx.du, seg.value) {
+                    return 1;
+                }
             }
         }
         match &req.payload {
             EnipCipRequestPayload::GetAttributeList(ga) => {
                 for attrg in ga.attr_list.iter() {
-                    if detect_match_uint(ctx, (*attrg).into()) {
+                    if ctx.index != DetectUintIndex::Any {
+                        vals.push((*attrg).into());
+                    } else if detect_match_uint(&ctx.du, (*attrg).into()) {
                         return 1;
                     }
                 }
             }
             EnipCipRequestPayload::SetAttributeList(sa) => {
                 if let Some(val) = sa.first_attr {
-                    if detect_match_uint(ctx, val.into()) {
+                    if ctx.index != DetectUintIndex::Any {
+                        vals.push(val.into());
+                    } else if detect_match_uint(&ctx.du, val.into()) {
                         return 1;
                     }
                 }
             }
             EnipCipRequestPayload::Multiple(m) => {
                 for p in m.packet_list.iter() {
-                    if enip_cip_match_attribute(p, ctx) == 1 {
+                    // treat each array independently
+                    if enip_cip_match_attribute(p, ctx, done) == 1 {
                         return 1;
                     }
                 }
             }
             _ => {}
         }
+        if ctx.index != DetectUintIndex::Any {
+            return detect_uint_match_at_index::<u32, u32>(&vals, ctx, |v| Some(*v), done);
+        }
     }
     return 0;
 }
 
 fn enip_tx_has_cip_attribute(
-    tx: &EnipTransaction, ctx: &DetectUintData<u32>,
+    tx: &EnipTransaction, ctx: &DetectUintArrayData<u32>,
 ) -> std::os::raw::c_int {
     if let Some(pdu) = &tx.request {
         if let EnipPayload::Cip(c) = &pdu.payload {
             for item in c.items.iter() {
                 if let EnipItemPayload::Data(d) = &item.payload {
-                    return enip_cip_match_attribute(&d.cip, ctx);
+                    // there should be only one EnipItemPayload item
+                    return enip_cip_match_attribute(&d.cip, ctx, tx.done);
                 }
             }
         }
@@ -554,7 +569,7 @@ unsafe extern "C" fn cip_attribute_setup(
     if SCDetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0 {
         return -1;
     }
-    let ctx = SCDetectU32Parse(raw) as *mut c_void;
+    let ctx = SCDetectU32ArrayParse(raw) as *mut c_void;
     if ctx.is_null() {
         return -1;
     }
@@ -578,14 +593,14 @@ unsafe extern "C" fn cip_attribute_match(
     tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
     let tx = cast_pointer!(tx, EnipTransaction);
-    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u32>);
     return enip_tx_has_cip_attribute(tx, ctx);
 }
 
 unsafe extern "C" fn cip_attribute_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     // Just unbox...
-    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    SCDetectU32Free(ctx);
+    let ctx = cast_pointer!(ctx, DetectUintArrayData<u32>);
+    SCDetectU32ArrayFree(ctx);
 }
 
 unsafe extern "C" fn cip_class_setup(
