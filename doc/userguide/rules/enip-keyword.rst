@@ -71,6 +71,8 @@ This allows to match without needing to match on cip.service.
 
 enip.cip_attribute uses an :ref:`unsigned 32-bits integer <rules-integer-keywords>`.
 
+enip.cip_attribute is also a :ref:`multi-integer <multi-integers>`.
+
 Examples::
 
   enip.cip_attribute:1;
