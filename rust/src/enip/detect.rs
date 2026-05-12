@@ -1612,7 +1612,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(cip_status_match),
         Setup: Some(cip_status_setup),
         Free: Some(cip_status_free),
-        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT,
+        flags: SIGMATCH_INFO_UINT8,
     };
     G_ENIP_CIP_STATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_CIP_STATUS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
@@ -1645,7 +1645,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         AppLayerTxMatch: Some(cip_extendedstatus_match),
         Setup: Some(cip_extendedstatus_setup),
         Free: Some(cip_extendedstatus_free),
-        flags: SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_MULTI_UINT,
+        flags: SIGMATCH_INFO_UINT16,
     };
     G_ENIP_CIP_EXTENDEDSTATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_ENIP_CIP_EXTENDEDSTATUS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
