@@ -395,7 +395,7 @@ static int DetectLuaAppTxMatch (DetectEngineThreadCtx *det_ctx,
 static const char *ut_script = NULL;
 #endif
 
-static void *DetectLuaThreadInit(void *data)
+static void *DetectLuaThreadInit(void *data, bool allow_restricted_functions)
 {
     int status;
     DetectLuaData *lua = (DetectLuaData *)data;
@@ -415,7 +415,7 @@ static void *DetectLuaThreadInit(void *data)
         goto error;
     }
 
-    if (lua->allow_restricted_functions) {
+    if (allow_restricted_functions) {
         luaL_openlibs(t->luastate);
         SCLuaRequirefBuiltIns(t->luastate);
     } else {
@@ -470,6 +470,16 @@ error:
     return NULL;
 }
 
+static void *DetectLuaThreadRestrictedInit(void *data)
+{
+    return DetectLuaThreadInit(data, false);
+}
+
+static void *DetectLuaThreadAllowInit(void *data)
+{
+    return DetectLuaThreadInit(data, true);
+}
+
 static void DetectLuaThreadFree(void *ctx)
 {
     if (ctx != NULL) {
@@ -516,14 +526,15 @@ error:
     return NULL;
 }
 
-static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const Signature *s)
+static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const Signature *s,
+        int allow_restricted_functions)
 {
     int status;
 
     lua_State *luastate = SCLuaSbStateNew(ld->alloc_limit, ld->instruction_limit);
     if (luastate == NULL)
         return -1;
-    if (ld->allow_restricted_functions) {
+    if (allow_restricted_functions) {
         luaL_openlibs(luastate);
         SCLuaRequirefBuiltIns(luastate);
     } else {
@@ -726,15 +737,18 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
 
     int allow_restricted_functions = 0;
     (void)SCConfGetBool("security.lua.allow-restricted-functions", &allow_restricted_functions);
-    lua->allow_restricted_functions = allow_restricted_functions;
 
-    if (DetectLuaSetupPrime(de_ctx, lua, s) == -1) {
+    if (DetectLuaSetupPrime(de_ctx, lua, s, allow_restricted_functions) == -1) {
         goto error;
     }
 
-    lua->thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "lua",
-            DetectLuaThreadInit, (void *)lua,
-            DetectLuaThreadFree, 0);
+    void *cb = DetectLuaThreadRestrictedInit;
+    if (allow_restricted_functions) {
+        cb = DetectLuaThreadAllowInit;
+    }
+
+    lua->thread_ctx_id =
+            DetectRegisterThreadCtxFuncs(de_ctx, "lua", cb, (void *)lua, DetectLuaThreadFree, 0);
     if (lua->thread_ctx_id == -1)
         goto error;
 

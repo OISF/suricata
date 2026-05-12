@@ -55,7 +55,6 @@ typedef struct DetectLuaData {
     DetectLuaDataBytevarEntry bytevar[DETECT_LUA_MAX_BYTEVARS];
     uint64_t alloc_limit;
     uint64_t instruction_limit;
-    int allow_restricted_functions;
 } DetectLuaData;
 
 /* prototypes */
