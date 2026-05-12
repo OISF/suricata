@@ -23,7 +23,7 @@ use std::ffi::{CString, NulError};
 
 use suricata_sys::sys::{
     SCJbClose, SCJbGetMark, SCJbOpenObject, SCJbRestoreMark, SCJbSetFormatted, SCJbSetString,
-    SCJsonBuilder, SCJsonBuilderMark,
+    SCJbSetUint, SCJsonBuilder, SCJsonBuilderMark,
 };
 
 // TODO: Map suricata::jsonbuilder::JsonBuilder errors as well,
@@ -100,6 +100,15 @@ impl JsonBuilder {
     pub fn set_formatted(&mut self, formatted: &str) -> Result<&mut Self, Error> {
         let formatted = CString::new(formatted)?;
         if unsafe { SCJbSetFormatted(self.jb, formatted.as_ptr()) } {
+            Ok(self)
+        } else {
+            Err(Error::Other)
+        }
+    }
+
+    pub fn set_uint(&mut self, key: &str, val: u64) -> Result<&mut Self, Error> {
+        let key = CString::new(key)?;
+        if unsafe { SCJbSetUint(self.jb, key.as_ptr(), val) } {
             Ok(self)
         } else {
             Err(Error::Other)
