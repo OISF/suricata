@@ -459,17 +459,17 @@ static int ProgramFlow(Packet *p, int inline_mode)
             do_swap = (CompareIPv6Addr(pIPv6_hdr->src_addr, pIPv6_hdr->dst_addr) > 0);
 
             if (!is_span) {
-                memcpy(&(v6Tuple.sa), pIPv6_hdr->src_addr, 16);
-                memcpy(&(v6Tuple.da), pIPv6_hdr->dst_addr, 16);
+                memcpy(&(v6Tuple.sa), pIPv6_hdr->src_addr, sizeof(v6Tuple.sa));
+                memcpy(&(v6Tuple.da), pIPv6_hdr->dst_addr, sizeof(v6Tuple.da));
             } else {
                 /* sort src/dest address before programming */
                 if (!do_swap) {
                     /* already in order */
-                    memcpy(&(v6Tuple.sa), pIPv6_hdr->src_addr, 16);
-                    memcpy(&(v6Tuple.da), pIPv6_hdr->dst_addr, 16);
+                    memcpy(&(v6Tuple.sa), pIPv6_hdr->src_addr, sizeof(v6Tuple.sa));
+                    memcpy(&(v6Tuple.da), pIPv6_hdr->dst_addr, sizeof(v6Tuple.da));
                 } else { /* swap the addresses */
-                    memcpy(&(v6Tuple.sa), pIPv6_hdr->dst_addr, 16);
-                    memcpy(&(v6Tuple.da), pIPv6_hdr->src_addr, 16);
+                    memcpy(&(v6Tuple.sa), pIPv6_hdr->dst_addr, sizeof(v6Tuple.sa));
+                    memcpy(&(v6Tuple.da), pIPv6_hdr->src_addr, sizeof(v6Tuple.da));
                 }
             }
             break;
