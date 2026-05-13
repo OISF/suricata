@@ -2126,11 +2126,11 @@ static void AddPolicy(const DetectEngineCtx *de_ctx, RuleAnalyzer *ctx, const Ap
 {
     char policy_string[64] = "";
     const struct DetectFirewallPolicy *p = NULL;
-    const struct DetectFirewallAppPolicy *app_fw_policies = de_ctx->fw_app_policy;
+    const struct DetectFirewallPolicies *fw_policies = de_ctx->fw_policies;
     if (direction == STREAM_TOSERVER) {
-        p = &app_fw_policies[a].ts[state];
+        p = &fw_policies->app[a].ts[state];
     } else {
-        p = &app_fw_policies[a].tc[state];
+        p = &fw_policies->app[a].tc[state];
     }
     const char *as = ActionScopeToString(p->action_scope);
     DEBUG_VALIDATE_BUG_ON(as == NULL);

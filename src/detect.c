@@ -71,20 +71,14 @@ typedef struct DetectRunScratchpad {
     const AppProto alproto;
     const uint8_t flow_flags; /* flow/state flags: STREAM_* */
     const bool app_decoder_events;
-    /**
-     *  Either ACTION_DROP (drop:packet) or ACTION_ACCEPT (accept:hook)
-     *
-     *  ACTION_DROP means the default policy of drop:packet is applied
-     *  ACTION_ACCEPT means the default policy of accept:hook is applied
-     */
-    const uint8_t default_action;
+    const enum DetectFirewallPacketPolicies fw_pkt_policy;
     const SigGroupHead *sgh;
 } DetectRunScratchpad;
 
 /* prototypes */
 static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Packet *const p, Flow *const pflow,
-        const uint8_t default_action);
+        const enum DetectFirewallPacketPolicies fw_pkt_policy);
 static void DetectRunInspectIPOnly(ThreadVars *tv, const DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Flow * const pflow, Packet * const p);
 static inline void DetectRunGetRuleGroup(const DetectEngineCtx *de_ctx,
@@ -122,7 +116,8 @@ static void DetectRun(ThreadVars *th_v,
      * Mark as a constant pointer, although the flow itself can change. */
     Flow * const pflow = p->flow;
 
-    DetectRunScratchpad scratch = DetectRunSetup(de_ctx, det_ctx, p, pflow, ACTION_DROP);
+    DetectRunScratchpad scratch =
+            DetectRunSetup(de_ctx, det_ctx, p, pflow, DETECT_FIREWALL_POLICY_PACKET_FILTER);
 
     /* run the IPonly engine */
     DetectRunInspectIPOnly(th_v, de_ctx, det_ctx, pflow, p);
@@ -210,7 +205,8 @@ end:
 /** \internal
  */
 static void DetectRunPacketHook(ThreadVars *th_v, const DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p)
+        DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p,
+        enum DetectFirewallPacketPolicies fw_pkt_policy)
 {
     SCEnter();
     SCLogDebug("pcap_cnt %" PRIu64 " direction %s pkt_src %s", PcapPacketCntGet(p),
@@ -222,7 +218,7 @@ static void DetectRunPacketHook(ThreadVars *th_v, const DetectEngineCtx *de_ctx,
      * Mark as a constant pointer, although the flow itself can change. */
     Flow *const pflow = p->flow;
 
-    DetectRunScratchpad scratch = DetectRunSetup(de_ctx, det_ctx, p, pflow, ACTION_ACCEPT);
+    DetectRunScratchpad scratch = DetectRunSetup(de_ctx, det_ctx, p, pflow, fw_pkt_policy);
     scratch.sgh = sgh;
 
     /* if we didn't get a sig group head, we
@@ -678,6 +674,23 @@ static inline bool SkipFwRules(const Packet *p)
     return false;
 }
 
+static uint8_t DetectRunApplyPacketPolicy(
+        const DetectEngineCtx *de_ctx, const enum DetectFirewallPacketPolicies policy, Packet *p)
+{
+    DEBUG_VALIDATE_BUG_ON(de_ctx->fw_policies == NULL);
+    const struct DetectFirewallPolicy *pol = &de_ctx->fw_policies->pkt[policy];
+    if (pol->action & ACTION_DROP) {
+        SCLogNotice("packet: %" PRIu64 ": drop PKT_DROP_REASON_DEFAULT_PACKET_POLICY",
+                PcapPacketCntGet(p));
+        PacketDrop(p, pol->action, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
+    } else if (pol->action & ACTION_ACCEPT) {
+        SCLogNotice("packet: %" PRIu64 ": accept", PcapPacketCntGet(p));
+    } else {
+        abort();
+    }
+    return pol->action;
+}
+
 static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
         const DetectEngineCtx *const de_ctx, DetectEngineThreadCtx *const det_ctx, Packet *const p,
         Flow *const pflow, const DetectRunScratchpad *scratch)
@@ -920,28 +933,24 @@ next:
     /* if no rule told us to accept, and no rule explicitly dropped, we invoke the default drop
      * policy
      */
-    if (have_fw_rules && scratch->default_action == ACTION_DROP) {
-        if (!skip_fw && !fw_verdict) {
-            DEBUG_VALIDATE_BUG_ON(action & ACTION_DROP);
-            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
-            action |= ACTION_DROP;
-        } else {
+    if (have_fw_rules) {
+        if (skip_fw || fw_verdict) {
             /* apply fw action */
             p->action |= action;
+        } else {
+            DEBUG_VALIDATE_BUG_ON(action & ACTION_DROP);
+            action |= DetectRunApplyPacketPolicy(de_ctx, scratch->fw_pkt_policy, p);
         }
     }
     return action;
 }
 
 /** \internal
- *  \param default_action either ACTION_DROP (drop:packet) or ACTION_ACCEPT (accept:hook)
- *
- *  ACTION_DROP means the default policy of drop:packet is applied
- *  ACTION_ACCEPT means the default policy of accept:hook is applied
+ *  \param fw_pkt_policy policy to apply to packet rules
  */
 static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Packet *const p, Flow *const pflow,
-        const uint8_t default_action)
+        const enum DetectFirewallPacketPolicies fw_pkt_policy)
 {
     AppProto alproto = ALPROTO_UNKNOWN;
     uint8_t flow_flags = 0; /* flow/state flags */
@@ -1034,7 +1043,7 @@ static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
         app_decoder_events = AppLayerParserHasDecoderEvents(pflow->alparser);
     }
 
-    DetectRunScratchpad pad = { alproto, flow_flags, app_decoder_events, default_action, NULL };
+    DetectRunScratchpad pad = { alproto, flow_flags, app_decoder_events, fw_pkt_policy, NULL };
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_SETUP);
     return pad;
 }
@@ -1066,10 +1075,10 @@ static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_
      * if there was no rule group. */
     // TODO review packet src types here
     if (EngineModeIsFirewall() && ((p->action & (ACTION_ACCEPT | ACTION_DROP)) == 0) &&
-            p->pkt_src == PKT_SRC_WIRE && scratch->default_action == ACTION_DROP) {
-        SCLogDebug("packet %" PRIu64 ": droppit as no verdict set %02x (pkt %s)",
+            p->pkt_src == PKT_SRC_WIRE) { // && scratch->default_action == ACTION_DROP) {
+        SCLogNotice("packet %" PRIu64 ": default action as no verdict set %02x (pkt %s)",
                 PcapPacketCntGet(p), p->action, PktSrcToString(p->pkt_src));
-        PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
+        (void)DetectRunApplyPacketPolicy(de_ctx, scratch->fw_pkt_policy, p);
     }
 }
 
@@ -1636,7 +1645,7 @@ static enum DetectTxFirewallFlowControl DetectFirewallApplyDefaultPolicies(
                 direction & STREAM_TOSERVER ? "toserver" : "toclient", hook);
 
         const struct DetectFirewallPolicy *policy = DetectFirewallApplyDefaultAppPolicy(
-                det_ctx->de_ctx->fw_app_policy, p, alproto, direction, hook);
+                det_ctx->de_ctx->fw_policies->app, p, alproto, direction, hook);
         SCLogDebug("fw: hook:%u policy:%02x", hook, policy->action);
         actions |= policy->action;
         if (policy->action & ACTION_DROP) {
@@ -1719,7 +1728,7 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
             /* if this rule was after the state we expected meaning that there are
              * no rules for that state. Invoke the default policies. */
             enum DetectTxFirewallFlowControl r = DetectFirewallApplyDefaultPolicies(det_ctx,
-                    det_ctx->de_ctx->fw_app_policy, tx, p, s->alproto, direction,
+                    det_ctx->de_ctx->fw_policies->app, tx, p, s->alproto, direction,
                     tx->detect_progress_orig, s->app_progress_hook - 1);
             fw_state->tx_fw_verdict = true;
             return r;
@@ -1888,8 +1897,8 @@ static bool ApplyAccept(DetectEngineThreadCtx *det_ctx, Packet *p, const uint8_t
                             ? (uint8_t)tx_end_state
                             : MIN((uint8_t)tx_end_state, s->app_progress_hook + (uint8_t)1);
             enum DetectTxFirewallFlowControl r =
-                    DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_app_policy, tx,
-                            p, s->alproto, direction, s->app_progress_hook + 1, last_hook);
+                    DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies->app,
+                            tx, p, s->alproto, direction, s->app_progress_hook + 1, last_hook);
             if (r == DETECT_TX_FW_FC_BREAK)
                 return true;
         }
@@ -2100,7 +2109,7 @@ static void DetectRunTx(ThreadVars *tv,
                  * apply the accept to the packet. */
                 SCLogDebug("tx.detect_progress_orig %u tx.tx_progress %u", tx.detect_progress_orig,
                         tx.tx_progress);
-                (void)DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_app_policy,
+                (void)DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies->app,
                         &tx, p, alproto, flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT),
                         tx.detect_progress_orig, (const uint8_t)tx.tx_progress);
                 fw_verdicted++;
@@ -2236,7 +2245,7 @@ static void DetectRunTx(ThreadVars *tv,
                 /* if this rule was the last for our progress state, and it didn't match,
                  * we have to invoke the default policy. We only check the current rule hook. */
                 const struct DetectFirewallPolicy *policy =
-                        DetectFirewallApplyDefaultAppPolicy(det_ctx->de_ctx->fw_app_policy, p,
+                        DetectFirewallApplyDefaultAppPolicy(det_ctx->de_ctx->fw_policies->app, p,
                                 s->alproto, flow_flags, s->app_progress_hook);
                 SCLogDebug("fw_last_for_progress policy %02x", policy->action);
                 if (policy->action & ACTION_DROP) {
@@ -2562,7 +2571,7 @@ uint8_t DetectPreFlow(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p)
     const SigGroupHead *sgh = de_ctx->pre_flow_sgh;
 
     SCLogDebug("thread id: %u, packet %" PRIu64 ", sgh %p", tv->id, PcapPacketCntGet(p), sgh);
-    DetectRunPacketHook(tv, de_ctx, det_ctx, sgh, p);
+    DetectRunPacketHook(tv, de_ctx, det_ctx, sgh, p, DETECT_FIREWALL_POLICY_PRE_FLOW);
     return p->action;
 }
 
@@ -2573,7 +2582,7 @@ uint8_t DetectPreStream(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *
     const SigGroupHead *sgh = de_ctx->pre_stream_sgh[direction];
 
     SCLogDebug("thread id: %u, packet %" PRIu64 ", sgh %p", tv->id, PcapPacketCntGet(p), sgh);
-    DetectRunPacketHook(tv, de_ctx, det_ctx, sgh, p);
+    DetectRunPacketHook(tv, de_ctx, det_ctx, sgh, p, DETECT_FIREWALL_POLICY_PRE_STREAM);
     return p->action;
 }
 
