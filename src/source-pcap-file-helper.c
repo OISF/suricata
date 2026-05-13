@@ -271,10 +271,16 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv)
 
 #if defined(HAVE_SETVBUF) && defined(OS_LINUX)
     if (pcap_g.read_buffer_size > 0) {
-        errno = 0;
-        if (setvbuf(pcap_file(pfv->pcap_handle), pfv->buffer, _IOFBF, pcap_g.read_buffer_size) <
-                0) {
-            SCLogWarning("Failed to setvbuf on PCAP file handle: %s", strerror(errno));
+        struct stat sb;
+        int fd = fileno(pcap_file(pfv->pcap_handle));
+        if (fd >= 0 && fstat(fd, &sb) == 0 && !S_ISREG(sb.st_mode)) {
+            SCLogInfo("%s: skipping setvbuf, underlying fd is not a regular file", pfv->filename);
+        } else {
+            errno = 0;
+            if (setvbuf(pcap_file(pfv->pcap_handle), pfv->buffer, _IOFBF, pcap_g.read_buffer_size) <
+                    0) {
+                SCLogWarning("Failed to setvbuf on PCAP file handle: %s", strerror(errno));
+            }
         }
     }
 #endif
