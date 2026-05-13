@@ -970,6 +970,8 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
             return "pre flow hook";
         case PKT_DROP_REASON_FW_FLOW_PRE_HOOK:
             return "firewall pre flow hook";
+        case PKT_DROP_REASON_FW_FLOW_DROP:
+            return "firewall flow drop";
         case PKT_DROP_REASON_NOT_SET:
         case PKT_DROP_REASON_MAX:
             return NULL;
@@ -1022,6 +1024,8 @@ static const char *PacketDropReasonToJsonString(enum PacketDropReason r)
             return "firewall.drop_reason.pre_stream_hook";
         case PKT_DROP_REASON_FW_FLOW_PRE_HOOK:
             return "firewall.drop_reason.pre_flow_hook";
+        case PKT_DROP_REASON_FW_FLOW_DROP:
+            return "firewall.drop_reason.flow_drop";
         case PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY:
             return "firewall.drop_reason.default_packet_policy";
         case PKT_DROP_REASON_FW_DEFAULT_APP_POLICY:
@@ -1053,6 +1057,7 @@ void CaptureStatsUpdate(ThreadVars *tv, const Packet *p)
         return;
 
     CaptureStats *s = &t_capture_stats;
+
     if (EngineModeIsFirewall()) {
         /** The firewall mode and its stats counters should work as when there are two different
          * devices for the firewall control and the IPS control.

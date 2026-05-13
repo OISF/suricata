@@ -412,6 +412,7 @@ enum PacketDropReason {
     PKT_DROP_REASON_FW_DEFAULT_APP_POLICY,    /**< drop issued by default app policy */
     PKT_DROP_REASON_FW_STREAM_PRE_HOOK,       /**< drop issued in the pre_stream hook */
     PKT_DROP_REASON_FW_FLOW_PRE_HOOK,         /**< drop issued in the pre_flow hook */
+    PKT_DROP_REASON_FW_FLOW_DROP,
     PKT_DROP_REASON_MAX,
 };
 
