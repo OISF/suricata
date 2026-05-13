@@ -153,7 +153,7 @@ int PacketAlertCheck(Packet *p, uint32_t sid)
 }
 #endif
 
-static inline void RuleActionToFlow(const uint8_t action, Flow *f)
+static inline void RuleActionToFlow(const uint8_t action, Flow *f, const bool fw_rule)
 {
     if (action & ACTION_ACCEPT) {
         f->flags |= FLOW_ACTION_ACCEPT;
@@ -185,6 +185,10 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f)
                 SCLogDebug("setting flow action drop");
             }
         }
+    }
+
+    if (fw_rule) {
+        f->aux_flags |= FLOW_AUX_ACTION_BY_FIREWALL;
     }
 }
 
@@ -222,7 +226,7 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
             p->alerts.drop.s = (Signature *)s;
         }
         if ((p->flow != NULL) && (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
-            RuleActionToFlow(pa->action, p->flow);
+            RuleActionToFlow(pa->action, p->flow, is_fw_rule);
         }
 
         DEBUG_VALIDATE_BUG_ON(!PacketCheckAction(p, ACTION_DROP));
@@ -247,7 +251,7 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
 
         if ((pa->action & (ACTION_PASS | ACTION_ACCEPT)) && (p->flow != NULL) &&
                 (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
-            RuleActionToFlow(pa->action, p->flow);
+            RuleActionToFlow(pa->action, p->flow, is_fw_rule);
         }
     }
 }
