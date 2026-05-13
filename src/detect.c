@@ -1705,6 +1705,7 @@ static bool ApplyAccept(Packet *p, const uint8_t flow_flags, const Signature *s,
                     flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
             PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FW_DEFAULT_APP_POLICY);
             p->flow->flags |= FLOW_ACTION_DROP;
+            p->flow->flags |= FLOW_ACTION_BY_FIREWALL;
             return true;
         }
         return false;
@@ -2024,6 +2025,7 @@ static void DetectRunTx(ThreadVars *tv,
                      * we have to invoke the default drop policy. */
                     PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FW_DEFAULT_APP_POLICY);
                     p->flow->flags |= FLOW_ACTION_DROP;
+                    p->flow->flags |= FLOW_ACTION_BY_FIREWALL;
                     break_out_of_app_filter = true;
                     tx_fw_verdict = true;
                 }
@@ -2114,6 +2116,7 @@ static void DetectRunTx(ThreadVars *tv,
                 flow_flags & STREAM_TOSERVER ? "toserver" : "toclient");
         PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FW_DEFAULT_APP_POLICY);
         p->flow->flags |= FLOW_ACTION_DROP;
+        p->flow->flags |= FLOW_ACTION_BY_FIREWALL;
         return;
     }
     /* if all tables have been bypassed, we accept:packet */
