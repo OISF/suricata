@@ -97,15 +97,13 @@ static DefragTracker *DefragTrackerAlloc(void)
     (void) SC_ATOMIC_ADD(defrag_memuse, sizeof(DefragTracker));
 
     DefragTracker *dt = SCCalloc(1, sizeof(DefragTracker));
-    if (unlikely(dt == NULL))
-        goto error;
-
+    if (unlikely(dt == NULL)) {
+        (void)SC_ATOMIC_SUB(defrag_memuse, sizeof(DefragTracker));
+        return NULL;
+    }
     SCMutexInit(&dt->lock, NULL);
     SC_ATOMIC_INIT(dt->use_cnt);
     return dt;
-
-error:
-    return NULL;
 }
 
 static void DefragTrackerFree(DefragTracker *dt)
