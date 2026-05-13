@@ -32,7 +32,7 @@ debug = true
 
 [features]
 strict = []
-debug = []
+debug = ["suricata-ffi/debug"]
 debug-validate = ["suricata-ffi/debug-validate"]
 ja3 = []
 ja4 = []
