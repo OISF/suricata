@@ -42,6 +42,7 @@ pub const DHCP_OPT_DNS_SERVER: u8 = 6;
 pub const DHCP_OPT_HOSTNAME: u8 = 12;
 pub const DHCP_OPT_REQUESTED_IP: u8 = 50;
 pub const DHCP_OPT_ADDRESS_TIME: u8 = 51;
+pub const DHCP_OPT_OVERLOAD: u8 = 52;
 pub const DHCP_OPT_TYPE: u8 = 53;
 //unused pub const DHCP_OPT_SERVER_ID: u8 = 54;
 pub const DHCP_OPT_PARAMETER_LIST: u8 = 55;
