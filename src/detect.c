@@ -1659,6 +1659,7 @@ static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
         if (policy->action_scope == ACTION_SCOPE_FLOW) {
             SCLogDebug("dropping flow");
             p->flow->flags |= FLOW_ACTION_DROP;
+            p->flow->flags |= FLOW_ACTION_BY_FIREWALL;
         }
     } else if (policy->action & ACTION_ACCEPT) {
         if (policy->action_scope == ACTION_SCOPE_FLOW) {
@@ -2341,6 +2342,7 @@ static void DetectRunTx(ThreadVars *tv,
                         if (s->action_scope == ACTION_SCOPE_FLOW) {
                             SCLogDebug("drop flow because of rule with drop action");
                             f->flags |= FLOW_ACTION_DROP;
+                            f->flags |= FLOW_ACTION_BY_FIREWALL;
                         }
                     }
                 }
