@@ -8059,7 +8059,7 @@
                         },
                         "replaced": {
                             "type": "integer",
-                            "description": "Number of replaced packets"
+                            "description": "Number of packets replaced by the stream engine or based on a match of the 'replaced' keyword."
                         }
                     }
                 },
