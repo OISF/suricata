@@ -3086,6 +3086,12 @@ The default DHCP logging level only logs enough information to map a
 MAC address to an IP address. Enable extended mode to log all DHCP
 message types in full detail.
 
+When a DHCP message carries the Option Overload entry (option 52,
+RFC 2132), the BOOTP ``sname`` and ``file`` header fields are used as
+extra option storage. Suricata parses any options found in those
+continuation areas alongside the standard options block, so values
+carried in either area show up in the same EVE fields below.
+
 Fields
 ~~~~~~
 
