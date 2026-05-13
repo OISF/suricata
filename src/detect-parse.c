@@ -3823,10 +3823,46 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
         snprintf(prefix, sizeof(prefix), "%s.firewall.policies", de_ctx->config_prefix);
     }
 
-    struct DetectFirewallAppPolicy *app_fw_policies =
-            SCCalloc(g_alproto_max, sizeof(struct DetectFirewallAppPolicy));
+    struct DetectFirewallPolicies *fw_policies = SCCalloc(
+            1, sizeof(*fw_policies) + g_alproto_max * sizeof(struct DetectFirewallAppPolicy));
+    if (fw_policies == NULL)
+        return -1;
+    struct DetectFirewallAppPolicy *app_fw_policies = fw_policies->app;
     if (app_fw_policies == NULL)
         return -1;
+
+    fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER].action = ACTION_DROP;
+    fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER].action_scope = ACTION_SCOPE_PACKET;
+
+    fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_FLOW].action = ACTION_ACCEPT;
+    fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_FLOW].action_scope = ACTION_SCOPE_HOOK;
+
+    fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_STREAM].action = ACTION_ACCEPT;
+    fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_STREAM].action_scope = ACTION_SCOPE_HOOK;
+
+    r = snprintf(policy_name, sizeof(policy_name), "%s.packet-filter", prefix);
+    if (r < 0 || (size_t)r >= sizeof(policy_name)) {
+        FatalError("internal error: failed to assemble firewall policy config string");
+    }
+    r = DoParsePolicy(policy_name, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER]);
+    if (r < 0)
+        goto error;
+
+    r = snprintf(policy_name, sizeof(policy_name), "%s.packet-pre-flow", prefix);
+    if (r < 0 || (size_t)r >= sizeof(policy_name)) {
+        FatalError("internal error: failed to assemble firewall policy config string");
+    }
+    r = DoParsePolicy(policy_name, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_FLOW]);
+    if (r < 0)
+        goto error;
+
+    r = snprintf(policy_name, sizeof(policy_name), "%s.packet-pre-flow", prefix);
+    if (r < 0 || (size_t)r >= sizeof(policy_name)) {
+        FatalError("internal error: failed to assemble firewall policy config string");
+    }
+    r = DoParsePolicy(policy_name, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_STREAM]);
+    if (r < 0)
+        goto error;
 
     for (AppProto a = 0; a < g_alproto_max; a++) {
         for (int i = 0; i < 48; i++) {
@@ -3857,9 +3893,12 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
                     prefix, a, name, state, complete_state_tc, STREAM_TOCLIENT, app_fw_policies);
         }
     }
-    de_ctx->fw_app_policy = app_fw_policies;
+    de_ctx->fw_policies = fw_policies;
 
     return 0;
+error:
+    SCFree(fw_policies);
+    return -1;
 }
 
 /*
