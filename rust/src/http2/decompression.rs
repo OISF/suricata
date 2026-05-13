@@ -146,7 +146,6 @@ fn http2_decompress<'a>(
     let mut offset = 0;
     decoder.get_mut().set_position(0);
     output.resize(HTTP2_DECOMPRESSION_CHUNK_SIZE, 0);
-    let max_len = DEFAULT_BOMB_RATIO * input.len() as u64;
     loop {
         match decoder.read(&mut output[offset..]) {
             Ok(0) => {
@@ -155,8 +154,7 @@ fn http2_decompress<'a>(
             Ok(n) => {
                 offset += n;
                 if offset == output.len() {
-                    if output.len() + HTTP2_DECOMPRESSION_CHUNK_SIZE > max_len as usize
-                        && output.len() > unsafe { HTTP2_COMPRESSION_BOMB_LIMIT as usize }
+                    if output.len() > unsafe { HTTP2_COMPRESSION_BOMB_LIMIT as usize }
                     {
                         return Err(io::Error::new(
                             io::ErrorKind::OutOfMemory,
