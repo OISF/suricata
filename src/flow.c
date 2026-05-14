@@ -537,6 +537,8 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p, ThreadVars *tv, DecodeThreadVars
     if (f->flags & FLOW_ACTION_DROP) {
         if (f->flags & FLOW_ACTION_BY_FIREWALL) {
             PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FW_FLOW_DROP);
+        } else if (f->flags & FLOW_ACTION_BY_EXCEPTION_POLICY) {
+            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_EP_FLOW_DROP);
         } else {
             PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FLOW_DROP);
         }
