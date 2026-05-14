@@ -127,17 +127,22 @@ static void DetectRun(ThreadVars *th_v,
     /* if we didn't get a sig group head, we
      * have nothing to do.... */
     if (scratch.sgh == NULL) {
-        SCLogDebug("no sgh for this packet, nothing to match against");
-        goto end;
+        if (!EngineModeIsFirewall()) {
+            SCLogDebug("no sgh for this packet, nothing to match against");
+            goto end;
+        }
+        SCLogDebug(
+                "packet %" PRIu64 ": no sgh, need to apply default policies", PcapPacketCntGet(p));
+    } else {
+        /* run the prefilters for packets */
+        DetectRunPrefilterPkt(th_v, de_ctx, det_ctx, p, &scratch);
     }
-
-    /* run the prefilters for packets */
-    DetectRunPrefilterPkt(th_v, de_ctx, det_ctx, p, &scratch);
-
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
     /* inspect the rules against the packet */
     const uint8_t pkt_policy = DetectRulePacketRules(th_v, de_ctx, det_ctx, p, pflow, &scratch);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_RULES);
+    SCLogDebug("packet %" PRIu64 ": pkt_policy %02x (p->action %02x)", PcapPacketCntGet(p),
+            pkt_policy, p->action);
 
     /* Only FW rules will already have set the action, IDS rules go through PacketAlertFinalize
      *
@@ -2011,7 +2016,7 @@ static void DetectRunTx(ThreadVars *tv,
         total_rules += (tx.de_state ? tx.de_state->cnt : 0);
 
         /* run prefilter engines and merge results into a candidates array */
-        if (sgh->tx_engines) {
+        if (sgh && sgh->tx_engines) {
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_TX);
             DetectRunPrefilterTx(det_ctx, sgh, p, ipproto, flow_flags, alproto,
                     alstate, &tx);
