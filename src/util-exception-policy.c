@@ -163,6 +163,7 @@ void ExceptionPolicyApply(Packet *p, enum ExceptionPolicy policy, enum PacketDro
             SCLogDebug("EXCEPTION_POLICY_DROP_FLOW");
             if (p->flow) {
                 p->flow->flags |= FLOW_ACTION_DROP;
+                p->flow->flags |= FLOW_ACTION_BY_EXCEPTION_POLICY;
                 FlowSetNoPayloadInspectionFlag(p->flow);
                 StreamTcpDisableAppLayer(p->flow);
             }
