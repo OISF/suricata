@@ -428,6 +428,7 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
     }
     if (FlowChangeProto(p->flow) && p->flow->flags & FLOW_ACTION_DROP) {
         // in case f->flags & FLOW_ACTION_DROP was set by one of the dequeued packets
+        /** TODO can this be reached with FW actions? */
         PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FLOW_DROP);
     }
 }
