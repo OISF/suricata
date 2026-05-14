@@ -794,6 +794,32 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
 }
 
+/** \brief get the sm_list for a app hook */
+int DetectEngineAppHookToSmlist(const AppProto p, const uint8_t state, const int direction)
+{
+    const char *app_proto = AppProtoToString(p);
+    if (app_proto == NULL) {
+        SCLogError("unknown app_proto %u", p);
+        return -1;
+    }
+    if (strcmp(app_proto, "http") == 0)
+        app_proto = "http1";
+
+    const char *name = AppLayerParserGetStateNameById(
+            IPPROTO_TCP, p, state, direction & (STREAM_TOSERVER | STREAM_TOCLIENT));
+    if (name == NULL)
+        return -1;
+
+    char generic_hook_name[256];
+    snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", app_proto, name);
+    int list = DetectBufferTypeGetByName(generic_hook_name);
+    if (list < 0) {
+        SCLogError("no list registered as %s for %s hook %s", generic_hook_name, app_proto, name);
+        return -1;
+    }
+    return list;
+}
+
 /**
  *  \note for the file inspect engine, the id DE_STATE_ID_FILE_INSPECT
  *        is assigned.
@@ -805,6 +831,41 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
     bool head_is_mpm = false;
     uint8_t last_id = DE_STATE_FLAG_BASE;
     SCLogDebug("%u: setup app inspect engines. %u buffers", s->id, s->init_data->buffer_index);
+
+    if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
+        SCLogDebug("need an inspect engine per state, range 0-%u", s->app_progress_hook);
+        for (uint8_t state = 0; state < s->app_progress_hook; state++) {
+            uint8_t dir = 0;
+            int direction = 0;
+            BUG_ON((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) ==
+                    (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT));
+            BUG_ON((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) == 0);
+            if (s->flags & SIG_FLAG_TOSERVER) {
+                direction = STREAM_TOSERVER;
+                dir = 0;
+            } else if (s->flags & SIG_FLAG_TOCLIENT) {
+                direction = STREAM_TOCLIENT;
+                dir = 1;
+            }
+
+            int sm_list =
+                    DetectEngineAppHookToSmlist(s->init_data->hook.t.app.alproto, 0, direction);
+            if (sm_list < 0)
+                return -1;
+
+            DetectEngineAppInspectionEngine t = {
+                .alproto = s->init_data->hook.t.app.alproto,
+                .progress = (uint16_t)state,
+                .sm_list = (uint16_t)sm_list,
+                .sm_list_base = (uint16_t)sm_list,
+                .dir = dir,
+            };
+            AppendAppInspectEngine(de_ctx, &t, s, NULL, mpm_list, files_id, &last_id, &head_is_mpm);
+            SCLogDebug("sid %u: appended pass-tru engine at hook:%u sm_list:%d for "
+                       "SIG_FLAG_INIT_HOOK_LTE",
+                    s->id, state, sm_list);
+        }
+    }
 
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         SigMatchData *smd = SigMatchList2DataArray(s->init_data->buffers[x].head);
