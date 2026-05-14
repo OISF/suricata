@@ -7960,6 +7960,10 @@
                                     "description":
                                             "Number of packets dropped due to defrag memcap exception policy"
                                 },
+                                "exception_policy_flow_drop": {
+                                    "type": "integer",
+                                    "description": "Number of packets dropped due to an exception policy flow dropping"
+                                },
                                 "flow_drop": {
                                     "type": "integer",
                                     "description": "Number of packets dropped due to dropped flows"
