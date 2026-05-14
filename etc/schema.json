@@ -7502,24 +7502,28 @@
                                 "default_app_policy": {
                                     "type": "integer",
                                     "description":
-                                            "Number of packets dropped due to firewall's mode default app policy"
+                                        "Count of packets dropped due to firewall's mode default app policy"
                                 },
                                 "default_packet_policy": {
                                     "type": "integer",
                                     "description":
-                                            "Number of packets dropped due to firewall's mode default packet policy"
+                                        "Count of packets dropped due to firewall's mode default packet policy"
+                                },
+                                "flow_drop": {
+                                    "type": "integer",
+                                    "description": "Count of packets dropped due to a firewall policy that led to flow drop"
                                 },
                                 "pre_flow_hook": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to pre-flow hook"
+                                    "description": "Count of packets dropped due to pre-flow hook"
                                 },
                                 "pre_stream_hook": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to pre-stream hook"
+                                    "description": "Count of packets dropped due to pre-stream hook"
                                 },
                                 "rules": {
                                     "type": "integer",
-                                    "description": "Number of packets dropped due to firewall rules"
+                                    "description": "Count of packets dropped due to firewall rules"
                                 }
                             }
                         },
