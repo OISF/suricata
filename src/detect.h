@@ -248,7 +248,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_APPLAYER               BIT_U32(6) /**< signature applies to app layer instead of packets */
 #define SIG_FLAG_TXBOTHDIR              BIT_U32(7) /**< signature needs tx with both directions to match */
 
-// vacancy
+#define SIG_FLAG_FW_HOOK_LTE BIT_U32(8) /**< Signature::app_progress_hook is to be used as LTE */
 
 #define SIG_FLAG_REQUIRE_PACKET         BIT_U32(9)  /**< signature is requiring packet match */
 #define SIG_FLAG_REQUIRE_STREAM         BIT_U32(10) /**< signature is requiring stream match */
