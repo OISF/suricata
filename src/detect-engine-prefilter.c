@@ -936,6 +936,28 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             continue; // done for this sig
         }
 
+        /* special case: insert sigs at hook before Signature::app_progress_hook for the HOOK_LTE
+         * case: we need a addition per hook to make sure that the sig is called when needed. For
+         * hook 0 it could have a preceding rule that makes sure this sig isn't triggered, but then
+         * for hook 1 we would need to be called. */
+        if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
+            for (uint8_t state = 0; state < s->app_progress_hook; state++) {
+                SCLogDebug("handle HOOK %u LTE", state);
+                const int dir = (s->flags & SIG_FLAG_TOSERVER) ? 0 : 1;
+                const char *pname = AppLayerParserGetStateNameById(IPPROTO_TCP, // TODO
+                        s->alproto, state, dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
+                if (pname == NULL)
+                    goto error;
+                const int sm_list = DetectEngineAppHookToSmlist(
+                        s->alproto, state, dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
+                if (TxNonPFAddSig(de_ctx, tx_engines_hash, s->alproto, dir, (int16_t)state, sm_list,
+                            pname, s) != 0) {
+                    goto error;
+                }
+                tx_non_pf = true;
+            }
+        }
+
         for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
             const int list_id = s->init_data->buffers[x].id;
             const DetectBufferType *buf = DetectEngineBufferTypeGetById(de_ctx, list_id);
