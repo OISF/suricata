@@ -1315,6 +1315,7 @@ static SignatureHook SetAppHook(const AppProto alproto, int progress)
  */
 static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char *p, const char *h)
 {
+    SCLogDebug("h:'%s'", h);
     if (strcmp(h, "request_started") == 0) {
         s->flags |= SIG_FLAG_TOSERVER;
         s->init_data->hook =
@@ -1349,7 +1350,7 @@ static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char
     }
 
     char generic_hook_name[64];
-    snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:generic", proto_hook);
+    snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", p, h);
     int list = DetectBufferTypeGetByName(generic_hook_name);
     if (list < 0) {
         SCLogError("no list registered as %s for hook %s", generic_hook_name, proto_hook);
@@ -1410,6 +1411,13 @@ static int SigParseProto(Signature *s, const char *protostr)
             AppLayerProtoDetectSupportedIpprotos(s->alproto, s->proto.proto);
 
             if (h) {
+                /* FW hook LTE mode */
+                SCLogDebug("hook '%s'", h);
+                if (*h == '<') {
+                    h++;
+                    SCLogDebug("hook and prior hooks: '%s'", h);
+                    s->flags |= SIG_FLAG_FW_HOOK_LTE;
+                }
                 if (SigParseProtoHookApp(s, protostr, p, h) < 0) {
                     SCLogError("protocol \"%s\" does not support hook \"%s\"", p, h);
                     SCReturnInt(-1);
@@ -2435,6 +2443,11 @@ static void SigSetupPrefilter(DetectEngineCtx *de_ctx, Signature *s)
     SCEnter();
     SCLogDebug("s %u: set up prefilter/mpm", s->id);
     DEBUG_VALIDATE_BUG_ON(s->init_data->mpm_sm != NULL);
+
+    if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
+        SCLogDebug("no prefilter for SIG_FLAG_FW_HOOK_LTE sig");
+        SCReturn;
+    }
 
     if (s->init_data->prefilter_sm != NULL) {
         if (s->init_data->prefilter_sm->type == DETECT_CONTENT) {

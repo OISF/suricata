@@ -209,4 +209,6 @@ bool DetectMd5ValidateCallback(
 
 void DeStateRegisterTests(void);
 
+int DetectEngineAppHookToSmlist(const AppProto p, const uint8_t state, const int direction);
+
 #endif /* SURICATA_DETECT_ENGINE_H */
