@@ -1253,27 +1253,21 @@ void *DetectGetInnerTx(void *tx_ptr, AppProto alproto, AppProto engine_alproto, 
  *         If stored_flags is set it means we're continuing
  *         inspection from an earlier run.
  *
- *  \retval bool true sig matched, false didn't match
+ *  \retval  1 sig matched
+ *  \retval  0 partial incomplete match
+ *  \retval -1 failed to match
  */
-static bool DetectRunTxInspectRule(ThreadVars *tv,
-        DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx,
-        Packet *p,
-        Flow *f,
-        const uint8_t in_flow_flags,   // direction, EOF, etc
-        void *alstate,
-        DetectTransaction *tx,
-        const Signature *s,
-        uint32_t *stored_flags,
-        RuleMatchCandidateTx *can,
-        DetectRunScratchpad *scratch)
+static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Packet *p, Flow *f,
+        const uint8_t in_flow_flags, // direction, EOF, etc
+        void *alstate, DetectTransaction *tx, const Signature *s, uint32_t *stored_flags,
+        RuleMatchCandidateTx *can, DetectRunScratchpad *scratch)
 {
     const uint8_t flow_flags = in_flow_flags;
     const int direction = (flow_flags & STREAM_TOSERVER) ? 0 : 1;
     uint32_t inspect_flags = stored_flags ? *stored_flags : 0;
     int total_matches = 0;
     uint16_t file_no_match = 0;
-    bool retval = false;
     bool mpm_before_progress = false;   // is mpm engine before progress?
     bool mpm_in_progress = false;       // is mpm engine in a buffer we will revisit?
 
@@ -1284,17 +1278,19 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         TRACE_SID_TXS(s->id, tx, "first inspect, run packet matches");
         if (DetectRunInspectRuleHeader(p, f, s, s->flags) == false) {
             TRACE_SID_TXS(s->id, tx, "DetectRunInspectRuleHeader() no match");
-            return false;
+            return -1;
         }
         if (!DetectEnginePktInspectionRun(tv, det_ctx, s, f, p, NULL)) {
             TRACE_SID_TXS(s->id, tx, "DetectEnginePktInspectionRun no match");
-            return false;
+            return -1;
         }
         /* stream mpm and negated mpm sigs can end up here with wrong proto */
         if (!(AppProtoEquals(s->alproto, f->alproto) || s->alproto == ALPROTO_UNKNOWN)) {
             TRACE_SID_TXS(s->id, tx, "alproto mismatch");
-            return false;
+            return -1;
         }
+    } else {
+        TRACE_SID_TXS(s->id, tx, "continue, inspect_flags %x", inspect_flags);
     }
 
     const DetectEngineAppInspectionEngine *engine = s->app_inspect;
@@ -1360,8 +1356,9 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
 
                 /* we don't have to store a "hook" match, also don't want to keep any state to make
                  * sure the hook gets invoked again until tx progress progresses. */
-                if (tx->tx_progress <= engine->progress)
-                    return DETECT_ENGINE_INSPECT_SIG_MATCH;
+                if ((s->flags & SIG_FLAG_FW_HOOK_LTE) == 0 && tx->tx_progress <= engine->progress) {
+                    return 1; // DETECT_ENGINE_INSPECT_SIG_MATCH;
+                }
 
                 /* if progress > engine progress, track state to avoid additional matches */
                 match = DETECT_ENGINE_INSPECT_SIG_MATCH;
@@ -1421,10 +1418,11 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     TRACE_SID_TXS(s->id, tx, "inspect_flags %x, total_matches %u, engine %p",
             inspect_flags, total_matches, engine);
 
+    bool full_match = false;
     if (engine == NULL && total_matches) {
         inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
         TRACE_SID_TXS(s->id, tx, "MATCH");
-        retval = true;
+        full_match = true;
     }
 
     if (stored_flags) {
@@ -1462,14 +1460,27 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         } else if ((inspect_flags & DE_STATE_FLAG_FULL_INSPECT) == 0 && mpm_in_progress) {
             TRACE_SID_TXS(s->id, tx, "no need to store no-match sig, "
                     "mpm will revisit it");
+            return -1; /* no match */
         } else if (inspect_flags != 0 || file_no_match != 0) {
             TRACE_SID_TXS(s->id, tx, "storing state: flags %08x", inspect_flags);
             DetectRunStoreStateTx(scratch->sgh, f, tx->tx_ptr, tx->tx_id, s,
                     inspect_flags, flow_flags, file_no_match);
+        } else {
+            if (inspect_flags == 0) {
+                TRACE_SID_TXS(s->id, tx, "no match: inspect_flags %08x", inspect_flags);
+                return -1;
+            }
         }
     }
-
-    return retval;
+    if (full_match) {
+        return 1;
+        /* can't be a partial match if we're at the end state */
+    } else if ((inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH) == 0 &&
+               tx->tx_progress < tx->tx_end_state) {
+        return 0;
+    } else {
+        return -1;
+    }
 }
 
 #define NO_TX                                                                                      \
@@ -1769,6 +1780,10 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
         fw_state->fw_next_progress_missing = false;
         fw_state->fw_last_for_progress = false;
 
+        if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
+            SCLogDebug("SIG_FLAG_FW_HOOK_LTE");
+            return DETECT_TX_FW_FC_OK; // TODO check for other cases
+        }
         /* if our first rule is beyond the starting state, we need to check if
          * there are rules missing for states in between. */
         // TODO detect_progress_orig already is +1?
@@ -2309,6 +2324,7 @@ static void DetectRunTx(ThreadVars *tv,
             RULE_PROFILING_START(p);
             const int r = DetectRunTxInspectRule(tv, de_ctx, det_ctx, p, f, flow_flags,
                     alstate, &tx, s, inspect_flags, can, scratch);
+            SCLogDebug("s %u r %d", s->id, r);
             if (r == 1) {
                 /* match */
                 DetectRunPostMatch(tv, det_ctx, p, s);
@@ -2340,7 +2356,21 @@ static void DetectRunTx(ThreadVars *tv,
                     }
                 }
                 AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
-
+            } else if (r == 0) {
+                SCLogDebug("sid %u partial match", s->id);
+                if ((s->flags & SIG_FLAG_FIREWALL) && (s->action & ACTION_ACCEPT)) {
+                    /* partial match always uses ACTION_SCOPE_HOOK. Final action only on the full
+                     * match */
+                    if (last_tx) {
+                        SCLogDebug("need to apply accept to packet");
+                        DetectRunAppendDefaultAccept(det_ctx, p);
+                    }
+                    if (s->action_scope == ACTION_SCOPE_FLOW) {
+                        SCLogDebug("only applying accept:flow on full match, downgrading to "
+                                   "accept:hook");
+                    }
+                    break;
+                }
             } else if (fw_state.fw_last_for_progress && (s->flags & SIG_FLAG_FIREWALL)) {
                 SCLogDebug("%" PRIu64 ": %s default policy for progress %u", PcapPacketCntGet(p),
                         flow_flags & STREAM_TOSERVER ? "toserver" : "toclient",
