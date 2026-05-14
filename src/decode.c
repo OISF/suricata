@@ -938,6 +938,8 @@ const char *PacketDropReasonToString(enum PacketDropReason r)
             return "flow memcap";
         case PKT_DROP_REASON_FLOW_DROP:
             return "flow drop";
+        case PKT_DROP_REASON_EP_FLOW_DROP:
+            return "exception policy flow drop";
         case PKT_DROP_REASON_STREAM_ERROR:
             return "stream error";
         case PKT_DROP_REASON_STREAM_MEMCAP:
@@ -1000,6 +1002,8 @@ static const char *PacketDropReasonToJsonString(enum PacketDropReason r)
             return "ips.drop_reason.flow_memcap";
         case PKT_DROP_REASON_FLOW_DROP:
             return "ips.drop_reason.flow_drop";
+        case PKT_DROP_REASON_EP_FLOW_DROP:
+            return "ips.drop_reason.exception_policy_flow_drop";
         case PKT_DROP_REASON_STREAM_ERROR:
             return "ips.drop_reason.stream_error";
         case PKT_DROP_REASON_STREAM_MEMCAP:
