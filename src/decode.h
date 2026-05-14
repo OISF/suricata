@@ -397,10 +397,10 @@ enum PacketDropReason {
     PKT_DROP_REASON_STREAM_MIDSTREAM,
     PKT_DROP_REASON_STREAM_REASSEMBLY,
     PKT_DROP_REASON_STREAM_URG,
-    PKT_DROP_REASON_NFQ_ERROR,                /**< no nfq verdict, must be error */
-    PKT_DROP_REASON_INNER_PACKET,             /**< drop issued by inner (tunnel) packet */
-    PKT_DROP_REASON_STREAM_PRE_HOOK,          /**< drop issued in the pre_stream hook */
-    PKT_DROP_REASON_FLOW_PRE_HOOK,            /**< drop issued in the pre_flow hook */
+    PKT_DROP_REASON_NFQ_ERROR,       /**< no nfq verdict, must be error */
+    PKT_DROP_REASON_INNER_PACKET,    /**< drop issued by inner (tunnel) packet */
+    PKT_DROP_REASON_STREAM_PRE_HOOK, /**< drop issued in the pre_stream hook */
+    PKT_DROP_REASON_FLOW_PRE_HOOK,   /**< drop issued in the pre_flow hook */
     /** Firewall-related reasons only */
     PKT_DROP_REASON_FW_RULES,
     PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY, /**< drop issued by default packet policy */
