@@ -127,17 +127,22 @@ static void DetectRun(ThreadVars *th_v,
     /* if we didn't get a sig group head, we
      * have nothing to do.... */
     if (scratch.sgh == NULL) {
-        SCLogDebug("no sgh for this packet, nothing to match against");
-        goto end;
+        if (!EngineModeIsFirewall()) {
+            SCLogDebug("no sgh for this packet, nothing to match against");
+            goto end;
+        }
+        SCLogDebug(
+                "packet %" PRIu64 ": no sgh, need to apply default policies", PcapPacketCntGet(p));
+    } else {
+        /* run the prefilters for packets */
+        DetectRunPrefilterPkt(th_v, de_ctx, det_ctx, p, &scratch);
     }
-
-    /* run the prefilters for packets */
-    DetectRunPrefilterPkt(th_v, de_ctx, det_ctx, p, &scratch);
-
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
     /* inspect the rules against the packet */
     const uint8_t pkt_policy = DetectRulePacketRules(th_v, de_ctx, det_ctx, p, pflow, &scratch);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_RULES);
+    SCLogDebug("packet %" PRIu64 ": pkt_policy %02x (p->action %02x)", PcapPacketCntGet(p),
+            pkt_policy, p->action);
 
     /* Only FW rules will already have set the action, IDS rules go through PacketAlertFinalize
      *
@@ -674,21 +679,39 @@ static inline bool SkipFwRules(const Packet *p)
     return false;
 }
 
-static uint8_t DetectRunApplyPacketPolicy(
-        const DetectEngineCtx *de_ctx, const enum DetectFirewallPacketPolicies policy, Packet *p)
+/**
+ * \param[in] final see if we need to apply accept:hook to the packet
+ * \retval action action to immediately apply, accept:hook will not set this unless final is true
+ *
+ * If this is run from the post-match final check, we need to apply a
+ * packet:filter accept:hook to the packet as well.
+ */
+static uint8_t DetectRunApplyPacketPolicy(const DetectEngineCtx *de_ctx,
+        const enum DetectFirewallPacketPolicies policy, Packet *p, const bool final)
 {
     DEBUG_VALIDATE_BUG_ON(de_ctx->fw_policies == NULL);
     const struct DetectFirewallPolicy *pol = &de_ctx->fw_policies->pkt[policy];
     if (pol->action & ACTION_DROP) {
-        SCLogNotice("packet: %" PRIu64 ": drop PKT_DROP_REASON_DEFAULT_PACKET_POLICY",
+        SCLogDebug("packet %" PRIu64 ": drop PKT_DROP_REASON_DEFAULT_PACKET_POLICY",
                 PcapPacketCntGet(p));
         PacketDrop(p, pol->action, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
     } else if (pol->action & ACTION_ACCEPT) {
-        SCLogNotice("packet: %" PRIu64 ": accept", PcapPacketCntGet(p));
+        SCLogDebug("packet %" PRIu64 ": accept", PcapPacketCntGet(p));
+        if (pol->action_scope == ACTION_SCOPE_PACKET) {
+            p->action |= pol->action;
+            SCLogDebug("packet %" PRIu64 ": accept scope packet", PcapPacketCntGet(p));
+        } else if (pol->action_scope == ACTION_SCOPE_HOOK) {
+            SCLogDebug("packet %" PRIu64 ": accept scope hook", PcapPacketCntGet(p));
+            if (final) {
+                p->action |= pol->action;
+                SCLogDebug("packet %" PRIu64 ": accept scope hook upgraded to packet",
+                        PcapPacketCntGet(p));
+            }
+        }
     } else {
         abort();
     }
-    return pol->action;
+    return p->action;
 }
 
 static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
@@ -939,7 +962,8 @@ next:
             p->action |= action;
         } else {
             DEBUG_VALIDATE_BUG_ON(action & ACTION_DROP);
-            action |= DetectRunApplyPacketPolicy(de_ctx, scratch->fw_pkt_policy, p);
+            /* non-final call as we may have to consider app-layer still */
+            action |= DetectRunApplyPacketPolicy(de_ctx, scratch->fw_pkt_policy, p, false);
         }
     }
     return action;
@@ -1075,10 +1099,11 @@ static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_
      * if there was no rule group. */
     // TODO review packet src types here
     if (EngineModeIsFirewall() && ((p->action & (ACTION_ACCEPT | ACTION_DROP)) == 0) &&
-            p->pkt_src == PKT_SRC_WIRE) { // && scratch->default_action == ACTION_DROP) {
-        SCLogNotice("packet %" PRIu64 ": default action as no verdict set %02x (pkt %s)",
+            p->pkt_src == PKT_SRC_WIRE) {
+        SCLogDebug("packet %" PRIu64 ": default action as no verdict set %02x (pkt %s)",
                 PcapPacketCntGet(p), p->action, PktSrcToString(p->pkt_src));
-        (void)DetectRunApplyPacketPolicy(de_ctx, scratch->fw_pkt_policy, p);
+        (void)DetectRunApplyPacketPolicy(de_ctx, scratch->fw_pkt_policy, p, true);
+        DEBUG_VALIDATE_BUG_ON((p->action & (ACTION_DROP | ACTION_ACCEPT)) == 0);
     }
 }
 
@@ -1975,7 +2000,7 @@ static void DetectRunTx(ThreadVars *tv,
         total_rules += (tx.de_state ? tx.de_state->cnt : 0);
 
         /* run prefilter engines and merge results into a candidates array */
-        if (sgh->tx_engines) {
+        if (sgh && sgh->tx_engines) {
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_TX);
             DetectRunPrefilterTx(det_ctx, sgh, p, ipproto, flow_flags, alproto,
                     alstate, &tx);
