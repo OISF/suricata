@@ -50,6 +50,8 @@
 #include <glob.h>
 #endif
 
+#include "app-layer-parser.h"
+
 extern int rule_reload;
 extern int engine_analysis;
 static bool fp_engine_analysis_set = false;
@@ -294,6 +296,15 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern, SigFileLoader
 
 static int LoadFirewallRuleFiles(DetectEngineCtx *de_ctx)
 {
+    if (DetectFirewallInitDefaultPolicies(de_ctx) < 0) {
+        SCLogError("initializing firewall policies failed");
+        return -1;
+    }
+    if (DetectFirewallLoadDefaultPolicies(de_ctx) < 0) {
+        SCLogError("loading firewall policies failed");
+        return -1;
+    }
+
     if (de_ctx->firewall_rule_file_exclusive) {
         int32_t good_sigs = 0;
         int32_t bad_sigs = 0;
@@ -393,7 +404,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
 
     if (EngineModeIsFirewall() || de_ctx->firewall_rule_file_exclusive) {
         if (LoadFirewallRuleFiles(de_ctx) < 0) {
-            if (de_ctx->failure_fatal) {
+            if (de_ctx->fw_policies == NULL || de_ctx->failure_fatal) {
                 exit(EXIT_FAILURE);
             }
             ret = -1;

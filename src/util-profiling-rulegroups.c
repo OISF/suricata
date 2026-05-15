@@ -247,7 +247,8 @@ SCProfilingSghDump(DetectEngineCtx *de_ctx)
 void
 SCProfilingSghUpdateCounter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh)
 {
-    if (det_ctx != NULL && det_ctx->sgh_perf_data != NULL && sgh->id < det_ctx->de_ctx->sgh_array_cnt) {
+    if (det_ctx != NULL && sgh != NULL && det_ctx->sgh_perf_data != NULL &&
+            sgh->id < det_ctx->de_ctx->sgh_array_cnt) {
         SCProfileSghData *p = &det_ctx->sgh_perf_data[sgh->id];
         p->checks++;
 

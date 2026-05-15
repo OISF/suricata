@@ -35,6 +35,9 @@ void RulesDumpTxMatchArray(const DetectEngineThreadCtx *det_ctx, const SigGroupH
         const Packet *p, const uint64_t tx_id, const uint32_t rule_cnt,
         const uint32_t pkt_prefilter_cnt)
 {
+    if (sgh == NULL)
+        return;
+
     SCJsonBuilder *js =
             CreateEveHeaderWithTxId(p, LOG_DIR_PACKET, "inspectedrules", NULL, tx_id, NULL);
     if (js == NULL)
@@ -78,6 +81,9 @@ void RulesDumpTxMatchArray(const DetectEngineThreadCtx *det_ctx, const SigGroupH
 void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx,
         const SigGroupHead *sgh, const Packet *p)
 {
+    if (sgh == NULL)
+        return;
+
     SCJsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "inspectedrules", NULL, NULL);
     if (js == NULL)
         return;
