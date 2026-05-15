@@ -2049,11 +2049,14 @@ static void DetectRunTx(ThreadVars *tv,
     const bool have_fw_rules = EngineModeIsFirewall();
 
     SCLogDebug("packet %" PRIu64, PcapPacketCntGet(p));
+    SCLogDebug("total_txs %" PRIu64, total_txs);
 
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, tx_id_min, total_txs, &state);
-        if (ires.tx_ptr == NULL)
+        if (ires.tx_ptr == NULL) {
+            SCLogDebug("%p/%" PRIu64 " no transaction to inspect", ires.tx_ptr, tx_id_min);
             break;
+        }
 
         DetectTransaction tx =
                 GetDetectTx(ipproto, alproto, ires.tx_id, ires.tx_ptr, tx_end_state, flow_flags);
@@ -2068,7 +2071,7 @@ static void DetectRunTx(ThreadVars *tv,
         tx_inspected++;
         const bool last_tx = (total_txs == tx.tx_id + 1);
 
-        SCLogDebug("%p/%" PRIu64 " txd flags %02x", tx.tx_ptr, tx_id_min, tx.tx_data_ptr->flags);
+        SCLogDebug("%p/%" PRIu64 " txd flags %02x", tx.tx_ptr, tx.tx_id, tx.tx_data_ptr->flags);
 
         det_ctx->tx_id = tx.tx_id;
         det_ctx->tx_id_set = true;
