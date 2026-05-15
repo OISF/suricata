@@ -2348,7 +2348,6 @@ firewall:
   #rule-files:
   #  - firewall.rules
 
-
 ##
 ## Include other configs
 ##
