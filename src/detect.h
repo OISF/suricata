@@ -905,6 +905,35 @@ enum DetectEngineType
     DETECT_ENGINE_TYPE_TENANT = 3,
 };
 
+enum DetectFirewallPacketPolicies {
+    DETECT_FIREWALL_POLICY_PACKET_FILTER,
+    DETECT_FIREWALL_POLICY_PRE_FLOW,
+    DETECT_FIREWALL_POLICY_PRE_STREAM,
+#define DETECT_FIREWALL_POLICY_SIZE DETECT_FIREWALL_POLICY_PRE_STREAM + 1
+};
+
+/** Single Firewall Policy */
+struct DetectFirewallPolicy {
+    uint8_t action;       /**< same as Signature::action. Action flags to apply on policy match. */
+    uint8_t action_scope; /**< same as Signature::action_scope. Scope argument for the action. */
+};
+
+/** Application layer firewall policies per hook. */
+struct DetectFirewallAppPolicy {
+    /** policy per hook/progress value (max 48) for toserver direction. */
+    struct DetectFirewallPolicy ts[48];
+    /** policy per hook/progress value (max 48) for toclient direction. */
+    struct DetectFirewallPolicy tc[48];
+};
+
+struct DetectFirewallPolicies {
+    /** policy for packet_filter, pre_flow, pre_stream hooks */
+    struct DetectFirewallPolicy pkt[DETECT_FIREWALL_POLICY_SIZE];
+
+    /** app layer policies, one per alproto */
+    struct DetectFirewallAppPolicy app[];
+};
+
 /* Flow states:
  *  toserver
  *  toclient
@@ -957,6 +986,9 @@ typedef struct DetectEngineCtx_ {
 
     /* main sigs */
     DetectEngineLookupFlow flow_gh[FLOW_STATES];
+
+    /** firewall policy table entry point */
+    struct DetectFirewallPolicies *fw_policies;
 
     /* init phase vars */
     HashListTable *sgh_hash_table;
