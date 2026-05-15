@@ -2198,10 +2198,11 @@ static void DetectRunTx(ThreadVars *tv,
                     det_ctx, p, f, &tx, alproto, flow_flags, array_idx, last_tx);
             if (r != 0) {
                 fw_verdicted++;
-                if (r == 1)
+                if (r == 1) {
+                    SCLogDebug("done");
                     return;
-                else if (r == 2)
-                    goto next; /* next tx */
+                } else if (r == 2)
+                    goto next_tx_fw; /* next tx */
             }
         }
 
@@ -2422,7 +2423,7 @@ static void DetectRunTx(ThreadVars *tv,
 
             StoreDetectProgress(&tx, flow_flags, tx.detect_progress);
         }
-
+    next_tx_fw:
         InspectionBufferClean(det_ctx);
 
     next:
