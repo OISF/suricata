@@ -2312,17 +2312,26 @@ static void DetectRunTx(ThreadVars *tv,
                 SCLogDebug(
                         "%p/%" PRIu64 " sig %u (%u) matched", tx.tx_ptr, tx.tx_id, s->id, s->iid);
 
-                if ((s->flags & SIG_FLAG_FIREWALL) && (s->action & ACTION_ACCEPT)) {
-                    fw_state.fw_skip_app_filter = ApplyAccept(
-                            det_ctx, p, flow_flags, s, &tx, tx_end_state, last_tx, &fw_state);
-                    fw_state.fw_next_progress_missing = false; // reset
-                    /* see if we need to apply tx/hook accept to the packet. This can be needed when
-                     * we've completed the inspection so far for an incomplete tx, and an accept:tx
-                     * or accept:hook is the last match.*/
-                    const bool fw_accept_to_packet = ApplyAcceptToPacket(last_tx, &tx, s);
-                    if (fw_accept_to_packet) {
-                        SCLogDebug("accept:(tx|hook): should be applied to the packet");
-                        alert_flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET;
+                if (s->flags & SIG_FLAG_FIREWALL) {
+                    if (s->action & ACTION_ACCEPT) {
+                        fw_state.fw_skip_app_filter = ApplyAccept(
+                                det_ctx, p, flow_flags, s, &tx, tx_end_state, last_tx, &fw_state);
+                        fw_state.fw_next_progress_missing = false; // reset
+                        /* see if we need to apply tx/hook accept to the packet. This can be needed
+                         * when we've completed the inspection so far for an incomplete tx, and an
+                         * accept:tx or accept:hook is the last match.*/
+                        const bool fw_accept_to_packet = ApplyAcceptToPacket(last_tx, &tx, s);
+                        if (fw_accept_to_packet) {
+                            SCLogDebug("accept:(tx|hook): should be applied to the packet");
+                            alert_flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET;
+                        }
+                    } else if (s->action & ACTION_DROP) {
+                        SCLogDebug("drop packet because of rule with drop action");
+                        PacketDrop(p, s->action, PKT_DROP_REASON_RULES);
+                        if (s->action_scope == ACTION_SCOPE_FLOW) {
+                            SCLogDebug("drop flow because of rule with drop action");
+                            f->flags |= FLOW_ACTION_DROP;
+                        }
                     }
                 }
                 AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
