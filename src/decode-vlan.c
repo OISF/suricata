@@ -115,6 +115,9 @@ int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         return TM_ECODE_FAILED;
     }
 
+    if (!PacketIncreaseCheckLayers(p)) {
+        return TM_ECODE_FAILED;
+    }
     IEEE8021ahHdr *hdr = (IEEE8021ahHdr *)pkt;
     const uint16_t next_proto = SCNtohs(hdr->type);
 
