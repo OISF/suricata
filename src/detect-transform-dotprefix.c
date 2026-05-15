@@ -109,6 +109,7 @@ static void TransformDotPrefix(InspectionBuffer *buffer, void *options)
 {
     const size_t input_len = buffer->inspect_len;
 
+    bool inplace = (buffer->inspect == buffer->buf);
     if (input_len) {
         // For the leading '.'
         uint8_t *output = InspectionBufferCheckAndExpand(buffer, input_len + 1);
@@ -116,7 +117,12 @@ static void TransformDotPrefix(InspectionBuffer *buffer, void *options)
             return;
         }
 
-        memmove(&output[1], buffer->inspect, input_len);
+        if (inplace) {
+            // buffer->buf may have been reallocated by InspectionBufferCheckAndExpand
+            memmove(&output[1], buffer->buf, input_len);
+        } else {
+            memmove(&output[1], buffer->inspect, input_len);
+        }
         output[0] = '.';
         InspectionBufferTruncate(buffer, input_len + 1);
     }
