@@ -4,12 +4,32 @@ Suricata Socket Control
 SYNOPSIS
 --------
 
-**suricatasc**
+**suricatasc** [OPTIONS] [SOCKET]
 
 DESCRIPTION
 -----------
 
 Suricata socket control tool
+
+SOCKET
+------
+
+Optional path to Suricata unix socket
+
+OPTIONS
+-------
+
+.. option:: -v, --verbose
+
+   Enable verbose output
+
+.. option:: -c, --command <COMMAND>
+
+   Execute command and return JSON
+
+.. option:: -h, --help
+
+   Print help
 
 COMMANDS
 ---------

@@ -3,6 +3,16 @@
 HTTP2 Keywords
 ==============
 
+
+.. note::
+
+   The term *frame* in this document refers to HTTP/2 protocol frames
+   (e.g., DATA, HEADERS, SETTINGS). This is different from Suricata’s
+   internal *frame* concept used in the rule language.
+
+HTTP2 frames are grouped into transactions based on the stream identifier it it is not 0...
+
+
 HTTP2 frames are grouped into transactions based on the stream identifier it it is not 0.
 For frames with stream identifier 0, whose effects are global for the connection, a transaction is created for each frame.
 
