@@ -2372,7 +2372,7 @@ static void DetectRunTx(ThreadVars *tv,
 
                     /* if this is also the last fw rule we'll inspect we have to issue a default
                      * accept to the packet */
-                    if (s->app_progress_hook == tx.tx_progress) {
+                    if (last_tx && s->app_progress_hook == tx.tx_progress) {
                         DetectRunAppendDefaultAccept(det_ctx, p);
                     }
                 }
