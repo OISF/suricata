@@ -2006,6 +2006,10 @@
                 "hook": {
                     "type": "string",
                     "description": "Firewall hook for the match"
+                },
+                "policy": {
+                    "type": "string",
+                    "description": "Firewall actions for the match (from rule or default policy)"
                 }
             }
         },
