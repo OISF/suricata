@@ -2564,6 +2564,17 @@ static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Sign
                 break;
         }
     }
+    if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
+        if (!(((s->action & ACTION_ACCEPT) != 0) &&
+                    (s->action_scope == ACTION_SCOPE_FLOW || s->action_scope == ACTION_SCOPE_TX ||
+                            s->action_scope == ACTION_SCOPE_HOOK))) {
+            SCLogError("rule %u: auto-accept notation (<hook) can only be used with accept:flow, "
+                       "accept:tx and accept:hook",
+                    s->id);
+            return false;
+        }
+    }
+
     return true;
 }
 
