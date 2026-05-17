@@ -3828,6 +3828,44 @@ void DetectFirewallPolicyToString(const struct DetectFirewallPolicy *p, char *ou
     }
 }
 
+static int AddPktPolicySignature(struct DetectFirewallPolicies *fw_policies,
+        struct DetectFirewallPolicy *pol, enum DetectFirewallPacketPolicies pkt_pol)
+{
+    Signature *s = SCCalloc(1, sizeof(*s)); // SigAlloc does way more than we need
+    if (s == NULL)
+        return -1;
+    char msg[256];
+    switch (pkt_pol) {
+        case DETECT_FIREWALL_POLICY_PACKET_FILTER:
+            s->detect_table = DETECT_TABLE_PACKET_FILTER;
+            break;
+        case DETECT_FIREWALL_POLICY_PRE_FLOW:
+            s->detect_table = DETECT_TABLE_PACKET_PRE_FLOW;
+            break;
+        case DETECT_FIREWALL_POLICY_PRE_STREAM:
+            s->detect_table = DETECT_TABLE_PACKET_PRE_STREAM;
+            break;
+    }
+    snprintf(msg, sizeof(msg), "SURICATA FW default packet policy");
+    s->msg = SCStrdup(msg);
+    if (s->msg == NULL) {
+        SCFree(s);
+        return -1;
+    }
+    s->action = pol->action;
+    s->action_scope = pol->action_scope;
+    s->flags = SIG_FLAG_FIREWALL;
+    s->type = SIG_TYPE_PKT;
+    s->id = 2201000;
+    s->rev = 1;
+    s->gid = 1;
+    s->prio = 3;
+
+    fw_policies->pkt_policy_signatures[pkt_pol] = s;
+    SCLogDebug("added to array");
+    return 0;
+}
+
 static int AddAppPolicySignature(HashTable *ht, const int direction, const AppProto alproto,
         const char *app_name, const uint8_t hook, const char *hookname,
         struct DetectFirewallPolicy *pol)
@@ -4023,6 +4061,11 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
     r = DoParsePolicy(policy_name, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER]);
     if (r < 0)
         return -1;
+    if (fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER].action & ACTION_ALERT)
+        if (AddPktPolicySignature(fw_policies,
+                    &fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER],
+                    DETECT_FIREWALL_POLICY_PACKET_FILTER) < 0)
+            return -1;
 
     r = snprintf(policy_name, sizeof(policy_name), "%s.packet-pre-flow", prefix);
     if (r < 0 || (size_t)r >= sizeof(policy_name)) {
@@ -4031,6 +4074,10 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
     r = DoParsePolicy(policy_name, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_FLOW]);
     if (r < 0)
         return -1;
+    if (fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_FLOW].action & ACTION_ALERT)
+        if (AddPktPolicySignature(fw_policies, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_FLOW],
+                    DETECT_FIREWALL_POLICY_PRE_FLOW) < 0)
+            return -1;
 
     r = snprintf(policy_name, sizeof(policy_name), "%s.packet-pre-stream", prefix);
     if (r < 0 || (size_t)r >= sizeof(policy_name)) {
@@ -4039,6 +4086,10 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
     r = DoParsePolicy(policy_name, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_STREAM]);
     if (r < 0)
         return -1;
+    if (fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_STREAM].action & ACTION_ALERT)
+        if (AddPktPolicySignature(fw_policies, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_STREAM],
+                    DETECT_FIREWALL_POLICY_PRE_STREAM) < 0)
+            return -1;
 
     for (AppProto a = 0; a < g_alproto_max; a++) {
         if (!AppProtoIsValid(a))

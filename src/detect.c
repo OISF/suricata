@@ -693,7 +693,8 @@ static inline bool SkipFwRules(const Packet *p)
  * packet:filter accept:hook to the packet as well.
  */
 static uint8_t DetectRunApplyPacketPolicy(const DetectEngineCtx *de_ctx,
-        const enum DetectFirewallPacketPolicies policy, Packet *p, const bool final)
+        DetectEngineThreadCtx *det_ctx, const enum DetectFirewallPacketPolicies policy, Packet *p,
+        const bool final)
 {
     DEBUG_VALIDATE_BUG_ON(de_ctx->fw_policies == NULL);
     const struct DetectFirewallPolicy *pol = &de_ctx->fw_policies->pkt[policy];
@@ -726,6 +727,10 @@ static uint8_t DetectRunApplyPacketPolicy(const DetectEngineCtx *de_ctx,
     } else {
         /* should be unreachable */
         DEBUG_VALIDATE_BUG_ON(1);
+    }
+    Signature *s = de_ctx->fw_policies->pkt_policy_signatures[policy];
+    if (s != NULL) {
+        AlertQueueAppend(det_ctx, s, p, 0, PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET);
     }
     return p->action;
 }
@@ -979,7 +984,7 @@ next:
         } else {
             DEBUG_VALIDATE_BUG_ON(action & ACTION_DROP);
             /* non-final call as we may have to consider app-layer still */
-            action |= DetectRunApplyPacketPolicy(de_ctx, scratch->fw_pkt_policy, p, false);
+            action |= DetectRunApplyPacketPolicy(de_ctx, det_ctx, scratch->fw_pkt_policy, p, false);
         }
     }
     return action;
@@ -1118,7 +1123,7 @@ static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_
             p->pkt_src == PKT_SRC_WIRE) {
         SCLogDebug("packet %" PRIu64 ": default action as no verdict set %02x (pkt %s)",
                 PcapPacketCntGet(p), p->action, PktSrcToString(p->pkt_src));
-        (void)DetectRunApplyPacketPolicy(de_ctx, scratch->fw_pkt_policy, p, true);
+        (void)DetectRunApplyPacketPolicy(de_ctx, det_ctx, scratch->fw_pkt_policy, p, true);
         DEBUG_VALIDATE_BUG_ON((p->action & (ACTION_DROP | ACTION_ACCEPT)) == 0);
     }
 }
