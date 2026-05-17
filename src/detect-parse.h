@@ -24,6 +24,7 @@
 #ifndef SURICATA_DETECT_PARSE_H
 #define SURICATA_DETECT_PARSE_H
 
+#include "action-globals.h"
 #include "app-layer-protos.h"
 #include "detect-engine-register.h"
 // types from detect.h with only forward declarations for bindgen
@@ -32,6 +33,7 @@ typedef struct Signature_ Signature;
 typedef struct SigMatchCtx_ SigMatchCtx;
 typedef struct SigMatch_ SigMatch;
 typedef struct SigMatchData_ SigMatchData;
+struct DetectFirewallPolicies;
 
 /** Flags to indicate if the Signature parsing must be done
 *   switching the source and dest (for ip addresses and ports)
@@ -114,7 +116,13 @@ int SC_Pcre2SubstringGet(pcre2_match_data *match_data, uint32_t number, PCRE2_UC
 void DetectRegisterAppLayerHookLists(void);
 void DetectListSupportedProtocols(void);
 
+const char *ActionScopeToString(enum ActionScope s);
+
+struct DetectFirewallPolicy;
+void DetectFirewallPolicyToString(const struct DetectFirewallPolicy *p, char *out, size_t out_size);
 int DetectFirewallInitDefaultPolicies(DetectEngineCtx *);
 int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *);
+Signature *DetectFirewallGetPolicySignature(struct DetectFirewallPolicies *fw_policies,
+        const AppProto alproto, const int direction, const uint8_t hook);
 
 #endif /* SURICATA_DETECT_PARSE_H */
