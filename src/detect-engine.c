@@ -2808,6 +2808,12 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
         HashTableFree(de_ctx->non_pf_engine_names);
     }
     if (de_ctx->fw_policies) {
+        for (uint32_t i = 0; i < DETECT_FIREWALL_POLICY_SIZE; i++) {
+            if (de_ctx->fw_policies->pkt_policy_signatures[i]) {
+                SCFree(de_ctx->fw_policies->pkt_policy_signatures[i]->msg);
+                SCFree(de_ctx->fw_policies->pkt_policy_signatures[i]);
+            }
+        }
         HashTableFree(de_ctx->fw_policies->policy_signatures);
     }
     SCFree(de_ctx->fw_policies);
