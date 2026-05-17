@@ -39,6 +39,7 @@
 #include "util-misc.h"
 #include "util-time.h"
 
+#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-metadata.h"
 #include "app-layer-parser.h"
@@ -647,6 +648,49 @@ static bool AlertJsonStreamData(const AlertJsonOutputCtx *json_output_ctx, JsonA
     return false;
 }
 
+static void AlertJsonAddFirewall(SCJsonBuilder *jb, const Signature *s)
+{
+    struct DetectFirewallPolicy pol = { .action = s->action, .action_scope = s->action_scope };
+
+    SCJbOpenObject(jb, "firewall");
+    const char *hook = NULL;
+    char hook_string[256];
+    switch (s->detect_table) {
+        case DETECT_TABLE_APP_FILTER:
+            if (s->flags & SIG_FLAG_TOSERVER) {
+                hook = AppLayerParserGetStateNameById(
+                        IPPROTO_TCP, s->alproto, s->app_progress_hook, STREAM_TOSERVER);
+            } else {
+                hook = AppLayerParserGetStateNameById(
+                        IPPROTO_TCP, s->alproto, s->app_progress_hook, STREAM_TOCLIENT);
+            }
+            if (hook) {
+                snprintf(hook_string, sizeof(hook_string), "%s:%s", AppProtoToString(s->alproto),
+                        hook);
+                hook = hook_string;
+            }
+            break;
+        case DETECT_TABLE_PACKET_FILTER:
+            hook = "packet:filter";
+            break;
+        case DETECT_TABLE_PACKET_PRE_FLOW:
+            hook = "packet:pre_flow";
+            break;
+        case DETECT_TABLE_PACKET_PRE_STREAM:
+            hook = "packet:pre_stream";
+            break;
+    }
+    if (hook) {
+        SCJbSetString(jb, "hook", hook);
+    }
+    char policy_string[64] = "";
+    DetectFirewallPolicyToString(&pol, policy_string, sizeof(policy_string));
+    if (strlen(policy_string) > 0) {
+        SCJbSetString(jb, "policy", policy_string);
+    }
+    SCJbClose(jb);
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     AlertJsonOutputCtx *json_output_ctx = aft->json_output_ctx;
@@ -708,6 +752,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         if (PacketIsTunnel(p)) {
             AlertJsonTunnel(p, jb);
+        }
+
+        if (pa->s->flags & SIG_FLAG_FIREWALL) {
+            AlertJsonAddFirewall(jb, pa->s);
         }
 
         if (p->flow != NULL) {
