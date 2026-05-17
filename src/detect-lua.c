@@ -111,10 +111,8 @@ void DetectLuaRegister(void)
 /* Flags for DetectLuaThreadData. */
 #define FLAG_DATATYPE_PACKET                    BIT_U32(0)
 #define FLAG_DATATYPE_PAYLOAD                   BIT_U32(1)
-#define FLAG_DATATYPE_STREAM                    BIT_U32(2)
 #define FLAG_LIST_JA3                           BIT_U32(3)
 #define FLAG_LIST_JA3S                          BIT_U32(4)
-#define FLAG_DATATYPE_BUFFER                    BIT_U32(22)
 #define FLAG_ERROR_LOGGED                       BIT_U32(23)
 #define FLAG_BLOCKED_FUNCTION_LOGGED            BIT_U32(24)
 #define FLAG_INSTRUCTION_LIMIT_LOGGED           BIT_U32(25)
@@ -654,16 +652,12 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
         } else if (strcmp(k, "payload") == 0) {
             ld->flags |= FLAG_DATATYPE_PAYLOAD;
         } else if (strcmp(k, "buffer") == 0) {
-            ld->flags |= FLAG_DATATYPE_BUFFER;
-
             ld->buffername = SCStrdup("buffer");
             if (ld->buffername == NULL) {
                 SCLogError("alloc error");
                 goto error;
             }
         } else if (strcmp(k, "stream") == 0) {
-            ld->flags |= FLAG_DATATYPE_STREAM;
-
             ld->buffername = SCStrdup("stream");
             if (ld->buffername == NULL) {
                 SCLogError("alloc error");
