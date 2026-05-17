@@ -2801,6 +2801,9 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     if (de_ctx->non_pf_engine_names) {
         HashTableFree(de_ctx->non_pf_engine_names);
     }
+    if (de_ctx->fw_policies) {
+        HashTableFree(de_ctx->fw_policies->policy_signatures);
+    }
     SCFree(de_ctx->fw_policies);
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();

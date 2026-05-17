@@ -935,6 +935,9 @@ struct DetectFirewallPolicies {
     /** policy for packet_filter, pre_flow, pre_stream hooks */
     struct DetectFirewallPolicy pkt[DETECT_FIREWALL_POLICY_SIZE];
 
+    /* hash table with a Signature object per default policy that has `alert` enabled. */
+    HashTable *policy_signatures;
+
     /** app layer policies, one per alproto */
     struct DetectFirewallAppPolicy app[];
 };
