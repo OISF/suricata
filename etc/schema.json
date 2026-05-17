@@ -2192,10 +2192,20 @@
             "additionalProperties": false,
             "properties": {
                 "command": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "ftp.command"
+                        ]
+                    }
                 },
                 "command_data": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "ftp.command_data"
+                        ]
+                    }
                 },
                 "command_truncated": {
                     "type": "boolean"
@@ -2205,6 +2215,11 @@
                     "minItems": 1,
                     "items": {
                         "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "ftp.completion_code"
+                        ]
                     }
                 },
                 "dynamic_port": {
@@ -2216,17 +2231,32 @@
                     }
                 },
                 "mode": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "ftp.mode"
+                        ]
+                    }
                 },
                 "reply": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
                         "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "ftp.reply"
+                        ]
                     }
                 },
                 "reply_received": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "ftp.reply_received"
+                        ]
+                    }
                 },
                 "reply_truncated": {
                     "type": "boolean"
@@ -2238,7 +2268,12 @@
             "additionalProperties": false,
             "properties": {
                 "command": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "ftpdata_command"
+                        ]
+                    }
                 },
                 "filename": {
                     "type": "string"
