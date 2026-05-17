@@ -642,7 +642,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
 
     if (!RB_EMPTY(&tracker->fragment_tree)) {
         Frag key = {
-            .offset = frag_offset - 1,
+            .offset = frag_offset ? frag_offset - 1 : 0,
         };
         next = RB_NFIND(IP_FRAGMENTS, &tracker->fragment_tree, &key);
         if (next == NULL) {
@@ -3135,6 +3135,129 @@ static int DefragBsdMissingFragmentIpv6Test(void)
     PASS;
 }
 
+/**
+ * \test Reassemble a datagram whose first fragment (offset 0) arrives last,
+ *       after higher-offset fragments are already in the tree.
+ *
+ * This exercises the RB_NFIND seek key in DefragInsertFrag for frag_offset == 0
+ * against a non-empty fragment tree. That path is the one reported in ticket
+ * 8232 (the search key used to underflow to 65535 for the first fragment);
+ * reassembly must still produce the datagram in offset order.
+ */
+static int DefragOutOfOrderFirstFragmentTest(void)
+{
+    Packet *p1 = NULL, *p2 = NULL, *p3 = NULL, *p4 = NULL;
+    Packet *reassembled = NULL;
+    int id = 8232;
+
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+
+    /* Four non-overlapping fragments; the last one delivered is offset 0. */
+    p1 = BuildIpv4TestPacket(IPPROTO_ICMP, id, 24 >> 3, 0, 'D', 8);
+    FAIL_IF_NULL(p1);
+    p2 = BuildIpv4TestPacket(IPPROTO_ICMP, id, 8 >> 3, 1, 'B', 8);
+    FAIL_IF_NULL(p2);
+    p3 = BuildIpv4TestPacket(IPPROTO_ICMP, id, 16 >> 3, 1, 'C', 8);
+    FAIL_IF_NULL(p3);
+    p4 = BuildIpv4TestPacket(IPPROTO_ICMP, id, 0, 1, 'A', 8);
+    FAIL_IF_NULL(p4);
+
+    /* Deliver out of order: last fragment first, first fragment last. */
+    FAIL_IF(Defrag(&test_tv, &test_dtv, p1) != NULL);
+    FAIL_IF(Defrag(&test_tv, &test_dtv, p2) != NULL);
+    FAIL_IF(Defrag(&test_tv, &test_dtv, p3) != NULL);
+
+    reassembled = Defrag(&test_tv, &test_dtv, p4);
+    FAIL_IF_NULL(reassembled);
+
+    FAIL_IF(IPV4_GET_RAW_HLEN(PacketGetIPv4(reassembled)) != 20);
+    FAIL_IF(IPV4_GET_RAW_IPLEN(PacketGetIPv4(reassembled)) != 20 + 32);
+
+    for (int i = 20 + 0; i < 20 + 8; i++)
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'A');
+    for (int i = 20 + 8; i < 20 + 16; i++)
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'B');
+    for (int i = 20 + 16; i < 20 + 24; i++)
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'C');
+    for (int i = 20 + 24; i < 20 + 32; i++)
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'D');
+
+    PacketFree(p1);
+    PacketFree(p2);
+    PacketFree(p3);
+    PacketFree(p4);
+    PacketFree(reassembled);
+
+    DefragDestroy();
+    PASS;
+}
+
+/**
+ * \test A new fragment lands at the same offset as one already in the tree,
+ *       while a preceding fragment overlaps it from the left.
+ *
+ * The BSD-policy seek needs prev to start at the immediately preceding
+ * fragment (offset < frag_offset). The RB tree comparator never returns 0, so
+ * RB_NFIND is strictly-greater: searching with key == frag_offset would land on
+ * the fragment *after* the same-offset node and set prev to the same-offset
+ * node, skipping the left-overlapping fragment. The key must therefore be
+ * frag_offset - 1. This datagram distinguishes the two: with the correct key
+ * the 16..24 region resolves to 'D', with key == frag_offset it wrongly
+ * resolves to 'B'.
+ */
+static int DefragSameOffsetPrecedingOverlapTest(void)
+{
+    Packet *packets[5] = { NULL };
+    Packet *reassembled = NULL;
+    int id = 82320;
+
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+
+    /* B: 8..24, delivered first so it keeps offset 8 (the later A only sets its
+     * ltrim; BSD would otherwise bake the trim into the stored offset). */
+    FAIL_IF_NOT(BuildIpv4TestPacketWithContent(
+            &packets[0], IPPROTO_ICMP, id, 8 >> 3, 1, (uint8_t *)"BBBBBBBBBBBBBBBB", 16));
+    /* A: 0..16 (extends past offset 8, overlapping B/D from the left). */
+    FAIL_IF_NOT(BuildIpv4TestPacketWithContent(
+            &packets[1], IPPROTO_ICMP, id, 0, 1, (uint8_t *)"AAAAAAAAAAAAAAAA", 16));
+    /* C: 24..32, a node strictly greater than offset 8 so RB_NFIND(8) finds it. */
+    FAIL_IF_NOT(BuildIpv4TestPacketWithContent(
+            &packets[2], IPPROTO_ICMP, id, 24 >> 3, 1, (uint8_t *)"CCCCCCCC", 8));
+    /* D: 8..24, same offset as B; must be reconciled against A, not skip it. */
+    FAIL_IF_NOT(BuildIpv4TestPacketWithContent(
+            &packets[3], IPPROTO_ICMP, id, 8 >> 3, 1, (uint8_t *)"DDDDDDDDDDDDDDDD", 16));
+    /* E: 32..40, final fragment, triggers reassembly. */
+    FAIL_IF_NOT(BuildIpv4TestPacketWithContent(
+            &packets[4], IPPROTO_ICMP, id, 32 >> 3, 0, (uint8_t *)"EEEEEEEE", 8));
+
+    for (int i = 0; i < 4; i++)
+        FAIL_IF(Defrag(&test_tv, &test_dtv, packets[i]) != NULL);
+    reassembled = Defrag(&test_tv, &test_dtv, packets[4]);
+    FAIL_IF_NULL(reassembled);
+
+    FAIL_IF(IPV4_GET_RAW_IPLEN(PacketGetIPv4(reassembled)) != 20 + 40);
+
+    // clang-format off
+    const uint8_t expected[] = {
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+        'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+        'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+    };
+    // clang-format on
+    FAIL_IF(memcmp(expected, GET_PKT_DATA(reassembled) + 20, sizeof(expected)) != 0);
+
+    for (int i = 0; i < 5; i++)
+        PacketFree(packets[i]);
+    PacketFree(reassembled);
+
+    DefragDestroy();
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void DefragRegisterTests(void)
@@ -3187,5 +3310,7 @@ void DefragRegisterTests(void)
             DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test_2);
     UtRegisterTest("DefragBsdMissingFragmentIpv4Test", DefragBsdMissingFragmentIpv4Test);
     UtRegisterTest("DefragBsdMissingFragmentIpv6Test", DefragBsdMissingFragmentIpv6Test);
+    UtRegisterTest("DefragOutOfOrderFirstFragmentTest", DefragOutOfOrderFirstFragmentTest);
+    UtRegisterTest("DefragSameOffsetPrecedingOverlapTest", DefragSameOffsetPrecedingOverlapTest);
 #endif /* UNITTESTS */
 }
