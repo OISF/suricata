@@ -35,6 +35,7 @@
 #include "app-layer-frames.h"
 
 #include "detect.h"
+#include "detect-parse.h"
 #include "detect-dsize.h"
 #include "detect-engine.h"
 #include "detect-engine-build.h"
@@ -1621,6 +1622,20 @@ struct DetectFirewallAppTxState {
     bool last_fw_rule; /**< processing the last fw rule, so we need to eval all hooks after it. */
 };
 
+static inline void DetectRunAppendDefaultAppPolicyAlert(DetectEngineThreadCtx *det_ctx, Packet *p,
+        const bool apply_to_packet, const int direction, const uint64_t tx_id,
+        const AppProto alproto, const uint8_t hook)
+{
+    if (EngineModeIsFirewall()) {
+        Signature *s = DetectFirewallGetPolicySignature(
+                det_ctx->de_ctx->fw_policies, alproto, direction, hook);
+        BUG_ON(s == NULL);
+        uint8_t alert_flags = apply_to_packet ? PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET : 0;
+        alert_flags |= PACKET_ALERT_FLAG_TX;
+        AlertQueueAppend(det_ctx, s, p, tx_id, alert_flags);
+    }
+}
+
 /** \internal
  *  \brief apply default policy
  *  \param p packet to apply policy to
@@ -1631,8 +1646,8 @@ struct DetectFirewallAppTxState {
  *        to look up configurable default policies later
  */
 static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
-        const struct DetectFirewallAppPolicy *policies, Packet *p, const AppProto alproto,
-        const uint8_t direction, const uint8_t progress)
+        DetectEngineThreadCtx *det_ctx, const struct DetectFirewallAppPolicy *policies, Packet *p,
+        const AppProto alproto, const uint8_t direction, const uint8_t progress)
 {
     const struct DetectFirewallPolicy *policy;
     if (direction & STREAM_TOSERVER) {
@@ -1688,30 +1703,55 @@ static enum DetectTxFirewallFlowControl DetectFirewallApplyDefaultPolicies(
                 direction & STREAM_TOSERVER ? "toserver" : "toclient", hook);
 
         const struct DetectFirewallPolicy *policy = DetectFirewallApplyDefaultAppPolicy(
-                det_ctx->de_ctx->fw_policies->app, p, alproto, direction, hook);
-        SCLogDebug("fw: hook:%u policy:%02x", hook, policy->action);
+                det_ctx, det_ctx->de_ctx->fw_policies->app, p, alproto, direction, hook);
+        SCLogDebug("fw: hook:%u policy:%02x is_last:%s", hook, policy->action, BOOL2STR(is_last));
         actions |= policy->action;
         if (policy->action & ACTION_DROP) {
             SCLogDebug("fw: action %02x", policy->action);
             return DETECT_TX_FW_FC_BREAK;
-        } else if (policy->action == ACTION_ACCEPT) {
-            SCLogDebug("fw: accept hook %u", hook);
+
+        } else if (policy->action & ACTION_ACCEPT) {
+            SCLogDebug("fw: accept hook %u action %02x", hook, policy->action);
 
             /* accepting flow, so skip rest of the fw rules */
             if (policy->action_scope == ACTION_SCOPE_FLOW) {
-                DetectRunAppendDefaultAccept(det_ctx, p);
+                if (policy->action & ACTION_ALERT) {
+                    DetectRunAppendDefaultAppPolicyAlert(
+                            det_ctx, p, is_last, direction, tx->tx_id, alproto, hook);
+                } else {
+                    DetectRunAppendDefaultAccept(det_ctx, p);
+                }
                 return DETECT_TX_FW_FC_SKIP;
+
             } else if (policy->action_scope == ACTION_SCOPE_TX) {
                 tx->tx_data_ptr->flags |= APP_LAYER_TX_ACCEPT;
                 SCLogDebug("ACTION_SCOPE_TX, setting APP_LAYER_TX_ACCEPT");
-                if (is_last) {
+                if (policy->action & ACTION_ALERT) {
+                    DetectRunAppendDefaultAppPolicyAlert(
+                            det_ctx, p, is_last, direction, tx->tx_id, alproto, hook);
+                } else if (is_last) {
                     DetectRunAppendDefaultAccept(det_ctx, p);
                     SCLogDebug("DetectRunAppendDefaultAccept for last tx");
                 }
                 return DETECT_TX_FW_FC_SKIP;
+
+            } else if (policy->action_scope == ACTION_SCOPE_HOOK) {
+                if (policy->action & ACTION_ALERT) {
+                    DetectRunAppendDefaultAppPolicyAlert(
+                            det_ctx, p, is_last, direction, tx->tx_id, alproto, hook);
+                } else if (is_last) {
+                    DetectRunAppendDefaultAccept(det_ctx, p);
+                    SCLogDebug("DetectRunAppendDefaultAccept for last tx");
+                }
+            }
+        } else {
+            if (policy->action & ACTION_ALERT) {
+                DetectRunAppendDefaultAppPolicyAlert(
+                        det_ctx, p, is_last, direction, tx->tx_id, alproto, hook);
             }
         }
     }
+
     if ((is_last && (actions & (ACTION_ACCEPT | ACTION_DROP)) == ACTION_ACCEPT)) {
         DetectRunAppendDefaultAccept(det_ctx, p);
     }
@@ -2364,9 +2404,9 @@ static void DetectRunTx(ThreadVars *tv,
                         s->app_progress_hook);
                 /* if this rule was the last for our progress state, and it didn't match,
                  * we have to invoke the default policy. We only check the current rule hook. */
-                const struct DetectFirewallPolicy *policy =
-                        DetectFirewallApplyDefaultAppPolicy(det_ctx->de_ctx->fw_policies->app, p,
-                                s->alproto, flow_flags, s->app_progress_hook);
+                const struct DetectFirewallPolicy *policy = DetectFirewallApplyDefaultAppPolicy(
+                        det_ctx, det_ctx->de_ctx->fw_policies->app, p, s->alproto, flow_flags,
+                        s->app_progress_hook);
                 SCLogDebug("fw_last_for_progress policy %02x", policy->action);
                 if (policy->action & ACTION_DROP) {
                     fw_state.fw_skip_app_filter = true;

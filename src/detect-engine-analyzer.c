@@ -1980,25 +1980,6 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
 
 #include "app-layer-parser.h"
 
-static const char *ActionScopeToString(enum ActionScope s)
-{
-    switch (s) {
-        case ACTION_SCOPE_PACKET:
-            return "packet";
-        case ACTION_SCOPE_FLOW:
-            return "flow";
-            break;
-        case ACTION_SCOPE_HOOK:
-            return "hook";
-        case ACTION_SCOPE_TX:
-            return "tx";
-        case ACTION_SCOPE_AUTO:
-            return "auto";
-    }
-    DEBUG_VALIDATE_BUG_ON(1);
-    return "unknown";
-}
-
 static void AddPolicy(const DetectEngineCtx *de_ctx, RuleAnalyzer *ctx, const AppProto a,
         const uint8_t state, const uint8_t direction)
 {

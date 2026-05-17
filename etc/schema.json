@@ -1999,6 +1999,16 @@
                 }
             }
         },
+        "firewall": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "hook": {
+                    "type": "string",
+                    "description": "Firewall hook for the match"
+                }
+            }
+        },
         "flow": {
             "type": "object",
             "additionalProperties": false,

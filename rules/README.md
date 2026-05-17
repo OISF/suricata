@@ -8,6 +8,7 @@ signature IDs.
 | Component         | Start   | End     |
 | ----------------- | ------- | ------- |
 | Decoder           | 2200000 | 2200999 |
+| Firewall          | 2201000 | 2201999 |
 | Stream            | 2210000 | 2210999 |
 | Generic App-Layer | 2260000 | 2260999 |
 
