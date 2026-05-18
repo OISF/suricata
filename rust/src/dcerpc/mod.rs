@@ -20,5 +20,6 @@
 pub mod dcerpc;
 pub mod dcerpc_udp;
 pub mod detect;
+pub mod load_interfaces;
 pub mod log;
 pub mod parser;
