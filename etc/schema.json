@@ -410,6 +410,14 @@
                             "ack_result": {
                                 "type": "integer"
                             },
+                            "procedure": {
+                                "description": "DCERPC Procedure name corresponding to the interface UUID and Opnum",
+                                "type": "string"
+                            },
+                            "service": {
+                                "description": "DCERPC Service name corresponding to the interface UUID",
+                                "type": "string"
+                            },
                             "uuid": {
                                 "type": "string",
                                 "suricata": {
