@@ -428,6 +428,9 @@
                             },
                             "service": {
                                 "type": "string"
+                            },
+                            "procedure": {
+                                "type": "string"
                             }
                         }
                     }

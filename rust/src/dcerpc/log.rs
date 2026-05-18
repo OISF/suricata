@@ -53,6 +53,10 @@ fn log_dcerpc_header_tcp(
                         if let Some(sname) = service_name {
                             jsb.set_string("service", sname)?;
                         }
+                        let procedure_name = get_procedure_name(ifstr.to_string(), tx.opnum);
+                        if let Some(pname) = procedure_name {
+                            jsb.set_string("procedure", pname)?;
+                        }
                         jsb.close()?;
                     }
                 }
