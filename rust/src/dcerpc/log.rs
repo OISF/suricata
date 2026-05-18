@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,10 +15,40 @@
  * 02110-1301, USA.
  */
 use uuid::Uuid;
-
 use crate::dcerpc::dcerpc::*;
 use crate::dcerpc::dcerpc_udp::*;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use std::collections::HashMap;
+use serde::Deserialize;
+use lazy_static::lazy_static;
+
+const UUID_SERVICE_MAP_JSON: &str = include_str!("uuid_service_map.json");
+
+#[derive(Deserialize)]
+struct UuidServiceMapEntry {
+    uuid: String,
+    service: String,
+}
+
+
+
+fn load_uuid_service_map(contents: &str) -> HashMap<String, String> {
+    let mut map = HashMap::new();
+    for line in contents.lines() {
+        if !line.trim().is_empty() {
+            if let Ok(json) = serde_json::from_str::<UuidServiceMapEntry>(line) {
+                map.insert(json.uuid, json.service);
+            }
+        }
+    }
+    map
+}
+
+
+lazy_static! {
+    static ref UUID_SERVICE_MAP: HashMap<String, String> =
+        load_uuid_service_map(UUID_SERVICE_MAP_JSON);
+}
 
 fn log_dcerpc_header_tcp(
     jsb: &mut JsonBuilder, state: &DCERPCState, tx: &DCERPCTransaction,
@@ -47,6 +77,9 @@ fn log_dcerpc_header_tcp(
                         jsb.set_string("version", &vstr)?;
                         if uuid.acked {
                             jsb.set_uint("ack_result", uuid.result as u64)?;
+                        }
+                        if let Some(sname) = UUID_SERVICE_MAP.get(&ifstr.to_string()) {
+                            jsb.set_string("service", sname)?;
                         }
                         jsb.close()?;
                     }
