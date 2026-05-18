@@ -227,6 +227,7 @@ static void PacketApplySignatureActions(Packet *p, const Signature *s, const Pac
         if (p->alerts.drop.action == 0) {
             p->alerts.drop.iid = s->iid;
             p->alerts.drop.action = pa->action;
+            p->alerts.drop.is_fw_alert = is_fw_rule;
             p->alerts.drop.s = (Signature *)s;
         }
         if ((p->flow != NULL) && (pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_FLOW)) {
@@ -373,6 +374,7 @@ static inline PacketAlert PacketAlertSet(
     pa.action = s->action;
     pa.s = (Signature *)s;
     pa.flags = alert_flags;
+    pa.is_fw_alert = s->flags & SIG_FLAG_FIREWALL ? true : false;
     /* Set tx_id if the frame has it */
     pa.tx_id = tx_id;
     pa.frame_id = (alert_flags & PACKET_ALERT_FLAG_FRAME) ? det_ctx->frame_id : 0;

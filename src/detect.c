@@ -1013,6 +1013,7 @@ static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
     det_ctx->alert_queue_size = 0;
     p->alerts.drop.action = 0;
     p->alerts.firewall_discarded = 0;
+    p->alerts.drop.is_fw_alert = false;
 
 #ifdef DEBUG
     if (p->flags & PKT_STREAM_ADD) {

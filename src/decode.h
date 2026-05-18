@@ -250,7 +250,7 @@ typedef struct PacketAlert_ {
     SigIntId iid;   /* Internal ID, used for sorting */
     uint8_t action; /* Rule or threshold action to be applied to packet */
     uint8_t flags;
-    bool is_fw_alert;
+    bool is_fw_alert; /* Set especially for drops to indicate firewall drops */
     const struct Signature_ *s;
     uint64_t tx_id; /* Used for sorting */
     int64_t frame_id;
