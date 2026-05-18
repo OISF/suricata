@@ -18,6 +18,7 @@ use uuid::Uuid;
 
 use crate::dcerpc::dcerpc::*;
 use crate::dcerpc::dcerpc_udp::*;
+use crate::dcerpc::uuid_opnum_map::*;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 
 fn log_dcerpc_header_tcp(
@@ -47,6 +48,10 @@ fn log_dcerpc_header_tcp(
                         jsb.set_string("version", &vstr)?;
                         if uuid.acked {
                             jsb.set_uint("ack_result", uuid.result as u64)?;
+                        }
+                        let service_name = get_uuid_service_name(ifstr.to_string());
+                        if let Some(sname) = service_name {
+                            jsb.set_string("service", sname)?;
                         }
                         jsb.close()?;
                     }

@@ -425,6 +425,9 @@
                                         "dcerpc.iface"
                                     ]
                                 }
+                            },
+                            "service": {
+                                "type": "string"
                             }
                         }
                     }
