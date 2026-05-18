@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,10 +15,55 @@
  * 02110-1301, USA.
  */
 use uuid::Uuid;
-
 use crate::dcerpc::dcerpc::*;
 use crate::dcerpc::dcerpc_udp::*;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
+use serde_json::Value;
+use lazy_static::lazy_static;
+
+fn get_base_dir() -> Option<PathBuf> {
+    std::env::var("SRCDIR").ok().map(|dir| {
+        PathBuf::from(dir).join("rust").join("src").join("dcerpc")
+    })
+}
+
+fn load_json_map(filename: &str) -> HashMap<String, String> {
+    let Some(base) = get_base_dir() else {
+        SCLogDebug!("SRCDIR not set, skipping {}", filename);
+        return HashMap::new();
+    };
+
+    let filepath = base.join(filename);
+    SCLogDebug!("Loading: {:?}", filepath);
+
+    let Ok(contents) = fs::read_to_string(&filepath) else {
+        SCLogDebug!("Failed to read {:?}", filepath);
+        return HashMap::new();
+    };
+
+    let mut map = HashMap::new();
+    for line in contents.lines() {
+        if !line.trim().is_empty() {
+            if let Ok(json) = serde_json::from_str::<Value>(line) {
+                if let Some(obj) = json.as_object() {
+                    for (key, value) in obj {
+                        map.insert(key.clone(), value.as_str().unwrap_or_default().to_string());
+                    }
+                }
+            }
+        }
+    }
+    map
+}
+
+
+lazy_static! {
+    static ref UUID_SERVICE_MAP: HashMap<String, String> =
+        load_json_map("uuid_service_map.json");
+}
 
 fn log_dcerpc_header_tcp(
     jsb: &mut JsonBuilder, state: &DCERPCState, tx: &DCERPCTransaction,
@@ -47,6 +92,9 @@ fn log_dcerpc_header_tcp(
                         jsb.set_string("version", &vstr)?;
                         if uuid.acked {
                             jsb.set_uint("ack_result", uuid.result as u64)?;
+                        }
+                        if let Some(sname) = UUID_SERVICE_MAP.get(&ifstr.to_string()) {
+                            jsb.set_string("service", sname)?;
                         }
                         jsb.close()?;
                     }
