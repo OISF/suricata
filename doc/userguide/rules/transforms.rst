@@ -195,6 +195,9 @@ Takes the buffer, applies xor decoding.
 .. note:: this transform requires a mandatory option which is the hexadecimal encoded xor key.
 
 
+Quotes around a hex key are optional; ``xor:0d0ac8ff`` and ``xor:"0d0ac8ff"``
+are equivalent.
+
 This example alerts if ``http.uri`` contains ``password=`` xored with 4-bytes key ``0d0ac8ff``
 .. container:: example-rule
 
