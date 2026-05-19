@@ -1,3 +1,22 @@
+7.0.16 -- 2026-05-19
+
+Security #8555: http2: excessive memory alloc with decompression bomb (7.0.x backport)(HIGH - CVE 2026-46387)
+Security #8548: datasets: save with load cmd can save to absolute filename (7.0.x backport)(HIGH - CVE 2026-45767)
+Security #8542: detect: heap-use-after-free in inspection-buffer transform chaining (7.0.x backport)(MODERATE - CVE 2026-45751)
+Security #8531: http1: quadratic complexity with usage of HTTPParseContentDispositionHeader (7.0.x backport)(HIGH - CVE 2026-45759)
+Security #8528: detect: case insensitivity in frames lead to buffer overflow (7.0.x backport)(LOW - CVE 2026-45761)
+Security #8512: defrag: incorrect ip fragment reuse causes remote crash (7.0.x backport)(HIGH - CVE 2026-45762)
+Security #8494: http2: type confusion from protocol change (7.0.x backport)(CRITICAL - CVE 2026-45764)
+Security #8462: dnp3: unbounded reassembly (7.0.x backport)(HIGH - CVE 2026-45765)
+Security #8420:  nfs: OOM on stateful structures (7.0.x backport)(CRITICAL - CVE 2026-45766)
+Security #8417:  ikev2: OOM due to unbounded client_transforms (7.0.x backport)(CRITICAL - CVE 2026-45769)
+Security #6286: lua/tls: null dereference in GetCertInfo(HIGH - CVE 2026-45747)
+Bug #8453: http2: http.host does not match as soon as possible (7.0.x backport)
+Bug #8450: dnp3: off by one heap write in object parser (7.0.x backport)
+Bug #8412: http2: response_frame_size is never set (7.0.x backport)
+Bug #8163: schema: allow `http_request_body` fields (7.0.x backport)
+Task #7908: build-scopes: add QA or SIMULATION mode (7.0.x backport)
+
 7.0.15 -- 2026-03-12
 
 Security #8365:  stream: quadratic complexity in stream inspection (7.0.x backport)(HIGH - CVE 2026-31933)
