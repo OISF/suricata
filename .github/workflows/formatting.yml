@@ -31,6 +31,8 @@ jobs:
     runs-on: ubuntu-22.04
     container: ubuntu:22.04
     continue-on-error: false
+    env:
+      RV: "1.89"
     steps:
 
       # Cache Rust stuff.
@@ -48,7 +50,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo \
+                cargo-${RV} \
                 cbindgen \
                 clang-format-14 \
                 git \
@@ -131,7 +133,7 @@ jobs:
           fi
         shell: bash {0}
       - run: ./autogen.sh
-      - run: ./configure --enable-warnings --enable-unittests
+      - run: PATH="/usr/lib/rust-${RV}/bin:$PATH" ./configure --enable-warnings --enable-unittests
       - name: Check formatting
         run: |
           ./scripts/clang-format.sh check-branch --diffstat --show-commits  >> check_formatting_log.txt 2>&1

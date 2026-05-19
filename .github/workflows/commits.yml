@@ -17,7 +17,7 @@ jobs:
   check-commits:
     name: Commit Check
     runs-on: ubuntu-latest
-    container: ubuntu:20.04
+    container: ubuntu:24.04
     steps:
       - name: Caching ~/.cargo
         uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
@@ -32,7 +32,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo \
+                cargo-1.89 \
                 curl \
                 git \
                 jq \
@@ -52,17 +52,16 @@ jobs:
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
-                libpython2.7 \
                 libssl-dev \
                 make \
                 parallel \
                 pkg-config \
                 python3-yaml \
-                rustc \
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - run: echo "/usr/lib/rust-1.89/bin" >> $GITHUB_PATH
       - name: Installing sccache
         run: |
           (cd /tmp && curl -OL https://github.com/mozilla/sccache/releases/download/0.2.13/sccache-0.2.13-x86_64-unknown-linux-musl.tar.gz)

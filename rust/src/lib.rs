@@ -49,6 +49,13 @@
 // just due to FFI.
 #![allow(clippy::missing_safety_doc)]
 
+// Disable the clippy warning for not using modern C string
+// literals. Ubuntu 24.04 still ships cbindgen 0.26.0 that doesn't
+// support these, so migrating to modern C string literals would
+// require Ubuntu 24.04 users wishing to build from git to install
+// cbindgen with cargo.
+#![allow(clippy::manual_c_str_literals)]
+
 // Allow unknown lints, our MSRV doesn't know them all, for
 // example static_mut_refs.
 #![allow(unknown_lints)]
