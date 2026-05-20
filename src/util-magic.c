@@ -440,7 +440,7 @@ static int MagicDetectTest07(void)
     result = MagicThreadLookup(&ctx, buffer, buffer_len);
     FAIL_IF_NULL(result);
 
-    char *str = strstr(result, "OpenDocument Text");
+    const char *str = strstr(result, "OpenDocument Text");
     FAIL_IF_NULL(str);
 
     MagicDeinitContext(ctx);
