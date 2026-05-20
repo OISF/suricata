@@ -1,0 +1,5 @@
+# SIP app layer event rules
+#
+# SID's fall in the 2280000-2280999 range.
+#
+alert sip any any -> any any (msg:"SURICATA SIP invalid data"; app-layer-event:sip.invalid_data; classtype:protocol-command-decode; sid:2280001; rev:1;)
