@@ -92,6 +92,15 @@ Detect Engine will match against - if applicable:
 #. Packet/payload-related rules;
 #. Frame keywords;
 #. Application layer protocol transaction rules.
+.. note::
+
+   In Suricata’s rule language, the term *frame* refers to a logical
+   segment of the inspected data stream created internally by Suricata.
+   These Suricata frames are used by rule keywords to match specific
+   portions of the stream. This concept is different from protocol‑specific
+   frames such as HTTP/2 frames or Ethernet frames, which belong to the
+   protocol’s own framing structure.
+
 
 During packet inspection, if the signature uses the last two in this list,
 inspection is left to those steps.
