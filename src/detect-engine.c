@@ -3420,6 +3420,10 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
     det_ctx->counter_alerts = StatsRegisterCounter("detect.alert", tv);
     det_ctx->counter_alerts_overflow = StatsRegisterCounter("detect.alert_queue_overflow", tv);
     det_ctx->counter_alerts_suppressed = StatsRegisterCounter("detect.alerts_suppressed", tv);
+    if (EngineModeIsFirewall()) {
+        det_ctx->counter_firewall_discarded_alerts =
+                StatsRegisterCounter("firewall.discarded_alerts", tv);
+    }
 
     /* Register counter for Lua rule errors. */
     det_ctx->lua_rule_errors = StatsRegisterCounter("detect.lua.errors", tv);
@@ -3500,6 +3504,10 @@ DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     det_ctx->counter_alerts = StatsRegisterCounter("detect.alert", tv);
     det_ctx->counter_alerts_overflow = StatsRegisterCounter("detect.alert_queue_overflow", tv);
     det_ctx->counter_alerts_suppressed = StatsRegisterCounter("detect.alerts_suppressed", tv);
+    if (EngineModeIsFirewall()) {
+        det_ctx->counter_firewall_discarded_alerts =
+                StatsRegisterCounter("firewall.discarded_alerts", tv);
+    }
 #ifdef PROFILING
     det_ctx->counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", tv);
     det_ctx->counter_match_list = StatsRegisterAvgCounter("detect.match_list", tv);

@@ -1327,6 +1327,8 @@ typedef struct DetectEngineThreadCtx_ {
     uint16_t counter_mpm_list;
     uint16_t counter_match_list;
 #endif
+    /** id for firewall discarded alerts counter */
+    uint16_t counter_firewall_discarded_alerts;
 
     struct {
         InspectionBuffer *buffers;

@@ -124,6 +124,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 
 /* aux flags */
 
+/** Flow action issued by firewall */
+#define FLOW_AUX_ACTION_BY_FIREWALL BIT_U8(0)
+
 /* File flags */
 
 #define FLOWFILE_INIT                   0
