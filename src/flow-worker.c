@@ -369,7 +369,7 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
     if (det_ctx != NULL && det_ctx->de_ctx->PreStreamHook != NULL) {
         const uint8_t action = det_ctx->de_ctx->PreStreamHook(tv, det_ctx, p);
         if (action & ACTION_DROP) {
-            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_STREAM_PRE_HOOK);
+            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FW_STREAM_PRE_HOOK);
             return;
         }
     }
@@ -569,7 +569,7 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data)
     if (det_ctx != NULL && det_ctx->de_ctx->PreFlowHook != NULL) {
         const uint8_t action = det_ctx->de_ctx->PreFlowHook(tv, det_ctx, p);
         if (action & ACTION_DROP) {
-            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FLOW_PRE_HOOK);
+            PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_FW_FLOW_PRE_HOOK);
             goto pre_flow_drop;
         }
     }
