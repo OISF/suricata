@@ -175,7 +175,8 @@ Takes the buffer, applies the required regular expression, and outputs the *firs
 .. note:: this transform requires a mandatory option string containing a regular expression.
 
 
-This example alerts if ``http.request_line`` contains ``/dropper.php``
+This example alerts if ``http.request_line`` contains ``/dropper.php``:
+
 .. container:: example-rule
 
     alert http any any -> any any (msg:"HTTP with pcrexform"; http.request_line; \
@@ -238,7 +239,8 @@ The implementation uses a state machine :
 - it lowercases until it finds ``:```
 - it does not change until it finds a new line and switch back to first state
 
-This example alerts for both HTTP/1 and HTTP/2 with a authorization header
+This example alerts for both HTTP/1 and HTTP/2 with a authorization header:
+
 .. container:: example-rule
 
     alert http any any -> any any (msg:"HTTP authorization"; http.header_names; \
@@ -252,7 +254,8 @@ It strips HTTP2 pseudo-headers (names and values).
 
 The implementation just strips every line beginning by ``:``.
 
-This example alerts for both HTTP/1 and HTTP/2 with only a user agent
+This example alerts for both HTTP/1 and HTTP/2 with only a user agent:
+
 .. container:: example-rule
 
     alert http any any -> any any (msg:"HTTP ua only"; http.header_names; \
@@ -441,7 +444,8 @@ If the decompressed data were to be larger than max-size,
 the transform will decompress data up to max-size.
 Value 0 is forbidden for max-size (there is no unlimited value).
 
-This example alerts if ``http.uri`` contains base64-encoded gzipped value
+This example alerts if ``http.uri`` contains base64-encoded gzipped value:
+
 .. container:: example-rule
 
     alert http any any -> any any (msg:"from_base64 + gunzip";
@@ -463,7 +467,8 @@ If the decompressed data were to be larger than max-size,
 the transform will decompress data up to max-size.
 Value 0 is forbidden for max-size (there is no unlimited value).
 
-This example alerts if ``http.uri`` contains base64-encoded zlib-compressed value
+This example alerts if ``http.uri`` contains base64-encoded zlib-compressed value:
+
 .. container:: example-rule
 
     alert http any any -> any any (msg:"from_base64 + gunzip";
