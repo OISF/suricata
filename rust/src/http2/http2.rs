@@ -1283,7 +1283,7 @@ pub extern "C" fn rs_http2_state_new(
     let state = HTTP2State::new();
     let boxed = Box::new(state);
     let r = Box::into_raw(boxed) as *mut _;
-    if !orig_state.is_null() && orig_proto == ALPROTO_HTTP1 as u16 {
+    if !orig_state.is_null() && orig_proto == ALPROTO_HTTP1 {
         unsafe {
             HTTP2MimicHttp1Request(orig_state, r);
         }
