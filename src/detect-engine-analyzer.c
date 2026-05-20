@@ -2063,6 +2063,11 @@ static void FirewallAddRulesForState(const DetectEngineCtx *de_ctx, const AppPro
             }
         }
 
+        if ((s->flags & SIG_FLAG_FW_HOOK_LTE) && state < s->app_progress_hook) {
+            SCJbAppendString(ctx->js, s->sig_str);
+            accept_rules += ((s->action & ACTION_ACCEPT) != 0);
+        }
+
         if (s->app_progress_hook == state) {
             SCJbAppendString(ctx->js, s->sig_str);
             accept_rules += ((s->action & ACTION_ACCEPT) != 0);
