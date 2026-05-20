@@ -369,6 +369,7 @@ static inline void FlowWorkerStreamTCPUpdate(ThreadVars *tv, FlowWorkerThreadDat
     if (det_ctx != NULL && det_ctx->de_ctx->PreStreamHook != NULL) {
         const uint8_t action = det_ctx->de_ctx->PreStreamHook(tv, det_ctx, p);
         if (action & ACTION_DROP) {
+            SCLogDebug("Packet drop from Stream Pre Hook TCP Update");
             PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_STREAM_PRE_HOOK);
             return;
         }

@@ -3421,6 +3421,10 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
     det_ctx->counter_alerts = StatsRegisterCounter("detect.alert", &tv->stats);
     det_ctx->counter_alerts_overflow =
             StatsRegisterCounter("detect.alert_queue_overflow", &tv->stats);
+    if (EngineModeIsFirewall()) {
+        det_ctx->counter_firewall_discarded_alerts =
+                StatsRegisterCounter("firewall.discarded_alerts", &tv->stats);
+    }
     det_ctx->counter_alerts_suppressed =
             StatsRegisterCounter("detect.alerts_suppressed", &tv->stats);
 
@@ -3504,6 +3508,10 @@ DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     det_ctx->counter_alerts = StatsRegisterCounter("detect.alert", &tv->stats);
     det_ctx->counter_alerts_overflow =
             StatsRegisterCounter("detect.alert_queue_overflow", &tv->stats);
+    if (EngineModeIsFirewall()) {
+        det_ctx->counter_firewall_discarded_alerts =
+                StatsRegisterCounter("firewall.discarded_alerts", &tv->stats);
+    }
     det_ctx->counter_alerts_suppressed =
             StatsRegisterCounter("detect.alerts_suppressed", &tv->stats);
 #ifdef PROFILING
