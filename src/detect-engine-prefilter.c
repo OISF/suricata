@@ -1022,6 +1022,12 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                     tx_non_pf = true;
                 }
             }
+            if (frame_non_pf) {
+                // we found a frame, do not look for other buffers
+                // which may include the same frame + transform
+                // but we only want 1 per signature
+                break;
+            }
         }
         /* handle hook only rules */
         if (!tx_non_pf && s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
