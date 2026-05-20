@@ -7212,7 +7212,7 @@
                         },
                         "alert_queue_overflow": {
                             "type": "integer",
-                            "description": "Count of alerts discarded due to alert queue overflow or a drop in firewall mode"
+                            "description": "Count of alerts discarded due to alert queue overflow"
                         },
                         "alerts_suppressed": {
                             "type": "integer",
@@ -7356,6 +7356,56 @@
                         },
                         "open_files_max_hit": {
                             "type": "integer"
+                        }
+                    }
+                },
+                "firewall": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "accepted": {
+                            "type": "integer",
+                            "description": "Count of accepted packets due to firewall policies"
+                        },
+                        "blocked": {
+                            "type": "integer",
+                            "description": "Count of blocked packets due to firewall policies"
+                        },
+                        "discarded_alerts": {
+                            "type": "integer",
+                            "description": "Count of alerts discarded due to a drop while in firewall mode"
+                        },
+                        "drop_reason": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "default_app_policy": {
+                                    "type": "integer",
+                                    "description":
+                                            "Number of packets dropped due to firewall's mode default app policy"
+                                },
+                                "default_packet_policy": {
+                                    "type": "integer",
+                                    "description":
+                                            "Number of packets dropped due to firewall's mode default packet policy"
+                                },
+                                "pre_flow_hook": {
+                                    "type": "integer",
+                                    "description": "Number of packets dropped due to pre-flow hook"
+                                },
+                                "pre_stream_hook": {
+                                    "type": "integer",
+                                    "description": "Number of packets dropped due to pre-stream hook"
+                                },
+                                "rules": {
+                                    "type": "integer",
+                                    "description": "Number of packets dropped due to firewall rules"
+                                }
+                            }
+                        },
+                        "rejected": {
+                            "type": "integer",
+                            "description": "Count of packets rejected due to firewall policies"
                         }
                     }
                 },
@@ -7768,16 +7818,6 @@
                                     "description":
                                             "Number of packets dropped due to decoding errors"
                                 },
-                                "default_app_policy": {
-                                    "type": "integer",
-                                    "description":
-                                            "Number of packets dropped due to default app policy"
-                                },
-                                "default_packet_policy": {
-                                    "type": "integer",
-                                    "description":
-                                            "Number of packets dropped due to default packet policy"
-                                },
                                 "defrag_error": {
                                     "type": "integer",
                                     "description":
@@ -7800,16 +7840,6 @@
                                 "nfq_error": {
                                     "type": "integer",
                                     "description": "Number of packets dropped due to no NFQ verdict"
-                                },
-                                "pre_flow_hook": {
-                                    "description":
-                                            "Number of packets dropped in the pre_flow hook ",
-                                    "type": "integer"
-                                },
-                                "pre_stream_hook": {
-                                    "description":
-                                            "Number of packets dropped in the pre_stream hook ",
-                                    "type": "integer"
                                 },
                                 "rules": {
                                     "type": "integer",
