@@ -18,7 +18,7 @@
 // Author: Shivani Bhardwaj <shivani@oisf.net>
 
 use petgraph::algo::{is_cyclic_directed, tarjan_scc};
-use petgraph::graph::{GraphError, NodeIndex, EdgeIndex};
+use petgraph::graph::{GraphError, NodeIndex};
 use petgraph::stable_graph::StableDiGraph;
 use petgraph::visit::{Bfs, EdgeRef};
 use petgraph::Direction;
@@ -80,14 +80,9 @@ pub unsafe extern "C" fn SCCreateNodeEdgeDirectedGraph(
 
     match g.try_update_edge(from_idx, to_idx, cmd) {
         /* edge from signature to flowbit */
-        Ok(e) => {
+        Ok(_) => {
             SCLogDebug!("Created an edge from {:?} -> {:?} with weight: {:?}", from, to, cmd);
-            let g = &mut *(graph as *mut StableDiGraph<SCGNode, u8>);
-            if check_cycle_update_graph(g, e) == -1 {
-                SCLogError!("Couldn't do anything to fix the graph. Retreating..");
-                return -1;
-            }
-        }
+          }
         Err(GraphError::EdgeIxLimit) => {
             SCLogError!("Error adding edge; Graph is at full capacity");
             return -2;
@@ -113,72 +108,90 @@ pub unsafe extern "C" fn SCDebugLogFlowbitGraph(
     log_graph(jsb, g).is_ok()
 }
 
-fn check_cycle_update_graph(graph: &mut StableDiGraph<SCGNode, u8>, cur_e: EdgeIndex) -> i8
-{
-    /* Check graph for any cycles */
-    if !is_cyclic_directed(&graph.clone()) { /* O(V+E) */ //STODO is this clone ok?
-        SCLogDebug!("no cycles");
-        return 0;
+
+fn check_cycle_update_graph(graph: &mut StableDiGraph<SCGNode, u8>) -> i8 {
+    const MAX_STACK_SIZE: usize = 100;
+
+    for i in 0..MAX_STACK_SIZE {
+        /* Check graph for any cycles */
+        if !is_cyclic_directed(&*graph) {
+            SCLogDebug!("no cycles after {} tries", i);
+            return 0;
+        }
+
+        SCLogDebug!("Found a cycle in i {}. Checking if it's valid..", i);
+
+        if !try_resolve_one_cycle(graph) {
+            /* If we can't resolve any cycle, we're stuck */
+            SCLogError!("Unable to resolve cycles after {} tries", i);
+            return -1;
+        }
     }
 
-    SCLogDebug!("Found a cycle. Checking if its valid..");
-    let sccs = tarjan_scc(&*graph); /* O(V+E) */
-//    SCLogDebug!("All SCCs: {:?}", sccs);
+    SCLogError!("Maximum tries ({}) reached while trying to resolve cycles", MAX_STACK_SIZE);
+    return -1;
+}
+
+fn try_resolve_one_cycle(graph: &mut StableDiGraph<SCGNode, u8>) -> bool {
+    let sccs = tarjan_scc(&*graph);
     let mut edge_wts = Vec::new();
-    // find all strongly connected components of the graph
-    // Walk through each SCC
-    let mut scc_set: HashSet<_> = HashSet::new();
+    let mut edge_map: HashMap<petgraph::graph::EdgeIndex, u8> = HashMap::new();
+
+    /* Find the first multi-node SCC */
     for scc in sccs {
         if scc.len() == 1 {
-            // Skip single SCCs
             continue;
         }
+
         SCLogDebug!("Current scc: {:?}", scc);
-        scc_set = scc.iter().copied().collect();
-        for edge_idx in graph.edge_indices() {
+        let scc_set: HashSet<_> = scc.iter().copied().collect();
+        let edge_indices: Vec<_> = graph.edge_indices().collect();
+
+        for edge_idx in edge_indices {
             if let Some((src, tgt)) = graph.edge_endpoints(edge_idx) {
                 if scc_set.contains(&src) && scc_set.contains(&tgt) {
                     let in_degree_src = graph.neighbors_directed(src, Direction::Incoming).count();
                     let in_degree_dst = graph.neighbors_directed(tgt, Direction::Incoming).count();
-                    if in_degree_src > 1 { // there's another dependency to the cycle, remove the opposite edge
+                    if in_degree_src > 1 {
                         if let Some(ei) = graph.find_edge(tgt, src) {
                             graph.remove_edge(ei);
-                            return 0;
+                            return true;
                         }
                     } else if in_degree_dst > 1 {
                         if let Some(ei) = graph.find_edge(src, tgt) {
                             graph.remove_edge(ei);
-                            return 0;
+                            return true;
                         }
                     }
+
                     if let Some(weight) = graph.edge_weight(edge_idx) {
+                        edge_map.insert(edge_idx, *weight);
                         edge_wts.push(*weight);
-                        SCLogDebug!("edge_wts updated to: {:?}", edge_wts);
                     }
                 }
             }
         }
-        /* break at the first cycle */
+        let mut seen = HashSet::new();
+        let deduped_wts: Vec<u8> = edge_wts.into_iter().filter(|x| seen.insert(*x)).collect();
+        debug_validate_bug_on!(deduped_wts.len() == 0);
+        if deduped_wts.len() > 1 {
+            /* Find and remove the edge with highest weight (lowest priority) */
+            let max_edge = edge_map.iter().max_by_key(|(_, &weight)| weight);
+            if let Some((cur_e, _)) = max_edge {
+                graph.remove_edge(*cur_e);
+                return true;
+            }
+        } else if deduped_wts.len() == 1 {
+            /* Valid cycle with same weights -- can't resolve */
+            let sids: Vec<_> = scc_set.into_iter().map(|a| graph[a].sid).collect();
+            SCLogError!("Cyclic dependency found between flowbits from signatures: {:?}", sids);
+            return false;
+        }
         break;
     }
 
-    let mut seen = HashSet::new();
-    let deduped_wts: Vec<u8> = edge_wts.into_iter().filter(|x| seen.insert(*x)).collect();
-    SCLogDebug!("deduped_wts: {:?}", deduped_wts);
-
-    debug_validate_bug_on!(deduped_wts.is_empty());
-    /* This means that the cycle was created by edges of varying weights */
-    if deduped_wts.len() > 1 {
-        graph.remove_edge(cur_e);
-        return 0;
-    }
-
-    /* all weights must exactly be the same for a valid cycle */
-    debug_validate_bug_on!(deduped_wts.len() != 1);
-
-    let sids: Vec<_> = scc_set.into_iter().map(|a| graph[a].sid).collect();
-    SCLogError!("Cyclic dependency found between flowbits from signatures: {:?}", sids);
-    return -1;
+    /* couldn't resolve */
+    false
 }
 
 
@@ -188,6 +201,12 @@ pub unsafe extern "C" fn SCResolveFlowbitDependencies(
     graph: *mut c_void, sorted_sid_list: *mut u32, sorted_sid_list_len: u32,
 ) -> i8 {
     let g = &mut *(graph as *mut StableDiGraph<SCGNode, u8>);
+
+    let r = check_cycle_update_graph(g);
+    if r == -1 {
+        SCLogError!("Couldn't do anything to fix the graph. Retreating..");
+        return -1;
+    }
 
     debug_validate_bug_on!(g.node_count() == 0);
 
@@ -239,9 +258,9 @@ fn calculate_in_degree_nodes(
 
 fn log_graph(js: &mut JsonBuilder, graph: &mut StableDiGraph<SCGNode, u8>) -> Result<(), JsonError>
 {
-    SCLogNotice!("Starting the logging..");
+    SCLogDebug!("Starting the logging..");
     for node in graph.node_weights() {
-        SCLogNotice!("{:?}", node.nidx.index());
+        SCLogDebug!("{:?}", node.nidx.index());
         js.open_object(&node.sid.to_string())?;
         js.open_array("in")?;
         for edge in graph.edges_directed(node.nidx, Direction::Incoming) {

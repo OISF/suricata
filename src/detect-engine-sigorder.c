@@ -833,7 +833,8 @@ static SCSigSignatureWrapper *SCSigResolveFlowbitDependencies(
     if (sorted_siids == NULL) {
         goto error;
     }
-    if (SCResolveFlowbitDependencies(graph, sorted_siids, sig_cnt) < 0) {
+    int ret = SCResolveFlowbitDependencies(graph, sorted_siids, sig_cnt);
+    if (ret < 0) {
         goto error;
     }
 
@@ -876,6 +877,13 @@ error:
         SCFree(sorted_siids);
     }
     SCFreeDirectedGraph(graph);
+    // Free the remaining signature wrappers that weren't processed
+    SCSigSignatureWrapper *sigw;
+    while (head != NULL) {
+        sigw = head;
+        head = head->next;
+        SCFree(sigw);
+    }
     return NULL;
 }
 
