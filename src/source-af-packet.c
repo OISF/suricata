@@ -2248,8 +2248,8 @@ static int AFPSetFlowStorage(Packet *p, int map_fd, void *key0, void* key1,
 #define FlowKeyIpFill(k, p)                                                                        \
     {                                                                                              \
         (k)->ip_proto = ((p)->proto == IPPROTO_TCP) ? 1 : 0;                                       \
-        (k)->vlan0 = (p)->vlan_id[0];                                                              \
-        (k)->vlan1 = (p)->vlan_id[1];                                                              \
+        (k)->vlan0 = (p)->vlan_id[0] & g_vlan_mask;                                                \
+        (k)->vlan1 = (p)->vlan_id[1] & g_vlan_mask;                                                \
     }
 
 /**
