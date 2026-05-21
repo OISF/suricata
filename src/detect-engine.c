@@ -3366,6 +3366,8 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
 #endif
     SC_ATOMIC_INIT(det_ctx->so_far_used_by_detect);
 
+    if (ThresholdCacheThreadInit() != 0)
+        return TM_ECODE_FAILED;
     return TM_ECODE_OK;
 }
 

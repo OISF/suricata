@@ -56,6 +56,7 @@
 #include "util-thash.h"
 #include "util-hash-lookup3.h"
 #include "counters.h"
+#include "util-random.h"
 
 static SC_ATOMIC_DECLARE(uint64_t, threshold_bitmap_alloc_fail);
 static SC_ATOMIC_DECLARE(uint64_t, threshold_bitmap_memuse);
@@ -258,14 +259,14 @@ static void ThresholdEntryFree(void *ptr)
     }
 }
 
-static inline uint32_t HashAddress(const Address *a)
+static inline uint32_t HashAddress(const Address *a, const uint32_t seed)
 {
     uint32_t key;
 
     if (a->family == AF_INET) {
-        key = a->addr_data32[0];
+        key = hashword(a->addr_data32, 1, seed);
     } else if (a->family == AF_INET6) {
-        key = hashword(a->addr_data32, 4, 0);
+        key = hashword(a->addr_data32, 4, seed);
     } else
         key = 0;
 
@@ -285,17 +286,17 @@ static inline int CompareAddress(const Address *a, const Address *b)
     return 0;
 }
 
-static uint32_t ThresholdEntryHash(uint32_t seed, void *ptr)
+static uint32_t ThresholdEntryHash(const uint32_t seed, void *ptr)
 {
     const ThresholdEntry *e = ptr;
     uint32_t hash = hashword(e->key, sizeof(e->key) / sizeof(uint32_t), seed);
     switch (e->key[TRACK]) {
         case TRACK_BOTH:
-            hash += HashAddress(&e->addr2);
+            hash += HashAddress(&e->addr2, seed);
             /* fallthrough */
         case TRACK_SRC:
         case TRACK_DST:
-            hash += HashAddress(&e->addr);
+            hash += HashAddress(&e->addr, seed);
             break;
     }
     return hash;
@@ -392,6 +393,7 @@ typedef struct ThresholdCacheItem {
 } ThresholdCacheItem;
 
 static thread_local HashTable *threshold_cache_ht = NULL;
+static thread_local uint32_t threshold_cache_seed = 0;
 
 thread_local uint64_t cache_lookup_cnt = 0;
 thread_local uint64_t cache_lookup_notinit = 0;
@@ -455,7 +457,8 @@ static void ThresholdCacheExpire(SCTime_t now)
 static uint32_t ThresholdCacheHashFunc(HashTable *ht, void *data, uint16_t datalen)
 {
     ThresholdCacheItem *e = data;
-    uint32_t hash = hashword(e->key, sizeof(e->key) / sizeof(uint32_t), 0) * (e->ipv + e->track);
+    uint32_t hash = hashword(e->key, sizeof(e->key) / sizeof(uint32_t), threshold_cache_seed) *
+                    (e->ipv + e->track);
     hash = hash % ht->array_size;
     return hash;
 }
@@ -479,8 +482,7 @@ static int SetupCache(const Packet *p, const int8_t track, const int8_t retval, 
         const uint32_t gid, const uint32_t rev, SCTime_t expires)
 {
     if (!threshold_cache_ht) {
-        threshold_cache_ht = HashTableInit(256, ThresholdCacheHashFunc,
-                ThresholdCacheHashCompareFunc, ThresholdCacheHashFreeFunc);
+        return -1;
     }
 
     uint32_t addr;
@@ -590,6 +592,20 @@ static int CheckCache(const Packet *p, const int8_t track, const uint32_t sid, c
     }
     cache_lookup_miss++;
     return -1; // cache miss - not found
+}
+
+int ThresholdCacheThreadInit(void)
+{
+    if (threshold_cache_ht == NULL) {
+        threshold_cache_ht = HashTableInit(256, ThresholdCacheHashFunc,
+                ThresholdCacheHashCompareFunc, ThresholdCacheHashFreeFunc);
+        if (threshold_cache_ht == NULL) {
+            return -1;
+        }
+        threshold_cache_seed = (uint32_t)RandomGet();
+        RB_INIT(&threshold_cache_tree);
+    }
+    return 0;
 }
 
 void ThresholdCacheThreadFree(void)
