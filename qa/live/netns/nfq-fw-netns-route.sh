@@ -268,8 +268,8 @@ SID201=$(jq -c 'select(.alert.signature_id==201)' ./eve.json | wc -l)
 SID202=$(jq -c 'select(.alert.signature_id==202)' ./eve.json | wc -l)
 echo "SID201 $SID201 SID202 $SID202"
 
-ACCEPTED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.accepted')
-BLOCKED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.ips.blocked')
+ACCEPTED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.firewall.accepted')
+BLOCKED=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.firewall.blocked')
 echo "ACCEPTED $ACCEPTED BLOCKED $BLOCKED"
 
 if [ $ACCEPTED -eq 0 ]; then
@@ -317,6 +317,7 @@ fi
 
 echo "* dumping some stats..."
 cat ./eve.json | jq -c 'select(.http)'|tail -n1|jq
+cat ./eve.json | jq -c 'select(.stats)|.stats.firewall'|tail -n1|jq
 cat ./eve.json | jq -c 'select(.stats)|.stats.ips'|tail -n1|jq
 echo "* dumping some stats... done"
 
