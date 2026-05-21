@@ -3478,6 +3478,8 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
 #endif
     SC_ATOMIC_INIT(det_ctx->so_far_used_by_detect);
 
+    if (ThresholdCacheThreadInit(det_ctx) != 0)
+        return TM_ECODE_FAILED;
     return TM_ECODE_OK;
 }
 
@@ -3734,8 +3736,6 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
     PrefilterPktNonPFStatsDump();
     SCFree(det_ctx);
-
-    ThresholdCacheThreadFree();
 }
 
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
