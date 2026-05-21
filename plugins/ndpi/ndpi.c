@@ -167,19 +167,16 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
         flowctx->detected_l7_protocol = ndpi_detection_process_packet(
                 threadctx->ndpi, flowctx->ndpi_flow, ip_ptr, ip_len, time_ms, NULL);
 
-        if (ndpi_is_protocol_detected(flowctx->detected_l7_protocol) != 0) {
-            if (!ndpi_is_proto_unknown(flowctx->detected_l7_protocol.proto)) {
-                if (!ndpi_extra_dissection_possible(threadctx->ndpi, flowctx->ndpi_flow))
-                    flowctx->detection_completed = true;
-            }
-        } else {
+        if (flowctx->detected_l7_protocol.state == NDPI_STATE_CLASSIFIED ||
+                flowctx->detected_l7_protocol.state == NDPI_STATE_MONITORING) {
+            flowctx->detection_completed = true;
+        } else if (flowctx->detected_l7_protocol.state == NDPI_STATE_INSPECTING ||
+                   flowctx->detected_l7_protocol.state == NDPI_STATE_PARTIAL) {
+            /* INSPECTING or PARTIAL — bound work per flow by giving up after N packets */
             uint16_t max_num_pkts = (f->proto == IPPROTO_UDP) ? 8 : 24;
-
             if ((f->todstpktcnt + f->tosrcpktcnt) > max_num_pkts) {
-                uint8_t proto_guessed;
-
                 flowctx->detected_l7_protocol =
-                        ndpi_detection_giveup(threadctx->ndpi, flowctx->ndpi_flow, &proto_guessed);
+                        ndpi_detection_giveup(threadctx->ndpi, flowctx->ndpi_flow);
                 flowctx->detection_completed = true;
             }
         }
@@ -213,9 +210,6 @@ static void OnThreadInit(ThreadVars *tv, void *_data)
     if (context->ndpi == NULL) {
         FatalError("Failed to initialize nDPI detection module");
     }
-    NDPI_PROTOCOL_BITMASK protos;
-    NDPI_BITMASK_SET_ALL(protos);
-    ndpi_set_protocol_detection_bitmask2(context->ndpi, &protos);
     ndpi_finalize_initialization(context->ndpi);
     SCThreadSetStorageById(tv, thread_storage_id, context);
 }
@@ -238,15 +232,6 @@ static int DetectnDPIProtocolPacketMatch(
     }
 
     const DetectnDPIProtocolData *data = (const DetectnDPIProtocolData *)ctx;
-
-    /* if the sig is PD-only we only match when PD packet flags are set */
-    /*
-    if (s->type == SIG_TYPE_PDONLY &&
-            (p->flags & (PKT_PROTO_DETECT_TS_DONE | PKT_PROTO_DETECT_TC_DONE)) == 0) {
-        SCLogDebug("packet %"PRIu64": flags not set", PcapPacketCntGet(p));
-        SCReturnInt(0);
-    }
-    */
 
     if (!flowctx->detection_completed) {
         SCLogDebug("packet %" PRIu64 ": ndpi protocol not yet detected", PcapPacketCntGet(p));
@@ -272,15 +257,12 @@ static DetectnDPIProtocolData *DetectnDPIProtocolParse(const char *arg, bool neg
     struct ndpi_detection_module_struct *ndpi_struct;
     ndpi_master_app_protocol l7_protocol;
     char *l7_protocol_name = (char *)arg;
-    NDPI_PROTOCOL_BITMASK all;
 
     /* convert protocol name (string) to ID */
     ndpi_struct = ndpi_init_detection_module(NULL);
     if (unlikely(ndpi_struct == NULL))
         return NULL;
 
-    NDPI_BITMASK_SET_ALL(all);
-    ndpi_set_protocol_detection_bitmask2(ndpi_struct, &all);
     ndpi_finalize_initialization(ndpi_struct);
 
     l7_protocol = ndpi_get_protocol_by_name(ndpi_struct, l7_protocol_name);
@@ -401,15 +383,12 @@ static DetectnDPIRiskData *DetectnDPIRiskParse(const char *arg, bool negate)
     DetectnDPIRiskData *data;
     struct ndpi_detection_module_struct *ndpi_struct;
     ndpi_risk risk_mask;
-    NDPI_PROTOCOL_BITMASK all;
 
     /* convert list of risk names (string) to mask */
     ndpi_struct = ndpi_init_detection_module(NULL);
     if (unlikely(ndpi_struct == NULL))
         return NULL;
 
-    NDPI_BITMASK_SET_ALL(all);
-    ndpi_set_protocol_detection_bitmask2(ndpi_struct, &all);
     ndpi_finalize_initialization(ndpi_struct);
     ndpi_exit_detection_module(ndpi_struct);
 

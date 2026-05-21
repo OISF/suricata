@@ -2299,6 +2299,26 @@ fi
     fi
 
     if test "x$enable_ndpi" = "xyes"; then
+        AC_MSG_CHECKING(for nDPI version >= 5.0)
+        have_recent_ndpi="no"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+                #include "ndpi_api.h"
+            ],[
+                #if NDPI_MAJOR < 5
+                #error "Outdated nDPI, need at least version 5.0"
+                #endif
+            ])], [have_recent_ndpi="yes"])
+        if test "x$have_recent_ndpi" != "xyes"; then
+            AC_MSG_RESULT(no)
+            echo
+            echo "   ERROR! nDPI version < 5.0 is not supported, get a newer one"
+            echo
+            exit 1
+        fi
+        AC_MSG_RESULT(yes)
+    fi
+
+    if test "x$enable_ndpi" = "xyes"; then
         AM_CONDITIONAL([BUILD_NDPI], [true])
         ndpi_comment=""
     else
