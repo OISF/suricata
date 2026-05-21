@@ -234,6 +234,7 @@ static FTPTransaction *FTPTransactionCreate(FtpState *state)
                 break;
             }
         }
+        return NULL;
     }
     FTPTransaction *tx = FTPCalloc(1, sizeof(*tx));
     if (tx == NULL) {
