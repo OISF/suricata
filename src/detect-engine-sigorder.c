@@ -693,7 +693,7 @@ static int CreateGraphFromFlowbitAnalyzer(
     while (tmp != NULL) {
         const Signature *s = tmp->sig;
 
-        int64_t node = SCGetOrCreateNodeGraph(graph, s->id);
+        int64_t node = SCGetOrCreateNodeGraph(graph, s->iid, s->id);
         if (node < 0) {
             FatalError("Couldn't create or get a node in the graph for sid: %d", s->id);
         }
@@ -711,7 +711,7 @@ static int CreateGraphFromFlowbitAnalyzer(
     for (uint32_t x = 1; x < array_size; x++) {
         for (uint32_t i = 0; i < fba.array[x].isset_iids_idx; i++) {
             SCLogDebug("Getting or creating node for sid: %d", fba.array[x].isset_iids[i].sid);
-            int64_t to = SCGetOrCreateNodeGraph(graph, fba.array[x].isset_iids[i].sid);
+            int64_t to = SCGetOrCreateNodeGraph(graph, fba.array[x].isset_iids[i].iid, fba.array[x].isset_iids[i].sid);
             if (to < 0) {
                 FatalError("Couldn't create or get a node in the graph for sid: %d",
                         fba.array[x].isset_iids[i].sid);
@@ -719,7 +719,7 @@ static int CreateGraphFromFlowbitAnalyzer(
             SCLogDebug("added node: %ld", to);
             for (uint32_t y = 0; y < fba.array[x].set_iids_idx; y++) {
                 SCLogDebug("Getting or creating node for iid: %d", fba.array[x].set_iids[y].sid);
-                int64_t from = SCGetOrCreateNodeGraph(graph, fba.array[x].set_iids[y].sid);
+                int64_t from = SCGetOrCreateNodeGraph(graph, fba.array[x].set_iids[y].iid, fba.array[x].set_iids[y].sid);
                 if (from < 0) {
                     FatalError("Couldn't create or get a node in the graph for sid: %d",
                             fba.array[x].set_iids[y].sid);
@@ -735,7 +735,7 @@ static int CreateGraphFromFlowbitAnalyzer(
             }
             for (uint32_t y = 0; y < fba.array[x].toggle_iids_idx; y++) {
                 SCLogDebug("Getting or creating node for sid: %d", fba.array[x].toggle_iids[y].sid);
-                int64_t from = SCGetOrCreateNodeGraph(graph, fba.array[x].toggle_iids[y].sid);
+                int64_t from = SCGetOrCreateNodeGraph(graph, fba.array[x].toggle_iids[y].iid, fba.array[x].toggle_iids[y].sid);
                 if (from < 0) {
                     FatalError("Couldn't create or get a node in the graph for sid: %d",
                             fba.array[x].toggle_iids[y].sid);
@@ -754,14 +754,14 @@ static int CreateGraphFromFlowbitAnalyzer(
 
     for (uint32_t x = 1; x < array_size; x++) {
         for (uint32_t i = 0; i < fba.array[x].isnotset_iids_idx; i++) {
-            int64_t to = SCGetOrCreateNodeGraph(graph, fba.array[x].isnotset_iids[i].sid);
+            int64_t to = SCGetOrCreateNodeGraph(graph, fba.array[x].isnotset_iids[i].iid, fba.array[x].isnotset_iids[i].sid);
             if (to < 0) {
                 FatalError("Couldn't create or get a node in the graph for sid: %d",
                         fba.array[x].isnotset_iids[i].sid);
             }
             SCLogDebug("added node: %ld", to);
             for (uint32_t y = 0; y < fba.array[x].unset_iids_idx; y++) {
-                int64_t from = SCGetOrCreateNodeGraph(graph, fba.array[x].unset_iids[y].sid);
+                int64_t from = SCGetOrCreateNodeGraph(graph, fba.array[x].unset_iids[y].iid, fba.array[x].unset_iids[y].sid);
                 if (from < 0) {
                     FatalError("Couldn't create or get a node in the graph for sid: %d",
                             fba.array[x].unset_iids[y].sid);
@@ -776,7 +776,7 @@ static int CreateGraphFromFlowbitAnalyzer(
                 }
             }
             for (uint32_t y = 0; y < fba.array[x].toggle_iids_idx; y++) {
-                int64_t from = SCGetOrCreateNodeGraph(graph, fba.array[x].toggle_iids[y].sid);
+                int64_t from = SCGetOrCreateNodeGraph(graph, fba.array[x].toggle_iids[y].iid, fba.array[x].toggle_iids[y].sid);
                 if (from < 0) {
                     FatalError("Couldn't create or get a node in the graph for sid: %d",
                             fba.array[x].toggle_iids[y].sid);
@@ -808,11 +808,14 @@ static SCSigSignatureWrapper *SCSigResolveFlowbitDependencies(
         SCSigSignatureWrapper *head, uint32_t max_fb_id)
 {
     uint32_t sig_cnt = 0;
-    uint32_t *sorted_siids = NULL;
+    uint32_t *sorted_iids = NULL;
     SCSigSignatureWrapper *tmp = NULL;
 
     if (head == NULL) {
         return NULL;
+    }
+    if (head->next == NULL) {
+        return head;
     }
     tmp = head;
     while (tmp != NULL) {
@@ -829,11 +832,11 @@ static SCSigSignatureWrapper *SCSigResolveFlowbitDependencies(
     }
 
     SCLogFlowbitsGraph(graph);
-    sorted_siids = SCCalloc(sig_cnt, sizeof(uint32_t));
-    if (sorted_siids == NULL) {
+    sorted_iids = SCCalloc(sig_cnt, sizeof(uint32_t));
+    if (sorted_iids == NULL) {
         goto error;
     }
-    int ret = SCResolveFlowbitDependencies(graph, sorted_siids, sig_cnt);
+    int ret = SCResolveFlowbitDependencies(graph, sorted_iids, sig_cnt);
     if (ret < 0) {
         goto error;
     }
@@ -846,7 +849,7 @@ static SCSigSignatureWrapper *SCSigResolveFlowbitDependencies(
         SCSigSignatureWrapper *cur = head;
 
         while (cur != NULL) {
-            if (sorted_siids[i] == cur->sig->id) {
+            if (sorted_iids[i] == cur->sig->iid) {
                 if (prev == NULL) {
                     head = cur->next;
                 } else {
@@ -867,14 +870,14 @@ static SCSigSignatureWrapper *SCSigResolveFlowbitDependencies(
         }
     }
 
-    SCFree(sorted_siids); /* No longer needed */
+    SCFree(sorted_iids); /* No longer needed */
     SCFreeDirectedGraph(graph);
     return fin;
 
 error:
     SCLogError("Error resolving flowbit dependencies");
-    if (sorted_siids != NULL) {
-        SCFree(sorted_siids);
+    if (sorted_iids != NULL) {
+        SCFree(sorted_iids);
     }
     SCFreeDirectedGraph(graph);
     // Free the remaining signature wrappers that weren't processed

@@ -29,6 +29,7 @@ use crate::jsonbuilder::*;
 /// Special Graph Node storing flowbit or signature
 #[derive(Debug, Copy, Clone)]
 struct SCGNode {
+    iid: u32,
     sid: u32,
     nidx: NodeIndex, /* Graph's internal node index */
 }
@@ -53,11 +54,11 @@ pub unsafe extern "C" fn SCFreeDirectedGraph(graph: *mut c_void) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCGetOrCreateNodeGraph(graph: *mut c_void, sid: u32) -> i64 {
+pub unsafe extern "C" fn SCGetOrCreateNodeGraph(graph: *mut c_void, iid: u32, sid: u32) -> i64 {
     let g = &mut *(graph as *mut StableDiGraph<SCGNode, u8>);
 
     let node_idx;
-    if let Some(nidx) = get_or_create_node(g, sid) {
+    if let Some(nidx) = get_or_create_node(g, iid, sid) {
         node_idx = nidx;
     } else {
         SCLogError!("Error adding node; Graph is at full capacity");
@@ -173,7 +174,7 @@ fn try_resolve_one_cycle(graph: &mut StableDiGraph<SCGNode, u8>) -> bool {
         }
         let mut seen = HashSet::new();
         let deduped_wts: Vec<u8> = edge_wts.into_iter().filter(|x| seen.insert(*x)).collect();
-        debug_validate_bug_on!(deduped_wts.len() == 0);
+        debug_validate_bug_on!(deduped_wts.is_empty());
         if deduped_wts.len() > 1 {
             /* Find and remove the edge with highest weight (lowest priority) */
             let max_edge = edge_map.iter().max_by_key(|(_, &weight)| weight);
@@ -198,7 +199,7 @@ fn try_resolve_one_cycle(graph: &mut StableDiGraph<SCGNode, u8>) -> bool {
 /// Wrapper function to resolve flowbit dependencies
 #[no_mangle]
 pub unsafe extern "C" fn SCResolveFlowbitDependencies(
-    graph: *mut c_void, sorted_sid_list: *mut u32, sorted_sid_list_len: u32,
+    graph: *mut c_void, sorted_iid_list: *mut u32, sorted_iid_list_len: u32,
 ) -> i8 {
     let g = &mut *(graph as *mut StableDiGraph<SCGNode, u8>);
 
@@ -210,30 +211,31 @@ pub unsafe extern "C" fn SCResolveFlowbitDependencies(
 
     debug_validate_bug_on!(g.node_count() == 0);
 
-    let sorted_sid_list =
-        std::slice::from_raw_parts_mut(&mut *sorted_sid_list, sorted_sid_list_len as usize);
+    let sorted_iid_list =
+        std::slice::from_raw_parts_mut(&mut *sorted_iid_list, sorted_iid_list_len as usize);
 
     /* No need for all the extra work if there's just one node */
     if g.node_count() == 1 {
-        debug_validate_bug_on!(sorted_sid_list_len != 1);
-        sorted_sid_list[0] = g[NodeIndex::from(0)].sid;
+        debug_validate_bug_on!(sorted_iid_list_len != 1);
+        sorted_iid_list[0] = g[NodeIndex::from(0)].iid;
         return 0;
     }
 
     /* At this point, it must be a DAG, so perform a BFS on the tree to find
      * out the correct order of signatures */
-    return bfs_tree_dag(g, sorted_sid_list);
+    return bfs_tree_dag(g, sorted_iid_list);
 }
 
 fn get_or_create_node(
-    g: &mut StableDiGraph<SCGNode, u8>, sid: u32,
+    g: &mut StableDiGraph<SCGNode, u8>, iid: u32, sid: u32,
 ) -> Option<NodeIndex> {
     for node in g.node_weights() {
-        if node.sid == sid {
+        if node.iid == iid {
             return Some(node.nidx);
         }
     }
     let nd = SCGNode {
+        iid,
         sid,
         nidx: NodeIndex::from(u32::MAX),
     };
@@ -261,13 +263,13 @@ fn log_graph(js: &mut JsonBuilder, graph: &mut StableDiGraph<SCGNode, u8>) -> Re
     SCLogDebug!("Starting the logging..");
     for node in graph.node_weights() {
         SCLogDebug!("{:?}", node.nidx.index());
-        js.open_object(&node.sid.to_string())?;
+        js.open_object(&node.iid.to_string())?;
         js.open_array("in")?;
         for edge in graph.edges_directed(node.nidx, Direction::Incoming) {
             js.start_object()?;
             js.set_uint("id", edge.source().index() as u64)?;
             js.set_uint("weight", *edge.weight() as u64)?;
-            js.set_uint("sid",  graph[edge.source()].sid as u64)?;
+            js.set_uint("iid",  graph[edge.source()].iid as u64)?;
             js.close()?;
         }
         js.close()?;
@@ -276,7 +278,7 @@ fn log_graph(js: &mut JsonBuilder, graph: &mut StableDiGraph<SCGNode, u8>) -> Re
             js.start_object()?;
             js.set_uint("id", edge.target().index() as u64)?;
             js.set_uint("weight", *edge.weight() as u64)?;
-            js.set_uint("sid", graph[edge.target()].sid as u64)?;
+            js.set_uint("iid", graph[edge.target()].iid as u64)?;
             js.close()?;
         }
         js.close()?;
@@ -286,12 +288,12 @@ fn log_graph(js: &mut JsonBuilder, graph: &mut StableDiGraph<SCGNode, u8>) -> Re
 }
 
 /// Perform a BFS (Breadth First Search) of the DAG (Directed Acyclic Graph)
-fn bfs_tree_dag(g: &mut StableDiGraph<SCGNode, u8>, sorted_sid_list: &mut [u32]) -> i8 {
+fn bfs_tree_dag(g: &mut StableDiGraph<SCGNode, u8>, sorted_iid_list: &mut [u32]) -> i8 {
     let mut in_degrees: HashMap<NodeIndex, usize> = HashMap::new();
     calculate_in_degree_nodes(g, &mut in_degrees);
 
     let nidx;
-    if let Some(idx) = get_or_create_node(g, u32::MAX) {
+    if let Some(idx) = get_or_create_node(g, u32::MAX, u32::MAX) {
         nidx = idx;
     } else {
         SCLogError!("Error adding node; Graph is at full capacity");
@@ -315,7 +317,7 @@ fn bfs_tree_dag(g: &mut StableDiGraph<SCGNode, u8>, sorted_sid_list: &mut [u32])
         /* Don't add dummy node to the graph */
         if idx != nidx {
             SCLogDebug!("[{:?}]: {:?}", i, g[idx]);
-            sorted_sid_list[i] = g[idx].sid;
+            sorted_iid_list[i] = g[idx].iid;
             i += 1;
         }
     }
