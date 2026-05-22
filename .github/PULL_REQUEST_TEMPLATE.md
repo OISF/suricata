@@ -15,6 +15,18 @@ Make sure these boxes are checked accordingly before submitting your Pull Reques
 - [ ] I have created a ticket at
       https://redmine.openinfosecfoundation.org/projects/suricata/issues
 
+## AI Disclosure
+
+While use of generative AI tooling is not disallowed, we ask that you disclose
+its usage. We also require that the pull-request message and all communication
+on the pull request and ticket be written by you, not a generative AI assistant
+or agent. Pull requests and tickets that do not follow this requirement will be
+de-prioritized.
+
+- [ ] Yes, generative AI tooling was used
+
+## Ticket
+
 Link to ticket: https://redmine.openinfosecfoundation.org/issues/
 
 Describe changes:
