@@ -19,7 +19,8 @@ use std::ffi::CString;
 use std::os::raw::c_void;
 
 pub use suricata_sys::sys::{
-    Flow as RawFlow, Packet as RawPacket, SCEveUserCallbackFn, SCJsonBuilder, ThreadVars,
+    Flow as RawFlow, Packet as RawPacket, SCEveUserCallbackFn, SCJsonBuilder,
+    ThreadVars as RawThreadVars,
 };
 use suricata_sys::sys::{
     SCEveFileType, SCEveFileTypeDeinitFunc, SCEveFileTypeInitFunc, SCEveFileTypeThreadDeinitFunc,
@@ -113,7 +114,7 @@ impl EveFileType {
 pub fn register_callback<F>(callback: F) -> Result<(), &'static str>
 where
     F: for<'a> Fn(
-            *mut ThreadVars,
+            crate::threadvars::ThreadVars<'a>,
             Option<crate::packet::Packet<'a>>,
             Option<crate::flow::Flow<'a>>,
             &mut crate::jsonbuilder::JsonBuilder,
@@ -136,11 +137,11 @@ where
 /// Internal wrapper used to adapt the C EVE callback to a Rust
 /// closure callback.
 unsafe extern "C" fn callback_wrapper<F>(
-    tv: *mut ThreadVars, p: *const RawPacket, f: *mut RawFlow, jb: *mut SCJsonBuilder,
+    tv: *mut RawThreadVars, p: *const RawPacket, f: *mut RawFlow, jb: *mut SCJsonBuilder,
     user: *mut c_void,
 ) where
     F: for<'a> Fn(
-            *mut ThreadVars,
+            crate::threadvars::ThreadVars<'a>,
             Option<crate::packet::Packet<'a>>,
             Option<crate::flow::Flow<'a>>,
             &mut crate::jsonbuilder::JsonBuilder,
@@ -162,7 +163,14 @@ unsafe extern "C" fn callback_wrapper<F>(
     } else {
         Some(crate::flow::Flow::from_ptr(f))
     };
-    if callback(tv, packet, flow, &mut jb).is_err() {
+    if callback(
+        crate::threadvars::ThreadVars::from_ptr(tv),
+        packet,
+        flow,
+        &mut jb,
+    )
+    .is_err()
+    {
         let _ = jb.restore_mark(&mark);
     }
 }

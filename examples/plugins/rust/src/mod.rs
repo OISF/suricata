@@ -4,9 +4,11 @@ use suricata_ffi::eve::{self, SCJsonBuilder};
 use suricata_ffi::flow::{self, Flow};
 use suricata_ffi::jsonbuilder::JsonBuilder;
 use suricata_ffi::packet::Packet;
+use suricata_ffi::threadvars::ThreadVars;
 use suricata_ffi::{SCLogError, SCLogNotice};
 use suricata_sys::sys::{
-    Flow as RawFlow, Packet as RawPacket, SCEveRegisterCallback, SCPlugin, ThreadVars,
+    Flow as RawFlow, Packet as RawPacket, SCEveRegisterCallback, SCPlugin,
+    ThreadVars as RawThreadVars,
 };
 
 unsafe extern "C" fn init() {
@@ -39,7 +41,7 @@ pub fn register_flow_callbacks() -> Result<(), &'static str> {
 }
 
 unsafe extern "C" fn log_eve_raw(
-    _tv: *mut ThreadVars,
+    _tv: *mut RawThreadVars,
     _p: *const RawPacket,
     _f: *mut RawFlow,
     jb: *mut SCJsonBuilder,
@@ -52,7 +54,7 @@ unsafe extern "C" fn log_eve_raw(
 }
 
 fn log_eve_wrapped(
-    _tv: *mut ThreadVars,
+    _tv: ThreadVars<'_>,
     p: Option<Packet<'_>>,
     f: Option<Flow<'_>>,
     jb: &mut JsonBuilder,
@@ -65,7 +67,7 @@ fn log_eve_wrapped(
     Ok(())
 }
 
-fn log_flow_init(_tv: *mut ThreadVars, f: Flow<'_>, p: Option<Packet<'_>>) {
+fn log_flow_init(_tv: *mut RawThreadVars, f: Flow<'_>, p: Option<Packet<'_>>) {
     SCLogNotice!(
         "rust example flow init callback: flow={:p}, has_packet={}",
         f.as_ptr(),
@@ -73,7 +75,7 @@ fn log_flow_init(_tv: *mut ThreadVars, f: Flow<'_>, p: Option<Packet<'_>>) {
     );
 }
 
-fn log_flow_update(_tv: *mut ThreadVars, f: Flow<'_>, p: Option<Packet<'_>>) {
+fn log_flow_update(_tv: *mut RawThreadVars, f: Flow<'_>, p: Option<Packet<'_>>) {
     SCLogNotice!(
         "rust example flow update callback: flow={:p}, has_packet={}",
         f.as_ptr(),
@@ -81,7 +83,7 @@ fn log_flow_update(_tv: *mut ThreadVars, f: Flow<'_>, p: Option<Packet<'_>>) {
     );
 }
 
-fn log_flow_finish(_tv: *mut ThreadVars, f: Flow<'_>) {
+fn log_flow_finish(_tv: *mut RawThreadVars, f: Flow<'_>) {
     SCLogNotice!("rust example flow finish callback: flow={:p}", f.as_ptr());
 }
 
