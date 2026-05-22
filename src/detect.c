@@ -1779,6 +1779,9 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
         const Signature *s, const uint32_t can_idx, struct DetectFirewallAppTxState *fw_state,
         const bool last_tx)
 {
+    if ((s->flags & SIG_FLAG_FIREWALL) != 0 && fw_state->fw_skip_app_filter) {
+        return DETECT_TX_FW_FC_SKIP;
+    }
     if (p->flow->flags & FLOW_ACTION_ACCEPT) {
         if (fw_state->tx_fw_verdict == false) {
             fw_state->tx_fw_verdict = true;
@@ -2268,9 +2271,6 @@ static void DetectRunTx(ThreadVars *tv,
                     tx.detect_progress, tx.detect_progress_orig, s->app_progress_hook);
 
             if (have_fw_rules) {
-                if ((s->flags & SIG_FLAG_FIREWALL) != 0 && fw_state.fw_skip_app_filter) {
-                    continue;
-                }
                 const enum DetectTxFirewallFlowControl fw_r = DetectRunTxPreCheckFirewallPolicy(
                         det_ctx, p, &tx, flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT), s, i,
                         &fw_state, last_tx);
