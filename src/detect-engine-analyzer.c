@@ -897,9 +897,6 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                     case DETECT_FLOWBITS_CMD_UNSET:
                         SCJbSetString(js, "cmd", "unset");
                         break;
-                    case DETECT_FLOWBITS_CMD_TOGGLE:
-                        SCJbSetString(js, "cmd", "toggle");
-                        break;
                 }
                 bool is_or = false;
                 SCJbOpenArray(js, "names");

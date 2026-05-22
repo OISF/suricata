@@ -31,9 +31,6 @@ flowbits: set, name
 flowbits: isset, name
   Can be used in the rule to make sure it generates an alert when the
   rule matches and the condition is set in the flow.
-flowbits: toggle, name
-  Reverses the present setting. So for example if a condition is set,
-  it will be unset and vice-versa.
 flowbits: unset, name
   Can be used to unset the condition in the flow.
 flowbits: isnotset, name
