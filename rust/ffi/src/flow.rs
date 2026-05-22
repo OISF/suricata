@@ -15,12 +15,31 @@
  * 02110-1301, USA.
  */
 
+use std::marker::PhantomData;
 use std::os::raw::c_void;
 
-use suricata_sys::sys::{Flow, Packet as RawPacket, ThreadVars};
+use suricata_sys::sys::{Flow as RawFlow, Packet as RawPacket, ThreadVars};
 use suricata_sys::sys::{
     SCFlowRegisterFinishCallback, SCFlowRegisterInitCallback, SCFlowRegisterUpdateCallback,
 };
+
+pub struct Flow<'a> {
+    ptr: *const RawFlow,
+    _marker: PhantomData<&'a RawFlow>,
+}
+
+impl<'a> Flow<'a> {
+    pub fn from_ptr(ptr: *const RawFlow) -> Self {
+        Self {
+            ptr,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn as_ptr(&self) -> *const RawFlow {
+        self.ptr
+    }
+}
 
 /// Register a flow initialization callback.
 ///
@@ -37,7 +56,7 @@ use suricata_sys::sys::{
 /// The callback must not panic.
 pub fn register_init_callback<F>(callback: F) -> Result<(), &'static str>
 where
-    F: for<'a> Fn(*mut ThreadVars, *mut Flow, Option<crate::packet::Packet<'a>>)
+    F: for<'a> Fn(*mut ThreadVars, *mut RawFlow, Option<crate::packet::Packet<'a>>)
         + Send
         + Sync
         + 'static,
@@ -69,7 +88,7 @@ where
 /// The callback must not panic.
 pub fn register_update_callback<F>(callback: F) -> Result<(), &'static str>
 where
-    F: for<'a> Fn(*mut ThreadVars, *mut Flow, Option<crate::packet::Packet<'a>>)
+    F: for<'a> Fn(*mut ThreadVars, *mut RawFlow, Option<crate::packet::Packet<'a>>)
         + Send
         + Sync
         + 'static,
@@ -99,7 +118,7 @@ where
 /// The callback must not panic.
 pub fn register_finish_callback<F>(callback: F) -> Result<(), &'static str>
 where
-    F: Fn(*mut ThreadVars, *mut Flow) + Send + Sync + 'static,
+    F: Fn(*mut ThreadVars, *mut RawFlow) + Send + Sync + 'static,
 {
     let user = Box::into_raw(Box::new(callback)) as *mut c_void;
     if unsafe { SCFlowRegisterFinishCallback(Some(finish_callback_wrapper::<F>), user) } {
@@ -113,9 +132,9 @@ where
 }
 
 unsafe extern "C" fn init_callback_wrapper<F>(
-    tv: *mut ThreadVars, f: *mut Flow, p: *const RawPacket, user: *mut c_void,
+    tv: *mut ThreadVars, f: *mut RawFlow, p: *const RawPacket, user: *mut c_void,
 ) where
-    F: for<'a> Fn(*mut ThreadVars, *mut Flow, Option<crate::packet::Packet<'a>>)
+    F: for<'a> Fn(*mut ThreadVars, *mut RawFlow, Option<crate::packet::Packet<'a>>)
         + Send
         + Sync
         + 'static,
@@ -130,9 +149,9 @@ unsafe extern "C" fn init_callback_wrapper<F>(
 }
 
 unsafe extern "C" fn update_callback_wrapper<F>(
-    tv: *mut ThreadVars, f: *mut Flow, p: *mut RawPacket, user: *mut c_void,
+    tv: *mut ThreadVars, f: *mut RawFlow, p: *mut RawPacket, user: *mut c_void,
 ) where
-    F: for<'a> Fn(*mut ThreadVars, *mut Flow, Option<crate::packet::Packet<'a>>)
+    F: for<'a> Fn(*mut ThreadVars, *mut RawFlow, Option<crate::packet::Packet<'a>>)
         + Send
         + Sync
         + 'static,
@@ -147,9 +166,9 @@ unsafe extern "C" fn update_callback_wrapper<F>(
 }
 
 unsafe extern "C" fn finish_callback_wrapper<F>(
-    tv: *mut ThreadVars, f: *mut Flow, user: *mut c_void,
+    tv: *mut ThreadVars, f: *mut RawFlow, user: *mut c_void,
 ) where
-    F: Fn(*mut ThreadVars, *mut Flow) + Send + Sync + 'static,
+    F: Fn(*mut ThreadVars, *mut RawFlow) + Send + Sync + 'static,
 {
     let callback = &*(user as *const F);
     callback(tv, f);
