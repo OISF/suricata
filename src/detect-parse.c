@@ -74,11 +74,14 @@
 
 #include "action-globals.h"
 #include "util-validate.h"
+#include "util-byte.h"
 
 /* Table with all SigMatch registrations */
 SigTableElmt *sigmatch_table = NULL;
 
 extern bool sc_set_caps;
+
+#define DEFAULT_MAX_FLOWBITS_PER_SIG 16
 
 static void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
         SigMatch **src_sm_list, SigMatch **src_sm_list_tail,
@@ -2885,6 +2888,35 @@ static bool SigValidateProtoPkthdr(const Signature *s)
     return true;
 }
 
+static bool SigValidateFlowbitUse(const Signature *s)
+{
+    uint8_t fb_max = DEFAULT_MAX_FLOWBITS_PER_SIG;
+    uint8_t fb_cnt = 0;
+    const char *str;
+    if (SCConfGet("detect.flowbits.max-per-signature", &str) == 1) {
+        uint8_t val;
+        if (StringParseUint8(&val, 10, 0, str) >= 0) {
+            fb_max = val;
+        }
+    }
+    for (const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_FLOWBITS) {
+            fb_cnt++;
+        }
+    }
+    for (const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_POSTMATCH]; sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_FLOWBITS) {
+            fb_cnt++;
+        }
+    }
+    if (fb_cnt > fb_max) {
+        SCLogError("Too many flowbits usage in the signature %d", s->id);
+        return false;
+    }
+
+    return true;
+}
+
 /**
  *  \internal
  *  \brief validate and consolidate parsed signature
@@ -2929,6 +2961,10 @@ static int SigValidateConsolidate(
     DetectRuleSetTable(s);
 
     if (!SigValidateProtoPkthdr(s)) {
+        SCReturnInt(0);
+    }
+
+    if (!SigValidateFlowbitUse(s)) {
         SCReturnInt(0);
     }
 
