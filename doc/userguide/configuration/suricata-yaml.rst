@@ -662,6 +662,8 @@ has values which can be managed by the user.
     grouping:
       tcp-priority-ports: 53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080
       udp-priority-ports: 53, 135, 5060
+    flowbits:
+      max-per-signature: 8
 
 At all of these options, you can add (or change) a value. Most
 signatures have the adjustment to focus on one direction, meaning
@@ -713,6 +715,10 @@ settings to benefit from the internal signature groups created by Suricata.
 The engine shall then try to club the rules that use the ports defined
 in groups of their own and put them on top of the list of rules to be matched
 against traffic on "priority".
+
+The ``flowbits`` option carries flowbits detection specific settings. With
+``max-per-signature`` setting, it is possible to define how many times flowbits
+keyword can be seen in any one signature.
 
 *Example 4	Detection-engine grouping tree*
 

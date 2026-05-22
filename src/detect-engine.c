@@ -94,6 +94,8 @@
 
 #define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000
 
+#define DEFAULT_MAX_FLOWBITS_PER_SIGNATURE 8
+
 static int DetectEngineCtxLoadConf(DetectEngineCtx *);
 
 static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER,
@@ -3130,6 +3132,16 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             SCLogConfig("prefilter engines: MPM and keywords");
             break;
     }
+
+    de_ctx->max_flowbits = DEFAULT_MAX_FLOWBITS_PER_SIGNATURE;
+    const char *str;
+    if (SCConfGet("detect.flowbits.max-per-signature", &str) == 1) {
+        uint8_t val = 0;
+        if (StringParseUint8(&val, 10, 0, str) >= 0) {
+            de_ctx->max_flowbits = val;
+        }
+    }
+    SCLogConfig("Setting flowbits.max-per-signature to %d", de_ctx->max_flowbits);
 
     return 0;
 }
