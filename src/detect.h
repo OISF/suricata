@@ -632,6 +632,10 @@ typedef struct SignatureInitData_ {
     int list;
     bool list_set;
 
+    /* Total number of times flowbits keyword is referenced in this signature (flowbits:noalert; not
+     * included) */
+    uint8_t total_flowbits;
+
     DetectEngineTransforms transforms;
 
     /** rule protocol settings */
