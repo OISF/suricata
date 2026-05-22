@@ -2925,6 +2925,30 @@ static bool SigValidateProtoPkthdr(const Signature *s)
     return true;
 }
 
+static bool SigValidateFlowbitUse(DetectEngineCtx *de_ctx, const Signature *s)
+{
+    uint8_t fb_cnt = 0;
+
+    for (const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL;
+            sm = sm->next) {
+        if (sm->type == DETECT_FLOWBITS) {
+            fb_cnt++;
+        }
+    }
+    for (const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_POSTMATCH]; sm != NULL;
+            sm = sm->next) {
+        if (sm->type == DETECT_FLOWBITS) {
+            fb_cnt++;
+        }
+    }
+    if (fb_cnt > de_ctx->max_flowbits) {
+        SCLogError("Too many flowbits usage in the signature %d", s->id);
+        return false;
+    }
+
+    return true;
+}
+
 /**
  *  \internal
  *  \brief validate and consolidate parsed signature
@@ -2969,6 +2993,10 @@ static int SigValidateConsolidate(
     DetectRuleSetTable(s);
 
     if (!SigValidateProtoPkthdr(s)) {
+        SCReturnInt(0);
+    }
+
+    if (!SigValidateFlowbitUse(de_ctx, s)) {
         SCReturnInt(0);
     }
 
