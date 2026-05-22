@@ -94,6 +94,7 @@ Other Changes
   like `alert ip`.
 - ``ldap`` has bound the maximum number of responses per transaction
   to 1024 by default.
+- flowbits ``toggle`` command has been deprecated.
 
 Changes for Library Users and Plugin Developers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

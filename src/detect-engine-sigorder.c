@@ -191,9 +191,7 @@ static inline int SCSigGetFlowbitsType(Signature *sig)
     while (sm != NULL) {
         if (sm->type == DETECT_FLOWBITS) {
             fb = (DetectFlowbitsData *)sm->ctx;
-            if (fb->cmd == DETECT_FLOWBITS_CMD_SET ||
-                fb->cmd == DETECT_FLOWBITS_CMD_UNSET ||
-                fb->cmd == DETECT_FLOWBITS_CMD_TOGGLE) {
+            if (fb->cmd == DETECT_FLOWBITS_CMD_SET || fb->cmd == DETECT_FLOWBITS_CMD_UNSET) {
                 write++;
             } else {
 #ifdef DEBUG
@@ -1160,7 +1158,7 @@ static int SCSigOrderingTest03(void)
 
     sig = DetectEngineAppendSig(de_ctx,
             "alert tcp any !21:902 -> any any (msg:\"Testing sigordering\"; content:\"220\"; "
-            "offset:10; depth:4; pcre:\"/220[- ]/\"; flowbits:toggle,TEST.one; rev:4; priority:1; "
+            "offset:10; depth:4; pcre:\"/220[- ]/\"; flowbits:unset,TEST.one; rev:4; priority:1; "
             "pktvar:http_host,\"www.oisf.net\"; sid:8;)");
     FAIL_IF_NULL(sig);
 
@@ -1953,8 +1951,8 @@ static int SCSigOrderingTest11(void)
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx,
-            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering toggle\"; "
-            "flowbits:toggle,myflow2; rev:4; sid:2;)");
+            "alert tcp any !21:902 -> any any (msg:\"Testing sigordering unset\"; "
+            "flowbits:unset,myflow2; rev:4; sid:2;)");
     FAIL_IF_NULL(sig);
 
     sig = DetectEngineAppendSig(de_ctx,
