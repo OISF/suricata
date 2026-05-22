@@ -1846,6 +1846,38 @@ extern "C" {
     #[doc = " \\internal\n\n Run all registered flow init callbacks."]
     pub fn SCFlowRunFinishCallbacks(tv: *mut ThreadVars, f: *mut Flow);
 }
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct SCFlowStorageId {
+    pub id: ::std::os::raw::c_int,
+}
+extern "C" {
+    pub fn SCFlowStorageSize() -> ::std::os::raw::c_uint;
+}
+extern "C" {
+    pub fn SCFlowGetStorageById(h: *const Flow, id: SCFlowStorageId)
+        -> *mut ::std::os::raw::c_void;
+}
+extern "C" {
+    pub fn SCFlowSetStorageById(
+        h: *mut Flow, id: SCFlowStorageId, ptr: *mut ::std::os::raw::c_void,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCFlowFreeStorageById(h: *mut Flow, id: SCFlowStorageId);
+}
+extern "C" {
+    pub fn SCFlowFreeStorage(h: *mut Flow);
+}
+extern "C" {
+    pub fn SCRegisterFlowStorageTests();
+}
+extern "C" {
+    pub fn SCFlowStorageRegister(
+        name: *const ::std::os::raw::c_char,
+        Free: ::std::option::Option<unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void)>,
+    ) -> SCFlowStorageId;
+}
 extern "C" {
     pub fn SCSRepCatGetByShortname(shortname: *const ::std::os::raw::c_char) -> u8;
 }
