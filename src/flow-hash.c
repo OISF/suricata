@@ -130,6 +130,7 @@ uint32_t FlowGetIpPairProtoHash(const Packet *p)
         fhk.ports[1] = 0xba98;
 
         fhk.proto = (uint8_t)p->proto;
+        fhk.livedev = p->livedev_id & g_livedev_mask;
         /* g_recurlvl_mask sets the recursion_level to 0 if
          * decoder.recursion-level.use-for-tracking is disabled.
          */
@@ -168,6 +169,7 @@ uint32_t FlowGetIpPairProtoHash(const Packet *p)
         fhk.ports[0] = 0xfedc;
         fhk.ports[1] = 0xba98;
         fhk.proto = (uint8_t)p->proto;
+        fhk.livedev = p->livedev_id & g_livedev_mask;
         fhk.recur = (uint8_t)p->recursion_level & g_recurlvl_mask;
         fhk.vlan_id[0] = p->vlan_id[0] & g_vlan_mask;
         fhk.vlan_id[1] = p->vlan_id[1] & g_vlan_mask;
