@@ -450,6 +450,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
                         DETECT_SM_LIST_MATCH) == NULL) {
                 goto error;
             }
+            s->init_data->total_flowbits++;
             break;
 
         case DETECT_FLOWBITS_CMD_SET:
@@ -459,6 +460,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
                         DETECT_SM_LIST_POSTMATCH) == NULL) {
                 goto error;
             }
+            s->init_data->total_flowbits++;
             break;
 
         // suppress coverity warning as scan-build-7 warns w/o this.
