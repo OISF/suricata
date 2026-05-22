@@ -56,7 +56,7 @@ The closure receives:
 
 - ``tv``: the ``ThreadVars`` for the thread performing the logging
 - ``p``: the ``Packet``, or ``None`` if not available
-- ``f``: the ``Flow``, if available
+- ``f``: the ``Flow``, or ``None`` if not available
 - ``jb``: a Rust ``JsonBuilder`` wrapper for the current EVE record
 
 Unlike the C API, the Rust callback returns ``Result<(), Error>``. If it

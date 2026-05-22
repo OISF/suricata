@@ -19,7 +19,7 @@ use std::ffi::CString;
 use std::os::raw::c_void;
 
 pub use suricata_sys::sys::{
-    Flow, Packet as RawPacket, SCEveUserCallbackFn, SCJsonBuilder, ThreadVars,
+    Flow as RawFlow, Packet as RawPacket, SCEveUserCallbackFn, SCJsonBuilder, ThreadVars,
 };
 use suricata_sys::sys::{
     SCEveFileType, SCEveFileTypeDeinitFunc, SCEveFileTypeInitFunc, SCEveFileTypeThreadDeinitFunc,
@@ -82,7 +82,7 @@ impl EveFileType {
 /// The callback receives:
 /// - `tv`: the `ThreadVars` for the thread performing the logging
 /// - `p`: the `Packet`, or `None` if not available
-/// - `f`: the `Flow`, if available
+/// - `f`: the `Flow`, or `None` if not available
 /// - `jb`: the JSON builder for the current EVE record
 ///
 /// This API is intended for plugin and library users.
@@ -115,7 +115,7 @@ where
     F: for<'a> Fn(
             *mut ThreadVars,
             Option<crate::packet::Packet<'a>>,
-            *mut Flow,
+            Option<crate::flow::Flow<'a>>,
             &mut crate::jsonbuilder::JsonBuilder,
         ) -> Result<(), crate::jsonbuilder::Error>
         + Send
@@ -136,13 +136,13 @@ where
 /// Internal wrapper used to adapt the C EVE callback to a Rust
 /// closure callback.
 unsafe extern "C" fn callback_wrapper<F>(
-    tv: *mut ThreadVars, p: *const RawPacket, f: *mut Flow, jb: *mut SCJsonBuilder,
+    tv: *mut ThreadVars, p: *const RawPacket, f: *mut RawFlow, jb: *mut SCJsonBuilder,
     user: *mut c_void,
 ) where
     F: for<'a> Fn(
             *mut ThreadVars,
             Option<crate::packet::Packet<'a>>,
-            *mut Flow,
+            Option<crate::flow::Flow<'a>>,
             &mut crate::jsonbuilder::JsonBuilder,
         ) -> Result<(), crate::jsonbuilder::Error>
         + Send
@@ -157,7 +157,12 @@ unsafe extern "C" fn callback_wrapper<F>(
     } else {
         Some(crate::packet::Packet::from_ptr(p))
     };
-    if callback(tv, packet, f, &mut jb).is_err() {
+    let flow = if f.is_null() {
+        None
+    } else {
+        Some(crate::flow::Flow::from_ptr(f))
+    };
+    if callback(tv, packet, flow, &mut jb).is_err() {
         let _ = jb.restore_mark(&mark);
     }
 }

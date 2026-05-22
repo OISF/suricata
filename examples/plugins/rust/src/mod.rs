@@ -1,11 +1,13 @@
 use std::ptr::null_mut;
 
 use suricata_ffi::eve::{self, SCJsonBuilder};
-use suricata_ffi::flow;
+use suricata_ffi::flow::{self, Flow};
 use suricata_ffi::jsonbuilder::JsonBuilder;
 use suricata_ffi::packet::Packet;
 use suricata_ffi::{SCLogError, SCLogNotice};
-use suricata_sys::sys::{Flow, Packet as RawPacket, SCEveRegisterCallback, SCPlugin, ThreadVars};
+use suricata_sys::sys::{
+    Flow as RawFlow, Packet as RawPacket, SCEveRegisterCallback, SCPlugin, ThreadVars,
+};
 
 unsafe extern "C" fn init() {
     suricata_ffi::plugin::init();
@@ -39,7 +41,7 @@ pub fn register_flow_callbacks() -> Result<(), &'static str> {
 unsafe extern "C" fn log_eve_raw(
     _tv: *mut ThreadVars,
     _p: *const RawPacket,
-    _f: *mut Flow,
+    _f: *mut RawFlow,
     jb: *mut SCJsonBuilder,
     _user: *mut std::os::raw::c_void,
 ) {
@@ -52,18 +54,18 @@ unsafe extern "C" fn log_eve_raw(
 fn log_eve_wrapped(
     _tv: *mut ThreadVars,
     p: Option<Packet<'_>>,
-    f: *mut Flow,
+    f: Option<Flow<'_>>,
     jb: &mut JsonBuilder,
 ) -> Result<(), suricata_ffi::jsonbuilder::Error> {
     jb.open_object("rust_wrapped")?;
     jb.set_string("example", "eve-callback")?;
     jb.set_string("has_packet", if p.is_some() { "true" } else { "false" })?;
-    jb.set_string("has_flow", if f.is_null() { "false" } else { "true" })?;
+    jb.set_string("has_flow", if f.is_some() { "true" } else { "false" })?;
     jb.close()?;
     Ok(())
 }
 
-fn log_flow_init(_tv: *mut ThreadVars, f: *mut Flow, p: Option<Packet<'_>>) {
+fn log_flow_init(_tv: *mut ThreadVars, f: *mut RawFlow, p: Option<Packet<'_>>) {
     SCLogNotice!(
         "rust example flow init callback: flow={:p}, has_packet={}",
         f,
@@ -71,7 +73,7 @@ fn log_flow_init(_tv: *mut ThreadVars, f: *mut Flow, p: Option<Packet<'_>>) {
     );
 }
 
-fn log_flow_update(_tv: *mut ThreadVars, f: *mut Flow, p: Option<Packet<'_>>) {
+fn log_flow_update(_tv: *mut ThreadVars, f: *mut RawFlow, p: Option<Packet<'_>>) {
     SCLogNotice!(
         "rust example flow update callback: flow={:p}, has_packet={}",
         f,
@@ -79,7 +81,7 @@ fn log_flow_update(_tv: *mut ThreadVars, f: *mut Flow, p: Option<Packet<'_>>) {
     );
 }
 
-fn log_flow_finish(_tv: *mut ThreadVars, f: *mut Flow) {
+fn log_flow_finish(_tv: *mut ThreadVars, f: *mut RawFlow) {
     SCLogNotice!("rust example flow finish callback: flow={:p}", f);
 }
 
