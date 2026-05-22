@@ -97,7 +97,6 @@ static bool DetectFlowbitIsPostmatch(uint8_t cmd)
     DEBUG_VALIDATE_BUG_ON(cmd >= DETECT_FLOWBITS_CMD_MAX);
 
     switch (cmd) {
-        case DETECT_FLOWBITS_CMD_TOGGLE:
         case DETECT_FLOWBITS_CMD_SET:
         case DETECT_FLOWBITS_CMD_UNSET:
             return true;
@@ -107,7 +106,6 @@ static bool DetectFlowbitIsPostmatch(uint8_t cmd)
 
 SCEnumCharMap flowbit_cmds[] = {
     { "set", DETECT_FLOWBITS_CMD_SET },
-    { "toggle", DETECT_FLOWBITS_CMD_TOGGLE },
     { "unset", DETECT_FLOWBITS_CMD_UNSET },
     { "isnotset", DETECT_FLOWBITS_CMD_ISNOTSET },
     { "isset", DETECT_FLOWBITS_CMD_ISSET },
@@ -156,8 +154,6 @@ static int DetectFlowbitValidate(Signature *s, DetectFlowbitsData *fd)
         { DETECT_FLOWBITS_CMD_UNSET, DETECT_FLOWBITS_CMD_ISNOTSET, false },
         { DETECT_FLOWBITS_CMD_SET, DETECT_FLOWBITS_CMD_ISSET, false },
         /* POSTMATCH, POSTMATCH combinations */
-        { DETECT_FLOWBITS_CMD_SET, DETECT_FLOWBITS_CMD_TOGGLE, false },
-        { DETECT_FLOWBITS_CMD_UNSET, DETECT_FLOWBITS_CMD_TOGGLE, false },
         { DETECT_FLOWBITS_CMD_SET, DETECT_FLOWBITS_CMD_UNSET, false },
         /* MATCH, MATCH combinations */
         { DETECT_FLOWBITS_CMD_ISSET, DETECT_FLOWBITS_CMD_ISNOTSET, true },
@@ -237,14 +233,6 @@ static int FlowbitOrAddData(DetectEngineCtx *de_ctx, DetectFlowbitsData *cd, cha
     return 1;
 }
 
-static int DetectFlowbitMatchToggle (Packet *p, const DetectFlowbitsData *fd)
-{
-    if (p->flow == NULL)
-        return -1;
-
-    return FlowBitToggle(p->flow, fd->idx);
-}
-
 static int DetectFlowbitMatchUnset (Packet *p, const DetectFlowbitsData *fd)
 {
     if (p->flow == NULL)
@@ -321,15 +309,7 @@ int DetectFlowbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
             return (r != -1);
         }
         case DETECT_FLOWBITS_CMD_UNSET:
-            return DetectFlowbitMatchUnset(p,fd);
-        case DETECT_FLOWBITS_CMD_TOGGLE: {
-            int r = DetectFlowbitMatchToggle(p, fd);
-            if (r == 1 && fd->post_rule_match_prefilter) {
-                SCLogDebug("flowbit set (by toggle), appending to work queue");
-                PostRuleMatchWorkQueueAppend(det_ctx, s, DETECT_FLOWBITS, fd->idx);
-            }
-            return (r != -1);
-        }
+            return DetectFlowbitMatchUnset(p, fd);
         default:
             SCLogError("unknown cmd %" PRIu32 "", fd->cmd);
             return 0;
@@ -416,8 +396,6 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         fb_cmd = DETECT_FLOWBITS_CMD_SET;
     } else if (strcmp(fb_cmd_str,"unset") == 0) {
         fb_cmd = DETECT_FLOWBITS_CMD_UNSET;
-    } else if (strcmp(fb_cmd_str,"toggle") == 0) {
-        fb_cmd = DETECT_FLOWBITS_CMD_TOGGLE;
     } else {
         SCLogError("ERROR: flowbits action \"%s\" is not supported.", fb_cmd_str);
         goto error;
@@ -428,7 +406,6 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         case DETECT_FLOWBITS_CMD_ISSET:
         case DETECT_FLOWBITS_CMD_SET:
         case DETECT_FLOWBITS_CMD_UNSET:
-        case DETECT_FLOWBITS_CMD_TOGGLE:
         default:
             if (strlen(fb_name) == 0)
                 goto error;
@@ -477,7 +454,6 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
 
         case DETECT_FLOWBITS_CMD_SET:
         case DETECT_FLOWBITS_CMD_UNSET:
-        case DETECT_FLOWBITS_CMD_TOGGLE:
             /* modifiers, only run when entire sig has matched */
             if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_FLOWBITS, (SigMatchCtx *)cd,
                         DETECT_SM_LIST_POSTMATCH) == NULL) {
@@ -538,10 +514,6 @@ struct FBAnalyze {
     uint32_t *unset_sids;
     uint32_t unset_sids_idx;
     uint32_t unset_sids_size;
-
-    uint32_t *toggle_sids;
-    uint32_t toggle_sids_idx;
-    uint32_t toggle_sids_size;
 };
 
 extern bool rule_engine_analysis_set;
@@ -556,7 +528,6 @@ static void FBAnalyzerArrayFree(struct FBAnalyze *array, const uint32_t array_si
             SCFree(array[i].unset_sids);
             SCFree(array[i].isset_sids);
             SCFree(array[i].isnotset_sids);
-            SCFree(array[i].toggle_sids);
         }
         SCFree(array);
     }
@@ -660,11 +631,6 @@ static int DetectFlowbitsAnalyzeSignature(const Signature *s, struct FBAnalyzer 
                 return -1;
             fa->unset_sids[fa->unset_sids_idx] = s->iid;
             fa->unset_sids_idx++;
-        } else if (fb->cmd == DETECT_FLOWBITS_CMD_TOGGLE) {
-            if (!CheckExpand(fa->toggle_sids_idx, &fa->toggle_sids, &fa->toggle_sids_size))
-                return -1;
-            fa->toggle_sids[fa->toggle_sids_idx] = s->iid;
-            fa->toggle_sids_idx++;
         }
     }
     return 0;
@@ -709,8 +675,7 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
         bool to_state = false;
 
         if (array[i].cnts[DETECT_FLOWBITS_CMD_ISSET] &&
-            array[i].cnts[DETECT_FLOWBITS_CMD_TOGGLE] == 0 &&
-            array[i].cnts[DETECT_FLOWBITS_CMD_SET] == 0) {
+                array[i].cnts[DETECT_FLOWBITS_CMD_SET] == 0) {
 
             const Signature *s = de_ctx->sig_array[array[i].isset_sids[0]];
             SCLogWarning("flowbit '%s' is checked but not "
@@ -733,13 +698,14 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
             to_state = true;
         }
 
-        SCLogDebug("ALL flowbit %s/%u: sets %u toggles %u unsets %u isnotsets %u issets %u", varname, i,
-                array[i].cnts[DETECT_FLOWBITS_CMD_SET], array[i].cnts[DETECT_FLOWBITS_CMD_TOGGLE],
-                array[i].cnts[DETECT_FLOWBITS_CMD_UNSET], array[i].cnts[DETECT_FLOWBITS_CMD_ISNOTSET],
+        SCLogDebug("ALL flowbit %s/%u: sets %u unsets %u isnotsets %u issets %u", varname, i,
+                array[i].cnts[DETECT_FLOWBITS_CMD_SET], array[i].cnts[DETECT_FLOWBITS_CMD_UNSET],
+                array[i].cnts[DETECT_FLOWBITS_CMD_ISNOTSET],
                 array[i].cnts[DETECT_FLOWBITS_CMD_ISSET]);
-        SCLogDebug("STATE flowbit %s/%u: sets %u toggles %u unsets %u isnotsets %u issets %u", varname, i,
-                array[i].state_cnts[DETECT_FLOWBITS_CMD_SET], array[i].state_cnts[DETECT_FLOWBITS_CMD_TOGGLE],
-                array[i].state_cnts[DETECT_FLOWBITS_CMD_UNSET], array[i].state_cnts[DETECT_FLOWBITS_CMD_ISNOTSET],
+        SCLogDebug("STATE flowbit %s/%u: sets %u unsets %u isnotsets %u issets %u", varname, i,
+                array[i].state_cnts[DETECT_FLOWBITS_CMD_SET],
+                array[i].state_cnts[DETECT_FLOWBITS_CMD_UNSET],
+                array[i].state_cnts[DETECT_FLOWBITS_CMD_ISNOTSET],
                 array[i].state_cnts[DETECT_FLOWBITS_CMD_ISSET]);
         for (uint32_t x = 0; x < array[i].set_sids_idx; x++) {
             SCLogDebug("SET flowbit %s/%u: SID %u", varname, i,
@@ -888,14 +854,12 @@ static struct FBAnalyzer DetectFlowbitsAnalyzeForGroup(
             to_state = true;
         }
 
-        SCLogDebug("ALL flowbit %s/%u: sets %u toggles %u unsets %u isnotsets %u issets %u",
-                varname, i, array[i].cnts[DETECT_FLOWBITS_CMD_SET],
-                array[i].cnts[DETECT_FLOWBITS_CMD_TOGGLE], array[i].cnts[DETECT_FLOWBITS_CMD_UNSET],
+        SCLogDebug("ALL flowbit %s/%u: sets %u unsets %u isnotsets %u issets %u", varname, i,
+                array[i].cnts[DETECT_FLOWBITS_CMD_SET], array[i].cnts[DETECT_FLOWBITS_CMD_UNSET],
                 array[i].cnts[DETECT_FLOWBITS_CMD_ISNOTSET],
                 array[i].cnts[DETECT_FLOWBITS_CMD_ISSET]);
-        SCLogDebug("STATE flowbit %s/%u: sets %u toggles %u unsets %u isnotsets %u issets %u",
-                varname, i, array[i].state_cnts[DETECT_FLOWBITS_CMD_SET],
-                array[i].state_cnts[DETECT_FLOWBITS_CMD_TOGGLE],
+        SCLogDebug("STATE flowbit %s/%u: sets %u unsets %u isnotsets %u issets %u", varname, i,
+                array[i].state_cnts[DETECT_FLOWBITS_CMD_SET],
                 array[i].state_cnts[DETECT_FLOWBITS_CMD_UNSET],
                 array[i].state_cnts[DETECT_FLOWBITS_CMD_ISNOTSET],
                 array[i].state_cnts[DETECT_FLOWBITS_CMD_ISSET]);
@@ -940,7 +904,6 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
         SCJbSetUint(js, "internal_id", x);
         SCJbSetUint(js, "set_cnt", e->cnts[DETECT_FLOWBITS_CMD_SET]);
         SCJbSetUint(js, "unset_cnt", e->cnts[DETECT_FLOWBITS_CMD_UNSET]);
-        SCJbSetUint(js, "toggle_cnt", e->cnts[DETECT_FLOWBITS_CMD_TOGGLE]);
         SCJbSetUint(js, "isset_cnt", e->cnts[DETECT_FLOWBITS_CMD_ISSET]);
         SCJbSetUint(js, "isnotset_cnt", e->cnts[DETECT_FLOWBITS_CMD_ISNOTSET]);
 
@@ -976,15 +939,6 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
             SCJbOpenArray(js, "unset");
             for (uint32_t i = 0; i < e->unset_sids_idx; i++) {
                 const Signature *s = de_ctx->sig_array[e->unset_sids[i]];
-                SCJbAppendUint(js, s->id);
-            }
-            SCJbClose(js);
-        }
-        // toggle
-        if (e->cnts[DETECT_FLOWBITS_CMD_TOGGLE]) {
-            SCJbOpenArray(js, "toggle");
-            for (uint32_t i = 0; i < e->toggle_sids_idx; i++) {
-                const Signature *s = de_ctx->sig_array[e->toggle_sids[i]];
                 SCJbAppendUint(js, s->id);
             }
             SCJbClose(js);
@@ -1290,12 +1244,12 @@ static int AddIssetSidsForBit(const DetectEngineCtx *de_ctx, const struct FBAnal
 
 /* TODO shouldn't add sids for which Signature::num is < our num. Is this possible after sorting? */
 
-/** \brief For set/toggle flowbits, build "set" post-rule-match engine
+/** \brief For set flowbits, build "set" post-rule-match engine
  *
- *  For set/toggle flowbits, a special post-rule-match engine is constructed
+ *  For set flowbits, a special post-rule-match engine is constructed
  *  to update the running match array during rule matching.
  */
-static int AddBitSetToggle(const DetectEngineCtx *de_ctx, struct FBAnalyzer *fba,
+static int AddBitSet(const DetectEngineCtx *de_ctx, struct FBAnalyzer *fba,
         struct PrefilterEngineFlowbits *ctx, const DetectFlowbitsData *fb, const Signature *s)
 {
     PrefilterFlowbit x;
@@ -1379,9 +1333,6 @@ static int PrefilterSetupFlowbits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             if (fb->cmd == DETECT_FLOWBITS_CMD_SET) {
                 SCLogDebug(
                         "DETECT_SM_LIST_POSTMATCH: sid %u DETECT_FLOWBITS set %u", s->id, fb->idx);
-            } else if (fb->cmd == DETECT_FLOWBITS_CMD_TOGGLE) {
-                SCLogDebug("DETECT_SM_LIST_POSTMATCH: sid %u DETECT_FLOWBITS toggle %u", s->id,
-                        fb->idx);
             } else {
                 SCLogDebug("unsupported flowbits setting");
                 continue;
@@ -1399,10 +1350,10 @@ static int PrefilterSetupFlowbits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                     goto error;
             }
 
-            SCLogDebug("setting up sets/toggles for sid %u", s->id);
-            if (AddBitSetToggle(de_ctx, &fb_analysis, set_ctx, fb, s) == 1) {
-                // flag the set/toggle to trigger the post-rule match logic
-                SCLogDebug("set up sets/toggles for sid %u", s->id);
+            SCLogDebug("setting up sets for sid %u", s->id);
+            if (AddBitSet(de_ctx, &fb_analysis, set_ctx, fb, s) == 1) {
+                // flag the set to trigger the post-rule match logic
+                SCLogDebug("set up sets for sid %u", s->id);
                 fb->post_rule_match_prefilter = true;
             }
 
@@ -1422,7 +1373,7 @@ static int PrefilterSetupFlowbits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         const DetectFlowbitsData *fb = (DetectFlowbitsData *)s->init_data->prefilter_sm->ctx;
         if (fb_analysis.array[fb->idx].isnotset_sids_idx ||
                 fb_analysis.array[fb->idx].unset_sids_idx) {
-            SCLogDebug("flowbit %u not supported: toggle or unset in use", fb->idx);
+            SCLogDebug("flowbit %u not supported: unset in use", fb->idx);
             s->init_data->prefilter_sm = NULL;
             s->flags &= ~SIG_FLAG_PREFILTER;
             continue;
@@ -1452,12 +1403,12 @@ static int PrefilterSetupFlowbits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             static const char *g_prefilter_flowbits_set = "flowbits:set";
             PrefilterAppendPostRuleEngine(de_ctx, sgh, PrefilterFlowbitPostRuleMatch, set_ctx,
                     PrefilterFlowbitFree, g_prefilter_flowbits_set);
-            SCLogDebug("set/toggle: added prefilter engine");
+            SCLogDebug("set: added prefilter engine");
         } else {
             if (set_ctx) {
                 PrefilterFlowbitFree(set_ctx);
             }
-            SCLogDebug("set/toggle: NO prefilter engine added");
+            SCLogDebug("set: NO prefilter engine added");
         }
     } else if (set_ctx != NULL) {
         PrefilterFlowbitFree(set_ctx);
@@ -1544,7 +1495,7 @@ static int FlowBitsTestSig01(void)
 }
 
 /**
- * \test FlowBitsTestSig02 is a test for a valid isset,set,isnotset,unset,toggle flowbits options
+ * \test FlowBitsTestSig02 is a test for a valid isset,set,isnotset,unset flowbits options
  *
  *  \retval 1 on success
  *  \retval 0 on failure
@@ -1573,9 +1524,6 @@ static int FlowBitsTestSig02(void)
     FAIL_IF_NOT_NULL(s);
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"unset rule need an option\"; flowbits:unset; content:\"GET \"; sid:4;)");
-    FAIL_IF_NOT_NULL(s);
-
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"toggle rule need an option\"; flowbits:toggle; content:\"GET \"; sid:5;)");
     FAIL_IF_NOT_NULL(s);
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"!set is not an option\"; flowbits:!set,myerr; content:\"GET \"; sid:6;)");
@@ -1818,83 +1766,6 @@ static int FlowBitsTestSig07(void)
 }
 
 /**
- * \test FlowBitsTestSig08 is a test toggle flowbits option
- *
- *  \retval 1 on success
- *  \retval 0 on failure
- */
-
-static int FlowBitsTestSig08(void)
-{
-    uint8_t *buf = (uint8_t *)
-                    "GET /one/ HTTP/1.1\r\n"
-                    "Host: one.example.org\r\n"
-                    "\r\n";
-    uint16_t buflen = strlen((char *)buf);
-    Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    Signature *s = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    DetectEngineCtx *de_ctx = NULL;
-    Flow f;
-    GenericVar flowvar, *gv = NULL;
-    int result = 0;
-    uint32_t idx = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v.stats);
-    memset(&f, 0, sizeof(Flow));
-    memset(&flowvar, 0, sizeof(GenericVar));
-
-    FLOW_INITIALIZE(&f);
-    p->flow = &f;
-    p->flow->flowvar = &flowvar;
-
-    p->src.family = AF_INET;
-    p->dst.family = AF_INET;
-    p->payload = buf;
-    p->payload_len = buflen;
-    p->proto = IPPROTO_TCP;
-
-    de_ctx = DetectEngineCtxInit();
-    FAIL_IF_NULL(de_ctx);
-
-    de_ctx->flags |= DE_QUIET;
-
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,myflow2; sid:10;)");
-    FAIL_IF_NULL(s);
-
-    s = s->next  = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit unset\"; flowbits:toggle,myflow2; sid:11;)");
-    FAIL_IF_NULL(s);
-
-    idx = VarNameStoreRegister("myflow", VAR_TYPE_FLOW_BIT);
-    FAIL_IF_NOT(idx);
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-
-    gv = p->flow->flowvar;
-    FAIL_IF_NULL(gv);
-
-    for ( ; gv != NULL; gv = gv->next) {
-        if (gv->type == DETECT_FLOWBITS && gv->idx == idx) {
-                result = 1;
-        }
-    }
-    FAIL_IF(result);
-
-    PacketFree(p);
-    FLOW_DESTROY(&f);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-    StatsThreadCleanup(&th_v.stats);
-    PASS;
-}
-
-/**
  * \brief this function registers unit tests for FlowBits
  */
 void FlowBitsRegisterTests(void)
@@ -1907,6 +1778,5 @@ void FlowBitsRegisterTests(void)
     UtRegisterTest("FlowBitsTestSig05", FlowBitsTestSig05);
     UtRegisterTest("FlowBitsTestSig06", FlowBitsTestSig06);
     UtRegisterTest("FlowBitsTestSig07", FlowBitsTestSig07);
-    UtRegisterTest("FlowBitsTestSig08", FlowBitsTestSig08);
 }
 #endif /* UNITTESTS */

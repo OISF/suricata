@@ -68,6 +68,7 @@ Removals
 
 - The deprecated ``http-log`` output has been removed. Use ``eve-log``
   with the ``http`` event type for HTTP logging.
+- flowbits ``toggle`` command has been deprecated.
 
 Keyword Changes
 ~~~~~~~~~~~~~~~

@@ -1308,7 +1308,9 @@ static int SigTest23 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:toggle,TEST.one; flowbits:noalert; sid:1;)");
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; "
+                            "flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
