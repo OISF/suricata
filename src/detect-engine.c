@@ -94,6 +94,8 @@
 
 #define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000
 
+#define DEFAULT_MAX_FLOWBITS_PER_SIGNATURE 8
+
 static int DetectEngineCtxLoadConf(DetectEngineCtx *);
 
 static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER,
@@ -2369,6 +2371,34 @@ static void InjectPackets(
     }
 }
 
+static void DetectEngineLoadFlowbitSettings(DetectEngineCtx *de_ctx)
+{
+    de_ctx->max_flowbits = DEFAULT_MAX_FLOWBITS_PER_SIGNATURE;
+    char varname[128] = "detect.flowbits.max-per-signature";
+    if (strlen(de_ctx->config_prefix) > 0) {
+        snprintf(varname, sizeof(varname), "%s.detect.flowbits.max-per-signature",
+                de_ctx->config_prefix);
+    }
+    const char *str;
+    if (SCConfGet(varname, &str) == 1) {
+        uint8_t val = 0;
+        int ret = StringParseUint8(&val, 10, 0, str);
+        if (ret > 0) {
+            if (val > 0) {
+                de_ctx->max_flowbits = val;
+            } else {
+                SCLogWarning("Invalid setting for flowbits.max-per-signature %d, resetting to the "
+                             "default",
+                        val);
+            }
+        } else {
+            SCLogWarning(
+                    "Invalid setting for flowbits.max-per-signature, resetting to the default");
+        }
+    }
+    SCLogConfig("Setting flowbits.max-per-signature to %d", de_ctx->max_flowbits);
+}
+
 /** \internal
  *  \brief Update detect threads with new detect engine
  *
@@ -3157,6 +3187,8 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             break;
         }
     }
+
+    DetectEngineLoadFlowbitSettings(de_ctx);
 
     de_ctx->prefilter_setting = DETECT_PREFILTER_MPM;
     const char *pf_setting = NULL;
@@ -4088,7 +4120,6 @@ static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *fil
         SCLogError("Loading signatures failed.");
         goto error;
     }
-
     DetectEngineAddToMaster(de_ctx);
 
     return 0;
@@ -4998,6 +5029,7 @@ int DetectEngineReload(const SCInstance *suri)
         DetectEngineDeReference(&old_de_ctx);
         return -1;
     }
+
     if (SigLoadSignatures(new_de_ctx,
                           suri->sig_file, suri->sig_file_exclusive) != 0) {
         DetectEngineCtxFree(new_de_ctx);
