@@ -55,7 +55,7 @@ function pointer plus ``user`` pointer.
 The closure receives:
 
 - ``tv``: the ``ThreadVars`` for the thread performing the logging
-- ``p``: the ``Packet``, if available
+- ``p``: the ``Packet``, or ``None`` if not available
 - ``f``: the ``Flow``, if available
 - ``jb``: a Rust ``JsonBuilder`` wrapper for the current EVE record
 

@@ -18,7 +18,9 @@
 use std::ffi::CString;
 use std::os::raw::c_void;
 
-pub use suricata_sys::sys::{Flow, Packet, SCEveUserCallbackFn, SCJsonBuilder, ThreadVars};
+pub use suricata_sys::sys::{
+    Flow, Packet as RawPacket, SCEveUserCallbackFn, SCJsonBuilder, ThreadVars,
+};
 use suricata_sys::sys::{
     SCEveFileType, SCEveFileTypeDeinitFunc, SCEveFileTypeInitFunc, SCEveFileTypeThreadDeinitFunc,
     SCEveFileTypeThreadInitFunc, SCEveFileTypeWriteFunc, SCEveRegisterCallback,
@@ -79,7 +81,7 @@ impl EveFileType {
 ///
 /// The callback receives:
 /// - `tv`: the `ThreadVars` for the thread performing the logging
-/// - `p`: the `Packet`, if available
+/// - `p`: the `Packet`, or `None` if not available
 /// - `f`: the `Flow`, if available
 /// - `jb`: the JSON builder for the current EVE record
 ///
@@ -110,9 +112,9 @@ impl EveFileType {
 /// The callback must not panic.
 pub fn register_callback<F>(callback: F) -> Result<(), &'static str>
 where
-    F: Fn(
+    F: for<'a> Fn(
             *mut ThreadVars,
-            *const Packet,
+            Option<crate::packet::Packet<'a>>,
             *mut Flow,
             &mut crate::jsonbuilder::JsonBuilder,
         ) -> Result<(), crate::jsonbuilder::Error>
@@ -134,11 +136,12 @@ where
 /// Internal wrapper used to adapt the C EVE callback to a Rust
 /// closure callback.
 unsafe extern "C" fn callback_wrapper<F>(
-    tv: *mut ThreadVars, p: *const Packet, f: *mut Flow, jb: *mut SCJsonBuilder, user: *mut c_void,
+    tv: *mut ThreadVars, p: *const RawPacket, f: *mut Flow, jb: *mut SCJsonBuilder,
+    user: *mut c_void,
 ) where
-    F: Fn(
+    F: for<'a> Fn(
             *mut ThreadVars,
-            *const Packet,
+            Option<crate::packet::Packet<'a>>,
             *mut Flow,
             &mut crate::jsonbuilder::JsonBuilder,
         ) -> Result<(), crate::jsonbuilder::Error>
@@ -149,7 +152,12 @@ unsafe extern "C" fn callback_wrapper<F>(
     let callback = &*(user as *const F);
     let mut jb = crate::jsonbuilder::JsonBuilder::from_raw(jb);
     let mark = jb.get_mark();
-    if callback(tv, p, f, &mut jb).is_err() {
+    let packet = if p.is_null() {
+        None
+    } else {
+        Some(crate::packet::Packet::from_ptr(p))
+    };
+    if callback(tv, packet, f, &mut jb).is_err() {
         let _ = jb.restore_mark(&mark);
     }
 }

@@ -3,8 +3,9 @@ use std::ptr::null_mut;
 use suricata_ffi::eve::{self, SCJsonBuilder};
 use suricata_ffi::flow;
 use suricata_ffi::jsonbuilder::JsonBuilder;
+use suricata_ffi::packet::Packet;
 use suricata_ffi::{SCLogError, SCLogNotice};
-use suricata_sys::sys::{Flow, Packet, SCEveRegisterCallback, SCPlugin, ThreadVars};
+use suricata_sys::sys::{Flow, Packet as RawPacket, SCEveRegisterCallback, SCPlugin, ThreadVars};
 
 unsafe extern "C" fn init() {
     suricata_ffi::plugin::init();
@@ -37,7 +38,7 @@ pub fn register_flow_callbacks() -> Result<(), &'static str> {
 
 unsafe extern "C" fn log_eve_raw(
     _tv: *mut ThreadVars,
-    _p: *const Packet,
+    _p: *const RawPacket,
     _f: *mut Flow,
     jb: *mut SCJsonBuilder,
     _user: *mut std::os::raw::c_void,
@@ -50,22 +51,23 @@ unsafe extern "C" fn log_eve_raw(
 
 fn log_eve_wrapped(
     _tv: *mut ThreadVars,
-    _p: *const Packet,
+    p: Option<Packet<'_>>,
     f: *mut Flow,
     jb: &mut JsonBuilder,
 ) -> Result<(), suricata_ffi::jsonbuilder::Error> {
     jb.open_object("rust_wrapped")?;
     jb.set_string("example", "eve-callback")?;
+    jb.set_string("has_packet", if p.is_some() { "true" } else { "false" })?;
     jb.set_string("has_flow", if f.is_null() { "false" } else { "true" })?;
     jb.close()?;
     Ok(())
 }
 
-fn log_flow_init(_tv: *mut ThreadVars, _f: *mut Flow, _p: *const Packet) {
+fn log_flow_init(_tv: *mut ThreadVars, _f: *mut Flow, _p: *const RawPacket) {
     SCLogNotice!("rust example flow init callback: flow={:p}", _f);
 }
 
-fn log_flow_update(_tv: *mut ThreadVars, _f: *mut Flow, _p: *mut Packet) {
+fn log_flow_update(_tv: *mut ThreadVars, _f: *mut Flow, _p: *mut RawPacket) {
     SCLogNotice!(
         "rust example flow update callback: flow={:p}, packet={:p}",
         _f,
