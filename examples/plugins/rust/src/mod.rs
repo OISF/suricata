@@ -63,20 +63,24 @@ fn log_eve_wrapped(
     Ok(())
 }
 
-fn log_flow_init(_tv: *mut ThreadVars, _f: *mut Flow, _p: *const RawPacket) {
-    SCLogNotice!("rust example flow init callback: flow={:p}", _f);
-}
-
-fn log_flow_update(_tv: *mut ThreadVars, _f: *mut Flow, _p: *mut RawPacket) {
+fn log_flow_init(_tv: *mut ThreadVars, f: *mut Flow, p: Option<Packet<'_>>) {
     SCLogNotice!(
-        "rust example flow update callback: flow={:p}, packet={:p}",
-        _f,
-        _p
+        "rust example flow init callback: flow={:p}, has_packet={}",
+        f,
+        p.is_some()
     );
 }
 
-fn log_flow_finish(_tv: *mut ThreadVars, _f: *mut Flow) {
-    SCLogNotice!("rust example flow finish callback: flow={:p}", _f);
+fn log_flow_update(_tv: *mut ThreadVars, f: *mut Flow, p: Option<Packet<'_>>) {
+    SCLogNotice!(
+        "rust example flow update callback: flow={:p}, has_packet={}",
+        f,
+        p.is_some()
+    );
+}
+
+fn log_flow_finish(_tv: *mut ThreadVars, f: *mut Flow) {
+    SCLogNotice!("rust example flow finish callback: flow={:p}", f);
 }
 
 #[no_mangle]
