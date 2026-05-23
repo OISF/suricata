@@ -19,6 +19,7 @@
 #include "suricata.h"
 
 #include "detect.h"
+#include "detect-parse.h"
 #include "detect-engine-alert.h"
 #include "detect-engine-threshold.h"
 #include "detect-engine-tag.h"
@@ -158,7 +159,7 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f)
 {
     if (action & ACTION_ACCEPT) {
         f->flags |= FLOW_ACTION_ACCEPT;
-        SCLogDebug("setting flow action pass");
+        SCLogDebug("setting flow action accept");
     }
 
     /* pass:flow can be set if accept:flow is present */
@@ -196,8 +197,8 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f)
  *  \param pa packet alert struct -- match, including actions after thresholding (rate_filter) */
 static void PacketApplySignatureActions(Packet *p, const Signature *s, const PacketAlert *pa)
 {
-    SCLogDebug("packet %" PRIu64 " sid %u action %02x alert_flags %02x", PcapPacketCntGet(p), s->id,
-            pa->action, pa->flags);
+    SCLogDebug("packet %" PRIu64 ", sid %u: action %02x alert_flags %02x", PcapPacketCntGet(p),
+            s->id, pa->action, pa->flags);
 
     /* REJECT also sets ACTION_DROP, just make it more visible with this check */
     if (pa->action & ACTION_DROP_REJECT) {
@@ -381,7 +382,7 @@ void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet
     /* we do that even before inserting into the queue, so we save it even if appending fails */
     if (p->alerts.drop.action == 0 && s->action & ACTION_DROP) {
         p->alerts.drop = PacketAlertSet(det_ctx, s, tx_id, alert_flags);
-        SCLogDebug("Set PacketAlert drop action. s->iid %" PRIu32 "", s->iid);
+        SCLogDebug("sid %u: set PacketAlert drop action. s->iid %" PRIu32 "", s->id, s->iid);
     }
 
     uint16_t pos = det_ctx->alert_queue_size;
@@ -395,7 +396,8 @@ void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet
     }
     det_ctx->alert_queue[pos] = PacketAlertSet(det_ctx, s, tx_id, alert_flags);
 
-    SCLogDebug("Appending sid %" PRIu32 ", s->iid %" PRIu32 " to alert queue", s->id, s->iid);
+    SCLogDebug("packet %" PRIu64 ": appending sid %" PRIu32 ", s->iid %" PRIu32 " to alert queue",
+            PcapPacketCntGet(p), s->id, s->iid);
     det_ctx->alert_queue_size++;
 }
 
