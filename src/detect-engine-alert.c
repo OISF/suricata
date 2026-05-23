@@ -158,7 +158,8 @@ int PacketAlertCheck(Packet *p, uint32_t sid)
 static inline void RuleActionToFlow(const uint8_t action, Flow *f, const bool fw_rule)
 {
     if (action & ACTION_ACCEPT) {
-        f->flags |= FLOW_ACTION_ACCEPT;
+        DEBUG_VALIDATE_BUG_ON(!fw_rule);
+        f->flags |= (FLOW_ACTION_ACCEPT | FLOW_ACTION_BY_FIREWALL);
         SCLogDebug("setting flow action accept");
     }
 
@@ -179,8 +180,10 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f, const bool fw
         /* drop:flow from TD rules will override a accept:flow from
          * firewall rules. */
         if (f->flags & FLOW_ACTION_ACCEPT) {
-            f->flags &= ~FLOW_ACTION_ACCEPT;
+            f->flags &= ~(FLOW_ACTION_ACCEPT | FLOW_ACTION_BY_FIREWALL);
             f->flags |= FLOW_ACTION_DROP;
+            if (fw_rule)
+                f->flags |= FLOW_ACTION_BY_FIREWALL;
             SCLogDebug("replaced FLOW_ACTION_ACCEPT with FLOW_ACTION_DROP");
         }
         if (f->flags & (FLOW_ACTION_DROP | FLOW_ACTION_PASS)) {
@@ -491,6 +494,97 @@ static inline void FlowApplySignatureActions(
     }
 }
 
+/** \internal
+ * \brief handle immediate actions for a firewall rule match
+ *
+ * Delayed action (accept) is handled after TD has also run, as TD drop
+ * can overrule a FW accept. So returning `accept` here means "will accept if TD agrees".
+ *
+ * \retval pol firewall policy with action that is (drop) or should possibly be (accept)
+ * applied to the packet and flow.
+ */
+static struct DetectFirewallPolicy HandleFirewallRule(
+        const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p, PacketAlert *pa)
+{
+    const Signature *s = pa->s;
+    struct DetectFirewallPolicy pol = { .action = 0, .action_scope = 0 };
+    int res = PacketAlertHandle(de_ctx, det_ctx, s, p, pa);
+    SCLogDebug("packet %" PRIu64 ": fw sid %u: res %d", PcapPacketCntGet(p), s->id, res);
+    if (res > 0) {
+        /* Now, if we have an alert, we have to check if we want
+         * to tag this session or src/dst host */
+        if (s->sm_arrays[DETECT_SM_LIST_TMATCH] != NULL) {
+            KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_TMATCH);
+            SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_TMATCH];
+            while (1) {
+                /* tags are set only for alerts */
+                KEYWORD_PROFILING_START;
+                sigmatch_table[smd->type].Match(det_ctx, p, (Signature *)s, smd->ctx);
+                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+                if (smd->is_last)
+                    break;
+                smd++;
+            }
+        }
+        /* if this is a terminating action, pass the action to the caller. */
+        if (s->action_scope != ACTION_SCOPE_HOOK ||
+                pa->flags & PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET) {
+            pol.action = s->action;
+            pol.action_scope = s->action_scope;
+            if (pol.action & ACTION_DROP) {
+                uint8_t drop_reason = PKT_DROP_REASON_FW_RULES;
+                if (s->detect_table == DETECT_TABLE_PACKET_PRE_STREAM) {
+                    drop_reason = PKT_DROP_REASON_FW_STREAM_PRE_HOOK;
+                } else if (s->detect_table == DETECT_TABLE_PACKET_PRE_FLOW) {
+                    drop_reason = PKT_DROP_REASON_FW_FLOW_PRE_HOOK;
+                }
+                PacketDrop(p, pol.action, drop_reason);
+                if (p->flow && pol.action_scope == ACTION_SCOPE_FLOW) {
+                    p->flow->flags |= FLOW_ACTION_DROP | FLOW_ACTION_BY_FIREWALL;
+                    SCLogDebug("packet %" PRIu64 ": FLOW_ACTION_DROP set by firewall by sid %u",
+                            PcapPacketCntGet(p), s->id);
+                }
+            }
+            if (pol.action & ACTION_PASS) {
+                if (p->flow && pol.action_scope == ACTION_SCOPE_FLOW) {
+                    p->flow->flags |= FLOW_ACTION_PASS;
+                    SCLogDebug("packet %" PRIu64 ": FLOW_ACTION_PASS set by firewall by sid %u",
+                            PcapPacketCntGet(p), s->id);
+                }
+            }
+        }
+        /* add the alert for logging if required. */
+        if (s->action & ACTION_ALERT) {
+            if (p->alerts.cnt < packet_alert_max) {
+                p->alerts.alerts[p->alerts.cnt++] = *pa;
+            } else {
+                p->alerts.firewall_discarded++;
+            }
+        }
+    }
+    return pol;
+}
+
+/*
+ * Queue order after sorting:
+ *
+ * Firewall use case: rules are sorted by Signature::detect_table, Signature::iid (which reflects
+ * order in the rule file(s)) This means:
+ * - pre_flow
+ * - pre_stream
+ * - packet:filter (firewall)
+ * - packet:td (IDS/IPS rules)
+ * - app:filter (firewall)
+ * - app:td (IDS/IPS rules)
+ *
+ * Firewall DROPs are immediate.
+ * Firewall ACCEPTs depend on TD not dropping.
+ * Firewall rules are not affected by PASS.
+ * TD rules are affected by PASS, both set by Firewall and TD rules.
+ *
+ * Non-Firewall use case: rules are sorted by Signature::iid (which reflect order based on flowbits,
+ * action-order, priority, etc)
+ */
 static inline void PacketAlertFinalizeProcessQueue(
         const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
@@ -505,17 +599,85 @@ static inline void PacketAlertFinalizeProcessQueue(
     bool alerted = false;
     bool dropped = false;
     bool skip_td = false;
+    bool skip_fw = false;
+    bool fw_accept_packet = false; // same as skip_fw?
+    bool fw_accept_flow = false;
+
+#ifdef DEBUG
+    SCLogDebug("packet %" PRIu64 ": starting alert event queue", PcapPacketCntGet(p));
+    for (uint16_t x = 0; x < det_ctx->alert_queue_size; x++) {
+        const PacketAlert *pa = &det_ctx->alert_queue[x];
+        const Signature *s = pa->s;
+        SCLogDebug("(list) %s sid %u: action %02x scope %u iid %u detect_table %u",
+                (s->flags & SIG_FLAG_FIREWALL) ? "fw" : "td", s->id, s->action, s->action_scope,
+                s->iid, s->detect_table);
+    }
+#endif /* DEBUG */
+    uint8_t skip_table_id = 0;
+    bool skip_table = false;
     for (uint16_t i = 0; i < det_ctx->alert_queue_size; i++) {
         PacketAlert *pa = &det_ctx->alert_queue[i];
         const Signature *s = pa->s;
 
+        if (s->flags & SIG_FLAG_FIREWALL) {
+            if (skip_fw) {
+                continue;
+            }
+            /* skip for this table, but not for later. Mostly for showing
+             * alerts for both packet:filter and app:filter together. */
+            if (skip_table) {
+                if (s->detect_table <= skip_table_id)
+                    continue;
+                skip_table = false;
+            }
+
+            if (dropped) {
+                SCLogDebug("Skippig firewall signature after a drop.");
+                p->alerts.firewall_discarded++;
+                continue;
+            }
+
+            const uint16_t pre_alert_cnt = p->alerts.cnt;
+            struct DetectFirewallPolicy pol = HandleFirewallRule(de_ctx, det_ctx, p, pa);
+            /* drop is immediate */
+            if (pol.action & ACTION_DROP) {
+                dropped = true;
+            } else if (pol.action & ACTION_ACCEPT) {
+                SCLogDebug("fw sid %u setting skip_fw for action %02x scope %s", s->id, pol.action,
+                        ActionScopeToString(pol.action_scope));
+                /* see if we want to skip other alerts for this table */
+                if (pol.action_scope == ACTION_SCOPE_HOOK) {
+                    skip_table_id = s->detect_table;
+                    skip_table = true;
+                } else {
+                    skip_fw = true;
+                }
+                fw_accept_packet = true;
+                if (pol.action_scope == ACTION_SCOPE_FLOW)
+                    fw_accept_flow = true;
+            }
+            if (pol.action & ACTION_PASS) {
+                skip_td = true;
+            }
+            if (pre_alert_cnt < p->alerts.cnt)
+                alerted = true;
+            if (dropped)
+                goto fw_dropped;
+
+            continue;
+        }
+
+        SCLogDebug("sid: %u, action %02x, firewall? %s", s->id, pa->action,
+                BOOL2STR(s->flags & SIG_FLAG_FIREWALL));
+
         /* if a firewall rule told us to skip, we don't count the skipped
          * alerts. */
-        if (have_fw_rules && skip_td && (s->flags & SIG_FLAG_FIREWALL) == 0) {
+        if (have_fw_rules && skip_td) {
             continue;
         }
 
         int res = PacketAlertHandle(de_ctx, det_ctx, s, p, pa);
+        SCLogDebug("sid %u: res %d", pa->s->id, res);
         if (res > 0) {
             /* Now, if we have an alert, we have to check if we want
              * to tag this session or src/dst host */
@@ -551,7 +713,7 @@ static inline void PacketAlertFinalizeProcessQueue(
                 /* set actions on the flow */
                 FlowApplySignatureActions(p, pa, s, pa->flags);
 
-                SCLogDebug("det_ctx->alert_queue[i].action %02x (DROP %s, PASS %s)", pa->action,
+                SCLogDebug("sid %u: action %02x (DROP %s, PASS %s)", pa->s->id, pa->action,
                         BOOL2STR(pa->action & ACTION_DROP), BOOL2STR(pa->action & ACTION_PASS));
 
                 /* set actions on packet */
@@ -559,13 +721,8 @@ static inline void PacketAlertFinalizeProcessQueue(
             }
         }
 
-        /* skip firewall sigs following a drop: IDS mode still shows alerts after a drop. */
-        if ((s->flags & SIG_FLAG_FIREWALL) && dropped) {
-            SCLogDebug("Skippig firewall signature after a drop.");
-            p->alerts.firewall_discarded++;
-
-            /* Thresholding removes this alert */
-        } else if (res == 0 || res == 2 || (s->action & (ACTION_ALERT | ACTION_PASS)) == 0) {
+        /* Thresholding removes this alert */
+        if (res == 0 || res == 2 || (s->action & (ACTION_ALERT | ACTION_PASS)) == 0) {
             SCLogDebug("sid:%u: skipping alert because of thresholding (res=%d) or NOALERT (%02x)",
                     s->id, res, s->action);
             /* we will not copy this to the AlertQueue */
@@ -593,6 +750,22 @@ static inline void PacketAlertFinalizeProcessQueue(
 
         if (s->action & ACTION_DROP) {
             dropped = true;
+        }
+    }
+
+fw_dropped:
+    /* after threat detection has been handled, see if the fw intended to accept (drop is handled
+     * immediately by the fw), as fw accept can be overruled by td drop. */
+    if (have_fw_rules) {
+        if (p->action & ACTION_DROP) {
+            SCLogDebug("packet %" PRIu64 ": dropped by TD", PcapPacketCntGet(p));
+        } else if (fw_accept_packet) {
+            p->action |= ACTION_ACCEPT;
+            if (p->flow && fw_accept_flow) {
+                p->flow->flags |= FLOW_ACTION_ACCEPT;
+                SCLogDebug("packet %" PRIu64 ": FLOW_ACTION_ACCEPT set from firewall",
+                        PcapPacketCntGet(p));
+            }
         }
     }
 
