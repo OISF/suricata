@@ -549,6 +549,9 @@ enum SignatureHookType {
     SIGNATURE_HOOK_TYPE_APP,
 };
 
+/** detect table identifiers, ordered by how they logically
+ *  evaluated. Used in rule ordering to ensure the correct order
+ *  of rule actions. */
 enum DetectTable {
     DETECT_TABLE_NOT_SET = 0,
     DETECT_TABLE_PACKET_PRE_FLOW,
