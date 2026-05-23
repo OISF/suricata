@@ -7,7 +7,7 @@ Introduction
 ------------
 
 eBPF stands for extended BPF. This is an extended version of Berkeley Packet Filter available in recent
-Linux kernel versions.
+Linux kernel versions (at least kernel version 4.13 or greater).
 
 It provides more advanced features with eBPF programs developed in C and capability to use structured data shared
 between kernel and userspace.
@@ -78,14 +78,22 @@ Clang and dependencies
 
 Make sure you have ``clang`` (>=3.9) installed on the system  ::
 
+ On Ubuntu/Debian:
  sudo apt install clang
+
+ On Fedora/RHEL/CentOS:
+ sudo dnf install clang
 
 libbpf
 ~~~~~~
 
 Suricata uses libbpf to interact with eBPF and XDP ::
 
-  sudo apt install libbpf-dev
+ On Ubuntu/Debian:
+ sudo apt install libbpf-dev
+
+ On Fedora/RHEL/CentOS:
+ sudo dnf install libbpf-devel
 
 If the libbpf package is unavailable, it can be cloned from the repository ::
 
