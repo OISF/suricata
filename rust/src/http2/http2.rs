@@ -39,13 +39,13 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::fmt;
 use std::io;
+use suricata_sys::sys::AppProtoEnum::ALPROTO_HTTP1;
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, HttpRangeContainerBlock, SCAppLayerForceProtocolChange,
     SCAppLayerParserConfParserEnabled, SCAppLayerParserRegisterLogger,
     SCAppLayerProtoDetectConfProtoDetectionEnabled, SCFileFlowFlagsToFlags,
     SCHTTP2MimicHttp1Request,
 };
-use suricata_sys::sys::AppProtoEnum::ALPROTO_HTTP1;
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
 static mut ALPROTO_DOH2: AppProto = ALPROTO_UNKNOWN;
