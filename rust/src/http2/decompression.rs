@@ -154,8 +154,7 @@ fn http2_decompress<'a>(
             Ok(n) => {
                 offset += n;
                 if offset == output.len() {
-                    if output.len() > unsafe { HTTP2_COMPRESSION_BOMB_LIMIT as usize }
-                    {
+                    if output.len() > unsafe { HTTP2_COMPRESSION_BOMB_LIMIT as usize } {
                         return Err(io::Error::new(
                             io::ErrorKind::OutOfMemory,
                             "Decompression bomb detected",
