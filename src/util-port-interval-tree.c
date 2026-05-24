@@ -38,6 +38,7 @@
  */
 static int SCPortIntervalCompareAndUpdate(const SCPortIntervalNode *a, SCPortIntervalNode *b)
 {
+    DEBUG_VALIDATE_BUG_ON(a == NULL); // help cppcheck
     if (a->port2 > b->max) {
         b->max = a->port2;
     }
@@ -48,6 +49,7 @@ static int SCPortIntervalCompareAndUpdate(const SCPortIntervalNode *a, SCPortInt
 }
 
 // cppcheck-suppress nullPointerRedundantCheck
+// cppcheck-suppress ctunullpointer
 IRB_GENERATE(PI, SCPortIntervalNode, irb, SCPortIntervalCompareAndUpdate);
 
 /**
