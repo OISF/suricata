@@ -3698,7 +3698,7 @@ static int DoParsePolicy(const char *policy_name, struct DetectFirewallPolicy *p
     int idx = 0;
     SCConfNode *paction = NULL;
     TAILQ_FOREACH (paction, &policy_actions->head, next) {
-        SCLogNotice("fw: %s => %s", policy_name, paction->val);
+        SCLogDebug("fw: %s => %s", policy_name, paction->val);
         if (SigParseActionDo(paction->val, idx, true, &action, &action_scope) < 0)
             return -1;
         idx++;
