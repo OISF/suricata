@@ -581,12 +581,12 @@ static inline void PacketAlertFinalizeProcessQueue(
                 continue;
             }
 
-            // TODO we can also drop if alert is suppressed, right?
-            if (s->action & ACTION_DROP) {
-                dropped = true;
-            }
         } else {
             p->alerts.discarded++;
+        }
+
+        if (s->action & ACTION_DROP) {
+            dropped = true;
         }
     }
 
