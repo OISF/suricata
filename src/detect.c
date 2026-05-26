@@ -1723,6 +1723,10 @@ static enum DetectTxFirewallFlowControl DetectFirewallApplyDefaultPolicies(
         actions |= policy->action;
         if (policy->action & ACTION_DROP) {
             SCLogDebug("fw: action %02x", policy->action);
+            if (policy->action & ACTION_ALERT) {
+                DetectRunAppendDefaultAppPolicyAlert(
+                        det_ctx, p, apply_to_packet, direction, tx->tx_id, alproto, hook);
+            }
             return DETECT_TX_FW_FC_BREAK;
 
         } else if (policy->action & ACTION_ACCEPT) {
@@ -2438,6 +2442,10 @@ static void DetectRunTx(ThreadVars *tv,
                 if (policy->action & ACTION_DROP) {
                     fw_state.fw_skip_app_filter = true;
                     SCLogDebug("packet %02x", p->action);
+                    if (policy->action & ACTION_ALERT) {
+                        DetectRunAppendDefaultAppPolicyAlert(det_ctx, p, true, flow_flags, tx.tx_id,
+                                alproto, s->app_progress_hook);
+                    }
                 } else if (policy->action == ACTION_ACCEPT) {
                     SCLogDebug("accept hook(s)? current hook %u (tx.detect_progress %u) max %u",
                             s->app_progress_hook, tx.detect_progress, tx.tx_progress);
