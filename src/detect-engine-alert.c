@@ -189,10 +189,8 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f, const bool fw
                     (action & ACTION_PASS) ? "pass" : "drop",
                     (f->flags & FLOW_ACTION_DROP) ? "drop" : "pass");
         } else {
-            if (action & (ACTION_DROP | ACTION_REJECT_ANY)) {
-                f->flags |= FLOW_ACTION_DROP;
-                SCLogDebug("setting flow action drop");
-            }
+            f->flags |= FLOW_ACTION_DROP;
+            SCLogDebug("setting flow action drop");
         }
     }
 
