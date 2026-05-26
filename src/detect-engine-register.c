@@ -331,6 +331,12 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         DEBUG_VALIDATE_BUG_ON(flags & (SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT |
                                               SIGMATCH_INFO_BITFLAGS_UINT));
     }
+    if (flags & SIGMATCH_BAN_FIREWALL_RULE) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("banned from firewall rules");
+        prev = 1;
+    }
     if (e->Transform) {
         if (prev == 1)
             printf("%c", sep);
