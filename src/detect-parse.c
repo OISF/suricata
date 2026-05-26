@@ -968,6 +968,11 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
 #undef URL
     }
 
+    if (s->init_data->firewall_rule && (st->flags & SIGMATCH_BAN_FIREWALL_RULE) != 0) {
+        SCLogError("keyword \'%s\' is not allowed with firewall rules", optname);
+        goto error;
+    }
+
     int setup_ret = 0;
 
     /* Validate double quoting, trimming trailing white space along the way. */
