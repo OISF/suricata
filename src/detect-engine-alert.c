@@ -176,7 +176,14 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f)
 
         // TODO firewall drop:flow should override FLOW_ACTION_PASS
     } else if (action & (ACTION_DROP | ACTION_REJECT_ANY)) {
-        if (f->flags & (FLOW_ACTION_DROP | FLOW_ACTION_PASS | FLOW_ACTION_ACCEPT)) {
+        /* drop:flow from TD rules will override a accept:flow from
+         * firewall rules. */
+        if (f->flags & FLOW_ACTION_ACCEPT) {
+            f->flags &= ~FLOW_ACTION_ACCEPT;
+            f->flags |= FLOW_ACTION_DROP;
+            SCLogDebug("replaced FLOW_ACTION_ACCEPT with FLOW_ACTION_DROP");
+        }
+        if (f->flags & (FLOW_ACTION_DROP | FLOW_ACTION_PASS)) {
             /* drop or pass already set. First to set wins. */
             SCLogDebug("not setting %s flow already set to %s",
                     (action & ACTION_PASS) ? "pass" : "drop",
