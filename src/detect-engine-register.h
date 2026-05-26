@@ -350,6 +350,8 @@ extern int DETECT_TBLSIZE_IDX;
 #define SIGMATCH_INFO_ENUM_UINT (1UL << (19))
 /** keyword is an uint with bitflags */
 #define SIGMATCH_INFO_BITFLAGS_UINT (1UL << (20))
+/** keyword cannot be used in firewall rules */
+#define SIGMATCH_BAN_FIREWALL_RULE (1UL << (21))
 
 int SigTableList(const char *keyword);
 void SigTableCleanup(void);
