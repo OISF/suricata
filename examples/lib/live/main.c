@@ -306,7 +306,9 @@ int main(int argc, char **argv)
      * ThreadVars will be ready. */
     SuricataInit();
 
-    SCDetectEngineRegisterRateFilterCallback(RateFilterCallback, NULL);
+    if (DetectEngineEnabled()) {
+        SCDetectEngineRegisterRateFilterCallback(RateFilterCallback, NULL);
+    }
 
     /* Spawn our worker threads, one for each interface. */
     pthread_t workers[MAX_INTERFACES];
