@@ -592,14 +592,12 @@ static inline void PacketAlertFinalizeProcessQueue(
                 skip_td = true;
                 continue;
             }
-
-            // TODO we can also drop if alert is suppressed, right?
-            if (s->action & ACTION_DROP) {
-                SCLogDebug("sid:%u led to a drop that will skip any firewall alerts", s->id);
-                dropped = true;
-            }
         } else {
             p->alerts.discarded++;
+        }
+
+        if (s->action & ACTION_DROP) {
+            dropped = true;
         }
     }
 }
