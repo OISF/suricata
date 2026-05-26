@@ -544,7 +544,7 @@ pub fn parse_smb_setup_andx_record<'a>(i: &'a [u8], r: &'a SmbRecord) -> IResult
         let (i, _bcc) = le_u16.parse(i)?;
         let (i, _oem_pass) = take(oem_pass_len).parse(i)?;
         let (i, _uni_pass) = take(uni_pass_len).parse(i)?;
-        let (i, _pad) = cond((oem_pass_len + uni_pass_len) % 2 == 1, le_u8).parse(i)?;
+        let (i, _pad) = cond(oem_pass_len.wrapping_add(uni_pass_len) % 2 == 1, le_u8).parse(i)?;
         if let Ok((i, _account_name)) = smb1_get_string(i, r, 0) {
             let (i, request_host) = smb1_session_setup_parse_wct13(r, i);
             let record = SmbRecordSetupAndX { sec_blob: &[], request_host };
