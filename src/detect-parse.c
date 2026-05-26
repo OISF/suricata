@@ -1587,6 +1587,12 @@ static int SigParseActionDo(const char *action_in, const int idx, const bool fw_
         return -1;
 
     if (fw_rule) {
+        /* in firewall mode, drop is just drop. Whereas in IDS/IPS mode, drop is drop+alert.
+         * Same for reject which includes ACTION_DROP. */
+        if (flags & ACTION_DROP) {
+            flags &= ~ACTION_ALERT;
+        }
+
         if (idx == 0 &&
                 !(flags & (ACTION_ACCEPT | ACTION_DROP | ACTION_REJECT_ANY | ACTION_CONFIG))) {
             SCLogError("only accept, config, drop and reject actions allowed as primary action "
