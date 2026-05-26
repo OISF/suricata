@@ -912,6 +912,9 @@ the reassembled stream.
 The checksums will be recalculated by Suricata and changed after the
 replace keyword is being used.
 
+.. note:: ``replace`` cannot be used in firewall rules, nor in firewall mode,
+   even if only in Threat Detection rules.
+
 .. _pcre:
 
 pcre (Perl Compatible Regular Expressions)
