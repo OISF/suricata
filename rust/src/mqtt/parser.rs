@@ -136,7 +136,8 @@ fn parse_fixed_header_flags(i: &[u8]) -> IResult<&[u8], (u8, u8, u8, u8)> {
             take_bits(1u8),
             take_bits(2u8),
             take_bits(1u8),
-        ).parse(input)
+        )
+            .parse(input)
     })(i)
 }
 
@@ -671,7 +672,8 @@ pub fn parse_message(
                 header,
                 message_type,
                 protocol_version,
-            )).parse(rem);
+            ))
+            .parse(rem);
         }
         Err(err) => {
             return Err(err);
