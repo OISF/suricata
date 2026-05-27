@@ -18,20 +18,14 @@ unsafe extern "C" fn init() {
     }
 }
 
-pub fn register() -> Result<(), &'static str> {
-    register_eve_callbacks()?;
-    register_flow_callbacks()?;
-    Ok(())
-}
-
-pub fn register_eve_callbacks() -> Result<(), &'static str> {
+fn register_eve_callbacks() -> Result<(), &'static str> {
     if !unsafe { SCEveRegisterCallback(Some(log_eve_raw), null_mut()) } {
         return Err("Failed to register raw EVE callback");
     }
     eve::register_callback(log_eve_wrapped)
 }
 
-pub fn register_flow_callbacks() -> Result<(), &'static str> {
+fn register_flow_callbacks() -> Result<(), &'static str> {
     flow::register_init_callback(log_flow_init)?;
     flow::register_update_callback(log_flow_update)?;
     flow::register_finish_callback(log_flow_finish)?;
