@@ -10,11 +10,8 @@ unsafe extern "C" fn init() {
     suricata_ffi::plugin::init();
     SCLogNotice!("Initializing rust example plugin");
 
-    if let Err(err) = register_eve_callbacks() {
-        SCLogError!("Failed to register rust example EVE callbacks: {}", err);
-    }
-    if let Err(err) = register_flow_callbacks() {
-        SCLogError!("Failed to register rust example flow callbacks: {}", err);
+    if let Err(err) = register() {
+        SCLogError!("Failed to register rust example callbacks: {}", err);
     }
 }
 
