@@ -2389,11 +2389,10 @@ static void DetectRunTx(ThreadVars *tv,
                 SCLogDebug(
                         "%p/%" PRIu64 " sig %u (%u) matched", tx.tx_ptr, tx.tx_id, s->id, s->iid);
 
-                if (s->flags & SIG_FLAG_FIREWALL) {
+                if ((s->flags & SIG_FLAG_FIREWALL) == 0) {
+                    AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
+                } else {
                     if (s->action & ACTION_ACCEPT) {
-                        fw_state.fw_skip_app_filter = ApplyAccept(
-                                det_ctx, p, flow_flags, s, &tx, tx_end_state, last_tx, &fw_state);
-                        fw_state.fw_next_progress_missing = false; // reset
                         /* see if we need to apply tx/hook accept to the packet. This can be needed
                          * when we've completed the inspection so far for an incomplete tx, and an
                          * accept:tx or accept:hook is the last match.*/
@@ -2403,6 +2402,15 @@ static void DetectRunTx(ThreadVars *tv,
                             SCLogDebug("accept:(tx|hook): should be applied to the packet");
                             alert_flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET;
                         }
+                        SCLogDebug("append alert");
+
+                        /* add alert now, as ApplyAccept may also trigger
+                         * policy matches that could add alerts. */
+                        AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
+
+                        fw_state.fw_skip_app_filter = ApplyAccept(
+                                det_ctx, p, flow_flags, s, &tx, tx_end_state, last_tx, &fw_state);
+                        fw_state.fw_next_progress_missing = false; // reset
                     } else if (s->action & ACTION_DROP) {
                         SCLogDebug("drop packet because of rule with drop action");
                         PacketDrop(p, s->action, PKT_DROP_REASON_FW_RULES);
@@ -2411,9 +2419,13 @@ static void DetectRunTx(ThreadVars *tv,
                             f->flags |= FLOW_ACTION_DROP;
                             f->flags |= FLOW_ACTION_BY_FIREWALL;
                         }
+                        SCLogDebug("append alert");
+                        AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
+                    } else {
+                        SCLogDebug("append alert");
+                        AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
                     }
                 }
-                AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
             } else if (r == 0) {
                 SCLogDebug("sid %u partial match", s->id);
                 if ((s->flags & SIG_FLAG_FIREWALL) && (s->action & ACTION_ACCEPT)) {
