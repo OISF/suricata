@@ -29,6 +29,9 @@ If a drop was caused by the firewall, the corresponding counter will be incremen
 Discarded alerts
 ================
 
-In Firewall mode, alerts generated *after* a drop are discarded.
+When the alert queue is full for a firewall rule match, the alert is discarded.
 These are reported with the counter ``stats.firewall.discarded_alerts``.
 Note that the drop may be caused by non-firewall rules.
+
+The rule's primary action as well as other secondary actions will be applied to
+the traffic as normal.

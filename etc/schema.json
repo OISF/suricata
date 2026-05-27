@@ -7387,7 +7387,7 @@
                         },
                         "discarded_alerts": {
                             "type": "integer",
-                            "description": "Count of alerts discarded due to a drop while in firewall mode"
+                            "description": "Count of alerts discarded due max alerts reached"
                         },
                         "drop_reason": {
                             "type": "object",
