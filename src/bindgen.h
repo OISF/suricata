@@ -64,6 +64,8 @@
 #include "flow-bindgen.h"
 #include "flow-callbacks.h"
 
+#include "thread-callbacks.h"
+
 #include "reputation.h"
 #include "feature.h"
 #include "datasets.h"
