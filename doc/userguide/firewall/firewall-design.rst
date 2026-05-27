@@ -48,11 +48,11 @@ Rules categorized in the following tables apply to all packets.
     +-----------------------+--------------------------------------------------------------------+----------------+--------------------------------+
     |          Table        |                             Description                            | Default Policy |           Rule Order           |
     +=======================+====================================================================+================+================================+
-    | ``packet:pre_flow``   | Firewall rules to be evaluated before flow is created/updated      | ``drop:packet``|   As appears in the rule file  |
+    | ``packet:pre_flow``   | Firewall rules to be evaluated before flow is created/updated      | ``accept:hook``| As appears in the rule file    |
     +-----------------------+--------------------------------------------------------------------+----------------+--------------------------------+
-    | ``packet:pre_stream`` | Firewall rules to be evaluated before stream is updated            | ``drop:packet``|   As appears in the rule file  |
+    | ``packet:pre_stream`` | Firewall rules to be evaluated before stream is updated            | ``accept:hook``| As appears in the rule file    |
     +-----------------------+--------------------------------------------------------------------+----------------+--------------------------------+
-    | ``packet:filter``     | Firewall rules to be evaluated against every packet after decoding | ``drop:packet``|   As appears in the rule file  |
+    | ``packet:filter``     | Firewall rules to be evaluated against every packet after decoding | ``drop:packet``| As appears in the rule file    |
     +-----------------------+--------------------------------------------------------------------+----------------+--------------------------------+
     | ``packet:td``         | Generic IDS/IPS threat detection rules                             | ``accept:hook``| Internal IDS/IPS rule ordering |
     +-----------------------+--------------------------------------------------------------------+----------------+--------------------------------+
@@ -70,9 +70,9 @@ application layer are per app layer protocol and per protocol state. e.g. ``http
     +----------------+--------------------------------------------------------------------------+----------------+--------------------------------+
     |      Table     |                                Description                               | Default Policy |           Rule Order           |
     +================+==========================================================================+================+================================+
-    | ``app:filter`` | Firewall rules to be evaluated per applayer protocol and state           | ``drop:flow``  |   As appears in the rule file  |
+    | ``app:filter`` | Firewall rules to be evaluated per applayer protocol and state           | ``drop:flow``  | As appears in the rule file    |
     +----------------+--------------------------------------------------------------------------+----------------+--------------------------------+
-    | ``app:td``     | Generic IDS/IPS threat detection rules                                   | ``accept:hook``| Internal IDS/IPS rule ordering |
+    | ``app:td``     | App-layer IDS/IPS threat detection rules                                 | ``accept:hook``| Internal IDS/IPS rule ordering |
     +----------------+--------------------------------------------------------------------------+----------------+--------------------------------+
 
 
