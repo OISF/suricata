@@ -35,6 +35,7 @@ typedef struct HashTableBucket_ {
 typedef struct HashTable_ {
     HashTableBucket **array;
     uint32_t array_size;
+    uint32_t seed; /**< optional random seed */
 #ifdef UNITTESTS
     uint32_t count;
 #endif
@@ -47,6 +48,10 @@ typedef struct HashTable_ {
 
 /* prototypes */
 HashTable* HashTableInit(uint32_t, uint32_t (*Hash)(struct HashTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *));
+HashTable *HashTableInitWithSeed(uint32_t, uint32_t (*Hash)(struct HashTable_ *, void *, uint16_t),
+        char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *),
+        const uint32_t seed);
+void HashTableFree(HashTable *);
 void HashTableFree(HashTable *);
 int HashTableAdd(HashTable *, void *, uint16_t);
 int HashTableRemove(HashTable *, void *, uint16_t);
