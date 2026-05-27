@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -73,6 +73,18 @@ error:
         SCFree(ht);
     }
     return NULL;
+}
+
+HashTable *HashTableInitWithSeed(uint32_t size,
+        uint32_t (*Hash)(struct HashTable_ *, void *, uint16_t),
+        char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *),
+        const uint32_t seed)
+{
+    HashTable *ht = HashTableInit(size, Hash, Compare, Free);
+    if (ht != NULL) {
+        ht->seed = seed;
+    }
+    return ht;
 }
 
 /**
