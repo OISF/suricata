@@ -18,6 +18,19 @@ properties than the default "threat detection" rulesets:
 Concepts
 ========
 
+Firewall vs Threat Detection (TD)
+---------------------------------
+
+The interaction between firewall and TD is concepualized as if they are 2 seperate
+instances, where the firewall instance runs first, and it passes along to the TD
+instance what is accepted by the firewall.
+
+This is reflected in the stats, where a packet accepted by the firewall is counted
+as ``firewall.accepted``. If it was also allowed by TD, it will additionally be
+counted as ``ips.accepted``. If it was dropped by firewall, only ``firewall.blocked``
+will be incremented. No ``ips.*`` counter will be updated as conceptually the TD
+instance won't have seen the packet.
+
 Tables
 ------
 
@@ -93,8 +106,38 @@ drop
 * ``packet`` drop this packet directly, don't eval any further rules
 * ``flow`` drop this packet as with ``packet`` and drop all future packets in this flow
 
-.. note:: the action ``pass`` is not available in firewall rules due to ambiguity around
-   the existing meaning for threat detection rules.
+.. note:: unlike in threat detection mode rules, a ``drop`` in a firewall rule does not
+   imply alert
+
+pass
+~~~~
+
+``pass`` is not available as a primary firewall action, but can be used as a secondary
+action in firewall rules. The effect of the action will only apply to threat detection rules.
+
+alert
+~~~~~
+
+``alert`` is not available as a primary firewall action, but can be used as a secondary
+action in firewall rules. The effect will be the creation of an alert event when the
+firewall rule matches.
+
+Multi action rules
+~~~~~~~~~~~~~~~~~~
+
+In firewall rules, multiple actions can be specified: a primary firewall action, followed
+by one or more secondary actions.
+
+Example::
+
+    accept:flow,pass:flow,alert tls:client_hello_done ... tls.sni; ...
+
+In this example the first action ``accept:flow`` is the primary firewall action. When the
+rule matches, the flow will be accepted. The secondary actions ``pass:flow`` and ``alert`` are
+evaluated in the context of the threat detection engine.
+
+.. note:: the secondary actions are only evaluated if the primary firewall action is accepted.
+   This is different from the behavior of the ``pass`` action in threat detection mode.
 
 .. _rule-hooks:
 
@@ -284,3 +327,34 @@ The example below accepts ARP again, using this mechanism.
 ::
 
     accept:packet ether:all any any -> any any (ether.hdr; content:"|08 06|"; offset:12; depth:2; sid:1;)
+
+
+Default policies
+================
+
+Each hook has a default policy. By default ``packet:filter`` enforces a ``drop:packet`` policy and the
+``app:filter`` hooks applies ``drop:flow``.
+
+The policies can be configured in ``firewall`` block in the config.
+
+Example for ``packet:filter``, to use reject instead of drop::
+
+    firewall:
+      policies:
+        packet-filter: [ "reject:packet" ]
+
+
+Example for DNS::
+
+    firewall:
+      policies:
+        dns:
+          request-started: ["accept:hook"]
+
+          # Drop and alert on all DNS requests that are not allowed in
+          # firewall.rules.
+          request-complete: ["drop:flow", "alert"]
+
+          # Accept all responses.
+          response-started: ["accept:tx"]
+
