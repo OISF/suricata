@@ -244,6 +244,23 @@ ssh
 
 Available states are listed in :ref:`ssh-hooks`.
 
+Auto-accept prior states
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+To avoid creating lots of boilerplate ``accept`` rules there is a special notation to have
+a rule accept not just the hook it matches in, but also the hooks before it.
+
+Example::
+
+    accept:flow tls:<client_hello_done ... tls.sni; content:"suricata.io"; ...
+
+The main matching logic here is in the ``tls:client_hello_done`` hook. The state before it,
+``tls:client_in_progress`` is also accepted, as if the ruleset was actually::
+
+    accept:hook tls:client_in_progress ...
+    accept:flow tls:client_hello_done ... tls.sni; content:"suricata.io"; ...
+
+This logic only applies to the ``app:filter`` table.
 
 Firewall pipeline
 -----------------
