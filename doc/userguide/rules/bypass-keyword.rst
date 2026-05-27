@@ -11,6 +11,11 @@ The ``bypass`` keyword is useful in cases where there is a large flow expected
 
 The ``bypass`` keyword is considered a post-match keyword.
 
+.. note::
+
+   ``bypass`` cannot be used in firewall mode, not even with Threat Detection
+   rules, as this could lead to bypassing the firewall altogether.
+
 bypass
 ------
 
