@@ -4,6 +4,7 @@ use suricata_ffi::eve::{self, SCJsonBuilder};
 use suricata_ffi::flow::{self, Flow, FlowStorage};
 use suricata_ffi::jsonbuilder::JsonBuilder;
 use suricata_ffi::packet::Packet;
+use suricata_ffi::thread;
 use suricata_ffi::threadvars::ThreadVars;
 use suricata_ffi::{SCLogError, SCLogNotice};
 use suricata_sys::sys::{
@@ -23,6 +24,7 @@ unsafe extern "C" fn init() {
 pub fn register() -> Result<(), &'static str> {
     register_eve_callbacks()?;
     register_flow_callbacks()?;
+    register_thread_callbacks()?;
     Ok(())
 }
 
@@ -31,6 +33,13 @@ pub fn register_eve_callbacks() -> Result<(), &'static str> {
         return Err("Failed to register raw EVE callback");
     }
     eve::register_callback(log_eve_wrapped)
+}
+
+pub fn register_thread_callbacks() -> Result<(), &'static str> {
+    // This thread init callback registration shows how we can use a closure to
+    // pass "user" data.
+    let user_data = "foo";
+    thread::register_init_callback(|tv| on_thread_init(tv, user_data))
 }
 
 #[derive(Default)]
@@ -72,6 +81,13 @@ fn log_eve_wrapped(
     jb.set_string("has_flow", if f.is_some() { "true" } else { "false" })?;
     jb.close()?;
     Ok(())
+}
+
+fn on_thread_init(tv: ThreadVars<'_>, _foo: &str) {
+    SCLogNotice!(
+        "rust example thread init callback: thread={:p}",
+        tv.as_ptr()
+    );
 }
 
 fn log_flow_init(
