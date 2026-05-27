@@ -3,6 +3,7 @@ use std::ptr::null_mut;
 use suricata_ffi::eve::{self, SCJsonBuilder};
 use suricata_ffi::flow;
 use suricata_ffi::jsonbuilder::JsonBuilder;
+use suricata_ffi::thread;
 use suricata_ffi::{SCLogError, SCLogNotice};
 use suricata_sys::sys::{Flow, Packet, SCEveRegisterCallback, SCPlugin, ThreadVars};
 
@@ -15,6 +16,9 @@ unsafe extern "C" fn init() {
     }
     if let Err(err) = register_flow_callbacks() {
         SCLogError!("Failed to register rust example flow callbacks: {}", err);
+    }
+    if let Err(err) = register_thread_callbacks() {
+        SCLogError!("Failed to register rust example thread callbacks: {}", err);
     }
 }
 
@@ -30,6 +34,10 @@ fn register_flow_callbacks() -> Result<(), &'static str> {
     flow::register_update_callback(log_flow_update)?;
     flow::register_finish_callback(log_flow_finish)?;
     Ok(())
+}
+
+pub fn register_thread_callbacks() -> Result<(), &'static str> {
+    thread::register_init_callback(on_thread_init)
 }
 
 unsafe extern "C" fn log_eve_raw(
@@ -56,6 +64,10 @@ fn log_eve_wrapped(
     jb.set_string("has_flow", if f.is_null() { "false" } else { "true" })?;
     jb.close()?;
     Ok(())
+}
+
+fn on_thread_init(tv: *mut ThreadVars) {
+    SCLogNotice!("rust example thread init callback: thread={:p}", tv);
 }
 
 fn log_flow_init(_tv: *mut ThreadVars, _f: *mut Flow, _p: *const Packet) {
