@@ -973,6 +973,11 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         goto error;
     }
 
+    if (EngineModeIsFirewall() && (st->flags & SIGMATCH_BAN_FIREWALL_MODE) != 0) {
+        SCLogError("keyword \'%s\' is not allowed in firewall mode", optname);
+        goto error;
+    }
+
     int setup_ret = 0;
 
     /* Validate double quoting, trimming trailing white space along the way. */
