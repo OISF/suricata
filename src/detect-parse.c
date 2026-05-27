@@ -973,6 +973,11 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         goto error;
     }
 
+    if (EngineModeIsFirewall() && (st->flags & SIGMATCH_BAN_FIREWALL_MODE) != 0) {
+        SCLogError("keyword \'%s\' is not allowed in firewall mode", optname);
+        goto error;
+    }
+
     int setup_ret = 0;
 
     /* Validate double quoting, trimming trailing white space along the way. */
@@ -990,12 +995,6 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         if (ovlen == 0) {
             SCLogError("invalid formatting or malformed option to %s keyword: \'%s\'", optname,
                     optstr);
-            goto error;
-        }
-
-        /** error with firewall rule ban before firewall untested warning */
-        if (s->init_data->firewall_rule && (st->flags & SIGMATCH_BAN_FIREWALL_RULE) != 0) {
-            SCLogError("keyword \'%s\' is not allowed with firewall rules", optname);
             goto error;
         }
 
