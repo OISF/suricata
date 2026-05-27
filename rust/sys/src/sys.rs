@@ -1878,6 +1878,20 @@ extern "C" {
         Free: ::std::option::Option<unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void)>,
     ) -> SCFlowStorageId;
 }
+#[doc = " \\brief Function type for thread intialization callbacks.\n\n Once registered by SCThreadRegisterInitCallback, this function will\n be called for every thread being initialized during Suricata\n startup.\n\n \\param tv The ThreadVars struct that has just been initialized.\n \\param user The user data provided when registering the callback."]
+pub type SCThreadInitCallbackFn = ::std::option::Option<
+    unsafe extern "C" fn(tv: *mut ThreadVars, user: *mut ::std::os::raw::c_void),
+>;
+extern "C" {
+    #[doc = " \\brief Register a thread init callback.\n\n Register a user provided function to be called every time a thread is\n initialized for use.\n\n \\param fn Pointer to function to be called\n \\param user Additional user data to be passed to callback\n\n \\returns true if callback was registered, otherwise false if the\n     callback could not be registered due to memory allocation error."]
+    pub fn SCThreadRegisterInitCallback(
+        fn_: SCThreadInitCallbackFn, user: *mut ::std::os::raw::c_void,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = " \\internal\n\n Run all registered flow init callbacks."]
+    pub fn SCThreadRunInitCallbacks(tv: *mut ThreadVars);
+}
 extern "C" {
     pub fn SCSRepCatGetByShortname(shortname: *const ::std::os::raw::c_char) -> u8;
 }
