@@ -633,8 +633,7 @@ static inline void PacketAlertFinalizeProcessQueue(
             }
 
             if (dropped) {
-                SCLogDebug("Skippig firewall signature after a drop.");
-                p->alerts.firewall_discarded++;
+                SCLogDebug("Skipping firewall signature after a drop.");
                 continue;
             }
 
