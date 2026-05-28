@@ -356,6 +356,9 @@ typedef struct AFPThreadVars_
     struct ebpf_timeout_config ebpf_t_config;
 #endif
 #ifdef AFPACKET_TEST_REPLAY
+    /* Test-replay stop condition: ReceiveAFPLoop exits after this many
+     * packets. Set from AFPIfaceConfig::max_packets at thread init. A
+     * value of 0 disables the cap (loop runs until normal stop). */
     uint32_t max_packets;
 #endif
 } AFPThreadVars;
@@ -1432,7 +1435,12 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
             StatsCounterIncr(&ptv->tv->stats, ptv->capture_afp_poll_data);
             r = AFPReadFunc(ptv);
 #ifdef AFPACKET_TEST_REPLAY
-            if (ptv->max_packets > 0 && ptv->pkts >= ptv->max_packets) {
+            /* Test-replay stop condition: signal Suricata to stop after the
+             * configured number of packets so suricata-verify live tests
+             * driven by tcpreplay terminate deterministically. ptv->pkts is
+             * uint64_t; widen max_packets so the comparison is unsigned and
+             * same-width. */
+            if (ptv->max_packets > 0 && ptv->pkts >= (uint64_t)ptv->max_packets) {
                 suricata_ctl_flags |= SURICATA_STOP;
             }
 #endif
