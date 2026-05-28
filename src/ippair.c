@@ -434,8 +434,11 @@ static inline int IPPairCompare(IPPair *p, Address *a, Address *b)
 {
     /* compare in both directions */
     if ((CMP_ADDR(&p->a[0], a) && CMP_ADDR(&p->a[1], b)) ||
-        (CMP_ADDR(&p->a[0], b) && CMP_ADDR(&p->a[1], a)))
-        return 1;
+            (CMP_ADDR(&p->a[0], b) && CMP_ADDR(&p->a[1], a))) {
+        if (p->a[0].family == a->family) {
+            return 1;
+        }
+    }
     return 0;
 }
 
