@@ -1731,17 +1731,25 @@ static enum DetectTxFirewallFlowControl DetectFirewallApplyDefaultPolicies(
         DetectTransaction *tx, Packet *p, const AppProto alproto, const uint8_t direction,
         const uint8_t start_hook, const uint8_t end_hook, const bool is_last)
 {
-    uint8_t actions = 0;
-    for (uint8_t hook = start_hook; hook <= end_hook; hook++) {
-        SCLogDebug("%" PRIu64 ": %s default policy for hook %u", PcapPacketCntGet(p),
-                direction & STREAM_TOSERVER ? "toserver" : "toclient", hook);
+    DEBUG_VALIDATE_BUG_ON(start_hook > end_hook);
 
-        const bool apply_to_packet = is_last && hook == tx->tx_end_state;
+    const bool need_verdict =
+            is_last && (end_hook == tx->tx_end_state || end_hook == tx->tx_progress);
+    SCLogDebug("need_verdict:%s is_last:%s end_hook:%u tx->tx_end_state:%u tx->progress: %u",
+            BOOL2STR(need_verdict), BOOL2STR(is_last), end_hook, tx->tx_end_state, tx->tx_progress);
+
+    for (uint8_t hook = start_hook; hook <= end_hook; hook++) {
+        const bool apply_to_packet =
+                is_last && (hook == tx->tx_end_state || hook == tx->tx_progress);
+
+        SCLogDebug("%" PRIu64 ": %s default policy for hook %u, apply_to_packet %s",
+                PcapPacketCntGet(p), direction & STREAM_TOSERVER ? "toserver" : "toclient", hook,
+                BOOL2STR(apply_to_packet));
+
         const struct DetectFirewallPolicy *policy = DetectFirewallApplyDefaultAppPolicy(
                 det_ctx, det_ctx->de_ctx->fw_policies->app, p, alproto, direction, hook);
         SCLogDebug("fw: hook:%u policy:%02x apply_to_packet:%s", hook, policy->action,
                 BOOL2STR(apply_to_packet));
-        actions |= policy->action;
         if (policy->action & ACTION_DROP) {
             SCLogDebug("fw: action %02x", policy->action);
             if (policy->action & ACTION_ALERT) {
@@ -1758,9 +1766,9 @@ static enum DetectTxFirewallFlowControl DetectFirewallApplyDefaultPolicies(
                 SCLogDebug("fw: accept flow");
                 if (policy->action & ACTION_ALERT) {
                     DetectRunAppendDefaultAppPolicyAlert(
-                            det_ctx, p, apply_to_packet, direction, tx->tx_id, alproto, hook);
+                            det_ctx, p, true, direction, tx->tx_id, alproto, hook);
                 } else {
-                    SCLogDebug("default accept");
+                    SCLogDebug("fw: ACTION_ACCEPT with ACTION_SCOPE_FLOW. Append default accept");
                     DetectRunAppendDefaultAccept(det_ctx, p);
                 }
                 return DETECT_TX_FW_FC_SKIP;
@@ -1778,6 +1786,7 @@ static enum DetectTxFirewallFlowControl DetectFirewallApplyDefaultPolicies(
                 return DETECT_TX_FW_FC_SKIP;
 
             } else if (policy->action_scope == ACTION_SCOPE_HOOK) {
+                SCLogDebug("ACTION_SCOPE_HOOK, applying to packet %s", BOOL2STR(apply_to_packet));
                 if (policy->action & ACTION_ALERT) {
                     DetectRunAppendDefaultAppPolicyAlert(
                             det_ctx, p, apply_to_packet, direction, tx->tx_id, alproto, hook);
@@ -1785,19 +1794,28 @@ static enum DetectTxFirewallFlowControl DetectFirewallApplyDefaultPolicies(
                     DetectRunAppendDefaultAccept(det_ctx, p);
                     SCLogDebug("DetectRunAppendDefaultAccept for last tx");
                 }
+                /* we're done */
+                if (apply_to_packet) {
+                    return DETECT_TX_FW_FC_SKIP;
+                }
+            } else {
+                DEBUG_VALIDATE_BUG_ON(1);
             }
         } else {
-            if (policy->action & ACTION_ALERT) {
-                DetectRunAppendDefaultAppPolicyAlert(
-                        det_ctx, p, apply_to_packet, direction, tx->tx_id, alproto, hook);
-            }
+            DEBUG_VALIDATE_BUG_ON(1);
         }
     }
 
-    if ((is_last && (actions & (ACTION_ACCEPT | ACTION_DROP)) == ACTION_ACCEPT)) {
-        SCLogDebug("default accept: last tx and at least one accept");
+    /* if the tx progress is at end_hook state, it means the rule that called us cannot
+     * match: it's app_progress_hook is not yet available. In this can we need to set
+     * a default accept. This happens if we got only `accept:hook` policies. */
+    if (need_verdict) {
+        SCLogDebug("default accept: last tx and progress at end_hook %u", end_hook);
         DetectRunAppendDefaultAccept(det_ctx, p);
+        /* break as we can't match the calling signature */
+        return DETECT_TX_FW_FC_BREAK;
     }
+
     return DETECT_TX_FW_FC_OK;
 }
 
@@ -1860,7 +1878,6 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
         }
         /* if our first rule is beyond the starting state, we need to check if
          * there are rules missing for states in between. */
-        // TODO detect_progress_orig already is +1?
         if (s->app_progress_hook > tx->detect_progress_orig && can_idx == 0) {
             SCLogDebug("missing fw rules at list start: sid %u, progress %u (%u:%u)", s->id,
                     s->app_progress_hook, tx->detect_progress, tx->detect_progress_orig);
@@ -1869,7 +1886,9 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
             enum DetectTxFirewallFlowControl r = DetectFirewallApplyDefaultPolicies(det_ctx,
                     det_ctx->de_ctx->fw_policies->app, tx, p, s->alproto, direction,
                     tx->detect_progress_orig, s->app_progress_hook - 1, last_tx);
-            fw_state->tx_fw_verdict = true;
+            if (r != DETECT_TX_FW_FC_OK) {
+                fw_state->tx_fw_verdict = true;
+            }
             return r;
         }
     }
