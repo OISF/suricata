@@ -2458,7 +2458,7 @@ static void DetectRunTx(ThreadVars *tv,
                         DetectRunAppendDefaultAppPolicyAlert(det_ctx, p, true, flow_flags, tx.tx_id,
                                 alproto, s->app_progress_hook);
                     }
-                } else if (policy->action == ACTION_ACCEPT) {
+                } else if (policy->action & ACTION_ACCEPT) {
                     SCLogDebug("accept hook(s)? current hook %u (tx.detect_progress %u) max %u",
                             s->app_progress_hook, tx.detect_progress, tx.tx_progress);
 
@@ -2469,9 +2469,16 @@ static void DetectRunTx(ThreadVars *tv,
 
                     /* if this is also the last fw rule we'll inspect we have to issue a default
                      * accept to the packet */
-                    if (last_tx && s->app_progress_hook == tx.tx_progress) {
-                        SCLogDebug("default accept: last_tx");
-                        DetectRunAppendDefaultAccept(det_ctx, p);
+                    if (s->app_progress_hook == tx.tx_progress ||
+                            policy->action_scope == ACTION_SCOPE_TX) {
+                        if (policy->action & ACTION_ALERT) {
+                            SCLogDebug("policy alert, do the append");
+                            DetectRunAppendDefaultAppPolicyAlert(det_ctx, p, last_tx, flow_flags,
+                                    tx.tx_id, alproto, s->app_progress_hook);
+                        } else if (last_tx) {
+                            SCLogDebug("default accept: last_tx");
+                            DetectRunAppendDefaultAccept(det_ctx, p);
+                        }
                     }
                 }
                 fw_state.tx_fw_verdict = true;
