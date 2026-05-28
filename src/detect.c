@@ -1868,9 +1868,6 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
     }
 
     /* handle missing rules case */
-    fw_state->fw_next_progress_missing = false;
-    fw_state->fw_last_for_progress = false;
-
     if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
         SCLogDebug("SIG_FLAG_FW_HOOK_LTE");
         return DETECT_TX_FW_FC_OK; // TODO check for other cases
@@ -2343,6 +2340,9 @@ static void DetectRunTx(ThreadVars *tv,
                 } else if (fw_r == DETECT_TX_FW_FC_BREAK) {
                     break;
                 }
+
+                fw_state.fw_last_for_progress = false;
+                fw_state.fw_next_progress_missing = false; // reset
             }
 
             /* deduplicate: rules_array is sorted, but not deduplicated:
@@ -2443,7 +2443,6 @@ static void DetectRunTx(ThreadVars *tv,
 
                         fw_state.fw_skip_app_filter = ApplyAccept(
                                 det_ctx, p, flow_flags, s, &tx, tx_end_state, last_tx, &fw_state);
-                        fw_state.fw_next_progress_missing = false; // reset
                     } else if (s->action & ACTION_DROP) {
                         SCLogDebug("drop packet because of rule with drop action");
                         PacketDrop(p, s->action, PKT_DROP_REASON_FW_RULES);
