@@ -2488,22 +2488,15 @@ static void DetectRunTx(ThreadVars *tv,
                         flow_flags & STREAM_TOSERVER ? "toserver" : "toclient",
                         s->app_progress_hook);
                 /* if this rule was the last for our progress state, and it didn't match,
-                 * we have to invoke the default policy. We only check the current rule hook. */
+                 * we have to invoke the default policy. We only check the current rule hook.
+                 * DROP is immediate, flow control for various accept options is handled by
+                 * the DetectRunTxPreCheckFirewallPolicy function for the next rule. */
                 const struct DetectFirewallPolicy *policy = DetectFirewallApplyDefaultAppPolicy(
                         det_ctx, det_ctx->de_ctx->fw_policies->app, &tx, p, s->alproto, flow_flags,
                         s->app_progress_hook, last_tx);
                 SCLogDebug("fw_last_for_progress policy %02x", policy->action);
                 if (policy->action & ACTION_DROP) {
-                    fw_state.fw_skip_app_filter = true;
-                    SCLogDebug("packet %02x", p->action);
-                } else if (policy->action & ACTION_ACCEPT) {
-                    SCLogDebug("accept hook(s)? current hook %u (tx.detect_progress %u) max %u",
-                            s->app_progress_hook, tx.detect_progress, tx.tx_progress);
-
-                    /* accepting flow, so skip rest of the fw rules */
-                    if (policy->action_scope == ACTION_SCOPE_FLOW) {
-                        fw_state.fw_skip_app_filter = true;
-                    }
+                    return;
                 }
             }
             DetectVarProcessList(det_ctx, p->flow, p);
