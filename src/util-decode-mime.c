@@ -1450,11 +1450,19 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
     offset = 0;
     if (state->bvr_len > 0 && state->bvremain[0] == '=') {
         // we were escaping
+        if (remaining == 0) {
+            return MIME_DEC_OK;
+        }
         if (state->bvr_len > 1) {
             h1 = state->bvremain[1];
             h2 = *(buf + offset);
         } else {
             h1 = *(buf + offset);
+            if (remaining == 1) {
+                state->bvremain[1] = h1;
+                state->bvr_len++;
+                return MIME_DEC_OK;
+            }
             h2 = *(buf + offset + 1);
         }
         res = DecodeQPChar(h1);
