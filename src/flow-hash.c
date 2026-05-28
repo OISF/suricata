@@ -412,7 +412,9 @@ static inline bool CmpFlowPacket(const Flow *f, const Packet *p)
     const uint32_t *p_dst = p->dst.address.address_un_data32;
     return CmpAddrsAndPorts(f_src, f_dst, f->sp, f->dp, p_src, p_dst, p->sp, p->dp) &&
            f->proto == p->proto && f->recursion_level == p->recursion_level &&
-           CmpVlanIds(f->vlan_id, p->vlan_id) && (f->livedev == p->livedev || g_livedev_mask == 0);
+           CmpVlanIds(f->vlan_id, p->vlan_id) &&
+           ((p->src.family == AF_INET) == FLOW_IS_IPV4(f)) &&
+           (f->livedev == p->livedev || g_livedev_mask == 0);
 }
 
 static inline bool CmpFlowKey(const Flow *f, const FlowKey *k)
@@ -423,7 +425,9 @@ static inline bool CmpFlowKey(const Flow *f, const FlowKey *k)
     const uint32_t *k_dst = k->dst.address.address_un_data32;
     return CmpAddrsAndPorts(f_src, f_dst, f->sp, f->dp, k_src, k_dst, k->sp, k->dp) &&
            f->proto == k->proto && f->recursion_level == k->recursion_level &&
-           CmpVlanIds(f->vlan_id, k->vlan_id) && CmpLiveDevIds(f->livedev, k->livedev_id);
+           CmpVlanIds(f->vlan_id, k->vlan_id) &&
+           ((k->src.family == AF_INET) == FLOW_IS_IPV4(f)) &&
+           CmpLiveDevIds(f->livedev, k->livedev_id);
 }
 
 static inline bool CmpAddrsAndICMPTypes(const uint32_t src1[4],
@@ -471,7 +475,9 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
         if ((f->src.addr_data32[0] == IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p))) &&
                 (f->dst.addr_data32[0] == IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p))) &&
                 f->sp == p->icmpv4vars.emb_sport && f->dp == p->icmpv4vars.emb_dport &&
-                f->proto == ICMPV4_GET_EMB_PROTO(p) && f->recursion_level == p->recursion_level &&
+                f->proto == ICMPV4_GET_EMB_PROTO(p) &&
+                ((p->src.family == AF_INET) == FLOW_IS_IPV4(f)) &&
+                f->recursion_level == p->recursion_level &&
                 CmpVlanIds(f->vlan_id, p->vlan_id) &&
                 (f->livedev == p->livedev || g_livedev_mask == 0)) {
             return 1;
@@ -482,6 +488,7 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
                    (f->src.addr_data32[0] == IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p))) &&
                    f->dp == p->icmpv4vars.emb_sport && f->sp == p->icmpv4vars.emb_dport &&
                    f->proto == ICMPV4_GET_EMB_PROTO(p) &&
+                   ((p->src.family == AF_INET) == FLOW_IS_IPV4(f)) &&
                    f->recursion_level == p->recursion_level && CmpVlanIds(f->vlan_id, p->vlan_id) &&
                    (f->livedev == p->livedev || g_livedev_mask == 0)) {
             return 1;
@@ -514,7 +521,8 @@ static inline int FlowCompareESP(Flow *f, const Packet *p)
 
     return CmpAddrs(f_src, p_src) && CmpAddrs(f_dst, p_dst) && f->proto == p->proto &&
            f->recursion_level == p->recursion_level && CmpVlanIds(f->vlan_id, p->vlan_id) &&
-           f->esp.spi == ESP_GET_SPI(p) && (f->livedev == p->livedev || g_livedev_mask == 0);
+           ((p->src.family == AF_INET) == FLOW_IS_IPV4(f)) && f->esp.spi == ESP_GET_SPI(p) &&
+           (f->livedev == p->livedev || g_livedev_mask == 0);
 }
 
 void FlowSetupPacket(Packet *p)
