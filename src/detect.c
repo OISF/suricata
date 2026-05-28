@@ -2167,7 +2167,6 @@ static void DetectRunTx(ThreadVars *tv,
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
     AppLayerGetTxIterState state = { 0 };
 
-    uint32_t fw_verdicted = 0;
     uint32_t tx_inspected = 0;
     const bool have_fw_rules = EngineModeIsFirewall();
 
@@ -2323,7 +2322,6 @@ static void DetectRunTx(ThreadVars *tv,
             const int r = DetectTxFirewallNoRulesApplyPolicies(
                     det_ctx, p, f, &tx, alproto, flow_flags, array_idx, last_tx);
             if (r != 0) {
-                fw_verdicted++;
                 if (r == 1) {
                     SCLogDebug("done");
                     return;
@@ -2551,8 +2549,6 @@ static void DetectRunTx(ThreadVars *tv,
                 PMQ_RESET(&det_ctx->pmq);
             }
         }
-        if (fw_state.tx_fw_verdict)
-            fw_verdicted++;
 
         det_ctx->tx_id = 0;
         det_ctx->tx_id_set = false;
@@ -2590,10 +2586,9 @@ static void DetectRunTx(ThreadVars *tv,
             break;
     }
 
-    SCLogDebug("packet %" PRIu64 ": tx_inspected %u fw_verdicted %u", PcapPacketCntGet(p),
-            tx_inspected, fw_verdicted);
+    SCLogDebug("packet %" PRIu64 ": tx_inspected %u", PcapPacketCntGet(p), tx_inspected);
     /* if all tables have been bypassed, we accept:packet */
-    if (tx_inspected == 0 && fw_verdicted == 0 && have_fw_rules) {
+    if (tx_inspected == 0 && have_fw_rules) {
         SCLogDebug("default accept: no app inspect performed");
         DetectRunAppendDefaultAccept(det_ctx, p);
     }
