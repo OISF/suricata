@@ -122,6 +122,10 @@ typedef struct AFPIfaceConfig_
     struct ebpf_timeout_config ebpf_t_config;
 #endif
 #ifdef AFPACKET_TEST_REPLAY
+    /* Stop the af-packet receive loop after this many packets. Used by
+     * suricata-verify live tests driven by tcpreplay so Suricata exits
+     * deterministically once the replay completes. A value of 0 means no
+     * cap (loop runs until the normal stop signal). */
     uint32_t max_packets;
 #endif
     SC_ATOMIC_DECLARE(unsigned int, ref);
