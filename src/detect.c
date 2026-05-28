@@ -1628,7 +1628,6 @@ static inline void RuleMatchCandidateMergeStateRules(
 
 struct DetectFirewallAppTxState {
     bool fw_skip_app_filter;
-    bool tx_fw_verdict;
     bool skip_fw_hook;
     uint8_t skip_before_progress;
     bool fw_last_for_progress;
@@ -1826,15 +1825,24 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
         const Signature *s, const uint32_t can_idx, struct DetectFirewallAppTxState *fw_state,
         const bool last_tx)
 {
-    if ((s->flags & SIG_FLAG_FIREWALL) != 0 && fw_state->fw_skip_app_filter) {
-        return DETECT_TX_FW_FC_SKIP;
+    SCLogDebug("packet %" PRIu64 ": running pre-checks before sid %u", p->pcap_cnt, s->id);
+
+    /* enforce skip app filter. If a prior rule caused a fw_skip_app_filter set, we will skip
+     * each fw rule from now. Non-FW rules will just be inspected. Non-FW need to hit this
+     * path to help put into effect the FLOW_ACTION_ACCEPT/APP_LAYER_TX_ACCEPT and call
+     * the default policy enforcement. */
+    if (fw_state->fw_skip_app_filter) {
+        if ((s->flags & SIG_FLAG_FIREWALL) != 0) {
+            return DETECT_TX_FW_FC_SKIP;
+        } else {
+            return DETECT_TX_FW_FC_OK;
+        }
     }
     if (p->flow->flags & FLOW_ACTION_ACCEPT) {
-        if (fw_state->tx_fw_verdict == false) {
-            fw_state->tx_fw_verdict = true;
-            SCLogDebug("default accept due to flow accept");
-            DetectRunAppendDefaultAccept(det_ctx, p);
-        }
+        fw_state->fw_skip_app_filter = true;
+        SCLogDebug("default accept due to flow accept");
+        DetectRunAppendDefaultAccept(det_ctx, p);
+
         if (s->flags & SIG_FLAG_FIREWALL) {
             return DETECT_TX_FW_FC_SKIP;
         }
@@ -1843,13 +1851,11 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
     if (tx->tx_data_ptr->flags & APP_LAYER_TX_ACCEPT) {
         /* append a blank accept:packet action for the APP_LAYER_TX_ACCEPT,
          * if this is the last tx */
-        if (!fw_state->tx_fw_verdict) {
-            const bool accept_tx_applies_to_packet = last_tx;
-            if (accept_tx_applies_to_packet) {
-                SCLogDebug("accept:tx: should be applied to the packet");
-                DetectRunAppendDefaultAccept(det_ctx, p);
-            }
-            fw_state->tx_fw_verdict = true;
+        fw_state->fw_skip_app_filter = true;
+        const bool accept_tx_applies_to_packet = last_tx;
+        if (accept_tx_applies_to_packet) {
+            SCLogDebug("accept:tx: should be applied to the packet");
+            DetectRunAppendDefaultAccept(det_ctx, p);
         }
 
         if (s->flags & SIG_FLAG_FIREWALL) {
@@ -1858,29 +1864,34 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
         }
 
         /* threat detect rules will be inspected */
-    } else if (s->flags & SIG_FLAG_FIREWALL) {
-        fw_state->fw_next_progress_missing = false;
-        fw_state->fw_last_for_progress = false;
+        return DETECT_TX_FW_FC_OK;
+    }
 
-        if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
-            SCLogDebug("SIG_FLAG_FW_HOOK_LTE");
-            return DETECT_TX_FW_FC_OK; // TODO check for other cases
+    /* handle missing rules case */
+    fw_state->fw_next_progress_missing = false;
+    fw_state->fw_last_for_progress = false;
+
+    if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
+        SCLogDebug("SIG_FLAG_FW_HOOK_LTE");
+        return DETECT_TX_FW_FC_OK; // TODO check for other cases
+    }
+    /* if our first rule is beyond the starting state, we need to check if
+     * there are rules missing for states in between. */
+    if (s->app_progress_hook > tx->detect_progress_orig && can_idx == 0) {
+        SCLogDebug("missing fw rules at list start: sid %u, progress %u (%u:%u)", s->id,
+                s->app_progress_hook, tx->detect_progress, tx->detect_progress_orig);
+        /* if this rule was after the state we expected meaning that there are
+         * no rules for that state. Invoke the default policies. */
+        enum DetectTxFirewallFlowControl r = DetectFirewallApplyDefaultPolicies(det_ctx,
+                det_ctx->de_ctx->fw_policies->app, tx, p, s->alproto, direction,
+                tx->detect_progress_orig, s->app_progress_hook - 1, last_tx);
+        if (r != DETECT_TX_FW_FC_OK) {
+            /* both SKIP and BREAK mean: no more fw rules to inspect.
+             * SKIP applies to just this TX.
+             * DROP applies to everything. */
+            fw_state->fw_skip_app_filter = true;
         }
-        /* if our first rule is beyond the starting state, we need to check if
-         * there are rules missing for states in between. */
-        if (s->app_progress_hook > tx->detect_progress_orig && can_idx == 0) {
-            SCLogDebug("missing fw rules at list start: sid %u, progress %u (%u:%u)", s->id,
-                    s->app_progress_hook, tx->detect_progress, tx->detect_progress_orig);
-            /* if this rule was after the state we expected meaning that there are
-             * no rules for that state. Invoke the default policies. */
-            enum DetectTxFirewallFlowControl r = DetectFirewallApplyDefaultPolicies(det_ctx,
-                    det_ctx->de_ctx->fw_policies->app, tx, p, s->alproto, direction,
-                    tx->detect_progress_orig, s->app_progress_hook - 1, last_tx);
-            if (r != DETECT_TX_FW_FC_OK) {
-                fw_state->tx_fw_verdict = true;
-            }
-            return r;
-        }
+        return r;
     }
     return DETECT_TX_FW_FC_OK;
 }
@@ -2023,8 +2034,6 @@ static bool ApplyAccept(DetectEngineThreadCtx *det_ctx, Packet *p, const uint8_t
         const Signature *s, DetectTransaction *tx, const int tx_end_state, const bool is_last,
         struct DetectFirewallAppTxState *fw_state)
 {
-    fw_state->tx_fw_verdict = true;
-
     const enum ActionScope as = s->action_scope;
     /* accept:hook: jump to first rule of next state.
      * Implemented as skip until the first rule of next state. */
@@ -2033,11 +2042,10 @@ static bool ApplyAccept(DetectEngineThreadCtx *det_ctx, Packet *p, const uint8_t
         fw_state->skip_before_progress = s->app_progress_hook;
 
         SCLogDebug("fw match sid:%u hook:%u", s->id, s->app_progress_hook);
-        SCLogDebug("fw fw_skip_app_filter:%s tx_fw_verdict:%s skip_fw_hook:%s "
+        SCLogDebug("fw fw_skip_app_filter:%s skip_fw_hook:%s "
                    "skip_before_progress:%u fw_last_for_progress:%s fw_next_progress_missing:%s",
-                BOOL2STR(fw_state->fw_skip_app_filter), BOOL2STR(fw_state->tx_fw_verdict),
-                BOOL2STR(fw_state->skip_fw_hook), fw_state->skip_before_progress,
-                BOOL2STR(fw_state->fw_last_for_progress),
+                BOOL2STR(fw_state->fw_skip_app_filter), BOOL2STR(fw_state->skip_fw_hook),
+                fw_state->skip_before_progress, BOOL2STR(fw_state->fw_last_for_progress),
                 BOOL2STR(fw_state->fw_next_progress_missing));
         /* if there is no fw rule for the next progress value,
          * we invoke the defaul policies for the remaining available hooks. */
@@ -2284,7 +2292,6 @@ static void DetectRunTx(ThreadVars *tv,
         struct DetectFirewallAppTxState fw_state = {
             false,
             false,
-            false,
             0,
             false,
             false,
@@ -2325,12 +2332,11 @@ static void DetectRunTx(ThreadVars *tv,
                 const enum DetectTxFirewallFlowControl fw_r = DetectRunTxPreCheckFirewallPolicy(
                         det_ctx, p, &tx, flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT), s, i,
                         &fw_state, last_tx);
-                SCLogDebug("fw fw_skip_app_filter:%s tx_fw_verdict:%s skip_fw_hook:%s "
+                SCLogDebug("fw fw_skip_app_filter:%s skip_fw_hook:%s "
                            "skip_before_progress:%u fw_last_for_progress:%s "
                            "fw_next_progress_missing:%s",
-                        BOOL2STR(fw_state.fw_skip_app_filter), BOOL2STR(fw_state.tx_fw_verdict),
-                        BOOL2STR(fw_state.skip_fw_hook), fw_state.skip_before_progress,
-                        BOOL2STR(fw_state.fw_last_for_progress),
+                        BOOL2STR(fw_state.fw_skip_app_filter), BOOL2STR(fw_state.skip_fw_hook),
+                        fw_state.skip_before_progress, BOOL2STR(fw_state.fw_last_for_progress),
                         BOOL2STR(fw_state.fw_next_progress_missing));
                 if (fw_r == DETECT_TX_FW_FC_SKIP) {
                     continue;
@@ -2391,12 +2397,11 @@ static void DetectRunTx(ThreadVars *tv,
             if (have_fw_rules) {
                 const enum DetectTxFirewallFlowControl fw_r = DetectRunTxCheckFirewallPolicy(
                         det_ctx, p, f, &tx, s, i, array_idx, &fw_state);
-                SCLogDebug("fw fw_skip_app_filter:%s tx_fw_verdict:%s skip_fw_hook:%s "
+                SCLogDebug("fw fw_skip_app_filter:%s skip_fw_hook:%s "
                            "skip_before_progress:%u fw_last_for_progress:%s "
                            "fw_next_progress_missing:%s",
-                        BOOL2STR(fw_state.fw_skip_app_filter), BOOL2STR(fw_state.tx_fw_verdict),
-                        BOOL2STR(fw_state.skip_fw_hook), fw_state.skip_before_progress,
-                        BOOL2STR(fw_state.fw_last_for_progress),
+                        BOOL2STR(fw_state.fw_skip_app_filter), BOOL2STR(fw_state.skip_fw_hook),
+                        fw_state.skip_before_progress, BOOL2STR(fw_state.fw_last_for_progress),
                         BOOL2STR(fw_state.fw_next_progress_missing));
                 if (fw_r == DETECT_TX_FW_FC_SKIP)
                     continue;
@@ -2491,7 +2496,6 @@ static void DetectRunTx(ThreadVars *tv,
                         fw_state.fw_skip_app_filter = true;
                     }
                 }
-                fw_state.tx_fw_verdict = true;
             }
             DetectVarProcessList(det_ctx, p->flow, p);
             RULE_PROFILING_END(det_ctx, s, r, p);
