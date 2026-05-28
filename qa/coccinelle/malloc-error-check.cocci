@@ -34,10 +34,12 @@ expression x, E1;
 position malloced.p1;
 statement S1, S2;
 identifier func =~ "(SCMalloc|SCStrdup|SCCalloc|SCMallocAligned|SCRealloc)";
+identifier callee;
 @@
 
 x@p1 = func(...)
 ... when != x
+    when != callee(..., x, ...)
 (
 if (unlikely(x == NULL)) S1
 |
