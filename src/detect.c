@@ -1897,34 +1897,22 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
  * \internal
  * \brief Check and update firewall rules state.
  *
- * \param skip_fw_hook bool to indicate firewall rules skips
- * For state `skip_before_progress` should be skipped.
- *
- * \param skip_before_progress progress value to skip rules before.* Only used if `skip_fw_hook` is
- * set.
- *
- * \param fw_last_for_progress[out] set to true if this is  firewall rule for a progress
- * value
- *
- * \param fw_next_progress_missing[out] set to true if the next fw rule does not target the next
- * progress value, or there is no fw rule for that value.
+ * \param fw_state pointer to flow control state
  *
  * \retval DETECT_TX_FW_FC_OK no action needed
  * \retval DETECT_TX_FW_FC_BREAK rest of rules shouldn't inspected
  * \retval DETECT_TX_FW_FC_SKIP skip this rule
  */
-static enum DetectTxFirewallFlowControl DetectRunTxCheckFirewallPolicy(
-        DetectEngineThreadCtx *det_ctx, Packet *p, Flow *f, DetectTransaction *tx,
-        const Signature *s, const uint32_t can_idx, const uint32_t can_size,
-        struct DetectFirewallAppTxState *fw_state)
+static enum DetectTxFirewallFlowControl DetectRunTxCheckRuleState(DetectEngineThreadCtx *det_ctx,
+        Packet *p, Flow *f, DetectTransaction *tx, const Signature *s, const uint32_t can_idx,
+        const uint32_t can_size, struct DetectFirewallAppTxState *fw_state)
 {
     if (s->flags & SIG_FLAG_FIREWALL) {
         /* check if the next sig is on the same progress hook. If not, we need to apply our
          * default policy in case the current sig doesn't apply one. If the next sig has a
          * progress beyond our progress + 1, it means the next progress has no rules and needs
          * the default policy applied. But only after we evaluate the current rule first, as
-         * that may override it.
-         * TODO should we do this after dedup below? */
+         * that may override it. */
 
         if (can_idx + 1 < can_size) {
             const Signature *next_s = det_ctx->tx_candidates[can_idx + 1].s;
@@ -2395,8 +2383,9 @@ static void DetectRunTx(ThreadVars *tv,
             }
 
             if (have_fw_rules) {
-                const enum DetectTxFirewallFlowControl fw_r = DetectRunTxCheckFirewallPolicy(
-                        det_ctx, p, f, &tx, s, i, array_idx, &fw_state);
+                /* check if we should run this rule and update the firewall flow state */
+                const enum DetectTxFirewallFlowControl fw_r =
+                        DetectRunTxCheckRuleState(det_ctx, p, f, &tx, s, i, array_idx, &fw_state);
                 SCLogDebug("fw fw_skip_app_filter:%s skip_fw_hook:%s "
                            "skip_before_progress:%u fw_last_for_progress:%s "
                            "fw_next_progress_missing:%s",
