@@ -1,7 +1,7 @@
 use std::ptr::null_mut;
 
 use suricata_ffi::eve::{self, SCJsonBuilder};
-use suricata_ffi::flow::{self, Flow};
+use suricata_ffi::flow::{self, Flow, FlowStorage};
 use suricata_ffi::jsonbuilder::JsonBuilder;
 use suricata_ffi::thread::{self, ThreadStorage, ThreadVars};
 use suricata_ffi::{SCLogError, SCLogNotice, SCLogWarning};
@@ -11,6 +11,12 @@ use suricata_sys::sys::{self, Packet, SCEveRegisterCallback, SCPlugin};
 #[derive(Default)]
 struct ThreadState {
     flows: u64,
+}
+
+/// Per-flow state stored in Suricata flow storage.
+#[derive(Default)]
+struct FlowState {
+    packets: u64,
 }
 
 unsafe extern "C" fn init() {
@@ -26,11 +32,18 @@ unsafe extern "C" fn init() {
             return;
         }
     };
+    let flow_storage = match FlowStorage::<FlowState>::register("rust-example-flow") {
+        Ok(storage) => storage,
+        Err(err) => {
+            SCLogError!("Failed to register rust example flow storage: {}", err);
+            return;
+        }
+    };
 
-    if let Err(err) = register_eve_callbacks() {
+    if let Err(err) = register_eve_callbacks(flow_storage) {
         SCLogError!("Failed to register rust example EVE callbacks: {}", err);
     }
-    if let Err(err) = register_flow_callbacks(thread_storage) {
+    if let Err(err) = register_flow_callbacks(thread_storage, flow_storage) {
         SCLogError!("Failed to register rust example flow callbacks: {}", err);
     }
     if let Err(err) = register_thread_callbacks(thread_storage) {
@@ -38,17 +51,22 @@ unsafe extern "C" fn init() {
     }
 }
 
-fn register_eve_callbacks() -> Result<(), &'static str> {
+fn register_eve_callbacks(flow_storage: FlowStorage<FlowState>) -> Result<(), &'static str> {
     if !unsafe { SCEveRegisterCallback(Some(log_eve_raw), null_mut()) } {
         return Err("Failed to register raw EVE callback");
     }
-    eve::register_callback(log_eve_wrapped)
+    eve::register_callback(move |tv, p, f, jb| log_eve_wrapped(flow_storage, tv, p, f, jb))
 }
 
-fn register_flow_callbacks(storage: ThreadStorage<ThreadState>) -> Result<(), &'static str> {
-    flow::register_init_callback(move |tv, f, p| log_flow_init(storage, tv, f, p))?;
-    flow::register_update_callback(log_flow_update)?;
-    flow::register_finish_callback(log_flow_finish)?;
+fn register_flow_callbacks(
+    thread_storage: ThreadStorage<ThreadState>,
+    flow_storage: FlowStorage<FlowState>,
+) -> Result<(), &'static str> {
+    flow::register_init_callback(move |tv, f, p| {
+        log_flow_init(thread_storage, flow_storage, tv, f, p)
+    })?;
+    flow::register_update_callback(move |tv, f, p| log_flow_update(flow_storage, tv, f, p))?;
+    flow::register_finish_callback(move |tv, f| log_flow_finish(flow_storage, tv, f))?;
     Ok(())
 }
 
@@ -70,6 +88,7 @@ unsafe extern "C" fn log_eve_raw(
 }
 
 fn log_eve_wrapped(
+    flow_storage: FlowStorage<FlowState>,
     _tv: &mut ThreadVars,
     _p: *const Packet,
     f: Option<&mut Flow>,
@@ -78,6 +97,13 @@ fn log_eve_wrapped(
     jb.open_object("rust_wrapped")?;
     jb.set_string("example", "eve-callback")?;
     jb.set_string("has_flow", if f.is_some() { "true" } else { "false" })?;
+
+    // If we have a flow, log something from flow storage.
+    if let Some(f) = f {
+        if let Some(state) = flow_storage.get(f) {
+            jb.set_uint("flow_packets", state.packets)?;
+        }
+    }
     jb.close()?;
     Ok(())
 }
@@ -94,13 +120,14 @@ fn on_thread_init(storage: ThreadStorage<ThreadState>, tv: &mut ThreadVars) {
 }
 
 fn log_flow_init(
-    storage: ThreadStorage<ThreadState>,
+    thread_storage: ThreadStorage<ThreadState>,
+    flow_storage: FlowStorage<FlowState>,
     tv: &mut ThreadVars,
     f: &mut Flow,
     _p: *const Packet,
 ) {
     // Count flows seen by this thread using the per-thread storage.
-    let flows = match storage.get_mut(tv) {
+    let flows = match thread_storage.get_mut(tv) {
         Some(state) => {
             state.flows += 1;
             state.flows
@@ -110,6 +137,10 @@ fn log_flow_init(
             0
         }
     };
+    // Initialize the per-flow storage for this flow.
+    if let Err(err) = flow_storage.get_or_insert_with(f, FlowState::default) {
+        SCLogError!("failed to initialize rust example flow storage: {}", err);
+    }
     SCLogNotice!(
         "rust example flow init callback: flow={:p}, thread_flows={}",
         f.as_ptr(),
@@ -117,16 +148,37 @@ fn log_flow_init(
     );
 }
 
-fn log_flow_update(_tv: &mut ThreadVars, f: &mut Flow, _p: *mut Packet) {
+fn log_flow_update(
+    flow_storage: FlowStorage<FlowState>,
+    _tv: &mut ThreadVars,
+    f: &mut Flow,
+    _p: *mut Packet,
+) {
+    // Count packets seen on this flow using the per-flow storage.
+    let packets = match flow_storage.get_mut(f) {
+        Some(state) => {
+            state.packets += 1;
+            state.packets
+        }
+        None => {
+            SCLogWarning!("rust example flow storage was not initialized");
+            0
+        }
+    };
     SCLogNotice!(
-        "rust example flow update callback: flow={:p}, packet={:p}",
+        "rust example flow update callback: flow={:p}, flow_packets={}",
         f.as_ptr(),
-        _p
+        packets
     );
 }
 
-fn log_flow_finish(_tv: &mut ThreadVars, f: &mut Flow) {
-    SCLogNotice!("rust example flow finish callback: flow={:p}", f.as_ptr());
+fn log_flow_finish(flow_storage: FlowStorage<FlowState>, _tv: &mut ThreadVars, f: &mut Flow) {
+    let packets = flow_storage.get(f).map(|state| state.packets).unwrap_or(0);
+    SCLogNotice!(
+        "rust example flow finish callback: flow={:p}, flow_packets={}",
+        f.as_ptr(),
+        packets
+    );
 }
 
 #[no_mangle]
