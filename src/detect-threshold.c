@@ -393,6 +393,7 @@ error:
 #include "util-hashlist.h"
 #include "packet.h"
 #include "action-globals.h"
+#include "thread-storage.h"
 
 /**
  * \test ThresholdTestParse01 is a test for a valid threshold options
@@ -564,95 +565,89 @@ static int ThresholdTestParse08(void)
 
 static int DetectThresholdTestSig1(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
     int alerts = 0;
 
+    SCStorageCleanup();
+    SCStorageInit();
     ThresholdInit();
+    SCStorageFinalize();
 
-    memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v.stats);
+    ThreadVars *tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
+    FAIL_IF_NULL(tv);
+    StatsThreadInit(&tv->stats);
 
-    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list =
-            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold limit\"; content:\"A\"; "
-                            "threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any 80 (msg:\"Threshold limit\"; content:\"A\"; "
+            "threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
-
     FAIL_IF(s->type == SIG_TYPE_IPONLY);
 
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineThreadCtxInit(tv, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 1);
     if (alerts != 1) {
         printf("alerts %" PRIi32 ", expected 1: ", alerts);
     }
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     if (alerts != 2) {
         printf("alerts %" PRIi32 ", expected 2: ", alerts);
     }
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     if (alerts != 3) {
         printf("alerts %" PRIi32 ", expected 3: ", alerts);
     }
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     if (alerts != 4) {
         printf("alerts %" PRIi32 ", expected 4: ", alerts);
     }
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     if (alerts != 5) {
         printf("alerts %" PRIi32 ", expected 5: ", alerts);
     }
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     if (alerts != 5) {
         printf("alerts %" PRIi32 ", expected 5: ", alerts);
     }
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     if (alerts != 5) {
         printf("alerts %" PRIi32 ", expected 5: ", alerts);
     }
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     if (alerts != 5) {
         printf("alerts %" PRIi32 ", expected 5: ", alerts);
     }
 
-    if (alerts == 5)
-        result = 1;
-    else
-        printf("alerts %" PRIi32 ", expected 5: ", alerts);
+    FAIL_IF_NOT(alerts == 5);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineThreadCtxDeinit(tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
 
-end:
+    SCThreadFreeStorage(tv);
+    SCStorageCleanup();
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v.stats);
-    return result;
+    StatsThreadCleanup(&tv->stats);
+    SCFree(tv);
+    PASS;
 }
 
 /**
@@ -666,72 +661,65 @@ end:
 
 static int DetectThresholdTestSig2(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
     int alerts = 0;
 
+    SCStorageCleanup();
+    SCStorageInit();
     ThresholdInit();
+    SCStorageFinalize();
 
-    memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v.stats);
+    ThreadVars *tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
+    FAIL_IF_NULL(tv);
+    StatsThreadInit(&tv->stats);
 
-    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list =
-            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold\"; threshold: type "
-                            "threshold, track by_dst, count 5, seconds 60; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any 80 (msg:\"Threshold\"; threshold: type "
+            "threshold, track by_dst, count 5, seconds 60; sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineThreadCtxInit(tv, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
 
-    if (alerts == 2)
-        result = 1;
-    else
-        goto cleanup;
+    FAIL_IF_NOT(alerts == 2);
 
-cleanup:
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineThreadCtxDeinit(tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
-end:
     UTHFreePackets(&p, 1);
+    SCThreadFreeStorage(tv);
+    SCStorageCleanup();
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v.stats);
-    return result;
+    StatsThreadCleanup(&tv->stats);
+    SCFree(tv);
+    PASS;
 }
 
 /**
@@ -745,12 +733,17 @@ end:
 
 static int DetectThresholdTestSig3(void)
 {
-    ThreadVars th_v;
-    memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v.stats);
-
+    SCStorageCleanup();
+    SCStorageInit();
     ThresholdInit();
+    SCStorageFinalize();
+
+    ThreadVars *tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
+    FAIL_IF_NULL(tv);
+    StatsThreadInit(&tv->stats);
+
     Packet *p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -763,32 +756,35 @@ static int DetectThresholdTestSig3(void)
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtx *det_ctx;
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineThreadCtxInit(tv, (void *)de_ctx, (void *)&det_ctx);
 
     p->ts = TimeGet();
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
 
     TimeSetIncrementTime(200);
     p->ts = TimeGet();
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     FAIL_IF_NOT(PacketAlertCheck(p, 10) == 1);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineThreadCtxDeinit(tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     UTHFreePackets(&p, 1);
+    StatsThreadCleanup(&tv->stats);
+    SCThreadFreeStorage(tv);
+    SCFree(tv);
+    SCStorageCleanup();
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v.stats);
     PASS;
 }
 
@@ -803,68 +799,63 @@ static int DetectThresholdTestSig3(void)
 
 static int DetectThresholdTestSig4(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
     int alerts = 0;
 
+    SCStorageCleanup();
+    SCStorageInit();
     ThresholdInit();
+    SCStorageFinalize();
 
-    memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v.stats);
+    ThreadVars *tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
+    FAIL_IF_NULL(tv);
+    StatsThreadInit(&tv->stats);
 
-    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list =
-            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold both\"; threshold: type "
-                            "both, track by_dst, count 2, seconds 60; sid:10;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any 80 (msg:\"Threshold both\"; threshold: type "
+            "both, track by_dst, count 2, seconds 60; sid:10;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineThreadCtxInit(tv, (void *)de_ctx, (void *)&det_ctx);
 
     p->ts = TimeGet();
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
 
     TimeSetIncrementTime(200);
     p->ts = TimeGet();
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
 
-    if (alerts == 2)
-        result = 1;
-    else
-        goto cleanup;
+    FAIL_IF_NOT(alerts == 2);
 
-cleanup:
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineThreadCtxDeinit(tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
+
     UTHFreePackets(&p, 1);
+    SCThreadFreeStorage(tv);
+    SCStorageCleanup();
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v.stats);
-    return result;
+    StatsThreadCleanup(&tv->stats);
+    SCFree(tv);
+    PASS;
 }
 
 /**
@@ -878,170 +869,152 @@ end:
 
 static int DetectThresholdTestSig5(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
     int alerts = 0;
 
+    SCStorageCleanup();
+    SCStorageInit();
     ThresholdInit();
+    SCStorageFinalize();
 
-    memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v.stats);
-    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    ThreadVars *tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
+    FAIL_IF_NULL(tv);
+    StatsThreadInit(&tv->stats);
+    Packet *p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list =
-            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; "
-                            "threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; "
+            "threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
+    FAIL_IF_NULL(s);
 
-    s = s->next =
-            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1000\"; "
-                            "threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)");
-    if (s == NULL) {
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1000\"; "
+            "threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineThreadCtxInit(tv, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
 
-    if (alerts == 10)
-        result = 1;
-    else {
-        printf("alerts %d != 10: ", alerts);
-        goto cleanup;
-    }
+    FAIL_IF_NOT(alerts == 10);
 
-cleanup:
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineThreadCtxDeinit(tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
-end:
     UTHFreePackets(&p, 1);
+    SCThreadFreeStorage(tv);
+    SCStorageCleanup();
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v.stats);
-    return result;
+    StatsThreadCleanup(&tv->stats);
+    SCFree(tv);
+    PASS;
 }
 
 static int DetectThresholdTestSig6Ticks(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
     int alerts = 0;
 
+    SCStorageCleanup();
+    SCStorageInit();
     ThresholdInit();
+    SCStorageFinalize();
 
-    memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v.stats);
-    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    ThreadVars *tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
+    FAIL_IF_NULL(tv);
+    StatsThreadInit(&tv->stats);
+
+    Packet *p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list =
-            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; "
-                            "threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; "
+            "threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
+    FAIL_IF_NULL(s);
 
-    s = s->next =
-            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1000\"; "
-                            "threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)");
-    if (s == NULL) {
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1000\"; "
+            "threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineThreadCtxInit(tv, (void *)de_ctx, (void *)&det_ctx);
 
     uint64_t ticks_start = 0;
     uint64_t ticks_end = 0;
 
     ticks_start = UtilCpuGetTicks();
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
     alerts += PacketAlertCheck(p, 1000);
     ticks_end = UtilCpuGetTicks();
     printf("test run %" PRIu64 "\n", (ticks_end - ticks_start));
 
-    if (alerts == 10)
-        result = 1;
-    else
-        goto cleanup;
+    FAIL_IF_NOT(alerts == 10);
 
-cleanup:
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineThreadCtxDeinit(tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-end:
     UTHFreePackets(&p, 1);
+    SCThreadFreeStorage(tv);
+    SCStorageCleanup();
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v.stats);
-    return result;
+    StatsThreadCleanup(&tv->stats);
+    SCFree(tv);
+    PASS;
 }
 
 /**
@@ -1049,49 +1022,46 @@ end:
  */
 static int DetectThresholdTestSig7(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
     int alerts = 0;
     int drops = 0;
 
+    SCStorageCleanup();
+    SCStorageInit();
     ThresholdInit();
+    SCStorageFinalize();
 
-    memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v.stats);
+    ThreadVars *tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
+    FAIL_IF_NULL(tv);
+    StatsThreadInit(&tv->stats);
 
-    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 (threshold: type limit, "
-                                           "track by_src, count 1, seconds 300; sid:10;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 (threshold: type limit, "
+                                          "track by_src, count 1, seconds 300; sid:10;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineThreadCtxInit(tv, (void *)de_ctx, (void *)&det_ctx);
 
     p->ts = TimeGet();
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
@@ -1099,39 +1069,32 @@ static int DetectThresholdTestSig7(void)
     TimeSetIncrementTime(200);
     p->ts = TimeGet();
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    if (alerts == 1 && drops == 6)
-        result = 1;
-    else {
-        if (alerts != 1)
-            printf("alerts: %d != 1: ", alerts);
-        if (drops != 6)
-            printf("drops: %d != 6: ", drops);
-        goto cleanup;
-    }
+    FAIL_IF_NOT(alerts == 1 && drops == 6);
 
-cleanup:
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineThreadCtxDeinit(tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
     UTHFreePackets(&p, 1);
+    SCThreadFreeStorage(tv);
+    SCStorageCleanup();
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v.stats);
-    return result;
+    StatsThreadCleanup(&tv->stats);
+    SCFree(tv);
+    PASS;
 }
 
 /**
@@ -1139,49 +1102,46 @@ end:
  */
 static int DetectThresholdTestSig8(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
     int alerts = 0;
     int drops = 0;
 
+    SCStorageCleanup();
+    SCStorageInit();
     ThresholdInit();
+    SCStorageFinalize();
 
-    memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v.stats);
+    ThreadVars *tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
+    FAIL_IF_NULL(tv);
+    StatsThreadInit(&tv->stats);
 
-    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 (threshold: type limit, "
-                                           "track by_src, count 2, seconds 300; sid:10;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 (threshold: type limit, "
+                                          "track by_src, count 2, seconds 300; sid:10;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineThreadCtxInit(tv, (void *)de_ctx, (void *)&det_ctx);
 
     p->ts = TimeGet();
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
@@ -1189,39 +1149,32 @@ static int DetectThresholdTestSig8(void)
     TimeSetIncrementTime(200);
     p->ts = TimeGet();
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    if (alerts == 2 && drops == 6)
-        result = 1;
-    else {
-        if (alerts != 1)
-            printf("alerts: %d != 1: ", alerts);
-        if (drops != 6)
-            printf("drops: %d != 6: ", drops);
-        goto cleanup;
-    }
+    FAIL_IF_NOT(alerts == 2 && drops == 6);
 
-cleanup:
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineThreadCtxDeinit(tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
     UTHFreePackets(&p, 1);
+    SCThreadFreeStorage(tv);
+    SCStorageCleanup();
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v.stats);
-    return result;
+    StatsThreadCleanup(&tv->stats);
+    SCFree(tv);
+    PASS;
 }
 
 /**
@@ -1229,49 +1182,46 @@ end:
  */
 static int DetectThresholdTestSig9(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
     int alerts = 0;
     int drops = 0;
 
+    SCStorageCleanup();
+    SCStorageInit();
     ThresholdInit();
+    SCStorageFinalize();
 
-    memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v.stats);
+    ThreadVars *tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
+    FAIL_IF_NULL(tv);
+    StatsThreadInit(&tv->stats);
 
-    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 (threshold: type threshold, "
-                                           "track by_src, count 3, seconds 100; sid:10;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 (threshold: type threshold, "
+                                          "track by_src, count 3, seconds 100; sid:10;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineThreadCtxInit(tv, (void *)de_ctx, (void *)&det_ctx);
 
     p->ts = TimeGet();
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
@@ -1279,39 +1229,32 @@ static int DetectThresholdTestSig9(void)
     TimeSetIncrementTime(200);
     p->ts = TimeGet();
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    if (alerts == 2 && drops == 2)
-        result = 1;
-    else {
-        if (alerts != 2)
-            printf("alerts: %d != 2: ", alerts);
-        if (drops != 2)
-            printf("drops: %d != 2: ", drops);
-        goto cleanup;
-    }
+    FAIL_IF_NOT(alerts == 2 && drops == 2);
 
-cleanup:
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineThreadCtxDeinit(tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
     UTHFreePackets(&p, 1);
+    SCThreadFreeStorage(tv);
+    SCStorageCleanup();
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v.stats);
-    return result;
+    StatsThreadCleanup(&tv->stats);
+    SCFree(tv);
+    PASS;
 }
 
 /**
@@ -1319,49 +1262,46 @@ end:
  */
 static int DetectThresholdTestSig10(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
     int alerts = 0;
     int drops = 0;
 
+    SCStorageCleanup();
+    SCStorageInit();
     ThresholdInit();
+    SCStorageFinalize();
 
-    memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v.stats);
+    ThreadVars *tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
+    FAIL_IF_NULL(tv);
+    StatsThreadInit(&tv->stats);
 
-    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 (threshold: type threshold, "
-                                           "track by_src, count 5, seconds 300; sid:10;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 (threshold: type threshold, "
+                                          "track by_src, count 5, seconds 300; sid:10;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineThreadCtxInit(tv, (void *)de_ctx, (void *)&det_ctx);
 
     p->ts = TimeGet();
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
@@ -1369,39 +1309,32 @@ static int DetectThresholdTestSig10(void)
     TimeSetIncrementTime(200);
     p->ts = TimeGet();
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    if (alerts == 1 && drops == 1)
-        result = 1;
-    else {
-        if (alerts != 1)
-            printf("alerts: %d != 1: ", alerts);
-        if (drops != 1)
-            printf("drops: %d != 1: ", drops);
-        goto cleanup;
-    }
+    FAIL_IF_NOT(alerts == 1 && drops == 1);
 
-cleanup:
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineThreadCtxDeinit(tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
     UTHFreePackets(&p, 1);
+    SCThreadFreeStorage(tv);
+    SCStorageCleanup();
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v.stats);
-    return result;
+    StatsThreadCleanup(&tv->stats);
+    SCFree(tv);
+    PASS;
 }
 
 /**
@@ -1409,49 +1342,46 @@ end:
  */
 static int DetectThresholdTestSig11(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
     int alerts = 0;
     int drops = 0;
 
+    SCStorageCleanup();
+    SCStorageInit();
     ThresholdInit();
+    SCStorageFinalize();
 
-    memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v.stats);
+    ThreadVars *tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
+    FAIL_IF_NULL(tv);
+    StatsThreadInit(&tv->stats);
 
-    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 (threshold: type both, "
-                                           "track by_src, count 3, seconds 300; sid:10;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 (threshold: type both, "
+                                          "track by_src, count 3, seconds 300; sid:10;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineThreadCtxInit(tv, (void *)de_ctx, (void *)&det_ctx);
 
     p->ts = TimeGet();
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
@@ -1459,39 +1389,32 @@ static int DetectThresholdTestSig11(void)
     TimeSetIncrementTime(200);
     p->ts = TimeGet();
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    if (alerts == 1 && drops == 4)
-        result = 1;
-    else {
-        if (alerts != 1)
-            printf("alerts: %d != 1: ", alerts);
-        if (drops != 4)
-            printf("drops: %d != 4: ", drops);
-        goto cleanup;
-    }
+    FAIL_IF_NOT(alerts == 1 && drops == 4);
 
-cleanup:
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineThreadCtxDeinit(tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
     UTHFreePackets(&p, 1);
+    SCThreadFreeStorage(tv);
+    SCStorageCleanup();
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v.stats);
-    return result;
+    StatsThreadCleanup(&tv->stats);
+    SCFree(tv);
+    PASS;
 }
 
 /**
@@ -1499,49 +1422,46 @@ end:
  */
 static int DetectThresholdTestSig12(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
-    int result = 0;
     int alerts = 0;
     int drops = 0;
 
+    SCStorageCleanup();
+    SCStorageInit();
     ThresholdInit();
+    SCStorageFinalize();
 
-    memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v.stats);
+    ThreadVars *tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
+    FAIL_IF_NULL(tv);
+    StatsThreadInit(&tv->stats);
 
-    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 (threshold: type both, "
-                                           "track by_src, count 5, seconds 300; sid:10;)");
-    if (s == NULL) {
-        goto end;
-    }
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 (threshold: type both, "
+                                          "track by_src, count 5, seconds 300; sid:10;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineThreadCtxInit(tv, (void *)de_ctx, (void *)&det_ctx);
 
     p->ts = TimeGet();
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
@@ -1549,40 +1469,33 @@ static int DetectThresholdTestSig12(void)
     TimeSetIncrementTime(200);
     p->ts = TimeGet();
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     drops += ((PacketTestAction(p, ACTION_DROP)) ? 1 : 0);
     p->action = 0;
 
-    if (alerts == 1 && drops == 2)
-        result = 1;
-    else {
-        if (alerts != 1)
-            printf("alerts: %d != 1: ", alerts);
-        if (drops != 2)
-            printf("drops: %d != 2: ", drops);
-        goto cleanup;
-    }
+    FAIL_IF_NOT(alerts == 1 && drops == 2);
 
-cleanup:
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineThreadCtxDeinit(tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
     UTHFreePackets(&p, 1);
     HostShutdown();
+    SCThreadFreeStorage(tv);
+    SCStorageCleanup();
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v.stats);
-    return result;
+    StatsThreadCleanup(&tv->stats);
+    SCFree(tv);
+    PASS;
 }
 
 /**
@@ -1596,40 +1509,41 @@ end:
 
 static int DetectThresholdTestSig13(void)
 {
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int alerts = 0;
 
+    SCStorageCleanup();
+    SCStorageInit();
     ThresholdInit();
+    SCStorageFinalize();
 
-    memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v.stats);
-    p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    ThreadVars *tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
+    FAIL_IF_NULL(tv);
+    StatsThreadInit(&tv->stats);
+
+    Packet *p = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     FAIL_IF_NULL(p);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
-
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list =
-            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; "
-                            "threshold: type limit, track by_rule, count 2, seconds 60; sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; "
+            "threshold: type limit, track by_rule, count 2, seconds 60; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineThreadCtxInit(tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* should alert twice */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
 
     FAIL_IF(alerts != 2);
@@ -1637,22 +1551,25 @@ static int DetectThresholdTestSig13(void)
     TimeSetIncrementTime(70);
     p->ts = TimeGet();
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
 
     FAIL_IF(alerts != 4);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineThreadCtxDeinit(tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     UTHFreePackets(&p, 1);
+    SCThreadFreeStorage(tv);
+    SCStorageCleanup();
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v.stats);
+    StatsThreadCleanup(&tv->stats);
+    SCFree(tv);
     PASS;
 }
 
@@ -1667,53 +1584,52 @@ static int DetectThresholdTestSig13(void)
 
 static int DetectThresholdTestSig14(void)
 {
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
-    Signature *s = NULL;
-    ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int alerts1 = 0;
     int alerts2 = 0;
 
+    SCStorageCleanup();
+    SCStorageInit();
     ThresholdInit();
+    SCStorageFinalize();
 
-    memset(&th_v, 0, sizeof(th_v));
-    StatsThreadInit(&th_v.stats);
-    p1 = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
-    p2 = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "3.3.3.3", 1024, 80);
+    ThreadVars *tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
+    FAIL_IF_NULL(tv);
+    StatsThreadInit(&tv->stats);
+    Packet *p1 = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     FAIL_IF_NULL(p1);
+    Packet *p2 = UTHBuildPacketReal((uint8_t *)"A", 1, IPPROTO_TCP, "1.1.1.1", "3.3.3.3", 1024, 80);
     FAIL_IF_NULL(p2);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
-
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list =
-            SigInit(de_ctx, "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; "
-                            "threshold: type limit, track by_both, count 2, seconds 60; sid:1;)");
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; "
+            "threshold: type limit, track by_both, count 2, seconds 60; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineThreadCtxInit(tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* Both p1 and p2 should alert twice */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p1);
     alerts1 += PacketAlertCheck(p1, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p1);
     alerts1 += PacketAlertCheck(p1, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p1);
     alerts1 += PacketAlertCheck(p1, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p1);
     alerts1 += PacketAlertCheck(p1, 1);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p2);
     alerts2 += PacketAlertCheck(p2, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p2);
     alerts2 += PacketAlertCheck(p2, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p2);
     alerts2 += PacketAlertCheck(p2, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p2);
     alerts2 += PacketAlertCheck(p2, 1);
 
     FAIL_IF(alerts1 != 2);
@@ -1724,20 +1640,23 @@ static int DetectThresholdTestSig14(void)
     p2->ts = TimeGet();
 
     /* Now they should both alert again after previous alerts expire */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p1);
     alerts1 += PacketAlertCheck(p1, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    SigMatchSignatures(tv, de_ctx, det_ctx, p2);
     alerts2 += PacketAlertCheck(p2, 1);
 
     FAIL_IF(alerts1 != 3);
     FAIL_IF(alerts2 != 3);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineThreadCtxDeinit(tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
+    SCThreadFreeStorage(tv);
+    SCStorageCleanup();
     ThresholdDestroy();
-    StatsThreadCleanup(&th_v.stats);
+    StatsThreadCleanup(&tv->stats);
+    SCFree(tv);
     PASS;
 }
 
