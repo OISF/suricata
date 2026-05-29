@@ -2033,9 +2033,13 @@ static inline bool ApplyAcceptToPacket(
 }
 
 /** \internal
- * \retval bool true: break_out_of_app_filter, false: don't break out */
-static bool ApplyAccept(DetectEngineThreadCtx *det_ctx, Packet *p, const uint8_t direction,
-        const Signature *s, DetectTransaction *tx, const int tx_end_state, const bool is_last,
+ * \brief apply an accept, but do check policies when needed
+ *
+ * Updates flow control where needed.
+ *
+ * */
+static void DetectRunTxFirewallApplyAccept(DetectEngineThreadCtx *det_ctx, Packet *p,
+        const uint8_t direction, const Signature *s, DetectTransaction *tx, const bool is_last,
         struct DetectFirewallAppTxState *fw_state)
 {
     const enum ActionScope as = s->action_scope;
@@ -2056,29 +2060,28 @@ static bool ApplyAccept(DetectEngineThreadCtx *det_ctx, Packet *p, const uint8_t
         if (fw_state->fw_next_progress_missing) {
             const uint8_t last_hook =
                     fw_state->last_fw_rule
-                            ? (uint8_t)tx_end_state
-                            : MIN((uint8_t)tx_end_state, s->app_progress_hook + (uint8_t)1);
+                            ? (uint8_t)tx->tx_end_state
+                            : MIN((uint8_t)tx->tx_end_state, s->app_progress_hook + (uint8_t)1);
             enum DetectTxFirewallFlowControl r = DetectFirewallApplyDefaultPolicies(det_ctx,
                     det_ctx->de_ctx->fw_policies->app, tx, p, s->alproto, direction,
                     s->app_progress_hook + 1, last_hook, is_last);
-            if (r == DETECT_TX_FW_FC_BREAK)
-                return true;
+            if (r == DETECT_TX_FW_FC_BREAK) {
+                fw_state->fw_skip_app_filter = true;
+                return;
+            }
         }
-        return false;
     } else if (as == ACTION_SCOPE_TX) {
         tx->tx_data_ptr->flags |= APP_LAYER_TX_ACCEPT;
         fw_state->skip_fw_hook = true;
-        fw_state->skip_before_progress = (uint8_t)tx_end_state + 1; // skip all hooks
+        fw_state->skip_before_progress = (uint8_t)tx->tx_end_state + 1; // skip all hooks
         SCLogDebug("accept:tx applied, skip_fw_hook, skip_before_progress %u",
                 fw_state->skip_before_progress);
-        return false;
     } else if (as == ACTION_SCOPE_PACKET) {
-        return true;
+        fw_state->fw_skip_app_filter = true;
     } else if (as == ACTION_SCOPE_FLOW) {
         SCLogDebug("sid %u: ACTION_ACCEPT with ACTION_SCOPE_FLOW", s->id);
-        return true;
+        fw_state->fw_skip_app_filter = true;
     }
-    return false;
 }
 
 /**
@@ -2168,8 +2171,7 @@ static void DetectRunTxFirewallRuleFullMatch(DetectEngineThreadCtx *det_ctx, con
          * policy matches that could add alerts. */
         AlertQueueAppend(det_ctx, s, p, tx->tx_id, alert_flags);
 
-        fw_state->fw_skip_app_filter =
-                ApplyAccept(det_ctx, p, flow_flags, s, tx, tx->tx_end_state, last_tx, fw_state);
+        DetectRunTxFirewallApplyAccept(det_ctx, p, flow_flags, s, tx, last_tx, fw_state);
     } else if (s->action & ACTION_DROP) {
         SCLogDebug("drop packet because of rule with drop action");
         PacketDrop(p, s->action, PKT_DROP_REASON_FW_RULES);
@@ -2264,8 +2266,7 @@ static void DetectRunTxFirewallRuleStatefulReApplyMatch(DetectEngineThreadCtx *d
     if ((s->flags & SIG_FLAG_FIREWALL) && (s->action & ACTION_ACCEPT) &&
             s->app_progress_hook == tx->tx_progress) {
         const bool fw_accept_to_packet = ApplyAcceptToPacket(last_tx, tx, s);
-        fw_state->fw_skip_app_filter =
-                ApplyAccept(det_ctx, p, flow_flags, s, tx, tx->tx_end_state, last_tx, fw_state);
+        DetectRunTxFirewallApplyAccept(det_ctx, p, flow_flags, s, tx, last_tx, fw_state);
         if (fw_accept_to_packet) {
             SCLogDebug("packet %" PRIu64 ": apply accept to packet", PcapPacketCntGet(p));
             DetectRunAppendDefaultAccept(det_ctx, p);
