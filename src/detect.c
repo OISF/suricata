@@ -2428,12 +2428,11 @@ static void DetectRunTx(ThreadVars *tv,
              * policies. */
             const int r = DetectTxFirewallNoRulesApplyPolicies(
                     det_ctx, p, f, &tx, alproto, flow_flags, array_idx, last_tx);
-            if (r != 0) {
-                if (r == 1) {
-                    SCLogDebug("done");
-                    return;
-                } else if (r == 2)
-                    goto next_tx_fw; /* next tx */
+            if (r == 1) {
+                SCLogDebug("done");
+                return;
+            } else if (r == 2) {
+                goto next_tx_fw; /* next tx, need to clean up buffers */
             }
         }
 
