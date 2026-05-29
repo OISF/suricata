@@ -42,6 +42,7 @@ typedef struct DetectTransaction_ {
 
     const uint8_t tx_progress;
     const uint8_t tx_end_state;
+    bool is_last; /* is this the last tx? */
 } DetectTransaction;
 
 typedef struct PrefilterStore_ {
