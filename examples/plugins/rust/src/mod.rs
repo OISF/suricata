@@ -1,11 +1,11 @@
 use std::ptr::null_mut;
 
 use suricata_ffi::eve::{self, SCJsonBuilder};
-use suricata_ffi::flow;
+use suricata_ffi::flow::{self, Flow};
 use suricata_ffi::jsonbuilder::JsonBuilder;
 use suricata_ffi::thread::{self, ThreadStorage, ThreadVars};
 use suricata_ffi::{SCLogError, SCLogNotice, SCLogWarning};
-use suricata_sys::sys::{self, Flow, Packet, SCEveRegisterCallback, SCPlugin};
+use suricata_sys::sys::{self, Packet, SCEveRegisterCallback, SCPlugin};
 
 /// Per-thread state stored in Suricata thread storage.
 #[derive(Default)]
@@ -59,7 +59,7 @@ fn register_thread_callbacks(storage: ThreadStorage<ThreadState>) -> Result<(), 
 unsafe extern "C" fn log_eve_raw(
     _tv: *mut sys::ThreadVars,
     _p: *const Packet,
-    _f: *mut Flow,
+    _f: *mut sys::Flow,
     jb: *mut SCJsonBuilder,
     _user: *mut std::os::raw::c_void,
 ) {
@@ -72,12 +72,12 @@ unsafe extern "C" fn log_eve_raw(
 fn log_eve_wrapped(
     _tv: &mut ThreadVars,
     _p: *const Packet,
-    f: *mut Flow,
+    f: Option<&mut Flow>,
     jb: &mut JsonBuilder,
 ) -> Result<(), suricata_ffi::jsonbuilder::Error> {
     jb.open_object("rust_wrapped")?;
     jb.set_string("example", "eve-callback")?;
-    jb.set_string("has_flow", if f.is_null() { "false" } else { "true" })?;
+    jb.set_string("has_flow", if f.is_some() { "true" } else { "false" })?;
     jb.close()?;
     Ok(())
 }
@@ -96,7 +96,7 @@ fn on_thread_init(storage: ThreadStorage<ThreadState>, tv: &mut ThreadVars) {
 fn log_flow_init(
     storage: ThreadStorage<ThreadState>,
     tv: &mut ThreadVars,
-    f: *mut Flow,
+    f: &mut Flow,
     _p: *const Packet,
 ) {
     // Count flows seen by this thread using the per-thread storage.
@@ -112,21 +112,21 @@ fn log_flow_init(
     };
     SCLogNotice!(
         "rust example flow init callback: flow={:p}, thread_flows={}",
-        f,
+        f.as_ptr(),
         flows
     );
 }
 
-fn log_flow_update(_tv: &mut ThreadVars, _f: *mut Flow, _p: *mut Packet) {
+fn log_flow_update(_tv: &mut ThreadVars, f: &mut Flow, _p: *mut Packet) {
     SCLogNotice!(
         "rust example flow update callback: flow={:p}, packet={:p}",
-        _f,
+        f.as_ptr(),
         _p
     );
 }
 
-fn log_flow_finish(_tv: &mut ThreadVars, _f: *mut Flow) {
-    SCLogNotice!("rust example flow finish callback: flow={:p}", _f);
+fn log_flow_finish(_tv: &mut ThreadVars, f: &mut Flow) {
+    SCLogNotice!("rust example flow finish callback: flow={:p}", f.as_ptr());
 }
 
 #[no_mangle]
