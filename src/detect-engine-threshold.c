@@ -625,15 +625,25 @@ static void ThresholdCacheThreadFree(void *ptr)
 
 static void ThresholdCacheInit(void)
 {
-    /* Register thread storage. */
-    thread_storage_id = SCThreadStorageRegister("threshold_cache", ThresholdCacheThreadFree);
-    if (thread_storage_id.id < 0) {
-        FatalError("Failed to register threshold_cache thread storage");
+#ifdef UNITTESTS
+    /* many tests don't manage the thread storage correctly, so skip the cache in unittests */
+    if (!(RunmodeIsUnittests())) {
+#endif
+        /* Register thread storage. */
+        thread_storage_id = SCThreadStorageRegister("threshold_cache", ThresholdCacheThreadFree);
+        if (thread_storage_id.id < 0) {
+            FatalError("Failed to register threshold_cache thread storage");
+        }
+#ifdef UNITTESTS
     }
+#endif
 }
 
 int ThresholdCacheThreadInit(DetectEngineThreadCtx *det_ctx)
 {
+    if (thread_storage_id.id < 0)
+        return 0;
+
     struct ThresholdCacheThreadCtx *tctx = SCCalloc(1, sizeof(*tctx));
     if (tctx == NULL)
         return -1;
