@@ -15,9 +15,37 @@
  * 02110-1301, USA.
  */
 
+use std::marker::PhantomData;
 use std::os::raw::c_void;
 
-use suricata_sys::sys::{SCThreadRegisterInitCallback, ThreadVars};
+use suricata_sys::sys::{self, SCThreadRegisterInitCallback};
+
+/// A safe wrapper around a Suricata `sys::ThreadVars` pointer.
+///
+/// A wrapper around `sys::ThreadVars` that carries a lifetime.
+pub struct ThreadVars<'a> {
+    tv: *mut sys::ThreadVars,
+    _marker: PhantomData<&'a mut sys::ThreadVars>,
+}
+
+impl<'a> ThreadVars<'a> {
+    /// Wrap a raw `ThreadVars` pointer.
+    ///
+    /// # Safety
+    ///
+    /// `tv` must be a valid `ThreadVars` pointer provided by Suricata.
+    pub unsafe fn from_ptr(tv: *mut sys::ThreadVars) -> Self {
+        Self {
+            tv,
+            _marker: PhantomData,
+        }
+    }
+
+    /// Return the underlying raw `ThreadVars` pointer for read-only access.
+    pub fn as_ptr(&self) -> *const sys::ThreadVars {
+        self.tv
+    }
+}
 
 /// Register a thread initialization callback.
 ///
@@ -33,7 +61,7 @@ use suricata_sys::sys::{SCThreadRegisterInitCallback, ThreadVars};
 /// The callback must not panic.
 pub fn register_init_callback<F>(callback: F) -> Result<(), &'static str>
 where
-    F: Fn(*mut ThreadVars) + Send + Sync + 'static,
+    F: Fn(*mut sys::ThreadVars) + Send + Sync + 'static,
 {
     let user = Box::into_raw(Box::new(callback)) as *mut c_void;
     if unsafe { SCThreadRegisterInitCallback(Some(init_callback_wrapper::<F>), user) } {
@@ -46,9 +74,9 @@ where
     }
 }
 
-unsafe extern "C" fn init_callback_wrapper<F>(tv: *mut ThreadVars, user: *mut c_void)
+unsafe extern "C" fn init_callback_wrapper<F>(tv: *mut sys::ThreadVars, user: *mut c_void)
 where
-    F: Fn(*mut ThreadVars) + Send + Sync + 'static,
+    F: Fn(*mut sys::ThreadVars) + Send + Sync + 'static,
 {
     let callback = &*(user as *const F);
     callback(tv);
