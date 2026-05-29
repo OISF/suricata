@@ -18,12 +18,14 @@
 use std::ffi::CString;
 use std::os::raw::c_void;
 
-pub use suricata_sys::sys::{Flow, Packet, SCEveUserCallbackFn, SCJsonBuilder, ThreadVars};
 use suricata_sys::sys::{
-    SCEveFileType, SCEveFileTypeDeinitFunc, SCEveFileTypeInitFunc, SCEveFileTypeThreadDeinitFunc,
-    SCEveFileTypeThreadInitFunc, SCEveFileTypeWriteFunc, SCEveRegisterCallback,
-    SCRegisterEveFileType,
+    self, SCEveFileType, SCEveFileTypeDeinitFunc, SCEveFileTypeInitFunc,
+    SCEveFileTypeThreadDeinitFunc, SCEveFileTypeThreadInitFunc, SCEveFileTypeWriteFunc,
+    SCEveRegisterCallback, SCRegisterEveFileType,
 };
+pub use suricata_sys::sys::{Flow, Packet, SCEveUserCallbackFn, SCJsonBuilder};
+
+use crate::thread::ThreadVars;
 
 pub struct EveFileType {
     pub name: &'static str,
@@ -111,7 +113,7 @@ impl EveFileType {
 pub fn register_callback<F>(callback: F) -> Result<(), &'static str>
 where
     F: Fn(
-            *mut ThreadVars,
+            &mut ThreadVars,
             *const Packet,
             *mut Flow,
             &mut crate::jsonbuilder::JsonBuilder,
@@ -134,10 +136,11 @@ where
 /// Internal wrapper used to adapt the C EVE callback to a Rust
 /// closure callback.
 unsafe extern "C" fn callback_wrapper<F>(
-    tv: *mut ThreadVars, p: *const Packet, f: *mut Flow, jb: *mut SCJsonBuilder, user: *mut c_void,
+    tv: *mut sys::ThreadVars, p: *const Packet, f: *mut Flow, jb: *mut SCJsonBuilder,
+    user: *mut c_void,
 ) where
     F: Fn(
-            *mut ThreadVars,
+            &mut ThreadVars,
             *const Packet,
             *mut Flow,
             &mut crate::jsonbuilder::JsonBuilder,
@@ -147,9 +150,10 @@ unsafe extern "C" fn callback_wrapper<F>(
         + 'static,
 {
     let callback = &*(user as *const F);
+    let mut tv = ThreadVars::from_ptr(tv);
     let mut jb = crate::jsonbuilder::JsonBuilder::from_raw(jb);
     let mark = jb.get_mark();
-    if callback(tv, p, f, &mut jb).is_err() {
+    if callback(&mut tv, p, f, &mut jb).is_err() {
         let _ = jb.restore_mark(&mark);
     }
 }

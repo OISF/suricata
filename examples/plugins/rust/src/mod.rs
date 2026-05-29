@@ -54,7 +54,7 @@ unsafe extern "C" fn log_eve_raw(
 }
 
 fn log_eve_wrapped(
-    _tv: *mut sys::ThreadVars,
+    _tv: &mut ThreadVars,
     _p: *const Packet,
     f: *mut Flow,
     jb: &mut JsonBuilder,
