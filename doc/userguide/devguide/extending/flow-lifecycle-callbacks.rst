@@ -131,3 +131,45 @@ The Rust wrappers register closures or function items and return
 The raw pointers passed into callbacks are only valid for the duration
 of the callback invocation and must not be stored. Rust callbacks must
 not panic.
+
+Flow Storage
+============
+
+``flow::FlowStorage<T>`` provides typed, per-flow storage backed by
+Suricata's flow storage API. Each registered slot holds an independent value
+of type ``T`` for every flow.
+
+Register a slot once during initialization with
+``FlowStorage::<T>::register``. Registration must happen before Suricata
+finalizes its storage registration, which is the case during plugin
+initialization.
+
+.. code-block:: rust
+
+   use suricata_ffi::flow::{self, Flow, FlowStorage};
+   use suricata_ffi::thread::ThreadVars;
+   use suricata_sys::sys::Packet;
+
+   #[derive(Default)]
+   struct FlowState {
+       packets: u64,
+   }
+
+   fn register(storage: FlowStorage<FlowState>) -> Result<(), &'static str> {
+       flow::register_update_callback(move |tv, f, p| on_flow_update(storage, tv, f, p))
+   }
+
+Values are owned by Suricata's flow storage and are dropped automatically when
+the flow's storage is freed.
+
+.. code-block:: rust
+
+   fn on_flow_init(storage: FlowStorage<FlowState>, _tv: &mut ThreadVars, f: &mut Flow, _p: *const Packet) {
+       let _ = storage.get_or_insert_with(f, FlowState::default);
+   }
+
+   fn on_flow_update(storage: FlowStorage<FlowState>, _tv: &mut ThreadVars, f: &mut Flow, _p: *mut Packet) {
+       if let Some(state) = storage.get_mut(f) {
+           state.packets += 1;
+       }
+   }
