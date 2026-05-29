@@ -2773,10 +2773,10 @@ Suricata as a Firewall options (experimental)
 
 It is possible to run Suricata as a firewall.
 Please read :ref:`Firewall Mode Design <firewall mode design>` before using this.
-The existing yaml configuration options are listed below. If the engine is run
-in firewall mode, dedicated stats counters will be added to the stats logs.
+The existing yaml configuration options are listed below. For more examples on default policy configuration by app-layer hook, check :ref:`firewall examples-default policies-http`.
 
-To see the stats reported for the firewall mode, refer to :ref:`firewall mode stats`.
+If the engine is run in firewall mode, dedicated stats counters will be added to
+the stats logs. To see the stats reported for the firewall mode, refer to :ref:`firewall mode stats`.
 
 ::
 
@@ -2792,6 +2792,18 @@ To see the stats reported for the firewall mode, refer to :ref:`firewall mode st
      #rule-files:
      #  - firewall.rules
 
+     # Default policies
+     #
+     # Choose a default policy for each firewall hook.
+     # It is also possible to specify policies by app-layer protocol.
+     # DNS example: Drop and alert on all DNS requests that are not allowed in firewall.rules, accept all responses.
+     #
+     #policies:
+     #  packet-filter: ["drop:packet"]
+     #  dns:
+     #    request-started: ["accept:hook"]
+     #    request-complete: ["drop:flow", "alert"]
+     #    response-started: ["accept:tx"]
 
 Engine analysis and profiling
 -----------------------------
