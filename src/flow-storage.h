@@ -26,7 +26,9 @@
 #ifndef SURICATA_FLOW_STORAGE_H
 #define SURICATA_FLOW_STORAGE_H
 
+#ifndef SURICATA_BINDGEN_H
 #include "flow.h"
+#endif
 
 typedef struct SCFlowStorageId {
     int id;
