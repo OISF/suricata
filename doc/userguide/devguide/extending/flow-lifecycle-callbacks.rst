@@ -104,20 +104,21 @@ The Rust wrappers register closures or function items and return
 
 .. code-block:: rust
 
-   use suricata_ffi::flow::{self, Flow, Packet};
+   use suricata_ffi::flow::{self, Flow};
    use suricata_ffi::thread::ThreadVars;
+   use suricata_sys::sys::Packet;
    use suricata_ffi::SCLogNotice;
 
-   fn flow_init(_tv: &mut ThreadVars, f: *mut Flow, _p: *const Packet) {
-       SCLogNotice!("flow initialized: {:p}", f);
+   fn flow_init(_tv: &mut ThreadVars, f: &mut Flow, _p: *const Packet) {
+       SCLogNotice!("flow initialized: {:p}", f.as_ptr());
    }
 
-   fn flow_update(_tv: &mut ThreadVars, f: *mut Flow, p: *mut Packet) {
-       SCLogNotice!("flow updated: {:p} packet: {:p}", f, p);
+   fn flow_update(_tv: &mut ThreadVars, f: &mut Flow, p: *mut Packet) {
+       SCLogNotice!("flow updated: {:p} packet: {:p}", f.as_ptr(), p);
    }
 
-   fn flow_finish(_tv: &mut ThreadVars, f: *mut Flow) {
-       SCLogNotice!("flow finished: {:p}", f);
+   fn flow_finish(_tv: &mut ThreadVars, f: &mut Flow) {
+       SCLogNotice!("flow finished: {:p}", f.as_ptr());
    }
 
    fn register_flow_callbacks() -> Result<(), &'static str> {
