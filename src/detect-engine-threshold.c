@@ -643,6 +643,9 @@ int ThresholdCacheThreadInit(DetectEngineThreadCtx *det_ctx)
 {
     if (thread_storage_id.id < 0)
         return 0;
+    /* we can get called more than once per thread for MT */
+    if (SCThreadGetStorageById(det_ctx->tv, thread_storage_id) != NULL)
+        return 0;
 
     struct ThresholdCacheThreadCtx *tctx = SCCalloc(1, sizeof(*tctx));
     if (tctx == NULL)
