@@ -27,9 +27,9 @@ jobs:
 
   # Checking for correct formatting of branch for C code changes
   check-formatting:
-    name: Formatting Check (clang 14)
-    runs-on: ubuntu-22.04
-    container: ubuntu:22.04
+    name: Formatting Check (clang 17)
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
     continue-on-error: false
     steps:
 
@@ -50,7 +50,7 @@ jobs:
                 automake \
                 cargo \
                 cbindgen \
-                clang-format-14 \
+                clang-format-17 \
                 git \
                 libtool \
                 libpcap-dev \
