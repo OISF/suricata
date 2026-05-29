@@ -1515,8 +1515,12 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
 static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alproto,
         const uint64_t tx_id, void *tx_ptr, const int tx_end_state, const uint8_t flow_flags)
 {
+    DEBUG_VALIDATE_BUG_ON(tx_end_state >= 48);
+
     AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx_ptr);
     const int tx_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx_ptr, flow_flags);
+    DEBUG_VALIDATE_BUG_ON(tx_progress >= 48);
+
     bool updated = (flow_flags & STREAM_TOSERVER) ? txd->updated_ts : txd->updated_tc;
     if (!updated && tx_progress < tx_end_state && ((flow_flags & STREAM_EOF) == 0)) {
         DetectTransaction no_tx = NO_TX;
@@ -1553,8 +1557,8 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         .de_state = tx_dir_state,
         .detect_progress = detect_progress,
         .detect_progress_orig = detect_progress,
-        .tx_progress = tx_progress,
-        .tx_end_state = tx_end_state,
+        .tx_progress = (uint8_t)tx_progress,
+        .tx_end_state = (uint8_t)tx_end_state,
     };
     return tx;
 }
@@ -2058,10 +2062,9 @@ static void DetectRunTxFirewallApplyAccept(DetectEngineThreadCtx *det_ctx, Packe
         /* if there is no fw rule for the next progress value,
          * we invoke the defaul policies for the remaining available hooks. */
         if (fw_state->fw_next_progress_missing) {
-            const uint8_t last_hook =
-                    fw_state->last_fw_rule
-                            ? (uint8_t)tx->tx_end_state
-                            : MIN((uint8_t)tx->tx_end_state, s->app_progress_hook + (uint8_t)1);
+            const uint8_t last_hook = fw_state->last_fw_rule
+                                              ? tx->tx_end_state
+                                              : MIN(tx->tx_end_state, s->app_progress_hook + 1);
             enum DetectTxFirewallFlowControl r = DetectFirewallApplyDefaultPolicies(det_ctx,
                     det_ctx->de_ctx->fw_policies->app, tx, p, s->alproto, direction,
                     s->app_progress_hook + 1, last_hook, is_last);
@@ -2073,7 +2076,7 @@ static void DetectRunTxFirewallApplyAccept(DetectEngineThreadCtx *det_ctx, Packe
     } else if (as == ACTION_SCOPE_TX) {
         tx->tx_data_ptr->flags |= APP_LAYER_TX_ACCEPT;
         fw_state->skip_fw_hook = true;
-        fw_state->skip_before_progress = (uint8_t)tx->tx_end_state + 1; // skip all hooks
+        fw_state->skip_before_progress = tx->tx_end_state + 1; // skip all hooks
         SCLogDebug("accept:tx applied, skip_fw_hook, skip_before_progress %u",
                 fw_state->skip_before_progress);
     } else if (as == ACTION_SCOPE_PACKET) {
@@ -2129,7 +2132,7 @@ static int DetectTxFirewallNoRulesApplyPolicies(DetectEngineThreadCtx *det_ctx, 
             enum DetectTxFirewallFlowControl r =
                     DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies->app,
                             tx, p, alproto, flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT),
-                            tx->detect_progress_orig, (const uint8_t)tx->tx_progress, last_tx);
+                            tx->detect_progress_orig, tx->tx_progress, last_tx);
             SCLogDebug("r %u", r);
             if (r == DETECT_TX_FW_FC_BREAK)
                 return 1;
