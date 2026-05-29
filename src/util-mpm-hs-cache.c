@@ -303,7 +303,7 @@ int HSHashDb(const PatternDatabase *pd, char *hash, size_t hash_len)
     SCMutexLock(&g_hs_ref_info_mutex);
     const char *ref_info = HSGetReferenceDbInfo();
     if (ref_info != NULL) {
-        SCSha256Update(hasher, (const uint8_t *)ref_info, strlen(ref_info));
+        SCSha256Update(hasher, (const uint8_t *)ref_info, (uint32_t)strlen(ref_info));
     }
     SCMutexUnlock(&g_hs_ref_info_mutex);
 
@@ -312,7 +312,7 @@ int HSHashDb(const PatternDatabase *pd, char *hash, size_t hash_len)
         SCHSCachePatternHash(pd->parray[i], hasher);
     }
 
-    if (!SCSha256FinalizeToHex(hasher, hash, hash_len)) {
+    if (!SCSha256FinalizeToHex(hasher, hash, (uint32_t)hash_len)) {
         hasher = NULL;
         SCLogDebug("sha256 hashing failed");
         return -1;
