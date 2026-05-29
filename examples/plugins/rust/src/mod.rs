@@ -3,9 +3,9 @@ use std::ptr::null_mut;
 use suricata_ffi::eve::{self, SCJsonBuilder};
 use suricata_ffi::flow;
 use suricata_ffi::jsonbuilder::JsonBuilder;
-use suricata_ffi::thread;
+use suricata_ffi::thread::{self, ThreadVars};
 use suricata_ffi::{SCLogError, SCLogNotice};
-use suricata_sys::sys::{Flow, Packet, SCEveRegisterCallback, SCPlugin, ThreadVars};
+use suricata_sys::sys::{self, Flow, Packet, SCEveRegisterCallback, SCPlugin};
 
 unsafe extern "C" fn init() {
     suricata_ffi::plugin::init();
@@ -41,7 +41,7 @@ pub fn register_thread_callbacks() -> Result<(), &'static str> {
 }
 
 unsafe extern "C" fn log_eve_raw(
-    _tv: *mut ThreadVars,
+    _tv: *mut sys::ThreadVars,
     _p: *const Packet,
     _f: *mut Flow,
     jb: *mut SCJsonBuilder,
@@ -54,7 +54,7 @@ unsafe extern "C" fn log_eve_raw(
 }
 
 fn log_eve_wrapped(
-    _tv: *mut ThreadVars,
+    _tv: *mut sys::ThreadVars,
     _p: *const Packet,
     f: *mut Flow,
     jb: &mut JsonBuilder,
@@ -66,15 +66,18 @@ fn log_eve_wrapped(
     Ok(())
 }
 
-fn on_thread_init(tv: *mut ThreadVars) {
-    SCLogNotice!("rust example thread init callback: thread={:p}", tv);
+fn on_thread_init(tv: &mut ThreadVars) {
+    SCLogNotice!(
+        "rust example thread init callback: thread={:p}",
+        tv.as_ptr()
+    );
 }
 
-fn log_flow_init(_tv: *mut ThreadVars, _f: *mut Flow, _p: *const Packet) {
+fn log_flow_init(_tv: *mut sys::ThreadVars, _f: *mut Flow, _p: *const Packet) {
     SCLogNotice!("rust example flow init callback: flow={:p}", _f);
 }
 
-fn log_flow_update(_tv: *mut ThreadVars, _f: *mut Flow, _p: *mut Packet) {
+fn log_flow_update(_tv: *mut sys::ThreadVars, _f: *mut Flow, _p: *mut Packet) {
     SCLogNotice!(
         "rust example flow update callback: flow={:p}, packet={:p}",
         _f,
@@ -82,7 +85,7 @@ fn log_flow_update(_tv: *mut ThreadVars, _f: *mut Flow, _p: *mut Packet) {
     );
 }
 
-fn log_flow_finish(_tv: *mut ThreadVars, _f: *mut Flow) {
+fn log_flow_finish(_tv: *mut sys::ThreadVars, _f: *mut Flow) {
     SCLogNotice!("rust example flow finish callback: flow={:p}", _f);
 }
 

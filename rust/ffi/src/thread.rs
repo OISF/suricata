@@ -52,16 +52,9 @@ impl<'a> ThreadVars<'a> {
 /// The callback is invoked for every thread being initialized during Suricata
 /// startup. It receives the `ThreadVars` for the thread that has just been
 /// initialized.
-///
-/// # Safety
-///
-/// The callback receives a raw pointer from Suricata. This pointer is only
-/// valid for the duration of the callback invocation and must not be stored.
-///
-/// The callback must not panic.
 pub fn register_init_callback<F>(callback: F) -> Result<(), &'static str>
 where
-    F: Fn(*mut sys::ThreadVars) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars) + Send + Sync + 'static,
 {
     let user = Box::into_raw(Box::new(callback)) as *mut c_void;
     if unsafe { SCThreadRegisterInitCallback(Some(init_callback_wrapper::<F>), user) } {
@@ -76,8 +69,9 @@ where
 
 unsafe extern "C" fn init_callback_wrapper<F>(tv: *mut sys::ThreadVars, user: *mut c_void)
 where
-    F: Fn(*mut sys::ThreadVars) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars) + Send + Sync + 'static,
 {
     let callback = &*(user as *const F);
-    callback(tv);
+    let mut tv = ThreadVars::from_ptr(tv);
+    callback(&mut tv);
 }
