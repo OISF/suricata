@@ -73,11 +73,11 @@ fn on_thread_init(tv: &mut ThreadVars) {
     );
 }
 
-fn log_flow_init(_tv: *mut sys::ThreadVars, _f: *mut Flow, _p: *const Packet) {
+fn log_flow_init(_tv: &mut ThreadVars, _f: *mut Flow, _p: *const Packet) {
     SCLogNotice!("rust example flow init callback: flow={:p}", _f);
 }
 
-fn log_flow_update(_tv: *mut sys::ThreadVars, _f: *mut Flow, _p: *mut Packet) {
+fn log_flow_update(_tv: &mut ThreadVars, _f: *mut Flow, _p: *mut Packet) {
     SCLogNotice!(
         "rust example flow update callback: flow={:p}, packet={:p}",
         _f,
@@ -85,7 +85,7 @@ fn log_flow_update(_tv: *mut sys::ThreadVars, _f: *mut Flow, _p: *mut Packet) {
     );
 }
 
-fn log_flow_finish(_tv: *mut sys::ThreadVars, _f: *mut Flow) {
+fn log_flow_finish(_tv: &mut ThreadVars, _f: *mut Flow) {
     SCLogNotice!("rust example flow finish callback: flow={:p}", _f);
 }
 
