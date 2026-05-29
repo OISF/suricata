@@ -23,8 +23,9 @@ use suricata_sys::sys::{
     SCEveFileTypeThreadDeinitFunc, SCEveFileTypeThreadInitFunc, SCEveFileTypeWriteFunc,
     SCEveRegisterCallback, SCRegisterEveFileType,
 };
-pub use suricata_sys::sys::{Flow, Packet, SCEveUserCallbackFn, SCJsonBuilder};
+pub use suricata_sys::sys::{Packet, SCEveUserCallbackFn, SCJsonBuilder};
 
+use crate::flow::Flow;
 use crate::thread::ThreadVars;
 
 pub struct EveFileType {
@@ -82,7 +83,7 @@ impl EveFileType {
 /// The callback receives:
 /// - `tv`: the `ThreadVars` for the thread performing the logging
 /// - `p`: the `Packet`, if available
-/// - `f`: the `Flow`, if available
+/// - `f`: the `Flow`, if available (`None` when no flow is associated)
 /// - `jb`: the JSON builder for the current EVE record
 ///
 /// This API is intended for plugin and library users.
@@ -115,7 +116,7 @@ where
     F: Fn(
             &mut ThreadVars,
             *const Packet,
-            *mut Flow,
+            Option<&mut Flow>,
             &mut crate::jsonbuilder::JsonBuilder,
         ) -> Result<(), crate::jsonbuilder::Error>
         + Send
@@ -136,13 +137,13 @@ where
 /// Internal wrapper used to adapt the C EVE callback to a Rust
 /// closure callback.
 unsafe extern "C" fn callback_wrapper<F>(
-    tv: *mut sys::ThreadVars, p: *const Packet, f: *mut Flow, jb: *mut SCJsonBuilder,
+    tv: *mut sys::ThreadVars, p: *const Packet, f: *mut sys::Flow, jb: *mut SCJsonBuilder,
     user: *mut c_void,
 ) where
     F: Fn(
             &mut ThreadVars,
             *const Packet,
-            *mut Flow,
+            Option<&mut Flow>,
             &mut crate::jsonbuilder::JsonBuilder,
         ) -> Result<(), crate::jsonbuilder::Error>
         + Send
@@ -151,9 +152,14 @@ unsafe extern "C" fn callback_wrapper<F>(
 {
     let callback = &*(user as *const F);
     let mut tv = ThreadVars::from_ptr(tv);
+    let mut flow = if f.is_null() {
+        None
+    } else {
+        Some(Flow::from_ptr(f))
+    };
     let mut jb = crate::jsonbuilder::JsonBuilder::from_raw(jb);
     let mark = jb.get_mark();
-    if callback(&mut tv, p, f, &mut jb).is_err() {
+    if callback(&mut tv, p, flow.as_mut(), &mut jb).is_err() {
         let _ = jb.restore_mark(&mark);
     }
 }
