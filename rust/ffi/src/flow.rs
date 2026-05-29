@@ -69,7 +69,7 @@ impl<'a> Flow<'a> {
 /// The callback must not panic.
 pub fn register_init_callback<F>(callback: F) -> Result<(), &'static str>
 where
-    F: Fn(&mut ThreadVars, *mut sys::Flow, *const Packet) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, &mut Flow, *const Packet) + Send + Sync + 'static,
 {
     let user = Box::into_raw(Box::new(callback)) as *mut c_void;
     if unsafe { SCFlowRegisterInitCallback(Some(init_callback_wrapper::<F>), user) } {
@@ -98,7 +98,7 @@ where
 /// The callback must not panic.
 pub fn register_update_callback<F>(callback: F) -> Result<(), &'static str>
 where
-    F: Fn(&mut ThreadVars, *mut sys::Flow, *mut Packet) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, &mut Flow, *mut Packet) + Send + Sync + 'static,
 {
     let user = Box::into_raw(Box::new(callback)) as *mut c_void;
     if unsafe { SCFlowRegisterUpdateCallback(Some(update_callback_wrapper::<F>), user) } {
@@ -125,7 +125,7 @@ where
 /// The callback must not panic.
 pub fn register_finish_callback<F>(callback: F) -> Result<(), &'static str>
 where
-    F: Fn(&mut ThreadVars, *mut sys::Flow) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, &mut Flow) + Send + Sync + 'static,
 {
     let user = Box::into_raw(Box::new(callback)) as *mut c_void;
     if unsafe { SCFlowRegisterFinishCallback(Some(finish_callback_wrapper::<F>), user) } {
@@ -141,29 +141,32 @@ where
 unsafe extern "C" fn init_callback_wrapper<F>(
     tv: *mut sys::ThreadVars, f: *mut sys::Flow, p: *const Packet, user: *mut c_void,
 ) where
-    F: Fn(&mut ThreadVars, *mut sys::Flow, *const Packet) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, &mut Flow, *const Packet) + Send + Sync + 'static,
 {
     let callback = &*(user as *const F);
     let mut tv = ThreadVars::from_ptr(tv);
-    callback(&mut tv, f, p);
+    let mut f = Flow::from_ptr(f);
+    callback(&mut tv, &mut f, p);
 }
 
 unsafe extern "C" fn update_callback_wrapper<F>(
     tv: *mut sys::ThreadVars, f: *mut sys::Flow, p: *mut Packet, user: *mut c_void,
 ) where
-    F: Fn(&mut ThreadVars, *mut sys::Flow, *mut Packet) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, &mut Flow, *mut Packet) + Send + Sync + 'static,
 {
     let callback = &*(user as *const F);
     let mut tv = ThreadVars::from_ptr(tv);
-    callback(&mut tv, f, p);
+    let mut f = Flow::from_ptr(f);
+    callback(&mut tv, &mut f, p);
 }
 
 unsafe extern "C" fn finish_callback_wrapper<F>(
     tv: *mut sys::ThreadVars, f: *mut sys::Flow, user: *mut c_void,
 ) where
-    F: Fn(&mut ThreadVars, *mut sys::Flow) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, &mut Flow) + Send + Sync + 'static,
 {
     let callback = &*(user as *const F);
     let mut tv = ThreadVars::from_ptr(tv);
-    callback(&mut tv, f);
+    let mut f = Flow::from_ptr(f);
+    callback(&mut tv, &mut f);
 }
