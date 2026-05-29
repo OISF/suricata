@@ -55,8 +55,13 @@ The HTTP rules need to ``accept`` each state::
 
 Each state needs an ``accept`` rule. Each state is evaluated at least once.
 
+.. _firewall examples-default policies-http:
+
 HTTP example with partially using default policies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In the example below: the config auto accepts various hooks, leaving just ``http1:request_line``,
+``http1:request_headers`` and ``http1:response_line`` for the ruleset to accept.
 
 ::
 
@@ -108,9 +113,6 @@ HTTP example with partially using default policies
     # allow the 200 ok stat code.
     accept:hook http1:response_line any any -> any any ( \
             http.stat_code; content:"200"; sid:201;)
-
-Explanation: the config auto accepts various hooks, leaving just ``http1:request_line``,
-``http1:request_headers`` and ``http1:response_line`` for the ruleset to accept.
 
 
 TLS SNI with complex TCP rules
