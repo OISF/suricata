@@ -17,6 +17,7 @@
 
 // Author: Shivani Bhardwaj <shivani@oisf.net>
 
+use crate::conf::*;
 use crate::jsonbuilder::*;
 use petgraph::algo::{is_cyclic_directed, tarjan_scc};
 use petgraph::graph::{GraphError, NodeIndex};
@@ -144,9 +145,20 @@ pub unsafe extern "C" fn SCDebugLogFlowbitGraph(jsb: &mut JsonBuilder, graph: *m
 }
 
 fn check_cycle_update_graph(graph: &mut StableDiGraph<SCGNode, u8>) -> i8 {
-    const MAX_STACK_SIZE: usize = 100;
+    let mut max_stack_size: usize = 100;
+    if let Some(val) = conf_get("detect.flowbits.max-cycle-resolution") {
+        if let Ok(v) = val.parse::<usize>() {
+            if v > u8::MAX as usize {
+                SCLogError!("Invalid value for max-cycle-resolution");
+            } else {
+                max_stack_size = v;
+            }
+        } else {
+            SCLogError!("Invalid value for max-cycle-resolution");
+        }
+    }
 
-    for i in 0..MAX_STACK_SIZE {
+    for i in 0..=max_stack_size {
         /* Check graph for any cycles */
         if !is_cyclic_directed(&*graph) {
             SCLogDebug!("no cycles after {} tries", i);
@@ -154,6 +166,9 @@ fn check_cycle_update_graph(graph: &mut StableDiGraph<SCGNode, u8>) -> i8 {
         }
 
         SCLogDebug!("Found a cycle in i {}. Checking if it's valid..", i);
+        if i == max_stack_size {
+            break;
+        }
 
         if !try_resolve_one_cycle(graph) {
             /* If we can't resolve any cycle, we're stuck */
@@ -164,7 +179,7 @@ fn check_cycle_update_graph(graph: &mut StableDiGraph<SCGNode, u8>) -> i8 {
 
     SCLogError!(
         "Maximum tries ({}) reached while trying to resolve cycles",
-        MAX_STACK_SIZE
+        max_stack_size
     );
     return -1;
 }
