@@ -15,14 +15,44 @@
  * 02110-1301, USA.
  */
 
+use std::marker::PhantomData;
 use std::os::raw::c_void;
 
 use suricata_sys::sys::{
-    self, Flow, Packet, SCFlowRegisterFinishCallback, SCFlowRegisterInitCallback,
+    self, Packet, SCFlowRegisterFinishCallback, SCFlowRegisterInitCallback,
     SCFlowRegisterUpdateCallback,
 };
 
 use crate::thread::ThreadVars;
+
+/// A safe wrapper around a Suricata `sys::Flow` pointer.
+///
+/// A wrapper around `sys::Flow` that carries a lifetime tied to the callback
+/// invocation it was created for, so the borrow checker prevents it from being
+/// stored beyond the call.
+pub struct Flow<'a> {
+    flow: *mut sys::Flow,
+    _marker: PhantomData<&'a mut sys::Flow>,
+}
+
+impl<'a> Flow<'a> {
+    /// Wrap a raw `Flow` pointer.
+    ///
+    /// # Safety
+    ///
+    /// `flow` must be a valid `Flow` pointer provided by Suricata.
+    pub unsafe fn from_ptr(flow: *mut sys::Flow) -> Self {
+        Self {
+            flow,
+            _marker: PhantomData,
+        }
+    }
+
+    /// Return the underlying raw `Flow` pointer for read-only access.
+    pub fn as_ptr(&self) -> *const sys::Flow {
+        self.flow
+    }
+}
 
 /// Register a flow initialization callback.
 ///
@@ -39,7 +69,7 @@ use crate::thread::ThreadVars;
 /// The callback must not panic.
 pub fn register_init_callback<F>(callback: F) -> Result<(), &'static str>
 where
-    F: Fn(&mut ThreadVars, *mut Flow, *const Packet) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, *mut sys::Flow, *const Packet) + Send + Sync + 'static,
 {
     let user = Box::into_raw(Box::new(callback)) as *mut c_void;
     if unsafe { SCFlowRegisterInitCallback(Some(init_callback_wrapper::<F>), user) } {
@@ -68,7 +98,7 @@ where
 /// The callback must not panic.
 pub fn register_update_callback<F>(callback: F) -> Result<(), &'static str>
 where
-    F: Fn(&mut ThreadVars, *mut Flow, *mut Packet) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, *mut sys::Flow, *mut Packet) + Send + Sync + 'static,
 {
     let user = Box::into_raw(Box::new(callback)) as *mut c_void;
     if unsafe { SCFlowRegisterUpdateCallback(Some(update_callback_wrapper::<F>), user) } {
@@ -95,7 +125,7 @@ where
 /// The callback must not panic.
 pub fn register_finish_callback<F>(callback: F) -> Result<(), &'static str>
 where
-    F: Fn(&mut ThreadVars, *mut Flow) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, *mut sys::Flow) + Send + Sync + 'static,
 {
     let user = Box::into_raw(Box::new(callback)) as *mut c_void;
     if unsafe { SCFlowRegisterFinishCallback(Some(finish_callback_wrapper::<F>), user) } {
@@ -109,9 +139,9 @@ where
 }
 
 unsafe extern "C" fn init_callback_wrapper<F>(
-    tv: *mut sys::ThreadVars, f: *mut Flow, p: *const Packet, user: *mut c_void,
+    tv: *mut sys::ThreadVars, f: *mut sys::Flow, p: *const Packet, user: *mut c_void,
 ) where
-    F: Fn(&mut ThreadVars, *mut Flow, *const Packet) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, *mut sys::Flow, *const Packet) + Send + Sync + 'static,
 {
     let callback = &*(user as *const F);
     let mut tv = ThreadVars::from_ptr(tv);
@@ -119,9 +149,9 @@ unsafe extern "C" fn init_callback_wrapper<F>(
 }
 
 unsafe extern "C" fn update_callback_wrapper<F>(
-    tv: *mut sys::ThreadVars, f: *mut Flow, p: *mut Packet, user: *mut c_void,
+    tv: *mut sys::ThreadVars, f: *mut sys::Flow, p: *mut Packet, user: *mut c_void,
 ) where
-    F: Fn(&mut ThreadVars, *mut Flow, *mut Packet) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, *mut sys::Flow, *mut Packet) + Send + Sync + 'static,
 {
     let callback = &*(user as *const F);
     let mut tv = ThreadVars::from_ptr(tv);
@@ -129,9 +159,9 @@ unsafe extern "C" fn update_callback_wrapper<F>(
 }
 
 unsafe extern "C" fn finish_callback_wrapper<F>(
-    tv: *mut sys::ThreadVars, f: *mut Flow, user: *mut c_void,
+    tv: *mut sys::ThreadVars, f: *mut sys::Flow, user: *mut c_void,
 ) where
-    F: Fn(&mut ThreadVars, *mut Flow) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, *mut sys::Flow) + Send + Sync + 'static,
 {
     let callback = &*(user as *const F);
     let mut tv = ThreadVars::from_ptr(tv);
