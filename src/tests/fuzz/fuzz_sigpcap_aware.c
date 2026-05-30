@@ -36,7 +36,7 @@
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
 static int initialized = 0;
-ThreadVars tv;
+ThreadVars *tv = NULL;
 DecodeThreadVars *dtv;
 // FlowWorkerThreadData
 void *fwd;
@@ -107,14 +107,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         PreRunPostPrivsDropInit(SCRunmodeGet());
         PostConfLoadedDetectSetup(&surifuzz);
 
-        memset(&tv, 0, sizeof(tv));
-        tv.flow_queue = FlowQueueNew();
-        if (tv.flow_queue == NULL)
+        tv = ThreadVarsAlloc();
+        tv->flow_queue = FlowQueueNew();
+        if (tv->flow_queue == NULL)
             abort();
-        dtv = DecodeThreadVarsAlloc(&tv);
-        DecodeRegisterPerfCounters(dtv, &tv);
-        tmm_modules[TMM_FLOWWORKER].ThreadInit(&tv, NULL, &fwd);
-        StatsSetupPrivate(&tv.stats, NULL);
+        dtv = DecodeThreadVarsAlloc(tv);
+        DecodeRegisterPerfCounters(dtv, tv);
+        tmm_modules[TMM_FLOWWORKER].ThreadInit(tv, NULL, &fwd);
+        StatsSetupPrivate(&tv->stats, NULL);
 
         extern uint32_t max_pending_packets;
         max_pending_packets = 128;
@@ -153,7 +153,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
     DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
     de_ctx->ref_cnt--;
-    DetectEngineThreadCtx *new_det_ctx = DetectEngineThreadCtxInitForReload(&tv, de_ctx, 1);
+    DetectEngineThreadCtx *new_det_ctx = DetectEngineThreadCtxInitForReload(tv, de_ctx, 1);
     FlowWorkerReplaceDetectCtx(fwd, new_det_ctx);
 
     DetectEngineThreadCtxDeinit(NULL, old_det_ctx);
@@ -171,20 +171,20 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     while (r > 0) {
         if (PacketCopyData(p, pkt, header.caplen) == 0) {
             // DecodePcapFile
-            TmEcode ecode = tmm_modules[TMM_DECODEPCAPFILE].Func(&tv, p, dtv);
+            TmEcode ecode = tmm_modules[TMM_DECODEPCAPFILE].Func(tv, p, dtv);
             if (ecode == TM_ECODE_FAILED) {
                 break;
             }
-            Packet *extra_p = PacketDequeueNoLock(&tv.decode_pq);
+            Packet *extra_p = PacketDequeueNoLock(&tv->decode_pq);
             while (extra_p != NULL) {
                 PacketFreeOrRelease(extra_p);
-                extra_p = PacketDequeueNoLock(&tv.decode_pq);
+                extra_p = PacketDequeueNoLock(&tv->decode_pq);
             }
-            tmm_modules[TMM_FLOWWORKER].Func(&tv, p, fwd);
-            extra_p = PacketDequeueNoLock(&tv.decode_pq);
+            tmm_modules[TMM_FLOWWORKER].Func(tv, p, fwd);
+            extra_p = PacketDequeueNoLock(&tv->decode_pq);
             while (extra_p != NULL) {
                 PacketFreeOrRelease(extra_p);
-                extra_p = PacketDequeueNoLock(&tv.decode_pq);
+                extra_p = PacketDequeueNoLock(&tv->decode_pq);
             }
         }
         r = FPC_next(&pkts, &header, &pkt);
