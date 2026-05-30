@@ -35,6 +35,7 @@
 
 static int detect_buffer_id = 0;
 static int mdns_detect_buffer_id = 0;
+static int llmnr_detect_buffer_id = 0;
 
 typedef struct PrefilterMpm {
     int list_id;
@@ -76,6 +77,18 @@ static int MdnsDetectSetup(DetectEngineCtx *de_ctx, Signature *s, const char *st
         return -1;
     }
     if (SCDetectSignatureSetAppProto(s, ALPROTO_MDNS) < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+static int LlmnrDetectSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
+{
+    if (SCDetectBufferSetActiveList(de_ctx, s, llmnr_detect_buffer_id) < 0) {
+        return -1;
+    }
+    if (SCDetectSignatureSetAppProto(s, ALPROTO_LLMNR) < 0) {
         return -1;
     }
 
@@ -349,6 +362,28 @@ static void SCDetectMdnsResponseRrnameRegister(void)
     mdns_detect_buffer_id = DetectBufferTypeGetByName(keyword);
 }
 
+static void SCDetectLlmnrResponseRrnameRegister(void)
+{
+    static const char *keyword = "llmnr.response.rrname";
+    int keyword_id = SCDetectHelperNewKeywordId();
+    sigmatch_table[keyword_id].name = keyword;
+    sigmatch_table[keyword_id].desc = "LLMNR response rrname buffer";
+    sigmatch_table[keyword_id].url = "/rules/llmnr-keywords.html#llmnr-response-rrname";
+    sigmatch_table[keyword_id].Setup = LlmnrDetectSetup;
+    sigmatch_table[keyword_id].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[keyword_id].flags |= SIGMATCH_INFO_STICKY_BUFFER;
+
+    DetectAppLayerInspectEngineRegister(
+            keyword, ALPROTO_LLMNR, SIG_FLAG_TOCLIENT, 1, DetectEngineInspectCb, NULL);
+    DetectAppLayerMpmRegister(keyword, SIG_FLAG_TOCLIENT, 2, DetectDnsResponsePrefilterMpmRegister,
+            NULL, ALPROTO_LLMNR, 1);
+
+    DetectBufferTypeSetDescriptionByName(keyword, "llmnr response rdata");
+    DetectBufferTypeSupportsMultiInstance(keyword);
+
+    llmnr_detect_buffer_id = DetectBufferTypeGetByName(keyword);
+}
+
 void DetectDnsResponseRegister(void)
 {
     static const char *keyword = "dns.response.rrname";
@@ -371,4 +406,5 @@ void DetectDnsResponseRegister(void)
     detect_buffer_id = DetectBufferTypeGetByName(keyword);
 
     SCDetectMdnsResponseRrnameRegister();
+    SCDetectLlmnrResponseRrnameRegister();
 }
