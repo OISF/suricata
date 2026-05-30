@@ -1009,6 +1009,7 @@ libsuricata_c_a_SOURCES = \
 	thread-callbacks.c \
 	thread-storage.c \
 	threads.c \
+	threadvars.c \
 	tm-modules.c \
 	tm-queuehandlers.c \
 	tm-queues.c \

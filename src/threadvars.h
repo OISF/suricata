@@ -143,4 +143,19 @@ typedef struct ThreadVars_ {
 #define THREAD_SET_PRIORITY     0x02 /** Real time priority */
 #define THREAD_SET_AFFTYPE      0x04 /** Priority and affinity */
 
+/**
+ * \brief Allocate a new ThreadVars structure.
+ *
+ * \retval NULL if allocation failed.
+ * \retval Pointer to newly allocated ThreadVars structure.
+ */
+ThreadVars *ThreadVarsAlloc(void);
+
+/**
+ * \brief Free a ThreadVars structure.
+ *
+ * \param tv Pointer to ThreadVars structure to be freed.
+ */
+void ThreadVarsFree(ThreadVars *tv);
+
 #endif /* SURICATA_THREADVARS_H */
