@@ -70,6 +70,11 @@ typedef struct StatsCounter_ {
      * to get the counter value, regardless of how many threads there are. */
     uint64_t (*Func)(void);
 
+    /* optional context-aware variant: if set, called as FuncWithCtx(FuncCtx)
+     * instead of Func(). Allows multiple instances to share a getter. */
+    uint64_t (*FuncWithCtx)(void *);
+    void *FuncCtx;
+
     /* name of the counter */
     const char *name;
     const char *short_name;
@@ -149,6 +154,8 @@ StatsCounterId StatsRegisterCounter(const char *, StatsThreadContext *);
 StatsCounterAvgId StatsRegisterAvgCounter(const char *, StatsThreadContext *);
 StatsCounterMaxId StatsRegisterMaxCounter(const char *, StatsThreadContext *);
 StatsCounterGlobalId StatsRegisterGlobalCounter(const char *cname, uint64_t (*Func)(void));
+StatsCounterGlobalId StatsRegisterGlobalCounterWithContext(
+        const char *name, uint64_t (*Func)(void *), void *ctx);
 
 StatsCounterDeriveId StatsRegisterDeriveDivCounter(
         const char *cname, const char *dname1, const char *dname2, StatsThreadContext *);
