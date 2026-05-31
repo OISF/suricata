@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2021 Open Information Security Foundation
+/* Copyright (C) 2018-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -23,6 +23,7 @@ use suricata_sys::sys::{
 use crate::applayer::{self, *};
 use crate::core::{ALPROTO_UNKNOWN, IPPROTO_UDP};
 use crate::dhcp::parser::*;
+use crate::direction::Direction;
 use crate::flow::Flow;
 use std;
 use std::ffi::CString;
@@ -88,11 +89,11 @@ pub struct DHCPTransaction {
 }
 
 impl DHCPTransaction {
-    pub fn new(id: u64, message: DHCPMessage) -> DHCPTransaction {
+    pub fn new(id: u64, message: DHCPMessage, direction: Direction) -> DHCPTransaction {
         DHCPTransaction {
             tx_id: id,
             message,
-            tx_data: applayer::AppLayerTxData::new(),
+            tx_data: applayer::AppLayerTxData::for_direction(direction),
         }
     }
 }
@@ -131,13 +132,13 @@ impl DHCPState {
         Default::default()
     }
 
-    pub fn parse(&mut self, input: &[u8]) -> bool {
+    pub fn parse(&mut self, input: &[u8], direction: Direction) -> bool {
         match parse_dhcp(input) {
             Ok((_, message)) => {
                 let malformed_options = message.malformed_options;
                 let truncated_options = message.truncated_options;
                 self.tx_id += 1;
-                let transaction = DHCPTransaction::new(self.tx_id, message);
+                let transaction = DHCPTransaction::new(self.tx_id, message, direction);
                 self.transactions.push(transaction);
                 if malformed_options {
                     self.set_event(DHCPEvent::MalformedOptions);
@@ -226,12 +227,23 @@ unsafe extern "C" fn dhcp_state_get_tx_count(state: *mut std::os::raw::c_void) -
     return state.tx_id;
 }
 
-unsafe extern "C" fn dhcp_parse(
+unsafe extern "C" fn dhcp_parse_request(
     _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, DHCPState);
-    if state.parse(stream_slice.as_slice()) {
+    if state.parse(stream_slice.as_slice(), Direction::ToServer) {
+        return AppLayerResult::ok();
+    }
+    return AppLayerResult::err();
+}
+
+unsafe extern "C" fn dhcp_parse_response(
+    _flow: *mut Flow, state: *mut std::os::raw::c_void, _pstate: *mut AppLayerParserState,
+    stream_slice: StreamSlice, _data: *const std::os::raw::c_void,
+) -> AppLayerResult {
+    let state = cast_pointer!(state, DHCPState);
+    if state.parse(stream_slice.as_slice(), Direction::ToClient) {
         return AppLayerResult::ok();
     }
     return AppLayerResult::err();
@@ -274,8 +286,8 @@ pub unsafe extern "C" fn SCRegisterDhcpParser() {
         state_new: dhcp_state_new,
         state_free: dhcp_state_free,
         tx_free: dhcp_state_tx_free,
-        parse_ts: dhcp_parse,
-        parse_tc: dhcp_parse,
+        parse_ts: dhcp_parse_request,
+        parse_tc: dhcp_parse_response,
         get_tx_count: dhcp_state_get_tx_count,
         get_tx: dhcp_state_get_tx,
         tx_comp_st_ts: 1,
@@ -307,5 +319,34 @@ pub unsafe extern "C" fn SCRegisterDhcpParser() {
         }
     } else {
         SCLogDebug!("Protocol detector and parser disabled for DHCP.");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tx_skip_inspect_direction() {
+        let pcap = include_bytes!("discover.pcap");
+        let payload = &pcap[24 + 16 + 42..];
+
+        // a to-server tx should be marked to skip the to-client inspection it
+        // will never be observed in, and a to-client tx the reverse
+        let (_rem, message) = parse_dhcp(payload).unwrap();
+        let ts_tx = DHCPTransaction::new(1, message, Direction::ToServer);
+        assert_eq!(
+            APP_LAYER_TX_SKIP_INSPECT_TC,
+            ts_tx.tx_data.flags & APP_LAYER_TX_SKIP_INSPECT_TC
+        );
+        assert_eq!(0, ts_tx.tx_data.flags & APP_LAYER_TX_SKIP_INSPECT_TS);
+
+        let (_rem, message) = parse_dhcp(payload).unwrap();
+        let tc_tx = DHCPTransaction::new(2, message, Direction::ToClient);
+        assert_eq!(
+            APP_LAYER_TX_SKIP_INSPECT_TS,
+            tc_tx.tx_data.flags & APP_LAYER_TX_SKIP_INSPECT_TS
+        );
+        assert_eq!(0, tc_tx.tx_data.flags & APP_LAYER_TX_SKIP_INSPECT_TC);
     }
 }
