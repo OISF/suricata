@@ -114,7 +114,7 @@ pub struct AppLayerTxData {
     pub updated_tc: bool,
     pub updated_ts: bool,
 
-    flags: u8,
+    pub flags: u8,
 
     /// logger flags for tx logging api
     logged: LoggerFlags,
