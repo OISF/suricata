@@ -610,16 +610,22 @@ static uint16_t GetIdByName(const StatsPublicThreadContext *pctx, const char *na
 /**
  * \brief Registers a counter.
  *
- * \param name    Name of the counter, to be registered
- * \param pctx     StatsPublicThreadContext for this tm-tv instance
- * \param type_q   Qualifier describing the type of counter to be registered
+ * \param name         Name of the counter, to be registered
+ * \param pctx         StatsPublicThreadContext for this tm-tv instance
+ * \param type_q       Qualifier describing the type of counter to be registered
+ * \param Func         Poll-time getter, or NULL
+ * \param FuncWithCtx  Context-aware poll-time getter, or NULL
+ * \param FuncCtx      Context passed to \a FuncWithCtx on each poll
+ * \param dname1       First counter name (STATS_TYPE_DERIVE_DIV only)
+ * \param dname2       Second counter name (STATS_TYPE_DERIVE_DIV only)
  *
  * \retval the counter id for the newly registered counter, or the already
  *         present counter on success
  * \retval 0 on failure
  */
 static uint16_t StatsRegisterQualifiedCounter(const char *name, StatsPublicThreadContext *pctx,
-        enum StatsType type_q, uint64_t (*Func)(void), const char *dname1, const char *dname2)
+        enum StatsType type_q, uint64_t (*Func)(void), uint64_t (*FuncWithCtx)(void *),
+        void *FuncCtx, const char *dname1, const char *dname2)
 {
     if (name == NULL || pctx == NULL) {
         SCLogDebug("Counter name, StatsPublicThreadContext NULL");
@@ -659,6 +665,8 @@ static uint16_t StatsRegisterQualifiedCounter(const char *name, StatsPublicThrea
     pc->name = name;
     pc->type = type_q;
     pc->Func = Func;
+    pc->FuncWithCtx = FuncWithCtx;
+    pc->FuncCtx = FuncCtx;
     pc->did1 = did1;
     pc->did2 = did2;
 
@@ -772,7 +780,9 @@ static int StatsOutput(ThreadVars *tv)
 
             switch (pc->type) {
                 case STATS_TYPE_FUNC:
-                    if (pc->Func != NULL)
+                    if (pc->FuncWithCtx != NULL)
+                        thread_table[pc->gid].value = pc->FuncWithCtx(pc->FuncCtx);
+                    else if (pc->Func != NULL)
                         thread_table[pc->gid].value = pc->Func();
                     break;
                 case STATS_TYPE_AVERAGE:
@@ -1019,8 +1029,8 @@ void StatsSpawnThreads(void)
  */
 StatsCounterId StatsRegisterCounter(const char *name, StatsThreadContext *stats)
 {
-    uint16_t id =
-            StatsRegisterQualifiedCounter(name, &stats->pub, STATS_TYPE_NORMAL, NULL, NULL, NULL);
+    uint16_t id = StatsRegisterQualifiedCounter(
+            name, &stats->pub, STATS_TYPE_NORMAL, NULL, NULL, NULL, NULL, NULL);
     StatsCounterId s = { .id = id };
     return s;
 }
@@ -1038,8 +1048,8 @@ StatsCounterId StatsRegisterCounter(const char *name, StatsThreadContext *stats)
  */
 StatsCounterAvgId StatsRegisterAvgCounter(const char *name, StatsThreadContext *stats)
 {
-    uint16_t id =
-            StatsRegisterQualifiedCounter(name, &stats->pub, STATS_TYPE_AVERAGE, NULL, NULL, NULL);
+    uint16_t id = StatsRegisterQualifiedCounter(
+            name, &stats->pub, STATS_TYPE_AVERAGE, NULL, NULL, NULL, NULL, NULL);
     StatsCounterAvgId s = { .id = id };
     return s;
 }
@@ -1057,8 +1067,8 @@ StatsCounterAvgId StatsRegisterAvgCounter(const char *name, StatsThreadContext *
  */
 StatsCounterMaxId StatsRegisterMaxCounter(const char *name, StatsThreadContext *stats)
 {
-    uint16_t id =
-            StatsRegisterQualifiedCounter(name, &stats->pub, STATS_TYPE_MAXIMUM, NULL, NULL, NULL);
+    uint16_t id = StatsRegisterQualifiedCounter(
+            name, &stats->pub, STATS_TYPE_MAXIMUM, NULL, NULL, NULL, NULL, NULL);
     StatsCounterMaxId s = { .id = id };
     return s;
 }
@@ -1082,7 +1092,7 @@ StatsCounterGlobalId StatsRegisterGlobalCounter(const char *name, uint64_t (*Fun
     BUG_ON(stats_ctx == NULL);
 #endif
     uint16_t id = StatsRegisterQualifiedCounter(
-            name, &(stats_ctx->global_counter_ctx), STATS_TYPE_FUNC, Func, NULL, NULL);
+            name, &(stats_ctx->global_counter_ctx), STATS_TYPE_FUNC, Func, NULL, NULL, NULL, NULL);
     s.id = id;
     return s;
 }
@@ -1111,7 +1121,36 @@ StatsCounterDeriveId StatsRegisterDeriveDivCounter(
     BUG_ON(stats_ctx == NULL);
 #endif
     uint16_t id = StatsRegisterQualifiedCounter(
-            name, &stats->pub, STATS_TYPE_DERIVE_DIV, NULL, dname1, dname2);
+            name, &stats->pub, STATS_TYPE_DERIVE_DIV, NULL, NULL, NULL, dname1, dname2);
+    s.id = id;
+    return s;
+}
+
+/**
+ * \brief Registers a global counter backed by a context-aware getter function.
+ *
+ * Like StatsRegisterGlobalCounter() but passes \a ctx to \a Func on each poll,
+ * allowing multiple independent instances to share a single getter without
+ * requiring per-instance wrapper functions.
+ *
+ * \param name  Name of the counter.
+ * \param Func  Function returning the counter value given \a ctx.
+ * \param ctx   Context pointer passed to \a Func on every poll.
+ *
+ * \retval id Counter id for the newly registered counter.
+ */
+StatsCounterGlobalId StatsRegisterGlobalCounterWithContext(
+        const char *name, uint64_t (*Func)(void *), void *ctx)
+{
+    StatsCounterGlobalId s = { .id = 0 };
+#if defined(UNITTESTS) || defined(FUZZ)
+    if (stats_ctx == NULL)
+        return s;
+#else
+    BUG_ON(stats_ctx == NULL);
+#endif
+    uint16_t id = StatsRegisterQualifiedCounter(
+            name, &(stats_ctx->global_counter_ctx), STATS_TYPE_FUNC, NULL, Func, ctx, NULL, NULL);
     s.id = id;
     return s;
 }
@@ -1430,7 +1469,8 @@ void StatsThreadCleanup(StatsThreadContext *stats)
 static StatsCounterId RegisterCounter(
         const char *name, const char *tm_name, StatsPublicThreadContext *pctx)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(name, pctx, STATS_TYPE_NORMAL, NULL, NULL, NULL);
+    uint16_t id = StatsRegisterQualifiedCounter(
+            name, pctx, STATS_TYPE_NORMAL, NULL, NULL, NULL, NULL, NULL);
     StatsCounterId s = { .id = id };
     return s;
 }

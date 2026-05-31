@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -69,6 +69,11 @@ typedef struct StatsCounter_ {
     /* when using type STATS_TYPE_FUNC this function is called once
      * to get the counter value, regardless of how many threads there are. */
     uint64_t (*Func)(void);
+
+    /* optional context-aware variant: if set, called as FuncWithCtx(FuncCtx)
+     * instead of Func(). Allows multiple instances to share a getter. */
+    uint64_t (*FuncWithCtx)(void *);
+    void *FuncCtx;
 
     /* name of the counter */
     const char *name;
@@ -149,6 +154,8 @@ StatsCounterId StatsRegisterCounter(const char *, StatsThreadContext *);
 StatsCounterAvgId StatsRegisterAvgCounter(const char *, StatsThreadContext *);
 StatsCounterMaxId StatsRegisterMaxCounter(const char *, StatsThreadContext *);
 StatsCounterGlobalId StatsRegisterGlobalCounter(const char *cname, uint64_t (*Func)(void));
+StatsCounterGlobalId StatsRegisterGlobalCounterWithContext(
+        const char *name, uint64_t (*Func)(void *), void *ctx);
 
 StatsCounterDeriveId StatsRegisterDeriveDivCounter(
         const char *cname, const char *dname1, const char *dname2, StatsThreadContext *);
