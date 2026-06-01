@@ -78,7 +78,7 @@ include = [
     "FtpRequestCommand",
     "FtpStateValues",
     "FtpDataStateValues",
-    "HTTP2TransactionState",
+    "HTTP2TxProgress",
     "DataRepType",
 ]
 

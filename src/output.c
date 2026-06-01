@@ -1090,8 +1090,8 @@ void OutputRegisterLoggers(void)
     LogHttpLogRegister();
     JsonHttpLogRegister();
     OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", "LogHttp2Log", "eve-log.http2",
-            OutputJsonLogInitSub, ALPROTO_HTTP2, JsonGenericDirFlowLogger, HTTP2StateClosed,
-            HTTP2StateClosed, JsonLogThreadInit, JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_HTTP2, JsonGenericDirFlowLogger, HTTP2ProgClosed,
+            HTTP2ProgClosed, JsonLogThreadInit, JsonLogThreadDeinit);
     /* tls log */
     JsonTlsLogRegister();
     LogTlsStoreRegister();
