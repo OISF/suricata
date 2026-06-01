@@ -49,7 +49,6 @@
 #include "output-json-anomaly.h"
 #include "output-json-flow.h"
 #include "output-json-netflow.h"
-#include "log-cf-common.h"
 #include "output-json-drop.h"
 #include "output-eve-stream.h"
 #include "output-json-http.h"
@@ -1071,9 +1070,6 @@ static TxLogger JsonLoggerFromDir(uint8_t dir)
  */
 void OutputRegisterLoggers(void)
 {
-    /* custom format log*/
-    LogCustomFormatRegister();
-
     LuaLogRegister();
     /* fast log */
     AlertFastLogRegister();
