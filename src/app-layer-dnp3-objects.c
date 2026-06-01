@@ -6867,10 +6867,15 @@ static int DNP3DecodeObjectG70V2(const uint8_t **buf, uint16_t *len, uint8_t pre
         if (!DNP3ReadUint16(buf, len, &object->password_size)) {
             goto error;
         }
-        if (!DNP3ReadUint32(buf, len, &object->authentication_key)) {
+        if (!DNP3ReadUint16(buf, len, &object->authentication_key)) {
             goto error;
         }
         if (object->username_size > 0) {
+            // Validate username_size doesn't exceed buffer (defensive: buffer is 65536 bytes)
+            if (object->username_size > sizeof(object->username) - 1) {
+                SCLogDebug("DNP3 username size %u exceeds buffer", object->username_size);
+                goto error;
+            }
             if (*len < object->username_size) {
                 /* Not enough data. */
                 goto error;
@@ -6881,6 +6886,11 @@ static int DNP3DecodeObjectG70V2(const uint8_t **buf, uint16_t *len, uint8_t pre
         }
         object->username[object->username_size] = '\0';
         if (object->password_size > 0) {
+            // Validate password_size doesn't exceed buffer (defensive: buffer is 65536 bytes)
+            if (object->password_size > sizeof(object->password) - 1) {
+                SCLogDebug("DNP3 password size %u exceeds buffer", object->password_size);
+                goto error;
+            }
             if (*len < object->password_size) {
                 /* Not enough data. */
                 goto error;
@@ -7027,10 +7037,17 @@ static int DNP3DecodeObjectG70V4(const uint8_t **buf, uint16_t *len, uint8_t pre
         if (!DNP3ReadUint8(buf, len, &object->status_code)) {
             goto error;
         }
-        if (prefix - (offset - *len) >= 256 || prefix < (offset - *len)) {
+        
+        // Safe calculation: check for underflow before subtraction
+        if (*len > offset) {
+            // Underflow detected
             goto error;
         }
-        object->optional_text_len = (uint8_t)(prefix - (offset - *len));
+        uint32_t optional_text_len_calc = offset - *len;
+        if (optional_text_len_calc >= 256 || (prefix < optional_text_len_calc)) {
+            goto error;
+        }
+        object->optional_text_len = (uint8_t)optional_text_len_calc;
         if (object->optional_text_len > 0) {
             if (*len < object->optional_text_len) {
                 /* Not enough data. */
@@ -7093,10 +7110,17 @@ static int DNP3DecodeObjectG70V5(const uint8_t **buf, uint16_t *len, uint8_t pre
         if (!DNP3ReadUint32(buf, len, &object->block_number)) {
             goto error;
         }
-        if (prefix - (offset - *len) >= 256 || prefix < (offset - *len)) {
+        
+        // Safe calculation: check for underflow before subtraction
+        if (*len > offset) {
+            // Underflow detected
             goto error;
         }
-        object->file_data_len = (uint8_t)(prefix - (offset - *len));
+        uint32_t file_data_len_calc = offset - *len;
+        if (file_data_len_calc >= 256 || (prefix < file_data_len_calc)) {
+            goto error;
+        }
+        object->file_data_len = (uint8_t)file_data_len_calc;
         if (object->file_data_len > 0) {
             if (*len < object->file_data_len) {
                 /* Not enough data. */

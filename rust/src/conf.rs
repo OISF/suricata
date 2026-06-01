@@ -68,8 +68,10 @@ impl ConfNode {
 
     pub fn get_child_node(&self, key: &str) -> Option<ConfNode> {
         let node = unsafe {
-            let s = CString::new(key).unwrap();
-            SCConfNodeLookupChild(self.conf, s.as_ptr())
+            match CString::new(key) {
+                Ok(s) => SCConfNodeLookupChild(self.conf, s.as_ptr()),
+                Err(_) => return None, // Key contains NUL bytes - invalid input
+            }
         };
         if node.is_null() {
             None
@@ -96,17 +98,28 @@ impl ConfNode {
         }
     }
 
-    pub fn value(&self) -> &str {
+    pub fn value(&self) -> Option<&str> {
         let vptr = unsafe { SCConfGetValueNode(self.conf) };
-        let value = std::str::from_utf8(unsafe { CStr::from_ptr(vptr).to_bytes() }).unwrap();
-        return value;
+        if vptr.is_null() {
+            return None; // Null pointer from C FFI
+        }
+        let cstr = unsafe { CStr::from_ptr(vptr) };
+        match std::str::from_utf8(cstr.to_bytes()) {
+            Ok(value) => Some(value),
+            Err(_) => None, // Invalid UTF-8 in configuration value
+        }
     }
 
     pub fn get_child_value(&self, key: &str) -> Option<&str> {
         let mut vptr: *const c_char = ptr::null_mut();
 
+        // Validate key doesn't contain NUL bytes before FFI call
+        let s = match CString::new(key) {
+            Ok(s) => s,
+            Err(_) => return None, // Key contains NUL bytes - invalid input
+        };
+
         unsafe {
-            let s = CString::new(key).unwrap();
             if SCConfGetChildValue(self.conf, s.as_ptr(), &mut vptr) != 1 {
                 return None;
             }
@@ -116,9 +129,17 @@ impl ConfNode {
             return None;
         }
 
-        let value = str::from_utf8(unsafe { CStr::from_ptr(vptr).to_bytes() }).unwrap();
+        // Safely handle potentially invalid UTF-8
+        let cstr = unsafe { CStr::from_ptr(vptr) };
+        match str::from_utf8(cstr.to_bytes()) {
+        // Validate key doesn't contain NUL bytes before FFI call
+        let s = match CString::new(key) {
+            Ok(s) => s,
+            Err(_) => return false, // Key contains NUL bytes - invalid input, default to false
+        };
 
-        return Some(value);
+        unsafe { configuration value
+        }
     }
 
     pub fn get_child_bool(&self, key: &str) -> bool {
