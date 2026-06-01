@@ -112,9 +112,9 @@ void DetectHttpClientBodyRegister(void)
             PrefilterMpmHttpRequestBodyRegister, NULL, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_BODY);
 
     DetectAppLayerInspectEngineRegister("http_client_body", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateDataClient, DetectEngineInspectFiledata, NULL);
+            HTTP2ProgData, DetectEngineInspectFiledata, NULL);
     DetectAppLayerMpmRegister("http_client_body", SIG_FLAG_TOSERVER, 2,
-            PrefilterMpmFiledataRegister, NULL, ALPROTO_HTTP2, HTTP2StateDataClient);
+            PrefilterMpmFiledataRegister, NULL, ALPROTO_HTTP2, HTTP2ProgData);
 
     DetectBufferTypeSetDescriptionByName("http_client_body",
             "http request body");
