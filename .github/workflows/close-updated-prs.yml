@@ -1,0 +1,80 @@
+name: Close updated PRs
+
+on:
+  pull_request_target:
+    types:
+      - synchronize
+
+permissions:
+  actions: write
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  close-updated-pr:
+    name: Close updated PR
+    if: ${{ github.event.pull_request.draft == false }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      AFTER: ${{ github.event.after }}
+    steps:
+      - name: Close updated PR
+        run: |
+          set -euo pipefail
+
+          body=$(cat <<'EOF'
+
+          Closing this pull request: its branch was updated after the pull
+          request was opened.
+
+          Per our workflow, a new pull request is required when changes are made
+          to an existing one. Please open a new pull request with the updated
+          changes.
+
+          If you wish to create an in progress pull request that you can push to,
+          please create a draft pull request.
+
+          Please see our [GitHub Pull Request Workflow](https://docs.suricata.io/en/latest/devguide/contributing/github-pr-workflow.html).
+
+          EOF
+          )
+
+          gh api \
+              --method POST \
+              "/repos/${REPOSITORY}/issues/${PR_NUMBER}/comments" \
+              -f body="${body}" \
+              --silent
+
+          gh api \
+              --method PATCH \
+              "/repos/${REPOSITORY}/pulls/${PR_NUMBER}" \
+              -f state=closed \
+              --silent
+
+      # Run last, after the PR has been closed. Our own run is skipped so this
+      # job does not show up as cancelled in the checks list.
+      - name: Cancel running workflows for this push
+        run: |
+          set -euo pipefail
+
+          for status in queued in_progress; do
+              gh api --paginate \
+                  "/repos/${REPOSITORY}/actions/runs?head_sha=${AFTER}&status=${status}" \
+                  --jq '.workflow_runs[].id' | while read -r run_id; do
+                  if [ "${run_id}" = "${GITHUB_RUN_ID}" ]; then
+                      continue
+                  fi
+                  gh api \
+                      --method POST \
+                      "/repos/${REPOSITORY}/actions/runs/${run_id}/cancel" \
+                      --silent || true
+              done
+          done
