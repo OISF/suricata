@@ -430,43 +430,6 @@ Example:
       enabled: yes
       #certs-log-dir: certs # directory to store the certificates files
 
-A line based log of HTTP requests (http.log)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. attention:: http-log is deprecated in Suricata 8.0 and will be
-               removed in Suricata 9.0.
-
-This log keeps track of all HTTP-traffic events. It contains the HTTP
-request, hostname, URI and the User-Agent. This information will be
-stored in the http.log (default name, in the suricata log
-directory). This logging can also be performed through the use of the
-:ref:`Eve-log capability <eve-json-format>`.
-
-Example of a HTTP-log line with non-extended logging:
-
-::
-
-  07/01/2014-04:20:14.338309 vg.no [**] / [**] Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2)
-  AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.114 Safari/537.36 [**]
-  192.168.1.6:64685 -> 195.88.54.16:80
-
-Example of a HTTP-log line with extended logging:
-
-::
-
-  07/01/2014-04:21:06.994705 vg.no [**] / [**] Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2)
-  AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.114 Safari/537.36 [**] <no referer> [**]
-  GET [**] HTTP/1.1 [**] 301 => http://www.vg.no/ [**] 239 bytes [**] 192.168.1.6:64726 -> 195.88.54.16:80
-
-::
-
-  - http-log:                     #The log-name.
-      enabled: yes                #This log is enabled. Set 'no' to disable.
-      filename: http.log          #The name of the file in the default logging directory.
-      append: yes/no              #If this option is set to yes, the last filled http.log-file will not be
-                                  # overwritten while restarting Suricata.
-      extended: yes               # If set to yes more information is written about the event.
-
 .. _suricata_yaml_pcap_log:
 
 Packet log (pcap-log)

@@ -54,8 +54,8 @@ Example::
 
   pass ip 1.2.3.4 any <> any any (msg:"pass all traffic from/to 1.2.3.4"; sid:1;)
 
-A big difference with capture filters is that logs such as Eve or http.log
-are still generated for this traffic.
+A big difference with capture filters is that logs such as Eve are still
+generated for this traffic.
 
 suppress
 --------

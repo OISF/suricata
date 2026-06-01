@@ -52,7 +52,6 @@
 #include "log-cf-common.h"
 #include "output-json-drop.h"
 #include "output-eve-stream.h"
-#include "log-httplog.h"
 #include "output-json-http.h"
 #include "output-json-dns.h"
 #include "output-json-mdns.h"
@@ -1089,7 +1088,6 @@ void OutputRegisterLoggers(void)
     /* email logs */
     JsonSmtpLogRegister();
     /* http log */
-    LogHttpLogRegister();
     JsonHttpLogRegister();
     OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", "LogHttp2Log", "eve-log.http2",
             OutputJsonLogInitSub, ALPROTO_HTTP2, JsonGenericDirFlowLogger, HTTP2StateClosed,

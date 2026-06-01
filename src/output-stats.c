@@ -36,7 +36,7 @@ typedef struct OutputStatsLoggerThreadData_ {
 
 /* logger instance, a module + a output ctx,
  * it's perfectly valid that have multiple instances of the same
- * log module (e.g. http.log) with different output ctx'. */
+ * log module (e.g. fast.log) with different output ctx'. */
 typedef struct OutputStatsLogger_ {
     StatsLogger LogFunc;
     OutputCtx *output_ctx;
