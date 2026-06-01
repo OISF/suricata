@@ -30,6 +30,7 @@
 typedef struct DetectDatasetData_ {
     Dataset *set;
     uint8_t cmd;
+    uint8_t mask; /* CIDR prefix length for 'set'/'unset' with mask option; 0 = no mask */
     bool match_subdomain;
     DatasetFormats format;
     DataJsonType json;

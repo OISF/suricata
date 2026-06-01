@@ -36,9 +36,18 @@ pub enum DatasetType {
     DSSha256,
     DSIpv4,
     DSIpv6,
+    DSCIDR,
 }
 
 use suricata_sys::sys::{Dataset, SCDatasetAdd, SCDatasetAddwRep};
+
+/* DatasetAddCIDRString is not in suricata_sys::sys because the bindgen
+ * allowlist is 'SC.*'. Renaming to SCDatasetAddCIDRString and adding
+ * datasets-cidr.h to bindgen.h would let it migrate to a sys import;
+ * done as a follow-up so this commit doesn't need a bindgen rerun. */
+extern "C" {
+    fn DatasetAddCIDRString(set: *mut Dataset, cidr_str: *const c_char) -> i32;
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn ParseDatasets(
@@ -51,6 +60,7 @@ pub unsafe extern "C" fn ParseDatasets(
     let filename = Path::new(file_string);
     let mut no_rep = false;
     let mut with_rep = false;
+    let mut cidr_rep_warned = false;
     let lines = match read_or_create_file(filename, mode) {
         Ok(fp) => fp,
         Err(_) => return -1,
@@ -108,6 +118,19 @@ pub unsafe extern "C" fn ParseDatasets(
             }
             DatasetType::DSIpv6 => {
                 if process_ipv6_set(set, v, set_name, filename, no_rep) == -1 {
+                    continue;
+                }
+            }
+            DatasetType::DSCIDR => {
+                if !no_rep && !cidr_rep_warned {
+                    SCLogWarning!(
+                        "Reputation values not supported for CIDR dataset {} in {}, ignoring",
+                        set_name,
+                        filename.display()
+                    );
+                    cidr_rep_warned = true;
+                }
+                if process_cidr_set(set, v, set_name, filename) == -1 {
                     continue;
                 }
             }
@@ -256,6 +279,33 @@ unsafe fn process_ipv6_set(
     } else {
         SCFatalErrorOnInit!(
             "invalid datarep value {} in {}",
+            set_name,
+            filename.display()
+        );
+        return -1;
+    }
+    0
+}
+
+unsafe fn process_cidr_set(
+    set: &mut Dataset, v: Vec<&str>, set_name: &str, filename: &Path,
+) -> i32 {
+    // Add one CIDR entry to the radix tree. Format: "192.168.1.0/24" or
+    // "2001:db8::/32" or a bare host address. Reputation values are dropped
+    // here; the caller emits a single warning per (set, file) if any of the
+    // lines in the file carried a reputation column.
+    let cidr_str = v[0];
+    let c_str = match std::ffi::CString::new(cidr_str) {
+        Ok(s) => s,
+        Err(_) => {
+            SCLogError!("Failed to convert CIDR string to C string: {}", cidr_str);
+            return -1;
+        }
+    };
+    if DatasetAddCIDRString(set, c_str.as_ptr()) < 0 {
+        SCLogError!(
+            "Failed to add CIDR '{}' to dataset {} from {}",
+            cidr_str,
             set_name,
             filename.display()
         );

@@ -752,7 +752,10 @@ TmEcode UnixSocketDatasetClear(json_t *cmd, json_t *answer, void *data)
         return TM_ECODE_FAILED;
     }
 
-    THashCleanup(set->hash);
+    if (DatasetClear(set) != 0) {
+        json_object_set_new(answer, "message", json_string("failed to clear dataset"));
+        return TM_ECODE_FAILED;
+    }
 
     json_object_set_new(answer, "message", json_string("dataset cleared"));
     return TM_ECODE_OK;
