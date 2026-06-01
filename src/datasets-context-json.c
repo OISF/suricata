@@ -724,6 +724,9 @@ Dataset *DatajsonGet(const char *name, enum DatasetTypes type, const char *load,
             if (DatajsonLoadIPv6(set, json_key_value, json_array_key, format) < 0)
                 goto out_err;
             break;
+        case DATASET_TYPE_CIDR:
+            SCLogError("CIDR datasets are not supported in JSON context (%s)", name);
+            goto out_err;
     }
 
     SCLogDebug(
@@ -881,6 +884,11 @@ DataJsonResultType DatajsonLookup(Dataset *set, const uint8_t *data, const uint3
             return DatajsonLookupIPv4(set, data, data_len);
         case DATASET_TYPE_IPV6:
             return DatajsonLookupIPv6(set, data, data_len);
+        case DATASET_TYPE_CIDR:
+            /* CIDR + JSON is rejected at DatajsonGet; unreachable in practice.
+             * Log if we somehow get here so the operator sees the mismatch. */
+            SCLogWarning("JSON lookup called on CIDR dataset '%s' (unsupported)", set->name);
+            return rrep;
         default:
             break;
     }
@@ -961,6 +969,9 @@ int DatajsonAddSerialized(Dataset *set, const char *value, const char *json)
             ret = DatajsonAdd(set, (uint8_t *)&in6.s6_addr, SC_IPV6_LEN, &jvalue);
             break;
         }
+        case DATASET_TYPE_CIDR:
+            SCLogError("CIDR datasets are not supported in JSON context (%s)", set->name);
+            goto operror;
     }
     SCFree(jvalue.value);
     return ret;
