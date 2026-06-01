@@ -135,6 +135,7 @@ void TmqhSetup (void);
 static void RegisterUnittests(void)
 {
     UTHRegisterTests();
+    SCTimeRegisterTests();
     StreamTcpRegisterTests();
     SigRegisterTests();
     SCReputationRegisterTests();

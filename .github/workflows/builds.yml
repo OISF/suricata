@@ -1419,9 +1419,9 @@ jobs:
       - run: make install-headers
       - run: make install-library
 
-      - run: TZ="UTC" ./src/suricata -u -U LogCustomFormatTest01
-      - run: TZ="Brazil/East" ./src/suricata -u -U LogCustomFormatTest01
-      - run: TZ="Saskatchewan/Regina" ./src/suricata -u -U LogCustomFormatTest01
+      - run: TZ="UTC" ./src/suricata -u -U CreateFormattedTimeStringTest01
+      - run: TZ="Brazil/East" ./src/suricata -u -U CreateFormattedTimeStringTest01
+      - run: TZ="Saskatchewan/Regina" ./src/suricata -u -U CreateFormattedTimeStringTest01
 
   ubuntu-24-04-rust-vars:
     name: Ubuntu 24.04 (RUSTC+CARGO vars)
