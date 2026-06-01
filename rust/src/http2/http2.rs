@@ -747,11 +747,11 @@ impl HTTP2State {
         return sid;
     }
 
-    fn create_global_tx(&mut self, dir: Direction) -> &mut HTTP2Transaction {
+    fn create_global_tx(&mut self, _dir: Direction) -> &mut HTTP2Transaction {
         //special transaction with only one frame
         //as it affects the global connection, there is no end to it
         let mut tx = HTTP2Transaction::new();
-        tx.tx_data = AppLayerTxData::for_direction(dir);
+        //tx.tx_data = AppLayerTxData::for_direction(dir);
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
         tx.progress_tc = HTTP2TxProgress::HTTP2ProgGlobal;
