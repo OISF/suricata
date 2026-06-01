@@ -107,10 +107,10 @@ void DetectHttpMethodRegister(void)
             GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_LINE);
 
     DetectAppLayerInspectEngineRegister("http_method", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateOpen, DetectEngineInspectBufferGeneric, GetData2);
+            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetData2);
 
     DetectAppLayerMpmRegister("http_method", SIG_FLAG_TOSERVER, 4, PrefilterGenericMpmRegister,
-            GetData2, ALPROTO_HTTP2, HTTP2StateOpen);
+            GetData2, ALPROTO_HTTP2, HTTP2ProgHeaders);
 
     DetectBufferTypeSetDescriptionByName("http_method",
             "http request method");

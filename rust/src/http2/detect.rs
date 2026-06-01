@@ -16,7 +16,7 @@
  */
 
 use super::http2::{
-    HTTP2Event, HTTP2Frame, HTTP2FrameTypeData, HTTP2State, HTTP2Transaction, HTTP2TransactionState,
+    HTTP2Event, HTTP2Frame, HTTP2FrameTypeData, HTTP2State, HTTP2Transaction, HTTP2TxProgress,
 };
 use super::parser;
 use crate::detect::uint::{detect_match_uint, DetectUintData};
@@ -1040,7 +1040,7 @@ fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
         data: txdata,
     });
     //we do not expect more data from client
-    tx.state = HTTP2TransactionState::HTTP2StateHalfClosedClient;
+    tx.progress_ts = HTTP2TxProgress::HTTP2ProgClosed;
 }
 
 #[no_mangle]

@@ -108,10 +108,10 @@ void DetectHttpUARegister(void)
             GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
 
     DetectAppLayerInspectEngineRegister("http_user_agent", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateOpen, DetectEngineInspectBufferGeneric, GetData2);
+            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetData2);
 
     DetectAppLayerMpmRegister("http_user_agent", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetData2, ALPROTO_HTTP2, HTTP2StateOpen);
+            GetData2, ALPROTO_HTTP2, HTTP2ProgHeaders);
 
     DetectBufferTypeSetDescriptionByName("http_user_agent",
             "http user agent");
