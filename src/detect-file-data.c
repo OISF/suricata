@@ -91,8 +91,8 @@ DetectFileHandlerProtocol_t al_protocols[ALPROTO_WITHFILES_MAX] = {
             .to_server_progress = HTP_REQUEST_PROGRESS_BODY },
     { .alproto = ALPROTO_HTTP2,
             .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
-            .to_client_progress = HTTP2StateDataServer,
-            .to_server_progress = HTTP2StateDataClient },
+            .to_client_progress = HTTP2ProgData,
+            .to_server_progress = HTTP2ProgData },
     { .alproto = ALPROTO_SMTP, .direction = SIG_FLAG_TOSERVER }, { .alproto = ALPROTO_UNKNOWN }
 };
 

@@ -61,6 +61,14 @@ Logging Changes
   ``stats.app_layer.*.ftp-data`` becomes ``stats.app_layer.*.ftp_data``,
   and same for bittorrent_dht
 
+Keyword Changes
+~~~~~~~~~~~~~~~
+
+- HTTP2 keywords have now better progress defined, with the http2 transaction progress
+  being split per direction. This means that some rules should match sooner,
+  some rules will have less false negatives, and some rules will trigger once per transaction
+  instead of twice (one time for each direction)
+
 Other Changes
 ~~~~~~~~~~~~~
 - ``engine-analysis`` output has been changed for keywords that now use the generic integers framework

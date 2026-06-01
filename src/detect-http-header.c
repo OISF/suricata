@@ -399,14 +399,14 @@ void DetectHttpHeaderRegister(void)
             0); /* not used, registered twice: HEADERS/TRAILER */
 
     DetectAppLayerInspectEngineRegister("http_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateOpen, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
+            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
     DetectAppLayerMpmRegister("http_header", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2StateOpen);
+            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2ProgHeaders);
 
     DetectAppLayerInspectEngineRegister("http_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
+            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
     DetectAppLayerMpmRegister("http_header", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2StateDataServer);
+            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2ProgHeaders);
 
     DetectBufferTypeSetDescriptionByName("http_header",
             "http headers");
@@ -575,7 +575,7 @@ void DetectHttpRequestHeaderRegister(void)
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 
     DetectAppLayerMultiRegister("http_request_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateOpen, GetHttp2HeaderData, 2);
+            HTTP2ProgHeaders, GetHttp2HeaderData, 2);
     DetectAppLayerMultiRegister("http_request_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_PROGRESS_HEADERS, GetHttp1HeaderData, 2);
 
@@ -611,7 +611,7 @@ void DetectHttpResponseHeaderRegister(void)
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 
     DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateOpen, GetHttp2HeaderData, 2);
+            HTTP2ProgHeaders, GetHttp2HeaderData, 2);
     DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_PROGRESS_HEADERS, GetHttp1HeaderData, 2);
 

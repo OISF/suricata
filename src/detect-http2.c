@@ -95,7 +95,7 @@ void DetectHTTP2RegisterTests (void);
 
 static int g_http2_match_buffer_id = 0;
 static int g_http2_complete_buffer_id = 0;
-static int g_http2_header_name_buffer_id = 0;
+static int g_http2_header_buffer_id = 0;
 
 /**
  * \brief Registration function for HTTP2 keywords
@@ -184,14 +184,14 @@ void DetectHttp2Register(void)
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 
     DetectAppLayerMultiRegister("http2_header_name", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateOpen, SCHttp2TxGetHeaderName, 2);
+            HTTP2ProgHeaders, SCHttp2TxGetHeaderName, 2);
     DetectAppLayerMultiRegister("http2_header_name", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateOpen, SCHttp2TxGetHeaderName, 2);
+            HTTP2ProgHeaders, SCHttp2TxGetHeaderName, 2);
 
     DetectBufferTypeSupportsMultiInstance("http2_header_name");
     DetectBufferTypeSetDescriptionByName("http2_header_name",
                                          "HTTP2 header name");
-    g_http2_header_name_buffer_id = DetectBufferTypeGetByName("http2_header_name");
+    g_http2_header_buffer_id = DetectBufferTypeGetByName("http2_header_name");
 
     DetectAppLayerInspectEngineRegister(
             "http2", ALPROTO_HTTP2, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
@@ -201,9 +201,9 @@ void DetectHttp2Register(void)
     g_http2_match_buffer_id = DetectBufferTypeRegister("http2");
 
     DetectAppLayerInspectEngineRegister("http2_complete", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateClosed, DetectEngineInspectGenericList, NULL);
+            HTTP2ProgComplete, DetectEngineInspectGenericList, NULL);
     DetectAppLayerInspectEngineRegister("http2_complete", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateClosed, DetectEngineInspectGenericList, NULL);
+            HTTP2ProgComplete, DetectEngineInspectGenericList, NULL);
 
     g_http2_complete_buffer_id = DetectBufferTypeRegister("http2_complete");
 }
@@ -244,7 +244,7 @@ static int DetectHTTP2frametypeSetup (DetectEngineCtx *de_ctx, Signature *s, con
     }
 
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_HTTP2_FRAMETYPE, (SigMatchCtx *)dua8,
-                g_http2_match_buffer_id) == NULL) {
+                g_http2_complete_buffer_id) == NULL) {
         DetectHTTP2frametypeFree(NULL, dua8);
         return -1;
     }
@@ -298,7 +298,7 @@ static int DetectHTTP2errorcodeSetup (DetectEngineCtx *de_ctx, Signature *s, con
     }
 
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_HTTP2_ERRORCODE, (SigMatchCtx *)dua32,
-                g_http2_match_buffer_id) == NULL) {
+                g_http2_complete_buffer_id) == NULL) {
         DetectHTTP2errorcodeFree(NULL, dua32);
         return -1;
     }
@@ -350,7 +350,7 @@ static int DetectHTTP2prioritySetup (DetectEngineCtx *de_ctx, Signature *s, cons
         return -1;
 
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_HTTP2_PRIORITY, (SigMatchCtx *)prio,
-                g_http2_match_buffer_id) == NULL) {
+                g_http2_complete_buffer_id) == NULL) {
         DetectHTTP2priorityFree(NULL, prio);
         return -1;
     }
@@ -455,7 +455,7 @@ static int DetectHTTP2sizeUpdateSetup (DetectEngineCtx *de_ctx, Signature *s, co
         return -1;
 
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_HTTP2_SIZEUPDATE, (SigMatchCtx *)su,
-                g_http2_match_buffer_id) == NULL) {
+                g_http2_header_buffer_id) == NULL) {
         DetectHTTP2sizeUpdateFree(NULL, su);
         return -1;
     }
@@ -527,7 +527,7 @@ void DetectHTTP2settingsFree(DetectEngineCtx *de_ctx, void *ptr)
 
 static int DetectHTTP2headerNameSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (SCDetectBufferSetActiveList(de_ctx, s, g_http2_header_name_buffer_id) < 0)
+    if (SCDetectBufferSetActiveList(de_ctx, s, g_http2_header_buffer_id) < 0)
         return -1;
 
     if (SCDetectSignatureSetAppProto(s, ALPROTO_HTTP2) != 0)
