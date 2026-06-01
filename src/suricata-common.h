@@ -486,7 +486,6 @@ typedef enum LoggerId {
     LOGGER_UNDEFINED,
 
     /* TX loggers first for low logger IDs */
-    LOGGER_HTTP,
     LOGGER_TLS_STORE,
     LOGGER_TLS_STORE_CLIENT,
     LOGGER_TLS,

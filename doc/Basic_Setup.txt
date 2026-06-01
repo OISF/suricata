@@ -103,14 +103,14 @@ enter:
 
 Followed by:
 
-  tail http.log
+  tail eve.json
 
 And:
 
   tail -n 50 stats.log
 
-To make sure the information displayed is up-dated in real time, use the -
-f option before http.log and stats.log:
+To make sure the information displayed is up-dated in real time, use the -f
+option before eve.json and stats.log:
 
-  tail -f http.log stats.log
+  tail -f eve.json stats.log
 

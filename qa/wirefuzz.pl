@@ -318,7 +318,7 @@ sub printhelp {
         -x=<(optional) regex for excluding certain files incase something blows up but we want to continue fuzzing .>
         -z=<(optional) regex for excluding certain files from fuzzing but still process them note: the original files will be processed and not removed.>
         -y <shuffle the array, this is useful if running multiple instances of this script.>
-        -k <will keep alert-debug.log fast.log http.log and stats.log instead of removing them at the end of each run.>
+        -k <will keep alert-debug.log fast.log and stats.log instead of removing them at the end of each run.>
         Example usage:
         First thing to do is download and build suricata from git with -O0 so vars don't get optimized out. See the example below:
         git clone git://phalanx.openinfosecfoundation.org/oisf.git suricatafuzz1 && cd suricatafuzz1 && ./autogen.sh && CFLAGS=\"-g -O0\" ./configure && make
@@ -672,14 +672,6 @@ sub keep_logs {
         . $logdir
         . $saveme
         . "-fast.log";
-        system($savecmd);
-    }
-    if (-e $logdir . "http.log"){
-        $savecmd = "mv -f " . $logdir
-        . "http.log "
-        . $logdir
-        . $saveme
-        . "-http.log";
         system($savecmd);
     }
     if (-e $logdir . "stats.log"){

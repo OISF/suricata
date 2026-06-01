@@ -1,3 +1,4 @@
+
 Upgrading
 =========
 
@@ -60,6 +61,12 @@ Logging Changes
 - App-layer stats protocols names replace dash by underscore, meaning
   ``stats.app_layer.*.ftp-data`` becomes ``stats.app_layer.*.ftp_data``,
   and same for bittorrent_dht
+
+Removals
+~~~~~~~~
+
+- The deprecated ``http-log`` output has been removed. Use ``eve-log``
+  with the ``http`` event type for HTTP logging.
 
 Other Changes
 ~~~~~~~~~~~~~
