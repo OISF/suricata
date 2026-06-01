@@ -161,4 +161,6 @@ uint64_t SCGetSecondsUntil (const char *str, time_t epoch);
 uint64_t SCTimespecAsEpochMillis(const struct timespec *ts);
 uint64_t TimeDifferenceMicros(struct timeval t0, struct timeval t1);
 
+void SCTimeRegisterTests(void);
+
 #endif /* SURICATA_UTIL_TIME_H */

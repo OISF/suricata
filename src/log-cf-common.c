@@ -27,7 +27,6 @@
 
 #include "log-cf-common.h"
 #include "util-print.h"
-#include "util-unittest.h"
 #include "util-time.h"
 #include "util-debug.h"
 
@@ -226,53 +225,6 @@ void LogCustomFormatWriteTimestamp(MemBuffer *buffer, const char *fmt, const SCT
                    buffer->size, (uint8_t *)buf,strlen(buf));
 }
 
-#ifdef UNITTESTS
-/**
- * \internal
- * \brief This test tests default timestamp format
- */
-static int LogCustomFormatTest01(void)
-{
-    // strftime which underpins LogCustomFormatWriteTimestamp doesn't
-    // seem to function properly on MinGW
-#ifndef __MINGW32__
-    struct tm tm;
-    tm.tm_sec = 0;
-    tm.tm_min = 30;
-    tm.tm_hour = 4;
-    tm.tm_mday = 13;
-    tm.tm_mon = 0;
-    tm.tm_year = 114;
-    tm.tm_wday = 1;
-    tm.tm_yday = 13;
-    tm.tm_isdst = -1;
-    SCTime_t ts = SCTIME_FROM_SECS(mktime(&tm));
-
-    MemBuffer *buffer = MemBufferCreateNew(62);
-    FAIL_IF_NULL(buffer);
-
-    LogCustomFormatWriteTimestamp(buffer, "", ts);
-    /*
-     * {buffer = "01/13/14-04:30:00", size = 62, offset = 17}
-     */
-    FAIL_IF_NOT( buffer->offset == 17);
-    FAIL_IF_NOT(buffer->size == 62);
-    FAIL_IF(strcmp((char *)buffer->buffer, "01/13/14-04:30:00") != 0);
-
-    MemBufferFree(buffer);
-#endif
-    PASS;
-}
-
-static void LogCustomFormatRegisterTests(void)
-{
-    UtRegisterTest("LogCustomFormatTest01", LogCustomFormatTest01);
-}
-#endif /* UNITTESTS */
-
 void LogCustomFormatRegister(void)
 {
-#ifdef UNITTESTS
-    LogCustomFormatRegisterTests();
-#endif /* UNITTESTS */
 }
