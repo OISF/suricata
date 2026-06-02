@@ -380,21 +380,7 @@ jobs:
       # especially without debug feature
       - run: cargo clippy
         working-directory: rust
-      - run: cargo fmt --check
-        working-directory: rust/suricatactl
-      - run: cargo fmt --check
-        working-directory: rust/suricatasc
-      - run: cargo fmt --check
-        working-directory: rust/sys
-      - run: cargo fmt --check
-        working-directory: rust/derive
-      - run: rustfmt --check rust/src/dns/*.rs rust/src/applayertemplate/*.rs rust/src/asn1/*.rs
-              rust/src/bittorrent_dht/*.rs rust/src/enip/*.rs rust/src/ffi/*.rs rust/src/ftp/*.rs
-              rust/src/ldap/*.rs rust/src/mime/*.rs rust/src/ntp/*.rs rust/src/quic/*.rs
-              rust/src/rfb/*.rs rust/src/ssh/*.rs rust/src/utils/*.rs rust/src/websocket/*.rs
-              rust/src/dhcp/*.rs rust/src/krb/*.rs rust/src/mdns/*.rs rust/src/pop3/*.rs
-              rust/src/http2/*.rs rust/src/ike/*.rs rust/src/modbus/*.rs rust/src/mqtt/*.rs
-              rust/src/nfs/*.rs rust/src/pgsql/*.rs
+      - run: ./scripts/rustfmt.sh
       - name: Check if Cargo.lock.in is up to date
         run: |
           cp rust/Cargo.lock rust/Cargo.lock.in
@@ -404,12 +390,6 @@ jobs:
               echo "::error ::Cargo.lock.in needs to be updated"
               exit 1
           fi
-      # does not work in other subdirectories for now
-      - run: cargo fmt --check
-        working-directory: rust/htp
-      # The ffi crate is cargo fmt clean.
-      - run: cargo fmt --check
-        working-directory: rust/ffi
 
       - run: make -j ${{ env.CPUS }} distcheck
         env:
