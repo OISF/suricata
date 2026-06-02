@@ -188,13 +188,16 @@ fn parse_origin_line(i: &[u8]) -> IResult<&[u8], String> {
     let (i, _) = tag("o=").parse(i)?;
     let (i, username) = map_res(take_while(is_token_char), std::str::from_utf8).parse(i)?;
     let (i, _) = space1.parse(i)?;
-    let (i, sess_id) = map_res(take_while(|c: u8| c.is_dec_digit()), std::str::from_utf8).parse(i)?;
+    let (i, sess_id) =
+        map_res(take_while(|c: u8| c.is_dec_digit()), std::str::from_utf8).parse(i)?;
     let (i, _) = space1.parse(i)?;
-    let (i, sess_version) = map_res(take_while(|c: u8| c.is_dec_digit()), std::str::from_utf8).parse(i)?;
+    let (i, sess_version) =
+        map_res(take_while(|c: u8| c.is_dec_digit()), std::str::from_utf8).parse(i)?;
     let (i, _) = space1.parse(i)?;
     let (i, nettype) = map_res(take_while(|c: u8| c.is_alpha()), std::str::from_utf8).parse(i)?;
     let (i, _) = space1.parse(i)?;
-    let (i, addrtype) = map_res(take_while(|c: u8| c.is_alphanum()), std::str::from_utf8).parse(i)?;
+    let (i, addrtype) =
+        map_res(take_while(|c: u8| c.is_alphanum()), std::str::from_utf8).parse(i)?;
     let (i, _) = space1.parse(i)?;
     let (i, unicast_address) = map_res(take_till(is_line_ending), std::str::from_utf8).parse(i)?;
     let (i, _) = line_ending.parse(i)?;
@@ -232,12 +235,14 @@ fn parse_connection_data(i: &[u8]) -> IResult<&[u8], String> {
     let (i, _) = tag("c=").parse(i)?;
     let (i, nettype) = map_res(take_while(|c: u8| c.is_alpha()), std::str::from_utf8).parse(i)?;
     let (i, _) = space1.parse(i)?;
-    let (i, addrtype) = map_res(take_while(|c: u8| c.is_alphanum()), std::str::from_utf8).parse(i)?;
+    let (i, addrtype) =
+        map_res(take_while(|c: u8| c.is_alphanum()), std::str::from_utf8).parse(i)?;
     let (i, _) = space1.parse(i)?;
     let (i, connection_address) = map_res(
         map_res(take_while(is_ipaddr_char), std::str::from_utf8),
         IpAddr::from_str,
-    ).parse(i)?;
+    )
+    .parse(i)?;
     let (i, first_num) = opt(preceded(char_parser('/'), parse_num)).parse(i)?;
     let (i, second_num) = opt(preceded(char_parser('/'), parse_num)).parse(i)?;
     let (i, _) = line_ending.parse(i)?;
@@ -277,7 +282,8 @@ fn parse_email(i: &[u8]) -> IResult<&[u8], String> {
     let (i, email) = preceded(
         tag("e="),
         map_res(take_till(is_line_ending), std::str::from_utf8),
-    ).parse(i)?;
+    )
+    .parse(i)?;
     let (i, _) = line_ending.parse(i)?;
     Ok((i, email.to_string()))
 }
@@ -286,7 +292,8 @@ fn parse_phone_number(i: &[u8]) -> IResult<&[u8], String> {
     let (i, phone_number) = preceded(
         tag("p="),
         map_res(take_till(is_line_ending), std::str::from_utf8),
-    ).parse(i)?;
+    )
+    .parse(i)?;
     let (i, _) = line_ending.parse(i)?;
     Ok((i, phone_number.to_string()))
 }
@@ -303,7 +310,8 @@ fn parse_bandwidth(i: &[u8]) -> IResult<&[u8], Vec<String>> {
             map_res(digit1, std::str::from_utf8),
             line_ending,
         ),
-    )).parse(i)?;
+    ))
+    .parse(i)?;
     let vec = bws.iter().map(|bw| format!("{}:{}", bw.0, bw.2)).collect();
     Ok((i, vec))
 }
@@ -322,7 +330,8 @@ fn parse_time(i: &[u8]) -> IResult<&[u8], String> {
             space1,
             map_res(digit1, std::str::from_utf8),
         ),
-    ).parse(i)?;
+    )
+    .parse(i)?;
     let (i, _) = line_ending.parse(i)?;
     let time = format!("{} {}", start_time, stop_time);
     Ok((i, time))
@@ -340,7 +349,8 @@ fn parse_repeat_times(i: &[u8]) -> IResult<&[u8], String> {
             space1,
             map_res(take_while(is_time_char), std::str::from_utf8),
         ),
-    ).parse(i)?;
+    )
+    .parse(i)?;
     let (i, _) = line_ending.parse(i)?;
     let val = format!("{} {} {} {}", d, h, m, s);
     Ok((i, val.to_string()))
@@ -358,7 +368,8 @@ fn parse_time_zone(i: &[u8]) -> IResult<&[u8], String> {
             space1,
             map_res(take_while(is_time_char), std::str::from_utf8),
         ),
-    ).parse(i)?;
+    )
+    .parse(i)?;
     let (i, _) = line_ending.parse(i)?;
     let tz = format!("{} {} {} {}", z1, z2, z3, z4);
     Ok((i, tz.to_string()))
@@ -368,7 +379,8 @@ fn parse_encryption_key(i: &[u8]) -> IResult<&[u8], String> {
     let (i, key) = preceded(
         tag("k="),
         map_res(take_till(is_line_ending), std::str::from_utf8),
-    ).parse(i)?;
+    )
+    .parse(i)?;
     let (i, _) = line_ending.parse(i)?;
     Ok((i, key.to_string()))
 }
@@ -384,7 +396,8 @@ fn parse_attributes(i: &[u8]) -> IResult<&[u8], Vec<String>> {
             )),
             line_ending,
         ),
-    )).parse(i)?;
+    ))
+    .parse(i)?;
     let vec = attrs
         .iter()
         .map(|a| {
@@ -409,26 +422,30 @@ fn parse_media_description(i: &[u8]) -> IResult<&[u8], MediaDescription> {
             tag("message"),
         )),
         |bytes: &[u8]| String::from_utf8(bytes.to_vec()),
-    ).parse(i)?;
+    )
+    .parse(i)?;
     let (i, _) = space1.parse(i)?;
 
     let (i, port) = map_res(
         take_while_m_n(1, 5, |b: u8| b.is_ascii_digit()),
         std::str::from_utf8,
-    ).parse(i)?;
+    )
+    .parse(i)?;
     let (i, number_of_ports) = opt(preceded(
         char_parser('/'),
         map_res(
             take_while_m_n(1, 5, |b: u8| b.is_ascii_digit()),
             std::str::from_utf8,
         ),
-    )).parse(i)?;
+    ))
+    .parse(i)?;
     let (i, _) = space1.parse(i)?;
 
     let (i, proto) = map_res(
         alt((tag("udp"), tag("RTP/AVP"), tag("RTP/SAVP"))),
         |bytes: &[u8]| String::from_utf8(bytes.to_vec()),
-    ).parse(i)?;
+    )
+    .parse(i)?;
 
     let (i, fmt) = many1(preceded(
         space1,
@@ -436,7 +453,8 @@ fn parse_media_description(i: &[u8]) -> IResult<&[u8], MediaDescription> {
             take_while_m_n(1, 255, |b: u8| b.is_ascii_alphanumeric()),
             std::str::from_utf8,
         ),
-    )).parse(i)?;
+    ))
+    .parse(i)?;
     let (i, _) = line_ending.parse(i)?;
 
     let (i, session_info) = opt(parse_session_info).parse(i)?;
