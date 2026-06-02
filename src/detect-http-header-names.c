@@ -253,7 +253,7 @@ void DetectHttpHeaderNamesRegister(void)
             HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
 
     g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
-            "http2.header_names", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
+            "http2.header_names", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     SCLogDebug("keyword %s registered. Thread id %d. "
             "Buffer %s registered. Buffer id %d",
