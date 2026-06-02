@@ -6159,7 +6159,12 @@
                     "type": "string"
                 },
                 "trap_oid": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "snmp.trap_oid"
+                        ]
+                    }
                 },
                 "trap_type": {
                     "type": "string",
