@@ -170,7 +170,7 @@ static InspectionBuffer *GetBuffer2ForTX(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        void *thread_buf = SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
         if (thread_buf == NULL)
             return NULL;
 
@@ -249,10 +249,10 @@ void DetectHttpHeaderNamesRegister(void)
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 
-    g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs(KEYWORD_NAME,
-            HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
+    g_keyword_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
+            KEYWORD_NAME, HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
 
-    g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
+    g_http2_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
             "http2.header_names", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     SCLogDebug("keyword %s registered. Thread id %d. "

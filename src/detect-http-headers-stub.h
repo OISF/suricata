@@ -86,7 +86,7 @@ static InspectionBuffer *GetRequestData2(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        void *thread_buf = SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
         if (thread_buf == NULL)
             return NULL;
         if (SCHttp2TxGetHeaderValue(txv, STREAM_TOSERVER, HEADER_NAME, &b, &b_len, thread_buf) != 1)
@@ -143,7 +143,7 @@ static InspectionBuffer *GetResponseData2(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        void *thread_buf = SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
         if (thread_buf == NULL)
             return NULL;
         if (SCHttp2TxGetHeaderValue(txv, STREAM_TOCLIENT, HEADER_NAME, &b, &b_len, thread_buf) != 1)
@@ -221,7 +221,7 @@ static void DetectHttpHeadersRegisterStub(void)
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
-    g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
+    g_http2_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
             BUFFER_NAME, SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
