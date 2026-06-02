@@ -648,6 +648,12 @@ pub struct DetectEngineCtx_ {
 pub type DetectEngineCtx = DetectEngineCtx_;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct DetectEngineThreadCtx_ {
+    _unused: [u8; 0],
+}
+pub type DetectEngineThreadCtx = DetectEngineThreadCtx_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct Signature_ {
     _unused: [u8; 0],
 }
@@ -667,6 +673,21 @@ extern "C" {
     pub fn SCDetectSignatureAddTransform(
         s: *mut Signature, transform: ::std::os::raw::c_int, options: *mut ::std::os::raw::c_void,
     ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCDetectRegisterThreadCtxGlobalFuncs(
+        name: *const ::std::os::raw::c_char,
+        InitFunc: ::std::option::Option<
+            unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void) -> *mut ::std::os::raw::c_void,
+        >,
+        data: *mut ::std::os::raw::c_void,
+        FreeFunc: ::std::option::Option<unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void)>,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCDetectThreadCtxGetGlobalKeywordThreadCtx(
+        det_ctx: *mut DetectEngineThreadCtx, id: ::std::os::raw::c_int,
+    ) -> *mut ::std::os::raw::c_void;
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -697,12 +718,6 @@ impl Default for InspectionBuffer {
         }
     }
 }
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct DetectEngineThreadCtx_ {
-    _unused: [u8; 0],
-}
-pub type DetectEngineThreadCtx = DetectEngineThreadCtx_;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct DetectEngineTransforms {
