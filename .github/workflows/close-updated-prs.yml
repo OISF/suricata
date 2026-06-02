@@ -26,6 +26,8 @@ jobs:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       AFTER: ${{ github.event.after }}
     steps:
+      - run: echo ${{ github.event.pull_request.author_association }}
+
       - name: Close updated PR
         run: |
           set -euo pipefail
