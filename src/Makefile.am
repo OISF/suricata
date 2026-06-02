@@ -3,7 +3,8 @@ if BUILD_FUZZTARGETS
     bin_PROGRAMS += fuzz_applayerprotodetectgetproto \
     fuzz_applayerparserparse fuzz_siginit \
     fuzz_confyamlloadstring fuzz_decodepcapfile \
-    fuzz_sigpcap fuzz_mimedecparseline fuzz_decodebase64
+    fuzz_sigpcap fuzz_mimedecparseline fuzz_decodebase64 \
+    fuzz_iprep
 if HAS_FUZZPCAP
     bin_PROGRAMS += fuzz_sigpcap_aware fuzz_predefpcap_aware
 endif
@@ -1395,6 +1396,18 @@ else
 endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_decodebase64_SOURCES = force-cxx-linking.cxx
+
+fuzz_iprep_SOURCES = tests/fuzz/fuzz_iprep.c
+fuzz_iprep_LDFLAGS = $(LDFLAGS_FUZZ)
+fuzz_iprep_LDADD = $(LDADD_FUZZ)
+fuzz_iprep_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
+if HAS_FUZZLDFLAGS
+    fuzz_iprep_LDFLAGS += $(LIB_FUZZING_ENGINE)
+else
+    fuzz_iprep_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+nodist_EXTRA_fuzz_iprep_SOURCES = force-cxx-linking.cxx
 
 fuzz_mimedecparseline_SOURCES = tests/fuzz/fuzz_mimedecparseline.c
 fuzz_mimedecparseline_LDFLAGS = $(LDFLAGS_FUZZ)
