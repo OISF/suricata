@@ -781,7 +781,7 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
         if (tag_txs_as_inspected) {
             const uint8_t inspected_flag = (flags & STREAM_TOSERVER) ? APP_LAYER_TX_INSPECTED_TS
                                                                      : APP_LAYER_TX_INSPECTED_TC;
-            if (txd->flags & inspected_flag) {
+            if (!(txd->flags & inspected_flag)) {
                 txd->flags |= inspected_flag;
                 SCLogDebug("%p/%" PRIu64 " in-order tx is done for direction %s. Flags %02x", tx,
                         idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", txd->flags);
@@ -820,7 +820,7 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
             AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
             const uint8_t inspected_flag = (flags & STREAM_TOSERVER) ? APP_LAYER_TX_INSPECTED_TS
                                                                      : APP_LAYER_TX_INSPECTED_TC;
-            if (txd->flags & inspected_flag) {
+            if (!(txd->flags & inspected_flag)) {
                 txd->flags |= inspected_flag;
                 SCLogDebug("%p/%" PRIu64 " out of order tx is done for direction %s. Flag %02x", tx,
                         idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", txd->flags);
