@@ -420,6 +420,10 @@ static uint32_t DatajsonAddStringElement(Dataset *set, json_t *value, char *json
     }
 
     *found = true;
+    if (!json_is_string(key)) {
+        FatalErrorOnInit("dataset: %s failed to get value because it is not a string", set->name);
+        return 0;
+    }
 
     const char *val_key = json_string_value(key);
     if (val_key == NULL) {
@@ -468,6 +472,10 @@ static uint32_t DatajsonAddMd5Element(Dataset *set, json_t *value, char *json_ke
 
     *found = true;
 
+    if (!json_is_string(key)) {
+        FatalErrorOnInit("dataset: %s failed to get value because it is not a string", set->name);
+        return 0;
+    }
     const char *hash_string = json_string_value(key);
     if (strlen(hash_string) != SC_MD5_HEX_LEN) {
         FatalErrorOnInit("Not correct length for a hash");
@@ -512,6 +520,10 @@ static uint32_t DatajsonAddSha256Element(Dataset *set, json_t *value, char *json
 
     *found = true;
 
+    if (!json_is_string(key)) {
+        FatalErrorOnInit("dataset: %s failed to get value because it is not a string", set->name);
+        return 0;
+    }
     const char *hash_string = json_string_value(key);
     if (strlen(hash_string) != SC_SHA256_HEX_LEN) {
         FatalErrorOnInit("Not correct length for a hash");
@@ -557,6 +569,10 @@ static uint32_t DatajsonAddIpv4Element(Dataset *set, json_t *value, char *json_k
 
     *found = true;
 
+    if (!json_is_string(key)) {
+        FatalErrorOnInit("dataset: %s failed to get value because it is not a string", set->name);
+        return 0;
+    }
     const char *ip_string = json_string_value(key);
     struct in_addr in;
     if (inet_pton(AF_INET, ip_string, &in) != 1) {
@@ -597,6 +613,10 @@ static uint32_t DatajsonAddIPv6Element(Dataset *set, json_t *value, char *json_k
 
     *found = true;
 
+    if (!json_is_string(key)) {
+        FatalErrorOnInit("dataset: %s failed to get value because it is not a string", set->name);
+        return 0;
+    }
     const char *ip_string = json_string_value(key);
     struct in6_addr in6;
     int ret = DatasetParseIpv6String(set, ip_string, &in6);
