@@ -134,8 +134,6 @@ pub enum HTTP2TxProgress {
     HTTP2ProgComplete = 4,
     //not a RFC-defined state, used for stream 0 frames applying to the global connection
     HTTP2ProgGlobal = 5,
-    //not a RFC-defined state, dropping this old tx because we have too many
-    HTTP2ProgTodrop = 6,
 }
 
 #[derive(Debug)]
@@ -163,6 +161,7 @@ pub struct HTTP2Transaction {
     pub stream_id: u32,
     pub progress_tc: HTTP2TxProgress,
     pub progress_ts: HTTP2TxProgress,
+    to_drop: bool,
     child_stream_id: u32,
 
     pub frames_tc: Vec<HTTP2Frame>,
@@ -201,6 +200,7 @@ impl HTTP2Transaction {
             child_stream_id: 0,
             progress_tc: HTTP2TxProgress::HTTP2ProgStart,
             progress_ts: HTTP2TxProgress::HTTP2ProgStart,
+            to_drop: false,
             frames_tc: Vec::new(),
             frames_ts: Vec::new(),
             decoder: decompression::HTTP2Decoder::new(),
@@ -766,14 +766,15 @@ impl HTTP2State {
         if header.stream_id == 0 {
             if self.transactions.len() >= unsafe { HTTP2_MAX_STREAMS } {
                 for tx_old in &mut self.transactions {
-                    if tx_old.progress_ts == HTTP2TxProgress::HTTP2ProgTodrop {
+                    if tx_old.to_drop {
                         // loop was already run
                         break;
                     }
                     tx_old.set_event(HTTP2Event::TooManyStreams);
                     // use a distinct state, even if we do not log it
-                    tx_old.progress_ts = HTTP2TxProgress::HTTP2ProgTodrop;
-                    tx_old.progress_tc = HTTP2TxProgress::HTTP2ProgTodrop;
+                    tx_old.progress_ts = HTTP2TxProgress::HTTP2ProgComplete;
+                    tx_old.progress_tc = HTTP2TxProgress::HTTP2ProgComplete;
+                    tx_old.to_drop = true;
                     tx_old.tx_data.updated_tc = true;
                     tx_old.tx_data.updated_ts = true;
                 }
@@ -818,14 +819,15 @@ impl HTTP2State {
             // do not use SETTINGS_MAX_CONCURRENT_STREAMS as it can grow too much
             if self.transactions.len() >= unsafe { HTTP2_MAX_STREAMS } {
                 for tx_old in &mut self.transactions {
-                    if tx_old.progress_ts == HTTP2TxProgress::HTTP2ProgTodrop {
+                    if tx_old.to_drop {
                         // loop was already run
                         break;
                     }
                     tx_old.set_event(HTTP2Event::TooManyStreams);
                     // use a distinct state, even if we do not log it
-                    tx_old.progress_ts = HTTP2TxProgress::HTTP2ProgTodrop;
-                    tx_old.progress_tc = HTTP2TxProgress::HTTP2ProgTodrop;
+                    tx_old.progress_ts = HTTP2TxProgress::HTTP2ProgComplete;
+                    tx_old.progress_tc = HTTP2TxProgress::HTTP2ProgComplete;
+                    tx_old.to_drop = true;
                     tx_old.tx_data.updated_tc = true;
                     tx_old.tx_data.updated_ts = true;
                 }
