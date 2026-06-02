@@ -129,7 +129,7 @@ void DetectHttpRawHeaderRegister(void)
     DetectBufferTypeRegisterValidateCallback("http_raw_header",
             DetectHttpRawHeaderValidateCallback);
     g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
-            "http2.raw_header", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
+            "http2.raw_header", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     g_http_raw_header_buffer_id = DetectBufferTypeGetByName("http_raw_header");
 }

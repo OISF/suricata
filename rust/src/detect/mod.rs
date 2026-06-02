@@ -36,7 +36,7 @@ pub mod uint;
 pub mod uri;
 pub mod vlan;
 
-use std::ffi::CString;
+use std::ffi::{CString, c_void};
 
 /// EnumString trait that will be implemented on enums that
 /// derive StringEnum.
@@ -90,6 +90,22 @@ pub use suricata_sys::sys::{
     SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT64, SIGMATCH_INFO_UINT8, SIGMATCH_NOOPT,
     SIGMATCH_OPTIONAL_OPT, SIGMATCH_QUOTES_MANDATORY, SIGMATCH_SUPPORT_FIREWALL,
 };
+
+#[derive(Default)]
+pub(crate) struct DetectThreadBuf {
+    pub data: Vec<u8>,
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectThreadBufDataInit(_cfg: *mut c_void) -> *mut c_void {
+    let boxed = Box::new(DetectThreadBuf::default());
+    return Box::into_raw(boxed) as *mut c_void;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectThreadBufDataFree(ctx: *mut c_void) {
+    std::mem::drop(Box::from_raw(ctx as *mut DetectThreadBuf));
+}
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

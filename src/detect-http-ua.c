@@ -117,7 +117,7 @@ void DetectHttpUARegister(void)
             "http user agent");
 
     g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
-            "http_user_agent", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
+            "http_user_agent", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     g_http_ua_buffer_id = DetectBufferTypeGetByName("http_user_agent");
 }
