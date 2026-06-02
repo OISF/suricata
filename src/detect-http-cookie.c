@@ -133,7 +133,7 @@ void DetectHttpCookieRegister(void)
             "http cookie header");
 
     g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
-            "http_cookie", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
+            "http_cookie", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     g_http_cookie_buffer_id = DetectBufferTypeGetByName("http_cookie");
 }
