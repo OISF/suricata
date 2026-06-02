@@ -1,7 +1,7 @@
 @malloced@
 expression x;
 position p1;
-identifier func =~ "(SCMalloc|SCStrdup|SCCalloc|SCMallocAligned|SCRealloc)";
+identifier func =~ "SCMalloc\|SCStrdup\|SCCalloc\|SCMallocAligned\|SCRealloc";
 @@
 
 x@p1 = func(...)
@@ -10,7 +10,7 @@ x@p1 = func(...)
 expression x, E;
 statement S;
 position malloced.p1;
-identifier func =~ "(SCMalloc|SCStrdup|SCCalloc|SCMallocAligned|SCRealloc)";
+identifier func =~ "SCMalloc\|SCStrdup\|SCCalloc\|SCMallocAligned\|SCRealloc";
 @@
 
 (
@@ -22,7 +22,7 @@ if (E && (x@p1 = func(...)) == NULL) S
 @realloc exists@
 position malloced.p1;
 expression x, E1;
-identifier func =~ "(SCMalloc|SCCalloc|SCMallocAligned)";
+identifier func =~ "SCMalloc\|SCCalloc\|SCMallocAligned";
 @@
 
 x@p1 = func(...)
@@ -33,13 +33,11 @@ x = SCRealloc(x, E1)
 expression x, E1;
 position malloced.p1;
 statement S1, S2;
-identifier func =~ "(SCMalloc|SCStrdup|SCCalloc|SCMallocAligned|SCRealloc)";
-identifier callee;
+identifier func =~ "SCMalloc\|SCStrdup\|SCCalloc\|SCMallocAligned\|SCRealloc";
 @@
 
 x@p1 = func(...)
 ... when != x
-    when != callee(..., x, ...)
 (
 if (unlikely(x == NULL)) S1
 |
