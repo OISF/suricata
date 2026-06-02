@@ -40,6 +40,7 @@
 #include "detect-engine-sigorder.h"
 
 #include "detect-engine-build.h"
+#include "detect-engine-buffer.h"
 #include "detect-engine-siggroup.h"
 #include "detect-engine-address.h"
 #include "detect-engine-port.h"
@@ -3895,8 +3896,8 @@ void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id)
  *  \retval id for retrieval of ctx at runtime
  *  \retval -1 on error
  */
-int DetectRegisterThreadCtxGlobalFuncs(const char *name,
-        void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *))
+int SCDetectRegisterThreadCtxGlobalFuncs(
+        const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *))
 {
     int id;
     BUG_ON(InitFunc == NULL || FreeFunc == NULL);
@@ -3939,7 +3940,7 @@ int DetectRegisterThreadCtxGlobalFuncs(const char *name,
  *
  *  \retval ctx or NULL on error
  */
-void *DetectThreadCtxGetGlobalKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id)
+void *SCDetectThreadCtxGetGlobalKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id)
 {
     if (id < 0 || id > det_ctx->global_keyword_ctxs_size ||
         det_ctx->global_keyword_ctxs_array == NULL) {

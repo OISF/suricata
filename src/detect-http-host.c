@@ -127,7 +127,7 @@ void DetectHttpHHRegister(void)
     DetectBufferTypeSetDescriptionByName("http_host",
             "http host");
 
-    g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
+    g_http2_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
             "http_host", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     g_http_host_buffer_id = DetectBufferTypeGetByName("http_host");
@@ -163,7 +163,7 @@ void DetectHttpHHRegister(void)
     DetectBufferTypeSetDescriptionByName("http_raw_host",
             "http raw host header");
 
-    g_http2_raw_thread_id = DetectRegisterThreadCtxGlobalFuncs(
+    g_http2_raw_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
             "http_raw_host", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     g_http_raw_host_buffer_id = DetectBufferTypeGetByName("http_raw_host");
@@ -275,7 +275,7 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
-        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        void *thread_buf = SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
         if (thread_buf == NULL)
             return NULL;
         if (SCHttp2TxGetHostNorm(txv, &b, &b_len, thread_buf) != 1)
@@ -297,7 +297,8 @@ static InspectionBuffer *GetRawData2(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
-        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_raw_thread_id);
+        void *thread_buf =
+                SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_raw_thread_id);
         if (thread_buf == NULL)
             return NULL;
 
