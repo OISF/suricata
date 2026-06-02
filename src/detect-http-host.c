@@ -128,7 +128,7 @@ void DetectHttpHHRegister(void)
             "http host");
 
     g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
-            "http_host", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
+            "http_host", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     g_http_host_buffer_id = DetectBufferTypeGetByName("http_host");
 
@@ -164,7 +164,7 @@ void DetectHttpHHRegister(void)
             "http raw host header");
 
     g_http2_raw_thread_id = DetectRegisterThreadCtxGlobalFuncs(
-            "http_raw_host", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
+            "http_raw_host", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     g_http_raw_host_buffer_id = DetectBufferTypeGetByName("http_raw_host");
 }

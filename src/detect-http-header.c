@@ -416,7 +416,7 @@ void DetectHttpHeaderRegister(void)
     g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs("http_header",
             HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
     g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
-            "http2.header", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
+            "http2.header", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 }
 
 static int g_http_request_header_buffer_id = 0;
