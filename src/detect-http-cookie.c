@@ -132,7 +132,7 @@ void DetectHttpCookieRegister(void)
     DetectBufferTypeSetDescriptionByName("http_cookie",
             "http cookie header");
 
-    g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
+    g_http2_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
             "http_cookie", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     g_http_cookie_buffer_id = DetectBufferTypeGetByName("http_cookie");
@@ -238,7 +238,7 @@ static InspectionBuffer *GetRequestData2(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        void *thread_buf = SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
         if (thread_buf == NULL)
             return NULL;
         if (SCHttp2TxGetCookie(txv, STREAM_TOSERVER, &b, &b_len, thread_buf) != 1)
@@ -261,7 +261,7 @@ static InspectionBuffer *GetResponseData2(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        void *thread_buf = SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
         if (thread_buf == NULL)
             return NULL;
         if (SCHttp2TxGetCookie(txv, STREAM_TOCLIENT, &b, &b_len, thread_buf) != 1)
