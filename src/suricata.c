@@ -3089,6 +3089,8 @@ int InitGlobal(void)
 
 void SuricataPreInit(const char *progname)
 {
+    UtilCpuEnableSparcMisalignEmulation();
+
     SCInstanceInit(&suricata, progname);
 
     if (InitGlobal() != 0) {
