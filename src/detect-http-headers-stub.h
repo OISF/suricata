@@ -222,7 +222,7 @@ static void DetectHttpHeadersRegisterStub(void)
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
-            BUFFER_NAME, SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
+            BUFFER_NAME, SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }
