@@ -24,22 +24,28 @@ use crate::detect::uint::{
     SCDetectU8Free, SCDetectU8Match,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
+    helper_keyword_register_sticky_buffer, DetectThreadBuf, SCDetectThreadBufDataFree,
+    SCDetectThreadBufDataInit, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
     SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8, SIGMATCH_SUPPORT_FIREWALL,
 };
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
-    DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferProgressMpmRegister, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    DetectEngineCtx, DetectEngineThreadCtx, DetectEngineTransforms, Flow, InspectionBuffer,
+    SCDetectBufferSetActiveList, SCDetectHelperBufferProgressMpmRegister,
+    SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordRegister,
+    SCDetectRegisterMpmGeneric, SCDetectRegisterThreadCtxGlobalFuncs, SCDetectSignatureSetAppProto,
+    SCDetectThreadCtxGetGlobalKeywordThreadCtx, SCInspectionBufferGet,
+    SCInspectionBufferSetupAndApplyTransforms, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt,
+    SigMatchCtx, Signature,
 };
 
 static mut G_SNMP_VERSION_KW_ID: u16 = 0;
 static mut G_SNMP_PDUTYPE_KW_ID: u16 = 0;
 static mut G_SNMP_USM_BUFFER_ID: c_int = 0;
 static mut G_SNMP_COMMUNITY_BUFFER_ID: c_int = 0;
+static mut G_SNMP_TRAPOID_BUFFER_ID: c_int = 0;
+static mut G_SNMP_TRAPOID_THREAD_ID: c_int = 0;
 static mut G_SNMP_TRAPTYPE_KW_ID: u16 = 0;
 static mut G_SNMP_GENERIC_BUFFER_ID: c_int = 0;
 
@@ -259,6 +265,42 @@ unsafe extern "C" fn snmp_detect_community_get_data(
     return false;
 }
 
+unsafe extern "C" fn snmp_detect_trapoid_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_SNMP) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_SNMP_TRAPOID_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn snmp_detect_trapoid_get_data(
+    det_ctx: *mut DetectEngineThreadCtx, transforms: *const DetectEngineTransforms,
+    _flow: *mut Flow, _dir: u8, tx: *mut c_void, list_id: c_int,
+) -> *mut InspectionBuffer {
+    let tx = cast_pointer!(tx, SNMPTransaction);
+    let buffer = SCInspectionBufferGet(det_ctx, list_id);
+    if !(*buffer).initialized {
+        if let Some(ref info) = tx.info {
+            if let Some((_trap_type, ref oid, _address)) = info.trap_type {
+                let tbuf =
+                    SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, G_SNMP_TRAPOID_THREAD_ID);
+                let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
+                tbuf.data.extend_from_slice(oid.to_string().as_bytes());
+                let data = tbuf.data.as_ptr();
+                let data_len = tbuf.data.len() as u32;
+                SCInspectionBufferSetupAndApplyTransforms(
+                    det_ctx, list_id, buffer, data, data_len, transforms,
+                );
+            }
+        }
+    }
+    return buffer;
+}
+
 pub(super) unsafe extern "C" fn detect_snmp_register() {
     G_SNMP_GENERIC_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"snmp.generic\0".as_ptr() as *const libc::c_char,
@@ -330,4 +372,26 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT | SIGMATCH_SUPPORT_FIREWALL,
     };
     G_SNMP_TRAPTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("snmp.trap_oid"),
+        desc: String::from("SNMP trap_oid sticky buffer"),
+        url: String::from("/rules/snmp-keywords.html#snmp-trap-oid"),
+        setup: snmp_detect_trapoid_setup,
+    };
+    let _g_snmp_trapoid_kw_id = helper_keyword_register_sticky_buffer(&kw);
+    G_SNMP_TRAPOID_BUFFER_ID = SCDetectRegisterMpmGeneric(
+        b"snmp.trap_oid\0".as_ptr() as *const libc::c_char,
+        b"SNMP Trap OID\0".as_ptr() as *const libc::c_char,
+        ALPROTO_SNMP,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        Some(snmp_detect_trapoid_get_data),
+        1,
+    );
+    G_SNMP_TRAPOID_THREAD_ID = SCDetectRegisterThreadCtxGlobalFuncs(
+        b"snmp.trap_oid\0".as_ptr() as *const libc::c_char,
+        Some(SCDetectThreadBufDataInit),
+        std::ptr::null_mut(),
+        Some(SCDetectThreadBufDataFree),
+    );
 }
