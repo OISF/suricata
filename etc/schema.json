@@ -6087,7 +6087,12 @@
             "additionalProperties": false,
             "properties": {
                 "community": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "snmp.community"
+                        ]
+                    }
                 },
                 "pdu_type": {
                     "type": "string",
@@ -6112,7 +6117,12 @@
                     }
                 },
                 "usm": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "snmp.usm"
+                        ]
+                    }
                 },
                 "vars": {
                     "type": "array",
