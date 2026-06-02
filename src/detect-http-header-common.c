@@ -28,6 +28,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-buffer.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 #include "detect-engine-prefilter.h"
@@ -101,8 +102,7 @@ HttpHeaderBuffer *HttpHeaderGetBufferSpace(DetectEngineThreadCtx *det_ctx, uint8
 {
     *ret_hdr_td = NULL;
 
-    HttpHeaderThreadData *hdr_td =
-        DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, keyword_id);
+    HttpHeaderThreadData *hdr_td = SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, keyword_id);
     if (hdr_td == NULL)
         return NULL;
     *ret_hdr_td = hdr_td;
