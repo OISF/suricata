@@ -192,6 +192,9 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv, const OutputFilestoreLo
     }
 }
 
+/**
+ * \note `filestore_open_file_cnt` should only be used when FileGetMaxOpenFiles() is non-zero
+ */
 static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p, File *ff,
         void *tx, const uint64_t tx_id, const uint8_t *data, uint32_t data_len, uint8_t flags,
         uint8_t dir)
@@ -201,6 +204,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
     OutputFilestoreCtx *ctx = aft->ctx;
     char filename[PATH_MAX] = "";
     int file_fd = -1;
+    bool close_file = false;
 
     SCLogDebug("ff %p, data %p, data_len %u", ff, data, data_len);
 
@@ -218,18 +222,20 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
             return -1;
         }
 
-        if (SC_ATOMIC_GET(filestore_open_file_cnt) < FileGetMaxOpenFiles()) {
-            SC_ATOMIC_ADD(filestore_open_file_cnt, 1);
-            ff->fd = file_fd;
-        } else {
-            if (FileGetMaxOpenFiles() > 0) {
-                StatsCounterIncr(&tv->stats, aft->counter_max_hits);
-            }
+        /* SC_ATOMIC_ADD returns value before the addition. */
+        if (FileGetMaxOpenFiles() > 0 &&
+                SC_ATOMIC_ADD(filestore_open_file_cnt, 1) >= FileGetMaxOpenFiles()) {
+            (void)SC_ATOMIC_SUB(filestore_open_file_cnt, 1);
+            StatsCounterIncr(&tv->stats, aft->counter_max_hits);
             ff->fd = -1;
+            close_file = true; /* not storing it, so need to close */
+        } else {
+            ff->fd = file_fd;
         }
         /* we can get called with NULL data when we need to close */
     } else if (data != NULL) {
-        if (ff->fd == -1) {
+        file_fd = ff->fd;
+        if (file_fd == -1) {
             /* construct tmp file path */
             char tmp_filename[PATH_MAX] = "";
             snprintf(tmp_filename, sizeof(tmp_filename), "file.%u", ff->file_store_id);
@@ -242,14 +248,15 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
                         strerror(errno));
                 return -1;
             }
-        } else {
-            file_fd = ff->fd;
+            close_file = true; /* close temporary open */
         }
+    } else if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
+        file_fd = ff->fd;
     }
 
-    if (file_fd != -1) {
+    if (file_fd != -1 && data != NULL && data_len > 0) {
         ssize_t r = write(file_fd, (const void *)data, (size_t)data_len);
-        if (r == -1) {
+        if (r == -1 || (ssize_t)data_len != r) {
             /* construct tmp file path */
             char tmp_filename[PATH_MAX] = "";
             snprintf(tmp_filename, sizeof(tmp_filename), "file.%u", ff->file_store_id);
@@ -257,22 +264,23 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
             StatsCounterIncr(&tv->stats, aft->fs_error_counter);
             WARN_ONCE(WOT_WRITE, "Filestore (v2) failed to write to %s: %s", filename,
                     strerror(errno));
-            if (ff->fd != -1) {
+            close_file = true; /* close in the error case */
+        }
+    }
+
+    /* close the open file if needed */
+    if (file_fd != -1 && ((flags & OUTPUT_FILEDATA_FLAG_CLOSE) != 0 || close_file)) {
+        /* if it was stored in the ff, disconnect */
+        if (ff->fd != -1) {
+            if (FileGetMaxOpenFiles()) {
                 SC_ATOMIC_SUB(filestore_open_file_cnt, 1);
             }
             ff->fd = -1;
         }
-        if (ff->fd == -1) {
-            close(file_fd);
-        }
+        close(file_fd);
     }
 
     if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
-        if (ff->fd != -1) {
-            close(ff->fd);
-            ff->fd = -1;
-            SC_ATOMIC_SUB(filestore_open_file_cnt, 1);
-        }
         OutputFilestoreFinalizeFiles(tv, aft, ctx, p, ff, tx, tx_id, dir);
     }
 
