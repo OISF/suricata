@@ -84,6 +84,7 @@ hex = "~0.4.3"
 psl = "2"
 
 time = "=0.3.41"
+serde_json = "1.0"
 
 suricata-derive = { path = "./derive", version = "@PACKAGE_VERSION@" }
 suricata-sys = { path = "./sys", version = "@PACKAGE_VERSION@" }

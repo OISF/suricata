@@ -1565,6 +1565,7 @@ dependencies = [
  "sawp",
  "sawp-modbus",
  "sawp-pop3",
+ "serde_json",
  "sha1",
  "sha2",
  "snmp-parser",
