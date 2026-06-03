@@ -24,7 +24,7 @@
 #ifndef SURICATA_DETECT_ENGINE_SIGORDER_H
 #define SURICATA_DETECT_ENGINE_SIGORDER_H
 
-void SCSigOrderSignatures(DetectEngineCtx *);
+int WARN_UNUSED SCSigOrderSignatures(DetectEngineCtx *);
 void SCSigRegisterSignatureOrderingFuncs(DetectEngineCtx *);
 void SCSigRegisterSignatureOrderingTests(void);
 void SCSigSignatureOrderingModuleCleanup(DetectEngineCtx *);
