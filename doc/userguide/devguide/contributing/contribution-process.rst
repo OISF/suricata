@@ -16,9 +16,14 @@ Essentially, these are:
 #. Stick to our :ref:`commit guidelines<commits>`
 #. Version your :ref:`Pull Requests <send-a-pull-request>`
 #. Incorporate :ref:`feedback` into new PRs
+#. Understand :ref:`AI usage <ai-usage>`
 #. [Work merged] :ref:`Wrap up! <wrap-up>`
 
 The rest of this document will cover those in detail.
+
+.. attention::
+   Keep a maximum of 3 open PRs and tickets assigned to you. If you have
+   work in progress, prioritize completing those instead of starting something new.
 
 .. _contribution-agreement:
 
@@ -376,6 +381,24 @@ If there are review comments, make sure to address them,
 :ref:`create a new branch<create-your-own-branch>`, and **incorporate the
 requested changes into a new PR**. (If you force-push changes, change your PR
 status to DRAFT. When it's ready, create a new PR.)
+
+While you can use generative AI tooling to support your contribution process, do
+not use it for Pull Requests. PR titles, descriptions and all related
+communication must be written by you, not an AI assistant or agent.
+
+.. _ai-usage:
+
+AI Usage
+========
+
+- Use of generative AI tooling is allowed, but must be disclosed.
+- Pull Request titles, descriptions, and all related communication must be
+  written by you, not an AI assistant or agent.
+- You are expected to understand any AI-generated code and commit messages you
+  submit, and to follow our contribution guidelines (more at
+  https://docs.suricata.io/en/latest/devguide/contributing/index.html).
+
+PRs that do not meet these requirements will be de-prioritized or rejected.
 
 .. _wrap-up:
 
