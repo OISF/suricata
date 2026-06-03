@@ -897,7 +897,7 @@ extern "C" {
 extern "C" {
     pub fn SCDetectRegisterMpmGeneric(
         name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
-        alproto: AppProto, direction: u8, GetData: InspectionBufferGetDataPtr,
+        alproto: AppProto, direction: u8, GetData: InspectionBufferGetDataPtr, progress: u8,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
