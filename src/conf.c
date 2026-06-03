@@ -161,6 +161,8 @@ void SCConfNodeFree(SCConfNode *node)
 
     while ((tmp = TAILQ_FIRST(&node->head))) {
         TAILQ_REMOVE(&node->head, tmp, next);
+        /* help code checkers to understand what TAILQ_REMOVE does */
+        DEBUG_VALIDATE_BUG_ON(TAILQ_FIRST(&node->head) == tmp);
         SCConfNodeFree(tmp);
     }
 
