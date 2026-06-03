@@ -5206,9 +5206,11 @@ void DetectLowerSetupCallback(
 void SCDetectEngineRegisterRateFilterCallback(SCDetectRateFilterFunc fn, void *arg)
 {
     DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
-    de_ctx->RateFilterCallback = fn;
-    de_ctx->rate_filter_callback_arg = arg;
-    DetectEngineDeReference(&de_ctx);
+    if (de_ctx) {
+        de_ctx->RateFilterCallback = fn;
+        de_ctx->rate_filter_callback_arg = arg;
+        DetectEngineDeReference(&de_ctx);
+    }
 }
 
 int DetectEngineThreadCtxGetJsonContext(DetectEngineThreadCtx *det_ctx)
