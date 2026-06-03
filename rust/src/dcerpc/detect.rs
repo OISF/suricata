@@ -505,6 +505,7 @@ pub unsafe extern "C" fn SCDetectDcerpcRegister() {
         ALPROTO_DCERPC,
         STREAM_TOSERVER | STREAM_TOCLIENT,
         Some(dcerpc_tx_get_stub_data),
+        0,
     );
     G_DCERPC_STUB_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"dce_stub_data\0".as_ptr() as *const libc::c_char,
