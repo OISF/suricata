@@ -144,7 +144,9 @@ ExceptionPolicyStatsSetts flow_memcap_eps_stats = {
 PacketAlert *PacketAlertCreate(void)
 {
     PacketAlert *pa_array = SCCalloc(packet_alert_max, sizeof(PacketAlert));
-    DEBUG_VALIDATE_BUG_ON(pa_array == NULL);
+    if (unlikely(pa_array == NULL)) {
+        FatalError("Failed to allocate packet alert array");
+    }
 
     return pa_array;
 }
