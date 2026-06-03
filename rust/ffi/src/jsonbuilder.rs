@@ -22,8 +22,8 @@
 use std::ffi::{CString, NulError};
 
 use suricata_sys::sys::{
-    SCJbClose, SCJbGetMark, SCJbOpenObject, SCJbRestoreMark, SCJbSetFormatted, SCJbSetString,
-    SCJsonBuilder, SCJsonBuilderMark,
+    SCJbClose, SCJbGetMark, SCJbOpenObject, SCJbRestoreMark, SCJbSetFloat, SCJbSetFormatted,
+    SCJbSetInt, SCJbSetString, SCJbSetUint, SCJsonBuilder, SCJsonBuilderMark,
 };
 
 // TODO: Map suricata::jsonbuilder::JsonBuilder errors as well,
@@ -91,6 +91,33 @@ impl JsonBuilder {
         let key = CString::new(key)?;
         let val = CString::new(val.escape_default().to_string())?;
         if unsafe { SCJbSetString(self.jb, key.as_ptr(), val.as_ptr()) } {
+            Ok(self)
+        } else {
+            Err(Error::Other)
+        }
+    }
+
+    pub fn set_uint(&mut self, key: &str, val: u64) -> Result<&mut Self, Error> {
+        let key = CString::new(key)?;
+        if unsafe { SCJbSetUint(self.jb, key.as_ptr(), val) } {
+            Ok(self)
+        } else {
+            Err(Error::Other)
+        }
+    }
+
+    pub fn set_int(&mut self, key: &str, val: i64) -> Result<&mut Self, Error> {
+        let key = CString::new(key)?;
+        if unsafe { SCJbSetInt(self.jb, key.as_ptr(), val) } {
+            Ok(self)
+        } else {
+            Err(Error::Other)
+        }
+    }
+
+    pub fn set_float(&mut self, key: &str, val: f64) -> Result<&mut Self, Error> {
+        let key = CString::new(key)?;
+        if unsafe { SCJbSetFloat(self.jb, key.as_ptr(), val) } {
             Ok(self)
         } else {
             Err(Error::Other)
