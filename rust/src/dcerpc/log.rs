@@ -14,15 +14,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA.
  */
-use uuid::Uuid;
 use crate::dcerpc::dcerpc::*;
 use crate::dcerpc::dcerpc_udp::*;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
-use std::collections::HashMap;
-use serde::Deserialize;
 use lazy_static::lazy_static;
+use serde::Deserialize;
+use std::collections::HashMap;
+use uuid::Uuid;
 
 const UUID_SERVICE_MAP_JSON: &str = include_str!("uuid_service_map.json");
+const UUID_OPNUM_PROCEDURE_MAP_JSON: &str = include_str!("uuid_opnum_procedure_map.json");
+
+#[derive(Deserialize)]
+struct UuidOpnumProcedureMapEntry {
+    uuid: String,
+    opnum: u16,
+    procedure: String,
+}
 
 #[derive(Deserialize)]
 struct UuidServiceMapEntry {
@@ -30,7 +38,17 @@ struct UuidServiceMapEntry {
     service: String,
 }
 
-
+fn load_uuid_opnum_procedure_map(contents: &str) -> HashMap<(String, u16), String> {
+    let mut map = HashMap::new();
+    for line in contents.lines() {
+        if !line.trim().is_empty() {
+            if let Ok(json) = serde_json::from_str::<UuidOpnumProcedureMapEntry>(line) {
+                map.insert((json.uuid, json.opnum), json.procedure);
+            }
+        }
+    }
+    map
+}
 
 fn load_uuid_service_map(contents: &str) -> HashMap<String, String> {
     let mut map = HashMap::new();
@@ -44,10 +62,11 @@ fn load_uuid_service_map(contents: &str) -> HashMap<String, String> {
     map
 }
 
-
 lazy_static! {
     static ref UUID_SERVICE_MAP: HashMap<String, String> =
         load_uuid_service_map(UUID_SERVICE_MAP_JSON);
+    static ref UUID_OPNUM_PROCEDURE_MAP: HashMap<(String, u16), String> =
+        load_uuid_opnum_procedure_map(UUID_OPNUM_PROCEDURE_MAP_JSON);
 }
 
 fn log_dcerpc_header_tcp(
@@ -80,6 +99,11 @@ fn log_dcerpc_header_tcp(
                         }
                         if let Some(sname) = UUID_SERVICE_MAP.get(&ifstr.to_string()) {
                             jsb.set_string("service", sname)?;
+                        }
+                        if let Some(pname) =
+                            UUID_OPNUM_PROCEDURE_MAP.get(&(ifstr.to_string(), tx.opnum))
+                        {
+                            jsb.set_string("procedure", pname)?;
                         }
                         jsb.close()?;
                     }
