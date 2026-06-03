@@ -428,6 +428,10 @@ enum PacketL2Types {
 
 struct PacketL2 {
     enum PacketL2Types type;
+    /** ethertype that could not be decoded; set on the unknown-ethertype
+     *  decode path and reported by the ethernet, VLAN, E-Tag and VN-Tag
+     *  unknown-type anomaly events */
+    uint16_t unknown_ethertype;
     union L2Hdrs {
         EthernetHdr *ethh;
     } hdrs;
@@ -1546,6 +1550,7 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
             SCLogDebug("unknown ether type: %" PRIx16 "", proto);
             StatsCounterIncr(&tv->stats, dtv->counter_ethertype_unknown);
             ENGINE_SET_EVENT(p, ETHERNET_UNKNOWN_ETHERTYPE);
+            p->l2.unknown_ethertype = proto;
             return false;
     }
     return true;

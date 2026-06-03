@@ -100,6 +100,22 @@ static void OutputAnomalyLoggerDisable(void)
         anomaly_loggers--;
 }
 
+/** \brief Does this decode event report an ethertype that could not be
+ *         decoded? Such events store the offending value in
+ *         Packet::l2.unknown_ethertype. */
+static bool DecodeEventHasUnknownEthertype(uint8_t event_code)
+{
+    switch (event_code) {
+        case ETHERNET_UNKNOWN_ETHERTYPE:
+        case VLAN_UNKNOWN_TYPE:
+        case ETAG_UNKNOWN_TYPE:
+        case VNTAG_UNKNOWN_TYPE:
+            return true;
+        default:
+            return false;
+    }
+}
+
 static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
                                   const Packet *p)
 {
@@ -131,6 +147,11 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
                 JB_SET_STRING(js, "type", "stream");
             }
             SCJbSetString(js, "event", event);
+            if (DecodeEventHasUnknownEthertype(event_code)) {
+                char ethertype[8];
+                snprintf(ethertype, sizeof(ethertype), "0x%04x", p->l2.unknown_ethertype);
+                SCJbSetString(js, "ether_type", ethertype);
+            }
         } else {
             JB_SET_STRING(js, "type", "unknown");
             SCJbSetUint(js, "code", event_code);
