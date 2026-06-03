@@ -71,13 +71,11 @@ static inline struct NdpiThreadContext *NdpiGetThreadContext(ThreadVars *tv)
 
 /**
  * Safe helper to get nDPI flow context. Returns NULL if the flow
- * or its storage is not available. Guards against the case where
- * f->storage is NULL (uninitialized flow) which would crash inside
- * SCStorageGetById.
+ * context is not available.
  */
 static inline struct NdpiFlowContext *NdpiGetFlowContext(const Flow *f)
 {
-    if (unlikely(f == NULL || flow_storage_id.id < 0 || f->storage == NULL))
+    if (unlikely(f == NULL || flow_storage_id.id < 0))
         return NULL;
     return SCFlowGetStorageById(f, flow_storage_id);
 }
@@ -107,11 +105,6 @@ static void OnFlowInit(ThreadVars *tv, Flow *f, const Packet *p, void *_data)
 {
     if (unlikely(f == NULL))
         return;
-
-    if (unlikely(f->storage == NULL)) {
-        SCLogDebug("Flow %p has no storage, skipping nDPI init", f);
-        return;
-    }
 
     struct NdpiFlowContext *flowctx = SCCalloc(1, sizeof(*flowctx));
     if (flowctx == NULL) {
