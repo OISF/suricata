@@ -93,6 +93,7 @@
 #include "reputation.h"
 
 #define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000
+#define PAYLOAD_CLASSTYPE_ID_BITMAP_SIZE ((1 << 16) / 8)
 
 static int DetectEngineCtxLoadConf(DetectEngineCtx *);
 
@@ -2555,6 +2556,89 @@ error:
     DetectEngineDeReference(&de_ctx);
 }
 
+/**
+ * \brief Build the eve-log alert "payload-only-classtypes" filter.
+ *
+ * Looks up the configured classtype names in the eve-log alert config and
+ * resolves them to ids using the (already loaded) classification config. Each
+ * id sets its bit in a bitmap for O(1) lookup. The bitmap is only allocated
+ * when at least one classtype is configured.
+ *
+ * \retval uint8_t* bitmap of PAYLOAD_CLASSTYPE_ID_BITMAP_SIZE bytes, or NULL
+ *                  when not configured (meaning: no filtering).
+ */
+static uint8_t *DetectEnginePayloadClasstypeFilterBuild(DetectEngineCtx *de_ctx)
+{
+    SCConfNode *outputs = SCConfGetNode("outputs");
+    if (outputs == NULL) {
+        return NULL;
+    }
+
+    SCConfNode *alert = NULL;
+    SCConfNode *output;
+    TAILQ_FOREACH (output, &outputs->head, next) {
+        if (output->val == NULL || strcmp(output->val, "eve-log") != 0) {
+            continue;
+        }
+        SCConfNode *eve = SCConfNodeLookupChild(output, "eve-log");
+        SCConfNode *types = eve ? SCConfNodeLookupChild(eve, "types") : NULL;
+        if (types == NULL) {
+            continue;
+        }
+        SCConfNode *type;
+        TAILQ_FOREACH (type, &types->head, next) {
+            alert = SCConfNodeLookupChild(type, "alert");
+            if (alert != NULL) {
+                break;
+            }
+        }
+        if (alert != NULL) {
+            break;
+        }
+    }
+    if (alert == NULL) {
+        return NULL;
+    }
+
+    SCConfNode *list = SCConfNodeLookupChild(alert, "payload-only-classtypes");
+    if (list == NULL) {
+        return NULL;
+    }
+    if (!SCConfNodeIsSequence(list)) {
+        SCLogError("payload-only-classtypes must be a list of classtype names");
+        return NULL;
+    }
+
+    uint8_t *bitmap = NULL;
+    uint32_t count = 0;
+    SCConfNode *item;
+    TAILQ_FOREACH (item, &list->head, next) {
+        if (item->val == NULL || strlen(item->val) == 0) {
+            continue;
+        }
+        SCClassConfClasstype *ct = SCClassConfGetClasstype(item->val, de_ctx);
+        if (ct == NULL) {
+            SCLogWarning("unknown classtype \"%s\" in payload-only-classtypes", item->val);
+            continue;
+        }
+        if (bitmap == NULL) {
+            bitmap = SCCalloc(PAYLOAD_CLASSTYPE_ID_BITMAP_SIZE, sizeof(uint8_t));
+            if (bitmap == NULL) {
+                return NULL;
+            }
+        }
+        /* set bit class_id: byte (id / 8), bit (id % 8) */
+        const uint16_t id = ct->classtype_id;
+        bitmap[id / 8] |= (uint8_t)(1u << (id % 8));
+        count++;
+    }
+
+    if (bitmap != NULL) {
+        SCLogInfo("payload-only-classtypes filter enabled (%u classtype(s))", count);
+    }
+    return bitmap;
+}
+
 static DetectEngineCtx *DetectEngineCtxInitReal(
         enum DetectEngineType type, const char *prefix, uint32_t tenant_id)
 {
@@ -2643,6 +2727,8 @@ static DetectEngineCtx *DetectEngineCtxInitReal(
         if (SCRunmodeGet() == RUNMODE_CONF_TEST)
             goto error;
     }
+    /* classtypes are now loaded: resolve the eve-log payload-only-classtypes filter */
+    de_ctx->payload_classtype_filter = DetectEnginePayloadClasstypeFilterBuild(de_ctx);
 
     if (ActionInitConfig() < 0) {
         goto error;
@@ -2787,6 +2873,9 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     DetectPortCleanupList(de_ctx, de_ctx->udp_priorityports);
 
     DetectBufferTypeFreeDetectEngine(de_ctx);
+    if (de_ctx->payload_classtype_filter != NULL) {
+        SCFree(de_ctx->payload_classtype_filter);
+    }
     SCClassConfDeinit(de_ctx);
     SCReferenceConfDeinit(de_ctx);
 
