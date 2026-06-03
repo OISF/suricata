@@ -801,13 +801,14 @@ static inline SCSigSignatureWrapper *SCSigAllocSignatureWrapper(Signature *sig)
  * \param de_ctx Pointer to the Detection Engine Context that holds the
  *               signatures to be ordered
  */
-void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
+int SCSigOrderSignatures(DetectEngineCtx *de_ctx)
 {
     if (de_ctx->sig_list == NULL) {
         SCLogDebug("no signatures to order");
-        return;
+        return 0;
     }
 
+    int retval = 0;
     SCLogDebug("ordering signatures in memory");
     SCSigSignatureWrapper *sigw = NULL;
     SCSigSignatureWrapper *td_sigw_list = NULL; /* unified td list */
@@ -818,6 +819,12 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
     Signature *sig = de_ctx->sig_list;
     while (sig != NULL) {
         sigw = SCSigAllocSignatureWrapper(sig);
+        if (sigw == NULL) {
+            SCLogError("failed to alloc signature wrapper for rule ordering");
+            retval = -1;
+            goto cleanup;
+        }
+
         /* Push signature wrapper onto a list, order doesn't matter here. */
         if (sig->init_data->firewall_rule) {
             if (sig->type == SIG_TYPE_PKT) {
@@ -853,6 +860,7 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
     /* Recreate the sig list in order */
     de_ctx->sig_list = NULL;
 
+cleanup:
     /* firewall list for hook packet_filter */
     for (sigw = fw_pf_sigw_list; sigw != NULL;) {
         SCLogDebug("post-sort packet_filter: sid %u", sigw->sig->id);
@@ -903,6 +911,7 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         sigw = sigw->next;
         SCFree(sigw_to_free);
     }
+    return retval;
 }
 
 /**
@@ -1061,7 +1070,7 @@ static int SCSigOrderingTest02(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
-    SCSigOrderSignatures(de_ctx);
+    FAIL_IF(SCSigOrderSignatures(de_ctx) != 0);
 
     sig = de_ctx->sig_list;
 
@@ -1200,7 +1209,7 @@ static int SCSigOrderingTest03(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
-    SCSigOrderSignatures(de_ctx);
+    FAIL_IF(SCSigOrderSignatures(de_ctx) != 0);
 
     sig = de_ctx->sig_list;
 
@@ -1315,7 +1324,7 @@ static int SCSigOrderingTest04(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
-    SCSigOrderSignatures(de_ctx);
+    FAIL_IF(SCSigOrderSignatures(de_ctx) != 0);
 
     sig = de_ctx->sig_list;
 
@@ -1413,7 +1422,7 @@ static int SCSigOrderingTest05(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
-    SCSigOrderSignatures(de_ctx);
+    FAIL_IF(SCSigOrderSignatures(de_ctx) != 0);
 
     sig = de_ctx->sig_list;
 
@@ -1502,7 +1511,7 @@ static int SCSigOrderingTest06(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
-    SCSigOrderSignatures(de_ctx);
+    FAIL_IF(SCSigOrderSignatures(de_ctx) != 0);
 
     sig = de_ctx->sig_list;
 
@@ -1589,7 +1598,7 @@ static int SCSigOrderingTest07(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
-    SCSigOrderSignatures(de_ctx);
+    FAIL_IF(SCSigOrderSignatures(de_ctx) != 0);
 
     sig = de_ctx->sig_list;
 
@@ -1689,7 +1698,7 @@ static int SCSigOrderingTest08(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
-    SCSigOrderSignatures(de_ctx);
+    FAIL_IF(SCSigOrderSignatures(de_ctx) != 0);
 
     sig = de_ctx->sig_list;
 
@@ -1795,7 +1804,7 @@ static int SCSigOrderingTest09(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
-    SCSigOrderSignatures(de_ctx);
+    FAIL_IF(SCSigOrderSignatures(de_ctx) != 0);
 
     sig = de_ctx->sig_list;
 
@@ -1899,7 +1908,7 @@ static int SCSigOrderingTest10(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
-    SCSigOrderSignatures(de_ctx);
+    FAIL_IF(SCSigOrderSignatures(de_ctx) != 0);
 
     sig = de_ctx->sig_list;
 
@@ -1967,7 +1976,7 @@ static int SCSigOrderingTest11(void)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
-    SCSigOrderSignatures(de_ctx);
+    FAIL_IF(SCSigOrderSignatures(de_ctx) != 0);
 
     sig = de_ctx->sig_list;
 
@@ -2058,7 +2067,7 @@ static int SCSigOrderingTest13(void)
     FAIL_IF_NULL(sig);
 
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbitsCompare);
-    SCSigOrderSignatures(de_ctx);
+    FAIL_IF(SCSigOrderSignatures(de_ctx) != 0);
 
 #ifdef DEBUG
     sig = de_ctx->sig_list;
