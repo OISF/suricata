@@ -19,6 +19,11 @@ if available. If the ``pkt_src`` value is ``stream (flow timeout)``, then the
 ``ethernet`` value will be populated with mac addresses from the flow's first
 packet with ethernet header.
 
+If ``ethertype-hex`` is set to yes, then the ``ether.ether_type`` value will
+be displayed as a hexadecimal string, e.g., ``0x0800``, matching the display
+of the anomaly event ``ether_type``. The default is ``no`` (display the value
+as a decimal value, e.g., ``2048``).
+
 If ``suricata-version`` is set to yes, then Suricata version, with its git
 revision if available, will be added to events as ``suricata_version``.
 
@@ -79,6 +84,7 @@ Output types::
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
       #ethernet: no # log ethernet header in events when available
+      #ethertype-hex: no # display ether_type values as hexadecimal strings, e.g., 0x0800
       #suricata-version: no # include suricata version. Default no.
       #redis:
       #  server: 127.0.0.1

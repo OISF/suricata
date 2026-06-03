@@ -18,6 +18,7 @@ outputs:
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
       #ethernet: no  # log ethernet header in events when available
+      #ethertype-hex: no  # display ether_type values as hexadecimal strings, e.g., 0x0800
       #redis:
       #  server: 127.0.0.1
       #  port: 6379
