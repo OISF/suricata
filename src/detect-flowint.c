@@ -1131,7 +1131,7 @@ static int DetectFlowintTestPacket01Real(void)
     FAIL_IF(UTHAppendSigs(de_ctx, sigs, 5) == 0);
 
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
-    SCSigOrderSignatures(de_ctx);
+    FAIL_IF(SCSigOrderSignatures(de_ctx) != 0);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v,(void *) de_ctx,(void *) &det_ctx);
@@ -1207,7 +1207,7 @@ static int DetectFlowintTestPacket02Real(void)
     FAIL_IF(UTHAppendSigs(de_ctx, sigs, 5) == 0);
 
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
-    SCSigOrderSignatures(de_ctx);
+    FAIL_IF(SCSigOrderSignatures(de_ctx) != 0);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v,(void *) de_ctx,(void *) &det_ctx);
@@ -1280,7 +1280,7 @@ static int DetectFlowintTestPacket03Real(void)
     FAIL_IF(UTHAppendSigs(de_ctx, sigs, 3) == 0);
 
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
-    SCSigOrderSignatures(de_ctx);
+    FAIL_IF(SCSigOrderSignatures(de_ctx) != 0);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v,(void *) de_ctx,(void *) &det_ctx);
