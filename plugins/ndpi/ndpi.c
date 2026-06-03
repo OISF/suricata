@@ -24,6 +24,7 @@
 
 #include "detect-engine-helper.h"
 #include "detect-parse.h"
+#include "flow-bindgen.h"
 #include "flow-callbacks.h"
 #include "flow-storage.h"
 #include "output-eve.h"
@@ -129,9 +130,11 @@ static void OnFlowInit(ThreadVars *tv, Flow *f, const Packet *p, void *_data)
 
 static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
 {
+    const uint8_t flow_proto = SCFlowGetIPProtocol(f);
+
     /* Ignore packets that have a different protocol than the
      * flow. This can happen with ICMP unreachable packets. */
-    if (p->proto != f->proto) {
+    if (p->proto != flow_proto) {
         return;
     }
 
@@ -169,9 +172,10 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
                     flowctx->detection_completed = true;
             }
         } else {
-            uint16_t max_num_pkts = (f->proto == IPPROTO_UDP) ? 8 : 24;
+            uint16_t max_num_pkts = (flow_proto == IPPROTO_UDP) ? 8 : 24;
 
-            if ((f->todstpktcnt + f->tosrcpktcnt) > max_num_pkts) {
+            if ((SCFlowGetToServerPacketCount(f) + SCFlowGetToClientPacketCount(f)) >
+                    max_num_pkts) {
                 uint8_t proto_guessed;
 
                 flowctx->detected_l7_protocol =
