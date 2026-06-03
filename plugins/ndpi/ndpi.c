@@ -121,7 +121,10 @@ static void OnFlowInit(ThreadVars *tv, Flow *f, const Packet *p, void *_data)
 
     memset(flowctx->ndpi_flow, 0, SIZEOF_FLOW_STRUCT);
     flowctx->detection_completed = false;
-    SCFlowSetStorageById(f, flow_storage_id, flowctx);
+    if (SCFlowSetStorageById(f, flow_storage_id, flowctx) != 0) {
+        SCLogDebug("Failed to set nDPI flow storage");
+        FlowStorageFree(flowctx);
+    }
 }
 
 static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
