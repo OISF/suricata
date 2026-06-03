@@ -65,6 +65,9 @@ fn load_json_map(filename: &str) -> HashMap<String, String> {
 lazy_static! {
     static ref UUID_SERVICE_MAP: HashMap<String, String> =
         load_json_map("uuid_service_map.json");
+
+    static ref UUID_OPNUM_PROCEDURE_MAP: HashMap<String, String> =
+        load_json_map("uuid_opnum_procedure_map.json");
 }
 
 fn log_dcerpc_header_tcp(
@@ -97,6 +100,10 @@ fn log_dcerpc_header_tcp(
                         }
                         if let Some(sname) = UUID_SERVICE_MAP.get(&ifstr.to_string()) {
                             jsb.set_string("service", sname)?;
+                        }
+                        let uuid_opnum_key =  format!("{}:{}", ifstr, tx.opnum);
+                        if let Some(pname) = UUID_OPNUM_PROCEDURE_MAP.get(&uuid_opnum_key) {
+                            jsb.set_string("procedure", pname)?;
                         }
                         jsb.close()?;
                     }
