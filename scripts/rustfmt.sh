@@ -40,4 +40,4 @@ rustfmt --check rust/src/dns/*.rs rust/src/applayertemplate/*.rs rust/src/asn1/*
     rust/src/dhcp/*.rs rust/src/krb/*.rs rust/src/mdns/*.rs rust/src/pop3/*.rs \
     rust/src/http2/*.rs rust/src/ike/*.rs rust/src/modbus/*.rs rust/src/mqtt/*.rs \
     rust/src/nfs/*.rs rust/src/pgsql/*.rs rust/src/rdp/*.rs rust/src/sdp/*.rs \
-    rust/src/sip/*.rs rust/src/telnet/*.rs rust/src/x509/*.rs
+    rust/src/sip/*.rs rust/src/telnet/*.rs rust/src/tftp/*.rs rust/src/x509/*.rs
