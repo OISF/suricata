@@ -974,10 +974,11 @@ typedef struct DetectEngineCtx_ {
     bool failure_fatal;
     uint8_t flags;       /**< only DE_QUIET */
     uint8_t mpm_matcher; /**< mpm matcher this ctx uses */
+    uint8_t max_flowbits; /**< maximum number of flowbits per signature */
+    uint32_t tenant_id;
+
     MpmConfig *mpm_cfg;
     uint8_t spm_matcher; /**< spm matcher this ctx uses */
-
-    uint32_t tenant_id;
 
     Signature *sig_list;
     uint32_t sig_cnt;
