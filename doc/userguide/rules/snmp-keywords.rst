@@ -138,3 +138,20 @@ Syntax::
 ``snmp.trap_oid`` is a 'sticky buffer'.
 
 ``snmp.trap_oid`` can be used as ``fast_pattern``.
+
+snmp.trap_address
+-----------------
+
+SNMP Trap Address is the IP address of the agent.
+
+Syntax::
+
+ snmp.trap_address; content:"192.168.1.2";
+
+.. container:: example-rule
+
+ alert snmp any any -> any any (msg:"SNMP trap address example"; snmp.trap_address; content:"192.168.1.2"; sid:4; rev:1;)
+
+``snmp.trap_address`` is a 'sticky buffer'.
+
+``snmp.trap_address`` can be used as ``fast_pattern``.
