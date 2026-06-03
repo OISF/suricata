@@ -1244,6 +1244,30 @@ uint16_t FlowGetSourcePort(Flow *flow)
 }
 
 /**
+ * \brief Return true if the flow is IPv4.
+ */
+bool SCFlowIsIPv4(const Flow *flow)
+{
+    return FLOW_IS_IPV4(flow);
+}
+
+/**
+ * \brief Return true if the flow is IPv6.
+ */
+bool SCFlowIsIPv6(const Flow *flow)
+{
+    return FLOW_IS_IPV6(flow);
+}
+
+/**
+ * \brief Get flow IP protocol.
+ */
+uint8_t SCFlowGetIPProtocol(const Flow *flow)
+{
+    return flow->proto;
+}
+
+/**
  * \brief Get flow destination port.
  *
  * A function to get the flow dport useful when the caller only has an
@@ -1254,6 +1278,23 @@ uint16_t FlowGetDestinationPort(Flow *flow)
 {
     return flow->dp;
 }
+
+/**
+ * \brief Get the number of packets seen toserver.
+ */
+uint32_t SCFlowGetToServerPacketCount(const Flow *flow)
+{
+    return flow->todstpktcnt;
+}
+
+/**
+ * \brief Get the number of packets seen toclient.
+ */
+uint32_t SCFlowGetToClientPacketCount(const Flow *flow)
+{
+    return flow->tosrcpktcnt;
+}
+
 /**
  * \brief Get flow flags.
  *

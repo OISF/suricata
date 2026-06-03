@@ -593,8 +593,13 @@ void RegisterFlowBypassInfo(void);
 
 void FlowGetLastTimeAsParts(Flow *flow, uint64_t *secs, uint64_t *usecs);
 uint32_t FlowGetFlags(Flow *flow);
+bool SCFlowIsIPv4(const Flow *flow);
+bool SCFlowIsIPv6(const Flow *flow);
+uint8_t SCFlowGetIPProtocol(const Flow *flow);
 uint16_t FlowGetSourcePort(Flow *flow);
 uint16_t FlowGetDestinationPort(Flow *flow);
+uint32_t SCFlowGetToServerPacketCount(const Flow *flow);
+uint32_t SCFlowGetToClientPacketCount(const Flow *flow);
 
 /** ----- Inline functions ----- */
 
