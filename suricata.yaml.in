@@ -1278,7 +1278,7 @@ app-layer:
       enabled: yes
 
     sip:
-      #enabled: yes
+      enabled: yes
 
     ldap:
       tcp:
