@@ -360,6 +360,9 @@ static inline int PacketAlertSetContext(
                     }
                 }
                 current_json->json_string = SCStrdup(det_ctx->json_content[i].json_content);
+                if (current_json->json_string == NULL) {
+                    return -1;
+                }
                 SCLogDebug("json content %u, value '%s' (%p)", (unsigned int)i,
                         current_json->json_string, s);
             }
