@@ -66,7 +66,7 @@
 #include "app-layer-htp-xff.h"
 #include "util-memcmp.h"
 #include "stream-tcp-reassemble.h"
-#include "flow-bindgen.h"
+#include "flow.h"
 
 typedef struct OutputFileCtx_ {
     uint32_t file_cnt;

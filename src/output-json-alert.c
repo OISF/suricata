@@ -28,7 +28,6 @@
 #include "packet.h"
 #include "detect.h"
 #include "flow.h"
-#include "flow-bindgen.h"
 #include "conf.h"
 
 #include "stream.h"

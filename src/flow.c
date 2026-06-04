@@ -36,7 +36,6 @@
 #include "util-time.h"
 
 #include "flow.h"
-#include "flow-bindgen.h"
 #include "flow-queue.h"
 #include "flow-hash.h"
 #include "flow-util.h"
