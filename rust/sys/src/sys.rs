@@ -1791,10 +1791,31 @@ extern "C" {
     pub fn SCFlowGetFlags(flow: *const Flow) -> u64;
 }
 extern "C" {
+    pub fn SCFlowIsIPv4(flow: *const Flow) -> bool;
+}
+extern "C" {
+    pub fn SCFlowIsIPv6(flow: *const Flow) -> bool;
+}
+extern "C" {
+    pub fn SCFlowGetIPProtocol(flow: *const Flow) -> u8;
+}
+extern "C" {
     pub fn SCFlowGetSourcePort(flow: *const Flow) -> u16;
 }
 extern "C" {
     pub fn SCFlowGetDestinationPort(flow: *const Flow) -> u16;
+}
+extern "C" {
+    pub fn SCFlowGetSourceAddressAsRawPtr(flow: *const Flow) -> *const u8;
+}
+extern "C" {
+    pub fn SCFlowGetDestinationAddressAsRawPtr(flow: *const Flow) -> *const u8;
+}
+extern "C" {
+    pub fn SCFlowGetToServerPacketCount(flow: *const Flow) -> u32;
+}
+extern "C" {
+    pub fn SCFlowGetToClientPacketCount(flow: *const Flow) -> u32;
 }
 extern "C" {
     pub fn SCFlowGetAppProtocol(f: *const Flow) -> AppProto;
