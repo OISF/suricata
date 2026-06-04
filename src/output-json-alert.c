@@ -691,12 +691,38 @@ static void AlertJsonAddFirewall(SCJsonBuilder *jb, const Signature *s)
     SCJbClose(jb);
 }
 
+/**
+ * \brief Check if the alert's classtype is in the payload-only-classtypes filter of the detection
+ * engine.
+ *
+ * \param pa PacketAlert containing the signature
+ * \return true if payload should be extracted, false otherwise
+ */
+static bool ShouldDumpPayloadInAlert(const PacketAlert *pa, const uint8_t *payload_classtype_filter)
+{
+    bool dump;
+    if (payload_classtype_filter == NULL) {
+        // No filter configured = always extract based on payload flags (default behavior)
+        dump = true;
+    } else if (pa->s == NULL || pa->s->class_id == 0) {
+        // No classtype in alert, yet filtering is configured -> no extraction
+        dump = false;
+    } else {
+        // O(1) bitmap lookup: byte (id / 8), bit (id % 8)
+        const uint16_t id = pa->s->class_id;
+        dump = (payload_classtype_filter[id / 8] & (1u << (id % 8))) != 0;
+    }
+    return dump;
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     AlertJsonOutputCtx *json_output_ctx = aft->json_output_ctx;
 
     if (p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG))
         return TM_ECODE_OK;
+
+    DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
 
     const uint8_t final_action = p->alerts.cnt > 0 ? p->alerts.alerts[p->alerts.cnt - 1].action : 0;
     for (int i = 0; i < p->alerts.cnt; i++) {
@@ -800,9 +826,13 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             }
         }
 
+        bool should_dump_payload = ShouldDumpPayloadInAlert(
+                pa, de_ctx != NULL ? de_ctx->payload_classtype_filter : NULL);
+
         /* payload */
-        if (json_output_ctx->flags &
-                (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64 | LOG_JSON_PAYLOAD_LENGTH)) {
+        if (should_dump_payload &&
+                json_output_ctx->flags &
+                        (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64 | LOG_JSON_PAYLOAD_LENGTH)) {
             int stream = (p->proto == IPPROTO_TCP) ?
                          (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH) ?
                          1 : 0) : 0;
@@ -845,6 +875,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         OutputJsonBuilderBuffer(tv, p, p->flow, jb, aft->ctx);
         SCJbFree(jb);
+    }
+
+    if (de_ctx != NULL) {
+        DetectEngineDeReference(&de_ctx);
     }
 
     if ((p->flags & PKT_HAS_TAG) && (json_output_ctx->flags &
