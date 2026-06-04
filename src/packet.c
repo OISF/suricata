@@ -70,11 +70,15 @@ uint8_t PacketGetAction(const Packet *p)
 /**
  *  \brief Initialize a packet structure for use.
  */
-void PacketInit(Packet *p)
+bool PacketInit(Packet *p)
 {
     SCSpinInit(&p->persistent.tunnel_lock, 0);
     p->alerts.alerts = PacketAlertCreate();
+    if (unlikely(p->alerts.alerts == NULL)) {
+        return false;
+    }
     p->livedev = NULL;
+    return true;
 }
 
 void PacketReleaseRefs(Packet *p)
