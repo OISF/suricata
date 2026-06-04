@@ -1490,7 +1490,8 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         SCJbSetString(ctx.js, "buffer", name);
 
         SigMatchData *smd = pkt_mpm ? pkt_mpm->smd : app_mpm->smd;
-        if (smd == NULL && mpm_list == DETECT_SM_LIST_PMATCH) {
+        if (smd == NULL) {
+            DEBUG_VALIDATE_BUG_ON(mpm_list != DETECT_SM_LIST_PMATCH);
             smd = s->sm_arrays[mpm_list];
         }
         do {
@@ -2102,25 +2103,6 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
 
 #include "app-layer-parser.h"
 
-static const char *ActionScopeToString(enum ActionScope s)
-{
-    switch (s) {
-        case ACTION_SCOPE_PACKET:
-            return "packet";
-        case ACTION_SCOPE_FLOW:
-            return "flow";
-            break;
-        case ACTION_SCOPE_HOOK:
-            return "hook";
-        case ACTION_SCOPE_TX:
-            return "tx";
-        case ACTION_SCOPE_AUTO:
-            return "auto";
-    }
-    DEBUG_VALIDATE_BUG_ON(1);
-    return "unknown";
-}
-
 static void AddPolicy(const DetectEngineCtx *de_ctx, RuleAnalyzer *ctx, const AppProto a,
         const uint8_t state, const uint8_t direction)
 {
@@ -2183,6 +2165,11 @@ static void FirewallAddRulesForState(const DetectEngineCtx *de_ctx, const AppPro
             if (s->flags & SIG_FLAG_TOSERVER) {
                 continue;
             }
+        }
+
+        if ((s->flags & SIG_FLAG_FW_HOOK_LTE) && state < s->app_progress_hook) {
+            SCJbAppendString(ctx->js, s->sig_str);
+            accept_rules += ((s->action & ACTION_ACCEPT) != 0);
         }
 
         if (s->app_progress_hook == state) {

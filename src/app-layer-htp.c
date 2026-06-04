@@ -750,7 +750,7 @@ static int Setup(Flow *f, HtpState *hstate)
 
     if (NULL == htp) {
 #ifdef DEBUG_VALIDATION
-        BUG_ON(htp == NULL);
+        BUG_ON(1);
 #endif
         /* should never happen if HTPConfigure is properly invoked */
         goto error;

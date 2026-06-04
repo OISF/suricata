@@ -58,14 +58,17 @@ static int DetectReplacePostMatch(DetectEngineThreadCtx *det_ctx,
 void DetectReplaceRegister (void)
 {
     sigmatch_table[DETECT_REPLACE].name = "replace";
-    sigmatch_table[DETECT_REPLACE].desc = "only to be used in IPS-mode. Change the following content into another";
+    sigmatch_table[DETECT_REPLACE].desc =
+            "only to be used in IPS-mode. Change the following content into another"
+            "Banned from firewall rules & firewall mode usage.";
     sigmatch_table[DETECT_REPLACE].url = "/rules/payload-keywords.html#replace";
     sigmatch_table[DETECT_REPLACE].Match = DetectReplacePostMatch;
     sigmatch_table[DETECT_REPLACE].Setup = DetectReplaceSetup;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_REPLACE].RegisterTests = DetectReplaceRegisterTests;
 #endif
-    sigmatch_table[DETECT_REPLACE].flags = (SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION);
+    sigmatch_table[DETECT_REPLACE].flags =
+            (SIGMATCH_QUOTES_MANDATORY | SIGMATCH_HANDLE_NEGATION | SIGMATCH_BAN_FIREWALL_MODE);
 }
 
 static int DetectReplacePostMatch(DetectEngineThreadCtx *det_ctx,

@@ -248,7 +248,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_APPLAYER               BIT_U32(6) /**< signature applies to app layer instead of packets */
 #define SIG_FLAG_TXBOTHDIR              BIT_U32(7) /**< signature needs tx with both directions to match */
 
-// vacancy
+#define SIG_FLAG_FW_HOOK_LTE BIT_U32(8) /**< Signature::app_progress_hook is to be used as LTE */
 
 #define SIG_FLAG_REQUIRE_PACKET         BIT_U32(9)  /**< signature is requiring packet match */
 #define SIG_FLAG_REQUIRE_STREAM         BIT_U32(10) /**< signature is requiring stream match */
@@ -550,6 +550,9 @@ enum SignatureHookType {
     SIGNATURE_HOOK_TYPE_APP,
 };
 
+/** detect table identifiers, ordered by how they logically
+ *  evaluated. Used in rule ordering to ensure the correct order
+ *  of rule actions. */
 enum DetectTable {
     DETECT_TABLE_NOT_SET = 0,
     DETECT_TABLE_PACKET_PRE_FLOW,
@@ -934,6 +937,10 @@ struct DetectFirewallAppPolicy {
 struct DetectFirewallPolicies {
     /** policy for packet_filter, pre_flow, pre_stream hooks */
     struct DetectFirewallPolicy pkt[DETECT_FIREWALL_POLICY_SIZE];
+    Signature *pkt_policy_signatures[DETECT_FIREWALL_POLICY_SIZE];
+
+    /* hash table with a Signature object per default policy that has `alert` enabled. */
+    HashTable *policy_signatures;
 
     /** app layer policies, one per alproto */
     struct DetectFirewallAppPolicy app[];
@@ -1329,6 +1336,8 @@ typedef struct DetectEngineThreadCtx_ {
     StatsCounterId counter_alerts;
     /** id for discarded alerts counter */
     StatsCounterId counter_alerts_overflow;
+    /** id for firewall discarded alerts counter */
+    StatsCounterId counter_firewall_discarded_alerts;
     /** id for suppressed alerts counter */
     StatsCounterId counter_alerts_suppressed;
 #ifdef PROFILING

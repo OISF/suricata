@@ -235,14 +235,14 @@ void DetectHttpHeaderNamesRegister(void)
 
     /* http2 */
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2StateOpen);
+            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2ProgHeaders);
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2StateDataServer);
+            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2ProgHeaders);
 
     DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2StateOpen, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
+            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
     DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
+            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
             BUFFER_DESC);

@@ -794,6 +794,32 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
 }
 
+/** \brief get the sm_list for a app hook */
+int DetectEngineAppHookToSmlist(const AppProto p, const uint8_t state, const int direction)
+{
+    const char *app_proto = AppProtoToString(p);
+    if (app_proto == NULL) {
+        SCLogError("unknown app_proto %u", p);
+        return -1;
+    }
+    if (strcmp(app_proto, "http") == 0)
+        app_proto = "http1";
+
+    const char *name = AppLayerParserGetStateNameById(
+            IPPROTO_TCP, p, state, direction & (STREAM_TOSERVER | STREAM_TOCLIENT));
+    if (name == NULL)
+        return -1;
+
+    char generic_hook_name[256];
+    snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", app_proto, name);
+    int list = DetectBufferTypeGetByName(generic_hook_name);
+    if (list < 0) {
+        SCLogError("no list registered as %s for %s hook %s", generic_hook_name, app_proto, name);
+        return -1;
+    }
+    return list;
+}
+
 /**
  *  \note for the file inspect engine, the id DE_STATE_ID_FILE_INSPECT
  *        is assigned.
@@ -805,6 +831,41 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
     bool head_is_mpm = false;
     uint8_t last_id = DE_STATE_FLAG_BASE;
     SCLogDebug("%u: setup app inspect engines. %u buffers", s->id, s->init_data->buffer_index);
+
+    if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
+        SCLogDebug("need an inspect engine per state, range 0-%u", s->app_progress_hook);
+        for (uint8_t state = 0; state < s->app_progress_hook; state++) {
+            uint8_t dir = 0;
+            int direction = 0;
+            BUG_ON((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) ==
+                    (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT));
+            BUG_ON((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) == 0);
+            if (s->flags & SIG_FLAG_TOSERVER) {
+                direction = STREAM_TOSERVER;
+                dir = 0;
+            } else if (s->flags & SIG_FLAG_TOCLIENT) {
+                direction = STREAM_TOCLIENT;
+                dir = 1;
+            }
+
+            int sm_list =
+                    DetectEngineAppHookToSmlist(s->init_data->hook.t.app.alproto, 0, direction);
+            if (sm_list < 0)
+                return -1;
+
+            DetectEngineAppInspectionEngine t = {
+                .alproto = s->init_data->hook.t.app.alproto,
+                .progress = (uint16_t)state,
+                .sm_list = (uint16_t)sm_list,
+                .sm_list_base = (uint16_t)sm_list,
+                .dir = dir,
+            };
+            AppendAppInspectEngine(de_ctx, &t, s, NULL, mpm_list, files_id, &last_id, &head_is_mpm);
+            SCLogDebug("sid %u: appended pass-tru engine at hook:%u sm_list:%d for "
+                       "SIG_FLAG_INIT_HOOK_LTE",
+                    s->id, state, sm_list);
+        }
+    }
 
     for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
         SigMatchData *smd = SigMatchList2DataArray(s->init_data->buffers[x].head);
@@ -2740,6 +2801,15 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     if (de_ctx->non_pf_engine_names) {
         HashTableFree(de_ctx->non_pf_engine_names);
     }
+    if (de_ctx->fw_policies) {
+        for (uint32_t i = 0; i < DETECT_FIREWALL_POLICY_SIZE; i++) {
+            if (de_ctx->fw_policies->pkt_policy_signatures[i]) {
+                SCFree(de_ctx->fw_policies->pkt_policy_signatures[i]->msg);
+                SCFree(de_ctx->fw_policies->pkt_policy_signatures[i]);
+            }
+        }
+        HashTableFree(de_ctx->fw_policies->policy_signatures);
+    }
     SCFree(de_ctx->fw_policies);
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();
@@ -3288,7 +3358,7 @@ error:
  */
 static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
 {
-    PatternMatchThreadPrepare(&det_ctx->mtc, de_ctx->mpm_matcher);
+    PatternMatchThreadPrepare(&det_ctx->mtc, de_ctx);
 
     PmqSetup(&det_ctx->pmq);
 
@@ -3366,6 +3436,8 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
 #endif
     SC_ATOMIC_INIT(det_ctx->so_far_used_by_detect);
 
+    if (ThresholdCacheThreadInit(det_ctx) != 0)
+        return TM_ECODE_FAILED;
     return TM_ECODE_OK;
 }
 
@@ -3421,6 +3493,10 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
     det_ctx->counter_alerts = StatsRegisterCounter("detect.alert", &tv->stats);
     det_ctx->counter_alerts_overflow =
             StatsRegisterCounter("detect.alert_queue_overflow", &tv->stats);
+    if (EngineModeIsFirewall()) {
+        det_ctx->counter_firewall_discarded_alerts =
+                StatsRegisterCounter("firewall.discarded_alerts", &tv->stats);
+    }
     det_ctx->counter_alerts_suppressed =
             StatsRegisterCounter("detect.alerts_suppressed", &tv->stats);
 
@@ -3504,6 +3580,10 @@ DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     det_ctx->counter_alerts = StatsRegisterCounter("detect.alert", &tv->stats);
     det_ctx->counter_alerts_overflow =
             StatsRegisterCounter("detect.alert_queue_overflow", &tv->stats);
+    if (EngineModeIsFirewall()) {
+        det_ctx->counter_firewall_discarded_alerts =
+                StatsRegisterCounter("firewall.discarded_alerts", &tv->stats);
+    }
     det_ctx->counter_alerts_suppressed =
             StatsRegisterCounter("detect.alerts_suppressed", &tv->stats);
 #ifdef PROFILING
@@ -3621,8 +3701,6 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     SCAppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
     PrefilterPktNonPFStatsDump();
     SCFree(det_ctx);
-
-    ThresholdCacheThreadFree();
 }
 
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)

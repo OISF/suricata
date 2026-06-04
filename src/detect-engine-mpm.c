@@ -965,10 +965,23 @@ void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matche
     SCLogDebug("mpm_thread_ctx %p, mpm_matcher %"PRIu16"", mpm_thread_ctx, mpm_matcher);
     MpmDestroyThreadCtx(mpm_thread_ctx, mpm_matcher);
 }
-void PatternMatchThreadPrepare(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher)
+void PatternMatchThreadPrepare(MpmThreadCtx *mpm_thread_ctx, DetectEngineCtx *de_ctx)
 {
-    SCLogDebug("mpm_thread_ctx %p, type %"PRIu16, mpm_thread_ctx, mpm_matcher);
-    MpmInitThreadCtx(mpm_thread_ctx, mpm_matcher);
+    SCLogDebug("mpm_thread_ctx %p, type %" PRIu16, mpm_thread_ctx, de_ctx->mpm_matcher);
+    MpmCtx cum_mpm_ctx = { 0 };
+    for (HashListTableBucket *htb = HashListTableGetListHead(de_ctx->mpm_hash_table); htb != NULL;
+            htb = HashListTableGetListNext(htb)) {
+        // iterate all de_ctx mpms to merge one MpmCtx with max pattern_cnt and max max_pat_id
+        const MpmStore *ms = (MpmStore *)HashListTableGetListData(htb);
+        if (ms == NULL || ms->mpm_ctx == NULL) {
+            continue;
+        }
+        if (ms->mpm_ctx->pattern_cnt > cum_mpm_ctx.pattern_cnt)
+            cum_mpm_ctx.pattern_cnt = ms->mpm_ctx->pattern_cnt;
+        if (ms->mpm_ctx->max_pat_id > cum_mpm_ctx.max_pat_id)
+            cum_mpm_ctx.max_pat_id = ms->mpm_ctx->max_pat_id;
+    }
+    MpmInitThreadCtx(mpm_thread_ctx, &cum_mpm_ctx, de_ctx->mpm_matcher);
 }
 
 /** \brief Predict a strength value for patterns

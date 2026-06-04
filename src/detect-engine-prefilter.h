@@ -40,8 +40,9 @@ typedef struct DetectTransaction_ {
     /* original value to track changes. */
     const uint8_t detect_progress_orig;
 
-    const int tx_progress;
-    const int tx_end_state;
+    const uint8_t tx_progress;
+    const uint8_t tx_end_state;
+    bool is_last; /* is this the last tx? */
 } DetectTransaction;
 
 typedef struct PrefilterStore_ {

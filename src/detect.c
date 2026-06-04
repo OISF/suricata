@@ -36,6 +36,7 @@
 #include "app-layer-frames.h"
 
 #include "detect.h"
+#include "detect-parse.h"
 #include "detect-dsize.h"
 #include "detect-engine.h"
 #include "detect-engine-build.h"
@@ -160,7 +161,10 @@ static void DetectRun(ThreadVars *th_v,
         if (p->proto == IPPROTO_TCP) {
             if ((p->flags & PKT_STREAM_EST) == 0) {
                 SCLogDebug("packet %" PRIu64 ": skip tcp non-established", PcapPacketCntGet(p));
-                DetectRunAppendDefaultAccept(det_ctx, p);
+                if (EngineModeIsFirewall()) {
+                    SCLogDebug("default accept: no PKT_STREAM_EST");
+                    DetectRunAppendDefaultAccept(det_ctx, p);
+                }
                 goto end;
             }
             const TcpSession *ssn = p->flow->protoctx;
@@ -180,7 +184,10 @@ static void DetectRun(ThreadVars *th_v,
                     ((PKT_IS_TOSERVER(p) && (p->flow->flags & FLOW_TS_APP_UPDATED) == 0) ||
                             (PKT_IS_TOCLIENT(p) && (p->flow->flags & FLOW_TC_APP_UPDATED) == 0))) {
                 SCLogDebug("packet %" PRIu64 ": no app-layer update", PcapPacketCntGet(p));
-                DetectRunAppendDefaultAccept(det_ctx, p);
+                if (EngineModeIsFirewall()) {
+                    SCLogDebug("default accept: no app update");
+                    DetectRunAppendDefaultAccept(det_ctx, p);
+                }
                 goto end;
             }
         } else if (p->proto == IPPROTO_UDP) {
@@ -197,7 +204,10 @@ static void DetectRun(ThreadVars *th_v,
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX_UPDATE);
     } else {
         SCLogDebug("packet %" PRIu64 ": no flow / app-layer", PcapPacketCntGet(p));
-        DetectRunAppendDefaultAccept(det_ctx, p);
+        if (EngineModeIsFirewall()) {
+            SCLogDebug("default accept: no flow/app");
+            DetectRunAppendDefaultAccept(det_ctx, p);
+        }
     }
 
 end:
@@ -692,14 +702,15 @@ static inline bool SkipFwRules(const Packet *p)
  * packet:filter accept:hook to the packet as well.
  */
 static uint8_t DetectRunApplyPacketPolicy(const DetectEngineCtx *de_ctx,
-        const enum DetectFirewallPacketPolicies policy, Packet *p, const bool final)
+        DetectEngineThreadCtx *det_ctx, const enum DetectFirewallPacketPolicies policy, Packet *p,
+        const bool final)
 {
     DEBUG_VALIDATE_BUG_ON(de_ctx->fw_policies == NULL);
     const struct DetectFirewallPolicy *pol = &de_ctx->fw_policies->pkt[policy];
     if (pol->action & ACTION_DROP) {
-        SCLogDebug("packet %" PRIu64 ": drop PKT_DROP_REASON_DEFAULT_PACKET_POLICY",
+        SCLogDebug("packet %" PRIu64 ": drop PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY",
                 PcapPacketCntGet(p));
-        PacketDrop(p, pol->action, PKT_DROP_REASON_DEFAULT_PACKET_POLICY);
+        PacketDrop(p, pol->action, PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY);
     } else if (pol->action & ACTION_ACCEPT) {
         SCLogDebug("packet %" PRIu64 ": accept", PcapPacketCntGet(p));
         if (pol->action_scope == ACTION_SCOPE_PACKET) {
@@ -725,6 +736,10 @@ static uint8_t DetectRunApplyPacketPolicy(const DetectEngineCtx *de_ctx,
     } else {
         /* should be unreachable */
         DEBUG_VALIDATE_BUG_ON(1);
+    }
+    Signature *s = de_ctx->fw_policies->pkt_policy_signatures[policy];
+    if (s != NULL) {
+        AlertQueueAppend(det_ctx, s, p, 0, PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET);
     }
     return p->action;
 }
@@ -978,7 +993,7 @@ next:
         } else {
             DEBUG_VALIDATE_BUG_ON(action & ACTION_DROP);
             /* non-final call as we may have to consider app-layer still */
-            action |= DetectRunApplyPacketPolicy(de_ctx, scratch->fw_pkt_policy, p, false);
+            action |= DetectRunApplyPacketPolicy(de_ctx, det_ctx, scratch->fw_pkt_policy, p, false);
         }
     }
     return action;
@@ -1012,6 +1027,7 @@ static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
 
     det_ctx->alert_queue_size = 0;
     p->alerts.drop.action = 0;
+    p->alerts.firewall_discarded = 0;
 
 #ifdef DEBUG
     if (p->flags & PKT_STREAM_ADD) {
@@ -1104,6 +1120,10 @@ static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_
         StatsCounterAddI64(
                 &tv->stats, det_ctx->counter_alerts_overflow, (uint64_t)p->alerts.discarded);
     }
+    if (p->alerts.firewall_discarded > 0) {
+        StatsCounterAddI64(&tv->stats, det_ctx->counter_firewall_discarded_alerts,
+                (uint64_t)p->alerts.firewall_discarded);
+    }
     if (p->alerts.suppressed > 0) {
         StatsCounterAddI64(
                 &tv->stats, det_ctx->counter_alerts_suppressed, (uint64_t)p->alerts.suppressed);
@@ -1117,7 +1137,7 @@ static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_
             p->pkt_src == PKT_SRC_WIRE) {
         SCLogDebug("packet %" PRIu64 ": default action as no verdict set %02x (pkt %s)",
                 PcapPacketCntGet(p), p->action, PktSrcToString(p->pkt_src));
-        (void)DetectRunApplyPacketPolicy(de_ctx, scratch->fw_pkt_policy, p, true);
+        (void)DetectRunApplyPacketPolicy(de_ctx, det_ctx, scratch->fw_pkt_policy, p, true);
         DEBUG_VALIDATE_BUG_ON((p->action & (ACTION_DROP | ACTION_ACCEPT)) == 0);
     }
 }
@@ -1253,27 +1273,21 @@ void *DetectGetInnerTx(void *tx_ptr, AppProto alproto, AppProto engine_alproto, 
  *         If stored_flags is set it means we're continuing
  *         inspection from an earlier run.
  *
- *  \retval bool true sig matched, false didn't match
+ *  \retval  1 sig matched
+ *  \retval  0 partial incomplete match
+ *  \retval -1 failed to match
  */
-static bool DetectRunTxInspectRule(ThreadVars *tv,
-        DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx,
-        Packet *p,
-        Flow *f,
-        const uint8_t in_flow_flags,   // direction, EOF, etc
-        void *alstate,
-        DetectTransaction *tx,
-        const Signature *s,
-        uint32_t *stored_flags,
-        RuleMatchCandidateTx *can,
-        DetectRunScratchpad *scratch)
+static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Packet *p, Flow *f,
+        const uint8_t in_flow_flags, // direction, EOF, etc
+        void *alstate, DetectTransaction *tx, const Signature *s, uint32_t *stored_flags,
+        RuleMatchCandidateTx *can, DetectRunScratchpad *scratch)
 {
     const uint8_t flow_flags = in_flow_flags;
     const int direction = (flow_flags & STREAM_TOSERVER) ? 0 : 1;
     uint32_t inspect_flags = stored_flags ? *stored_flags : 0;
     int total_matches = 0;
     uint16_t file_no_match = 0;
-    bool retval = false;
     bool mpm_before_progress = false;   // is mpm engine before progress?
     bool mpm_in_progress = false;       // is mpm engine in a buffer we will revisit?
 
@@ -1284,17 +1298,19 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         TRACE_SID_TXS(s->id, tx, "first inspect, run packet matches");
         if (DetectRunInspectRuleHeader(p, f, s, s->flags) == false) {
             TRACE_SID_TXS(s->id, tx, "DetectRunInspectRuleHeader() no match");
-            return false;
+            return -1;
         }
         if (!DetectEnginePktInspectionRun(tv, det_ctx, s, f, p, NULL)) {
             TRACE_SID_TXS(s->id, tx, "DetectEnginePktInspectionRun no match");
-            return false;
+            return -1;
         }
         /* stream mpm and negated mpm sigs can end up here with wrong proto */
         if (!(AppProtoEquals(s->alproto, f->alproto) || s->alproto == ALPROTO_UNKNOWN)) {
             TRACE_SID_TXS(s->id, tx, "alproto mismatch");
-            return false;
+            return -1;
         }
+    } else {
+        TRACE_SID_TXS(s->id, tx, "continue, inspect_flags %x", inspect_flags);
     }
 
     const DetectEngineAppInspectionEngine *engine = s->app_inspect;
@@ -1360,8 +1376,9 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
 
                 /* we don't have to store a "hook" match, also don't want to keep any state to make
                  * sure the hook gets invoked again until tx progress progresses. */
-                if (tx->tx_progress <= engine->progress)
-                    return DETECT_ENGINE_INSPECT_SIG_MATCH;
+                if ((s->flags & SIG_FLAG_FW_HOOK_LTE) == 0 && tx->tx_progress <= engine->progress) {
+                    return 1; // DETECT_ENGINE_INSPECT_SIG_MATCH;
+                }
 
                 /* if progress > engine progress, track state to avoid additional matches */
                 match = DETECT_ENGINE_INSPECT_SIG_MATCH;
@@ -1421,10 +1438,11 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     TRACE_SID_TXS(s->id, tx, "inspect_flags %x, total_matches %u, engine %p",
             inspect_flags, total_matches, engine);
 
+    bool full_match = false;
     if (engine == NULL && total_matches) {
         inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
         TRACE_SID_TXS(s->id, tx, "MATCH");
-        retval = true;
+        full_match = true;
     }
 
     if (stored_flags) {
@@ -1462,19 +1480,32 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         } else if ((inspect_flags & DE_STATE_FLAG_FULL_INSPECT) == 0 && mpm_in_progress) {
             TRACE_SID_TXS(s->id, tx, "no need to store no-match sig, "
                     "mpm will revisit it");
+            return -1; /* no match */
         } else if (inspect_flags != 0 || file_no_match != 0) {
             TRACE_SID_TXS(s->id, tx, "storing state: flags %08x", inspect_flags);
             DetectRunStoreStateTx(scratch->sgh, f, tx->tx_ptr, tx->tx_id, s,
                     inspect_flags, flow_flags, file_no_match);
+        } else {
+            if (inspect_flags == 0) {
+                TRACE_SID_TXS(s->id, tx, "no match: inspect_flags %08x", inspect_flags);
+                return -1;
+            }
         }
     }
-
-    return retval;
+    if (full_match) {
+        return 1;
+        /* can't be a partial match if we're at the end state */
+    } else if ((inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH) == 0 &&
+               tx->tx_progress < tx->tx_end_state) {
+        return 0;
+    } else {
+        return -1;
+    }
 }
 
 #define NO_TX                                                                                      \
     {                                                                                              \
-        NULL, 0, NULL, NULL, 0, 0, 0, 0,                                                           \
+        NULL, 0, NULL, NULL, 0, 0, 0, 0, false,                                                    \
     }
 
 /** \internal
@@ -1484,8 +1515,12 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
 static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alproto,
         const uint64_t tx_id, void *tx_ptr, const int tx_end_state, const uint8_t flow_flags)
 {
+    DEBUG_VALIDATE_BUG_ON(tx_end_state >= 48);
+
     AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx_ptr);
     const int tx_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx_ptr, flow_flags);
+    DEBUG_VALIDATE_BUG_ON(tx_progress >= 48);
+
     bool updated = (flow_flags & STREAM_TOSERVER) ? txd->updated_ts : txd->updated_tc;
     if (!updated && tx_progress < tx_end_state && ((flow_flags & STREAM_EOF) == 0)) {
         DetectTransaction no_tx = NO_TX;
@@ -1522,8 +1557,9 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         .de_state = tx_dir_state,
         .detect_progress = detect_progress,
         .detect_progress_orig = detect_progress,
-        .tx_progress = tx_progress,
-        .tx_end_state = tx_end_state,
+        .tx_progress = (uint8_t)tx_progress,
+        .tx_end_state = (uint8_t)tx_end_state,
+        .is_last = false,
     };
     return tx;
 }
@@ -1616,13 +1652,26 @@ static inline void RuleMatchCandidateMergeStateRules(
 
 struct DetectFirewallAppTxState {
     bool fw_skip_app_filter;
-    bool tx_fw_verdict;
     bool skip_fw_hook;
     uint8_t skip_before_progress;
     bool fw_last_for_progress;
     bool fw_next_progress_missing;
     bool last_fw_rule; /**< processing the last fw rule, so we need to eval all hooks after it. */
 };
+
+static inline void DetectRunAppendDefaultAppPolicyAlert(DetectEngineThreadCtx *det_ctx, Packet *p,
+        const bool apply_to_packet, const int direction, const uint64_t tx_id,
+        const AppProto alproto, const uint8_t hook)
+{
+    if (EngineModeIsFirewall()) {
+        Signature *s = DetectFirewallGetPolicySignature(
+                det_ctx->de_ctx->fw_policies, alproto, direction, hook);
+        BUG_ON(s == NULL);
+        uint8_t alert_flags = apply_to_packet ? PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET : 0;
+        alert_flags |= PACKET_ALERT_FLAG_TX;
+        AlertQueueAppend(det_ctx, s, p, tx_id, alert_flags);
+    }
+}
 
 /** \internal
  *  \brief apply default policy
@@ -1634,8 +1683,9 @@ struct DetectFirewallAppTxState {
  *        to look up configurable default policies later
  */
 static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
-        const struct DetectFirewallAppPolicy *policies, Packet *p, const AppProto alproto,
-        const uint8_t direction, const uint8_t progress)
+        DetectEngineThreadCtx *det_ctx, const struct DetectFirewallAppPolicy *policies,
+        const DetectTransaction *tx, Packet *p, const AppProto alproto, const uint8_t direction,
+        const uint8_t progress)
 {
     const struct DetectFirewallPolicy *policy;
     if (direction & STREAM_TOSERVER) {
@@ -1649,18 +1699,54 @@ static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
     }
 
     if (policy->action & ACTION_DROP) {
-        SCLogDebug("dropping packet PKT_DROP_REASON_DEFAULT_APP_POLICY");
-        PacketDrop(p, policy->action, PKT_DROP_REASON_DEFAULT_APP_POLICY);
+        SCLogDebug("dropping packet PKT_DROP_REASON_FW_DEFAULT_APP_POLICY");
+        PacketDrop(p, policy->action, PKT_DROP_REASON_FW_DEFAULT_APP_POLICY);
         if (policy->action_scope == ACTION_SCOPE_FLOW) {
             SCLogDebug("dropping flow");
             p->flow->flags |= FLOW_ACTION_DROP;
+            p->flow->flags |= FLOW_ACTION_BY_FIREWALL;
+        }
+        if (policy->action & ACTION_ALERT) {
+            DetectRunAppendDefaultAppPolicyAlert(
+                    det_ctx, p, true, direction, tx->tx_id, alproto, progress);
         }
     } else if (policy->action & ACTION_ACCEPT) {
-        if (policy->action_scope == ACTION_SCOPE_FLOW) {
-            p->flow->flags |= FLOW_ACTION_ACCEPT;
+        /* should the accept be applied to the packet?
+         * ACTION_SCOPE_FLOW: yes
+         * ACTION_SCOPE_TX: only if last_tx
+         * ACTION_SCOPE_HOOK: only if last_tx and hook is highest available hook
+         */
+        const bool last_hook = progress == tx->tx_progress;
+        bool apply_to_packet = false;
+
+        switch (policy->action_scope) {
+            case ACTION_SCOPE_FLOW:
+                p->flow->flags |= FLOW_ACTION_ACCEPT;
+                apply_to_packet = true;
+                break;
+            case ACTION_SCOPE_TX:
+                tx->tx_data_ptr->flags |= APP_LAYER_TX_ACCEPT;
+                apply_to_packet = tx->is_last;
+                break;
+            case ACTION_SCOPE_HOOK:
+                apply_to_packet = tx->is_last && last_hook;
+                break;
+            default:
+                /* should be unreachable */
+                DEBUG_VALIDATE_BUG_ON(1);
+                break;
         }
-        SCLogDebug(
-                "packet %" PRIu64 " hook %u default policy ACCEPT", PcapPacketCntGet(p), progress);
+        SCLogDebug("packet %" PRIu64 " hook %u default policy ACCEPT, apply_to_packet:%s",
+                PcapPacketCntGet(p), progress, BOOL2STR(apply_to_packet));
+
+        if (policy->action & ACTION_ALERT) {
+            SCLogDebug("policy alert, do the append");
+            DetectRunAppendDefaultAppPolicyAlert(
+                    det_ctx, p, apply_to_packet, direction, tx->tx_id, alproto, progress);
+        } else if (apply_to_packet) {
+            SCLogDebug("default accept: last_tx");
+            DetectRunAppendDefaultAccept(det_ctx, p);
+        }
     } else {
         /* should be unreachable */
         DEBUG_VALIDATE_BUG_ON(1);
@@ -1683,50 +1769,77 @@ static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
 static enum DetectTxFirewallFlowControl DetectFirewallApplyDefaultPolicies(
         DetectEngineThreadCtx *det_ctx, const struct DetectFirewallAppPolicy *policies,
         DetectTransaction *tx, Packet *p, const AppProto alproto, const uint8_t direction,
-        const uint8_t start_hook, const uint8_t end_hook, const bool is_last)
+        const uint8_t start_hook, const uint8_t end_hook)
 {
-    uint8_t actions = 0;
+    DEBUG_VALIDATE_BUG_ON(start_hook > end_hook);
+
+    const bool need_verdict =
+            tx->is_last && (end_hook == tx->tx_end_state || end_hook == tx->tx_progress);
+    SCLogDebug("need_verdict:%s is_last:%s end_hook:%u tx->tx_end_state:%u tx->progress: %u",
+            BOOL2STR(need_verdict), BOOL2STR(tx->is_last), end_hook, tx->tx_end_state,
+            tx->tx_progress);
+
     for (uint8_t hook = start_hook; hook <= end_hook; hook++) {
-        SCLogDebug("%" PRIu64 ": %s default policy for hook %u", PcapPacketCntGet(p),
-                direction & STREAM_TOSERVER ? "toserver" : "toclient", hook);
+        const bool apply_to_packet =
+                tx->is_last && (hook == tx->tx_end_state || hook == tx->tx_progress);
+
+        SCLogDebug("%" PRIu64 ": %s default policy for hook %u, apply_to_packet %s",
+                PcapPacketCntGet(p), direction & STREAM_TOSERVER ? "toserver" : "toclient", hook,
+                BOOL2STR(apply_to_packet));
 
         const struct DetectFirewallPolicy *policy = DetectFirewallApplyDefaultAppPolicy(
-                det_ctx->de_ctx->fw_policies->app, p, alproto, direction, hook);
-        SCLogDebug("fw: hook:%u policy:%02x", hook, policy->action);
-        actions |= policy->action;
+                det_ctx, det_ctx->de_ctx->fw_policies->app, tx, p, alproto, direction, hook);
+        SCLogDebug("fw: hook:%u policy:%02x apply_to_packet:%s", hook, policy->action,
+                BOOL2STR(apply_to_packet));
         if (policy->action & ACTION_DROP) {
             SCLogDebug("fw: action %02x", policy->action);
             return DETECT_TX_FW_FC_BREAK;
-        } else if (policy->action == ACTION_ACCEPT) {
-            SCLogDebug("fw: accept hook %u", hook);
+
+        } else if (policy->action & ACTION_ACCEPT) {
+            SCLogDebug("fw: accept hook %u action %02x", hook, policy->action);
 
             /* accepting flow, so skip rest of the fw rules */
             if (policy->action_scope == ACTION_SCOPE_FLOW) {
-                DetectRunAppendDefaultAccept(det_ctx, p);
+                SCLogDebug("fw: accept flow");
                 return DETECT_TX_FW_FC_SKIP;
+
+                /* accepting flow, so skip rest of the fw rules for this tx */
             } else if (policy->action_scope == ACTION_SCOPE_TX) {
-                tx->tx_data_ptr->flags |= APP_LAYER_TX_ACCEPT;
-                SCLogDebug("ACTION_SCOPE_TX, setting APP_LAYER_TX_ACCEPT");
-                if (is_last) {
-                    DetectRunAppendDefaultAccept(det_ctx, p);
-                    SCLogDebug("DetectRunAppendDefaultAccept for last tx");
-                }
                 return DETECT_TX_FW_FC_SKIP;
+
+            } else if (policy->action_scope == ACTION_SCOPE_HOOK) {
+                /* we're done */
+                if (apply_to_packet) {
+                    return DETECT_TX_FW_FC_SKIP;
+                }
+            } else {
+                DEBUG_VALIDATE_BUG_ON(1);
             }
+        } else {
+            DEBUG_VALIDATE_BUG_ON(1);
         }
     }
-    if ((is_last && (actions & (ACTION_ACCEPT | ACTION_DROP)) == ACTION_ACCEPT)) {
+
+    /* if the tx progress is at end_hook state, it means the rule that called us cannot
+     * match: it's app_progress_hook is not yet available. In this can we need to set
+     * a default accept. This happens if we got only `accept:hook` policies. */
+    if (need_verdict) {
+        SCLogDebug("default accept: last tx and progress at end_hook %u", end_hook);
         DetectRunAppendDefaultAccept(det_ctx, p);
+        /* break as we can't match the calling signature */
+        return DETECT_TX_FW_FC_BREAK;
     }
+
     return DETECT_TX_FW_FC_OK;
 }
 
 /** \internal
  *  \brief run pre-rule inspection firewall policy checks
  *
- *  Check if:
+ *  Check for:
  *  - check if we're in accept:tx mode
  *  - check for missing accept hooks
+ *  -
  *
  * \retval DETECT_TX_FW_FC_OK no action needed
  * \retval DETECT_TX_FW_FC_BREAK rest of rules shouldn't be inspected
@@ -1734,14 +1847,26 @@ static enum DetectTxFirewallFlowControl DetectFirewallApplyDefaultPolicies(
  */
 static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
         DetectEngineThreadCtx *det_ctx, Packet *p, DetectTransaction *tx, const uint8_t direction,
-        const Signature *s, const uint32_t can_idx, struct DetectFirewallAppTxState *fw_state,
-        const bool last_tx)
+        const Signature *s, const uint32_t can_idx, struct DetectFirewallAppTxState *fw_state)
 {
-    if (p->flow->flags & FLOW_ACTION_ACCEPT) {
-        if (fw_state->tx_fw_verdict == false) {
-            fw_state->tx_fw_verdict = true;
-            DetectRunAppendDefaultAccept(det_ctx, p);
+    SCLogDebug("packet %" PRIu64 ": running pre-checks before sid %u", PcapPacketCntGet(p), s->id);
+
+    /* enforce skip app filter. If a prior rule caused a fw_skip_app_filter set, we will skip
+     * each fw rule from now. Non-FW rules will just be inspected. Non-FW need to hit this
+     * path to help put into effect the FLOW_ACTION_ACCEPT/APP_LAYER_TX_ACCEPT and call
+     * the default policy enforcement. */
+    if (fw_state->fw_skip_app_filter) {
+        if ((s->flags & SIG_FLAG_FIREWALL) != 0) {
+            return DETECT_TX_FW_FC_SKIP;
+        } else {
+            return DETECT_TX_FW_FC_OK;
         }
+    }
+    if (p->flow->flags & FLOW_ACTION_ACCEPT) {
+        fw_state->fw_skip_app_filter = true;
+        SCLogDebug("default accept due to flow accept");
+        DetectRunAppendDefaultAccept(det_ctx, p);
+
         if (s->flags & SIG_FLAG_FIREWALL) {
             return DETECT_TX_FW_FC_SKIP;
         }
@@ -1750,13 +1875,11 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
     if (tx->tx_data_ptr->flags & APP_LAYER_TX_ACCEPT) {
         /* append a blank accept:packet action for the APP_LAYER_TX_ACCEPT,
          * if this is the last tx */
-        if (!fw_state->tx_fw_verdict) {
-            const bool accept_tx_applies_to_packet = last_tx;
-            if (accept_tx_applies_to_packet) {
-                SCLogDebug("accept:(tx|hook): should be applied to the packet");
-                DetectRunAppendDefaultAccept(det_ctx, p);
-            }
-            fw_state->tx_fw_verdict = true;
+        fw_state->fw_skip_app_filter = true;
+        const bool accept_tx_applies_to_packet = tx->is_last;
+        if (accept_tx_applies_to_packet) {
+            SCLogDebug("accept:tx: should be applied to the packet");
+            DetectRunAppendDefaultAccept(det_ctx, p);
         }
 
         if (s->flags & SIG_FLAG_FIREWALL) {
@@ -1765,24 +1888,31 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
         }
 
         /* threat detect rules will be inspected */
-    } else if (s->flags & SIG_FLAG_FIREWALL) {
-        fw_state->fw_next_progress_missing = false;
-        fw_state->fw_last_for_progress = false;
+        return DETECT_TX_FW_FC_OK;
+    }
 
-        /* if our first rule is beyond the starting state, we need to check if
-         * there are rules missing for states in between. */
-        // TODO detect_progress_orig already is +1?
-        if (s->app_progress_hook > tx->detect_progress_orig && can_idx == 0) {
-            SCLogDebug("missing fw rules at list start: sid %u, progress %u (%u:%u)", s->id,
-                    s->app_progress_hook, tx->detect_progress, tx->detect_progress_orig);
-            /* if this rule was after the state we expected meaning that there are
-             * no rules for that state. Invoke the default policies. */
-            enum DetectTxFirewallFlowControl r = DetectFirewallApplyDefaultPolicies(det_ctx,
-                    det_ctx->de_ctx->fw_policies->app, tx, p, s->alproto, direction,
-                    tx->detect_progress_orig, s->app_progress_hook - 1, last_tx);
-            fw_state->tx_fw_verdict = true;
-            return r;
+    /* handle missing rules case */
+    if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
+        SCLogDebug("SIG_FLAG_FW_HOOK_LTE");
+        return DETECT_TX_FW_FC_OK; // TODO check for other cases
+    }
+    /* if our first rule is beyond the starting state, we need to check if
+     * there are rules missing for states in between. */
+    if (s->app_progress_hook > tx->detect_progress_orig && can_idx == 0) {
+        SCLogDebug("missing fw rules at list start: sid %u, progress %u (%u:%u)", s->id,
+                s->app_progress_hook, tx->detect_progress, tx->detect_progress_orig);
+        /* if this rule was after the state we expected meaning that there are
+         * no rules for that state. Invoke the default policies. */
+        enum DetectTxFirewallFlowControl r = DetectFirewallApplyDefaultPolicies(det_ctx,
+                det_ctx->de_ctx->fw_policies->app, tx, p, s->alproto, direction,
+                tx->detect_progress_orig, s->app_progress_hook - 1);
+        if (r != DETECT_TX_FW_FC_OK) {
+            /* both SKIP and BREAK mean: no more fw rules to inspect.
+             * SKIP applies to just this TX.
+             * DROP applies to everything. */
+            fw_state->fw_skip_app_filter = true;
         }
+        return r;
     }
     return DETECT_TX_FW_FC_OK;
 }
@@ -1791,34 +1921,22 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
  * \internal
  * \brief Check and update firewall rules state.
  *
- * \param skip_fw_hook bool to indicate firewall rules skips
- * For state `skip_before_progress` should be skipped.
- *
- * \param skip_before_progress progress value to skip rules before.
- * Only used if `skip_fw_hook` is set.
- *
- * \param fw_last_for_progress[out] set to true if this is the last firewall rule for a progress
- * value
- *
- * \param fw_next_progress_missing[out] set to true if the next fw rule does not target the next
- * progress value, or there is no fw rule for that value.
+ * \param fw_state pointer to flow control state
  *
  * \retval DETECT_TX_FW_FC_OK no action needed
  * \retval DETECT_TX_FW_FC_BREAK rest of rules shouldn't inspected
  * \retval DETECT_TX_FW_FC_SKIP skip this rule
  */
-static enum DetectTxFirewallFlowControl DetectRunTxCheckFirewallPolicy(
-        DetectEngineThreadCtx *det_ctx, Packet *p, Flow *f, DetectTransaction *tx,
-        const Signature *s, const uint32_t can_idx, const uint32_t can_size,
-        struct DetectFirewallAppTxState *fw_state)
+static enum DetectTxFirewallFlowControl DetectRunTxCheckRuleState(DetectEngineThreadCtx *det_ctx,
+        Packet *p, Flow *f, DetectTransaction *tx, const Signature *s, const uint32_t can_idx,
+        const uint32_t can_size, struct DetectFirewallAppTxState *fw_state)
 {
     if (s->flags & SIG_FLAG_FIREWALL) {
         /* check if the next sig is on the same progress hook. If not, we need to apply our
          * default policy in case the current sig doesn't apply one. If the next sig has a
          * progress beyond our progress + 1, it means the next progress has no rules and needs
          * the default policy applied. But only after we evaluate the current rule first, as
-         * that may override it.
-         * TODO should we do this after dedup below? */
+         * that may override it. */
 
         if (can_idx + 1 < can_size) {
             const Signature *next_s = det_ctx->tx_candidates[can_idx + 1].s;
@@ -1872,24 +1990,25 @@ static enum DetectTxFirewallFlowControl DetectRunTxCheckFirewallPolicy(
 
 // TODO move into det_ctx?
 thread_local Signature default_accept;
-static inline void DetectRunAppendDefaultAccept(DetectEngineThreadCtx *det_ctx, Packet *p)
+static void DetectRunAppendDefaultAccept(DetectEngineThreadCtx *det_ctx, Packet *p)
 {
-    if (EngineModeIsFirewall()) {
-        memset(&default_accept, 0, sizeof(default_accept));
-        default_accept.action = ACTION_ACCEPT;
-        default_accept.action_scope = ACTION_SCOPE_PACKET;
-        default_accept.iid = UINT32_MAX;
-        default_accept.type = SIG_TYPE_PKT;
-        default_accept.flags = SIG_FLAG_FIREWALL;
-        AlertQueueAppend(det_ctx, &default_accept, p, 0, PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET);
-    }
+    DEBUG_VALIDATE_BUG_ON(!EngineModeIsFirewall());
+    SCLogDebug("packet %" PRIu64 ": appending default firewall accept", PcapPacketCntGet(p));
+    memset(&default_accept, 0, sizeof(default_accept));
+    default_accept.action = ACTION_ACCEPT;
+    default_accept.action_scope = ACTION_SCOPE_PACKET;
+    default_accept.iid = UINT32_MAX;
+    default_accept.type = SIG_TYPE_PKT;
+    default_accept.flags = SIG_FLAG_FIREWALL;
+    default_accept.detect_table =
+            DETECT_TABLE_APP_FILTER; // TODO review, hope this makes it last in sorting
+    AlertQueueAppend(det_ctx, &default_accept, p, 0, PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET);
 }
 
 /** \internal
  * \brief see if the accept rule needs to apply to the packet
  */
-static inline bool ApplyAcceptToPacket(
-        const bool last_tx, const DetectTransaction *tx, const Signature *s)
+static inline bool ApplyAcceptToPacket(const DetectTransaction *tx, const Signature *s)
 {
     if ((s->flags & SIG_FLAG_FIREWALL) == 0) {
         return false;
@@ -1902,7 +2021,7 @@ static inline bool ApplyAcceptToPacket(
      * - packet will only be accepted if this is set on the last tx
      */
     if (s->action_scope == ACTION_SCOPE_TX) {
-        if (last_tx) {
+        if (tx->is_last) {
             return true;
         }
     }
@@ -1910,7 +2029,7 @@ static inline bool ApplyAcceptToPacket(
      * - packet will only be accepted if this is set on the last tx
      * - the hook accepted should be the last progress available. */
     if (s->action_scope == ACTION_SCOPE_HOOK) {
-        if (last_tx && (s->app_progress_hook == tx->tx_progress)) {
+        if (tx->is_last && (s->app_progress_hook == tx->tx_progress)) {
             return true;
         }
     }
@@ -1918,13 +2037,15 @@ static inline bool ApplyAcceptToPacket(
 }
 
 /** \internal
- * \retval bool true: break_out_of_app_filter, false: don't break out */
-static bool ApplyAccept(DetectEngineThreadCtx *det_ctx, Packet *p, const uint8_t direction,
-        const Signature *s, DetectTransaction *tx, const int tx_end_state, const bool is_last,
+ * \brief apply an accept, but do check policies when needed
+ *
+ * Updates flow control where needed.
+ *
+ * */
+static void DetectRunTxFirewallApplyAccept(DetectEngineThreadCtx *det_ctx, Packet *p,
+        const uint8_t direction, const Signature *s, DetectTransaction *tx,
         struct DetectFirewallAppTxState *fw_state)
 {
-    fw_state->tx_fw_verdict = true;
-
     const enum ActionScope as = s->action_scope;
     /* accept:hook: jump to first rule of next state.
      * Implemented as skip until the first rule of next state. */
@@ -1933,40 +2054,37 @@ static bool ApplyAccept(DetectEngineThreadCtx *det_ctx, Packet *p, const uint8_t
         fw_state->skip_before_progress = s->app_progress_hook;
 
         SCLogDebug("fw match sid:%u hook:%u", s->id, s->app_progress_hook);
-        SCLogDebug("fw fw_skip_app_filter:%s tx_fw_verdict:%s skip_fw_hook:%s "
+        SCLogDebug("fw fw_skip_app_filter:%s skip_fw_hook:%s "
                    "skip_before_progress:%u fw_last_for_progress:%s fw_next_progress_missing:%s",
-                BOOL2STR(fw_state->fw_skip_app_filter), BOOL2STR(fw_state->tx_fw_verdict),
-                BOOL2STR(fw_state->skip_fw_hook), fw_state->skip_before_progress,
-                BOOL2STR(fw_state->fw_last_for_progress),
+                BOOL2STR(fw_state->fw_skip_app_filter), BOOL2STR(fw_state->skip_fw_hook),
+                fw_state->skip_before_progress, BOOL2STR(fw_state->fw_last_for_progress),
                 BOOL2STR(fw_state->fw_next_progress_missing));
         /* if there is no fw rule for the next progress value,
          * we invoke the defaul policies for the remaining available hooks. */
         if (fw_state->fw_next_progress_missing) {
-            const uint8_t last_hook =
-                    fw_state->last_fw_rule
-                            ? (uint8_t)tx_end_state
-                            : MIN((uint8_t)tx_end_state, s->app_progress_hook + (uint8_t)1);
-            enum DetectTxFirewallFlowControl r = DetectFirewallApplyDefaultPolicies(det_ctx,
-                    det_ctx->de_ctx->fw_policies->app, tx, p, s->alproto, direction,
-                    s->app_progress_hook + 1, last_hook, is_last);
-            if (r == DETECT_TX_FW_FC_BREAK)
-                return true;
+            const uint8_t last_hook = fw_state->last_fw_rule
+                                              ? tx->tx_end_state
+                                              : MIN(tx->tx_end_state, s->app_progress_hook + 1);
+            enum DetectTxFirewallFlowControl r =
+                    DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies->app,
+                            tx, p, s->alproto, direction, s->app_progress_hook + 1, last_hook);
+            if (r == DETECT_TX_FW_FC_BREAK) {
+                fw_state->fw_skip_app_filter = true;
+                return;
+            }
         }
-        return false;
     } else if (as == ACTION_SCOPE_TX) {
         tx->tx_data_ptr->flags |= APP_LAYER_TX_ACCEPT;
         fw_state->skip_fw_hook = true;
-        fw_state->skip_before_progress = (uint8_t)tx_end_state + 1; // skip all hooks
+        fw_state->skip_before_progress = tx->tx_end_state + 1; // skip all hooks
         SCLogDebug("accept:tx applied, skip_fw_hook, skip_before_progress %u",
                 fw_state->skip_before_progress);
-        return false;
     } else if (as == ACTION_SCOPE_PACKET) {
-        return true;
+        fw_state->fw_skip_app_filter = true;
     } else if (as == ACTION_SCOPE_FLOW) {
-        SCLogDebug("ACTION_ACCEPT with ACTION_SCOPE_FLOW");
-        return true;
+        SCLogDebug("sid %u: ACTION_ACCEPT with ACTION_SCOPE_FLOW", s->id);
+        fw_state->fw_skip_app_filter = true;
     }
-    return false;
 }
 
 /**
@@ -1979,8 +2097,7 @@ static bool ApplyAccept(DetectEngineThreadCtx *det_ctx, Packet *p, const uint8_t
  * \retval 0 ok, continue as normal. No policies applied.
  */
 static int DetectTxFirewallNoRulesApplyPolicies(DetectEngineThreadCtx *det_ctx, Packet *p, Flow *f,
-        DetectTransaction *tx, const AppProto alproto, const uint8_t flow_flags, const int rule_cnt,
-        const bool last_tx)
+        DetectTransaction *tx, const AppProto alproto, const uint8_t flow_flags, const int rule_cnt)
 {
     /* if there are no rules / rule candidates, handling invoking the default
      * policy. */
@@ -1988,12 +2105,14 @@ static int DetectTxFirewallNoRulesApplyPolicies(DetectEngineThreadCtx *det_ctx, 
         /* if there are no rules, make sure to handle accept:flow and accept:tx */
         if (rule_cnt == 0) {
             if (f->flags & FLOW_ACTION_ACCEPT) {
+                SCLogDebug("default accept:flow: no rules");
                 DetectRunAppendDefaultAccept(det_ctx, p);
                 return 1;
             }
             if (tx->tx_data_ptr->flags & APP_LAYER_TX_ACCEPT) {
                 /* current tx is the last we have, append a blank accept:packet */
-                if (last_tx) {
+                if (tx->is_last) {
+                    SCLogDebug("default accept:tx: no rules");
                     DetectRunAppendDefaultAccept(det_ctx, p);
                     return 1;
                 }
@@ -2012,7 +2131,7 @@ static int DetectTxFirewallNoRulesApplyPolicies(DetectEngineThreadCtx *det_ctx, 
             enum DetectTxFirewallFlowControl r =
                     DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies->app,
                             tx, p, alproto, flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT),
-                            tx->detect_progress_orig, (const uint8_t)tx->tx_progress, last_tx);
+                            tx->detect_progress_orig, tx->tx_progress);
             SCLogDebug("r %u", r);
             if (r == DETECT_TX_FW_FC_BREAK)
                 return 1;
@@ -2024,6 +2143,137 @@ static int DetectTxFirewallNoRulesApplyPolicies(DetectEngineThreadCtx *det_ctx, 
         }
     }
     return 0;
+}
+
+/** \internal
+ *  \brief handle a full rule match for a firewall rule
+ *
+ *  For a drop/reject rule, excute action immediately.
+ *  For an accept rule, add an alert even to the queue. This will
+ *  allow TD rules to override the accept.
+ */
+static void DetectRunTxFirewallRuleFullMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
+        DetectTransaction *tx, struct DetectFirewallAppTxState *fw_state, Flow *f, Packet *p,
+        const uint8_t flow_flags)
+{
+    uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_TX);
+    if (s->action & ACTION_ACCEPT) {
+        /* see if we need to apply tx/hook accept to the packet. This can be needed
+         * when we've completed the inspection so far for an incomplete tx, and an
+         * accept:tx or accept:hook is the last match.*/
+        const bool fw_accept_to_packet = ApplyAcceptToPacket(tx, s);
+        if (fw_accept_to_packet) {
+            SCLogDebug("packet %" PRIu64 ": apply accept to packet", PcapPacketCntGet(p));
+            SCLogDebug("accept:(tx|hook): should be applied to the packet");
+            alert_flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET;
+        }
+        SCLogDebug("append alert");
+
+        /* add alert now, as ApplyAccept may also trigger
+         * policy matches that could add alerts. */
+        AlertQueueAppend(det_ctx, s, p, tx->tx_id, alert_flags);
+
+        DetectRunTxFirewallApplyAccept(det_ctx, p, flow_flags, s, tx, fw_state);
+    } else if (s->action & ACTION_DROP) {
+        SCLogDebug("drop packet because of rule with drop action");
+        PacketDrop(p, s->action, PKT_DROP_REASON_FW_RULES);
+        if (s->action_scope == ACTION_SCOPE_FLOW) {
+            SCLogDebug("drop flow because of rule with drop action");
+            f->flags |= FLOW_ACTION_DROP;
+            f->flags |= FLOW_ACTION_BY_FIREWALL;
+        }
+        SCLogDebug("append alert");
+        AlertQueueAppend(det_ctx, s, p, tx->tx_id, alert_flags);
+    } else {
+        SCLogDebug("append alert");
+        AlertQueueAppend(det_ctx, s, p, tx->tx_id, alert_flags);
+    }
+}
+
+/** \internal
+ * \brief handle a partial match for firewall rules
+ *
+ * Currently only used for LTE mode. Regardless of the final action,
+ * the partial match acts as a `accept:hook`.
+ *
+ * A default accept is appended. TD has a chance to override this accept.
+ *
+ * \retval 1 accept partial, caller must break loop
+ * \retval 0 ok, caller must continue as normal
+ */
+static int DetectRunTxFirewallRulePartialMatch(
+        DetectEngineThreadCtx *det_ctx, const Signature *s, const DetectTransaction *tx, Packet *p)
+{
+    if ((s->flags & SIG_FLAG_FIREWALL) && (s->action & ACTION_ACCEPT)) {
+        /* partial match always uses ACTION_SCOPE_HOOK. Final action only on the full
+         * match */
+        if (tx->is_last) {
+            SCLogDebug("need to apply accept to packet");
+            DetectRunAppendDefaultAccept(det_ctx, p);
+        }
+        if (s->action_scope == ACTION_SCOPE_FLOW) {
+            SCLogDebug("only applying accept:flow on full match, downgrading to "
+                       "accept:hook");
+        }
+        return 1;
+    }
+    return 0;
+}
+
+/** \internal
+ * \brief handle the no-match case for a firewall rule
+ *
+ * If the rule did not match we need to see if we need invoke the default
+ * policy for this hook. If that is the case, we handle a drop by telling the
+ * caller about it. Flow control for various accept options is handled by the
+ * next rule.
+ *
+ * \retval 1 dropped by policy, caller must return
+ * \retval 0 ok, caller must continue as normal
+ */
+static int DetectRunTxFirewallRuleNoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
+        DetectTransaction *tx, struct DetectFirewallAppTxState *fw_state, Packet *p,
+        const uint8_t flow_flags)
+{
+    if (fw_state->fw_last_for_progress && (s->flags & SIG_FLAG_FIREWALL)) {
+        SCLogDebug("%" PRIu64 ": %s default policy for progress %u", PcapPacketCntGet(p),
+                flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", s->app_progress_hook);
+        /* if this rule was the last for our progress state, and it didn't match,
+         * we have to invoke the default policy. We only check the current rule hook.
+         * DROP is immediate, flow control for various accept options is handled by
+         * the DetectRunTxPreCheckFirewallPolicy function for the next rule. */
+        const struct DetectFirewallPolicy *policy =
+                DetectFirewallApplyDefaultAppPolicy(det_ctx, det_ctx->de_ctx->fw_policies->app, tx,
+                        p, s->alproto, flow_flags, s->app_progress_hook);
+        SCLogDebug("fw_last_for_progress policy %02x", policy->action);
+        if (policy->action & ACTION_DROP) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/** \internal
+ *  \brief handle full match on rule when state didn't progress yet
+ *
+ *  For a full rule match on a certain hook, we need to continue to enforce the
+ *  match as long as the tx progress doesn't move beyond that hook.
+ */
+static void DetectRunTxFirewallRuleStatefulReApplyMatch(DetectEngineThreadCtx *det_ctx,
+        const Signature *s, DetectTransaction *tx, struct DetectFirewallAppTxState *fw_state,
+        Packet *p, const uint8_t flow_flags)
+{
+    /* if we're still in the same progress state as an earlier full
+     * match, we need to apply the same accept */
+    if ((s->flags & SIG_FLAG_FIREWALL) && (s->action & ACTION_ACCEPT) &&
+            s->app_progress_hook == tx->tx_progress) {
+        const bool fw_accept_to_packet = ApplyAcceptToPacket(tx, s);
+        DetectRunTxFirewallApplyAccept(det_ctx, p, flow_flags, s, tx, fw_state);
+        if (fw_accept_to_packet) {
+            SCLogDebug("packet %" PRIu64 ": apply accept to packet", PcapPacketCntGet(p));
+            DetectRunAppendDefaultAccept(det_ctx, p);
+        }
+    }
 }
 
 static void DetectRunTx(ThreadVars *tv,
@@ -2046,7 +2296,6 @@ static void DetectRunTx(ThreadVars *tv,
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
     AppLayerGetTxIterState state = { 0 };
 
-    uint32_t fw_verdicted = 0;
     uint32_t tx_inspected = 0;
     const bool have_fw_rules = EngineModeIsFirewall();
 
@@ -2069,9 +2318,9 @@ static void DetectRunTx(ThreadVars *tv,
             tx_id_min++; // next (if any) run look for +1
             goto next;
         }
+        tx.is_last = (total_txs == tx.tx_id + 1);
         tx_id_min = tx.tx_id + 1; // next look for cur + 1
         tx_inspected++;
-        const bool last_tx = (total_txs == tx.tx_id + 1);
 
         SCLogDebug("%p/%" PRIu64 " txd flags %02x", tx.tx_ptr, tx.tx_id, tx.tx_data_ptr->flags);
 
@@ -2183,7 +2432,6 @@ static void DetectRunTx(ThreadVars *tv,
         struct DetectFirewallAppTxState fw_state = {
             false,
             false,
-            false,
             0,
             false,
             false,
@@ -2200,14 +2448,12 @@ static void DetectRunTx(ThreadVars *tv,
             /* if there are no firewall rules to consider, handle invoking the default
              * policies. */
             const int r = DetectTxFirewallNoRulesApplyPolicies(
-                    det_ctx, p, f, &tx, alproto, flow_flags, array_idx, last_tx);
-            if (r != 0) {
-                fw_verdicted++;
-                if (r == 1) {
-                    SCLogDebug("done");
-                    return;
-                } else if (r == 2)
-                    goto next_tx_fw; /* next tx */
+                    det_ctx, p, f, &tx, alproto, flow_flags, array_idx);
+            if (r == 1) {
+                SCLogDebug("done");
+                return;
+            } else if (r == 2) {
+                goto next_tx_fw; /* next tx, need to clean up buffers */
             }
         }
 
@@ -2222,24 +2468,23 @@ static void DetectRunTx(ThreadVars *tv,
                     tx.detect_progress, tx.detect_progress_orig, s->app_progress_hook);
 
             if (have_fw_rules) {
-                if ((s->flags & SIG_FLAG_FIREWALL) != 0 && fw_state.fw_skip_app_filter) {
-                    continue;
-                }
-                const enum DetectTxFirewallFlowControl fw_r = DetectRunTxPreCheckFirewallPolicy(
-                        det_ctx, p, &tx, flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT), s, i,
-                        &fw_state, last_tx);
-                SCLogDebug("fw fw_skip_app_filter:%s tx_fw_verdict:%s skip_fw_hook:%s "
+                const enum DetectTxFirewallFlowControl fw_r =
+                        DetectRunTxPreCheckFirewallPolicy(det_ctx, p, &tx,
+                                flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT), s, i, &fw_state);
+                SCLogDebug("fw fw_skip_app_filter:%s skip_fw_hook:%s "
                            "skip_before_progress:%u fw_last_for_progress:%s "
                            "fw_next_progress_missing:%s",
-                        BOOL2STR(fw_state.fw_skip_app_filter), BOOL2STR(fw_state.tx_fw_verdict),
-                        BOOL2STR(fw_state.skip_fw_hook), fw_state.skip_before_progress,
-                        BOOL2STR(fw_state.fw_last_for_progress),
+                        BOOL2STR(fw_state.fw_skip_app_filter), BOOL2STR(fw_state.skip_fw_hook),
+                        fw_state.skip_before_progress, BOOL2STR(fw_state.fw_last_for_progress),
                         BOOL2STR(fw_state.fw_next_progress_missing));
                 if (fw_r == DETECT_TX_FW_FC_SKIP) {
                     continue;
                 } else if (fw_r == DETECT_TX_FW_FC_BREAK) {
                     break;
                 }
+
+                fw_state.fw_last_for_progress = false;
+                fw_state.fw_next_progress_missing = false; // reset
             }
 
             /* deduplicate: rules_array is sorted, but not deduplicated:
@@ -2265,13 +2510,9 @@ static void DetectRunTx(ThreadVars *tv,
 
                     /* if we're still in the same progress state as an earlier full
                      * match, we need to apply the same accept */
-                    if (have_fw_rules && (s->flags & SIG_FLAG_FIREWALL) &&
-                            (s->action & ACTION_ACCEPT) && s->app_progress_hook == tx.tx_progress) {
-                        const bool fw_accept_to_packet = ApplyAcceptToPacket(last_tx, &tx, s);
-                        fw_state.fw_skip_app_filter = ApplyAccept(
-                                det_ctx, p, flow_flags, s, &tx, tx_end_state, last_tx, &fw_state);
-                        if (fw_accept_to_packet)
-                            DetectRunAppendDefaultAccept(det_ctx, p);
+                    if (have_fw_rules) {
+                        DetectRunTxFirewallRuleStatefulReApplyMatch(
+                                det_ctx, s, &tx, &fw_state, p, flow_flags);
                     }
                     continue;
                 }
@@ -2290,14 +2531,14 @@ static void DetectRunTx(ThreadVars *tv,
             }
 
             if (have_fw_rules) {
-                const enum DetectTxFirewallFlowControl fw_r = DetectRunTxCheckFirewallPolicy(
-                        det_ctx, p, f, &tx, s, i, array_idx, &fw_state);
-                SCLogDebug("fw fw_skip_app_filter:%s tx_fw_verdict:%s skip_fw_hook:%s "
+                /* check if we should run this rule and update the firewall flow state */
+                const enum DetectTxFirewallFlowControl fw_r =
+                        DetectRunTxCheckRuleState(det_ctx, p, f, &tx, s, i, array_idx, &fw_state);
+                SCLogDebug("fw fw_skip_app_filter:%s skip_fw_hook:%s "
                            "skip_before_progress:%u fw_last_for_progress:%s "
                            "fw_next_progress_missing:%s",
-                        BOOL2STR(fw_state.fw_skip_app_filter), BOOL2STR(fw_state.tx_fw_verdict),
-                        BOOL2STR(fw_state.skip_fw_hook), fw_state.skip_before_progress,
-                        BOOL2STR(fw_state.fw_last_for_progress),
+                        BOOL2STR(fw_state.fw_skip_app_filter), BOOL2STR(fw_state.skip_fw_hook),
+                        fw_state.skip_before_progress, BOOL2STR(fw_state.fw_last_for_progress),
                         BOOL2STR(fw_state.fw_next_progress_missing));
                 if (fw_r == DETECT_TX_FW_FC_SKIP)
                     continue;
@@ -2309,67 +2550,30 @@ static void DetectRunTx(ThreadVars *tv,
             RULE_PROFILING_START(p);
             const int r = DetectRunTxInspectRule(tv, de_ctx, det_ctx, p, f, flow_flags,
                     alstate, &tx, s, inspect_flags, can, scratch);
+            SCLogDebug("s %u r %d", s->id, r);
             if (r == 1) {
                 /* match */
                 DetectRunPostMatch(tv, det_ctx, p, s);
 
-                uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_TX);
                 SCLogDebug(
                         "%p/%" PRIu64 " sig %u (%u) matched", tx.tx_ptr, tx.tx_id, s->id, s->iid);
 
-                if (s->flags & SIG_FLAG_FIREWALL) {
-                    if (s->action & ACTION_ACCEPT) {
-                        fw_state.fw_skip_app_filter = ApplyAccept(
-                                det_ctx, p, flow_flags, s, &tx, tx_end_state, last_tx, &fw_state);
-                        fw_state.fw_next_progress_missing = false; // reset
-                        /* see if we need to apply tx/hook accept to the packet. This can be needed
-                         * when we've completed the inspection so far for an incomplete tx, and an
-                         * accept:tx or accept:hook is the last match.*/
-                        const bool fw_accept_to_packet = ApplyAcceptToPacket(last_tx, &tx, s);
-                        if (fw_accept_to_packet) {
-                            SCLogDebug("accept:(tx|hook): should be applied to the packet");
-                            alert_flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET;
-                        }
-                    } else if (s->action & ACTION_DROP) {
-                        SCLogDebug("drop packet because of rule with drop action");
-                        PacketDrop(p, s->action, PKT_DROP_REASON_RULES);
-                        if (s->action_scope == ACTION_SCOPE_FLOW) {
-                            SCLogDebug("drop flow because of rule with drop action");
-                            f->flags |= FLOW_ACTION_DROP;
-                        }
-                    }
+                if ((s->flags & SIG_FLAG_FIREWALL) == 0) {
+                    AlertQueueAppend(det_ctx, s, p, tx.tx_id,
+                            (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_TX));
+                } else {
+                    DetectRunTxFirewallRuleFullMatch(det_ctx, s, &tx, &fw_state, f, p, flow_flags);
                 }
-                AlertQueueAppend(det_ctx, s, p, tx.tx_id, alert_flags);
-
-            } else if (fw_state.fw_last_for_progress && (s->flags & SIG_FLAG_FIREWALL)) {
-                SCLogDebug("%" PRIu64 ": %s default policy for progress %u", PcapPacketCntGet(p),
-                        flow_flags & STREAM_TOSERVER ? "toserver" : "toclient",
-                        s->app_progress_hook);
-                /* if this rule was the last for our progress state, and it didn't match,
-                 * we have to invoke the default policy. We only check the current rule hook. */
-                const struct DetectFirewallPolicy *policy =
-                        DetectFirewallApplyDefaultAppPolicy(det_ctx->de_ctx->fw_policies->app, p,
-                                s->alproto, flow_flags, s->app_progress_hook);
-                SCLogDebug("fw_last_for_progress policy %02x", policy->action);
-                if (policy->action & ACTION_DROP) {
-                    fw_state.fw_skip_app_filter = true;
-                    SCLogDebug("packet %02x", p->action);
-                } else if (policy->action == ACTION_ACCEPT) {
-                    SCLogDebug("accept hook(s)? current hook %u (tx.detect_progress %u) max %u",
-                            s->app_progress_hook, tx.detect_progress, tx.tx_progress);
-
-                    /* accepting flow, so skip rest of the fw rules */
-                    if (policy->action_scope == ACTION_SCOPE_FLOW) {
-                        fw_state.fw_skip_app_filter = true;
-                    }
-
-                    /* if this is also the last fw rule we'll inspect we have to issue a default
-                     * accept to the packet */
-                    if (s->app_progress_hook == tx.tx_progress) {
-                        DetectRunAppendDefaultAccept(det_ctx, p);
-                    }
+            } else if (r == 0) {
+                SCLogDebug("sid %u partial match", s->id);
+                if (DetectRunTxFirewallRulePartialMatch(det_ctx, s, &tx, p) == 1) {
+                    break;
                 }
-                fw_state.tx_fw_verdict = true;
+            } else {
+                if (DetectRunTxFirewallRuleNoMatch(det_ctx, s, &tx, &fw_state, p, flow_flags) ==
+                        1) {
+                    return;
+                }
             }
             DetectVarProcessList(det_ctx, p->flow, p);
             RULE_PROFILING_END(det_ctx, s, r, p);
@@ -2406,8 +2610,6 @@ static void DetectRunTx(ThreadVars *tv,
                 PMQ_RESET(&det_ctx->pmq);
             }
         }
-        if (fw_state.tx_fw_verdict)
-            fw_verdicted++;
 
         det_ctx->tx_id = 0;
         det_ctx->tx_id_set = false;
@@ -2445,10 +2647,10 @@ static void DetectRunTx(ThreadVars *tv,
             break;
     }
 
-    SCLogDebug("packet %" PRIu64 ": tx_inspected %u fw_verdicted %u", PcapPacketCntGet(p),
-            tx_inspected, fw_verdicted);
+    SCLogDebug("packet %" PRIu64 ": tx_inspected %u", PcapPacketCntGet(p), tx_inspected);
     /* if all tables have been bypassed, we accept:packet */
-    if (tx_inspected == 0 && fw_verdicted == 0 && have_fw_rules) {
+    if (tx_inspected == 0 && have_fw_rules) {
+        SCLogDebug("default accept: no app inspect performed");
         DetectRunAppendDefaultAccept(det_ctx, p);
     }
 }
@@ -2762,7 +2964,7 @@ void DisableDetectFlowFileFlags(Flow *f)
     DetectPostInspectFileFlagsUpdate(f, NULL /* no sgh */, STREAM_TOCLIENT);
 }
 
-#ifdef UNITTESTS
+#if defined(UNITTESTS) || defined(FUZZ)
 /**
  *  \brief wrapper for old tests
  */

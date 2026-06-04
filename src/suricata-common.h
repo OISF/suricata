@@ -52,6 +52,9 @@ extern "C"
     void ScanBuildMarkSanitized(const void *);
 #endif
 
+#if CPPCHECK == 1
+#define __has_feature(x) 0
+#endif
 #if defined(__has_feature)
 #if __has_feature(address_sanitizer)
 #define SC_ADDRESS_SANITIZER 1
@@ -483,7 +486,6 @@ typedef enum LoggerId {
     LOGGER_UNDEFINED,
 
     /* TX loggers first for low logger IDs */
-    LOGGER_HTTP,
     LOGGER_TLS_STORE,
     LOGGER_TLS_STORE_CLIENT,
     LOGGER_TLS,

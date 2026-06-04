@@ -40,7 +40,8 @@ int PacketAlertThreshold(const DetectEngineCtx *, DetectEngineThreadCtx *,
         const DetectThresholdData *, Packet *, const Signature *, PacketAlert *);
 
 void ThresholdListFree(void *ptr);
-void ThresholdCacheThreadFree(void);
+
+int ThresholdCacheThreadInit(DetectEngineThreadCtx *);
 
 void FlowThresholdVarFree(void *ptr);
 

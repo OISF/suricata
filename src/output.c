@@ -49,10 +49,8 @@
 #include "output-json-anomaly.h"
 #include "output-json-flow.h"
 #include "output-json-netflow.h"
-#include "log-cf-common.h"
 #include "output-json-drop.h"
 #include "output-eve-stream.h"
-#include "log-httplog.h"
 #include "output-json-http.h"
 #include "output-json-dns.h"
 #include "output-json-mdns.h"
@@ -83,6 +81,7 @@
 #include "app-layer-parser.h"
 #include "output-filestore.h"
 #include "output-json-arp.h"
+#include "output-json-llmnr.h"
 
 typedef struct RootLogger_ {
     OutputLogFunc LogFunc;
@@ -948,6 +947,7 @@ void OutputRegisterRootLoggers(void)
     // ALPROTO_DCERPC special: uses state
     RegisterSimpleJsonApplayerLogger(ALPROTO_DNS, (EveJsonSimpleTxLogFunc)AlertJsonDns, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_MDNS, (EveJsonSimpleTxLogFunc)AlertJsonMdns, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_LLMNR, (EveJsonSimpleTxLogFunc)AlertJsonLLMNR, NULL);
     // either need a cast here or in rust for ModbusTransaction, done here
     RegisterSimpleJsonApplayerLogger(ALPROTO_MODBUS, (EveJsonSimpleTxLogFunc)SCModbusToJson, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_ENIP, (EveJsonSimpleTxLogFunc)SCEnipLoggerLog, NULL);
@@ -1070,9 +1070,6 @@ static TxLogger JsonLoggerFromDir(uint8_t dir)
  */
 void OutputRegisterLoggers(void)
 {
-    /* custom format log*/
-    LogCustomFormatRegister();
-
     LuaLogRegister();
     /* fast log */
     AlertFastLogRegister();
@@ -1087,11 +1084,10 @@ void OutputRegisterLoggers(void)
     /* email logs */
     JsonSmtpLogRegister();
     /* http log */
-    LogHttpLogRegister();
     JsonHttpLogRegister();
     OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", "LogHttp2Log", "eve-log.http2",
-            OutputJsonLogInitSub, ALPROTO_HTTP2, JsonGenericDirFlowLogger, HTTP2StateClosed,
-            HTTP2StateClosed, JsonLogThreadInit, JsonLogThreadDeinit);
+            OutputJsonLogInitSub, ALPROTO_HTTP2, JsonGenericDirFlowLogger, HTTP2ProgClosed,
+            HTTP2ProgClosed, JsonLogThreadInit, JsonLogThreadDeinit);
     /* tls log */
     JsonTlsLogRegister();
     LogTlsStoreRegister();
@@ -1225,6 +1221,8 @@ void OutputRegisterLoggers(void)
     }
     /* ARP JSON logger */
     JsonArpLogRegister();
+    /* LLMNR JSON logger */
+    JsonLLMNRLogRegister();
 
     for (size_t i = 0; i < preregistered_loggers_nb; i++) {
         OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", preregistered_loggers[i].logname,

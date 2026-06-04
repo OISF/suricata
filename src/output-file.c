@@ -40,7 +40,7 @@ bool g_file_logger_enabled = false;
 
 /* logger instance, a module + a output ctx,
  * it's perfectly valid that have multiple instances of the same
- * log module (e.g. http.log) with different output ctx'. */
+ * log module (e.g. fast.log) with different output ctx'. */
 typedef struct OutputFileLogger_ {
     SCFileLogger LogFunc;
     void *initdata;

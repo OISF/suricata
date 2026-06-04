@@ -35,8 +35,7 @@ microseconds since `1970-01-01 00:00:00` UTC, returning 4 numbers::
 ^^^^^^^^^^^^^^^^^^^^^
 
 Get the timestamp of the first packet from the flow, as a string in the format:
-`11/24/2009-18:57:25.179869`. This is the format used by `fast.log`, `http.log`
-and other legacy outputs.
+`11/24/2009-18:57:25.179869`. This is the format used by `fast.log`.
 
 ::
 

@@ -1,3 +1,4 @@
+
 Upgrading
 =========
 
@@ -44,6 +45,7 @@ Major Changes
   be ``bypass``, ``track-only`` or ``full``.
 - Default value for ``stream.reassembly.depth`` when the value is not specified in
   suricata.yaml is now 1 MiB instead of 0/unlimited.
+- LLMNR protocol parser, logger and sticky buffers are implemented.
 
 Logging Changes
 ~~~~~~~~~~~~~~~
@@ -60,6 +62,20 @@ Logging Changes
 - App-layer stats protocols names replace dash by underscore, meaning
   ``stats.app_layer.*.ftp-data`` becomes ``stats.app_layer.*.ftp_data``,
   and same for bittorrent_dht
+
+Removals
+~~~~~~~~
+
+- The deprecated ``http-log`` output has been removed. Use ``eve-log``
+  with the ``http`` event type for HTTP logging.
+
+Keyword Changes
+~~~~~~~~~~~~~~~
+
+- HTTP2 keywords have now better progress defined, with the http2 transaction progress
+  being split per direction. This means that some rules should match sooner,
+  some rules will have less false negatives, and some rules will trigger once per transaction
+  instead of twice (one time for each direction)
 
 Other Changes
 ~~~~~~~~~~~~~

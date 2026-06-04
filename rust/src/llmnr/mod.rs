@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,16 +15,9 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Victor Julien <victor@inliniac.net>
- */
+//! LLMNR protocol parser and logger module.
 
-#ifndef SURICATA_LOG_HTTPLOG_H
-#define SURICATA_LOG_HTTPLOG_H
+// written by Giuseppe Longo <giuseppe@glongo.it>
 
-void LogHttpLogRegister(void);
-OutputInitResult LogHttpLogInitCtx(SCConfNode *);
-
-#endif /* SURICATA_LOG_HTTPLOG_H */
+pub mod llmnr;
+pub mod log;

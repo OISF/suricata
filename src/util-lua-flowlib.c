@@ -178,7 +178,7 @@ static int LuaFlowTimestringIso8601(lua_State *luastate)
 }
 
 /** \internal
- *  \brief legacy format as used by fast.log, http.log, etc.
+ *  \brief legacy format as used by fast.log, etc.
  */
 static int LuaFlowTimestringLegacy(lua_State *luastate)
 {

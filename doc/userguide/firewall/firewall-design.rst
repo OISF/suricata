@@ -18,6 +18,19 @@ properties than the default "threat detection" rulesets:
 Concepts
 ========
 
+Firewall vs Threat Detection (TD)
+---------------------------------
+
+The interaction between firewall and TD is concepualized as if they are 2 seperate
+instances, where the firewall instance runs first, and it passes along to the TD
+instance what is accepted by the firewall.
+
+This is reflected in the stats, where a packet accepted by the firewall is counted
+as ``firewall.accepted``. If it was also allowed by TD, it will additionally be
+counted as ``ips.accepted``. If it was dropped by firewall, only ``firewall.blocked``
+will be incremented. No ``ips.*`` counter will be updated as conceptually the TD
+instance won't have seen the packet.
+
 Tables
 ------
 
@@ -35,11 +48,11 @@ Rules categorized in the following tables apply to all packets.
     +-----------------------+--------------------------------------------------------------------+----------------+--------------------------------+
     |          Table        |                             Description                            | Default Policy |           Rule Order           |
     +=======================+====================================================================+================+================================+
-    | ``packet:pre_flow``   | Firewall rules to be evaluated before flow is created/updated      | ``drop:packet``|   As appears in the rule file  |
+    | ``packet:pre_flow``   | Firewall rules to be evaluated before flow is created/updated      | ``accept:hook``| As appears in the rule file    |
     +-----------------------+--------------------------------------------------------------------+----------------+--------------------------------+
-    | ``packet:pre_stream`` | Firewall rules to be evaluated before stream is updated            | ``drop:packet``|   As appears in the rule file  |
+    | ``packet:pre_stream`` | Firewall rules to be evaluated before stream is updated            | ``accept:hook``| As appears in the rule file    |
     +-----------------------+--------------------------------------------------------------------+----------------+--------------------------------+
-    | ``packet:filter``     | Firewall rules to be evaluated against every packet after decoding | ``drop:packet``|   As appears in the rule file  |
+    | ``packet:filter``     | Firewall rules to be evaluated against every packet after decoding | ``drop:packet``| As appears in the rule file    |
     +-----------------------+--------------------------------------------------------------------+----------------+--------------------------------+
     | ``packet:td``         | Generic IDS/IPS threat detection rules                             | ``accept:hook``| Internal IDS/IPS rule ordering |
     +-----------------------+--------------------------------------------------------------------+----------------+--------------------------------+
@@ -57,9 +70,9 @@ application layer are per app layer protocol and per protocol state. e.g. ``http
     +----------------+--------------------------------------------------------------------------+----------------+--------------------------------+
     |      Table     |                                Description                               | Default Policy |           Rule Order           |
     +================+==========================================================================+================+================================+
-    | ``app:filter`` | Firewall rules to be evaluated per applayer protocol and state           | ``drop:flow``  |   As appears in the rule file  |
+    | ``app:filter`` | Firewall rules to be evaluated per applayer protocol and state           | ``drop:flow``  | As appears in the rule file    |
     +----------------+--------------------------------------------------------------------------+----------------+--------------------------------+
-    | ``app:td``     | Generic IDS/IPS threat detection rules                                   | ``accept:hook``| Internal IDS/IPS rule ordering |
+    | ``app:td``     | App-layer IDS/IPS threat detection rules                                 | ``accept:hook``| Internal IDS/IPS rule ordering |
     +----------------+--------------------------------------------------------------------------+----------------+--------------------------------+
 
 
@@ -93,8 +106,38 @@ drop
 * ``packet`` drop this packet directly, don't eval any further rules
 * ``flow`` drop this packet as with ``packet`` and drop all future packets in this flow
 
-.. note:: the action ``pass`` is not available in firewall rules due to ambiguity around
-   the existing meaning for threat detection rules.
+.. note:: unlike in threat detection mode rules, a ``drop`` in a firewall rule does not
+   imply alert
+
+pass
+~~~~
+
+``pass`` is not available as a primary firewall action, but can be used as a secondary
+action in firewall rules. The effect of the action will only apply to threat detection rules.
+
+alert
+~~~~~
+
+``alert`` is not available as a primary firewall action, but can be used as a secondary
+action in firewall rules. The effect will be the creation of an alert event when the
+firewall rule matches.
+
+Multi action rules
+~~~~~~~~~~~~~~~~~~
+
+In firewall rules, multiple actions can be specified: a primary firewall action, followed
+by one or more secondary actions.
+
+Example::
+
+    accept:flow,pass:flow,alert tls:client_hello_done ... tls.sni; ...
+
+In this example the first action ``accept:flow`` is the primary firewall action. When the
+rule matches, the flow will be accepted. The secondary actions ``pass:flow`` and ``alert`` are
+evaluated in the context of the threat detection engine.
+
+.. note:: the secondary actions are only evaluated if the primary firewall action is accepted.
+   This is different from the behavior of the ``pass`` action in threat detection mode.
 
 .. _rule-hooks:
 
@@ -201,6 +244,23 @@ ssh
 
 Available states are listed in :ref:`ssh-hooks`.
 
+Auto-accept prior states
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+To avoid creating lots of boilerplate ``accept`` rules there is a special notation to have
+a rule accept not just the hook it matches in, but also the hooks before it.
+
+Example::
+
+    accept:flow tls:<client_hello_done ... tls.sni; content:"suricata.io"; ...
+
+The main matching logic here is in the ``tls:client_hello_done`` hook. The state before it,
+``tls:client_in_progress`` is also accepted, as if the ruleset was actually::
+
+    accept:hook tls:client_in_progress ...
+    accept:flow tls:client_hello_done ... tls.sni; content:"suricata.io"; ...
+
+This logic only applies to the ``app:filter`` table.
 
 Firewall pipeline
 -----------------
@@ -284,3 +344,34 @@ The example below accepts ARP again, using this mechanism.
 ::
 
     accept:packet ether:all any any -> any any (ether.hdr; content:"|08 06|"; offset:12; depth:2; sid:1;)
+
+
+Default policies
+================
+
+Each hook has a default policy. By default ``packet:filter`` enforces a ``drop:packet`` policy and the
+``app:filter`` hooks applies ``drop:flow``.
+
+The policies can be configured in ``firewall`` block in the config.
+
+Example for ``packet:filter``, to use reject instead of drop::
+
+    firewall:
+      policies:
+        packet-filter: [ "reject:packet" ]
+
+
+Example for DNS::
+
+    firewall:
+      policies:
+        dns:
+          request-started: ["accept:hook"]
+
+          # Drop and alert on all DNS requests that are not allowed in
+          # firewall.rules.
+          request-complete: ["drop:flow", "alert"]
+
+          # Accept all responses.
+          response-started: ["accept:tx"]
+

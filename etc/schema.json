@@ -2014,6 +2014,20 @@
                 }
             }
         },
+        "firewall": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "hook": {
+                    "type": "string",
+                    "description": "Firewall hook for the match"
+                },
+                "policy": {
+                    "type": "string",
+                    "description": "Firewall actions for the match (from rule or default policy)"
+                }
+            }
+        },
         "flow": {
             "type": "object",
             "additionalProperties": false,
@@ -2192,19 +2206,35 @@
             "additionalProperties": false,
             "properties": {
                 "command": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "ftp.command"
+                        ]
+                    }
                 },
                 "command_data": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "ftp.command_data"
+                        ]
+                    }
                 },
                 "command_truncated": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "$comment": "keyword: app-layer-event:ftp.request_command_too_long"
                 },
                 "completion_code": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
                         "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "ftp.completion_code"
+                        ]
                     }
                 },
                 "dynamic_port": {
@@ -2216,20 +2246,36 @@
                     }
                 },
                 "mode": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "ftp.mode"
+                        ]
+                    }
                 },
                 "reply": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
                         "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "ftp.reply"
+                        ]
                     }
                 },
                 "reply_received": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "ftp.reply_received"
+                        ]
+                    }
                 },
                 "reply_truncated": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "$comment": "keyword: app-layer-event:ftp.response_command_too_long"
                 }
             }
         },
@@ -2238,10 +2284,20 @@
             "additionalProperties": false,
             "properties": {
                 "command": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "ftpdata_command"
+                        ]
+                    }
                 },
                 "filename": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "file.name"
+                        ]
+                    }
                 }
             }
         },
@@ -3299,6 +3355,413 @@
                             }
                         }
                     }
+                }
+            }
+        },
+        "llmnr": {
+            "description": "LLMNR requests and responses",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "additionals": {
+                    "description": "LLMNR additional records",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "a": {
+                                "description": "IPv4 address",
+                                "type": "string"
+                            },
+                            "aaaa": {
+                                "description": "IPv6 address",
+                                "type": "string"
+                            },
+                            "cname": {
+                                "description": "Canonical name",
+                                "type": "string"
+                            },
+                            "mx": {
+                                "description": "Mail exchange",
+                                "type": "string"
+                            },
+                            "ns": {
+                                "description": "Name server",
+                                "type": "string"
+                            },
+                            "null": {
+                                "description": "NULL record data",
+                                "type": "string"
+                            },
+                            "opt": {
+                                "description": "EDNS OPT records",
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "code": {
+                                            "description": "EDNS option code",
+                                            "type": "integer"
+                                        },
+                                        "data": {
+                                            "description": "EDNS option data",
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "ptr": {
+                                "description": "Pointer record",
+                                "type": "string"
+                            },
+                            "rrname": {
+                                "description": "Resource name of the record",
+                                "type": "string"
+                            },
+                            "rrname_truncated": {
+                                "description": "Name was truncated by Suricata due to length",
+                                "type": "boolean"
+                            },
+                            "rrtype": {
+                                "description": "Resource record type",
+                                "type": "string"
+                            },
+                            "ttl": {
+                                "description": "Time to live in seconds",
+                                "type": "integer"
+                            },
+                            "txt": {
+                                "description": "TXT record values",
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "unknown": {
+                                "description": "Unknown record type data",
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "answers": {
+                    "description": "LLMNR answer records",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "a": {
+                                "description": "IPv4 address",
+                                "type": "string"
+                            },
+                            "aaaa": {
+                                "description": "IPv6 address",
+                                "type": "string"
+                            },
+                            "cname": {
+                                "description": "Canonical name",
+                                "type": "string"
+                            },
+                            "mx": {
+                                "description": "Mail exchange",
+                                "type": "string"
+                            },
+                            "ns": {
+                                "description": "Name server",
+                                "type": "string"
+                            },
+                            "null": {
+                                "description": "NULL record data",
+                                "type": "string"
+                            },
+                            "ptr": {
+                                "description": "Pointer record",
+                                "type": "string"
+                            },
+                            "rrname": {
+                                "description": "Resource name of the record",
+                                "type": "string"
+                            },
+                            "rrname_truncated": {
+                                "description": "Name was truncated by Suricata due to length",
+                                "type": "boolean"
+                            },
+                            "rrtype": {
+                                "description": "Resource record type",
+                                "type": "string"
+                            },
+                            "soa": {
+                                "description": "SOA record data",
+                                "$ref": "#/$defs/dns.soa"
+                            },
+                            "srv": {
+                                "description": "SRV record data",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "name": {
+                                        "description": "Target hostname",
+                                        "type": "string"
+                                    },
+                                    "port": {
+                                        "description": "Target port",
+                                        "type": "integer"
+                                    },
+                                    "priority": {
+                                        "description": "Priority value",
+                                        "type": "integer"
+                                    },
+                                    "weight": {
+                                        "description": "Weight value",
+                                        "type": "integer"
+                                    }
+                                }
+                            },
+                            "sshfp": {
+                                "description": "SSH fingerprint record",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "algo": {
+                                        "description": "Algorithm number",
+                                        "type": "integer"
+                                    },
+                                    "fingerprint": {
+                                        "description": "Fingerprint value",
+                                        "type": "string"
+                                    },
+                                    "type": {
+                                        "description": "Fingerprint type",
+                                        "type": "integer"
+                                    }
+                                }
+                            },
+                            "ttl": {
+                                "description": "Time to live in seconds",
+                                "type": "integer"
+                            },
+                            "txt": {
+                                "description": "TXT record values",
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "unknown": {
+                                "description": "Unknown record type data",
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "authorities": {
+                    "description": "LLMNR authority records",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "a": {
+                                "description": "IPv4 address",
+                                "type": "string"
+                            },
+                            "aaaa": {
+                                "description": "IPv6 address",
+                                "type": "string"
+                            },
+                            "cname": {
+                                "description": "Canonical name",
+                                "type": "string"
+                            },
+                            "mx": {
+                                "description": "Mail exchange",
+                                "type": "string"
+                            },
+                            "ns": {
+                                "description": "Name server",
+                                "type": "string"
+                            },
+                            "null": {
+                                "description": "NULL record data",
+                                "type": "string"
+                            },
+                            "ptr": {
+                                "description": "Pointer record",
+                                "type": "string"
+                            },
+                            "rrname": {
+                                "description": "Resource name of the record",
+                                "type": "string"
+                            },
+                            "rrname_truncated": {
+                                "description": "Name was truncated by Suricata due to length",
+                                "type": "boolean"
+                            },
+                            "rrtype": {
+                                "description": "Resource record type",
+                                "type": "string"
+                            },
+                            "soa": {
+                                "description": "SOA record data",
+                                "$ref": "#/$defs/dns.soa"
+                            },
+                            "ttl": {
+                                "description": "Time to live in seconds",
+                                "type": "integer"
+                            },
+                            "txt": {
+                                "description": "TXT record values",
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "unknown": {
+                                "description": "Unknown record type data",
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "flags": {
+                    "description": "LLMNR message flags",
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": ["c", "tc", "t"]
+                    }
+                },
+                "grouped": {
+                    "description": "Grouped answer records by type",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "A": {
+                            "description": "IPv4 address records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "AAAA": {
+                            "description": "IPv6 address records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "CNAME": {
+                            "description": "Canonical name records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "MX": {
+                            "description": "Mail exchange records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "NS": {
+                            "description": "Name server records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "NULL": {
+                            "description": "NULL record data",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "PTR": {
+                            "description": "Pointer records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "SOA": {
+                            "description": "Start of authority records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "$ref": "#/$defs/dns.soa"
+                            }
+                        },
+                        "TXT": {
+                            "description": "Text records",
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "id": {
+                    "description": "LLMNR transaction ID",
+                    "type": "integer"
+                },
+                "opcode": {
+                    "description": "LLMNR opcode value",
+                    "type": "integer"
+                },
+                "queries": {
+                    "description": "LLMNR query records",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "rrname": {
+                                "description": "Resource name being requested",
+                                "type": "string"
+                            },
+                            "rrname_truncated": {
+                                "description": "Name was truncated by Suricata due to length",
+                                "type": "boolean"
+                            },
+                            "rrtype": {
+                                "type": "string",
+                                "description": "Type of resource being requested"
+                            }
+                        }
+                    }
+                },
+                "tx_id": {
+                    "description": "Internal transaction ID",
+                    "type": "integer"
+                },
+                "type": {
+                    "description": "Type of message, either a request or response",
+                    "type": "string",
+                    "enum": [
+                        "request",
+                        "response"
+                    ]
                 }
             }
         },
@@ -5830,6 +6293,14 @@
                                     "description": "Errors encountered parsing LDAP/UDP protocol",
                                     "$ref": "#/$defs/stats_applayer_error"
                                 },
+                                "llmnr_tcp": {
+                                    "description": "Errors encountered parsing LLMNR/TCP protocol",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
+                                "llmnr_udp": {
+                                    "description": "Errors encountered parsing LLMNR/UDP protocol",
+                                    "$ref": "#/$defs/stats_applayer_error"
+                                },
                                 "mdns": {
                                     "description": "Errors encountered parsing mDNS",
                                     "$ref": "#/$defs/stats_applayer_error"
@@ -6013,6 +6484,14 @@
                                     "type": "integer",
                                     "description": "Number of flows LDAP/UDP protocol"
                                 },
+                                "llmnr_tcp": {
+                                    "type": "integer",
+                                    "description": "Number of flows for LLMNR/TCP protocol"
+                                },
+                                "llmnr_udp": {
+                                    "type": "integer",
+                                    "description": "Number of flows for LLMNR/UDP protocol"
+                                },
                                 "mdns": {
                                     "description": "Number of flows for mDNS",
                                     "type": "integer"
@@ -6186,6 +6665,14 @@
                                 "ldap_udp": {
                                     "type": "integer",
                                     "description": "Number of transactions for LDAP/UDP protocol"
+                                },
+                                "llmnr_tcp": {
+                                    "type": "integer",
+                                    "description": "Number of transactions for LLMNR/TCP protocol"
+                                },
+                                "llmnr_udp": {
+                                    "type": "integer",
+                                    "description": "Number of transactions for LLMNR/UDP protocol"
                                 },
                                 "mdns": {
                                     "description": "Number of transactions for mDNS",
@@ -7310,7 +7797,7 @@
                         },
                         "alert_queue_overflow": {
                             "type": "integer",
-                            "description": "Count of alerts discarded due to alert queue overflow or a drop in firewall mode"
+                            "description": "Count of alerts discarded due to alert queue overflow"
                         },
                         "alerts_suppressed": {
                             "type": "integer",
@@ -7476,6 +7963,60 @@
                         },
                         "open_files_max_hit": {
                             "type": "integer"
+                        }
+                    }
+                },
+                "firewall": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "accepted": {
+                            "type": "integer",
+                            "description": "Count of accepted packets due to firewall policies"
+                        },
+                        "blocked": {
+                            "type": "integer",
+                            "description": "Count of blocked packets due to firewall policies"
+                        },
+                        "discarded_alerts": {
+                            "type": "integer",
+                            "description": "Count of alerts discarded due max alerts reached"
+                        },
+                        "drop_reason": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "default_app_policy": {
+                                    "type": "integer",
+                                    "description":
+                                        "Count of packets dropped due to firewall's mode default app policy"
+                                },
+                                "default_packet_policy": {
+                                    "type": "integer",
+                                    "description":
+                                        "Count of packets dropped due to firewall's mode default packet policy"
+                                },
+                                "flow_drop": {
+                                    "type": "integer",
+                                    "description": "Count of packets dropped due to a firewall policy that led to flow drop"
+                                },
+                                "pre_flow_hook": {
+                                    "type": "integer",
+                                    "description": "Count of packets dropped due to pre-flow hook"
+                                },
+                                "pre_stream_hook": {
+                                    "type": "integer",
+                                    "description": "Count of packets dropped due to pre-stream hook"
+                                },
+                                "rules": {
+                                    "type": "integer",
+                                    "description": "Count of packets dropped due to firewall rules"
+                                }
+                            }
+                        },
+                        "rejected": {
+                            "type": "integer",
+                            "description": "Count of packets rejected due to firewall policies"
                         }
                     }
                 },
@@ -7896,16 +8437,6 @@
                                     "description":
                                             "Number of packets dropped due to decoding errors"
                                 },
-                                "default_app_policy": {
-                                    "type": "integer",
-                                    "description":
-                                            "Number of packets dropped due to default app policy"
-                                },
-                                "default_packet_policy": {
-                                    "type": "integer",
-                                    "description":
-                                            "Number of packets dropped due to default packet policy"
-                                },
                                 "defrag_error": {
                                     "type": "integer",
                                     "description":
@@ -7915,6 +8446,10 @@
                                     "type": "integer",
                                     "description":
                                             "Number of packets dropped due to defrag memcap exception policy"
+                                },
+                                "exception_policy_flow_drop": {
+                                    "type": "integer",
+                                    "description": "Number of packets dropped due to an exception policy flow dropping"
                                 },
                                 "flow_drop": {
                                     "type": "integer",
@@ -7928,16 +8463,6 @@
                                 "nfq_error": {
                                     "type": "integer",
                                     "description": "Number of packets dropped due to no NFQ verdict"
-                                },
-                                "pre_flow_hook": {
-                                    "description":
-                                            "Number of packets dropped in the pre_flow hook ",
-                                    "type": "integer"
-                                },
-                                "pre_stream_hook": {
-                                    "description":
-                                            "Number of packets dropped in the pre_stream hook ",
-                                    "type": "integer"
                                 },
                                 "rules": {
                                     "type": "integer",
@@ -7987,7 +8512,7 @@
                         },
                         "replaced": {
                             "type": "integer",
-                            "description": "Number of replaced packets"
+                            "description": "Number of packets replaced by the stream engine or based on a match of the 'replaced' keyword."
                         }
                     }
                 },

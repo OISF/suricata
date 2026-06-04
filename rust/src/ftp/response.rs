@@ -96,11 +96,7 @@ pub unsafe extern "C" fn SCFTPFreeResponseLine(response: *mut FTPResponseLine) {
     let response = Box::from_raw(response);
 
     if !response.response.is_null() {
-        let _ = Vec::from_raw_parts(
-            response.code,
-            response.code_length,
-            response.code_length,
-        );
+        let _ = Vec::from_raw_parts(response.code, response.code_length, response.code_length);
     }
 
     if !response.response.is_null() {

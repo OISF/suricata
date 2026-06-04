@@ -3,7 +3,8 @@ if BUILD_FUZZTARGETS
     bin_PROGRAMS += fuzz_applayerprotodetectgetproto \
     fuzz_applayerparserparse fuzz_siginit \
     fuzz_confyamlloadstring fuzz_decodepcapfile \
-    fuzz_sigpcap fuzz_mimedecparseline fuzz_decodebase64
+    fuzz_sigpcap fuzz_mimedecparseline fuzz_decodebase64 \
+    fuzz_iprep
 if HAS_FUZZPCAP
     bin_PROGRAMS += fuzz_sigpcap_aware fuzz_predefpcap_aware
 endif
@@ -337,9 +338,7 @@ noinst_HEADERS = \
 	ippair-storage.h \
 	ippair-timeout.h \
 	ippair.h \
-	log-cf-common.h \
 	log-flush.h \
-	log-httplog.h \
 	log-pcap.h \
 	log-stats.h \
 	log-tcp-data.h \
@@ -369,6 +368,7 @@ noinst_HEADERS = \
 	output-json-ftp.h \
 	output-json-http.h \
 	output-json-ike.h \
+	output-json-llmnr.h \
 	output-json-mdns.h \
 	output-json-metadata.h \
 	output-json-mqtt.h \
@@ -911,9 +911,7 @@ libsuricata_c_a_SOURCES = \
 	ippair-storage.c \
 	ippair-timeout.c \
 	ippair.c \
-	log-cf-common.c \
 	log-flush.c \
-	log-httplog.c \
 	log-pcap.c \
 	log-stats.c \
 	log-tcp-data.c \
@@ -943,6 +941,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-ftp.c \
 	output-json-http.c \
 	output-json-ike.c \
+	output-json-llmnr.c \
 	output-json-mdns.c \
 	output-json-metadata.c \
 	output-json-mqtt.c \
@@ -1009,6 +1008,7 @@ libsuricata_c_a_SOURCES = \
 	thread-callbacks.c \
 	thread-storage.c \
 	threads.c \
+	threadvars.c \
 	tm-modules.c \
 	tm-queuehandlers.c \
 	tm-queues.c \
@@ -1396,6 +1396,18 @@ else
 endif
 # force usage of CXX for linker
 nodist_EXTRA_fuzz_decodebase64_SOURCES = force-cxx-linking.cxx
+
+fuzz_iprep_SOURCES = tests/fuzz/fuzz_iprep.c
+fuzz_iprep_LDFLAGS = $(LDFLAGS_FUZZ)
+fuzz_iprep_LDADD = $(LDADD_FUZZ)
+fuzz_iprep_DEPENDENCIES = libsuricata_c.a $(RUST_SURICATA_LIB)
+if HAS_FUZZLDFLAGS
+    fuzz_iprep_LDFLAGS += $(LIB_FUZZING_ENGINE)
+else
+    fuzz_iprep_SOURCES += tests/fuzz/onefile.c
+endif
+# force usage of CXX for linker
+nodist_EXTRA_fuzz_iprep_SOURCES = force-cxx-linking.cxx
 
 fuzz_mimedecparseline_SOURCES = tests/fuzz/fuzz_mimedecparseline.c
 fuzz_mimedecparseline_LDFLAGS = $(LDFLAGS_FUZZ)

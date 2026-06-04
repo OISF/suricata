@@ -941,18 +941,15 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
                            const char *outq_name, const char *outqh_name, const char *slots,
                            void * (*fn_p)(void *), int mucond)
 {
-    ThreadVars *tv = NULL;
     Tmq *tmq = NULL;
     Tmqh *tmqh = NULL;
 
     SCLogDebug("creating thread \"%s\"...", name);
 
-    /* XXX create separate function for this: allocate a thread container */
-    tv = SCCalloc(1, sizeof(ThreadVars) + SCThreadStorageSize());
+    ThreadVars *tv = ThreadVarsAlloc();
     if (unlikely(tv == NULL))
         goto error;
 
-    SC_ATOMIC_INIT(tv->flags);
     StatsThreadInit(&tv->stats);
 
     strlcpy(tv->name, name, sizeof(tv->name));
@@ -1046,8 +1043,7 @@ ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *i
 error:
     SCLogError("failed to setup a thread");
 
-    if (tv != NULL)
-        SCFree(tv);
+    ThreadVarsFree(tv);
     return NULL;
 }
 
@@ -1675,7 +1671,7 @@ static void TmThreadFree(ThreadVars *tv)
     }
 
     TmThreadsUnregisterThread(tv->id);
-    SCFree(tv);
+    ThreadVarsFree(tv);
 }
 
 void TmThreadClearThreadsFamily(int family)

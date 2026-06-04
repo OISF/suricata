@@ -87,7 +87,7 @@ static int LuaPacketPcapCnt(lua_State *luastate)
 }
 
 /** \internal
- *  \brief legacy format as used by fast.log, http.log, etc.
+ *  \brief legacy format as used by fast.log, etc.
  */
 static int LuaPacketTimestringLegacy(lua_State *luastate)
 {

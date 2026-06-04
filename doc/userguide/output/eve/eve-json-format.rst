@@ -999,6 +999,118 @@ Example of a DNS answer with "grouped" format::
       }
   }
 
+Event type: LLMNR
+-----------------
+
+LLMNR (Link-Local Multicast Name Resolution, RFC 4795) is a protocol
+that allows hosts on the same local link to perform name resolution.
+It uses DNS message format, but operates on multicast (224.0.0.252 for
+IPv4, ff02::1:3 for IPv6) over UDP and TCP port 5355.
+
+Suricata logs both requests and responses as separate events. For UDP,
+queries are sent to multicast and responses come back as unicast from
+the responder's IP, resulting in separate flows.
+
+Fields
+~~~~~~
+
+Outline of fields seen in LLMNR events:
+
+* "type": Indicating LLMNR message type, can be "request" or "response"
+* "id": On-wire LLMNR transaction identifier
+* "queries": A list of query objects, each containing "rrname" and "rrtype"
+* "answers": A list of answer objects, each containing "rrname", "rrtype" with "rdata"
+* "authorities": A list of authority objects
+* "additionals": A list of additional objects
+
+Examples
+~~~~~~~~
+
+Example of an LLMNR request for the A record of "hs2011"::
+
+  "llmnr": {
+      "type": "request",
+      "tx_id": 0,
+      "id": 49985,
+      "opcode": 0,
+      "queries": [
+        {
+          "rrname": "hs2011",
+          "rrtype": "a"
+        }
+      ]
+  }
+
+Example of an LLMNR response with an A record answer::
+
+  "llmnr": {
+      "type": "response",
+      "tx_id": 0,
+      "id": 49985,
+      "opcode": 0,
+      "queries": [
+        {
+          "rrname": "hs2011",
+          "rrtype": "a"
+        }
+      ],
+      "answers": [
+        {
+          "rrname": "HS2011",
+          "a": "192.168.10.101"
+        }
+      ]
+  }
+
+Example of an LLMNR NXDOMAIN response::
+
+  "llmnr": {
+      "type": "response",
+      "tx_id": 0,
+      "id": 12345,
+      "opcode": 0,
+      "rcode": "NXDOMAIN",
+      "queries": [
+        {
+          "rrname": "unknown-host",
+          "rrtype": "a"
+        }
+      ]
+  }
+
+Example of an LLMNR response with NS authority and additional records::
+
+  "llmnr": {
+      "type": "response",
+      "tx_id": 0,
+      "id": 54321,
+      "opcode": 0,
+      "queries": [
+        {
+          "rrname": "server.local",
+          "rrtype": "a"
+        }
+      ],
+      "answers": [
+        {
+          "rrname": "server.local",
+          "a": "192.168.1.100"
+        }
+      ],
+      "authorities": [
+        {
+          "rrname": "local",
+          "ns": "ns.local"
+        }
+      ],
+      "additionals": [
+        {
+          "rrname": "ns.local",
+          "a": "192.168.1.200"
+        }
+      ]
+  }
+
 Event type: FTP
 ---------------
 

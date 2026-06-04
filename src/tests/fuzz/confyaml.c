@@ -70,10 +70,6 @@ outputs:\n\
         - flow\n\
         - netflow\n\
         - metadata\n\
-  - http-log:\n\
-      enabled: yes\n\
-      filename: /dev/null\n\
-      extended: yes\n\
   - tls-log:\n\
       enabled: yes\n\
       filename: /dev/null\n\

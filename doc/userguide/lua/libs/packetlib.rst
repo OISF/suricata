@@ -38,7 +38,7 @@ Get packet timestamp as 2 numbers: seconds & microseconds elapsed since
 ^^^^^^^^^^^^^^^^^^^^^
 
 Get packet timestamp as a string in the format: `11/24/2009-18:57:25.179869`.
-This is the format used by `fast.log`, `http.log` and other legacy outputs.
+This is the format used by `fast.log`.
 
 ::
 

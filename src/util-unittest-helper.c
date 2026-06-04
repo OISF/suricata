@@ -121,128 +121,6 @@ int TestHelperBufferToFile(const char *name, const uint8_t *data, size_t size)
     return 0;
 }
 
-#endif
-#ifdef UNITTESTS
-void UTHSetIPV4Hdr(Packet *p, IPV4Hdr *ip4h)
-{
-    PacketSetIPV4(p, (uint8_t *)ip4h);
-}
-
-void UTHSetIPV6Hdr(Packet *p, IPV6Hdr *ip6h)
-{
-    PacketSetIPV6(p, (uint8_t *)ip6h);
-}
-
-void UTHSetTCPHdr(Packet *p, TCPHdr *tcph)
-{
-    PacketSetTCP(p, (uint8_t *)tcph);
-}
-
-/**
- *  \brief return the uint32_t for a ipv4 address string
- *
- *  \param str Valid ipaddress in string form (e.g. 1.2.3.4)
- *
- *  \retval uint the uin32_t representation
- */
-uint32_t UTHSetIPv4Address(const char *str)
-{
-    struct in_addr in;
-    if (inet_pton(AF_INET, str, &in) != 1) {
-        printf("invalid IPv6 address %s\n", str);
-        exit(EXIT_FAILURE);
-    }
-    return (uint32_t)in.s_addr;
-}
-
-/**
- * \brief UTHBuildPacketReal is a function that create tcp/udp packets for unittests
- * specifying ip and port sources and destinations (IPV6)
- *
- * \param payload pointer to the payload buffer
- * \param payload_len pointer to the length of the payload
- * \param ipproto Protocols allowed atm are IPPROTO_TCP and IPPROTO_UDP
- * \param src pointer to a string containing the ip source
- * \param dst pointer to a string containing the ip destination
- * \param sport pointer to a string containing the port source
- * \param dport pointer to a string containing the port destination
- *
- * \retval Packet pointer to the built in packet
- */
-Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
-                           uint8_t ipproto, const char *src, const char *dst,
-                           uint16_t sport, uint16_t dport)
-{
-    uint32_t in[4];
-    TCPHdr *tcph = NULL;
-
-    Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return NULL;
-
-    p->ts = TimeGet();
-
-    p->src.family = AF_INET6;
-    p->dst.family = AF_INET6;
-    p->payload = payload;
-    p->payload_len = payload_len;
-    p->proto = ipproto;
-
-    IPV6Hdr *ip6h = SCCalloc(1, sizeof(IPV6Hdr));
-    if (ip6h == NULL)
-        goto error;
-    ip6h->s_ip6_nxt = ipproto;
-    ip6h->s_ip6_plen = htons(payload_len + sizeof(TCPHdr));
-    UTHSetIPV6Hdr(p, ip6h);
-
-    if (inet_pton(AF_INET6, src, &in) != 1)
-        goto error;
-    p->src.addr_data32[0] = in[0];
-    p->src.addr_data32[1] = in[1];
-    p->src.addr_data32[2] = in[2];
-    p->src.addr_data32[3] = in[3];
-    p->sp = sport;
-    ip6h->s_ip6_src[0] = in[0];
-    ip6h->s_ip6_src[1] = in[1];
-    ip6h->s_ip6_src[2] = in[2];
-    ip6h->s_ip6_src[3] = in[3];
-
-    if (inet_pton(AF_INET6, dst, &in) != 1)
-        goto error;
-    p->dst.addr_data32[0] = in[0];
-    p->dst.addr_data32[1] = in[1];
-    p->dst.addr_data32[2] = in[2];
-    p->dst.addr_data32[3] = in[3];
-    p->dp = dport;
-    ip6h->s_ip6_dst[0] = in[0];
-    ip6h->s_ip6_dst[1] = in[1];
-    ip6h->s_ip6_dst[2] = in[2];
-    ip6h->s_ip6_dst[3] = in[3];
-
-    tcph = SCMalloc(sizeof(TCPHdr));
-    if (tcph == NULL)
-        goto error;
-    memset(tcph, 0, sizeof(TCPHdr));
-    tcph->th_sport = htons(sport);
-    tcph->th_dport = htons(dport);
-    UTHSetTCPHdr(p, tcph);
-
-    SET_PKT_LEN(p, sizeof(IPV6Hdr) + sizeof(TCPHdr) + payload_len);
-    return p;
-
-error:
-    if (p != NULL) {
-        if (ip6h != NULL) {
-            SCFree(ip6h);
-        }
-        if (tcph != NULL) {
-            SCFree(tcph);
-        }
-        SCFree(p);
-    }
-    return NULL;
-}
-
 /**
  * \brief UTHBuildPacketReal is a function that create tcp/udp packets for unittests
  * specifying ip and port sources and destinations
@@ -368,6 +246,127 @@ Packet *UTHBuildPacket(uint8_t *payload, uint16_t payload_len,
     return UTHBuildPacketReal(payload, payload_len, ipproto,
                               "192.168.1.5", "192.168.1.1",
                               41424, 80);
+}
+
+#endif
+#ifdef UNITTESTS
+void UTHSetIPV4Hdr(Packet *p, IPV4Hdr *ip4h)
+{
+    PacketSetIPV4(p, (uint8_t *)ip4h);
+}
+
+void UTHSetIPV6Hdr(Packet *p, IPV6Hdr *ip6h)
+{
+    PacketSetIPV6(p, (uint8_t *)ip6h);
+}
+
+void UTHSetTCPHdr(Packet *p, TCPHdr *tcph)
+{
+    PacketSetTCP(p, (uint8_t *)tcph);
+}
+
+/**
+ *  \brief return the uint32_t for a ipv4 address string
+ *
+ *  \param str Valid ipaddress in string form (e.g. 1.2.3.4)
+ *
+ *  \retval uint the uin32_t representation
+ */
+uint32_t UTHSetIPv4Address(const char *str)
+{
+    struct in_addr in;
+    if (inet_pton(AF_INET, str, &in) != 1) {
+        printf("invalid IPv6 address %s\n", str);
+        exit(EXIT_FAILURE);
+    }
+    return (uint32_t)in.s_addr;
+}
+
+/**
+ * \brief UTHBuildPacketReal is a function that create tcp/udp packets for unittests
+ * specifying ip and port sources and destinations (IPV6)
+ *
+ * \param payload pointer to the payload buffer
+ * \param payload_len pointer to the length of the payload
+ * \param ipproto Protocols allowed atm are IPPROTO_TCP and IPPROTO_UDP
+ * \param src pointer to a string containing the ip source
+ * \param dst pointer to a string containing the ip destination
+ * \param sport pointer to a string containing the port source
+ * \param dport pointer to a string containing the port destination
+ *
+ * \retval Packet pointer to the built in packet
+ */
+Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len, uint8_t ipproto,
+        const char *src, const char *dst, uint16_t sport, uint16_t dport)
+{
+    uint32_t in[4];
+    TCPHdr *tcph = NULL;
+
+    Packet *p = PacketGetFromAlloc();
+    if (unlikely(p == NULL))
+        return NULL;
+
+    p->ts = TimeGet();
+
+    p->src.family = AF_INET6;
+    p->dst.family = AF_INET6;
+    p->payload = payload;
+    p->payload_len = payload_len;
+    p->proto = ipproto;
+
+    IPV6Hdr *ip6h = SCCalloc(1, sizeof(IPV6Hdr));
+    if (ip6h == NULL)
+        goto error;
+    ip6h->s_ip6_nxt = ipproto;
+    ip6h->s_ip6_plen = htons(payload_len + sizeof(TCPHdr));
+    UTHSetIPV6Hdr(p, ip6h);
+
+    if (inet_pton(AF_INET6, src, &in) != 1)
+        goto error;
+    p->src.addr_data32[0] = in[0];
+    p->src.addr_data32[1] = in[1];
+    p->src.addr_data32[2] = in[2];
+    p->src.addr_data32[3] = in[3];
+    p->sp = sport;
+    ip6h->s_ip6_src[0] = in[0];
+    ip6h->s_ip6_src[1] = in[1];
+    ip6h->s_ip6_src[2] = in[2];
+    ip6h->s_ip6_src[3] = in[3];
+
+    if (inet_pton(AF_INET6, dst, &in) != 1)
+        goto error;
+    p->dst.addr_data32[0] = in[0];
+    p->dst.addr_data32[1] = in[1];
+    p->dst.addr_data32[2] = in[2];
+    p->dst.addr_data32[3] = in[3];
+    p->dp = dport;
+    ip6h->s_ip6_dst[0] = in[0];
+    ip6h->s_ip6_dst[1] = in[1];
+    ip6h->s_ip6_dst[2] = in[2];
+    ip6h->s_ip6_dst[3] = in[3];
+
+    tcph = SCMalloc(sizeof(TCPHdr));
+    if (tcph == NULL)
+        goto error;
+    memset(tcph, 0, sizeof(TCPHdr));
+    tcph->th_sport = htons(sport);
+    tcph->th_dport = htons(dport);
+    UTHSetTCPHdr(p, tcph);
+
+    SET_PKT_LEN(p, sizeof(IPV6Hdr) + sizeof(TCPHdr) + payload_len);
+    return p;
+
+error:
+    if (p != NULL) {
+        if (ip6h != NULL) {
+            SCFree(ip6h);
+        }
+        if (tcph != NULL) {
+            SCFree(tcph);
+        }
+        SCFree(p);
+    }
+    return NULL;
 }
 
 /**

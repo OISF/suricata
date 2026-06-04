@@ -968,6 +968,16 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
 #undef URL
     }
 
+    if (s->init_data->firewall_rule && (st->flags & SIGMATCH_BAN_FIREWALL_RULE) != 0) {
+        SCLogError("keyword \'%s\' is not allowed with firewall rules", optname);
+        goto error;
+    }
+
+    if (EngineModeIsFirewall() && (st->flags & SIGMATCH_BAN_FIREWALL_MODE) != 0) {
+        SCLogError("keyword \'%s\' is not allowed in firewall mode", optname);
+        goto error;
+    }
+
     int setup_ret = 0;
 
     /* Validate double quoting, trimming trailing white space along the way. */
@@ -1309,6 +1319,7 @@ static SignatureHook SetAppHook(const AppProto alproto, int progress)
  */
 static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char *p, const char *h)
 {
+    SCLogDebug("h:'%s'", h);
     if (strcmp(h, "request_started") == 0) {
         s->flags |= SIG_FLAG_TOSERVER;
         s->init_data->hook =
@@ -1343,7 +1354,7 @@ static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char
     }
 
     char generic_hook_name[64];
-    snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:generic", proto_hook);
+    snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", p, h);
     int list = DetectBufferTypeGetByName(generic_hook_name);
     if (list < 0) {
         SCLogError("no list registered as %s for hook %s", generic_hook_name, proto_hook);
@@ -1411,6 +1422,13 @@ static int SigParseProto(Signature *s, const char *protostr)
             AppLayerProtoDetectSupportedIpprotos(s->alproto, s->init_data->proto.proto);
 
             if (h) {
+                /* FW hook LTE mode */
+                SCLogDebug("hook '%s'", h);
+                if (*h == '<') {
+                    h++;
+                    SCLogDebug("hook and prior hooks: '%s'", h);
+                    s->flags |= SIG_FLAG_FW_HOOK_LTE;
+                }
                 if (SigParseProtoHookApp(s, protostr, p, h) < 0) {
                     SCLogError("protocol \"%s\" does not support hook \"%s\"", p, h);
                     SCReturnInt(-1);
@@ -1579,6 +1597,12 @@ static int SigParseActionDo(const char *action_in, const int idx, const bool fw_
         return -1;
 
     if (fw_rule) {
+        /* in firewall mode, drop is just drop. Whereas in IDS/IPS mode, drop is drop+alert.
+         * Same for reject which includes ACTION_DROP. */
+        if (flags & ACTION_DROP) {
+            flags &= ~ACTION_ALERT;
+        }
+
         if (idx == 0 &&
                 !(flags & (ACTION_ACCEPT | ACTION_DROP | ACTION_REJECT_ANY | ACTION_CONFIG))) {
             SCLogError("only accept, config, drop and reject actions allowed as primary action "
@@ -2441,6 +2465,11 @@ static void SigSetupPrefilter(DetectEngineCtx *de_ctx, Signature *s)
     SCLogDebug("s %u: set up prefilter/mpm", s->id);
     DEBUG_VALIDATE_BUG_ON(s->init_data->mpm_sm != NULL);
 
+    if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
+        SCLogDebug("no prefilter for SIG_FLAG_FW_HOOK_LTE sig");
+        SCReturn;
+    }
+
     if (s->init_data->prefilter_sm != NULL) {
         if (s->init_data->prefilter_sm->type == DETECT_CONTENT) {
             RetrieveFPForSig(de_ctx, s);
@@ -2551,6 +2580,17 @@ static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Sign
                 break;
         }
     }
+    if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
+        if (!(((s->action & ACTION_ACCEPT) != 0) &&
+                    (s->action_scope == ACTION_SCOPE_FLOW || s->action_scope == ACTION_SCOPE_TX ||
+                            s->action_scope == ACTION_SCOPE_HOOK))) {
+            SCLogError("rule %u: auto-accept notation (<hook) can only be used with accept:flow, "
+                       "accept:tx and accept:hook",
+                    s->id);
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -3724,6 +3764,160 @@ void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *detect_par
     }
 }
 
+static uint32_t PolicySignatureHashFunc(HashTable *ht, void *data, uint16_t datalen)
+{
+    const Signature *s = data;
+    const int dir = 1 + (s->flags & SIG_FLAG_TOSERVER) != 0; // 2 for ts, 1 for tc
+    uint32_t hash = s->alproto * s->app_progress_hook * dir;
+    hash = hash % ht->array_size;
+    return hash;
+}
+
+static char PolicySignatureCompareFunc(
+        void *data1, uint16_t datalen1, void *data2, uint16_t datalen2)
+{
+    const Signature *s1 = data1;
+    const Signature *s2 = data2;
+
+    if (s1 == NULL || s2 == NULL)
+        return 0;
+
+    return s1->flags == s2->flags && s1->alproto == s2->alproto &&
+           s1->app_progress_hook == s2->app_progress_hook;
+}
+
+static void PolicySignatureHashFree(void *data)
+{
+    Signature *s = data;
+    SCFree(s->msg);
+    SCFree(s);
+}
+
+const char *ActionScopeToString(enum ActionScope s)
+{
+    switch (s) {
+        case ACTION_SCOPE_PACKET:
+            return "packet";
+        case ACTION_SCOPE_FLOW:
+            return "flow";
+        case ACTION_SCOPE_HOOK:
+            return "hook";
+        case ACTION_SCOPE_TX:
+            return "tx";
+        case ACTION_SCOPE_AUTO:
+            return "auto";
+    }
+    DEBUG_VALIDATE_BUG_ON(1);
+    return "unknown";
+}
+
+void DetectFirewallPolicyToString(const struct DetectFirewallPolicy *p, char *out, size_t out_size)
+{
+    const char *as = ActionScopeToString(p->action_scope);
+    DEBUG_VALIDATE_BUG_ON(as == NULL);
+    if (as == NULL)
+        return;
+    if (p->action & ACTION_REJECT_ANY) {
+        if (p->action & ACTION_REJECT_DST) {
+            snprintf(out, out_size, "rejectdst:%s", as);
+        } else if (p->action & ACTION_REJECT_BOTH) {
+            snprintf(out, out_size, "rejectboth:%s", as);
+        } else {
+            snprintf(out, out_size, "rejectsrc:%s", as);
+        }
+    } else if (p->action & ACTION_DROP) {
+        snprintf(out, out_size, "drop:%s", as);
+    } else if (p->action & ACTION_ACCEPT) {
+        snprintf(out, out_size, "accept:%s", as);
+    } else {
+        DEBUG_VALIDATE_BUG_ON(1);
+    }
+    if (p->action & ACTION_PASS) {
+        if (p->action_scope == ACTION_SCOPE_FLOW) {
+            strlcat(out, ",pass:flow", out_size);
+        } else {
+            DEBUG_VALIDATE_BUG_ON(1);
+        }
+    }
+    if (p->action & ACTION_ALERT) {
+        strlcat(out, ",alert", out_size);
+    }
+}
+
+static int AddPktPolicySignature(struct DetectFirewallPolicies *fw_policies,
+        struct DetectFirewallPolicy *pol, enum DetectFirewallPacketPolicies pkt_pol)
+{
+    Signature *s = SCCalloc(1, sizeof(*s)); // SigAlloc does way more than we need
+    if (s == NULL)
+        return -1;
+    char msg[256];
+    switch (pkt_pol) {
+        case DETECT_FIREWALL_POLICY_PACKET_FILTER:
+            s->detect_table = DETECT_TABLE_PACKET_FILTER;
+            break;
+        case DETECT_FIREWALL_POLICY_PRE_FLOW:
+            s->detect_table = DETECT_TABLE_PACKET_PRE_FLOW;
+            break;
+        case DETECT_FIREWALL_POLICY_PRE_STREAM:
+            s->detect_table = DETECT_TABLE_PACKET_PRE_STREAM;
+            break;
+    }
+    snprintf(msg, sizeof(msg), "SURICATA FW default packet policy");
+    s->msg = SCStrdup(msg);
+    if (s->msg == NULL) {
+        SCFree(s);
+        return -1;
+    }
+    s->action = pol->action;
+    s->action_scope = pol->action_scope;
+    s->flags = SIG_FLAG_FIREWALL;
+    s->type = SIG_TYPE_PKT;
+    s->id = 2201000;
+    s->rev = 1;
+    s->gid = 1;
+    s->prio = 3;
+
+    fw_policies->pkt_policy_signatures[pkt_pol] = s;
+    SCLogDebug("added to array");
+    return 0;
+}
+
+static int AddAppPolicySignature(HashTable *ht, const int direction, const AppProto alproto,
+        const char *app_name, const uint8_t hook, const char *hookname,
+        struct DetectFirewallPolicy *pol)
+{
+    Signature *s = SCCalloc(1, sizeof(*s)); // SigAlloc does way more than we need
+    if (s == NULL)
+        return -1;
+    char msg[256];
+    snprintf(msg, sizeof(msg), "SURICATA FW default app policy");
+    s->msg = SCStrdup(msg);
+    if (s->msg == NULL) {
+        SCFree(s);
+        return -1;
+    }
+    s->app_progress_hook = hook;
+    s->action = pol->action;
+    s->action_scope = pol->action_scope;
+    s->alproto = alproto;
+    s->flags = (direction == STREAM_TOSERVER) ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT;
+    s->flags |= SIG_FLAG_FIREWALL;
+    s->type = SIG_TYPE_APP_TX;
+    s->detect_table = DETECT_TABLE_APP_FILTER;
+    s->id = 2201001;
+    s->rev = 1;
+    s->gid = 1;
+    s->prio = 3;
+
+    if (HashTableAdd(ht, s, 0) != 0) {
+        SCFree(s->msg);
+        SCFree(s);
+        return -1;
+    }
+    SCLogDebug("added to hash");
+    return 0;
+}
+
 static int DoParsePolicy(const char *policy_name, struct DetectFirewallPolicy *pol)
 {
     SCConfNode *policy_actions = SCConfGetNode(policy_name);
@@ -3737,7 +3931,7 @@ static int DoParsePolicy(const char *policy_name, struct DetectFirewallPolicy *p
     int idx = 0;
     SCConfNode *paction = NULL;
     TAILQ_FOREACH (paction, &policy_actions->head, next) {
-        SCLogNotice("fw: %s => %s", policy_name, paction->val);
+        SCLogDebug("fw: %s => %s", policy_name, paction->val);
         if (SigParseActionDo(paction->val, idx, true, &action, &action_scope) < 0)
             return -1;
         idx++;
@@ -3749,7 +3943,7 @@ static int DoParsePolicy(const char *policy_name, struct DetectFirewallPolicy *p
 
 static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const char *hookname,
         const uint8_t state, const uint8_t complete_state, const int direction,
-        struct DetectFirewallAppPolicy *app_fw_policies)
+        struct DetectFirewallPolicies *fw_policies, struct DetectFirewallAppPolicy *app_fw_policies)
 {
     char policy_name[256];
     const char *in_name = hookname;
@@ -3783,10 +3977,12 @@ static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const 
         FatalError("internal error: failed to assemble firewall policy config string");
     }
 
+    struct DetectFirewallPolicy *pol;
     if (direction == STREAM_TOSERVER)
-        r = DoParsePolicy(policy_name, &app_fw_policies[app_proto].ts[state]);
+        pol = &app_fw_policies[app_proto].ts[state];
     else
-        r = DoParsePolicy(policy_name, &app_fw_policies[app_proto].tc[state]);
+        pol = &app_fw_policies[app_proto].tc[state];
+    r = DoParsePolicy(policy_name, pol);
     if (r == 0 && in_name != NULL) {
         if (state == 0) {
             if (direction == STREAM_TOSERVER)
@@ -3806,10 +4002,14 @@ static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const 
             FatalError("internal error: failed to assemble firewall policy config string");
         }
 
-        if (direction == STREAM_TOSERVER)
-            return DoParsePolicy(policy_name, &app_fw_policies[app_proto].ts[state]);
-        else
-            return DoParsePolicy(policy_name, &app_fw_policies[app_proto].tc[state]);
+        r = DoParsePolicy(policy_name, pol);
+    }
+
+    /* for policies with an alert action, create a policy sig */
+    if (r == 1 && pol->action & ACTION_ALERT) {
+        SCLogDebug("adding policy signature");
+        return AddAppPolicySignature(fw_policies->policy_signatures, direction, app_proto, app_name,
+                state, hookname, pol);
     }
     return r;
 }
@@ -3823,6 +4023,10 @@ int DetectFirewallInitDefaultPolicies(DetectEngineCtx *de_ctx)
         return -1;
     struct DetectFirewallAppPolicy *app_fw_policies = fw_policies->app;
     if (app_fw_policies == NULL)
+        goto error;
+    fw_policies->policy_signatures = HashTableInit(
+            512, PolicySignatureHashFunc, PolicySignatureCompareFunc, PolicySignatureHashFree);
+    if (fw_policies->policy_signatures == NULL)
         goto error;
 
     fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER].action = ACTION_DROP;
@@ -3873,6 +4077,11 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
     r = DoParsePolicy(policy_name, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER]);
     if (r < 0)
         return -1;
+    if (fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER].action & ACTION_ALERT)
+        if (AddPktPolicySignature(fw_policies,
+                    &fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER],
+                    DETECT_FIREWALL_POLICY_PACKET_FILTER) < 0)
+            return -1;
 
     r = snprintf(policy_name, sizeof(policy_name), "%s.packet-pre-flow", prefix);
     if (r < 0 || (size_t)r >= sizeof(policy_name)) {
@@ -3881,6 +4090,10 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
     r = DoParsePolicy(policy_name, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_FLOW]);
     if (r < 0)
         return -1;
+    if (fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_FLOW].action & ACTION_ALERT)
+        if (AddPktPolicySignature(fw_policies, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_FLOW],
+                    DETECT_FIREWALL_POLICY_PRE_FLOW) < 0)
+            return -1;
 
     r = snprintf(policy_name, sizeof(policy_name), "%s.packet-pre-stream", prefix);
     if (r < 0 || (size_t)r >= sizeof(policy_name)) {
@@ -3889,6 +4102,10 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
     r = DoParsePolicy(policy_name, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_STREAM]);
     if (r < 0)
         return -1;
+    if (fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_STREAM].action & ACTION_ALERT)
+        if (AddPktPolicySignature(fw_policies, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_STREAM],
+                    DETECT_FIREWALL_POLICY_PRE_STREAM) < 0)
+            return -1;
 
     for (AppProto a = 0; a < g_alproto_max; a++) {
         if (!AppProtoIsValid(a))
@@ -3900,7 +4117,7 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
             const char *name =
                     AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOSERVER);
             if (DoParseAppPolicy(prefix, a, name, state, complete_state_ts, STREAM_TOSERVER,
-                        app_fw_policies) < 0)
+                        fw_policies, app_fw_policies) < 0)
                 return -1;
         }
 
@@ -3910,12 +4127,28 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
             const char *name =
                     AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOCLIENT);
             if (DoParseAppPolicy(prefix, a, name, state, complete_state_tc, STREAM_TOCLIENT,
-                        app_fw_policies) < 0)
+                        fw_policies, app_fw_policies) < 0)
                 return -1;
         }
     }
 
     return 0;
+}
+
+Signature *DetectFirewallGetPolicySignature(struct DetectFirewallPolicies *fw_policies,
+        const AppProto alproto, const int direction, const uint8_t hook)
+{
+    if (fw_policies != NULL && fw_policies->policy_signatures != NULL) {
+        Signature lookup;
+        lookup.alproto = alproto;
+        lookup.flags = SIG_FLAG_FIREWALL |
+                       (direction == STREAM_TOSERVER ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT);
+        lookup.app_progress_hook = hook;
+
+        Signature *s = HashTableLookup(fw_policies->policy_signatures, &lookup, 0);
+        return s;
+    }
+    return NULL;
 }
 
 /*

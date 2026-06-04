@@ -55,10 +55,68 @@ The HTTP rules need to ``accept`` each state::
 
 Each state needs an ``accept`` rule. Each state is evaluated at least once.
 
+HTTP example with partially using default policies
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    firewall:
+      policies:
+        http:
+          request-started:
+            - "accept:hook"
+          request-line:
+            - "drop:flow"
+            - "alert"
+          request-headers:
+            - "drop:flow"
+            - "alert"
+          request-body:
+            - "accept:hook"
+          request-trailer:
+            - "accept:hook"
+          request-complete:
+            - "accept:hook"
+
+          response-started:
+            - "accept:hook"
+          response-line:
+            - "drop:flow"
+            - "alert"
+          response-headers:
+            - "accept:hook"
+          response-body:
+            - "accept:hook"
+          response-trailer:
+            - "accept:hook"
+          response-complete:
+            - "accept:hook"
+
+
+::
+
+    # allow GET
+    accept:hook http1:request_line any any -> any any ( \
+            http.method; content:"GET"; sid:101;)
+    # or allow POST
+    accept:hook http1:request_line any any -> any any ( \
+            http.method; content:"POST"; sid:102;)
+    # allow User-Agent curl
+    accept:hook http1:request_headers any any -> any any ( \
+            http.user_agent; content:"curl"; sid:103;)
+
+    # allow the 200 ok stat code.
+    accept:hook http1:response_line any any -> any any ( \
+            http.stat_code; content:"200"; sid:201;)
+
+Explanation: the config auto accepts various hooks, leaving just ``http1:request_line``,
+``http1:request_headers`` and ``http1:response_line`` for the ruleset to accept.
+
+
 TLS SNI with complex TCP rules
 ------------------------------
 
-In this example the ``packet_filter`` rules will be more opinionated about the traffic::
+In this example the ``packet:filter`` rules will be more opinionated about the traffic::
 
     # allow 3-way handshake
     accept:hook tcp:all $HOME_NET any -> $EXTERNAL_NET 443 (flags:S; \
@@ -91,3 +149,27 @@ there be additional constraints::
     accept:hook tls:server_handshake_done $EXTERNAL_NET any -> $HOME_NET any (sid:204;)
     accept:hook tls:server_finished $EXTERNAL_NET any -> $HOME_NET any (sid:205;)
 
+TLS SNI with auto-accept logic
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Rule that has the same effect as the 11 TLS rules above::
+
+    accept:flow tls:<client_hello_done $HOME_NET any -> $EXTERNAL_NET any (tls.sni; \
+            pcre:"/^(suricata.io|oisf.net)$/; sid:101;)
+
+Explanation: ``accept:flow`` accepts all of the TLS flow from the moment the rule
+has matched. The ``tls:client_in_progress`` hook is auto-accepted by the use of the
+``<`` modifier in the hook ``tls:<client_hello_done``.
+
+TLS SNI with auto-accept logic, plus disabling TD matching
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To allow-list a connection to a specific SNI, w/o threat detection rules
+matching on this flow either, the example above can be extended by adding ``pass:flow``
+as a secondary action::
+
+    accept:flow,pass:flow tls:<client_hello_done $HOME_NET any -> $EXTERNAL_NET any \
+        (tls.sni; pcre:"/^(suricata.io|oisf.net)$/; sid:101;)
+
+Explanation: as soon as this rule fully matches at the ``tls:client_hello_done`` hook,
+a ``pass`` is applied to the flow effectively bypassing the threat detection engine.

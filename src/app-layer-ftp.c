@@ -197,7 +197,7 @@ static void *FTPLocalStorageAlloc(void)
     if (unlikely(td->ftp_mpm_thread_ctx == NULL)) {
         exit(EXIT_FAILURE);
     }
-    MpmInitThreadCtx(td->ftp_mpm_thread_ctx, FTP_MPM);
+    MpmInitThreadCtx(td->ftp_mpm_thread_ctx, ftp_mpm_ctx, FTP_MPM);
     return td;
 }
 
