@@ -1847,6 +1847,12 @@ extern "C" {
     pub fn SCFlowGetDestinationPort(flow: *const Flow) -> u16;
 }
 extern "C" {
+    pub fn SCFlowGetSourceAddressAsRawPtr(flow: *const Flow) -> *const u8;
+}
+extern "C" {
+    pub fn SCFlowGetDestinationAddressAsRawPtr(flow: *const Flow) -> *const u8;
+}
+extern "C" {
     pub fn SCFlowGetToServerPacketCount(flow: *const Flow) -> u32;
 }
 extern "C" {
