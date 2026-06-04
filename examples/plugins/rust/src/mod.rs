@@ -98,8 +98,32 @@ fn log_eve_wrapped(
     jb.set_string("example", "eve-callback")?;
     jb.set_string("has_flow", if f.is_some() { "true" } else { "false" })?;
 
-    // If we have a flow, log something from flow storage.
+    // If we have a flow, show the `Flow` wrapper accessors and log something
+    // from flow storage.
     if let Some(f) = f {
+        let src_ip = f
+            .source_address()
+            .map(|addr| addr.to_string())
+            .unwrap_or_else(|| "<unknown>".to_string());
+        let dst_ip = f
+            .destination_address()
+            .map(|addr| addr.to_string())
+            .unwrap_or_else(|| "<unknown>".to_string());
+        let toserver = f.to_server_packet_count();
+        let toclient = f.to_client_packet_count();
+
+        jb.open_object("flow_accessors")?;
+        jb.set_string("src_ip", &src_ip)?;
+        jb.set_uint("src_port", f.source_port() as u64)?;
+        jb.set_string("dest_ip", &dst_ip)?;
+        jb.set_uint("dest_port", f.destination_port() as u64)?;
+        jb.set_uint("ip_proto", f.ip_protocol() as u64)?;
+        jb.set_uint("app_proto", f.app_protocol() as u64)?;
+        jb.set_uint("toserver_pkts", toserver as u64)?;
+        jb.set_uint("toclient_pkts", toclient as u64)?;
+        jb.set_uint("last_seen", f.last_time().as_secs())?;
+        jb.close()?;
+
         if let Some(state) = flow_storage.get(f) {
             jb.set_uint("flow_packets", state.packets)?;
         }
