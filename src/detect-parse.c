@@ -3390,7 +3390,12 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
             sw_tmp.s = de_ctx->sig_list;
             sw_old = HashListTableLookup(de_ctx->dup_sig_hash_table,
                                          (void *)&sw_tmp, 0);
-            /* sw_old == NULL case is impossible */
+            /* sw_old == NULL case is impossible: every sig in sig_list
+             * must have a corresponding dup_sig_hash_table entry */
+            DEBUG_VALIDATE_BUG_ON(sw_old == NULL);
+            if (unlikely(sw_old == NULL)) {
+                goto end;
+            }
             sw_old->s_prev = sig;
         }
 
@@ -3425,7 +3430,10 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
         if (sw_temp.s != NULL) {
             sw_next = HashListTableLookup(de_ctx->dup_sig_hash_table,
                                           (void *)&sw_temp, 0);
-            sw_next->s_prev = sw_dup->s_prev;
+            DEBUG_VALIDATE_BUG_ON(sw_next == NULL);
+            if (likely(sw_next != NULL)) {
+                sw_next->s_prev = sw_dup->s_prev;
+            }
         }
         SigFree(de_ctx, sw_dup->s);
     } else {
@@ -3455,7 +3463,10 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
         if (sw_temp.s != NULL) {
             sw_next = HashListTableLookup(de_ctx->dup_sig_hash_table,
                                           (void *)&sw_temp, 0);
-            sw_next->s_prev = sw_dup->s_prev;
+            DEBUG_VALIDATE_BUG_ON(sw_next == NULL);
+            if (likely(sw_next != NULL)) {
+                sw_next->s_prev = sw_dup->s_prev;
+            }
         }
         SigFree(de_ctx, sw_dup->s);
     }
@@ -3470,7 +3481,8 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
         sw_tmp.s = de_ctx->sig_list;
         SigDuplWrapper *sw_old = HashListTableLookup(de_ctx->dup_sig_hash_table,
                                                      (void *)&sw_tmp, 0);
-        if (sw_old->s != sw_dup->s) {
+        DEBUG_VALIDATE_BUG_ON(sw_old == NULL);
+        if (likely(sw_old != NULL) && sw_old->s != sw_dup->s) {
             // Link on top of the list if there was another element
             sw_old->s_prev = sig;
         }
