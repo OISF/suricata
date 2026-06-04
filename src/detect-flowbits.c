@@ -793,11 +793,11 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                     uint32_t new_fb_array_size = s->init_data->rule_state_flowbits_ids_size + 1;
                     void *tmp_fb_ptr = SCRealloc(s->init_data->rule_state_flowbits_ids_array,
                             new_fb_array_size * sizeof(uint32_t));
-                    s->init_data->rule_state_flowbits_ids_array = tmp_fb_ptr;
-                    if (s->init_data->rule_state_flowbits_ids_array == NULL) {
+                    if (tmp_fb_ptr == NULL) {
                         SCLogError("Failed to reallocate memory for rule_state_variable_idx");
                         goto error;
                     }
+                    s->init_data->rule_state_flowbits_ids_array = tmp_fb_ptr;
                     SCLogDebug(
                             "realloc'ed array for flowbits ids, new size is %u", new_fb_array_size);
                     s->init_data->rule_state_dependant_sids_size = new_array_size;
