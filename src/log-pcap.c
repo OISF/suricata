@@ -129,11 +129,11 @@ typedef struct PcapLogCompressionData_ {
 #ifdef HAVE_LIBLZ4
     LZ4F_compressionContext_t lz4f_context;
     LZ4F_preferences_t lz4f_prefs;
+    FILE *pcap_buf_wrapper;
 #endif /* HAVE_LIBLZ4 */
     FILE *file;
     uint8_t *pcap_buf;
     uint64_t pcap_buf_size;
-    FILE *pcap_buf_wrapper;
     uint64_t bytes_in_block;
 } PcapLogCompressionData;
 
@@ -277,15 +277,7 @@ static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
 #ifdef HAVE_LIBLZ4
             PcapLogCompressionData *comp = &pl->compression;
             if (comp->format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
-                /* pcap_dump_close() has closed its output ``file'',
-                 * so we need to call fmemopen again. */
-
-                comp->pcap_buf_wrapper = SCFmemopen(comp->pcap_buf,
-                        comp->pcap_buf_size, "w");
-                if (comp->pcap_buf_wrapper == NULL) {
-                    SCLogError("SCFmemopen failed: %s", strerror(errno));
-                    return TM_ECODE_FAILED;
-                }
+                comp->pcap_buf_wrapper = NULL;
             }
 #endif /* HAVE_LIBLZ4 */
         }
@@ -367,6 +359,7 @@ static int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
         }
 
         TAILQ_REMOVE(&pl->pcap_file_list, pf, next);
+        DEBUG_VALIDATE_BUG_ON(TAILQ_FIRST(&pl->pcap_file_list) == pf);
         PcapFileNameFree(pf);
         pl->file_cnt--;
     }
@@ -442,6 +435,12 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
                 pl->fopen_err = 0;
             }
 
+            comp->pcap_buf_wrapper = SCFmemopen(comp->pcap_buf, comp->pcap_buf_size, "w");
+            if (comp->pcap_buf_wrapper == NULL) {
+                fclose(comp->file);
+                comp->file = NULL;
+                return TM_ECODE_FAILED;
+            }
             if ((pl->pcap_dumper = pcap_dump_fopen(pl->pcap_dead_handle, comp->pcap_buf_wrapper)) ==
                     NULL) {
                 if (!pl->pcap_open_err) {
@@ -1015,6 +1014,7 @@ static TmEcode PcapLogInitRingBuffer(PcapLogData *pl)
         PcapFileName *pf = TAILQ_FIRST(&pl->pcap_file_list);
         while (pf != NULL && pl->file_cnt > pl->max_files) {
             TAILQ_REMOVE(&pl->pcap_file_list, pf, next);
+            DEBUG_VALIDATE_BUG_ON(TAILQ_FIRST(&pl->pcap_file_list) == pf);
 
             SCLogDebug("Removing PCAP file %s", pf->filename);
             if (remove(pf->filename) != 0) {
@@ -1166,6 +1166,7 @@ static void PcapLogDataFree(PcapLogData *pl)
     PcapFileName *pf;
     while ((pf = TAILQ_FIRST(&pl->pcap_file_list)) != NULL) {
         TAILQ_REMOVE(&pl->pcap_file_list, pf, next);
+        DEBUG_VALIDATE_BUG_ON(TAILQ_FIRST(&pl->pcap_file_list) == pf);
         PcapFileNameFree(pf);
     }
     if (pl == g_pcap_data) {
@@ -1191,7 +1192,8 @@ static void PcapLogDataFree(PcapLogData *pl)
 #ifdef HAVE_LIBLZ4
     if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
         SCFree(pl->compression.buffer);
-        fclose(pl->compression.pcap_buf_wrapper);
+        if (pl->compression.pcap_buf_wrapper)
+            fclose(pl->compression.pcap_buf_wrapper);
         SCFree(pl->compression.pcap_buf);
         LZ4F_errorCode_t errcode =
                 LZ4F_freeCompressionContext(pl->compression.lz4f_context);
@@ -1217,7 +1219,7 @@ static TmEcode PcapLogDataDeinit(ThreadVars *t, void *thread_data)
     PcapLogData *pl = td->pcap_log;
 
     if (pl->pcap_dumper != NULL) {
-        if (PcapLogCloseFile(t,pl) < 0) {
+        if (PcapLogCloseFile(t, pl) != TM_ECODE_OK) {
             SCLogDebug("PcapLogCloseFile failed");
         }
     }
@@ -1482,7 +1484,9 @@ static OutputInitResult PcapLogInitCtx(SCConfNode *conf)
             comp->file = NULL;
             comp->pcap_buf = NULL;
             comp->pcap_buf_size = 0;
+#ifdef HAVE_LIBLZ4
             comp->pcap_buf_wrapper = NULL;
+#endif
         } else if (strcmp(compression_str, "lz4") == 0) {
 #ifdef HAVE_LIBLZ4
             pl->compression.format = PCAP_LOG_COMPRESSION_FORMAT_LZ4;
@@ -1849,7 +1853,7 @@ static void FormatNumber(uint64_t num, char *str, size_t size)
         snprintf(str, size, "%3.1fb", (float)num/1000000000UL);
 }
 
-static void ProfileReportPair(FILE *fp, const char *name, PcapLogProfileData *p)
+static void ProfileReportPair(FILE *fp, const char *name, const PcapLogProfileData *p)
 {
     char ticks_str[32] = "n/a";
     char cnt_str[32] = "n/a";
@@ -1863,7 +1867,7 @@ static void ProfileReportPair(FILE *fp, const char *name, PcapLogProfileData *p)
     fprintf(fp, "%-28s %-10s %-10s %-10s\n", name, cnt_str, avg_str, ticks_str);
 }
 
-static void ProfileReport(FILE *fp, PcapLogData *pl)
+static void ProfileReport(FILE *fp, const PcapLogData *pl)
 {
     ProfileReportPair(fp, "open", &pl->profile_open);
     ProfileReportPair(fp, "close", &pl->profile_close);
@@ -1886,23 +1890,8 @@ static void FormatBytes(uint64_t num, char *str, size_t size)
         snprintf(str, size, "%3.1fGiB", (float)num/1000000000UL);
 }
 
-static void PcapLogProfilingDump(PcapLogData *pl)
+static void DoDump(const PcapLogData *pl, FILE *fp)
 {
-    FILE *fp = NULL;
-
-    if (profiling_pcaplog_enabled == 0)
-        return;
-
-    if (profiling_pcaplog_output_to_file == 1) {
-        fp = fopen(profiling_pcaplog_file_name, profiling_pcaplog_file_mode);
-        if (fp == NULL) {
-            SCLogError("failed to open %s: %s", profiling_pcaplog_file_name, strerror(errno));
-            return;
-        }
-    } else {
-       fp = stdout;
-    }
-
     /* counters */
     fprintf(fp, "\n\nOperation                    Cnt        Avg ticks  Total ticks\n");
     fprintf(fp,     "---------------------------- ---------- ---------- -----------\n");
@@ -1942,9 +1931,24 @@ static void PcapLogProfilingDump(PcapLogData *pl)
     if (ticks_per_gib > 0)
         FormatNumber(ticks_per_gib, ticks_per_gib_str, sizeof(ticks_per_gib_str));
     fprintf(fp, "         Ticks per GiB: %s\n", ticks_per_gib_str);
+}
 
-    if (fp != stdout)
+static void PcapLogProfilingDump(PcapLogData *pl)
+{
+    if (profiling_pcaplog_enabled == 0)
+        return;
+
+    if (profiling_pcaplog_output_to_file == 1) {
+        FILE *fp = fopen(profiling_pcaplog_file_name, profiling_pcaplog_file_mode);
+        if (fp == NULL) {
+            SCLogError("failed to open %s: %s", profiling_pcaplog_file_name, strerror(errno));
+            return;
+        }
+        DoDump(pl, fp);
         fclose(fp);
+    } else {
+        DoDump(pl, stdout);
+    }
 }
 
 void PcapLogProfileSetup(void)
