@@ -1242,6 +1242,22 @@ uint16_t SCFlowGetSourcePort(const Flow *flow)
 }
 
 /**
+ * \brief Get flow source address as a "raw" pointer.
+ */
+const uint8_t *SCFlowGetSourceAddressAsRawPtr(const Flow *flow)
+{
+    return flow->src.address.address_un_data8;
+}
+
+/**
+ * \brief Get flow destination address as a "raw" pointer.
+ */
+const uint8_t *SCFlowGetDestinationAddressAsRawPtr(const Flow *flow)
+{
+    return flow->dst.address.address_un_data8;
+}
+
+/**
  * \brief Return true if the flow is IPv4.
  */
 bool SCFlowIsIPv4(const Flow *flow)
