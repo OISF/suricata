@@ -314,18 +314,6 @@ typedef struct FlowKey_
     uint16_t vlan_id[VLAN_MAX_LAYERS];
 } FlowKey;
 
-typedef struct SCFlowAddress_ {
-    union {
-        uint32_t       address_un_data32[4]; /* type-specific field */
-        uint16_t       address_un_data16[8]; /* type-specific field */
-        uint8_t        address_un_data8[16]; /* type-specific field */
-    } address;
-} SCFlowAddress;
-
-#define addr_data32 address.address_un_data32
-#define addr_data16 address.address_un_data16
-#define addr_data8  address.address_un_data8
-
 typedef unsigned short FlowStateType;
 
 /** Local Thread ID */
