@@ -2093,6 +2093,12 @@ static HashListTable *DetectBufferInstanceInit(void)
             DetectBufferInstanceFreeFunc);
 }
 
+typedef struct MpmEngineList {
+    // ok as ling as file.data will have less than that many protocols to it
+    AppProto list[ALPROTO_MAX_STATIC];
+    size_t idx;
+} MpmEngineList;
+
 static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 {
     HashListTable *bufs = DetectBufferInstanceInit();
@@ -2101,10 +2107,8 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     const int max_buffer_id = de_ctx->buffer_type_id + 1;
     const uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
 
-    AppProto engines[max_buffer_id][g_alproto_max];
-    memset(engines, 0, sizeof(engines));
-    int *engines_idx = SCCalloc(max_buffer_id, sizeof(int));
-    BUG_ON(engines_idx == NULL);
+    MpmEngineList *engines = SCCalloc(max_buffer_id, sizeof(MpmEngineList));
+    BUG_ON(engines == NULL);
     int *types = SCCalloc(max_buffer_id, sizeof(int));
     BUG_ON(types == NULL);
 
@@ -2129,7 +2133,7 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         const bool add_tc = ((a->direction == SIG_FLAG_TOCLIENT) && SGH_DIRECTION_TC(sh));
         if (add_ts || add_tc) {
             types[a->sm_list] = a->type;
-            engines[a->sm_list][engines_idx[a->sm_list]++] = a->frame_v1.alproto;
+            engines[a->sm_list].list[engines[a->sm_list].idx++] = a->frame_v1.alproto;
 
             DetectBufferInstance lookup = { .list = a->sm_list, .alproto = a->frame_v1.alproto };
             DetectBufferInstance *instance = HashListTableLookup(bufs, &lookup, 0);
@@ -2149,7 +2153,7 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         const bool add_tc = ((a->direction == SIG_FLAG_TOCLIENT) && SGH_DIRECTION_TC(sh));
         if (add_ts || add_tc) {
             types[a->sm_list] = a->type;
-            engines[a->sm_list][engines_idx[a->sm_list]++] = a->app_v2.alproto;
+            engines[a->sm_list].list[engines[a->sm_list].idx++] = a->app_v2.alproto;
 
             DetectBufferInstance lookup = { .list = a->sm_list, .alproto = a->app_v2.alproto };
             DetectBufferInstance *instance = HashListTableLookup(bufs, &lookup, 0);
@@ -2181,8 +2185,8 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             /* app engines are direction aware */
             case DETECT_BUFFER_MPM_TYPE_FRAME:
             case DETECT_BUFFER_MPM_TYPE_APP: {
-                for (int e = 0; e < engines_idx[list]; e++) {
-                    const AppProto alproto = engines[list][e];
+                for (size_t e = 0; e < engines[list].idx; e++) {
+                    const AppProto alproto = engines[list].list[e];
                     if (!(AppProtoEquals(s->alproto, alproto) || s->alproto == 0))
                         continue;
 
@@ -2343,7 +2347,7 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         }
     }
     HashListTableFree(bufs);
-    SCFree(engines_idx);
+    SCFree(engines);
     SCFree(types);
 }
 
