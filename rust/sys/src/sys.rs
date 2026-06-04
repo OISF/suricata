@@ -1059,6 +1059,185 @@ extern "C" {
 extern "C" {
     pub fn SCLogGetLogLevel() -> SCLogLevel;
 }
+extern "C" {
+    pub fn SCFileFlowFlagsToFlags(flow_file_flags: u16, direction: u8) -> u16;
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct StreamingBufferConfig_ {
+    pub buf_size: u32,
+    #[doc = "< max concurrent memory regions. 0 means no limit."]
+    pub max_regions: u16,
+    #[doc = "< max gap size before a new region will be created."]
+    pub region_gap: u32,
+    pub Calloc: ::std::option::Option<
+        unsafe extern "C" fn(n: usize, size: usize) -> *mut ::std::os::raw::c_void,
+    >,
+    pub Realloc: ::std::option::Option<
+        unsafe extern "C" fn(
+            ptr: *mut ::std::os::raw::c_void,
+            orig_size: usize,
+            size: usize,
+        ) -> *mut ::std::os::raw::c_void,
+    >,
+    pub Free:
+        ::std::option::Option<unsafe extern "C" fn(ptr: *mut ::std::os::raw::c_void, size: usize)>,
+}
+pub type StreamingBufferConfig = StreamingBufferConfig_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct File_ {
+    _unused: [u8; 0],
+}
+pub type File = File_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct FileContainer_ {
+    pub head: *mut File,
+    pub tail: *mut File,
+}
+impl Default for FileContainer_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type FileContainer = FileContainer_;
+#[doc = " helper for the GetTxFilesFn. Not meant to be embedded as the config\n pointer is passed around in the API."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct AppLayerGetFileState {
+    pub fc: *mut FileContainer,
+    pub cfg: *const StreamingBufferConfig,
+}
+impl Default for AppLayerGetFileState {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+extern "C" {
+    #[doc = "  \\brief Store a chunk of file data in the flow. The open \"flowfile\"\n         will be used.\n\n  \\param ffc the container\n  \\param data data chunk\n  \\param data_len data chunk len\n\n  \\retval 0 ok\n  \\retval -1 error"]
+    pub fn FileAppendData(
+        arg1: *mut FileContainer, sbcfg: *const StreamingBufferConfig, data: *const u8,
+        data_len: u32,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    #[doc = "  \\brief Open a new File\n\n  \\param ffc flow container\n  \\param sbcfg buffer config\n  \\param name filename character array\n  \\param name_len filename len\n  \\param data initial data\n  \\param data_len initial data len\n  \\param flags open flags\n\n  \\retval ff flowfile object\n\n  \\note filename is not a string, so it's not nul terminated.\n\n  If flags contains the FILE_USE_DETECT bit, the pruning code will\n  consider not just the content_stored tracker, but also content_inspected.\n  It's the responsibility of the API user to make sure this tracker is\n  properly updated."]
+    pub fn FileOpenFileWithId(
+        arg1: *mut FileContainer, arg2: *const StreamingBufferConfig, track_id: u32,
+        name: *const u8, name_len: u16, data: *const u8, data_len: u32, flags: u16,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn FileAppendDataById(
+        arg1: *mut FileContainer, sbcfg: *const StreamingBufferConfig, track_id: u32,
+        data: *const u8, data_len: u32,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn FileAppendGAPById(
+        ffc: *mut FileContainer, sbcfg: *const StreamingBufferConfig, track_id: u32,
+        data: *const u8, data_len: u32,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn FileCloseFileById(
+        arg1: *mut FileContainer, sbcfg: *const StreamingBufferConfig, track_id: u32,
+        data: *const u8, data_len: u32, flags: u16,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn FileContainerRecycle(arg1: *mut FileContainer, cfg: *const StreamingBufferConfig);
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct MpmPattern_ {
+    pub len: u16,
+    pub flags: u8,
+    pub offset: u16,
+    pub depth: u16,
+    pub original_pat: *mut u8,
+    pub cs: *mut u8,
+    pub ci: *mut u8,
+    pub id: u32,
+    pub sids_size: u32,
+    pub sids: *mut u32,
+    pub next: *mut MpmPattern_,
+}
+impl Default for MpmPattern_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type MpmPattern = MpmPattern_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct MpmCtx_ {
+    pub ctx: *mut ::std::os::raw::c_void,
+    pub mpm_type: u8,
+    pub flags: u8,
+    pub maxdepth: u16,
+    pub pattern_cnt: u32,
+    pub minlen: u16,
+    pub maxlen: u16,
+    pub memory_cnt: u32,
+    pub memory_size: u32,
+    pub max_pat_id: u32,
+    pub init_hash: *mut *mut MpmPattern,
+}
+impl Default for MpmCtx_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type MpmCtx = MpmCtx_;
+extern "C" {
+    pub fn SCMpmAddPatternCI(
+        mpm_ctx: *mut MpmCtx, pat: *const u8, patlen: u16, offset: u16, depth: u16, pid: u32,
+        sid: u32, flags: u8,
+    ) -> ::std::os::raw::c_int;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct GenericVar_ {
+    #[doc = "< variable type, uses detection sm_type"]
+    pub type_: u16,
+    pub pad: [u8; 2usize],
+    pub idx: u32,
+    pub next: *mut GenericVar_,
+}
+impl Default for GenericVar_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type GenericVar = GenericVar_;
+extern "C" {
+    pub fn SCGenericVarFree(arg1: *mut GenericVar);
+}
+extern "C" {
+    pub fn SCBasicSearchNocaseIndex(arg1: *const u8, arg2: u32, arg3: *const u8, arg4: u16) -> u32;
+}
 pub type ProbingParserFPtr = ::std::option::Option<
     unsafe extern "C" fn(
         f: *const Flow,
@@ -1177,12 +1356,6 @@ pub struct AppLayerParserState_ {
     _unused: [u8; 0],
 }
 pub type AppLayerParserState = AppLayerParserState_;
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct File_ {
-    _unused: [u8; 0],
-}
-pub type File = File_;
 extern "C" {
     #[doc = " \\brief Given a protocol name, checks if the parser is enabled in\n        the conf file.\n\n \\param alproto_name Name of the app layer protocol.\n\n \\retval 1 If enabled.\n \\retval 0 If disabled."]
     pub fn SCAppLayerParserConfParserEnabled(
@@ -1280,7 +1453,6 @@ pub struct AppLayerTxConfig {
     #[doc = " config: log flags"]
     pub log_flags: u8,
 }
-pub type GenericVar = GenericVar_;
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq)]
 pub struct AppLayerTxData {
@@ -1509,98 +1681,6 @@ extern "C" {
         arg1: *mut ::std::os::raw::c_void, arg2: *mut ::std::os::raw::c_void,
     );
 }
-extern "C" {
-    pub fn SCFileFlowFlagsToFlags(flow_file_flags: u16, direction: u8) -> u16;
-}
-#[repr(C)]
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub struct StreamingBufferConfig_ {
-    pub buf_size: u32,
-    #[doc = "< max concurrent memory regions. 0 means no limit."]
-    pub max_regions: u16,
-    #[doc = "< max gap size before a new region will be created."]
-    pub region_gap: u32,
-    pub Calloc: ::std::option::Option<
-        unsafe extern "C" fn(n: usize, size: usize) -> *mut ::std::os::raw::c_void,
-    >,
-    pub Realloc: ::std::option::Option<
-        unsafe extern "C" fn(
-            ptr: *mut ::std::os::raw::c_void,
-            orig_size: usize,
-            size: usize,
-        ) -> *mut ::std::os::raw::c_void,
-    >,
-    pub Free:
-        ::std::option::Option<unsafe extern "C" fn(ptr: *mut ::std::os::raw::c_void, size: usize)>,
-}
-pub type StreamingBufferConfig = StreamingBufferConfig_;
-#[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct FileContainer_ {
-    pub head: *mut File,
-    pub tail: *mut File,
-}
-impl Default for FileContainer_ {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-pub type FileContainer = FileContainer_;
-#[doc = " helper for the GetTxFilesFn. Not meant to be embedded as the config\n pointer is passed around in the API."]
-#[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct AppLayerGetFileState {
-    pub fc: *mut FileContainer,
-    pub cfg: *const StreamingBufferConfig,
-}
-impl Default for AppLayerGetFileState {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-extern "C" {
-    #[doc = "  \\brief Store a chunk of file data in the flow. The open \"flowfile\"\n         will be used.\n\n  \\param ffc the container\n  \\param data data chunk\n  \\param data_len data chunk len\n\n  \\retval 0 ok\n  \\retval -1 error"]
-    pub fn FileAppendData(
-        arg1: *mut FileContainer, sbcfg: *const StreamingBufferConfig, data: *const u8,
-        data_len: u32,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    #[doc = "  \\brief Open a new File\n\n  \\param ffc flow container\n  \\param sbcfg buffer config\n  \\param name filename character array\n  \\param name_len filename len\n  \\param data initial data\n  \\param data_len initial data len\n  \\param flags open flags\n\n  \\retval ff flowfile object\n\n  \\note filename is not a string, so it's not nul terminated.\n\n  If flags contains the FILE_USE_DETECT bit, the pruning code will\n  consider not just the content_stored tracker, but also content_inspected.\n  It's the responsibility of the API user to make sure this tracker is\n  properly updated."]
-    pub fn FileOpenFileWithId(
-        arg1: *mut FileContainer, arg2: *const StreamingBufferConfig, track_id: u32,
-        name: *const u8, name_len: u16, data: *const u8, data_len: u32, flags: u16,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn FileAppendDataById(
-        arg1: *mut FileContainer, sbcfg: *const StreamingBufferConfig, track_id: u32,
-        data: *const u8, data_len: u32,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn FileAppendGAPById(
-        ffc: *mut FileContainer, sbcfg: *const StreamingBufferConfig, track_id: u32,
-        data: *const u8, data_len: u32,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn FileCloseFileById(
-        arg1: *mut FileContainer, sbcfg: *const StreamingBufferConfig, track_id: u32,
-        data: *const u8, data_len: u32, flags: u16,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn FileContainerRecycle(arg1: *mut FileContainer, cfg: *const StreamingBufferConfig);
-}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct HttpRangeContainerBuffer {
@@ -1701,86 +1781,6 @@ extern "C" {
     pub fn SCAppLayerFrameSetTxIdById(
         f: *const Flow, dir: ::std::os::raw::c_int, id: FrameId, tx_id: u64,
     );
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct MpmPattern_ {
-    pub len: u16,
-    pub flags: u8,
-    pub offset: u16,
-    pub depth: u16,
-    pub original_pat: *mut u8,
-    pub cs: *mut u8,
-    pub ci: *mut u8,
-    pub id: u32,
-    pub sids_size: u32,
-    pub sids: *mut u32,
-    pub next: *mut MpmPattern_,
-}
-impl Default for MpmPattern_ {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-pub type MpmPattern = MpmPattern_;
-#[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct MpmCtx_ {
-    pub ctx: *mut ::std::os::raw::c_void,
-    pub mpm_type: u8,
-    pub flags: u8,
-    pub maxdepth: u16,
-    pub pattern_cnt: u32,
-    pub minlen: u16,
-    pub maxlen: u16,
-    pub memory_cnt: u32,
-    pub memory_size: u32,
-    pub max_pat_id: u32,
-    pub init_hash: *mut *mut MpmPattern,
-}
-impl Default for MpmCtx_ {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-pub type MpmCtx = MpmCtx_;
-extern "C" {
-    pub fn SCMpmAddPatternCI(
-        mpm_ctx: *mut MpmCtx, pat: *const u8, patlen: u16, offset: u16, depth: u16, pid: u32,
-        sid: u32, flags: u8,
-    ) -> ::std::os::raw::c_int;
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct GenericVar_ {
-    #[doc = "< variable type, uses detection sm_type"]
-    pub type_: u16,
-    pub pad: [u8; 2usize],
-    pub idx: u32,
-    pub next: *mut GenericVar_,
-}
-impl Default for GenericVar_ {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-extern "C" {
-    pub fn SCGenericVarFree(arg1: *mut GenericVar);
-}
-extern "C" {
-    pub fn SCBasicSearchNocaseIndex(arg1: *const u8, arg2: u32, arg3: *const u8, arg4: u16) -> u32;
 }
 extern "C" {
     pub fn SCFlowGetLastTimeAsParts(flow: *const Flow, secs: *mut u64, usecs: *mut u64);
