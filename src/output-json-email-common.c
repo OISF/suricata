@@ -51,7 +51,7 @@
 
 #include "output-json.h"
 #include "output-json-email-common.h"
-#include "flow-bindgen.h"
+#include "flow.h"
 
 #define LOG_EMAIL_DEFAULT       0
 #define LOG_EMAIL_EXTENDED      (1<<0)
