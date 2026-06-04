@@ -314,13 +314,13 @@ typedef struct FlowKey_
     uint16_t vlan_id[VLAN_MAX_LAYERS];
 } FlowKey;
 
-typedef struct FlowAddress_ {
+typedef struct SCFlowAddress_ {
     union {
         uint32_t       address_un_data32[4]; /* type-specific field */
         uint16_t       address_un_data16[8]; /* type-specific field */
         uint8_t        address_un_data8[16]; /* type-specific field */
     } address;
-} FlowAddress;
+} SCFlowAddress;
 
 #define addr_data32 address.address_un_data32
 #define addr_data16 address.address_un_data16
@@ -355,7 +355,7 @@ typedef struct Flow_
 {
     /* flow "header", used for hashing and flow lookup. Static after init,
      * so safe to look at without lock */
-    FlowAddress src, dst;
+    SCFlowAddress src, dst;
     union {
         Port sp;        /**< tcp/udp source port */
         struct {
