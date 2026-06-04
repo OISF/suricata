@@ -1787,6 +1787,37 @@ extern "C" {
         f: *const Flow, dir: ::std::os::raw::c_int, id: FrameId, tx_id: u64,
     );
 }
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct SCFlowAddress_ {
+    pub address: SCFlowAddress___bindgen_ty_1,
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union SCFlowAddress___bindgen_ty_1 {
+    pub address_un_data32: [u32; 4usize],
+    pub address_un_data16: [u16; 8usize],
+    pub address_un_data8: [u8; 16usize],
+}
+impl Default for SCFlowAddress___bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+impl Default for SCFlowAddress_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type SCFlowAddress = SCFlowAddress_;
 extern "C" {
     pub fn SCFlowGetLastTimeAsParts(flow: *const Flow, secs: *mut u64, usecs: *mut u64);
 }
@@ -1794,10 +1825,31 @@ extern "C" {
     pub fn SCFlowGetFlags(flow: *const Flow) -> u64;
 }
 extern "C" {
+    pub fn SCFlowIsIPv4(flow: *const Flow) -> bool;
+}
+extern "C" {
+    pub fn SCFlowIsIPv6(flow: *const Flow) -> bool;
+}
+extern "C" {
+    pub fn SCFlowGetIPProtocol(flow: *const Flow) -> u8;
+}
+extern "C" {
     pub fn SCFlowGetSourcePort(flow: *const Flow) -> u16;
 }
 extern "C" {
     pub fn SCFlowGetDestinationPort(flow: *const Flow) -> u16;
+}
+extern "C" {
+    pub fn SCFlowGetSourceAddressPtr(flow: *const Flow) -> *const SCFlowAddress;
+}
+extern "C" {
+    pub fn SCFlowGetDestinationAddressPtr(flow: *const Flow) -> *const SCFlowAddress;
+}
+extern "C" {
+    pub fn SCFlowGetToServerPacketCount(flow: *const Flow) -> u32;
+}
+extern "C" {
+    pub fn SCFlowGetToClientPacketCount(flow: *const Flow) -> u32;
 }
 extern "C" {
     pub fn SCFlowGetAppProtocol(f: *const Flow) -> AppProto;
