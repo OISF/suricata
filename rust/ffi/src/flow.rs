@@ -17,7 +17,9 @@
 
 use std::ffi::CString;
 use std::marker::PhantomData;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::os::raw::c_void;
+use std::time::Duration;
 
 use suricata_sys::sys::{
     self, Packet, SCFlowGetStorageById, SCFlowRegisterFinishCallback, SCFlowRegisterInitCallback,
@@ -57,6 +59,87 @@ impl<'a> Flow<'a> {
     /// Return the underlying raw `Flow` pointer for mutable access.
     fn as_mut_ptr(&mut self) -> *mut sys::Flow {
         self.flow
+    }
+
+    /// Return the time of the last flow update as a `Duration` since the epoch.
+    pub fn last_time(&self) -> Duration {
+        let mut secs: u64 = 0;
+        let mut usecs: u64 = 0;
+        unsafe {
+            sys::SCFlowGetLastTimeAsParts(self.as_ptr(), &mut secs, &mut usecs);
+        }
+        Duration::new(secs, usecs as u32 * 1000)
+    }
+
+    /// Return the flow flags.
+    pub fn flags(&self) -> u64 {
+        unsafe { sys::SCFlowGetFlags(self.as_ptr()) }
+    }
+
+    /// Return true if the flow is IPv4.
+    pub fn is_ipv4(&self) -> bool {
+        unsafe { sys::SCFlowIsIPv4(self.as_ptr()) }
+    }
+
+    /// Return true if the flow is IPv6.
+    pub fn is_ipv6(&self) -> bool {
+        unsafe { sys::SCFlowIsIPv6(self.as_ptr()) }
+    }
+
+    /// Return the flow IP protocol.
+    pub fn ip_protocol(&self) -> u8 {
+        unsafe { sys::SCFlowGetIPProtocol(self.as_ptr()) }
+    }
+
+    /// Return the flow app-layer protocol.
+    pub fn app_protocol(&self) -> sys::AppProto {
+        unsafe { sys::SCFlowGetAppProtocol(self.as_ptr()) }
+    }
+
+    /// Return the flow source port.
+    pub fn source_port(&self) -> u16 {
+        unsafe { sys::SCFlowGetSourcePort(self.as_ptr()) }
+    }
+
+    /// Return the flow destination port.
+    pub fn destination_port(&self) -> u16 {
+        unsafe { sys::SCFlowGetDestinationPort(self.as_ptr()) }
+    }
+
+    /// Return the flow source address.
+    pub fn source_address(&self) -> Option<IpAddr> {
+        let ptr = unsafe { sys::SCFlowGetSourceAddress(self.as_ptr()) };
+        self.address_from_ptr(ptr)
+    }
+
+    /// Return the flow destination address.
+    pub fn destination_address(&self) -> Option<IpAddr> {
+        let ptr = unsafe { sys::SCFlowGetDestinationAddress(self.as_ptr()) };
+        self.address_from_ptr(ptr)
+    }
+
+    /// Return the number of packets seen to-server.
+    pub fn to_server_packet_count(&self) -> u32 {
+        unsafe { sys::SCFlowGetToServerPacketCount(self.as_ptr()) }
+    }
+
+    /// Return the number of packets seen to-client.
+    pub fn to_client_packet_count(&self) -> u32 {
+        unsafe { sys::SCFlowGetToClientPacketCount(self.as_ptr()) }
+    }
+
+    fn address_from_ptr(&self, ptr: *const sys::SCFlowAddress) -> Option<IpAddr> {
+        let address = unsafe { ptr.as_ref()? };
+        let bytes = unsafe { address.address.address_un_data8 };
+        if self.is_ipv4() {
+            Some(IpAddr::V4(Ipv4Addr::new(
+                bytes[0], bytes[1], bytes[2], bytes[3],
+            )))
+        } else if self.is_ipv6() {
+            Some(IpAddr::V6(Ipv6Addr::from(bytes)))
+        } else {
+            None
+        }
     }
 }
 
