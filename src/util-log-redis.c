@@ -673,6 +673,9 @@ int SCConfLogOpenRedis(SCConfNode *redis_node, void *lf_ctx)
             format string, whose length is limited by the length of the
             maxlen integer formatted as a string */
             log_ctx->redis_setup.stream_format = SCCalloc(100, sizeof(char));
+            if (unlikely(log_ctx->redis_setup.stream_format == NULL)) {
+                FatalError("Unable to allocate redis stream format");
+            }
             snprintf(log_ctx->redis_setup.stream_format, 100, redis_stream_format_maxlen_tmpl, "%s",
                     "%s", exact ? '=' : '~', maxlen, "%s");
             log_ctx->redis_setup.format = log_ctx->redis_setup.stream_format;
