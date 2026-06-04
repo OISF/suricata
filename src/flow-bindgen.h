@@ -28,6 +28,8 @@ bool SCFlowIsIPv6(const Flow *flow);
 uint8_t SCFlowGetIPProtocol(const Flow *flow);
 uint16_t SCFlowGetSourcePort(const Flow *flow);
 uint16_t SCFlowGetDestinationPort(const Flow *flow);
+const uint8_t *SCFlowGetSourceAddressAsRawPtr(const Flow *flow);
+const uint8_t *SCFlowGetDestinationAddressAsRawPtr(const Flow *flow);
 uint32_t SCFlowGetToServerPacketCount(const Flow *flow);
 uint32_t SCFlowGetToClientPacketCount(const Flow *flow);
 AppProto SCFlowGetAppProtocol(const Flow *f);
