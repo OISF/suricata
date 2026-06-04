@@ -127,6 +127,7 @@ void VarNameStoreDestroy(void)
 
     while ((s = TAILQ_FIRST(&free_list))) {
         TAILQ_REMOVE(&free_list, s, next);
+        DEBUG_VALIDATE_BUG_ON(TAILQ_FIRST(&free_list) == s);
         HashListTableFree(s->names);
         HashListTableFree(s->ids);
         SCFree(s);
