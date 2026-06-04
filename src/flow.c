@@ -1237,6 +1237,22 @@ uint16_t SCFlowGetSourcePort(const Flow *flow)
 }
 
 /**
+ * \brief Get flow source address.
+ */
+const SCFlowAddress *SCFlowGetSourceAddress(const Flow *flow)
+{
+    return &flow->src;
+}
+
+/**
+ * \brief Get flow destination address.
+ */
+const SCFlowAddress *SCFlowGetDestinationAddress(const Flow *flow)
+{
+    return &flow->dst;
+}
+
+/**
  * \brief Return true if the flow is IPv4.
  */
 bool SCFlowIsIPv4(const Flow *flow)
