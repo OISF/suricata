@@ -1847,6 +1847,14 @@ extern "C" {
     pub fn SCFlowGetDestinationPort(flow: *const Flow) -> u16;
 }
 extern "C" {
+    #[doc = " \\brief Returns a borrowed raw pointer to the flow source address.\n\n The address is in network byte order. Use SCFlowIsIPv4 and SCFlowIsIPV6 to\n properly determine the size and family of the address."]
+    pub fn SCFlowGetSourceAddressAsRawPtr(flow: *const Flow) -> *const u8;
+}
+extern "C" {
+    #[doc = " \\brief Returns a borrowed raw pointer to the flow destination address.\n\n The address is in network byte order. Use SCFlowIsIPv4 and SCFlowIsIPV6 to\n properly determine the size and family of the address."]
+    pub fn SCFlowGetDestinationAddressAsRawPtr(flow: *const Flow) -> *const u8;
+}
+extern "C" {
     pub fn SCFlowGetToServerPacketCount(flow: *const Flow) -> u32;
 }
 extern "C" {
