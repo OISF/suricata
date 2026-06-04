@@ -229,6 +229,7 @@ int BuildCpusetWithCallback(
 {
     SCConfNode *lnode;
     TAILQ_FOREACH(lnode, &node->head, next) {
+        char *sep = NULL;
         uint32_t i;
         uint32_t a, b;
         uint32_t stop = 0;
@@ -240,8 +241,7 @@ int BuildCpusetWithCallback(
             a = 0;
             b = max;
             stop = 1;
-        } else if (strchr(lnode->val, '-') != NULL) {
-            char *sep = strchr(lnode->val, '-');
+        } else if ((sep = strchr(lnode->val, '-')) != NULL) {
             if (StringParseUint32(&a, 10, sep - lnode->val, lnode->val) <= 0) {
                 SCLogError("%s: invalid cpu range (start invalid): \"%s\"", name, lnode->val);
                 return -1;
