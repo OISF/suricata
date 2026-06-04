@@ -1214,7 +1214,7 @@ typedef struct DetectEngineCtx_ {
  * This callback is added to the current detection engine and will be
  * copied to all future detection engines over rule reloads.
  */
-void SCDetectEngineRegisterRateFilterCallback(SCDetectRateFilterFunc cb, void *arg);
+bool SCDetectEngineRegisterRateFilterCallback(SCDetectRateFilterFunc cb, void *arg);
 
 /* Engine groups profiles (low, medium, high, custom) */
 enum {
