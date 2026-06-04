@@ -35,6 +35,7 @@ typedef struct SCFlowStorageId SCFlowStorageId;
 #include "util-optimize.h"
 #include "util-validate.h"
 #include "app-layer-protos.h"
+#include "flow-bindgen.h"
 
 /* Part of the flow structure, so we declare it here.
  * The actual declaration is in app-layer-parser.c */

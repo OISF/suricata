@@ -29,7 +29,6 @@
 #include "decode.h"
 #include "packet.h"
 #include "flow.h"
-#include "flow-bindgen.h"
 #include "stream-tcp.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
