@@ -69,7 +69,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     size_t ipreplist_len = size - split2 - 1;
 
     /* Build the full signature string */
-    char sig_buf[DETECT_MAX_RULE_SIZE];
+    char sig_buf[DETECT_MAX_RULE_SIZE] = { 0 };
     size_t sig_len = strlcat(sig_buf, "alert ip any any -> any any (iprep:", sizeof(sig_buf));
     if (sig_len + kw_len >= DETECT_MAX_RULE_SIZE) {
         return 0;
