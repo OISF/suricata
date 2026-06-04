@@ -641,7 +641,7 @@ static int CompileDataExtensionsInit(hs_expr_ext_t **ext, const SCHSPattern *p)
 {
     if (p->flags & (MPM_PATTERN_FLAG_OFFSET | MPM_PATTERN_FLAG_DEPTH)) {
         *ext = SCCalloc(1, sizeof(hs_expr_ext_t));
-        if ((*ext) == NULL) {
+        if (*ext == NULL) {
             return -1;
         }
         if (p->flags & MPM_PATTERN_FLAG_OFFSET) {
@@ -1178,8 +1178,7 @@ void SCHSPrintInfo(MpmCtx *mpm_ctx)
 
 static MpmConfig *SCHSConfigInit(void)
 {
-    MpmConfig *c = SCCalloc(1, sizeof(MpmConfig));
-    return c;
+    return SCCalloc(1, sizeof(MpmConfig));
 }
 
 static void SCHSConfigDeinit(MpmConfig **c)
