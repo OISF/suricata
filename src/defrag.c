@@ -1178,7 +1178,10 @@ static Packet *BuildIpv4TestPacket(
     if (unlikely(p == NULL))
         return NULL;
 
-    PacketInit(p);
+    if (!PacketInit(p)) {
+        SCFree(p);
+        return NULL;
+    }
 
     struct timeval tval;
     gettimeofday(&tval, NULL);
@@ -1242,7 +1245,7 @@ static int BuildIpv4TestPacketWithContent(Packet **packet, uint8_t proto, uint16
     p = SCCalloc(1, sizeof(*p) + default_packet_size);
     FAIL_IF_NULL(p);
 
-    PacketInit(p);
+    FAIL_IF(!PacketInit(p));
 
     struct timeval tval;
     gettimeofday(&tval, NULL);
@@ -1297,7 +1300,10 @@ static Packet *BuildIpv6TestPacket(
     if (unlikely(p == NULL))
         return NULL;
 
-    PacketInit(p);
+    if (!PacketInit(p)) {
+        SCFree(p);
+        return NULL;
+    }
 
     struct timeval tval;
     gettimeofday(&tval, NULL);
@@ -1367,7 +1373,10 @@ static Packet *BuildIpv6TestPacketWithContent(
     if (unlikely(p == NULL))
         return NULL;
 
-    PacketInit(p);
+    if (!PacketInit(p)) {
+        SCFree(p);
+        return NULL;
+    }
 
     struct timeval tval;
     gettimeofday(&tval, NULL);
