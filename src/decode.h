@@ -396,10 +396,11 @@ enum PacketDropReason {
     PKT_DROP_REASON_STREAM_URG,
     PKT_DROP_REASON_NFQ_ERROR,    /**< no nfq verdict, must be error */
     PKT_DROP_REASON_INNER_PACKET, /**< drop issued by inner (tunnel) packet */
+    PKT_DROP_REASON_EP_FLOW_DROP,
 /** If more non-firewall drop reasons are added, make sure not to "break" PKT_DROP_REASON_NON_FW_MAX
  */
 /* Limiter for non-firewall drop reasons. */
-#define PKT_DROP_REASON_NON_FW_MAX PKT_DROP_REASON_INNER_PACKET
+#define PKT_DROP_REASON_NON_FW_MAX PKT_DROP_REASON_EP_FLOW_DROP
     /** Firewall-related reasons only */
     PKT_DROP_REASON_FW_RULES,
     PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY, /**< drop issued by default packet policy */
