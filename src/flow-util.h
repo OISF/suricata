@@ -49,6 +49,7 @@
         (f)->parent_id = 0;                                                                        \
         (f)->probing_parser_toserver_alproto_masks = 0;                                            \
         (f)->probing_parser_toclient_alproto_masks = 0;                                            \
+        (f)->aux_flags = 0;                                                                        \
         (f)->flags = 0;                                                                            \
         (f)->file_flags = 0;                                                                       \
         (f)->protodetect_dp = 0;                                                                   \
@@ -93,6 +94,7 @@
         (f)->parent_id = 0;                                                                        \
         (f)->probing_parser_toserver_alproto_masks = 0;                                            \
         (f)->probing_parser_toclient_alproto_masks = 0;                                            \
+        (f)->aux_flags = 0;                                                                        \
         (f)->flags = 0;                                                                            \
         (f)->file_flags = 0;                                                                       \
         (f)->protodetect_dp = 0;                                                                   \

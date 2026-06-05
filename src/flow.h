@@ -122,6 +122,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** next packet in toserver direction will act on updated app-layer state */
 #define FLOW_TS_APP_UPDATE_NEXT BIT_U32(31)
 
+/* aux flags */
+
 /* File flags */
 
 #define FLOWFILE_INIT                   0
@@ -402,6 +404,10 @@ typedef struct Flow_
     SCTime_t lastts;
 
     FlowStateType flow_state;
+
+    /* additional flags: in >8 we updated the flags field to u64, but not breaking the ABI
+     * we add additional flags here. */
+    uint8_t aux_flags;
 
     /** flow tenant id, used to setup flow timeout and stream pseudo
      *  packets with the correct tenant id set */
