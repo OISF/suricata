@@ -58,6 +58,7 @@
 #include "detect-icmp-id.h"
 #include "detect-tcp-window.h"
 #include "detect-app-layer-protocol.h"
+#include "app-layer-parser.h"
 
 static int rule_warnings_only = 0;
 
@@ -1460,6 +1461,9 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             SCJbSetBool(ctx.js, "is_mpm", app->mpm);
             SCJbSetString(ctx.js, "app_proto", AppProtoToString(app->alproto));
             SCJbSetUint(ctx.js, "progress", app->progress);
+            if (app->sub_state)
+                SCJbSetString(ctx.js, "sub_state",
+                        AppLayerParserGetSubStateName(app->alproto, app->sub_state));
 
             if (app->v2.transforms != NULL) {
                 SCJbOpenArray(ctx.js, "transforms");
