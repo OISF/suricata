@@ -27,6 +27,9 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 #include <yaml.h>
+#ifdef HAVE_GLOB_H
+#include <glob.h>
+#endif
 #include "util-path.h"
 #include "util-debug.h"
 #include "util-unittest.h"
@@ -104,18 +107,17 @@ ConfYamlSetConfDirname(const char *filename)
 }
 
 /**
- * \brief Include a file in the configuration.
+ * \brief Include a single resolved file in the configuration.
  *
  * \param parent The configuration node the included configuration will be
  *          placed at.
- * \param filename The filename to include.
+ * \param filename The fully resolved filename to include.
  *
  * \retval 0 on success, -1 on failure.
  */
-int SCConfYamlHandleInclude(SCConfNode *parent, const char *filename)
+static int ConfYamlHandleIncludeOne(SCConfNode *parent, const char *filename)
 {
     yaml_parser_t parser;
-    char include_filename[PATH_MAX];
     FILE *file = NULL;
     int ret = -1;
 
@@ -124,18 +126,9 @@ int SCConfYamlHandleInclude(SCConfNode *parent, const char *filename)
         return -1;
     }
 
-    if (PathIsAbsolute(filename)) {
-        strlcpy(include_filename, filename, sizeof(include_filename));
-    }
-    else {
-        snprintf(include_filename, sizeof(include_filename), "%s/%s",
-            conf_dirname, filename);
-    }
-
-    file = fopen(include_filename, "r");
+    file = fopen(filename, "r");
     if (file == NULL) {
-        SCLogError("Failed to open configuration include file %s: %s", include_filename,
-                strerror(errno));
+        SCLogError("Failed to open configuration include file %s: %s", filename, strerror(errno));
         goto done;
     }
 
@@ -155,6 +148,62 @@ done:
     }
 
     return ret;
+}
+
+/**
+ * \brief Include a file or glob pattern in the configuration.
+ *
+ * Relative paths are resolved against the directory of the top-level config
+ * file. If the input contains glob metacharacters (\c *, \c ?, \c [) the
+ * pattern is expanded via glob(3) and each match is included in lexicographic
+ * order. A pattern that matches no files is logged as a warning and not
+ * treated as an error, to support drop-in `conf.d/` directories.
+ *
+ * \param parent The configuration node the included configuration will be
+ *          placed at.
+ * \param filename The filename or glob pattern to include.
+ *
+ * \retval 0 on success, -1 on failure.
+ */
+int SCConfYamlHandleInclude(SCConfNode *parent, const char *filename)
+{
+    char include_filename[PATH_MAX];
+
+    if (PathIsAbsolute(filename)) {
+        strlcpy(include_filename, filename, sizeof(include_filename));
+    } else {
+        snprintf(include_filename, sizeof(include_filename), "%s/%s", conf_dirname, filename);
+    }
+
+#ifdef HAVE_GLOB_H
+    if (strpbrk(filename, "*?[") != NULL) {
+        glob_t globbuf;
+        int gret = glob(include_filename, 0, NULL, &globbuf);
+
+        if (gret == GLOB_NOMATCH) {
+            SCLogWarning("No files match include pattern %s", include_filename);
+            return 0;
+        } else if (gret != 0) {
+            SCLogError(
+                    "Failed to expand include pattern %s: %s", include_filename, strerror(errno));
+            return -1;
+        }
+
+        int ret = 0;
+        for (size_t i = 0; i < (size_t)globbuf.gl_pathc; i++) {
+            const char *path = globbuf.gl_pathv[i];
+            SCLogInfo("Including configuration file %s (matched %s).", path, filename);
+            if (ConfYamlHandleIncludeOne(parent, path) != 0) {
+                ret = -1;
+                break;
+            }
+        }
+        globfree(&globbuf);
+        return ret;
+    }
+#endif
+
+    return ConfYamlHandleIncludeOne(parent, include_filename);
 }
 
 /**
@@ -899,6 +948,115 @@ ConfYamlFileIncludeTest(void)
     PASS;
 }
 
+#ifdef HAVE_GLOB_H
+/**
+ * Test that an include directive with a glob pattern expands and includes
+ * every matching file in lexicographic order.
+ */
+static int ConfYamlFileIncludeGlobTest(void)
+{
+    FILE *fp;
+
+    const char config_filename[] = "ConfYamlFileIncludeGlobTest-config.yaml";
+    const char config_contents[] = "%YAML 1.1\n"
+                                   "---\n"
+                                   "include:\n"
+                                   "  - ConfYamlFileIncludeGlobTest-include-*.yaml\n";
+
+    const char include1_filename[] = "ConfYamlFileIncludeGlobTest-include-01-a.yaml";
+    const char include1_contents[] = "%YAML 1.1\n"
+                                     "---\n"
+                                     "glob-first-key: aaa\n";
+
+    const char include2_filename[] = "ConfYamlFileIncludeGlobTest-include-02-b.yaml";
+    const char include2_contents[] = "%YAML 1.1\n"
+                                     "---\n"
+                                     "glob-second-key: bbb\n";
+
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    FAIL_IF_NULL((fp = fopen(config_filename, "w")));
+    FAIL_IF(fwrite(config_contents, strlen(config_contents), 1, fp) != 1);
+    fclose(fp);
+
+    FAIL_IF_NULL((fp = fopen(include1_filename, "w")));
+    FAIL_IF(fwrite(include1_contents, strlen(include1_contents), 1, fp) != 1);
+    fclose(fp);
+
+    FAIL_IF_NULL((fp = fopen(include2_filename, "w")));
+    FAIL_IF(fwrite(include2_contents, strlen(include2_contents), 1, fp) != 1);
+    fclose(fp);
+
+    if (conf_dirname != NULL) {
+        SCFree(conf_dirname);
+        conf_dirname = NULL;
+    }
+
+    FAIL_IF(SCConfYamlLoadFile(config_filename) != 0);
+
+    SCConfNode *node;
+    node = SCConfGetNode("glob-first-key");
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->val, "aaa") != 0);
+
+    node = SCConfGetNode("glob-second-key");
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->val, "bbb") != 0);
+
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+
+    unlink(config_filename);
+    unlink(include1_filename);
+    unlink(include2_filename);
+
+    PASS;
+}
+
+/**
+ * Test that an include directive with a glob pattern that matches no files
+ * does not fail. Drop-in `conf.d/`-style directories must be allowed to be
+ * empty.
+ */
+static int ConfYamlFileIncludeGlobNoMatchTest(void)
+{
+    FILE *fp;
+
+    const char config_filename[] = "ConfYamlFileIncludeGlobNoMatchTest-config.yaml";
+    const char config_contents[] = "%YAML 1.1\n"
+                                   "---\n"
+                                   "include:\n"
+                                   "  - ConfYamlFileIncludeGlobNoMatchTest-none-*.yaml\n"
+                                   "host-mode: auto\n";
+
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    FAIL_IF_NULL((fp = fopen(config_filename, "w")));
+    FAIL_IF(fwrite(config_contents, strlen(config_contents), 1, fp) != 1);
+    fclose(fp);
+
+    if (conf_dirname != NULL) {
+        SCFree(conf_dirname);
+        conf_dirname = NULL;
+    }
+
+    FAIL_IF(SCConfYamlLoadFile(config_filename) != 0);
+
+    SCConfNode *node = SCConfGetNode("host-mode");
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->val, "auto") != 0);
+
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+
+    unlink(config_filename);
+
+    PASS;
+}
+#endif /* HAVE_GLOB_H */
+
 /**
  * Test that a configuration section is overridden but subsequent
  * occurrences.
@@ -1076,6 +1234,10 @@ void SCConfYamlRegisterTests(void)
     UtRegisterTest("ConfYamlSecondLevelSequenceTest",
                    ConfYamlSecondLevelSequenceTest);
     UtRegisterTest("ConfYamlFileIncludeTest", ConfYamlFileIncludeTest);
+#ifdef HAVE_GLOB_H
+    UtRegisterTest("ConfYamlFileIncludeGlobTest", ConfYamlFileIncludeGlobTest);
+    UtRegisterTest("ConfYamlFileIncludeGlobNoMatchTest", ConfYamlFileIncludeGlobNoMatchTest);
+#endif
     UtRegisterTest("ConfYamlOverrideTest", ConfYamlOverrideTest);
     UtRegisterTest("ConfYamlOverrideFinalTest", ConfYamlOverrideFinalTest);
     UtRegisterTest("ConfYamlNull", ConfYamlNull);
