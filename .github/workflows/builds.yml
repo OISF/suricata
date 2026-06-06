@@ -2443,7 +2443,7 @@ jobs:
       # using leading to random crashes: https://github.com/actions/runner-images/issues/9491
         run: sudo sysctl vm.mmap_rnd_bits=28
       - run: ./autogen.sh
-      - run: ./configure --enable-warnings --enable-debug-validation
+      - run: ./configure --enable-warnings --enable-debug-validation --enable-qa-simulation
         env:
           CFLAGS: "${{ env.DEFAULT_CFLAGS }} -Wshadow -fsanitize=address -fno-omit-frame-pointer"
           LDFLAGS: "-fsanitize=address" 
