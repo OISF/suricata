@@ -104,11 +104,20 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
     /* reset rule store */
     det_ctx->pmq.rule_id_array_cnt = 0;
 
-    SCLogDebug("packet %" PRIu64 " tx %p progress %d tx->detect_progress %02x", PcapPacketCntGet(p),
-            tx->tx_ptr, tx->tx_progress, tx->detect_progress);
+    SCLogDebug("packet %" PRIu64 " tx %p id %" PRIu64 " progress %d tx->detect_progress %02x",
+            PcapPacketCntGet(p), tx->tx_ptr, tx->tx_id, tx->tx_progress, tx->detect_progress);
 
     PrefilterEngine *engine = sgh->tx_engines;
     do {
+        SCLogDebug("%" PRIu64 ": engine %p for %s progress %u  sub_state %u tx %u",
+                PcapPacketCntGet(p), engine, AppProtoToString(engine->alproto),
+                engine->ctx.app.tx_min_progress, engine->ctx.app.sub_state, tx->tx_type);
+        if (engine->alproto != ALPROTO_UNKNOWN && engine->ctx.app.sub_state != tx->tx_type) {
+            SCLogDebug("%" PRIu64 ": engine %p sub_state %u mismatch with tx %u",
+                    PcapPacketCntGet(p), engine, engine->ctx.app.sub_state, tx->tx_type);
+            // not for the tx sub state
+            goto next;
+        }
         // based on flow alproto, and engine, we get right tx_ptr
         void *tx_ptr = DetectGetInnerTx(tx->tx_ptr, alproto, engine->alproto, flow_flags);
         if (tx_ptr == NULL) {
@@ -116,30 +125,31 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
             goto next;
         }
 
-        if (engine->ctx.tx_min_progress != -1) {
+        if (engine->ctx.app.tx_min_progress != -1) {
 #ifdef DEBUG
             const char *pname = AppLayerParserGetStateNameById(ipproto, engine->alproto,
-                    engine->ctx.tx_min_progress, flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT));
-            SCLogDebug("engine %p min_progress %d %s:%s", engine, engine->ctx.tx_min_progress,
+                    engine->ctx.app.tx_min_progress,
+                    flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT));
+            SCLogDebug("engine %p min_progress %d %s:%s", engine, engine->ctx.app.tx_min_progress,
                     AppProtoToString(engine->alproto), pname);
 #endif
             /* if engine needs tx state to be higher, break out. */
-            if (engine->ctx.tx_min_progress > tx->tx_progress)
+            if (engine->ctx.app.tx_min_progress > tx->tx_progress)
                 break;
-            if (tx->tx_progress > engine->ctx.tx_min_progress) {
-                SCLogDebug("tx->tx_progress %u > engine->ctx.tx_min_progress %d", tx->tx_progress,
-                        engine->ctx.tx_min_progress);
+            if (tx->tx_progress > engine->ctx.app.tx_min_progress) {
+                SCLogDebug("tx->tx_progress %u > engine->ctx.app.tx_min_progress %d",
+                        tx->tx_progress, engine->ctx.app.tx_min_progress);
 
                 /* if state value is at or beyond engine state, we can skip it. It means we ran at
                  * least once already. */
-                if (tx->detect_progress > engine->ctx.tx_min_progress) {
+                if (tx->detect_progress > engine->ctx.app.tx_min_progress) {
                     SCLogDebug("tx already marked progress as beyond engine: %u > %u",
-                            tx->detect_progress, engine->ctx.tx_min_progress);
+                            tx->detect_progress, engine->ctx.app.tx_min_progress);
                     goto next;
                 } else {
-                    SCLogDebug("tx->tx_progress %u > engine->ctx.tx_min_progress %d: "
+                    SCLogDebug("tx->tx_progress %u > engine->ctx.app.tx_min_progress %d: "
                                "tx->detect_progress %u",
-                            tx->tx_progress, engine->ctx.tx_min_progress, tx->detect_progress);
+                            tx->tx_progress, engine->ctx.app.tx_min_progress, tx->detect_progress);
                 }
             }
 #ifdef DEBUG
@@ -150,21 +160,21 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
                     tx->tx_data_ptr, flow_flags);
             PREFILTER_PROFILING_END(det_ctx, engine->gid);
             SCLogDebug("engine %p min_progress %d %s:%s: results %u", engine,
-                    engine->ctx.tx_min_progress, AppProtoToString(engine->alproto), pname,
+                    engine->ctx.app.tx_min_progress, AppProtoToString(engine->alproto), pname,
                     det_ctx->pmq.rule_id_array_cnt - old);
 
-            if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress &&
+            if (tx->tx_progress > engine->ctx.app.tx_min_progress && engine->is_last_for_progress &&
                     tx->tx_ptr == tx_ptr) {
                 /* track with an offset of one, so that tx->progress 0 complete is tracked
                  * as 1, progress 1 as 2, etc. This is to allow 0 to mean: nothing tracked, even
                  * though a parser may use 0 as a valid value. */
                 // tx->tx_ptr == tx_ptr ensures we do not use a dns engine progress
                 // to update a HTTP2 tx detect_progress in case of DOH2
-                tx->detect_progress = engine->ctx.tx_min_progress + 1;
-                SCLogDebug("tx->tx_progress %d engine->ctx.tx_min_progress %d "
+                tx->detect_progress = engine->ctx.app.tx_min_progress + 1;
+                SCLogDebug("tx->tx_progress %d engine->ctx.app.tx_min_progress %d "
                            "engine->is_last_for_progress %d => tx->detect_progress updated to %02x",
-                        tx->tx_progress, engine->ctx.tx_min_progress, engine->is_last_for_progress,
-                        tx->detect_progress);
+                        tx->tx_progress, engine->ctx.app.tx_min_progress,
+                        engine->is_last_for_progress, tx->detect_progress);
             }
         } else {
             PREFILTER_PROFILING_START(det_ctx);
@@ -353,9 +363,9 @@ int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     return 0;
 }
 
-int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        PrefilterTxFn PrefilterTxFunc, AppProto alproto, int8_t tx_min_progress, void *pectx,
-        void (*FreeFunc)(void *pectx), const char *name)
+int PrefilterAppendTxEngineSubState(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        PrefilterTxFn PrefilterTxFunc, AppProto alproto, uint8_t sub_state,
+        const int8_t tx_min_progress, void *pectx, void (*FreeFunc)(void *pectx), const char *name)
 {
     if (sgh == NULL || PrefilterTxFunc == NULL || pectx == NULL)
         return -1;
@@ -369,6 +379,7 @@ int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     e->pectx = pectx;
     e->alproto = alproto;
     e->tx_min_progress = tx_min_progress;
+    e->sub_state = sub_state;
     e->Free = FreeFunc;
 
     if (sgh->init->tx_engines == NULL) {
@@ -385,7 +396,16 @@ int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 
     e->name = name;
     e->gid = PrefilterStoreGetId(de_ctx, e->name, e->Free);
+    SCLogDebug("%s: sub_state %u", name, e->sub_state);
     return 0;
+}
+
+int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        PrefilterTxFn PrefilterTxFunc, AppProto alproto, const int8_t tx_min_progress, void *pectx,
+        void (*FreeFunc)(void *pectx), const char *name)
+{
+    return PrefilterAppendTxEngineSubState(
+            de_ctx, sgh, PrefilterTxFunc, alproto, 0, tx_min_progress, pectx, FreeFunc, name);
 }
 
 int PrefilterAppendFrameEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
@@ -520,14 +540,18 @@ static int PrefilterSetupRuleGroupSortHelper(const void *a, const void *b)
 {
     const PrefilterEngine *s0 = a;
     const PrefilterEngine *s1 = b;
-    if (s1->ctx.tx_min_progress == s0->ctx.tx_min_progress) {
-        if (s1->alproto == s0->alproto) {
-            return s0->local_id > s1->local_id ? 1 : -1;
+    if (s1->ctx.app.sub_state == s0->ctx.app.sub_state) {
+        if (s1->ctx.app.tx_min_progress == s0->ctx.app.tx_min_progress) {
+            if (s1->alproto == s0->alproto) {
+                return s0->local_id > s1->local_id ? 1 : -1;
+            } else {
+                return s0->alproto > s1->alproto ? 1 : -1;
+            }
         } else {
-            return s0->alproto > s1->alproto ? 1 : -1;
+            return s0->ctx.app.tx_min_progress > s1->ctx.app.tx_min_progress ? 1 : -1;
         }
     } else {
-        return s0->ctx.tx_min_progress > s1->ctx.tx_min_progress ? 1 : -1;
+        return s0->ctx.app.sub_state > s1->ctx.app.sub_state ? 1 : -1;
     }
 }
 
@@ -701,6 +725,7 @@ static void NonPFNamesFree(void *data)
 
 struct TxNonPFData {
     AppProto alproto;
+    uint8_t sub_state;
     int dir;      /**< 0: toserver, 1: toclient */
     uint8_t progress; /**< progress state value to register at */
     int sig_list; /**< special handling: normally 0, but for special cases (app-layer-state,
@@ -713,15 +738,15 @@ struct TxNonPFData {
 static uint32_t TxNonPFHash(HashListTable *h, void *data, uint16_t _len)
 {
     struct TxNonPFData *d = data;
-    return (d->alproto + d->progress + d->dir + d->sig_list) % h->array_size;
+    return (d->alproto + d->sub_state + d->progress + d->dir + d->sig_list) % h->array_size;
 }
 
 static char TxNonPFCompare(void *data1, uint16_t _len1, void *data2, uint16_t len2)
 {
     struct TxNonPFData *d1 = data1;
     struct TxNonPFData *d2 = data2;
-    return d1->alproto == d2->alproto && d1->progress == d2->progress && d1->dir == d2->dir &&
-           d1->sig_list == d2->sig_list;
+    return d1->alproto == d2->alproto && d1->sub_state == d2->sub_state &&
+           d1->progress == d2->progress && d1->dir == d2->dir && d1->sig_list == d2->sig_list;
 }
 
 static void TxNonPFFree(void *data)
@@ -732,13 +757,14 @@ static void TxNonPFFree(void *data)
 }
 
 static int TxNonPFAddSig(DetectEngineCtx *de_ctx, HashListTable *tx_engines_hash,
-        const AppProto alproto, const int dir, const uint8_t progress, const int sig_list,
-        const char *name, const Signature *s)
+        const AppProto alproto, const uint8_t sub_state, const int dir, const uint8_t progress,
+        const int sig_list, const char *name, const Signature *s)
 {
     const uint32_t max_sids = DetectEngineGetMaxSigId(de_ctx);
 
     struct TxNonPFData lookup = {
         .alproto = alproto,
+        .sub_state = sub_state,
         .dir = dir,
         .progress = progress,
         .sig_list = sig_list,
@@ -770,6 +796,7 @@ static int TxNonPFAddSig(DetectEngineCtx *de_ctx, HashListTable *tx_engines_hash
         return -1;
     }
     add->dir = dir;
+    add->sub_state = sub_state;
     add->alproto = alproto;
     add->progress = progress;
     add->sig_list = sig_list;
@@ -950,8 +977,9 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                 }
                 const int sm_list = DetectEngineAppHookToSmlist(
                         s->alproto, state, dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
-                if (TxNonPFAddSig(de_ctx, tx_engines_hash, s->alproto, dir, state, sm_list, pname,
-                            s) != 0) {
+                uint8_t sub_state = s->init_data->hook.t.app.sub_state;
+                if (TxNonPFAddSig(de_ctx, tx_engines_hash, s->alproto, sub_state, dir, state,
+                            sm_list, pname, s) != 0) {
                     goto error;
                 }
                 tx_non_pf = true;
@@ -1014,7 +1042,8 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                     int sig_list = 0;
                     if (list_id == app_state_list_id)
                         sig_list = app_state_list_id;
-                    if (TxNonPFAddSig(de_ctx, tx_engines_hash, app->alproto, app->dir,
+                    const uint8_t sub_state = app->sub_state;
+                    if (TxNonPFAddSig(de_ctx, tx_engines_hash, app->alproto, sub_state, app->dir,
                                 app->progress, sig_list, buf->name, s) != 0) {
                         goto error;
                     }
@@ -1029,7 +1058,8 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                     s->alproto, s->init_data->hook.t.app.app_progress,
                     dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
 
-            if (TxNonPFAddSig(de_ctx, tx_engines_hash, s->alproto, dir,
+            uint8_t sub_state = s->init_data->hook.t.app.sub_state;
+            if (TxNonPFAddSig(de_ctx, tx_engines_hash, s->alproto, sub_state, dir,
                         s->init_data->hook.t.app.app_progress, s->init_data->hook.sm_list, pname,
                         s) != 0) {
                 goto error;
@@ -1123,8 +1153,8 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         for (uint32_t i = 0; i < t->sigs_cnt; i++) {
             data->array[i] = t->sigs[i].sid;
         }
-        if (PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxNonPF, t->alproto, engine_progress,
-                    (void *)data, PrefilterNonPFDataFree, t->engine_name) < 0) {
+        if (PrefilterAppendTxEngineSubState(de_ctx, sgh, PrefilterTxNonPF, t->alproto, t->sub_state,
+                    engine_progress, (void *)data, PrefilterNonPFDataFree, t->engine_name) < 0) {
             SCFree(data);
             goto error;
         }
@@ -1302,7 +1332,8 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         for (el = sgh->init->tx_engines ; el != NULL; el = el->next) {
             e->local_id = local_id++;
             e->alproto = el->alproto;
-            e->ctx.tx_min_progress = el->tx_min_progress;
+            e->ctx.app.tx_min_progress = el->tx_min_progress;
+            e->ctx.app.sub_state = el->sub_state;
             e->cb.PrefilterTx = el->PrefilterTx;
             e->pectx = el->pectx;
             el->pectx = NULL; // e now owns the ctx
@@ -1317,45 +1348,58 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         sgh->tx_engines[local_id - 1].is_last_for_progress = true;
 
         PrefilterEngine *engine;
-
         /* per alproto to set is_last_for_progress per alproto because the inspect
          * loop skips over engines that are not the correct alproto */
         for (AppProto a = ALPROTO_FAILED + 1; a < g_alproto_max; a++) {
-            int last_tx_progress = 0;
-            bool last_tx_progress_set = false;
-            PrefilterEngine *prev_engine = NULL;
-            engine = sgh->tx_engines;
-            do {
-                if (engine->ctx.tx_min_progress != -1)
-                    BUG_ON(engine->ctx.tx_min_progress < last_tx_progress);
-                if (engine->alproto == a) {
-                    if (last_tx_progress_set && engine->ctx.tx_min_progress > last_tx_progress) {
-                        if (prev_engine) {
-                            prev_engine->is_last_for_progress = true;
-                        }
-                    }
+            /* loop over sub-states. Protocols not supporting sub-states
+             * will just use 0. */
+            const uint8_t max_sub_state = AppLayerParserGetMaxSubState(a);
+            for (uint8_t sub = 0; sub <= max_sub_state; sub++) {
+                int last_tx_progress = 0;
+                bool last_tx_progress_set = false;
+                PrefilterEngine *prev_engine = NULL;
+                engine = sgh->tx_engines;
+                do {
+                    if (engine->ctx.app.sub_state == sub) {
+                        if (engine->ctx.app.tx_min_progress != -1)
+                            BUG_ON(engine->ctx.app.tx_min_progress < last_tx_progress);
+                        if (engine->alproto == a) {
+                            if (last_tx_progress_set &&
+                                    engine->ctx.app.tx_min_progress > last_tx_progress) {
+                                if (prev_engine) {
+                                    prev_engine->is_last_for_progress = true;
+                                }
+                            }
 
-                    last_tx_progress_set = true;
-                    prev_engine = engine;
-                } else {
-                    if (prev_engine) {
-                        prev_engine->is_last_for_progress = true;
+                            last_tx_progress_set = true;
+                            prev_engine = engine;
+                            if (!engine->is_last) {
+                                PrefilterEngine *next_engine = engine + 1;
+                                engine->is_last_for_progress =
+                                        (next_engine->ctx.app.sub_state != sub);
+                            }
+
+                        } else {
+                            if (prev_engine) {
+                                prev_engine->is_last_for_progress = true;
+                            }
+                        }
+                        last_tx_progress = engine->ctx.app.tx_min_progress;
                     }
-                }
-                last_tx_progress = engine->ctx.tx_min_progress;
-                if (engine->is_last)
-                    break;
-                engine++;
-            } while (1);
+                    if (engine->is_last)
+                        break;
+                    engine++;
+                } while (1);
+            }
         }
 #ifdef DEBUG
         SCLogDebug("sgh %p", sgh);
         engine = sgh->tx_engines;
         do {
-            SCLogDebug("engine: gid %u alproto %s tx_min_progress %d is_last %s "
+            SCLogDebug("engine: gid %u alproto %s sub_state %u tx_min_progress %d is_last %s "
                        "is_last_for_progress %s",
-                    engine->gid, AppProtoToString(engine->alproto), engine->ctx.tx_min_progress,
-                    engine->is_last ? "true" : "false",
+                    engine->gid, AppProtoToString(engine->alproto), engine->ctx.app.sub_state,
+                    engine->ctx.app.tx_min_progress, engine->is_last ? "true" : "false",
                     engine->is_last_for_progress ? "true" : "false");
             if (engine->is_last)
                 break;
@@ -1616,9 +1660,10 @@ int PrefilterGenericMpmRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmC
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpm,
-        mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
-        pectx, PrefilterGenericMpmFree, mpm_reg->pname);
+    SCLogDebug("mpm_reg %s sub_state %u", mpm_reg->name, mpm_reg->app_v2.sub_state);
+    int r = PrefilterAppendTxEngineSubState(de_ctx, sgh, PrefilterMpm, mpm_reg->app_v2.alproto,
+            mpm_reg->app_v2.sub_state, mpm_reg->app_v2.tx_min_progress, pectx,
+            PrefilterGenericMpmFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
     }
@@ -1637,8 +1682,10 @@ int PrefilterSingleMpmRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCt
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmTxSingle, mpm_reg->app_v2.alproto,
-            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterGenericMpmFree, mpm_reg->pname);
+    SCLogDebug("mpm_reg %s sub_state %u", mpm_reg->name, mpm_reg->app_v2.sub_state);
+    int r = PrefilterAppendTxEngineSubState(de_ctx, sgh, PrefilterMpmTxSingle,
+            mpm_reg->app_v2.alproto, mpm_reg->app_v2.sub_state, mpm_reg->app_v2.tx_min_progress,
+            pectx, PrefilterGenericMpmFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
     }
@@ -1690,8 +1737,10 @@ int PrefilterMultiGenericMpmRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMultiMpm, mpm_reg->app_v2.alproto,
-            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMultiGenericMpmFree, mpm_reg->pname);
+    SCLogDebug("mpm_reg %s sub_state %u", mpm_reg->name, mpm_reg->app_v2.sub_state);
+    int r = PrefilterAppendTxEngineSubState(de_ctx, sgh, PrefilterMultiMpm, mpm_reg->app_v2.alproto,
+            mpm_reg->app_v2.sub_state, mpm_reg->app_v2.tx_min_progress, pectx,
+            PrefilterMultiGenericMpmFree, mpm_reg->pname);
     if (r != 0) {
         SCFree(pectx);
     }
