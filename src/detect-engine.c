@@ -196,8 +196,8 @@ void DetectPktInspectEngineRegister(const char *name,
  *
  *  \note errors are fatal */
 static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alproto, uint32_t dir,
-        uint8_t progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData,
-        InspectionSingleBufferGetDataPtr GetDataSingle,
+        uint8_t sub_state, uint8_t progress, InspectEngineFuncPtr Callback,
+        InspectionBufferGetDataPtr GetData, InspectionSingleBufferGetDataPtr GetDataSingle,
         InspectionMultiBufferGetDataPtr GetMultiData)
 {
     BUG_ON(progress >= 48);
@@ -210,7 +210,8 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     SCLogDebug("name %s id %d", name, sm_list);
 
     if ((alproto == ALPROTO_FAILED) || (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
-            (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) || (Callback == NULL)) {
+            (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) || (progress >= 48) ||
+            (Callback == NULL)) {
         SCLogError("Invalid arguments");
         BUG_ON(1);
     } else if (Callback == DetectEngineInspectBufferGeneric && GetData == NULL) {
@@ -235,8 +236,8 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     }
     // every DNS or HTTP2 can be accessed from DOH2
     if (alproto == ALPROTO_HTTP2 || alproto == ALPROTO_DNS) {
-        AppLayerInspectEngineRegisterInternal(
-                name, ALPROTO_DOH2, dir, progress, Callback, GetData, GetDataSingle, GetMultiData);
+        AppLayerInspectEngineRegisterInternal(name, ALPROTO_DOH2, dir, sub_state, progress,
+                Callback, GetData, GetDataSingle, GetMultiData);
     }
 
     DetectEngineAppInspectionEngine *new_engine =
@@ -249,6 +250,7 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     new_engine->sm_list = (uint16_t)sm_list;
     new_engine->sm_list_base = (uint16_t)sm_list;
     new_engine->progress = progress;
+    new_engine->sub_state = sub_state;
     new_engine->v2.Callback = Callback;
     if (Callback == DetectEngineInspectBufferGeneric) {
         new_engine->v2.GetData = GetData;
@@ -281,7 +283,8 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
         const int sm_list = DetectBufferTypeGetByName(name);
 
         if (t->sm_list == sm_list && t->alproto == alproto && t_direction == dir &&
-                t->progress == progress && t->v2.Callback == Callback && t->v2.GetData == GetData) {
+                t->sub_state == 0 && t->progress == progress && t->v2.Callback == Callback &&
+                t->v2.GetData == GetData) {
             DEBUG_VALIDATE_BUG_ON(1);
             return;
         }
@@ -289,9 +292,32 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
     }
 
     AppLayerInspectEngineRegisterInternal(
-            name, alproto, dir, progress, Callback, GetData, NULL, NULL);
+            name, alproto, dir, 0, (uint8_t)progress, Callback, GetData, NULL, NULL);
 }
 
+void DetectAppLayerInspectEngineRegisterSubState(const char *name, AppProto alproto, uint32_t dir,
+        uint8_t sub_state, uint8_t progress, InspectEngineFuncPtr Callback,
+        InspectionBufferGetDataPtr GetData)
+{
+    /* before adding, check that we don't add a duplicate entry, which will
+     * propagate all the way into the packet runtime if allowed. */
+    DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+    while (t != NULL) {
+        const uint32_t t_direction = t->dir == 0 ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT;
+        const int sm_list = DetectBufferTypeGetByName(name);
+
+        if (t->sm_list == sm_list && t->alproto == alproto && t_direction == dir &&
+                t->sub_state == sub_state && t->progress == progress &&
+                t->v2.Callback == Callback && t->v2.GetData == GetData) {
+            DEBUG_VALIDATE_BUG_ON(1);
+            return;
+        }
+        t = t->next;
+    }
+
+    AppLayerInspectEngineRegisterInternal(
+            name, alproto, dir, sub_state, progress, Callback, GetData, NULL, NULL);
+}
 void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alproto, uint32_t dir,
         uint8_t progress, InspectEngineFuncPtr Callback, InspectionSingleBufferGetDataPtr GetData)
 {
@@ -312,7 +338,7 @@ void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alprot
     }
 
     AppLayerInspectEngineRegisterInternal(
-            name, alproto, dir, progress, Callback, NULL, GetData, NULL);
+            name, alproto, dir, 0, (uint8_t)progress, Callback, NULL, GetData, NULL);
 }
 
 /* copy an inspect engine with transforms to a new list id. */
@@ -335,6 +361,7 @@ static void DetectAppLayerInspectEngineCopy(
             DEBUG_VALIDATE_BUG_ON(sm_list < 0 || sm_list > UINT16_MAX);
             new_engine->sm_list_base = (uint16_t)sm_list;
             new_engine->progress = t->progress;
+            new_engine->sub_state = t->sub_state;
             new_engine->v2 = t->v2;
             new_engine->v2.transforms = transforms; /* assign transforms */
 
@@ -368,6 +395,7 @@ static void DetectAppLayerInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_c
         new_engine->sm_list = t->sm_list;
         new_engine->sm_list_base = t->sm_list;
         new_engine->progress = t->progress;
+        new_engine->sub_state = t->sub_state;
         new_engine->v2 = t->v2;
 
         if (list == NULL) {
@@ -751,6 +779,7 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     new_engine->smd = smd;
     new_engine->match_on_null = smd ? DetectContentInspectionMatchOnAbsentBuffer(smd) : false;
     new_engine->progress = t->progress;
+    new_engine->sub_state = t->sub_state;
     new_engine->v2 = t->v2;
     SCLogDebug("sm_list %d new_engine->v2 %p/%p/%p", new_engine->sm_list, new_engine->v2.Callback,
             new_engine->v2.GetData, new_engine->v2.transforms);
@@ -901,6 +930,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
             DetectEngineAppInspectionEngine t = {
                 .alproto = s->init_data->hook.t.app.alproto,
                 .progress = state,
+                .sub_state = s->init_data->hook.t.app.sub_state,
                 .sm_list = (uint16_t)sm_list,
                 .sm_list_base = (uint16_t)sm_list,
                 .dir = dir,
@@ -983,6 +1013,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
         DetectEngineAppInspectionEngine t = {
             .alproto = s->init_data->hook.t.app.alproto,
             .progress = s->init_data->hook.t.app.app_progress,
+            .sub_state = s->init_data->hook.t.app.sub_state,
             .sm_list = (uint16_t)s->init_data->hook.sm_list,
             .sm_list_base = (uint16_t)s->init_data->hook.sm_list,
             .dir = dir,
@@ -2202,10 +2233,21 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
 
 // wrapper for both DetectAppLayerInspectEngineRegister and DetectAppLayerMpmRegister
 // with cast of callback function
+void DetectAppLayerMultiRegisterSubState(const char *name, AppProto alproto, uint32_t dir,
+        uint8_t sub_state, uint8_t progress, InspectionMultiBufferGetDataPtr GetData, int priority)
+{
+    AppLayerInspectEngineRegisterInternal(name, alproto, dir, sub_state, progress,
+            DetectEngineInspectMultiBufferGeneric, NULL, NULL, GetData);
+    DetectAppLayerMpmMultiRegisterSubState(name, dir, priority, PrefilterMultiGenericMpmRegister,
+            GetData, alproto, sub_state, progress);
+}
+
+// wrapper for both DetectAppLayerInspectEngineRegister and DetectAppLayerMpmRegister
+// with cast of callback function
 void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, uint8_t progress,
         InspectionMultiBufferGetDataPtr GetData, int priority)
 {
-    AppLayerInspectEngineRegisterInternal(name, alproto, dir, progress,
+    AppLayerInspectEngineRegisterInternal(name, alproto, dir, 0, (uint8_t)progress,
             DetectEngineInspectMultiBufferGeneric, NULL, NULL, GetData);
     DetectAppLayerMpmMultiRegister(
             name, dir, priority, PrefilterMultiGenericMpmRegister, GetData, alproto, progress);
