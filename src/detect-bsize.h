@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2023 Open Information Security Foundation
+/* Copyright (C) 2017-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -27,5 +27,6 @@
 void DetectBsizeRegister(void);
 int DetectBsizeMatch(const SigMatchCtx *ctx, const uint64_t buffer_size, bool eof);
 bool DetectBsizeValidateContentCallback(const Signature *s, const SignatureInitDataBuffer *);
+void DetectBsizeApplyToContent(const Signature *s);
 
 #endif /* SURICATA_DETECT_BSIZE_H */
