@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -61,6 +61,7 @@
 #define DETECT_CONTENT_MPM              BIT_U32(20)
 #define DETECT_CONTENT_WITHIN2DEPTH     BIT_U32(21)
 #define DETECT_CONTENT_DISTANCE2OFFSET  BIT_U32(22)
+#define DETECT_CONTENT_BSIZE2DEPTH      BIT_U32(23)
 
 /** a relative match to this content is next, used in matching phase */
 #define DETECT_CONTENT_RELATIVE_NEXT    (DETECT_CONTENT_WITHIN_NEXT|DETECT_CONTENT_DISTANCE_NEXT)

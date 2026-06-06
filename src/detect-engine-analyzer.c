@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -767,6 +767,10 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 if (cd->flags & DETECT_CONTENT_DISTANCE2OFFSET) {
                     AnalyzerNote(ctx, (char *)"'distance' option for pattern w/o previous content "
                                               "was converted to 'offset'");
+                }
+                if (cd->flags & DETECT_CONTENT_BSIZE2DEPTH) {
+                    AnalyzerNote(ctx, (char *)"'bsize' on the buffer was applied as a 'depth' to "
+                                              "this content");
                 }
                 SCJbClose(js);
                 break;
