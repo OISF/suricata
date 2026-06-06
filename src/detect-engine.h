@@ -167,10 +167,21 @@ int DetectEngineInspectPktBufferGeneric(
 void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
         int progress, InspectEngineFuncPtr Callback2, InspectionBufferGetDataPtr GetData);
 
+/**
+ * \brief register an app inspection engine for a tx type
+ * \param type the tx type
+ */
+void DetectAppLayerInspectEngineRegisterSubState(const char *name, AppProto alproto, uint32_t dir,
+        uint8_t type, uint8_t progress, InspectEngineFuncPtr Callback2,
+        InspectionBufferGetDataPtr GetData);
+
 void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alproto, uint32_t dir,
         int progress, InspectEngineFuncPtr Callback2, InspectionSingleBufferGetDataPtr GetData);
 
-void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, int progress,
+void DetectAppLayerMultiRegisterSubState(const char *name, AppProto alproto, uint32_t dir,
+        uint8_t sub_state, uint8_t progress, InspectionMultiBufferGetDataPtr GetData, int priority);
+
+void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, uint8_t progress,
         InspectionMultiBufferGetDataPtr GetData, int priority);
 
 void DetectPktInspectEngineRegister(const char *name,

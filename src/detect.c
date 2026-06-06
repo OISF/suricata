@@ -1309,14 +1309,33 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
     const DetectEngineAppInspectionEngine *engine = s->app_inspect;
     do {
         TRACE_SID_TXS(s->id, tx, "engine %p inspect_flags %x", engine, inspect_flags);
+
         // also if it is not the same direction, but
         // this is a transactional signature, and we are toclient
         if (!(inspect_flags & BIT_U32(engine->id)) &&
                 (direction == engine->dir || ((s->flags & SIG_FLAG_TXBOTHDIR) && direction == 1))) {
 
+            if (engine->alproto != ALPROTO_UNKNOWN && // app-layer-events is registered for each
+                                                      // proto this way
+                    tx->tx_type != engine->sub_state) {
+                TRACE_SID_TXS(s->id, tx,
+                        "skip because engine alproto %s sub_state %u != tx_type %u (engine "
+                        "progress %u)",
+                        AppProtoToString(engine->alproto), engine->sub_state, tx->tx_type,
+                        engine->progress);
+                engine = engine->next;
+                continue;
+            }
+            TRACE_SID_TXS(s->id, tx,
+                    "inspecting engine alproto %s sub_state %u == tx_type %u (engine progress %u)",
+                    AppProtoToString(engine->alproto), engine->sub_state, tx->tx_type,
+                    engine->progress);
+
             void *tx_ptr = DetectGetInnerTx(tx->tx_ptr, f->alproto, engine->alproto, flow_flags);
             if (tx_ptr == NULL) {
+                TRACE_SID_TXS(s->id, tx, "no tx_ptr after DetectGetInnerTx");
                 if (engine->alproto != ALPROTO_UNKNOWN) {
+                    TRACE_SID_TXS(s->id, tx, "no tx_ptr skip engine");
                     /* special case: file_data on 'alert tcp' will have engines
                      * in the list that are not for us. */
                     engine = engine->next;
@@ -1325,6 +1344,7 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     tx_ptr = tx->tx_ptr;
                 }
             }
+            TRACE_SID_TXS(s->id, tx, "tx_ptr %p", tx_ptr);
 
             /* engines are sorted per progress, except that the one with
              * mpm/prefilter enabled is first */
@@ -1415,6 +1435,8 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
             break;
         } else if (!(inspect_flags & BIT_U32(engine->id)) && s->flags & SIG_FLAG_TXBOTHDIR &&
                    direction != engine->dir) {
+            TRACE_SID_TXS(s->id, tx, "handle bidir engine");
+
             // for transactional rules, the engines on the opposite direction
             // are ordered by progress on the different side
             // so we have a two mixed-up lists, and we skip the elements
@@ -1498,7 +1520,7 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
 #define NO_TX                                                                                      \
     {                                                                                              \
-        NULL, 0, NULL, NULL, 0, 0, 0, 0, false,                                                    \
+        NULL, 0, NULL, NULL, 0, 0, 0, 0, false, 0,                                                 \
     }
 
 /** \internal
@@ -1511,11 +1533,16 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
     DEBUG_VALIDATE_BUG_ON(tx_end_state >= 48);
 
     AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx_ptr);
-    const int tx_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx_ptr, flow_flags);
+    const uint8_t tx_progress =
+            (uint8_t)AppLayerParserGetStateProgress(ipproto, alproto, tx_ptr, flow_flags);
     DEBUG_VALIDATE_BUG_ON(tx_progress >= 48);
 
+    const uint8_t e_tx_end_state = txd->tx_type == 0                ? (uint8_t)tx_end_state
+                                   : (flow_flags & STREAM_TOSERVER) ? txd->tx_type_eop_ts
+                                                                    : txd->tx_type_eop_tc;
+
     bool updated = (flow_flags & STREAM_TOSERVER) ? txd->updated_ts : txd->updated_tc;
-    if (!updated && tx_progress < tx_end_state && ((flow_flags & STREAM_EOF) == 0)) {
+    if (!updated && tx_progress < e_tx_end_state && ((flow_flags & STREAM_EOF) == 0)) {
         DetectTransaction no_tx = NO_TX;
         return no_tx;
     }
@@ -1536,6 +1563,10 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         return no_tx;
     }
 
+    if (txd->tx_type != 0) {
+        SCLogDebug("using tx_type %u", txd->tx_type);
+    }
+
     const uint8_t detect_progress =
             (flow_flags & STREAM_TOSERVER) ? txd->detect_progress_ts : txd->detect_progress_tc;
 
@@ -1551,8 +1582,9 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         .detect_progress = detect_progress,
         .detect_progress_orig = detect_progress,
         .tx_progress = (uint8_t)tx_progress,
-        .tx_end_state = (uint8_t)tx_end_state,
+        .tx_end_state = e_tx_end_state,
         .is_last = false,
+        .tx_type = txd->tx_type,
     };
     return tx;
 }

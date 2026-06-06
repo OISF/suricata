@@ -58,6 +58,20 @@ int SCDetectHelperBufferProgressRegister(
     return DetectBufferTypeRegister(name);
 }
 
+int SCDetectHelperBufferProgressRegisterSubState(
+        const char *name, AppProto alproto, uint8_t direction, uint8_t sub_state, uint8_t progress)
+{
+    if (direction & STREAM_TOSERVER) {
+        DetectAppLayerInspectEngineRegisterSubState(name, alproto, SIG_FLAG_TOSERVER, sub_state,
+                (uint8_t)progress, DetectEngineInspectGenericList, NULL);
+    }
+    if (direction & STREAM_TOCLIENT) {
+        DetectAppLayerInspectEngineRegisterSubState(name, alproto, SIG_FLAG_TOCLIENT, sub_state,
+                (uint8_t)progress, DetectEngineInspectGenericList, NULL);
+    }
+    return DetectBufferTypeRegister(name);
+}
+
 int SCDetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionSingleBufferGetDataPtr GetData)
 {
@@ -97,13 +111,31 @@ int SCDetectHelperBufferProgressMpmRegister(const char *name, const char *desc, 
 }
 
 int SCDetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc,
-        AppProto alproto, uint8_t direction, InspectionMultiBufferGetDataPtr GetData, int progress)
+        AppProto alproto, uint8_t direction, InspectionMultiBufferGetDataPtr GetData,
+        uint8_t progress)
 {
     if (direction & STREAM_TOSERVER) {
         DetectAppLayerMultiRegister(name, alproto, SIG_FLAG_TOSERVER, progress, GetData, 2);
     }
     if (direction & STREAM_TOCLIENT) {
         DetectAppLayerMultiRegister(name, alproto, SIG_FLAG_TOCLIENT, progress, GetData, 2);
+    }
+    DetectBufferTypeSupportsMultiInstance(name);
+    DetectBufferTypeSetDescriptionByName(name, desc);
+    return DetectBufferTypeGetByName(name);
+}
+
+int SCDetectHelperMultiBufferProgressMpmRegisterSubState(const char *name, const char *desc,
+        AppProto alproto, uint8_t direction, InspectionMultiBufferGetDataPtr GetData,
+        uint8_t sub_state, uint8_t progress)
+{
+    if (direction & STREAM_TOSERVER) {
+        DetectAppLayerMultiRegisterSubState(
+                name, alproto, SIG_FLAG_TOSERVER, sub_state, progress, GetData, 2);
+    }
+    if (direction & STREAM_TOCLIENT) {
+        DetectAppLayerMultiRegisterSubState(
+                name, alproto, SIG_FLAG_TOCLIENT, sub_state, progress, GetData, 2);
     }
     DetectBufferTypeSupportsMultiInstance(name);
     DetectBufferTypeSetDescriptionByName(name, desc);

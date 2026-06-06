@@ -424,7 +424,8 @@ typedef struct DetectEngineAppInspectionEngine_ {
     bool match_on_null;
     uint16_t sm_list;
     uint16_t sm_list_base; /**< base buffer being transformed */
-    int16_t progress;
+    uint8_t progress;
+    uint8_t sub_state; /**< matches tx type */
 
     struct {
         union {
@@ -578,6 +579,8 @@ typedef struct SignatureHook_ {
     union {
         struct {
             AppProto alproto;
+            /** sub state for a specific transaction type or 0 if not used */
+            uint8_t sub_state;
             /** progress value of the app-layer hook specified in the rule. Sets the app_proto
              *  specific progress value. */
             int app_progress;
@@ -787,7 +790,8 @@ typedef struct DetectBufferMpmRegistry_ {
                 InspectionMultiBufferGetDataPtr GetMultiData;
             };
             AppProto alproto;
-            int tx_min_progress;
+            uint8_t tx_min_progress;
+            uint8_t sub_state;
         } app_v2;
 
         /* pkt matching: use if type == DETECT_BUFFER_MPM_TYPE_PKT */
@@ -1579,6 +1583,8 @@ typedef struct PrefilterEngineList_ {
 
     SignatureMask pkt_mask; /**< mask for pkt engines */
 
+    uint8_t sub_state;
+
     enum SignatureHookPkt pkt_hook;
 
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
@@ -1612,9 +1618,12 @@ typedef struct PrefilterEngine_ {
             SignatureMask mask; /**< mask for pkt engines */
             uint8_t hook;       /**< enum SignatureHookPkt */
         } pkt;
-        /** Minimal Tx progress we need before running the engine. Only used
-         *  with Tx Engine. Set to -1 for all states. */
-        int8_t tx_min_progress;
+        struct {
+            /** Minimal Tx progress we need before running the engine. Only used
+             *  with Tx Engine. Set to -1 for all states. */
+            int8_t tx_min_progress;
+            uint8_t sub_state;
+        } app;
         uint8_t frame_type;
     } ctx;
 
