@@ -16,7 +16,8 @@
  */
 
 use super::http2::{
-    HTTP2Event, HTTP2Frame, HTTP2FrameTypeData, HTTP2State, HTTP2Transaction, HTTP2TxProgress,
+    HTTP2Event, HTTP2Frame, HTTP2FrameTypeData, HTTP2Progress, HTTP2State, HTTP2Transaction,
+    HTTP2TxProgress,
 };
 use super::parser;
 use crate::detect::uint::{
@@ -42,11 +43,7 @@ pub unsafe extern "C" fn SCHttp2TxHasFrametype(
     } else {
         &tx.frames_tc
     };
-    let eof = if direction & Direction::ToServer as u8 != 0 {
-        tx.progress_ts >= HTTP2TxProgress::HTTP2ProgComplete
-    } else {
-        tx.progress_tc >= HTTP2TxProgress::HTTP2ProgComplete
-    };
+    let eof = tx.progress.is_complete_for_direction(direction);
     return detect_uint_match_at_index::<HTTP2Frame, u8>(
         frames,
         ctx,
@@ -89,11 +86,7 @@ pub unsafe extern "C" fn SCHttp2TxHasErrorCode(
     } else {
         &tx.frames_tc
     };
-    let eof = if direction & Direction::ToServer as u8 != 0 {
-        tx.progress_ts >= HTTP2TxProgress::HTTP2ProgComplete
-    } else {
-        tx.progress_tc >= HTTP2TxProgress::HTTP2ProgComplete
-    };
+    let eof = tx.progress.is_complete_for_direction(direction);
     return detect_uint_match_at_index::<HTTP2Frame, u32>(frames, ctx, http2_tx_get_errorcode, eof);
 }
 
@@ -147,11 +140,7 @@ fn http2_match_priority(
     } else {
         &tx.frames_tc
     };
-    let eof = if direction == Direction::ToServer {
-        tx.progress_ts >= HTTP2TxProgress::HTTP2ProgComplete
-    } else {
-        tx.progress_tc >= HTTP2TxProgress::HTTP2ProgComplete
-    };
+    let eof = tx.progress.is_complete_for_direction(direction.into());
     return detect_uint_match_at_index::<HTTP2Frame, u8>(frames, ctx, get_http2_priority, eof);
 }
 
@@ -180,11 +169,7 @@ fn http2_match_window(
         &tx.frames_tc
     };
     // WINDOW_UPDATE frames may be sent in half-closed state
-    let eof = if direction == Direction::ToServer {
-        tx.progress_ts >= HTTP2TxProgress::HTTP2ProgComplete
-    } else {
-        tx.progress_tc >= HTTP2TxProgress::HTTP2ProgComplete
-    };
+    let eof = tx.progress.is_complete_for_direction(direction.into());
     return detect_uint_match_at_index::<HTTP2Frame, u32>(frames, ctx, get_http2_window, eof);
 }
 
@@ -1013,7 +998,9 @@ fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
         data: txdata,
     });
     //we do not expect more data from client
-    tx.progress_ts = HTTP2TxProgress::HTTP2ProgClosed;
+    if let HTTP2Progress::STREAM(ref mut stream_tx) = tx.progress {
+        stream_tx.progress_ts = HTTP2TxProgress::HTTP2ProgClosed;
+    }
 }
 
 #[no_mangle]
