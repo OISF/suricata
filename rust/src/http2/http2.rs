@@ -81,6 +81,13 @@ static mut HTTP2_MAX_STREAMS: usize = 4096; // 0x1000
 static mut HTTP2_MAX_FRAMES: usize = 65536;
 pub(super) static mut HTTP2_COMPRESSION_BOMB_LIMIT: u64 = 1_048_576;
 
+#[repr(u8)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
+pub enum HTTP2TxType {
+    HTTP2TxTypeStream = 1,
+    HTTP2TxTypeGlobal = 2,
+}
+
 #[derive(AppLayerFrameType)]
 pub enum Http2FrameType {
     Hdr,
@@ -131,9 +138,14 @@ pub enum HTTP2TxProgress {
     HTTP2ProgHeaders = 1,
     HTTP2ProgData = 2,
     HTTP2ProgClosed = 3,
-    HTTP2ProgComplete = 4,
-    //not a RFC-defined state, used for stream 0 frames applying to the global connection
-    HTTP2ProgGlobal = 5,
+    HTTP2ProgComplete = 4, // complete is a pseudo state set only when both sides are closed
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
+pub enum HTTP2TxGlobalProgress {
+    HTTP2ProgGlobalStart = 0,
+    HTTP2ProgGlobalComplete = 1,
 }
 
 #[derive(Debug)]
@@ -156,11 +168,121 @@ pub struct DohHttp2Tx {
 }
 
 #[derive(Debug)]
+pub struct HTTP2StreamProgress {
+    pub progress_ts: HTTP2TxProgress,
+    pub progress_tc: HTTP2TxProgress,
+}
+
+impl HTTP2StreamProgress {
+    fn init() -> Self {
+        Self {
+            progress_ts: HTTP2TxProgress::HTTP2ProgStart,
+            progress_tc: HTTP2TxProgress::HTTP2ProgStart,
+        }
+    }
+    fn complete() -> Self {
+        Self {
+            progress_ts: HTTP2TxProgress::HTTP2ProgComplete,
+            progress_tc: HTTP2TxProgress::HTTP2ProgComplete,
+        }
+    }
+    fn is_complete(&self) -> bool {
+        self.progress_ts >= HTTP2TxProgress::HTTP2ProgComplete
+            && self.progress_tc >= HTTP2TxProgress::HTTP2ProgComplete
+    }
+    fn is_complete_for_direction(&self, direction: u8) -> bool {
+        if direction & Direction::ToServer as u8 != 0 {
+            self.progress_ts >= HTTP2TxProgress::HTTP2ProgComplete
+        } else {
+            self.progress_tc >= HTTP2TxProgress::HTTP2ProgComplete
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct HTTP2GlobalProgress {
+    pub progress_ts: HTTP2TxGlobalProgress,
+    pub progress_tc: HTTP2TxGlobalProgress,
+}
+
+impl HTTP2GlobalProgress {
+    fn _init() -> Self {
+        Self {
+            progress_ts: HTTP2TxGlobalProgress::HTTP2ProgGlobalStart,
+            progress_tc: HTTP2TxGlobalProgress::HTTP2ProgGlobalStart,
+        }
+    }
+    fn complete() -> Self {
+        Self {
+            progress_ts: HTTP2TxGlobalProgress::HTTP2ProgGlobalComplete,
+            progress_tc: HTTP2TxGlobalProgress::HTTP2ProgGlobalComplete,
+        }
+    }
+    fn is_complete(&self) -> bool {
+        self.progress_ts >= HTTP2TxGlobalProgress::HTTP2ProgGlobalComplete
+            && self.progress_tc >= HTTP2TxGlobalProgress::HTTP2ProgGlobalComplete
+    }
+    fn is_complete_for_direction(&self, direction: u8) -> bool {
+        if direction & Direction::ToServer as u8 != 0 {
+            self.progress_ts >= HTTP2TxGlobalProgress::HTTP2ProgGlobalComplete
+        } else {
+            self.progress_tc >= HTTP2TxGlobalProgress::HTTP2ProgGlobalComplete
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum HTTP2Progress {
+    STREAM(HTTP2StreamProgress),
+    GLOBAL(HTTP2GlobalProgress),
+}
+
+impl HTTP2Progress {
+    fn get(&self, direction: u8) -> i32 {
+        if let HTTP2Progress::STREAM(ref s) = self {
+            if direction == STREAM_TOSERVER {
+                return s.progress_ts as i32;
+            } else {
+                return s.progress_tc as i32;
+            }
+        } else if let HTTP2Progress::GLOBAL(ref g) = self {
+            if direction == STREAM_TOSERVER {
+                return g.progress_ts as i32;
+            } else {
+                return g.progress_tc as i32;
+            }
+        }
+        0
+    }
+
+    fn is_complete(&self) -> bool {
+        let complete = if let HTTP2Progress::STREAM(ref s) = self {
+            s.is_complete()
+        } else if let HTTP2Progress::GLOBAL(ref g) = self {
+            g.is_complete()
+        } else {
+            false
+        };
+        complete
+    }
+
+    pub fn is_complete_for_direction(&self, direction: u8) -> bool {
+        let complete = if let HTTP2Progress::STREAM(ref s) = self {
+            s.is_complete_for_direction(direction)
+        } else if let HTTP2Progress::GLOBAL(ref g) = self {
+            g.is_complete_for_direction(direction)
+        } else {
+            false
+        };
+        complete
+    }
+}
+
+#[derive(Debug)]
 pub struct HTTP2Transaction {
     tx_id: u64,
     pub stream_id: u32,
-    pub progress_tc: HTTP2TxProgress,
-    pub progress_ts: HTTP2TxProgress,
+    pub progress: HTTP2Progress,
     to_drop: bool,
     child_stream_id: u32,
 
@@ -198,8 +320,7 @@ impl HTTP2Transaction {
             tx_id: 0,
             stream_id: 0,
             child_stream_id: 0,
-            progress_tc: HTTP2TxProgress::HTTP2ProgStart,
-            progress_ts: HTTP2TxProgress::HTTP2ProgStart,
+            progress: HTTP2Progress::STREAM(HTTP2StreamProgress::init()),
             to_drop: false,
             frames_tc: Vec::new(),
             frames_ts: Vec::new(),
@@ -215,6 +336,7 @@ impl HTTP2Transaction {
     }
 
     pub fn free(&mut self) {
+        SCLogDebug!("free: tx_id {} stream_id {}", self.tx_id, self.stream_id);
         if !self.file_range.is_null() {
             if let Some(c) = unsafe { SC } {
                 if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
@@ -405,8 +527,12 @@ impl HTTP2Transaction {
                     if header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS == 0 {
                         self.child_stream_id = hs.stream_id;
                     }
-                    if self.progress_tc < HTTP2TxProgress::HTTP2ProgHeaders {
-                        self.progress_tc = HTTP2TxProgress::HTTP2ProgHeaders;
+                    if let HTTP2Progress::STREAM(ref mut stream_tx) = self.progress {
+                        if stream_tx.progress_tc < HTTP2TxProgress::HTTP2ProgHeaders {
+                            stream_tx.progress_tc = HTTP2TxProgress::HTTP2ProgHeaders;
+                        }
+                    } else {
+                        panic!("global");
                     }
                 }
                 r = self.handle_headers(&hs.blocks, dir);
@@ -430,34 +556,36 @@ impl HTTP2Transaction {
             }
             _ => {}
         }
-        //handle closing state changes
-        let state = if dir == Direction::ToServer {
-            &mut self.progress_ts
-        } else {
-            &mut self.progress_tc
-        };
-        match data {
-            HTTP2FrameTypeData::HEADERS(_) | HTTP2FrameTypeData::DATA => {
-                if header.flags & parser::HTTP2_FLAG_HEADER_EOS != 0 {
-                    if *state < HTTP2TxProgress::HTTP2ProgClosed {
-                        *state = HTTP2TxProgress::HTTP2ProgClosed;
-                        if self.progress_ts == HTTP2TxProgress::HTTP2ProgClosed
-                            && self.progress_tc == HTTP2TxProgress::HTTP2ProgClosed
-                        {
-                            self.progress_ts = HTTP2TxProgress::HTTP2ProgComplete;
-                            self.progress_tc = HTTP2TxProgress::HTTP2ProgComplete;
+        if let HTTP2Progress::STREAM(ref mut stream_tx) = self.progress {
+            //handle closing state changes
+            let state = if dir == Direction::ToServer {
+                &mut stream_tx.progress_ts
+            } else {
+                &mut stream_tx.progress_tc
+            };
+            match data {
+                HTTP2FrameTypeData::HEADERS(_) | HTTP2FrameTypeData::DATA => {
+                    if header.flags & parser::HTTP2_FLAG_HEADER_EOS != 0 {
+                        if *state < HTTP2TxProgress::HTTP2ProgClosed {
+                            *state = HTTP2TxProgress::HTTP2ProgClosed;
+                            if stream_tx.progress_ts == HTTP2TxProgress::HTTP2ProgClosed
+                                && stream_tx.progress_tc == HTTP2TxProgress::HTTP2ProgClosed
+                            {
+                                stream_tx.progress_ts = HTTP2TxProgress::HTTP2ProgComplete;
+                                stream_tx.progress_tc = HTTP2TxProgress::HTTP2ProgComplete;
+                            }
                         }
+                    } else if header.ftype == parser::HTTP2FrameType::Data as u8 {
+                        //not end of stream
+                        if *state < HTTP2TxProgress::HTTP2ProgData {
+                            *state = HTTP2TxProgress::HTTP2ProgData;
+                        }
+                    } else if *state < HTTP2TxProgress::HTTP2ProgHeaders {
+                        *state = HTTP2TxProgress::HTTP2ProgHeaders;
                     }
-                } else if header.ftype == parser::HTTP2FrameType::Data as u8 {
-                    //not end of stream
-                    if *state < HTTP2TxProgress::HTTP2ProgData {
-                        *state = HTTP2TxProgress::HTTP2ProgData;
-                    }
-                } else if *state < HTTP2TxProgress::HTTP2ProgHeaders {
-                    *state = HTTP2TxProgress::HTTP2ProgHeaders;
                 }
+                _ => {}
             }
-            _ => {}
         }
         return r;
     }
@@ -751,10 +879,13 @@ impl HTTP2State {
         //as it affects the global connection, there is no end to it
         let mut tx = HTTP2Transaction::new();
         tx.tx_data = AppLayerTxData::for_direction(dir);
+        tx.tx_data.tx_type = HTTP2TxType::HTTP2TxTypeGlobal as u8;
+        tx.tx_data.tx_type_eop_ts = HTTP2TxGlobalProgress::HTTP2ProgGlobalComplete as u8;
+        tx.tx_data.tx_type_eop_tc = HTTP2TxGlobalProgress::HTTP2ProgGlobalComplete as u8;
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
-        tx.progress_tc = HTTP2TxProgress::HTTP2ProgGlobal;
-        tx.progress_ts = HTTP2TxProgress::HTTP2ProgGlobal;
+        tx.progress = HTTP2Progress::GLOBAL(HTTP2GlobalProgress::complete());
+        SCLogDebug!("global tx created {:?}", tx);
         // a global tx (stream id 0) does not hold files cf RFC 9113 section 5.1.1
         self.transactions.push_back(tx);
         return self.transactions.back_mut().unwrap();
@@ -772,8 +903,7 @@ impl HTTP2State {
                     }
                     tx_old.set_event(HTTP2Event::TooManyStreams);
                     // use a distinct state, even if we do not log it
-                    tx_old.progress_ts = HTTP2TxProgress::HTTP2ProgComplete;
-                    tx_old.progress_tc = HTTP2TxProgress::HTTP2ProgComplete;
+                    tx_old.progress = HTTP2Progress::STREAM(HTTP2StreamProgress::complete());
                     tx_old.to_drop = true;
                     tx_old.tx_data.updated_tc = true;
                     tx_old.tx_data.updated_ts = true;
@@ -797,9 +927,7 @@ impl HTTP2State {
         };
         let index = self.find_tx_index(sid);
         if index > 0 {
-            if self.transactions[index - 1].progress_tc >= HTTP2TxProgress::HTTP2ProgClosed
-                && self.transactions[index - 1].progress_ts >= HTTP2TxProgress::HTTP2ProgClosed
-            {
+            if self.transactions[index - 1].progress.is_complete() {
                 //these frames can be received in this state for a short period
                 if header.ftype != parser::HTTP2FrameType::RstStream as u8
                     && header.ftype != parser::HTTP2FrameType::WindowUpdate as u8
@@ -825,8 +953,7 @@ impl HTTP2State {
                     }
                     tx_old.set_event(HTTP2Event::TooManyStreams);
                     // use a distinct state, even if we do not log it
-                    tx_old.progress_ts = HTTP2TxProgress::HTTP2ProgComplete;
-                    tx_old.progress_tc = HTTP2TxProgress::HTTP2ProgComplete;
+                    tx_old.progress = HTTP2Progress::STREAM(HTTP2StreamProgress::complete());
                     tx_old.to_drop = true;
                     tx_old.tx_data.updated_tc = true;
                     tx_old.tx_data.updated_ts = true;
@@ -840,6 +967,9 @@ impl HTTP2State {
             tx.tx_data.update_file_flags(self.state_data.file_flags);
             tx.update_file_flags(tx.tx_data.file_flags);
             tx.tx_data.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // might hold files in both directions
+            tx.tx_data.tx_type = HTTP2TxType::HTTP2TxTypeStream as u8;
+            tx.tx_data.tx_type_eop_ts = HTTP2TxProgress::HTTP2ProgComplete as u8;
+            tx.tx_data.tx_type_eop_tc = HTTP2TxProgress::HTTP2ProgComplete as u8;
             self.transactions.push_back(tx);
             return Some(self.transactions.back_mut().unwrap());
         }
@@ -1247,6 +1377,12 @@ impl HTTP2State {
                         return AppLayerResult::err();
                     }
                     let tx = tx.unwrap();
+                    SCLogDebug!(
+                        "tx stream_id {} tx id {} progress {:?}",
+                        tx.stream_id,
+                        tx.tx_id,
+                        tx.progress
+                    );
                     if let Some(frame) = frame_hdr {
                         frame.set_tx(flow, tx.tx_id);
                     }
@@ -1534,11 +1670,7 @@ unsafe extern "C" fn http2_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    if direction == STREAM_TOSERVER {
-        return tx.progress_ts as i32;
-    } else {
-        return tx.progress_tc as i32;
-    }
+    return tx.progress.get(direction);
 }
 
 unsafe extern "C" fn http2_getfiles(

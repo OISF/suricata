@@ -89,6 +89,8 @@ include = [
     "FtpStateValues",
     "FtpDataStateValues",
     "HTTP2TxProgress",
+    "HTTP2TxGlobalProgress",
+    "HTTP2TxType",
     "DataRepType",
 ]
 
