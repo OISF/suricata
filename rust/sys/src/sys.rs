@@ -880,6 +880,12 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCDetectHelperBufferProgressRegisterSubState(
+        name: *const ::std::os::raw::c_char, alproto: AppProto, direction: u8, sub_state: u8,
+        progress: u8,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn SCDetectRegisterMpmGeneric(
         name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
         alproto: AppProto, direction: u8, GetData: InspectionBufferGetDataPtr,
@@ -901,6 +907,13 @@ extern "C" {
     pub fn SCDetectHelperMultiBufferProgressMpmRegister(
         name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
         alproto: AppProto, direction: u8, GetData: InspectionMultiBufferGetDataPtr, progress: u8,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCDetectHelperMultiBufferProgressMpmRegisterSubState(
+        name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
+        alproto: AppProto, direction: u8, GetData: InspectionMultiBufferGetDataPtr, sub_state: u8,
+        progress: u8,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
