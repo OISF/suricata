@@ -1147,6 +1147,81 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
     SCJbClose(js);
 }
 
+/**
+ * \brief suggest 'exact' or a single bsize range where the rule spells them out
+ *
+ * A single content marked both 'startswith' and 'endswith' must span the whole
+ * buffer, so its length is fixed at the content length. ('endswith' also covers
+ * the 'isdataat:!1,relative' form, which the parser folds into the same flag.)
+ * 'exact' says that in one keyword, so suggest it when the buffer has no bsize.
+ *
+ * Separately, when a buffer has both a lower-bound and an upper-bound bsize,
+ * suggest one bsize range.
+ */
+static void AnalyzerSuggestBsize(RuleAnalyzer *ctx, const char *buffer, const SigMatchData *smd)
+{
+    if (smd == NULL)
+        return;
+
+    uint32_t content_cnt = 0;
+    uint32_t bsize_cnt = 0;
+    bool has_lower = false;
+    bool has_upper = false;
+    const DetectContentData *cd = NULL;
+    for (const SigMatchData *smv = smd;; smv++) {
+        if (smv->type == DETECT_CONTENT) {
+            content_cnt++;
+            cd = (const DetectContentData *)smv->ctx;
+        } else if (smv->type == DETECT_BSIZE) {
+            bsize_cnt++;
+            const DetectU64Data *bsz = (const DetectU64Data *)smv->ctx;
+            /* a bare >/>= is a lower bound and </<= an upper. A range already
+             * is the suggested form and an exact bsize is a single length, so
+             * neither counts as one side of a two-sided bound. */
+            switch (bsz->mode) {
+                case DETECT_UINT_GT:
+                case DETECT_UINT_GTE:
+                    has_lower = true;
+                    break;
+                case DETECT_UINT_LT:
+                case DETECT_UINT_LTE:
+                    has_upper = true;
+                    break;
+                default:
+                    break;
+            }
+        }
+        if (smv->is_last)
+            break;
+    }
+
+    /* Only suggest a range when a lower-bound and an upper-bound bsize are both
+     * present. Mutually exclusive ones are rejected at load. */
+    if (has_lower && has_upper) {
+        AnalyzerNote(ctx,
+                (char *)"buffer '%s' uses multiple 'bsize' keywords; a single bsize range "
+                        "(bsize:lo<>hi) expresses a bounded length more clearly",
+                buffer);
+    }
+
+    if (content_cnt != 1 || bsize_cnt != 0 || cd == NULL)
+        return;
+
+    /* 'exact' rejects a negated content */
+    if (cd->flags & DETECT_CONTENT_NEGATED)
+        return;
+
+    const uint32_t anchored = DETECT_CONTENT_STARTS_WITH | DETECT_CONTENT_ENDS_WITH;
+    if ((cd->flags & anchored) != anchored)
+        return;
+
+    AnalyzerNote(ctx,
+            (char *)"buffer '%s' pins a single content to the whole buffer with "
+                    "'startswith'/'endswith'; the 'exact' keyword expresses this in one keyword "
+                    "(equivalent to 'bsize:%u')",
+            buffer, cd->content_len);
+}
+
 SCMutex g_rules_analyzer_write_m = SCMUTEX_INITIALIZER;
 void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
 {
@@ -1499,6 +1574,20 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             }
             DumpMatches(&ctx, ctx.js, app->smd);
             SCJbClose(ctx.js);
+            if (app->sm_list != DETECT_SM_LIST_PMATCH) {
+                /* a buffer registered for more than one app protocol has one
+                 * engine per protocol; make the suggestions once */
+                bool seen = false;
+                for (const DetectEngineAppInspectionEngine *prev = s->app_inspect; prev != app;
+                        prev = prev->next) {
+                    if (prev->sm_list == app->sm_list && prev->smd == app->smd) {
+                        seen = true;
+                        break;
+                    }
+                }
+                if (!seen)
+                    AnalyzerSuggestBsize(&ctx, name, app->smd);
+            }
             if (app->mpm) {
                 app_mpm = app;
             }
