@@ -1108,6 +1108,49 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
     SCJbClose(js);
 }
 
+/**
+ * \brief suggest 'bsize' where a buffer is already pinned to an exact length
+ *
+ * A single content marked both 'startswith' and 'endswith' must span the whole
+ * buffer, so its length is fixed at the content length. ('endswith' also covers
+ * the 'isdataat:!1,relative' form, which the parser folds into the same flag.)
+ * 'bsize:<len>' expresses that in one keyword and lets the engine prefilter on
+ * buffer length. This is a high-signal hint: it only fires when the rule has
+ * already encoded a fixed length the long way.
+ */
+static void AnalyzerSuggestBsize(RuleAnalyzer *ctx, const char *buffer, const SigMatchData *smd)
+{
+    if (smd == NULL)
+        return;
+
+    uint32_t content_cnt = 0;
+    bool has_bsize = false;
+    const DetectContentData *cd = NULL;
+    for (const SigMatchData *smv = smd;; smv++) {
+        if (smv->type == DETECT_CONTENT) {
+            content_cnt++;
+            cd = (const DetectContentData *)smv->ctx;
+        } else if (smv->type == DETECT_BSIZE) {
+            has_bsize = true;
+        }
+        if (smv->is_last)
+            break;
+    }
+
+    if (content_cnt != 1 || has_bsize || cd == NULL)
+        return;
+
+    const uint32_t anchored = DETECT_CONTENT_STARTS_WITH | DETECT_CONTENT_ENDS_WITH;
+    if ((cd->flags & anchored) != anchored)
+        return;
+
+    AnalyzerNote(ctx,
+            (char *)"buffer '%s' pins a single content to the whole buffer with "
+                    "'startswith'/'endswith'; 'bsize:%u' is an equivalent that also prefilters on "
+                    "length",
+            buffer, cd->content_len);
+}
+
 SCMutex g_rules_analyzer_write_m = SCMUTEX_INITIALIZER;
 void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
 {
@@ -1457,6 +1500,8 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             }
             DumpMatches(&ctx, ctx.js, app->smd);
             SCJbClose(ctx.js);
+            if (app->sm_list != DETECT_SM_LIST_PMATCH && app->v2.transforms == NULL)
+                AnalyzerSuggestBsize(&ctx, name, app->smd);
             if (app->mpm) {
                 app_mpm = app;
             }
