@@ -274,6 +274,38 @@ There is a work-in-progress to add information about this to the ``engine-analys
 report (ticket `#7456 <https://redmine.openinfosecfoundation.org/issues/7456>`_).
 
 
+.. _engine-analysis-notes-warnings:
+
+Notes and Warnings
+------------------
+
+When the JSON rule analysis is enabled (``engine-analysis.rules: yes``), each
+rule in ``rules.json`` may carry a ``notes`` array of strings. A note either
+reports a change the engine made to the rule while loading it or suggests
+another way to write the rule. The array is only present when the rule has at
+least one note.
+
+The firewall analysis in ``firewall.json`` uses a ``warnings`` array in the
+same way, for example on the ``packet:filter`` table when it has no ``accept``
+rules and the default policy applies. No rule check adds ``warnings`` to
+``rules.json`` at present.
+
+Some examples of ``notes``:
+
+- ``'within' option for pattern w/o previous content was converted to 'depth'``
+- ``'bsize' on the buffer was applied as a 'depth' to this content`` -- the
+  engine took a content ``depth`` from a ``bsize`` on the same buffer, so the
+  pattern search stops at the largest length ``bsize`` allows.
+- ``buffer '<name>' pins a single content to the whole buffer with
+  'startswith'/'endswith'; the 'exact' keyword expresses this in one keyword
+  (equivalent to 'bsize:<len>')`` -- a suggestion to replace the anchored form
+  with the ``exact`` keyword.
+- ``buffer '<name>' uses multiple 'bsize' keywords; a single bsize range
+  (bsize:lo<>hi) expresses a bounded length more clearly`` -- a suggestion to
+  collapse a lower and an upper ``bsize`` bound on one buffer into a single
+  range.
+
+
 Signatures per Type
 -------------------
 
