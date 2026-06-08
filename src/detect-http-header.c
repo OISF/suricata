@@ -399,6 +399,12 @@ void DetectHttpHeaderRegister(void)
             0); /* not used, registered twice: HEADERS/TRAILER */
 
     /* header is for stream TX type */
+    DetectAppLayerInspectEngineRegisterSubState("http_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
+    DetectAppLayerMpmRegisterSubState("http_header", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgHeaders);
+
     DetectAppLayerInspectEngineRegisterSubState("http_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
             HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
     DetectAppLayerMpmRegisterSubState("http_header", SIG_FLAG_TOCLIENT, 2,
@@ -608,8 +614,8 @@ void DetectHttpResponseHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_RESPONSE_HEADER].flags |=
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 
-    DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2ProgHeaders, GetHttp2HeaderData, 2);
+    DetectAppLayerMultiRegisterSubState("http_response_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, GetHttp2HeaderData, 2);
     DetectAppLayerMultiRegister("http_response_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_PROGRESS_HEADERS, GetHttp1HeaderData, 2);
 
