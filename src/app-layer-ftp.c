@@ -648,6 +648,10 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
         FTPTransaction *tx = FTPGetOldestTx(state, lasttx);
         if (tx == NULL) {
             tx = FTPTransactionCreate(state);
+            if (tx != NULL) {
+                /* This is a TC only transaction, skip TS inspection. */
+                tx->tx_data.flags |= APP_LAYER_TX_SKIP_INSPECT_TS;
+            }
         }
         if (unlikely(tx == NULL)) {
             SCReturnStruct(APP_LAYER_ERROR);
