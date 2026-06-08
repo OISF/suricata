@@ -322,6 +322,8 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         fb_cmd = DETECT_FLOWBITS_CMD_UNSET;
     } else if (strcmp(fb_cmd_str,"toggle") == 0) {
         fb_cmd = DETECT_FLOWBITS_CMD_TOGGLE;
+        SCLogWarning("\"toggle\" command is deprecated and will be removed in Suricata 9 (see "
+                     "ticket #8595)");
     } else {
         SCLogError("ERROR: flowbits action \"%s\" is not supported.", fb_cmd_str);
         goto error;
