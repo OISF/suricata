@@ -1257,19 +1257,34 @@ DetectRunTxSortHelper(const void *a, const void *b)
 #define TRACE_SID_TXS(sid,txs,...)
 #endif
 
-// Get inner transaction for engine
+/** \internal
+ *  \brief get correct transaction pointer
+ *
+ *  Gets an encapsulated DNS transaction in the DOH2 case.
+ *
+ *  Returns NULL is the TX is not to be inspected by this engine.
+ */
 void *DetectGetInnerTx(void *tx_ptr, AppProto alproto, AppProto engine_alproto, uint8_t flow_flags)
 {
+    SCLogDebug("pre: tx_ptr %p flow::alproto %s engine::alproto %s", tx_ptr,
+            AppProtoToString(alproto), AppProtoToString(engine_alproto));
     if (unlikely(alproto == ALPROTO_DOH2)) {
-        if (engine_alproto == ALPROTO_DNS) {
-            // need to get the dns tx pointer
-            tx_ptr = SCDoH2GetDnsTx(tx_ptr, flow_flags);
-        } else if (engine_alproto != ALPROTO_HTTP2 && engine_alproto != ALPROTO_UNKNOWN) {
-            // incompatible engine->alproto with flow alproto
-            tx_ptr = NULL;
+        switch (engine_alproto) {
+            case ALPROTO_DOH2:
+                /* need to get the dns tx pointer */
+                tx_ptr = SCDoH2GetDnsTx(tx_ptr, flow_flags);
+                break;
+            case ALPROTO_HTTP2:
+            case ALPROTO_UNKNOWN:
+                /* tx_ptr is untouched, so use outer (HTTP/2) layer */
+                break;
+            default:
+                /* any other protocol is a mismatch with DOH2 */
+                tx_ptr = NULL;
+                break;
         }
     } else if (engine_alproto != alproto && engine_alproto != ALPROTO_UNKNOWN) {
-        // incompatible engine->alproto with flow alproto
+        /* incompatible engine->alproto with flow alproto */
         tx_ptr = NULL;
     }
     return tx_ptr;
