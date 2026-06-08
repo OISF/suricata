@@ -51,33 +51,21 @@ static void DetectBsizeRegisterTests (void);
 bool DetectBsizeValidateContentCallback(const Signature *s, const SignatureInitDataBuffer *b)
 {
     uint64_t bsize;
-    int retval = -1;
     const DetectU64Data *bsz;
-    for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
-        if (sm->type == DETECT_BSIZE) {
-            bsz = (const DetectU64Data *)sm->ctx;
-            retval = SigParseGetMaxBsize(bsz, &bsize);
-            break;
-        }
-    }
-
-    if (retval == -1) {
+    if (!SigBsizeBufferMaxBound(b, &bsize, &bsz)) {
         return true;
     }
 
-    uint64_t needed;
-    if (retval == 0) {
-        int len, offset;
-        SigParseRequiredContentSize(s, bsize, b->head, &len, &offset);
-        SCLogDebug("bsize: %" PRIu64 "; len: %d; offset: %d [%s]", bsize, len, offset, s->sig_str);
-        needed = len;
-        if ((uint64_t)len > bsize) {
-            goto value_error;
-        }
-        if ((uint64_t)(len + offset) > bsize) {
-            needed += offset;
-            goto value_error;
-        }
+    int len, offset;
+    SigParseRequiredContentSize(s, bsize, b->head, &len, &offset);
+    SCLogDebug("bsize: %" PRIu64 "; len: %d; offset: %d [%s]", bsize, len, offset, s->sig_str);
+    uint64_t needed = len;
+    if ((uint64_t)len > bsize) {
+        goto value_error;
+    }
+    if ((uint64_t)(len + offset) > bsize) {
+        needed += offset;
+        goto value_error;
     }
 
     return true;
