@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -385,24 +385,24 @@ void DetectContentFree(DetectEngineCtx *de_ctx, void *ptr)
  *  \param s signature to get dsize value from
  *  \param max_size Maximum buffer/data size allowed.
  *  \param list signature match list.
+ *  \param count_negated when true, a negated content whose distance and
+ *         within reach past max_size counts as needing that many bytes;
+ *         when false, negated contents are skipped, since a buffer too
+ *         short for the window satisfies the negation
  *  \param len Maximum length required
  *  \param offset Maximum offset encountered
  *
  *  Note that negated content does not contribute to the maximum
- *  required size value. However, each negated content's values
- *  must not exceed the size value.
- *
- *  Values from negated content blocks are used to determine if the
- *  negated content block requires a value that exceeds "max_size". The
- *  distance and within values from negated content blocks are added to
- *  the running total of required content size to see if the max_size
- *  would be exceeded.
+ *  required size value. With count_negated, each negated content's
+ *  values must not exceed the size value: the distance and within
+ *  values from negated content blocks are added to the running total
+ *  of required content size to see if the max_size would be exceeded.
  *
  *  - Non-negated content contributes to the required size (content length, distance)
- *  - Negated content values are checked but not accumulated for the required size.
+ *  - Negated content values are checked (count_negated) or skipped, never accumulated.
  */
-void SigParseRequiredContentSize(
-        const Signature *s, const uint64_t max_size, const SigMatch *sm, int *len, int *offset)
+void SigParseRequiredContentSize(const Signature *s, const uint64_t max_size, const SigMatch *sm,
+        bool count_negated, int *len, int *offset)
 {
     int max_offset = 0, total_len = 0;
     bool first = true;
@@ -417,6 +417,9 @@ void SigParseRequiredContentSize(
         SCLogDebug("content_len %d; negated: %s; distance: %d, offset: %d, depth: %d",
                 cd->content_len, cd->flags & DETECT_CONTENT_NEGATED ? "yes" : "no", cd->distance,
                 cd->offset, cd->depth);
+
+        if ((cd->flags & DETECT_CONTENT_NEGATED) && !count_negated)
+            continue;
 
         if (!first) {
             /* only count content with relative modifiers */

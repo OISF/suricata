@@ -132,8 +132,8 @@ void DetectContentPropagateLimits(Signature *s);
 
 void DetectContentPatternPrettyPrint(
         const uint8_t *pat, const uint16_t pat_len, char *str, size_t str_len);
-void SigParseRequiredContentSize(
-        const Signature *s, const uint64_t max, const SigMatch *sm, int *len, int *offset);
+void SigParseRequiredContentSize(const Signature *s, const uint64_t max, const SigMatch *sm,
+        bool count_negated, int *len, int *offset);
 int DetectContentConvertToNocase(DetectEngineCtx *de_ctx, DetectContentData *cd);
 
 #endif /* SURICATA_DETECT_CONTENT_H */

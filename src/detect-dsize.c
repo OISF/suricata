@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -296,7 +296,7 @@ int SigParseMaxRequiredDsize(const Signature *s)
 
     int total_length, offset;
     SigParseRequiredContentSize(
-            s, dsize, s->init_data->smlists[DETECT_SM_LIST_PMATCH], &total_length, &offset);
+            s, dsize, s->init_data->smlists[DETECT_SM_LIST_PMATCH], true, &total_length, &offset);
     SCLogDebug("dsize: %d  len: %d; offset: %d [%s]", dsize, total_length, offset, s->sig_str);
 
     if (total_length > dsize) {
