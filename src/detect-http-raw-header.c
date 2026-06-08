@@ -114,15 +114,17 @@ void DetectHttpRawHeaderRegister(void)
             PrefilterMpmHttpHeaderRawResponseRegister, NULL, ALPROTO_HTTP1,
             0); /* progress handled in register */
 
-    DetectAppLayerInspectEngineRegister("http_raw_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetData2);
-    DetectAppLayerInspectEngineRegister("http_raw_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetData2);
+    DetectAppLayerInspectEngineRegisterSubState("http_raw_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetData2);
+    DetectAppLayerInspectEngineRegisterSubState("http_raw_header", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetData2);
 
-    DetectAppLayerMpmRegister("http_raw_header", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetData2, ALPROTO_HTTP2, HTTP2ProgHeaders);
-    DetectAppLayerMpmRegister("http_raw_header", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetData2, ALPROTO_HTTP2, HTTP2ProgHeaders);
+    DetectAppLayerMpmRegisterSubState("http_raw_header", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetData2, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgHeaders);
+    DetectAppLayerMpmRegisterSubState("http_raw_header", SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister, GetData2, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgHeaders);
 
     DetectBufferTypeSetDescriptionByName("http_raw_header",
             "raw http headers");
