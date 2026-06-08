@@ -342,8 +342,8 @@ static int PrefilterMpmFilenameRegister(DetectEngineCtx *de_ctx, SigGroupHead *s
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxFilename,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
+    return PrefilterAppendTxEngineSubState(de_ctx, sgh, PrefilterTxFilename,
+            mpm_reg->app_v2.alproto, mpm_reg->app_v2.sub_state, mpm_reg->app_v2.tx_min_progress,
             pectx, PrefilterMpmFilenameFree, mpm_reg->pname);
 }
 
