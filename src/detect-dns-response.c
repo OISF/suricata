@@ -334,9 +334,9 @@ static int DetectDnsResponsePrefilterMpmRegister(DetectEngineCtx *de_ctx, SigGro
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    return PrefilterAppendTxEngine(de_ctx, sgh, DetectDnsResponsePrefilterTx,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress, pectx,
-            DetectDnsResponsePrefilterMpmFree, mpm_reg->pname);
+    return PrefilterAppendTxEngineSubState(de_ctx, sgh, DetectDnsResponsePrefilterTx,
+            mpm_reg->app_v2.alproto, mpm_reg->app_v2.sub_state, mpm_reg->app_v2.tx_min_progress,
+            pectx, DetectDnsResponsePrefilterMpmFree, mpm_reg->pname);
 }
 
 static void SCDetectMdnsResponseRrnameRegister(void)
@@ -399,6 +399,13 @@ void DetectDnsResponseRegister(void)
             keyword, ALPROTO_DNS, SIG_FLAG_TOCLIENT, 1, DetectEngineInspectCb, NULL);
     DetectAppLayerMpmRegister(keyword, SIG_FLAG_TOCLIENT, 2, DetectDnsResponsePrefilterMpmRegister,
             NULL, ALPROTO_DNS, 1);
+
+    /* DOH2: Register in the TO_CLIENT direction. */
+    DetectAppLayerInspectEngineRegisterSubState(keyword, ALPROTO_DOH2, SIG_FLAG_TOCLIENT,
+            HTTP2TxTypeStream, HTTP2ProgClosed, DetectEngineInspectCb, NULL);
+    DetectAppLayerMpmRegisterSubState(keyword, SIG_FLAG_TOCLIENT, 2,
+            DetectDnsResponsePrefilterMpmRegister, NULL, ALPROTO_DOH2, HTTP2TxTypeStream,
+            HTTP2ProgClosed);
 
     DetectBufferTypeSetDescriptionByName(keyword, "dns response rrname");
     DetectBufferTypeSupportsMultiInstance(keyword);
