@@ -107,11 +107,6 @@ static void RegisterInternal(const char *name, int direction, int priority,
         FatalError("MPM engine registration for %s failed", name);
     }
 
-    // every HTTP2 can be accessed from DOH2
-    if (alproto == ALPROTO_HTTP2 || alproto == ALPROTO_DNS) {
-        RegisterInternal(name, direction, priority, PrefilterRegister, GetData, GetDataSingle,
-                GetMultiData, ALPROTO_DOH2, sub_state, tx_min_progress);
-    }
     DetectBufferMpmRegistry *am = SCCalloc(1, sizeof(*am));
     BUG_ON(am == NULL);
     am->name = name;
