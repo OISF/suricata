@@ -374,6 +374,13 @@ If one or more ``content`` keywords precedes ``bsize``, each occurrence of ``con
 will be inspected and an error will be raised if the content length and the bsize
 value prevent a match.
 
+A buffer may carry more than one ``bsize`` keyword, and the buffer must satisfy
+them all; the tightest (smallest) upper bound is the one applied to content
+inspection. A common use is a lower and an upper bound that together form a
+range, for example ``bsize:>359; bsize:<370``. If the keywords cannot be
+satisfied at once -- two different exact lengths, or a lower bound above an
+upper bound -- no buffer length can ever match and the rule is rejected at load.
+
 Format::
 
   bsize:<number>;
