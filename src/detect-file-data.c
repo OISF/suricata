@@ -72,6 +72,8 @@ typedef struct {
     int direction;
     int to_client_progress;
     int to_server_progress;
+    uint8_t sub_state_ts;
+    uint8_t sub_state_tc;
 } DetectFileHandlerProtocol_t;
 
 /* Table with all filehandler registrations */
@@ -89,10 +91,14 @@ DetectFileHandlerProtocol_t al_protocols[ALPROTO_WITHFILES_MAX] = {
             .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
             .to_client_progress = HTP_RESPONSE_PROGRESS_BODY,
             .to_server_progress = HTP_REQUEST_PROGRESS_BODY },
-    { .alproto = ALPROTO_HTTP2,
+    {
+            .alproto = ALPROTO_HTTP2,
             .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
             .to_client_progress = HTTP2ProgData,
-            .to_server_progress = HTTP2ProgData },
+            .to_server_progress = HTTP2ProgData,
+            .sub_state_tc = HTTP2TxTypeStream,
+            .sub_state_ts = HTTP2TxTypeStream,
+    },
     { .alproto = ALPROTO_SMTP,
             .direction = SIG_FLAG_TOSERVER,
             .to_server_progress = SMTP_REQUEST_DATA },
@@ -121,24 +127,24 @@ void DetectFileRegisterProto(
 void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *reg)
 {
     for (size_t i = 0; i < g_alproto_max; i++) {
-        if (al_protocols[i].alproto == ALPROTO_UNKNOWN) {
+        DetectFileHandlerProtocol_t *p = &al_protocols[i];
+        if (p->alproto == ALPROTO_UNKNOWN) {
             break;
         }
-        int direction = al_protocols[i].direction == 0
-                                ? (int)(SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)
-                                : al_protocols[i].direction;
+        int direction =
+                p->direction == 0 ? (int)(SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT) : p->direction;
 
         if (direction & SIG_FLAG_TOCLIENT) {
-            DetectAppLayerMpmRegister(reg->name, SIG_FLAG_TOCLIENT, reg->priority, reg->PrefilterFn,
-                    NULL, al_protocols[i].alproto, al_protocols[i].to_client_progress);
-            DetectAppLayerInspectEngineRegister(reg->name, al_protocols[i].alproto,
-                    SIG_FLAG_TOCLIENT, al_protocols[i].to_client_progress, reg->Callback, NULL);
+            DetectAppLayerMpmRegisterSubState(reg->name, SIG_FLAG_TOCLIENT, reg->priority,
+                    reg->PrefilterFn, NULL, p->alproto, p->sub_state_tc, p->to_client_progress);
+            DetectAppLayerInspectEngineRegisterSubState(reg->name, p->alproto, SIG_FLAG_TOCLIENT,
+                    p->sub_state_tc, p->to_client_progress, reg->Callback, NULL);
         }
         if (direction & SIG_FLAG_TOSERVER) {
-            DetectAppLayerMpmRegister(reg->name, SIG_FLAG_TOSERVER, reg->priority, reg->PrefilterFn,
-                    NULL, al_protocols[i].alproto, al_protocols[i].to_server_progress);
-            DetectAppLayerInspectEngineRegister(reg->name, al_protocols[i].alproto,
-                    SIG_FLAG_TOSERVER, al_protocols[i].to_server_progress, reg->Callback, NULL);
+            DetectAppLayerMpmRegisterSubState(reg->name, SIG_FLAG_TOSERVER, reg->priority,
+                    reg->PrefilterFn, NULL, p->alproto, p->sub_state_ts, p->to_server_progress);
+            DetectAppLayerInspectEngineRegisterSubState(reg->name, p->alproto, SIG_FLAG_TOSERVER,
+                    p->sub_state_ts, p->to_server_progress, reg->Callback, NULL);
         }
     }
 }
@@ -594,8 +600,8 @@ int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, Mpm
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->transforms;
 
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxFiledata,
-            mpm_reg->app_v2.alproto, mpm_reg->app_v2.tx_min_progress,
+    return PrefilterAppendTxEngineSubState(de_ctx, sgh, PrefilterTxFiledata,
+            mpm_reg->app_v2.alproto, mpm_reg->app_v2.sub_state, mpm_reg->app_v2.tx_min_progress,
             pectx, PrefilterMpmFiledataFree, mpm_reg->pname);
 }
 
