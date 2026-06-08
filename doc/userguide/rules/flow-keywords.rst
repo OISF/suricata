@@ -120,6 +120,96 @@ The determination of *established* depends on the protocol:
 
   .. image:: flow-keywords/Flow2.png
 
+.. _tcp-session:
+
+tcp.session
+-----------
+
+The ``tcp.session`` keyword matches on one or more phases of the TCP session
+lifecycle in a single keyword. It lets an author cover the full lifecycle of a
+TCP connection in one rule instead of writing separate ``flow:not_established``
+and ``flow:established`` rules.
+
+The keyword argument is a comma-separated subset of the three phase tokens
+``setup``, ``established`` and ``closing``. The tokens may appear in any order,
+must not be duplicated, must not contain surrounding whitespace, and the total
+argument length must not exceed 64 characters. The rule binds to the union of
+the phases named by the tokens.
+
+Format::
+
+  tcp.session:<phase>[,<phase>...];
+
+The three phases map to the following TCP states (from ``enum TcpState``):
+
+setup
+  Matches packets before the connection is established, i.e. the states
+  ``TCP_NONE``, ``TCP_SYN_SENT`` and ``TCP_SYN_RECV``. These are exactly the
+  packets for which the ``FLOW_PKT_ESTABLISHED`` flag is not set, so for any
+  packet on a non-midstream flow ``tcp.session:setup`` matches when, and only
+  when, ``flow:not_established`` matches.
+established
+  Matches packets on an established connection, i.e. the state
+  ``TCP_ESTABLISHED``. These are the packets for which the
+  ``FLOW_PKT_ESTABLISHED`` flag is set, so for any packet on a non-midstream
+  flow ``tcp.session:established`` matches when, and only when,
+  ``flow:established`` matches.
+closing
+  Matches packets while the connection is being torn down, i.e. the states
+  ``TCP_FIN_WAIT1``, ``TCP_FIN_WAIT2``, ``TCP_TIME_WAIT``, ``TCP_LAST_ACK``,
+  ``TCP_CLOSE_WAIT`` and ``TCP_CLOSING``. The terminal ``TCP_CLOSED`` state is
+  not part of any phase, because the flow is destroyed at that point and no
+  further rule evaluation occurs.
+
+The state *sets* are disjoint, but a single packet may still match more than one
+phase. The ``FLOW_PKT_ESTABLISHED`` flag is sticky: once a connection is
+established the flag stays set on subsequent packets, including those observed
+during the closing states. As a result a packet seen while the session is in,
+for example, ``TCP_FIN_WAIT1`` matches both ``tcp.session:established`` and
+``tcp.session:closing``.
+
+Examples::
+
+  tcp.session:setup
+  tcp.session:setup,established
+  tcp.session:established,closing
+  tcp.session:setup,established,closing
+
+.. container:: example-rule
+
+  accept tcp any any -> any any (:example-rule-options:`tcp.session:setup,established;` sid:1;)
+
+Midstream pickup
+~~~~~~~~~~~~~~~~~
+
+When a flow is picked up midstream (``stream.midstream: true`` and the SYN was
+never observed), ``tcp.session`` evaluates the flow's current TCP state
+directly. A midstream pickup that lands in ``TCP_ESTABLISHED`` matches
+``tcp.session:established`` and does **not** match ``tcp.session:setup``,
+regardless of whether the original handshake was observed. This mirrors the
+behavior of ``flow:established`` for midstream flows, because both read the same
+``FLOW_PKT_ESTABLISHED`` flag.
+
+Combining with the ``flow`` keyword
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``tcp.session`` may be combined with ``flow:not_established`` or
+``flow:established`` in the same rule. Both keywords are evaluated
+independently and the rule matches a packet only when the ``tcp.session`` phase
+set and the ``flow`` keyword both match it (logical AND). Because
+``tcp.session:setup`` is equivalent to ``flow:not_established`` and
+``tcp.session:established`` is equivalent to ``flow:established`` on
+non-midstream flows, ``tcp.session:setup,established`` matches the same set of
+packets as the two-rule combination of ``flow:not_established`` plus
+``flow:established``.
+
+.. note:: ``tcp.session`` is TCP-specific; it never matches on non-TCP flows.
+
+.. note:: ``tcp.session`` is supported in firewall mode and can be used in
+  ``accept`` rules in the transport-layer (``packet_filter``) hook. It does not
+  bypass the stream engine's state validation, the decode-layer events, the
+  precedence of explicit ``drop`` rules, or the default-drop verdict.
+
 .. _flowint:
 
 flowint

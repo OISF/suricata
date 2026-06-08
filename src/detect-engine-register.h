@@ -56,6 +56,14 @@ enum DetectKeywordId {
     DETECT_FLOW,
     /* end prefilter sort */
 
+    /* placed adjacent to DETECT_FLOW: tcp.session: matches a comma-separated
+     * subset of {setup, established, closing} on the per-packet TCP session
+     * phase, sharing the FLOW_PKT_ESTABLISHED predicate that DETECT_FLOW uses
+     * for the established check. Outside the prefilter-sort block above
+     * because the keyword does not register a prefilter (per-packet match is
+     * too cheap to merit prefilter bucketing). */
+    DETECT_TCP_SESSION,
+
     /* values used in util-var.c go here, to avoid int overflows */
     DETECT_THRESHOLD,
     DETECT_FLOWBITS,

@@ -57,6 +57,7 @@
 #include "util-var-name.h"
 #include "detect-icmp-id.h"
 #include "detect-tcp-window.h"
+#include "detect-tcp-session.h"
 
 static int rule_warnings_only = 0;
 
@@ -1743,6 +1744,13 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     uint32_t warn_no_direction = 0;
     uint32_t warn_both_direction = 0;
 
+    /* tcp.session: keyword phase_flags accumulator. Non-zero iff the rule
+     * carries a DETECT_TCP_SESSION SigMatch; the bits are the OR of every
+     * tcp.session: SigMatch's phase_flags on the rule (matching the union
+     * semantics of the keyword itself). Used to emit the
+     * `tcp_session: <comma-separated phases>` engine-analyzer line. */
+    uint8_t tcp_session_phase_flags = 0;
+
     EngineAnalysisItemsInit(de_ctx->ea);
 
     bool *http_method_item_seen_ptr = de_ctx->ea->exposed_item_seen_list[0].item_seen_ptr;
@@ -1831,6 +1839,15 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
             else if (sm->type == DETECT_FLAGS) {
                 if (sm->ctx != NULL) {
                     rule_flags = 1;
+                }
+            }
+            else if (sm->type == DETECT_TCP_SESSION) {
+                /* Multiple tcp.session: SigMatches on the same rule are AND-ed
+                 * at match time but the engine-analyzer summarises the union
+                 * of phases bound to the rule for diagnostic clarity. */
+                const DetectTcpSessionData *tsd = (const DetectTcpSessionData *)sm->ctx;
+                if (tsd != NULL) {
+                    tcp_session_phase_flags |= tsd->phase_flags;
                 }
             }
         } /* for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) */
@@ -1985,6 +2002,30 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         if (s->alproto != ALPROTO_UNKNOWN) {
             fprintf(fp, "    App layer protocol is %s.\n", AppProtoToString(s->alproto));
         }
+        /* tcp.session: keyword summary. Emitted only when the rule carries a
+         * DETECT_TCP_SESSION SigMatch so rules without the keyword produce
+         * baseline-identical output. The phases are listed in the
+         * canonical order setup, established, closing -- regardless of the
+         * order the author wrote them -- so the engine-analyzer output is a
+         * canonicalised pretty-print. */
+        if (tcp_session_phase_flags != 0) {
+            const char *sep = "";
+            fprintf(fp, "    tcp_session: ");
+            if (tcp_session_phase_flags & DETECT_TCP_SESSION_PHASE_SETUP) {
+                fprintf(fp, "%ssetup", sep);
+                sep = ",";
+            }
+            if (tcp_session_phase_flags & DETECT_TCP_SESSION_PHASE_ESTABLISHED) {
+                fprintf(fp, "%sestablished", sep);
+                sep = ",";
+            }
+            if (tcp_session_phase_flags & DETECT_TCP_SESSION_PHASE_CLOSING) {
+                fprintf(fp, "%sclosing", sep);
+                sep = ",";
+            }
+            fprintf(fp, "\n");
+        }
+
         if (rule_content || rule_content_http || rule_pcre || rule_pcre_http) {
             fprintf(fp,
                     "    Rule contains %u content options, %u http content options, %u pcre "
