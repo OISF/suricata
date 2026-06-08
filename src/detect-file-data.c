@@ -72,7 +72,7 @@ typedef struct {
     int direction;
     uint8_t progress_ts;
     uint8_t progress_tc;
-} DetectFileHandlerProtocol_t;
+} DetectFileHandlerProtocol;
 
 /* Table with all filehandler registrations */
 DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE_STATIC];
@@ -80,7 +80,7 @@ DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE_STATIC];
 #define ALPROTO_WITHFILES_MAX 16
 
 // file protocols with common file handling
-DetectFileHandlerProtocol_t al_protocols[ALPROTO_WITHFILES_MAX] = {
+DetectFileHandlerProtocol al_protocols[ALPROTO_WITHFILES_MAX] = {
     { .alproto = ALPROTO_NFS, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
     { .alproto = ALPROTO_SMB, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
     { .alproto = ALPROTO_FTP, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
