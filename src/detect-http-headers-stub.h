@@ -197,26 +197,29 @@ static void DetectHttpHeadersRegisterStub(void)
 #ifdef KEYWORD_TOSERVER
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetRequestData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
-    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetRequestData2, ALPROTO_HTTP2, HTTP2ProgHeaders);
+    DetectAppLayerMpmRegisterSubState(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetRequestData2, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgHeaders);
 #endif
 #ifdef KEYWORD_TOCLIENT
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetResponseData, ALPROTO_HTTP1, HTP_RESPONSE_PROGRESS_HEADERS);
-    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetResponseData2, ALPROTO_HTTP2, HTTP2ProgHeaders);
+    DetectAppLayerMpmRegisterSubState(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister, GetResponseData2, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgHeaders);
 #endif
 #ifdef KEYWORD_TOSERVER
     DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetRequestData);
-    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetRequestData2);
+    DetectAppLayerInspectEngineRegisterSubState(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetRequestData2);
 #endif
 #ifdef KEYWORD_TOCLIENT
     DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetResponseData);
-    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetResponseData2);
+    DetectAppLayerInspectEngineRegisterSubState(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric,
+            GetResponseData2);
 #endif
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
