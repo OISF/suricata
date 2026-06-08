@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2022 Open Information Security Foundation
+/* Copyright (C) 2017-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -156,8 +156,16 @@ static int DetectBsizeSigTest01(void)
               "sid:17;)");
     TEST_FAIL("alert http any any -> any any (http.uri; content:\"abc\"; offset:65535; bsize:3; "
               "sid:18;)");
-    TEST_FAIL("alert http any any -> any any (http.user_agent; content:\"Suricata-UA\"; bsize:11; "
-              "content:!\"abc\"; distance:2; within:3;  sid: 19;)");
+    /* a negated content's window may reach past the bsize: a buffer too short
+     * for the window satisfies the negation */
+    TEST_OK("alert http any any -> any any (http.user_agent; content:\"Suricata-UA\"; bsize:11; "
+            "content:!\"abc\"; distance:2; within:3;  sid: 19;)");
+    TEST_OK("alert http any any -> any any (http.uri; content:\"/\"; content:!\"admin\"; "
+            "within:100; bsize:>0; bsize:<32; sid:20;)");
+    /* a negative distance after a skipped negated content can't need fewer
+     * than zero bytes */
+    TEST_OK("alert dns any any -> any any (dns.query; content:!\"bad\"; content:\".\"; "
+            "distance:-2; bsize:5; sid:21;)");
     PASS;
 }
 
