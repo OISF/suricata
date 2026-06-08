@@ -34,10 +34,6 @@ typedef struct DetectFileHandlerTableElmt_ {
     int priority;
     PrefilterRegisterFunc PrefilterFn;
     InspectEngineFuncPtr Callback;
-    InspectionBufferGetDataPtr GetData;
-    int al_protocols[MAX_DETECT_ALPROTO_CNT];
-    int tx_progress;
-    int progress;
 } DetectFileHandlerTableElmt;
 void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *entry);
 
