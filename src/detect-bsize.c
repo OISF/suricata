@@ -43,55 +43,63 @@ static int DetectBsizeSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectBsizeFree (DetectEngineCtx *, void *);
 static int SigParseGetMaxBsize(const DetectU64Data *bsz, uint64_t *bsize);
 static bool SigBsizeBufferMaxBound(const SignatureInitDataBuffer *b, uint64_t *bound, bool *exact);
+static bool SigBsizeBufferFeasible(const SignatureInitDataBuffer *b);
 #ifdef UNITTESTS
 static void DetectBsizeRegisterTests (void);
 #endif
 
 bool DetectBsizeValidateContentCallback(const Signature *s, const SignatureInitDataBuffer *b)
 {
-    uint64_t bsize;
-    int retval = -1;
-    const DetectU64Data *bsz;
-    for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
-        if (sm->type == DETECT_BSIZE) {
-            bsz = (const DetectU64Data *)sm->ctx;
-            retval = SigParseGetMaxBsize(bsz, &bsize);
-            break;
-        }
+    /* A buffer may carry more than one bsize; the buffer must satisfy them all.
+     * Reject the signature at load if those bounds have no common length -- e.g.
+     * bsize:15 and bsize:27, or bsize:>20; bsize:<10 -- since no buffer can ever
+     * match. A single lower+upper pair (bsize:>N; bsize:<M) remains valid. */
+    if (!SigBsizeBufferFeasible(b)) {
+        SCLogError("signature can't match: the buffer's 'bsize' keywords are "
+                   "mutually exclusive, no buffer length satisfies them all");
+        return false;
     }
 
-    if (retval == -1) {
+    uint64_t bsize;
+    if (!SigBsizeBufferMaxBound(b, &bsize, NULL)) {
         return true;
     }
 
-    uint64_t needed;
-    if (retval == 0) {
-        int len, offset;
-        SigParseRequiredContentSize(s, bsize, b->head, &len, &offset);
-        SCLogDebug("bsize: %" PRIu64 "; len: %d; offset: %d [%s]", bsize, len, offset, s->sig_str);
-        needed = len;
-        if ((uint64_t)len > bsize) {
-            goto value_error;
-        }
-        if ((uint64_t)(len + offset) > bsize) {
-            needed += offset;
-            goto value_error;
-        }
+    int len, offset;
+    SigParseRequiredContentSize(s, bsize, b->head, &len, &offset);
+    SCLogDebug("bsize: %" PRIu64 "; len: %d; offset: %d [%s]", bsize, len, offset, s->sig_str);
+    uint64_t needed = len;
+    if ((uint64_t)len > bsize) {
+        goto value_error;
+    }
+    if ((uint64_t)(len + offset) > bsize) {
+        needed += offset;
+        goto value_error;
     }
 
     return true;
-value_error:
-    if (bsz->mode == DETECT_UINT_RA) {
+value_error: {
+    /* find the bsize that set the tightest bound, to describe it in the error */
+    const DetectU64Data *bsz = NULL;
+    for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
+        uint64_t cur;
+        if (sm->type == DETECT_BSIZE &&
+                SigParseGetMaxBsize((const DetectU64Data *)sm->ctx, &cur) == 0 && cur == bsize) {
+            bsz = (const DetectU64Data *)sm->ctx;
+            break;
+        }
+    }
+    if (bsz != NULL && bsz->mode == DETECT_UINT_RA) {
         SCLogError("signature can't match as required content length %" PRIu64
                    " exceeds bsize range: %" PRIu64 "-%" PRIu64,
                 needed, bsz->arg1, bsz->arg2);
     } else {
         SCLogError("signature can't match as required content length %" PRIu64
-                   " exceeds bsize value: "
-                   "%" PRIu64,
-                needed, bsz->arg1);
+                   " exceeds bsize value: %" PRIu64,
+                needed, bsz != NULL ? bsz->arg1 : bsize);
     }
     return false;
+}
 }
 
 /**
@@ -218,6 +226,73 @@ static bool SigBsizeBufferMaxBound(const SignatureInitDataBuffer *b, uint64_t *b
     *bound = b_min;
     if (exact != NULL)
         *exact = is_exact;
+    return true;
+}
+
+/**
+ * \brief report whether a buffer's bsize keywords can be jointly satisfied
+ *
+ * Each bsize keyword constrains the buffer length to an inclusive interval; the
+ * buffer must satisfy every keyword, so the feasible set is their intersection.
+ * A lower bound (bsize:>N) and an upper bound (bsize:<M) form a valid range as
+ * long as they overlap. This returns false when the intersection is empty --
+ * two differing exact bsizes, or a lower bound above an upper bound -- meaning
+ * no buffer length can ever match.
+ *
+ * \param b buffer to scan
+ * \retval true the bsize keywords share at least one satisfiable length
+ * \retval false the bsize keywords are mutually exclusive
+ */
+static bool SigBsizeBufferFeasible(const SignatureInitDataBuffer *b)
+{
+    uint64_t lo = 0;
+    uint64_t hi = UINT64_MAX;
+    for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_BSIZE)
+            continue;
+
+        const DetectU64Data *bsz = (const DetectU64Data *)sm->ctx;
+        uint64_t clo = 0;
+        uint64_t chi = UINT64_MAX;
+        switch (bsz->mode) {
+            case DETECT_UINT_EQ:
+                clo = chi = bsz->arg1;
+                break;
+            case DETECT_UINT_LT:
+                if (bsz->arg1 == 0)
+                    return false; /* length < 0 is impossible */
+                chi = bsz->arg1 - 1;
+                break;
+            case DETECT_UINT_LTE:
+                chi = bsz->arg1;
+                break;
+            case DETECT_UINT_GT:
+                if (bsz->arg1 == UINT64_MAX)
+                    return false;
+                clo = bsz->arg1 + 1;
+                break;
+            case DETECT_UINT_GTE:
+                clo = bsz->arg1;
+                break;
+            case DETECT_UINT_RA:
+                /* exclusive range: arg1 < length < arg2 */
+                if (bsz->arg2 == 0 || bsz->arg1 + 1 > bsz->arg2 - 1)
+                    return false;
+                clo = bsz->arg1 + 1;
+                chi = bsz->arg2 - 1;
+                break;
+            default:
+                continue;
+        }
+
+        if (clo > lo)
+            lo = clo;
+        if (chi < hi)
+            hi = chi;
+        if (lo > hi)
+            return false;
+    }
+
     return true;
 }
 
