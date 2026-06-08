@@ -96,12 +96,8 @@ void DetectFtpCommandDataRegister(void)
     sigmatch_table[DETECT_FTP_COMMAND_DATA].Setup = DetectFtpCommandDataSetup;
     sigmatch_table[DETECT_FTP_COMMAND_DATA].flags |= SIGMATCH_NOOPT;
 
-    SCDetectHelperBufferMpmRegister(
-            BUFFER_NAME, BUFFER_DESC, ALPROTO_FTP, STREAM_TOSERVER, DetectFTPCommandDataGetData);
-
-    DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
-
-    g_ftp_cmd_data_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
+    g_ftp_cmd_data_buffer_id = SCDetectHelperBufferProgressMpmRegister(BUFFER_NAME, BUFFER_DESC,
+            ALPROTO_FTP, STREAM_TOSERVER, DetectFTPCommandDataGetData, FTP_STATE_FINISHED);
 
     SCLogDebug("registering " BUFFER_NAME " rule option");
 }
