@@ -50,48 +50,45 @@ static void DetectBsizeRegisterTests (void);
 bool DetectBsizeValidateContentCallback(const Signature *s, const SignatureInitDataBuffer *b)
 {
     uint64_t bsize;
-    int retval = -1;
-    const DetectU64Data *bsz;
-    for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
-        if (sm->type == DETECT_BSIZE) {
-            bsz = (const DetectU64Data *)sm->ctx;
-            retval = SigParseGetMaxBsize(bsz, &bsize);
-            break;
-        }
-    }
-
-    if (retval == -1) {
+    if (!SigBsizeBufferMaxBound(b, &bsize, NULL)) {
         return true;
     }
 
-    uint64_t needed;
-    if (retval == 0) {
-        int len, offset;
-        SigParseRequiredContentSize(s, bsize, b->head, &len, &offset);
-        SCLogDebug("bsize: %" PRIu64 "; len: %d; offset: %d [%s]", bsize, len, offset, s->sig_str);
-        needed = len;
-        if ((uint64_t)len > bsize) {
-            goto value_error;
-        }
-        if ((uint64_t)(len + offset) > bsize) {
-            needed += offset;
-            goto value_error;
-        }
+    int len, offset;
+    SigParseRequiredContentSize(s, bsize, b->head, &len, &offset);
+    SCLogDebug("bsize: %" PRIu64 "; len: %d; offset: %d [%s]", bsize, len, offset, s->sig_str);
+    uint64_t needed = len;
+    if ((uint64_t)len > bsize) {
+        goto value_error;
+    }
+    if ((uint64_t)(len + offset) > bsize) {
+        needed += offset;
+        goto value_error;
     }
 
     return true;
-value_error:
-    if (bsz->mode == DETECT_UINT_RA) {
+value_error: {
+    /* find the bsize that set the tightest bound, to describe it in the error */
+    const DetectU64Data *bsz = NULL;
+    for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
+        uint64_t cur;
+        if (sm->type == DETECT_BSIZE &&
+                SigParseGetMaxBsize((const DetectU64Data *)sm->ctx, &cur) == 0 && cur == bsize) {
+            bsz = (const DetectU64Data *)sm->ctx;
+            break;
+        }
+    }
+    if (bsz != NULL && bsz->mode == DETECT_UINT_RA) {
         SCLogError("signature can't match as required content length %" PRIu64
                    " exceeds bsize range: %" PRIu64 "-%" PRIu64,
                 needed, bsz->arg1, bsz->arg2);
     } else {
         SCLogError("signature can't match as required content length %" PRIu64
-                   " exceeds bsize value: "
-                   "%" PRIu64,
-                needed, bsz->arg1);
+                   " exceeds bsize value: %" PRIu64,
+                needed, bsz != NULL ? bsz->arg1 : bsize);
     }
     return false;
+}
 }
 
 /**
