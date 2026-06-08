@@ -70,8 +70,8 @@ int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, Mpm
 typedef struct {
     int direction;
     AppProto alproto;
-    uint8_t to_client_progress;
-    uint8_t to_server_progress;
+    uint8_t progress_ts;
+    uint8_t progress_tc;
 } DetectFileHandlerProtocol_t;
 
 /* Table with all filehandler registrations */
@@ -87,17 +87,17 @@ DetectFileHandlerProtocol_t al_protocols[ALPROTO_WITHFILES_MAX] = {
     { .alproto = ALPROTO_FTPDATA, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
     { .alproto = ALPROTO_HTTP1,
             .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
-            .to_client_progress = HTP_RESPONSE_PROGRESS_BODY,
-            .to_server_progress = HTP_REQUEST_PROGRESS_BODY },
+            .progress_tc = HTP_RESPONSE_PROGRESS_BODY,
+            .progress_ts = HTP_REQUEST_PROGRESS_BODY },
     { .alproto = ALPROTO_HTTP2,
             .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
-            .to_client_progress = HTTP2ProgData,
-            .to_server_progress = HTTP2ProgData },
+            .progress_tc = HTTP2ProgData,
+            .progress_ts = HTTP2ProgData },
     { .alproto = ALPROTO_SMTP, .direction = SIG_FLAG_TOSERVER }, { .alproto = ALPROTO_UNKNOWN }
 };
 
 void DetectFileRegisterProto(
-        AppProto alproto, int direction, uint8_t to_client_progress, uint8_t to_server_progress)
+        AppProto alproto, int direction, uint8_t progress_tc, uint8_t progress_ts)
 {
     size_t i = 0;
     while (i < ALPROTO_WITHFILES_MAX && al_protocols[i].alproto != ALPROTO_UNKNOWN) {
@@ -108,8 +108,8 @@ void DetectFileRegisterProto(
     }
     al_protocols[i].alproto = alproto;
     al_protocols[i].direction = direction;
-    al_protocols[i].to_client_progress = to_client_progress;
-    al_protocols[i].to_server_progress = to_server_progress;
+    al_protocols[i].progress_tc = progress_tc;
+    al_protocols[i].progress_ts = progress_ts;
     if (i + 1 < ALPROTO_WITHFILES_MAX) {
         al_protocols[i + 1].alproto = ALPROTO_UNKNOWN;
     }
@@ -127,15 +127,15 @@ void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *reg)
 
         if (direction & SIG_FLAG_TOCLIENT) {
             DetectAppLayerMpmRegister(reg->name, SIG_FLAG_TOCLIENT, reg->priority, reg->PrefilterFn,
-                    NULL, al_protocols[i].alproto, al_protocols[i].to_client_progress);
+                    NULL, al_protocols[i].alproto, al_protocols[i].progress_tc);
             DetectAppLayerInspectEngineRegister(reg->name, al_protocols[i].alproto,
-                    SIG_FLAG_TOCLIENT, al_protocols[i].to_client_progress, reg->Callback, NULL);
+                    SIG_FLAG_TOCLIENT, al_protocols[i].progress_tc, reg->Callback, NULL);
         }
         if (direction & SIG_FLAG_TOSERVER) {
             DetectAppLayerMpmRegister(reg->name, SIG_FLAG_TOSERVER, reg->priority, reg->PrefilterFn,
-                    NULL, al_protocols[i].alproto, al_protocols[i].to_server_progress);
+                    NULL, al_protocols[i].alproto, al_protocols[i].progress_ts);
             DetectAppLayerInspectEngineRegister(reg->name, al_protocols[i].alproto,
-                    SIG_FLAG_TOSERVER, al_protocols[i].to_server_progress, reg->Callback, NULL);
+                    SIG_FLAG_TOSERVER, al_protocols[i].progress_ts, reg->Callback, NULL);
         }
     }
 }
