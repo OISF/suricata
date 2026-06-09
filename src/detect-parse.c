@@ -2684,38 +2684,48 @@ static int SigValidateCheckBuffers(
 
         const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
         for (; app != NULL; app = app->next) {
-            if (app->sm_list == b->id &&
-                    (AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
-                SCLogDebug("engine %s dir %d alproto %d",
-                        DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list), app->dir,
-                        app->alproto);
-                SCLogDebug("b->id %d nlists %d", b->id, nlists);
+            if (app->sm_list != b->id)
+                continue;
 
-                if (b->only_tc) {
-                    if (app->dir == 1)
-                        (*tc_excl)++;
-                } else if (b->only_ts) {
-                    if (app->dir == 0)
-                        (*ts_excl)++;
-                } else {
-                    bufdir[b->id].ts += (app->dir == 0);
-                    bufdir[b->id].tc += (app->dir == 1);
-                }
-
+            if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
                 /* only allow rules to use the hook for engines at that
                  * exact progress for now. */
-                if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
-                    if ((s->flags & SIG_FLAG_TOSERVER) && (app->dir == 0) &&
-                            app->progress != s->init_data->hook.t.app.app_progress) {
-                        SCLogError("engine progress value %d doesn't match hook %u", app->progress,
-                                s->init_data->hook.t.app.app_progress);
-                        SCReturnInt(0);
-                    }
-                    if ((s->flags & SIG_FLAG_TOCLIENT) && (app->dir == 1) &&
-                            app->progress != s->init_data->hook.t.app.app_progress) {
-                        SCLogError("engine progress value doesn't match hook");
-                        SCReturnInt(0);
-                    }
+                if (app->alproto != s->alproto) {
+                    continue;
+                }
+            } else {
+                if (!(AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
+                    continue;
+                }
+            }
+
+            SCLogDebug("engine %s dir %d alproto %d",
+                    DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list), app->dir,
+                    app->alproto);
+            SCLogDebug("b->id %d nlists %d", b->id, nlists);
+
+            if (b->only_tc) {
+                if (app->dir == 1)
+                    (*tc_excl)++;
+            } else if (b->only_ts) {
+                if (app->dir == 0)
+                    (*ts_excl)++;
+            } else {
+                bufdir[b->id].ts += (app->dir == 0);
+                bufdir[b->id].tc += (app->dir == 1);
+            }
+
+            if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+                if ((s->flags & SIG_FLAG_TOSERVER) && (app->dir == 0) &&
+                        app->progress != s->init_data->hook.t.app.app_progress) {
+                    SCLogError("engine progress value %d doesn't match hook %u", app->progress,
+                            s->init_data->hook.t.app.app_progress);
+                    SCReturnInt(0);
+                }
+                if ((s->flags & SIG_FLAG_TOCLIENT) && (app->dir == 1) &&
+                        app->progress != s->init_data->hook.t.app.app_progress) {
+                    SCLogError("engine progress value doesn't match hook");
+                    SCReturnInt(0);
                 }
             }
         }
