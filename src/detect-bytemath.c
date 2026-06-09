@@ -58,7 +58,13 @@
 
 static int DetectByteMathSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS
+/* Newer cbindgen (>= 0.29.3) exports the Rust DETECT_BYTEMATH_ENDIAN_DEFAULT
+ * constant into rust-bindings.h as a macro. Only define it here when that
+ * binding did not, to avoid a -Werror macro redefinition while still building
+ * with older cbindgen versions that do not emit it. */
+#ifndef DETECT_BYTEMATH_ENDIAN_DEFAULT
 #define DETECT_BYTEMATH_ENDIAN_DEFAULT (uint8_t) BigEndian
+#endif
 #define DETECT_BYTEMATH_BASE_DEFAULT   (uint8_t) BaseDec
 
 static void DetectByteMathRegisterTests(void);
