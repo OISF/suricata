@@ -5203,12 +5203,17 @@ void DetectLowerSetupCallback(
     }
 }
 
-void SCDetectEngineRegisterRateFilterCallback(SCDetectRateFilterFunc fn, void *arg)
+bool SCDetectEngineRegisterRateFilterCallback(SCDetectRateFilterFunc fn, void *arg)
 {
     DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    if (de_ctx == NULL) {
+        SCLogError("no detection engine available for rate filter callback registration");
+        return false;
+    }
     de_ctx->RateFilterCallback = fn;
     de_ctx->rate_filter_callback_arg = arg;
     DetectEngineDeReference(&de_ctx);
+    return true;
 }
 
 int DetectEngineThreadCtxGetJsonContext(DetectEngineThreadCtx *det_ctx)
