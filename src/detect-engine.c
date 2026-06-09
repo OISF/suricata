@@ -707,8 +707,19 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
 {
     if (t->alproto == ALPROTO_UNKNOWN) {
         /* special case, inspect engine applies to all protocols */
-    } else if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, t->alproto))
-        return;
+    } else if (s->alproto != ALPROTO_UNKNOWN) {
+        if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+            /* SIGNATURE_HOOK_TYPE_APP rules are exact about their protocol */
+            if (t->alproto != s->alproto) {
+                return;
+            }
+        } else {
+            /* other rules use the more relax AppProtoEquals logic */
+            if (!AppProtoEquals(s->alproto, t->alproto)) {
+                return;
+            }
+        }
+    }
 
     if (s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {
         if (t->dir == 1)
