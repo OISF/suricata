@@ -48,6 +48,15 @@ Use that information to configure Suricata::
 
     sudo vim /etc/suricata/suricata.yaml
 
+.. note::
+
+    The location of ``suricata.yaml`` depends on how Suricata was installed.
+    Distribution packages (such as the PPA used above) install it to
+    ``/etc/suricata/suricata.yaml``. A build from source installs it under the
+    prefix passed to ``configure``, which defaults to ``/usr/local``, so the
+    file is at ``/usr/local/etc/suricata/suricata.yaml`` instead. See
+    :ref:`installation` for details.
+
 There are many possible configuration options, we focus on the setup of
 the ``HOME_NET`` variable and the network interface configuration. The
 ``HOME_NET`` variable should include, in most scenarios, the IP address of
