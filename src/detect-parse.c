@@ -1402,12 +1402,12 @@ static int SigParseProto(Signature *s, const char *protostr)
 
     bool has_hook = strchr(proto, ':') != NULL;
     if (has_hook) {
-        char *xsaveptr = NULL;
-        p = strtok_r(proto, ":", &xsaveptr);
-        h = strtok_r(NULL, ":", &xsaveptr);
+        char *rem = NULL;
+        p = strtok_r(proto, ":", &rem);
+        h = rem;
         SCLogDebug("p: '%s' h: '%s'", p, h);
     }
-    if (p == NULL) {
+    if (p == NULL || strlen(p) == 0) {
         SCLogError("invalid protocol specification '%s'", proto);
         return -1;
     }
@@ -1422,6 +1422,11 @@ static int SigParseProto(Signature *s, const char *protostr)
             AppLayerProtoDetectSupportedIpprotos(s->alproto, s->init_data->proto.proto);
 
             if (h) {
+                if (strlen(h) == 0) {
+                    SCLogError("invalid protocol specification '%s'", proto);
+                    return -1;
+                }
+
                 /* FW hook LTE mode */
                 SCLogDebug("hook '%s'", h);
                 if (*h == '<') {
