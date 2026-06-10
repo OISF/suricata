@@ -848,10 +848,11 @@ int DetectEngineAppHookToSmlist(const AppProto p, const uint8_t state, const int
     if (strcmp(app_proto, "http") == 0)
         app_proto = "http1";
 
-    const char *name = AppLayerParserGetStateNameById(
-            IPPROTO_TCP, p, state, direction & (STREAM_TOSERVER | STREAM_TOCLIENT));
-    if (name == NULL)
+    const char *name =
+            DetectEngineAppHookToName(p, state, direction & (STREAM_TOSERVER | STREAM_TOCLIENT));
+    if (name == NULL) {
         return -1;
+    }
 
     char generic_hook_name[256];
     snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", app_proto, name);
