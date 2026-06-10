@@ -944,10 +944,11 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             for (uint8_t state = 0; state < s->app_progress_hook; state++) {
                 SCLogDebug("handle HOOK %u LTE", state);
                 const int dir = (s->flags & SIG_FLAG_TOSERVER) ? 0 : 1;
-                const char *pname = AppLayerParserGetStateNameById(IPPROTO_TCP, // TODO
+                const char *pname = DetectEngineAppHookToName(
                         s->alproto, state, dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
-                if (pname == NULL)
+                if (pname == NULL) {
                     goto error;
+                }
                 const int sm_list = DetectEngineAppHookToSmlist(
                         s->alproto, state, dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
                 if (TxNonPFAddSig(de_ctx, tx_engines_hash, s->alproto, dir, (int16_t)state, sm_list,
