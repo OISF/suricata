@@ -805,6 +805,38 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
 }
 
+/**
+ * \param direction STREAM_TOSERVER or STREAM_TOCLIENT
+ */
+const char *DetectEngineAppHookToName(const AppProto p, const uint8_t state, const int direction)
+{
+    if (!((direction & (STREAM_TOSERVER | STREAM_TOCLIENT)) == STREAM_TOSERVER) &&
+            !((direction & (STREAM_TOSERVER | STREAM_TOCLIENT)) == STREAM_TOCLIENT))
+        return NULL;
+
+    const char *pname = AppLayerParserGetStateNameById(IPPROTO_TCP, // TODO
+            p, state, direction);
+    if (pname == NULL) {
+        if (state == 0) {
+            if (direction == STREAM_TOSERVER) {
+                pname = "request_started";
+            } else {
+                pname = "response_started";
+            }
+        } else {
+            const int complete = AppLayerParserGetStateProgressCompletionStatus(p, direction);
+            if (state == complete) {
+                if (direction == STREAM_TOSERVER) {
+                    pname = "request_complete";
+                } else {
+                    pname = "response_complete";
+                }
+            }
+        }
+    }
+    return pname;
+}
+
 /** \brief get the sm_list for a app hook */
 int DetectEngineAppHookToSmlist(const AppProto p, const uint8_t state, const int direction)
 {
