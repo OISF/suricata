@@ -2215,7 +2215,8 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
     Signature *s = de_ctx->sig_list;
     for (; s != NULL; s = s->next) {
         /* set up inspect engines */
-        DetectEngineAppInspectionEngine2Signature(de_ctx, s);
+        if (DetectEngineAppInspectionEngine2Signature(de_ctx, s) != 0)
+            SCReturnInt(-1);
 
         /* built-ins */
         for (int type = 0; type < DETECT_SM_LIST_MAX; type++) {
