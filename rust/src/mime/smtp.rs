@@ -95,6 +95,19 @@ pub struct MimeStateSMTP<'a> {
     pub(crate) md5_result: GenericArray<u8, U16>,
 }
 
+impl MimeStateSMTP<'_> {
+    fn restart(&mut self) {
+        self.state_flag = MimeSmtpParserState::MimeSmtpStart;
+        self.headers.truncate(self.main_headers_nb);
+        self.encoding = MimeSmtpEncoding::Plain;
+        self.decoder = None;
+        self.filename.clear();
+        self.bufeolen = 0;
+        self.content_type = MimeSmtpContentType::Message;
+        self.decoded_line.clear();
+    }
+}
+
 pub fn mime_smtp_state_init(
     files: &mut FileContainer, sbcfg: *const StreamingBufferConfig,
 ) -> Option<MimeStateSMTP<'_>> {
@@ -392,8 +405,8 @@ fn mime_smtp_parse_line(
                     ctx.main_headers_nb = ctx.headers.len();
                 }
                 if encap_msg {
-                    ctx.state_flag = MimeSmtpParserState::MimeSmtpStart;
-                    ctx.headers.truncate(ctx.main_headers_nb);
+                    // looks like we have 0 headers...
+                    ctx.restart();
                     return (MimeSmtpParserResult::MimeSmtpNeedsMore, warnings);
                 }
                 ctx.state_flag = MimeSmtpParserState::MimeSmtpBody;
@@ -420,8 +433,7 @@ fn mime_smtp_parse_line(
                     ctx.main_headers_nb = ctx.headers.len();
                 }
                 if encap_msg {
-                    ctx.state_flag = MimeSmtpParserState::MimeSmtpStart;
-                    ctx.headers.truncate(ctx.main_headers_nb);
+                    ctx.restart();
                     return (MimeSmtpParserResult::MimeSmtpNeedsMore, warnings);
                 }
                 ctx.state_flag = MimeSmtpParserState::MimeSmtpBody;
@@ -475,15 +487,11 @@ fn mime_smtp_parse_line(
                             }
                         }
                     }
-                    ctx.state_flag = MimeSmtpParserState::MimeSmtpStart;
                     let toclose = !ctx.filename.is_empty();
-                    ctx.filename.clear();
-                    ctx.headers.truncate(ctx.main_headers_nb);
-                    ctx.encoding = MimeSmtpEncoding::Plain;
-                    ctx.bufeolen = 0;
                     if i.len() >= b.len() + 2 && i[b.len()] == b'-' && i[b.len() + 1] == b'-' {
                         ctx.boundaries.pop();
                     }
+                    ctx.restart();
                     if toclose {
                         return (MimeSmtpParserResult::MimeSmtpFileClose, 0);
                     }
