@@ -27,7 +27,7 @@ use suricata_sys::sys::{
 
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
-    detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Match,
+    detect_parse_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Match,
 };
 use crate::detect::{SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT32};
 use kerberos_parser::krb5::EncryptionType;
@@ -42,19 +42,6 @@ use nom8::Parser;
 
 use std::ffi::{c_int, CStr};
 use std::os::raw::c_void;
-
-/// Get error code, if present in transaction
-/// Return 0 if error code was filled, else 1
-#[no_mangle]
-pub unsafe extern "C" fn SCKrb5TxGetErrorCode(tx: &KRB5Transaction, ptr: *mut i32) -> u32 {
-    match tx.error_code {
-        Some(ref e) => {
-            *ptr = e.0;
-            0
-        }
-        None => 1,
-    }
-}
 
 #[no_mangle]
 pub unsafe extern "C" fn SCKrb5TxGetCname(
@@ -354,7 +341,8 @@ mod tests {
 }
 
 static mut G_KRB5_MSG_TYPE_KW_ID: u16 = 0;
-static mut G_KRB5_MSG_TYPE_BUFFER_ID: c_int = 0;
+static mut G_KRB5_GENERIC_BUFFER_ID: c_int = 0;
+static mut G_KRB5_ERR_CODE_KW_ID: u16 = 0;
 
 // We should apply the derive on the kerberos_parser MessageType
 #[repr(u32)]
@@ -403,7 +391,7 @@ unsafe extern "C" fn krb5_msg_type_setup(
         s,
         G_KRB5_MSG_TYPE_KW_ID,
         ctx as *mut SigMatchCtx,
-        G_KRB5_MSG_TYPE_BUFFER_ID,
+        G_KRB5_GENERIC_BUFFER_ID,
     )
     .is_null()
     {
@@ -428,8 +416,66 @@ unsafe extern "C" fn krb5_msg_type_free(_de: *mut DetectEngineCtx, ctx: *mut c_v
     SCDetectU32Free(ctx);
 }
 
+unsafe extern "C" fn krb5_parse_err_code(
+    ustr: *const std::os::raw::c_char,
+) -> *mut DetectUintData<u32> {
+    let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
+    if let Ok(s) = ft_name.to_str() {
+        // maybe we should own enumeration
+        if let Ok((_, ctx)) = detect_parse_uint::<u32>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+unsafe extern "C" fn krb5_err_code_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_KRB5 as AppProto) != 0 {
+        return -1;
+    }
+    let ctx = krb5_parse_err_code(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_KRB5_ERR_CODE_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_KRB5_GENERIC_BUFFER_ID,
+    )
+    .is_null()
+    {
+        krb5_err_code_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn krb5_err_code_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, KRB5Transaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    match tx.error_code {
+        Some(ref e) => {
+            SCDetectU32Match(e.0 as u32, ctx)
+        }
+        None => 0,
+    }
+}
+
+unsafe extern "C" fn krb5_err_code_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
+    SCDetectU32Free(ctx);
+}
+
 #[no_mangle]
-pub unsafe extern "C" fn SCDetectKrb5MsgTypeRegister() {
+pub unsafe extern "C" fn SCDetectKrb5Register() {
     let kw = SCSigTableAppLiteElmt {
         name: b"krb5_msg_type\0".as_ptr() as *const libc::c_char,
         desc: b"match Kerberos 5 message type\0".as_ptr() as *const libc::c_char,
@@ -440,10 +486,21 @@ pub unsafe extern "C" fn SCDetectKrb5MsgTypeRegister() {
         flags: SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT | SIGMATCH_INFO_UINT32,
     };
     G_KRB5_MSG_TYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_KRB5_MSG_TYPE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
-        b"krb5_msg_type\0".as_ptr() as *const libc::c_char,
+    G_KRB5_GENERIC_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"krb5_generic\0".as_ptr() as *const libc::c_char,
         ALPROTO_KRB5 as AppProto,
         STREAM_TOCLIENT | STREAM_TOSERVER,
         1,
     );
+
+    let kw = SCSigTableAppLiteElmt {
+        name: b"krb5_err_code\0".as_ptr() as *const libc::c_char,
+        desc: b"match Kerberos 5 error code\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/kerberos-keywords.html#krb5-err-code\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(krb5_err_code_match),
+        Setup: Some(krb5_err_code_setup),
+        Free: Some(krb5_err_code_free),
+        flags: SIGMATCH_INFO_UINT32,
+    };
+    G_KRB5_ERR_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
 }
