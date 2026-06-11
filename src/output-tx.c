@@ -405,9 +405,9 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     AppLayerGetTxIterState state;
     memset(&state, 0, sizeof(state));
 
-    const int complete_ts =
+    const int default_complete_ts =
             AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOSERVER);
-    const int complete_tc =
+    const int default_complete_tc =
             AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOCLIENT);
     while (1) {
         AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, tx_id, total_txs, &state);
@@ -418,6 +418,14 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         SCLogDebug("STARTING tx_id %" PRIu64 ", tx %p", tx_id, tx);
 
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
+        int complete_ts, complete_tc;
+        if (txd->tx_type == 0) {
+            complete_ts = default_complete_ts;
+            complete_tc = default_complete_tc;
+        } else {
+            complete_ts = txd->tx_type_eop_ts;
+            complete_tc = txd->tx_type_eop_tc;
+        }
 
         const int tx_progress_ts =
                 AppLayerParserGetStateProgress(ipproto, alproto, tx, ts_disrupt_flags);
