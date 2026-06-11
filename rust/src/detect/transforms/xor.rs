@@ -108,7 +108,7 @@ unsafe extern "C" fn xor_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     std::mem::drop(Box::from_raw(ctx as *mut DetectTransformXorData));
 }
 
-unsafe extern "C" fn xor_id(data: *mut *const u8, length: *mut u32, ctx: *const c_void,) {
+unsafe extern "C" fn xor_id(data: *mut *const u8, length: *mut u32, ctx: *const c_void) {
     if data.is_null() || length.is_null() || ctx.is_null() {
         return;
     }
