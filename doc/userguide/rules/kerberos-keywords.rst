@@ -88,6 +88,8 @@ Kerberos error code (integer). This field is matched in Kerberos error messages 
 
 For a list of error codes, refer to RFC4120 section 7.5.9.
 
+krb5_err_code uses :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
+
 Syntax::
 
  krb5_err_code:<number>

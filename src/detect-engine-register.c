@@ -197,7 +197,6 @@
 #include "detect-ipv4hdr.h"
 #include "detect-ipv6hdr.h"
 #include "detect-krb5-cname.h"
-#include "detect-krb5-errcode.h"
 #include "detect-krb5-sname.h"
 #include "detect-krb5-ticket-encryption.h"
 #include "detect-sip-method.h"
@@ -717,8 +716,6 @@ void SigTableSetup(void)
     DetectIpv4hdrRegister();
     DetectIpv6hdrRegister();
     DetectKrb5CNameRegister();
-    DetectKrb5ErrCodeRegister();
-    SCDetectKrb5MsgTypeRegister();
     DetectKrb5SNameRegister();
     DetectKrb5TicketEncryptionRegister();
     DetectSipMethodRegister();
@@ -779,6 +776,7 @@ void SigTableSetup(void)
     SCDetectSmbRegister();
     SCDetectIkeRegister();
     SCDetectDcerpcRegister();
+    SCDetectKrb5Register();
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreregisteredCallbacks[i]();
