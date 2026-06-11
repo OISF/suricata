@@ -83,7 +83,7 @@ unsafe extern "C" fn krb5_sname_get_data(
 const KRB_TICKET_FASTARRAY_SIZE: usize = 256;
 
 #[derive(Debug)]
-pub struct DetectKrb5TicketEncryptionList {
+struct DetectKrb5TicketEncryptionList {
     positive: [bool; KRB_TICKET_FASTARRAY_SIZE],
     negative: [bool; KRB_TICKET_FASTARRAY_SIZE],
     other: Vec<EncryptionType>,
@@ -96,7 +96,7 @@ impl Default for DetectKrb5TicketEncryptionList {
 }
 
 impl DetectKrb5TicketEncryptionList {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             positive: [false; KRB_TICKET_FASTARRAY_SIZE],
             negative: [false; KRB_TICKET_FASTARRAY_SIZE],
@@ -109,12 +109,12 @@ impl DetectKrb5TicketEncryptionList {
 // to the boolean variant.
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
-pub enum DetectKrb5TicketEncryptionData {
+enum DetectKrb5TicketEncryptionData {
     WEAK(bool),
     LIST(DetectKrb5TicketEncryptionList),
 }
 
-pub fn detect_parse_encryption_weak(i: &str) -> IResult<&str, DetectKrb5TicketEncryptionData> {
+fn detect_parse_encryption_weak(i: &str) -> IResult<&str, DetectKrb5TicketEncryptionData> {
     let (i, neg) = opt(char('!')).parse(i)?;
     let (i, _) = tag("weak").parse(i)?;
     let value = neg.is_none();
@@ -175,11 +175,11 @@ impl MyFromStr for EncryptionType {
     }
 }
 
-pub fn is_alphanumeric_or_dash(chr: char) -> bool {
+fn is_alphanumeric_or_dash(chr: char) -> bool {
     return chr.is_alphanumeric() || chr == '-';
 }
 
-pub fn detect_parse_encryption_item(i: &str) -> IResult<&str, EncryptionType> {
+fn detect_parse_encryption_item(i: &str) -> IResult<&str, EncryptionType> {
     let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, e) = map_res(take_while1(is_alphanumeric_or_dash), |s: &str| {
         EncryptionType::from_str(s)
@@ -190,7 +190,7 @@ pub fn detect_parse_encryption_item(i: &str) -> IResult<&str, EncryptionType> {
     return Ok((i, e));
 }
 
-pub fn detect_parse_encryption_list(i: &str) -> IResult<&str, DetectKrb5TicketEncryptionData> {
+fn detect_parse_encryption_list(i: &str) -> IResult<&str, DetectKrb5TicketEncryptionData> {
     let mut l = DetectKrb5TicketEncryptionList::new();
     let (i, v) = many1(detect_parse_encryption_item).parse(i)?;
     for &val in v.iter() {
@@ -207,15 +207,14 @@ pub fn detect_parse_encryption_list(i: &str) -> IResult<&str, DetectKrb5TicketEn
     return Ok((i, DetectKrb5TicketEncryptionData::LIST(l)));
 }
 
-pub fn detect_parse_encryption(i: &str) -> IResult<&str, DetectKrb5TicketEncryptionData> {
+fn detect_parse_encryption(i: &str) -> IResult<&str, DetectKrb5TicketEncryptionData> {
     let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, parsed) = alt((detect_parse_encryption_weak, detect_parse_encryption_list)).parse(i)?;
     let (i, _) = all_consuming(take_while(|c| c == ' ')).parse(i)?;
     return Ok((i, parsed));
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCKrb5DetectEncryptionParse(
+unsafe extern "C" fn krb5_detect_encryption_parse(
     ustr: *const std::os::raw::c_char,
 ) -> *mut DetectKrb5TicketEncryptionData {
     let ft_name: &CStr = CStr::from_ptr(ustr); //unsafe
@@ -228,10 +227,12 @@ pub unsafe extern "C" fn SCKrb5DetectEncryptionParse(
     return std::ptr::null_mut();
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCKrb5DetectEncryptionMatch(
-    tx: &KRB5Transaction, ctx: &DetectKrb5TicketEncryptionData,
-) -> std::os::raw::c_int {
+unsafe extern "C" fn krb5_ticket_encryption_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, KRB5Transaction);
+    let ctx = cast_pointer!(ctx, DetectKrb5TicketEncryptionData);
     if let Some(x) = tx.ticket_etype {
         match ctx {
             DetectKrb5TicketEncryptionData::WEAK(w) => {
@@ -260,12 +261,6 @@ pub unsafe extern "C" fn SCKrb5DetectEncryptionMatch(
         }
     }
     return 0;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCKrb5DetectEncryptionFree(ctx: &mut DetectKrb5TicketEncryptionData) {
-    // Just unbox...
-    std::mem::drop(Box::from_raw(ctx));
 }
 
 #[cfg(test)]
@@ -348,6 +343,8 @@ static mut G_KRB5_GENERIC_BUFFER_ID: c_int = 0;
 static mut G_KRB5_ERR_CODE_KW_ID: u16 = 0;
 static mut G_KRB5_CNAME_BUFFER_ID: c_int = 0;
 static mut G_KRB5_SNAME_BUFFER_ID: c_int = 0;
+static mut G_KRB5_TICKET_ENCRYPTION_KW_ID: u16 = 0;
+static mut G_KRB5_TICKET_ENCRYPTION_BUFFER_ID: c_int = 0;
 
 // We should apply the derive on the kerberos_parser MessageType
 #[repr(u32)]
@@ -501,6 +498,36 @@ unsafe extern "C" fn krb5_cname_setup(
     return 0;
 }
 
+unsafe extern "C" fn krb5_ticket_encryption_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_KRB5 as AppProto) != 0 {
+        return -1;
+    }
+    let ctx = krb5_detect_encryption_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_KRB5_TICKET_ENCRYPTION_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_KRB5_TICKET_ENCRYPTION_BUFFER_ID,
+    )
+    .is_null()
+    {
+        krb5_ticket_encryption_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn krb5_ticket_encryption_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    let ctx = cast_pointer!(ctx, DetectKrb5TicketEncryptionData);
+    std::mem::drop(Box::from_raw(ctx));
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectKrb5Register() {
     let kw = SCSigTableAppLiteElmt {
@@ -569,5 +596,23 @@ pub unsafe extern "C" fn SCDetectKrb5Register() {
     SCDetectHelperKeywordAliasRegister(
         krb5_cname_hdr_kw_id,
         b"krb5_cname\0".as_ptr() as *const libc::c_char,
+    );
+
+    let kw = SCSigTableAppLiteElmt {
+        name: b"krb5.ticket_encryption\0".as_ptr() as *const libc::c_char,
+        desc: b"match Kerberos 5 ticket encryption\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/kerberos-keywords.html#krb5-ticket-encryption\0".as_ptr()
+            as *const libc::c_char,
+        AppLayerTxMatch: Some(krb5_ticket_encryption_match),
+        Setup: Some(krb5_ticket_encryption_setup),
+        Free: Some(krb5_ticket_encryption_free),
+        flags: 0,
+    };
+    G_KRB5_TICKET_ENCRYPTION_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_KRB5_TICKET_ENCRYPTION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"krb5_ticket_encryption\0".as_ptr() as *const libc::c_char,
+        ALPROTO_KRB5 as AppProto,
+        STREAM_TOCLIENT,
+        1,
     );
 }
