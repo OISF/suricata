@@ -145,7 +145,7 @@ on domain names to find TLDs in the dataset ``dns-tld-seen``:
 
 .. container:: example-rule
 
-    reject dns any any -> any any (msg:"Blocked domain"; dns.query; dotprefix; dataset:isset,blocked-domains, type string, match subdomain, load blocked-domains.lst; sid:8000003; rev:1;)
+    alert dns any any -> any any (msg:"Blocked domain"; dns.query; dotprefix; dataset:isset,blocked-domains, type string, match subdomain, load blocked-domains.lst; sid:8000003; rev:1;)
 
 The ``match subdomain`` option walks up the domain hierarchy on each
 lookup. Combined with ``dotprefix``, a query for ``mail.evil.com``

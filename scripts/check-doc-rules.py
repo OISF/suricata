@@ -111,9 +111,11 @@ def check_rule_with_suricata(
     rule: str,
     suricata_bin: Path,
     suricata_yaml: Path,
+    data_dir: Path,
 ) -> Tuple[bool, str]:
     with tempfile.TemporaryDirectory(prefix="doc-rule-check-") as tmpdir:
         rule_file = Path(tmpdir) / "rule.rules"
+        shutil.copytree(data_dir, tmpdir, dirs_exist_ok=True)
         rule_file.write_text(rule + "\n", encoding="utf-8")
 
         cmd = [
@@ -185,6 +187,7 @@ def main() -> int:
             rule,
             suricata_bin,
             suricata_yaml,
+            repo_root / "scripts" / "docrules" / "data",
         )
         if not is_valid:
             print(
