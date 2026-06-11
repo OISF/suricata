@@ -196,8 +196,6 @@
 #include "detect-icmpv6-mtu.h"
 #include "detect-ipv4hdr.h"
 #include "detect-ipv6hdr.h"
-#include "detect-krb5-cname.h"
-#include "detect-krb5-sname.h"
 #include "detect-krb5-ticket-encryption.h"
 #include "detect-sip-method.h"
 #include "detect-sip-uri.h"
@@ -715,8 +713,6 @@ void SigTableSetup(void)
     DetectEtherhdrRegister();
     DetectIpv4hdrRegister();
     DetectIpv6hdrRegister();
-    DetectKrb5CNameRegister();
-    DetectKrb5SNameRegister();
     DetectKrb5TicketEncryptionRegister();
     DetectSipMethodRegister();
     DetectSipUriRegister();

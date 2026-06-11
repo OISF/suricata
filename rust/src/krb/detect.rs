@@ -20,16 +20,21 @@
 use crate::krb::krb5::{test_weak_encryption, KRB5Transaction};
 use suricata_sys::sys::AppProtoEnum::ALPROTO_KRB5;
 use suricata_sys::sys::{
-    AppProto, DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    AppProto, DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
+    SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordAliasRegister,
+    SCDetectHelperKeywordRegister, SCDetectHelperMultiBufferProgressMpmRegister,
+    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
+    Signature,
 };
 
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_parse_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Match,
 };
-use crate::detect::{SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT32};
+use crate::detect::{
+    helper_keyword_register_multi_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
+    SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT32,
+};
 use kerberos_parser::krb5::EncryptionType;
 
 use nom8::branch::alt;
@@ -43,8 +48,7 @@ use nom8::Parser;
 use std::ffi::{c_int, CStr};
 use std::os::raw::c_void;
 
-#[no_mangle]
-pub unsafe extern "C" fn SCKrb5TxGetCname(
+unsafe extern "C" fn krb5_cname_get_data(
     _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, i: u32, buffer: *mut *const u8,
     buffer_len: *mut u32,
 ) -> bool {
@@ -60,8 +64,7 @@ pub unsafe extern "C" fn SCKrb5TxGetCname(
     false
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCKrb5TxGetSname(
+unsafe extern "C" fn krb5_sname_get_data(
     _de: *mut DetectEngineThreadCtx, tx: *const c_void, _flags: u8, i: u32, buffer: *mut *const u8,
     buffer_len: *mut u32,
 ) -> bool {
@@ -343,6 +346,8 @@ mod tests {
 static mut G_KRB5_MSG_TYPE_KW_ID: u16 = 0;
 static mut G_KRB5_GENERIC_BUFFER_ID: c_int = 0;
 static mut G_KRB5_ERR_CODE_KW_ID: u16 = 0;
+static mut G_KRB5_CNAME_BUFFER_ID: c_int = 0;
+static mut G_KRB5_SNAME_BUFFER_ID: c_int = 0;
 
 // We should apply the derive on the kerberos_parser MessageType
 #[repr(u32)]
@@ -462,9 +467,7 @@ unsafe extern "C" fn krb5_err_code_match(
     let tx = cast_pointer!(tx, KRB5Transaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     match tx.error_code {
-        Some(ref e) => {
-            SCDetectU32Match(e.0 as u32, ctx)
-        }
+        Some(ref e) => SCDetectU32Match(e.0 as u32, ctx),
         None => 0,
     }
 }
@@ -472,6 +475,30 @@ unsafe extern "C" fn krb5_err_code_match(
 unsafe extern "C" fn krb5_err_code_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     SCDetectU32Free(ctx);
+}
+
+unsafe extern "C" fn krb5_sname_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_KRB5 as AppProto) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_KRB5_SNAME_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn krb5_cname_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_KRB5 as AppProto) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_KRB5_CNAME_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
 }
 
 #[no_mangle]
@@ -503,4 +530,44 @@ pub unsafe extern "C" fn SCDetectKrb5Register() {
         flags: SIGMATCH_INFO_UINT32,
     };
     G_KRB5_ERR_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("krb5.sname"),
+        desc: String::from("sticky buffer to match on Kerberos 5 server name"),
+        url: String::from("/rules/kerberos-keywords.html#krb5-sname"),
+        setup: krb5_sname_setup,
+    };
+    let krb5_sname_hdr_kw_id = helper_keyword_register_multi_buffer(&kw);
+    G_KRB5_SNAME_BUFFER_ID = SCDetectHelperMultiBufferProgressMpmRegister(
+        b"krb5_sname\0".as_ptr() as *const libc::c_char,
+        b"krb5_sname\0".as_ptr() as *const libc::c_char,
+        ALPROTO_KRB5 as AppProto,
+        STREAM_TOCLIENT,
+        Some(krb5_sname_get_data),
+        1,
+    );
+    SCDetectHelperKeywordAliasRegister(
+        krb5_sname_hdr_kw_id,
+        b"krb5_sname\0".as_ptr() as *const libc::c_char,
+    );
+
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("krb5.cname"),
+        desc: String::from("sticky buffer to match on Kerberos 5 client name"),
+        url: String::from("/rules/kerberos-keywords.html#krb5-cname"),
+        setup: krb5_cname_setup,
+    };
+    let krb5_cname_hdr_kw_id = helper_keyword_register_multi_buffer(&kw);
+    G_KRB5_CNAME_BUFFER_ID = SCDetectHelperMultiBufferProgressMpmRegister(
+        b"krb5_cname\0".as_ptr() as *const libc::c_char,
+        b"krb5_cname\0".as_ptr() as *const libc::c_char,
+        ALPROTO_KRB5 as AppProto,
+        STREAM_TOCLIENT,
+        Some(krb5_cname_get_data),
+        1,
+    );
+    SCDetectHelperKeywordAliasRegister(
+        krb5_cname_hdr_kw_id,
+        b"krb5_cname\0".as_ptr() as *const libc::c_char,
+    );
 }
