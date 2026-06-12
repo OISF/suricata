@@ -3467,8 +3467,8 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     }
     det_ctx->multi_inspect.to_clear_idx = 0;
 
-
-    DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx);
+    if (DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx) != TM_ECODE_OK)
+        return TM_ECODE_FAILED;
     DetectEngineThreadCtxInitGlobalKeywords(det_ctx);
 #ifdef PROFILE_RULES
     SCProfilingRuleThreadSetup(de_ctx->profile_ctx, det_ctx);
@@ -5433,6 +5433,52 @@ static int DetectEngineTest09(void)
     PASS;
 }
 
+/** \brief keyword thread-context init stub that always fails, used to mimic a
+ *  failing per-thread keyword init such as DetectFilemagicThreadInit. */
+static void *DetectEngineFailingThreadKeywordInit(void *data)
+{
+    (void)data;
+    return NULL;
+}
+
+static void DetectEngineNoopThreadKeywordFree(void *ctx)
+{
+    (void)ctx;
+}
+
+/** \test Ticket #8237: a failing per-thread keyword init must make the detect
+ *  thread context init fail rather than silently continuing with a partially
+ *  initialized keyword context array. */
+static int DetectEngineThreadCtxInitKeywordFailTest(void)
+{
+    ThreadVars th_v;
+    memset(&th_v, 0, sizeof(th_v));
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+
+    /* Register a keyword whose per-thread init fails (returns NULL). */
+    int id = DetectRegisterThreadCtxFuncs(de_ctx, "test_failing_keyword",
+            DetectEngineFailingThreadKeywordInit, NULL, DetectEngineNoopThreadKeywordFree, 0);
+    FAIL_IF(id < 0);
+
+    /* Thread context init must report failure and not hand back a context. */
+    TmEcode r = DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    FAIL_IF(r != TM_ECODE_FAILED);
+    FAIL_IF_NOT_NULL(det_ctx);
+
+    DetectEngineCtxFree(de_ctx);
+
+    PASS;
+}
+
 #endif
 
 void DetectEngineRegisterTests(void)
@@ -5444,5 +5490,7 @@ void DetectEngineRegisterTests(void)
     UtRegisterTest("DetectEngineTest04", DetectEngineTest04);
     UtRegisterTest("DetectEngineTest08", DetectEngineTest08);
     UtRegisterTest("DetectEngineTest09", DetectEngineTest09);
+    UtRegisterTest(
+            "DetectEngineThreadCtxInitKeywordFailTest", DetectEngineThreadCtxInitKeywordFailTest);
 #endif
 }
