@@ -441,7 +441,7 @@ PcapFileDeleteMode PcapFileParseDeleteMode(void)
     PcapFileDeleteMode delete_mode = PCAP_FILE_DELETE_NONE;
     const char *delete_when_done_str = NULL;
 
-    if (SCConfGet("pcap-file.delete-when-done", &delete_when_done_str) == 1) {
+    if (SCConfGetNonNull("pcap-file.delete-when-done", &delete_when_done_str) == 1) {
         if (strcmp(delete_when_done_str, "non-alerts") == 0) {
             delete_mode = PCAP_FILE_DELETE_NON_ALERTS;
         } else {

@@ -339,7 +339,7 @@ enum ExceptionPolicy ExceptionPolicyMidstreamParse(bool midstream_enabled)
     enum ExceptionPolicy policy = EXCEPTION_POLICY_NOT_SET;
     const char *value_str = NULL;
     /* policy was set directly */
-    if ((SCConfGet("stream.midstream-policy", &value_str)) == 1 && value_str != NULL) {
+    if ((SCConfGetNonNull("stream.midstream-policy", &value_str)) == 1 && value_str != NULL) {
         policy = ExceptionPolicyConfigValueParse("midstream-policy", value_str);
         if (policy == EXCEPTION_POLICY_AUTO) {
             policy = ExceptionPolicyPickAuto(midstream_enabled, true);

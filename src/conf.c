@@ -361,6 +361,30 @@ int SCConfGet(const char *name, const char **vptr)
     }
 }
 
+/**
+ * \brief Retrieve the non-null value of a configuration node.
+ *
+ * This function will return the value for a configuration node based
+ * on the full name of the node. If the value were NULL, return 0
+ * (this could happen if the requested node does exist but is not a node
+ *  that contains a value, but contains children SCConfNodes instead.)
+ *
+ * \param name Name of configuration parameter to get.
+ * \param vptr Pointer that will be set to the configuration value parameter.
+ *   Note that this is just a reference to the actual value, not a copy.
+ *
+ * \retval 1 will be returned if the value is found, otherwise 0 will
+ *   be returned.
+ */
+int SCConfGetNonNull(const char *name, const char **vptr)
+{
+    int r = SCConfGet(name, vptr);
+    if (*vptr == NULL) {
+        return 0;
+    }
+    return r;
+}
+
 int SCConfGetChildValue(const SCConfNode *base, const char *name, const char **vptr)
 {
     SCConfNode *node = SCConfNodeLookupChild(base, name);
@@ -500,7 +524,7 @@ int SCConfGetBool(const char *name, int *val)
     const char *strval = NULL;
 
     *val = 0;
-    if (SCConfGet(name, &strval) != 1)
+    if (SCConfGetNonNull(name, &strval) != 1)
         return 0;
 
     *val = SCConfValIsTrue(strval);
@@ -604,7 +628,7 @@ int SCConfGetDouble(const char *name, double *val)
     double tmpdo;
     char *endptr;
 
-    if (SCConfGet(name, &strval) == 0)
+    if (SCConfGetNonNull(name, &strval) == 0)
         return 0;
 
     errno = 0;
@@ -634,7 +658,7 @@ int SCConfGetFloat(const char *name, float *val)
     double tmpfl;
     char *endptr;
 
-    if (SCConfGet(name, &strval) == 0)
+    if (SCConfGetNonNull(name, &strval) == 0)
         return 0;
 
     errno = 0;
