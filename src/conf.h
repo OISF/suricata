@@ -63,6 +63,7 @@ void SCConfInit(void);
 void SCConfDeInit(void);
 SCConfNode *SCConfGetRootNode(void);
 int SCConfGet(const char *name, const char **vptr);
+int SCConfGetNonNull(const char *name, const char **vptr);
 int SCConfGetInt(const char *name, intmax_t *val);
 int SCConfGetBool(const char *name, int *val);
 int SCConfGetDouble(const char *name, double *val);
