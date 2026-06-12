@@ -441,8 +441,8 @@ static int SignatureCreateMask(Signature *s)
 {
     SCEnter();
 
-    if ((s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM)) ==
-            SIG_FLAG_REQUIRE_PACKET) {
+    if ((s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_PACKET_NO_PAYLOAD)) &&
+            !(s->flags & SIG_FLAG_REQUIRE_STREAM)) {
         s->mask |= SIG_MASK_REQUIRE_REAL_PKT;
     }
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {

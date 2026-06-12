@@ -68,7 +68,7 @@ static int DetectFlowPktsToServerSetup(DetectEngineCtx *de_ctx, Signature *s, co
         DetectFlowPktsFree(de_ctx, df);
         return -1;
     }
-    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    s->flags |= SIG_FLAG_REQUIRE_PACKET_NO_PAYLOAD;
 
     return 0;
 }
@@ -84,7 +84,7 @@ static int DetectFlowPktsToClientSetup(DetectEngineCtx *de_ctx, Signature *s, co
         DetectFlowPktsFree(de_ctx, df);
         return -1;
     }
-    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    s->flags |= SIG_FLAG_REQUIRE_PACKET_NO_PAYLOAD;
 
     return 0;
 }
@@ -101,7 +101,7 @@ static int DetectFlowPktsSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         return -1;
     }
 
-    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    s->flags |= SIG_FLAG_REQUIRE_PACKET_NO_PAYLOAD;
 
     return 0;
 }
@@ -239,7 +239,7 @@ static int DetectFlowBytesToServerSetup(DetectEngineCtx *de_ctx, Signature *s, c
         DetectFlowBytesFree(de_ctx, df);
         return -1;
     }
-    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    s->flags |= SIG_FLAG_REQUIRE_PACKET_NO_PAYLOAD;
 
     return 0;
 }
@@ -256,7 +256,7 @@ static int DetectFlowBytesToClientSetup(DetectEngineCtx *de_ctx, Signature *s, c
         DetectFlowBytesFree(de_ctx, df);
         return -1;
     }
-    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    s->flags |= SIG_FLAG_REQUIRE_PACKET_NO_PAYLOAD;
 
     return 0;
 }
@@ -272,7 +272,7 @@ static int DetectFlowBytesSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
         DetectFlowBytesFree(de_ctx, df);
         return -1;
     }
-    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    s->flags |= SIG_FLAG_REQUIRE_PACKET_NO_PAYLOAD;
 
     return 0;
 }
