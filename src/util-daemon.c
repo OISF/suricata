@@ -131,7 +131,7 @@ void Daemonize (void)
             FatalError("Error creating new session");
         }
 
-        if (SCConfGet("daemon-directory", &daemondir) == 1) {
+        if (SCConfGetNonNull("daemon-directory", &daemondir) == 1) {
             if ((chdir(daemondir)) < 0) {
                 FatalError("Error changing to working directory");
             }
