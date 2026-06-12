@@ -215,7 +215,7 @@ void NFQInitConfig(bool quiet)
 
     memset(&nfq_config,  0, sizeof(nfq_config));
 
-    if ((SCConfGet("nfq.mode", &nfq_mode)) == 0) {
+    if ((SCConfGetNonNull("nfq.mode", &nfq_mode)) == 0) {
         nfq_config.mode = NFQ_ACCEPT_MODE;
     } else {
         if (!strcmp("accept", nfq_mode)) {
