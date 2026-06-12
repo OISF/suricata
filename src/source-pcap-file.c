@@ -155,7 +155,7 @@ void PcapFileGlobalInit(void)
     pcap_g.read_buffer_size = PCAP_FILE_BUFFER_SIZE_DEFAULT;
 
     const char *str = NULL;
-    if (SCConfGet("pcap-file.buffer-size", &str) == 1) {
+    if (SCConfGetNonNull("pcap-file.buffer-size", &str) == 1) {
         uint32_t value = 0;
         if (ParseSizeStringU32(str, &value) < 0) {
             SCLogWarning("failed to parse pcap-file.buffer-size %s", str);
@@ -267,7 +267,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         }
     }
 
-    if (SCConfGet("bpf-filter", &(tmp_bpf_string)) != 1) {
+    if (SCConfGetNonNull("bpf-filter", &(tmp_bpf_string)) != 1) {
         SCLogDebug("could not get bpf or none specified");
     } else {
         ptv->shared.bpf_string = SCStrdup(tmp_bpf_string);
@@ -388,7 +388,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         ptv->behavior.directory = pv;
     }
 
-    if (SCConfGet("pcap-file.checksum-checks", &tmpstring) != 1) {
+    if (SCConfGetNonNull("pcap-file.checksum-checks", &tmpstring) != 1) {
         pcap_g.conf_checksum_mode = CHECKSUM_VALIDATION_AUTO;
     } else {
         if (strcmp(tmpstring, "auto") == 0) {
