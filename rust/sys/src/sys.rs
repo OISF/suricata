@@ -263,6 +263,11 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCConfGetNonNull(
+        name: *const ::std::os::raw::c_char, vptr: *mut *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn SCConfGetInt(
         name: *const ::std::os::raw::c_char, val: *mut intmax_t,
     ) -> ::std::os::raw::c_int;
