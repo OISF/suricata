@@ -599,7 +599,7 @@ void DatasetPostReloadCleanup(void)
 void DatasetGetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
 {
     const char *str = NULL;
-    if (SCConfGet("datasets.defaults.memcap", &str) == 1) {
+    if (SCConfGetNonNull("datasets.defaults.memcap", &str) == 1) {
         if (ParseSizeStringU64(str, memcap) < 0) {
             SCLogWarning("memcap value cannot be deduced: %s,"
                          " resetting to default",
@@ -609,7 +609,7 @@ void DatasetGetDefaultMemcap(uint64_t *memcap, uint32_t *hashsize)
     }
 
     *hashsize = (uint32_t)DATASETS_HASHSIZE_DEFAULT;
-    if (SCConfGet("datasets.defaults.hashsize", &str) == 1) {
+    if (SCConfGetNonNull("datasets.defaults.hashsize", &str) == 1) {
         if (ParseSizeStringU32(str, hashsize) < 0) {
             *hashsize = (uint32_t)DATASETS_HASHSIZE_DEFAULT;
             SCLogWarning("hashsize value cannot be deduced: %s,"
@@ -628,12 +628,12 @@ int DatasetsInit(void)
     DatasetGetDefaultMemcap(&default_memcap, &default_hashsize);
     if (datasets != NULL) {
         const char *str = NULL;
-        if (SCConfGet("datasets.limits.total-hashsizes", &str) == 1) {
+        if (SCConfGetNonNull("datasets.limits.total-hashsizes", &str) == 1) {
             if (ParseSizeStringU32(str, &dataset_max_total_hashsize) < 0) {
                 FatalError("failed to parse datasets.limits.total-hashsizes value: %s", str);
             }
         }
-        if (SCConfGet("datasets.limits.single-hashsize", &str) == 1) {
+        if (SCConfGetNonNull("datasets.limits.single-hashsize", &str) == 1) {
             if (ParseSizeStringU32(str, &dataset_max_one_hashsize) < 0) {
                 FatalError("failed to parse datasets.limits.single-hashsize value: %s", str);
             }

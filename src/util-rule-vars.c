@@ -97,7 +97,7 @@ const char *SCRuleVarsGetConfVar(const DetectEngineCtx *de_ctx,
         }
     }
 
-    if (SCConfGet(conf_var_full_name, &conf_var_full_name_value) != 1) {
+    if (SCConfGetNonNull(conf_var_full_name, &conf_var_full_name_value) != 1) {
         SCLogError("Variable \"%s\" is not defined in "
                    "configuration file",
                 conf_var_name);

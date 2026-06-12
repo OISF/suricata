@@ -1445,7 +1445,7 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
 
     /* Get default log level and format. */
     const char *default_log_level_s = NULL;
-    if (SCConfGet("logging.default-log-level", &default_log_level_s) == 1) {
+    if (SCConfGetNonNull("logging.default-log-level", &default_log_level_s) == 1) {
         SCLogLevel default_log_level =
             SCMapEnumNameToValue(default_log_level_s, sc_log_level_map);
         if (default_log_level == -1) {
@@ -1457,7 +1457,7 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
         sc_lid->global_log_level = MAX(min_level, SC_LOG_NOTICE);
     }
 
-    if (SCConfGet("logging.default-log-format", &sc_lid->global_log_format) != 1)
+    if (SCConfGetNonNull("logging.default-log-format", &sc_lid->global_log_format) != 1)
         sc_lid->global_log_format = SCLogGetDefaultLogFormat(sc_lid->global_log_level);
 
     (void)SCConfGet("logging.default-output-filter", &sc_lid->op_filter);
