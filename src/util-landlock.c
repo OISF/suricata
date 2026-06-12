@@ -25,6 +25,7 @@
 #include "detect-engine.h"
 #include "feature.h"
 #include "output.h"
+#include "util-byte.h"
 #include "util-conf.h"
 #include "util-file.h"
 #include "util-landlock.h"
@@ -326,6 +327,32 @@ void SCLandlockGrantNetConnectTCP(void *vruleset, uint16_t port)
 #endif
 }
 
+static void LandlockSandboxingApplyNetPorts(
+        void *v_ruleset, const char *conf_key, void (*grant)(void *, uint16_t))
+{
+    struct landlock_ruleset *ruleset = v_ruleset;
+    SCConfNode *ports = SCConfGetNode(conf_key);
+    if (ports == NULL)
+        return;
+    if (!SCConfNodeIsSequence(ports)) {
+        SCLogWarning(
+                "Invalid %s configuration section: expected a list of port numbers.", conf_key);
+        return;
+    }
+    SCConfNode *port_node;
+    TAILQ_FOREACH (port_node, &ports->head, next) {
+        if (port_node->val == NULL)
+            continue;
+        uint16_t port = 0;
+        if (StringParseUint16(&port, 10, 0, port_node->val) < 0 || port == 0) {
+            SCLogWarning("Invalid port '%s' in %s: expected a value in [1, 65535].", port_node->val,
+                    conf_key);
+            continue;
+        }
+        grant(ruleset, port);
+    }
+}
+
 void LandlockSandboxing(SCInstance *suri)
 {
     /* Read configuration variable and exit if no enforcement */
@@ -433,6 +460,11 @@ void LandlockSandboxing(SCInstance *suri)
             }
         }
     }
+
+    LandlockSandboxingApplyNetPorts(
+            ruleset, "security.landlock.network.connect.tcp", SCLandlockGrantNetConnectTCP);
+    LandlockSandboxingApplyNetPorts(
+            ruleset, "security.landlock.network.bind.tcp", SCLandlockGrantNetBindTCP);
 
     /* Let plugins declare their landlock needs. */
 #ifdef HAVE_PLUGINS
