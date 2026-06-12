@@ -208,7 +208,7 @@ void LandlockSandboxing(SCInstance *suri)
     }
     if (suri->run_mode == RUNMODE_PCAP_FILE) {
         const char *pcap_file;
-        if (SCConfGet("pcap-file.file", &pcap_file) == 1) {
+        if (SCConfGetNonNull("pcap-file.file", &pcap_file) == 1) {
             char *file_name = SCStrdup(pcap_file);
             if (file_name != NULL) {
                 struct stat statbuf;
@@ -241,7 +241,7 @@ void LandlockSandboxing(SCInstance *suri)
     }
     if (ConfUnixSocketIsEnable()) {
         const char *socketname;
-        if (SCConfGet("unix-command.filename", &socketname) == 1) {
+        if (SCConfGetNonNull("unix-command.filename", &socketname) == 1) {
             if (PathIsAbsolute(socketname)) {
                 char *file_name = SCStrdup(socketname);
                 if (file_name != NULL) {
@@ -257,7 +257,7 @@ void LandlockSandboxing(SCInstance *suri)
     }
     if (!suri->sig_file_exclusive) {
         const char *rule_path;
-        if (SCConfGet("default-rule-path", &rule_path) == 1 && rule_path) {
+        if (SCConfGetNonNull("default-rule-path", &rule_path) == 1 && rule_path) {
             LandlockSandboxingReadPath(ruleset, rule_path);
         }
     }

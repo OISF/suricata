@@ -100,7 +100,7 @@ static void *ParsePcapConfig(const char *iface)
 
     aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
     aconf->bpf_filter = NULL;
-    if ((SCConfGet("bpf-filter", &tmpbpf)) == 1) {
+    if ((SCConfGetNonNull("bpf-filter", &tmpbpf)) == 1) {
         aconf->bpf_filter = tmpbpf;
     }
 

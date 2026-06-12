@@ -4332,7 +4332,7 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
         master->multi_tenant_enabled = 1;
 
         const char *handler = NULL;
-        if (SCConfGet("multi-detect.selector", &handler) == 1) {
+        if (SCConfGetNonNull("multi-detect.selector", &handler) == 1) {
             SCLogConfig("multi-tenant selector type %s", handler);
 
             if (strcmp(handler, "vlan") == 0) {

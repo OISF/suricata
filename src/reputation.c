@@ -520,7 +520,7 @@ static char *SRepCompleteFilePath(char *file)
 
     /* Path not specified */
     if (PathIsRelative(file)) {
-        if (SCConfGet("default-reputation-path", &defaultpath) == 1) {
+        if (SCConfGetNonNull("default-reputation-path", &defaultpath) == 1) {
             SCLogDebug("Default path: %s", defaultpath);
             size_t path_len = sizeof(char) * (strlen(defaultpath) +
                           strlen(file) + 2);

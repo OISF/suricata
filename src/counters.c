@@ -285,7 +285,7 @@ static void StatsInitCtxPreOutput(void)
         }
 
         const char *prefix = NULL;
-        if (SCConfGet("stats.decoder-events-prefix", &prefix) != 1) {
+        if (SCConfGetNonNull("stats.decoder-events-prefix", &prefix) != 1) {
             prefix = "decoder.event";
         }
         stats_decoder_events_prefix = prefix;
