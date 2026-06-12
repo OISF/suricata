@@ -1109,17 +1109,15 @@ static inline int StateGetProgressCompletionStatus(const AppProto alproto, const
  *
  *  If the stream is disrupted, we return the 'completion' value.
  */
-int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
-                        void *alstate, uint8_t flags)
+int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto, void *tx, uint8_t flags)
 {
     SCEnter();
     int r;
     if (unlikely(IS_DISRUPTED(flags))) {
         r = StateGetProgressCompletionStatus(alproto, flags);
     } else {
-        uint8_t direction = flags & (STREAM_TOCLIENT | STREAM_TOSERVER);
-        r = alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].StateGetProgress(
-                alstate, direction);
+        const uint8_t direction = flags & (STREAM_TOCLIENT | STREAM_TOSERVER);
+        r = alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].StateGetProgress(tx, direction);
     }
     SCReturnInt(r);
 }
