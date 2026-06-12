@@ -31,6 +31,10 @@ This can improve performance, especially for large files.
 The size can be specified through the command line option, see
 :ref:`--pcap-file-buffer-size <cmdline-option-pcap-file-buffer-size>`
 
+Setting ``buffer-size`` to ``0`` disables ``setvbuf`` buffering. This is the
+explicit opt-out for non-seekable sources such as ``/dev/stdin`` or named
+pipes, where buffering the underlying file descriptor is not supported.
+
 Directory-related options
 -------------------------
 
