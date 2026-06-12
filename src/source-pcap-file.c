@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -158,13 +158,19 @@ void PcapFileGlobalInit(void)
     if (SCConfGet("pcap-file.buffer-size", &str) == 1) {
         uint32_t value = 0;
         if (ParseSizeStringU32(str, &value) < 0) {
-            SCLogWarning("failed to parse pcap-file.buffer-size %s", str);
-        }
-        if (value >= PCAP_FILE_BUFFER_SIZE_MIN && value <= PCAP_FILE_BUFFER_SIZE_MAX) {
-            SCLogInfo("Pcap-file will use %u buffer size", value);
+            SCLogWarning("failed to parse pcap-file.buffer-size %s; keeping default %u", str,
+                    PCAP_FILE_BUFFER_SIZE_DEFAULT);
+        } else if (value == 0 ||
+                   (value >= PCAP_FILE_BUFFER_SIZE_MIN && value <= PCAP_FILE_BUFFER_SIZE_MAX)) {
+            if (value == 0) {
+                SCLogInfo("Pcap-file buffering disabled");
+            } else {
+                SCLogInfo("Pcap-file will use %u buffer size", value);
+            }
             pcap_g.read_buffer_size = value;
         } else {
-            SCLogWarning("pcap-file.buffer-size value of %u is invalid. Valid range is %u-%u",
+            SCLogWarning("pcap-file.buffer-size value of %u is invalid. Valid values are 0 to "
+                         "disable buffering, or %u-%u",
                     value, PCAP_FILE_BUFFER_SIZE_MIN, PCAP_FILE_BUFFER_SIZE_MAX);
         }
     }
