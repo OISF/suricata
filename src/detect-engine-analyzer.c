@@ -1302,7 +1302,8 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     if (s->flags & SIG_FLAG_APPLAYER) {
         SCJbAppendString(ctx.js, "applayer");
     }
-    if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
+    if ((s->flags & SIG_FLAG_REQUIRE_PACKET) ||
+            (s->flags & SIG_FLAG_REQUIRE_PACKET_NO_PAYLOAD)) { // STODO add new output if accepted
         SCJbAppendString(ctx.js, "need_packet");
     }
     if (s->flags & SIG_FLAG_REQUIRE_STREAM) {

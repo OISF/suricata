@@ -261,6 +261,7 @@ typedef struct DetectPort_ {
     BIT_U32(13) /**< signature is requiring stream match. Stream match is not optional, so no      \
                    fallback to packet payload. */
 
+#define SIG_FLAG_REQUIRE_PACKET_NO_PAYLOAD BIT_U32(14)
 // vacancies
 
 #define SIG_FLAG_REQUIRE_FLOWVAR        BIT_U32(17) /**< signature can only match if a flowbit, flowvar or flowint is available. */
