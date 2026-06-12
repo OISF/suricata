@@ -18,6 +18,9 @@
 // written by Victor Julien
 
 use uuid;
+use crate::core::sc_app_layer_parser_trigger_raw_stream_inspection;
+use crate::direction::Direction;
+use crate::flow::Flow;
 use crate::smb::smb::{cfg_max_stub_size, *};
 use crate::smb::smb2::*;
 use crate::smb::dcerpc_records::*;
@@ -182,6 +185,7 @@ impl SMBState {
 /// return bool indicating whether an tx has been created/updated.
 ///
 pub fn smb_write_dcerpc_record(state: &mut SMBState,
+        flow: *mut Flow,
         vercmd: SMBVerCmdStat,
         hdr: SMBCommonHdr,
         data: &[u8]) -> bool
@@ -219,6 +223,7 @@ pub fn smb_write_dcerpc_record(state: &mut SMBState,
                                 if dcer.last_frag {
                                     SCLogDebug!("last frag set, so request side of DCERPC closed");
                                     tx.request_done = true;
+                                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                                 } else {
                                     SCLogDebug!("NOT last frag, so request side of DCERPC remains open");
                                 }
@@ -260,6 +265,7 @@ pub fn smb_write_dcerpc_record(state: &mut SMBState,
                             }
                             if dcer.last_frag {
                                 tx.request_done = true;
+                                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                             } else {
                                 SCLogDebug!("NOT last frag, so request side of DCERPC remains open");
                             }
@@ -267,6 +273,7 @@ pub fn smb_write_dcerpc_record(state: &mut SMBState,
                         _ => {
                             tx.set_event(SMBEvent::MalformedData);
                             tx.request_done = true;
+                            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                         },
                     }
                 },
@@ -308,14 +315,17 @@ pub fn smb_write_dcerpc_record(state: &mut SMBState,
                         },
                     }
                     tx.request_done = true;
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                 }
                 21..=255 => {
                     tx.set_event(SMBEvent::MalformedData);
                     tx.request_done = true;
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                 },
                 _ => {
                     // valid type w/o special processing
                     tx.request_done = true;
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                 },
             }
         },
@@ -338,6 +348,7 @@ pub fn smb_write_dcerpc_record(state: &mut SMBState,
 ///
 fn smb_dcerpc_response_bindack(
         state: &mut SMBState,
+        flow: *mut Flow,
         vercmd: SMBVerCmdStat,
         hdr: SMBCommonHdr,
         dcer: &DceRpcRecord,
@@ -354,6 +365,7 @@ fn smb_dcerpc_response_bindack(
                     }
                     tx.vercmd.set_ntstatus(ntstatus);
                     tx.response_done = true;
+                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                     true
                 },
                 None => false,
@@ -377,7 +389,7 @@ fn smb_dcerpc_response_bindack(
     }
 }
 
-fn smb_read_dcerpc_record_error(state: &mut SMBState,
+fn smb_read_dcerpc_record_error(state: &mut SMBState, flow: *mut Flow,
         hdr: SMBCommonHdr, vercmd: SMBVerCmdStat, ntstatus: u32)
     -> bool
 {
@@ -395,6 +407,7 @@ fn smb_read_dcerpc_record_error(state: &mut SMBState,
             SCLogDebug!("found");
             tx.set_status(ntstatus, false);
             tx.response_done = true;
+            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
             true
         },
         None => {
@@ -405,7 +418,7 @@ fn smb_read_dcerpc_record_error(state: &mut SMBState,
     return found;
 }
 
-fn dcerpc_response_handle(tx: &mut SMBTransaction,
+fn dcerpc_response_handle(flow: *mut Flow, tx: &mut SMBTransaction,
         vercmd: SMBVerCmdStat,
         dcer: &DceRpcRecord)
 {
@@ -428,6 +441,9 @@ fn dcerpc_response_handle(tx: &mut SMBTransaction,
                     }
                     tx.vercmd.set_ntstatus(ntstatus);
                     tx.response_done = dcer.last_frag;
+                    if dcer.last_frag {
+                        sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
+                    }
                 },
                 _ => {
                     tx.set_event(SMBEvent::MalformedData);
@@ -443,6 +459,7 @@ fn dcerpc_response_handle(tx: &mut SMBTransaction,
             }
             tx.vercmd.set_ntstatus(ntstatus);
             tx.response_done = true;
+            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
             tx.set_event(SMBEvent::MalformedData);
         }
         _ => { // valid type w/o special processing
@@ -451,6 +468,7 @@ fn dcerpc_response_handle(tx: &mut SMBTransaction,
             }
             tx.vercmd.set_ntstatus(ntstatus);
             tx.response_done = true;
+            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
         },
     }
 }
@@ -458,6 +476,7 @@ fn dcerpc_response_handle(tx: &mut SMBTransaction,
 /// Handle DCERPC reply record. Called for READ, TRANS, IOCTL
 ///
 pub fn smb_read_dcerpc_record(state: &mut SMBState,
+        flow: *mut Flow,
         vercmd: SMBVerCmdStat,
         hdr: SMBCommonHdr,
         guid: &[u8],
@@ -466,7 +485,7 @@ pub fn smb_read_dcerpc_record(state: &mut SMBState,
     let (_, ntstatus) = vercmd.get_ntstatus();
 
     if ntstatus != SMB_NTSTATUS_SUCCESS && ntstatus != SMB_NTSTATUS_BUFFER_OVERFLOW {
-        return smb_read_dcerpc_record_error(state, hdr, vercmd, ntstatus);
+        return smb_read_dcerpc_record_error(state, flow, hdr, vercmd, ntstatus);
     }
 
     SCLogDebug!("lets first see if we have prior data");
@@ -499,13 +518,13 @@ pub fn smb_read_dcerpc_record(state: &mut SMBState,
                 }
 
                 if dcer.packet_type == DCERPC_TYPE_BINDACK {
-                    smb_dcerpc_response_bindack(state, vercmd, hdr, &dcer, ntstatus);
+                    smb_dcerpc_response_bindack(state, flow, vercmd, hdr, &dcer, ntstatus);
                     return true;
                 }
 
                 let found = match state.get_dcerpc_tx(&hdr, &vercmd, dcer.call_id) {
                     Some(tx) => {
-                        dcerpc_response_handle(tx, vercmd.clone(), &dcer);
+                        dcerpc_response_handle(flow, tx, vercmd.clone(), &dcer);
                         true
                     },
                     None => {
@@ -516,7 +535,7 @@ pub fn smb_read_dcerpc_record(state: &mut SMBState,
                 if !found {
                     // pick up DCERPC tx even if we missed the request
                     let tx = state.new_dcerpc_tx_for_response(hdr, vercmd.clone(), dcer.call_id);
-                    dcerpc_response_handle(tx, vercmd, &dcer);
+                    dcerpc_response_handle(flow, tx, vercmd, &dcer);
                 }
             },
             _ => {

@@ -19,8 +19,11 @@ use crate::smb::smb2_records::*;
 use crate::smb::smb::*;
 use crate::smb::events::*;
 use crate::smb::auth::*;
+use crate::core::sc_app_layer_parser_trigger_raw_stream_inspection;
+use crate::direction::Direction;
+use crate::flow::Flow;
 
-pub fn smb2_session_setup_request(state: &mut SMBState, r: &Smb2Record)
+pub fn smb2_session_setup_request(state: &mut SMBState, flow: *mut Flow, r: &Smb2Record)
 {
     SCLogDebug!("SMB2_COMMAND_SESSION_SETUP: r.data.len() {}", r.data.len());
     #[allow(clippy::single_match)]
@@ -29,6 +32,7 @@ pub fn smb2_session_setup_request(state: &mut SMBState, r: &Smb2Record)
             let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
             let tx = state.new_sessionsetup_tx(hdr);
             tx.vercmd.set_smb2_cmd(r.command);
+            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
 
             if let Some(SMBTransactionTypeData::SESSIONSETUP(ref mut td)) = tx.type_data {
                 if let Some(s) = parse_secblob(setup.data) {
@@ -48,21 +52,22 @@ pub fn smb2_session_setup_request(state: &mut SMBState, r: &Smb2Record)
     }
 }
 
-fn smb2_session_setup_update_tx(tx: &mut SMBTransaction, r: &Smb2Record)
+fn smb2_session_setup_update_tx(flow: *mut Flow, tx: &mut SMBTransaction, r: &Smb2Record)
 {
     tx.hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER); // to overwrite ssn_id 0
     tx.set_status(r.nt_status, false);
     tx.response_done = true;
+    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
 }
 
-pub fn smb2_session_setup_response(state: &mut SMBState, r: &Smb2Record)
+pub fn smb2_session_setup_response(state: &mut SMBState, flow: *mut Flow, r: &Smb2Record)
 {
     // try exact match with session id already set (e.g. NTLMSSP AUTH phase)
     let found = r.session_id != 0 && match state.get_sessionsetup_tx(
                 SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER))
     {
         Some(tx) => {
-            smb2_session_setup_update_tx(tx, r);
+            smb2_session_setup_update_tx(flow, tx, r);
             SCLogDebug!("smb2_session_setup_response: tx {:?}", tx);
             true
         },
@@ -73,7 +78,7 @@ pub fn smb2_session_setup_response(state: &mut SMBState, r: &Smb2Record)
         if let Some(tx) = state.get_sessionsetup_tx(
                 SMBCommonHdr::new(SMBHDR_TYPE_HEADER, 0, 0, r.message_id))
         {
-            smb2_session_setup_update_tx(tx, r);
+            smb2_session_setup_update_tx(flow, tx, r);
             SCLogDebug!("smb2_session_setup_response: tx {:?}", tx);
         } else {
             SCLogDebug!("smb2_session_setup_response: tx not found for {:?}", r);
