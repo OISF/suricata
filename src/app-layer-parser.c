@@ -725,12 +725,8 @@ void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate, uint64_t tx_
 uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint8_t direction)
 {
     SCEnter();
-
-    if (pstate != NULL)
-        SCReturnCT(pstate->inspect_id[(direction & STREAM_TOSERVER) ? 0 : 1], "uint64_t");
-
-    DEBUG_VALIDATE_BUG_ON(1);
-    SCReturnCT(0ULL, "uint64_t");
+    DEBUG_VALIDATE_BUG_ON(pstate == NULL);
+    SCReturnCT(pstate->inspect_id[(direction & STREAM_TOSERVER) ? 0 : 1], "uint64_t");
 }
 
 inline uint8_t AppLayerParserGetTxDetectProgress(AppLayerTxData *txd, const uint8_t dir)
