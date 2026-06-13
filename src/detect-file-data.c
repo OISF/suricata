@@ -525,6 +525,13 @@ uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadC
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
+typedef struct PrefilterMpmFiledata {
+    int list_id;
+    int base_list_id;
+    const MpmCtx *mpm_ctx;
+    const DetectEngineTransforms *transforms;
+} PrefilterMpmFiledata;
+
 /** \brief Filedata Filedata Mpm prefilter callback
  *
  *  \param det_ctx detection engine thread ctx
