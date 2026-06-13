@@ -130,7 +130,7 @@ sctp.chunk_cnt
 
 Match on the number of SCTP chunks in the packet.
 
-sctp.chunk_cnt uses an :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
+sctp.chunk_cnt uses an :ref:`unsigned 16-bit integer <rules-integer-keywords>`.
 
 Syntax::
 

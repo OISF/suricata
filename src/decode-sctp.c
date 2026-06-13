@@ -58,7 +58,11 @@ static int DecodeSCTPChunks(Packet *p, const uint8_t *pkt, uint16_t len)
     const SCTPHdr *sctph = PacketGetSCTP(p);
     const uint32_t vtag = SCTP_GET_RAW_VTAG(sctph);
     uint32_t offset = 0;
-    uint8_t chunk_cnt = 0;
+    /* A packet can carry one chunk per 4 bytes of data, so the running count
+     * has to hold up to len/4 chunks (len is u16, so this fits a u16). A uint8_t
+     * wraps past 255 and reopens the tracking gate below, letting
+     * tracked_chunk_cnt grow past chunk_types[]. */
+    uint16_t chunk_cnt = 0;
     uint8_t tracked_chunk_cnt = 0;
     bool has_init = false;
     bool has_init_ack = false;
@@ -677,6 +681,45 @@ static int SCTPDecodeSmallDataChunkTest12(void)
     PASS;
 }
 
+/** \test Many minimal chunks (> 255) must not push tracked_chunk_cnt past
+ *  the chunk_types[] array bound. */
+static int SCTPDecodeTooManyChunksTest13(void)
+{
+    const uint16_t n_chunks = 257;
+    uint8_t raw_sctp[SCTP_HEADER_LEN + 257 * SCTP_CHUNK_HDR_LEN];
+    memset(raw_sctp, 0, sizeof(raw_sctp));
+    /* common header: sport=1234, dport=80, vtag=1, checksum=0 */
+    raw_sctp[0] = 0x04;
+    raw_sctp[1] = 0xd2;
+    raw_sctp[3] = 0x50;
+    raw_sctp[7] = 0x01;
+    for (uint16_t i = 0; i < n_chunks; i++) {
+        uint8_t *c = raw_sctp + SCTP_HEADER_LEN + i * SCTP_CHUNK_HDR_LEN;
+        c[0] = SCTP_CHUNK_TYPE_SHUTDOWN_ACK; /* non-DATA, non-INIT */
+        c[3] = SCTP_CHUNK_HDR_LEN;           /* chunk length = 4 (header only) */
+    }
+
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeSCTP(&tv, &dtv, p, raw_sctp, sizeof(raw_sctp));
+    FAIL_IF_NOT(PacketIsSCTP(p));
+
+    FAIL_IF(p->l4.vars.sctp.tracked_chunk_cnt > SCTP_MAX_TRACKED_CHUNKS);
+    FAIL_IF(p->l4.vars.sctp.chunk_cnt != n_chunks);
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, SCTP_TOO_MANY_CHUNKS));
+
+    PacketFree(p);
+    FlowShutdown();
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void DecodeSCTPRegisterTests(void)
@@ -694,6 +737,7 @@ void DecodeSCTPRegisterTests(void)
     UtRegisterTest("SCTPDecodeDataOffsetTest10", SCTPDecodeDataOffsetTest10);
     UtRegisterTest("SCTPDecodeMultiDataTest11", SCTPDecodeMultiDataTest11);
     UtRegisterTest("SCTPDecodeSmallDataChunkTest12", SCTPDecodeSmallDataChunkTest12);
+    UtRegisterTest("SCTPDecodeTooManyChunksTest13", SCTPDecodeTooManyChunksTest13);
 #endif
 }
 /**

@@ -53,7 +53,7 @@ void DetectSCTPChunkCntRegister(void)
     sigmatch_table[DETECT_SCTP_CHUNK_CNT].Match = DetectSCTPChunkCntMatch;
     sigmatch_table[DETECT_SCTP_CHUNK_CNT].Setup = DetectSCTPChunkCntSetup;
     sigmatch_table[DETECT_SCTP_CHUNK_CNT].Free = DetectSCTPChunkCntFree;
-    sigmatch_table[DETECT_SCTP_CHUNK_CNT].flags = SIGMATCH_INFO_UINT8;
+    sigmatch_table[DETECT_SCTP_CHUNK_CNT].flags = SIGMATCH_INFO_UINT16;
     sigmatch_table[DETECT_SCTP_CHUNK_CNT].SupportsPrefilter = PrefilterSCTPChunkCntIsPrefilterable;
     sigmatch_table[DETECT_SCTP_CHUNK_CNT].SetupPrefilter = PrefilterSetupSCTPChunkCnt;
 }
@@ -67,14 +67,14 @@ static int DetectSCTPChunkCntMatch(
         return 0;
     }
 
-    uint8_t val = p->l4.vars.sctp.chunk_cnt;
-    const DetectU8Data *data = (const DetectU8Data *)ctx;
-    return DetectU8Match(val, data);
+    uint16_t val = p->l4.vars.sctp.chunk_cnt;
+    const DetectU16Data *data = (const DetectU16Data *)ctx;
+    return DetectU16Match(val, data);
 }
 
 static int DetectSCTPChunkCntSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    DetectU8Data *data = DetectU8Parse(str);
+    DetectU16Data *data = DetectU16Parse(str);
     if (data == NULL)
         return -1;
 
@@ -90,8 +90,8 @@ static int DetectSCTPChunkCntSetup(DetectEngineCtx *de_ctx, Signature *s, const 
 
 void DetectSCTPChunkCntFree(DetectEngineCtx *de_ctx, void *ptr)
 {
-    DetectU8Data *data = (DetectU8Data *)ptr;
-    SCDetectU8Free(data);
+    DetectU16Data *data = (DetectU16Data *)ptr;
+    SCDetectU16Free(data);
 }
 
 static void PrefilterPacketSCTPChunkCntMatch(
@@ -99,21 +99,28 @@ static void PrefilterPacketSCTPChunkCntMatch(
 {
     DEBUG_VALIDATE_BUG_ON(PKT_IS_PSEUDOPKT(p));
 
-    if (PacketIsSCTP(p)) {
-        uint8_t val = p->l4.vars.sctp.chunk_cnt;
-        const PrefilterPacketU8HashCtx *h = pectx;
-        const SigsArray *sa = h->array[val];
-        if (sa) {
-            PrefilterAddSids(&det_ctx->pmq, sa->sigs, sa->cnt);
-        }
+    if (!PacketIsSCTP(p))
+        return;
+
+    uint16_t val = p->l4.vars.sctp.chunk_cnt;
+
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+    if (!PrefilterPacketHeaderExtraMatch(ctx, p))
+        return;
+
+    DetectU16Data du16;
+    du16.mode = ctx->v1.u8[0];
+    du16.arg1 = ctx->v1.u16[1];
+    du16.arg2 = ctx->v1.u16[2];
+    if (DetectU16Match(val, &du16)) {
+        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
 }
 
 static int PrefilterSetupSCTPChunkCnt(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeaderU8Hash(de_ctx, sgh, DETECT_SCTP_CHUNK_CNT,
-            SIG_MASK_REQUIRE_REAL_PKT, PrefilterPacketU8Set, PrefilterPacketU8Compare,
-            PrefilterPacketSCTPChunkCntMatch);
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_SCTP_CHUNK_CNT, SIG_MASK_REQUIRE_REAL_PKT,
+            PrefilterPacketU16Set, PrefilterPacketU16Compare, PrefilterPacketSCTPChunkCntMatch);
 }
 
 static bool PrefilterSCTPChunkCntIsPrefilterable(const Signature *s)
