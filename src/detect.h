@@ -328,6 +328,7 @@ typedef struct DetectPort_ {
 
 /* Detection Engine flags */
 #define DE_QUIET 0x01 /**< DE is quiet (esp for unittests) */
+#define DE_WARN_FLOWBITS_TOGGLE_DEPRECATION 0x02
 
 typedef struct IPOnlyCIDRItem_ {
     /* address data for this item */
