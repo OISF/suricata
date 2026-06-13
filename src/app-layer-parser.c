@@ -719,24 +719,22 @@ AppLayerGetTxIteratorFunc AppLayerGetTxIterator(const uint8_t ipproto,
 uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate)
 {
     SCEnter();
-
-    SCReturnCT((pstate == NULL) ? 0 : pstate->log_id, "uint64_t");
+    DEBUG_VALIDATE_BUG_ON(pstate == NULL);
+    SCReturnCT(pstate->log_id, "uint64_t");
 }
 
 uint64_t AppLayerParserGetMinId(AppLayerParserState *pstate)
 {
     SCEnter();
-
-    SCReturnCT((pstate == NULL) ? 0 : pstate->min_id, "uint64_t");
+    DEBUG_VALIDATE_BUG_ON(pstate == NULL);
+    SCReturnCT(pstate->min_id, "uint64_t");
 }
 
 void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate, uint64_t tx_id)
 {
     SCEnter();
-
-    if (pstate != NULL)
-        pstate->log_id = tx_id;
-
+    DEBUG_VALIDATE_BUG_ON(pstate == NULL);
+    pstate->log_id = tx_id;
     SCReturn;
 }
 
