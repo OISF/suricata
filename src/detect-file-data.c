@@ -69,9 +69,9 @@ int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, Mpm
 // file protocols with common file handling
 typedef struct {
     AppProto alproto;
-    int direction;
     uint8_t progress_ts;
     uint8_t progress_tc;
+    int direction;
 } DetectFileHandlerProtocol;
 
 /* Table with all filehandler registrations */
