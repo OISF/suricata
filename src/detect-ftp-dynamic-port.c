@@ -106,11 +106,11 @@ void DetectFtpDynamicPortRegister(void)
     sigmatch_table[DETECT_FTP_DYNPORT].flags = SIGMATCH_INFO_UINT16;
     sigmatch_table[DETECT_FTP_DYNPORT].AppLayerTxMatch = DetectFtpDynamicPortMatch;
 
-    DetectAppLayerInspectEngineRegister(
-            BUFFER_NAME, ALPROTO_FTP, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_FTP, SIG_FLAG_TOCLIENT,
+            FTP_STATE_FINISHED, DetectEngineInspectGenericList, NULL);
 
-    DetectAppLayerInspectEngineRegister(
-            BUFFER_NAME, ALPROTO_FTP, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_FTP, SIG_FLAG_TOSERVER,
+            FTP_STATE_FINISHED, DetectEngineInspectGenericList, NULL);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
