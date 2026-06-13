@@ -1505,21 +1505,18 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     if (f->proto == IPPROTO_TCP) {
         StreamTcpDisableAppLayer(f);
     }
-    AppLayerParserSetEOF(pstate);
+    if (pstate != NULL) {
+        AppLayerParserSetEOF(pstate);
+    }
     SCReturnInt(-1);
 }
 
 void AppLayerParserSetEOF(AppLayerParserState *pstate)
 {
     SCEnter();
-
-    if (pstate == NULL)
-        goto end;
-
+    DEBUG_VALIDATE_BUG_ON(pstate == NULL);
     SCLogDebug("setting APP_LAYER_PARSER_EOF_TC and APP_LAYER_PARSER_EOF_TS");
     SCAppLayerParserStateSetFlag(pstate, (APP_LAYER_PARSER_EOF_TS | APP_LAYER_PARSER_EOF_TC));
-
- end:
     SCReturn;
 }
 
@@ -1528,14 +1525,10 @@ void AppLayerParserSetEOF(AppLayerParserState *pstate)
 bool AppLayerParserHasDecoderEvents(AppLayerParserState *pstate)
 {
     SCEnter();
-
-    if (pstate == NULL)
-        return false;
-
-    const AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(pstate);
-    if (decoder_events && decoder_events->cnt)
-        return true;
-
+    if (pstate != NULL) {
+        const AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(pstate);
+        return (decoder_events && decoder_events->cnt);
+    }
     /* if we have reached here, we don't have events */
     return false;
 }
