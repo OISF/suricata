@@ -4000,6 +4000,49 @@ static int DoParsePolicy(const char *policy_name, struct DetectFirewallPolicy *p
     return 1;
 }
 
+static int DoParseAppSubStatePolicy(const char *prefix, const AppProto app_proto,
+        const uint8_t sub_state, const char *sub_state_name, const uint8_t state,
+        const char *hookname, const uint8_t complete_state, const int direction,
+        struct DetectFirewallPolicies *fw_policies, struct DetectFirewallAppPolicy *app_fw_policies)
+{
+    char policy_name[256];
+    BUG_ON(sub_state_name == NULL);
+    BUG_ON(hookname == NULL);
+
+    char *nname = SCStrdup(hookname);
+    if (nname == NULL)
+        return -1;
+    for (int i = 0; nname[i] != '\0'; i++) {
+        if (nname[i] == '_')
+            nname[i] = '-';
+    }
+
+    const char *app_name = AppProtoToString(app_proto);
+    int r = snprintf(policy_name, sizeof(policy_name), "%s.%s.%s.%s", prefix, app_name,
+            sub_state_name, nname);
+    SCLogDebug("policy_name %s", policy_name);
+    SCFree(nname);
+    if (r < 0 || (size_t)r >= sizeof(policy_name)) {
+        FatalError("internal error: failed to assemble firewall policy config string");
+    }
+
+    struct DetectFirewallPolicy *pol;
+    if (direction == STREAM_TOSERVER)
+        pol = &fw_policies->http2_substates[sub_state - 1].ts[state];
+    else
+        pol = &fw_policies->http2_substates[sub_state - 1].tc[state];
+
+    r = DoParsePolicy(policy_name, pol);
+    /* for policies with an alert action, create a policy sig */
+    if (r == 1 && pol->action & ACTION_ALERT) {
+        SCLogDebug("adding policy signature");
+        return AddAppPolicySignature(fw_policies->policy_signatures, direction, app_proto, app_name,
+                state, hookname, pol);
+    }
+    SCLogDebug("r %d", r);
+    return r;
+}
+
 static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const char *hookname,
         const uint8_t state, const uint8_t complete_state, const int direction,
         struct DetectFirewallPolicies *fw_policies, struct DetectFirewallAppPolicy *app_fw_policies)
@@ -4105,6 +4148,17 @@ int DetectFirewallInitDefaultPolicies(DetectEngineCtx *de_ctx)
             app_fw_policies[a].tc[i].action_scope = ACTION_SCOPE_FLOW;
         }
     }
+
+    /* TODO hard coded for HTTP/2 for now */
+    for (int s = 0; s < 2; s++) {
+        for (int i = 0; i < 48; i++) {
+            fw_policies->http2_substates[s].ts[i].action = ACTION_DROP;
+            fw_policies->http2_substates[s].ts[i].action_scope = ACTION_SCOPE_FLOW;
+            fw_policies->http2_substates[s].tc[i].action = ACTION_DROP;
+            fw_policies->http2_substates[s].tc[i].action_scope = ACTION_SCOPE_FLOW;
+        }
+    }
+
     de_ctx->fw_policies = fw_policies;
     return 0;
 
@@ -4170,27 +4224,69 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
         if (!AppProtoIsValid(a))
             continue;
 
-        const uint8_t complete_state_ts =
-                (const uint8_t)AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOSERVER);
-        for (uint8_t state = 0; state <= complete_state_ts; state++) {
-            const char *name =
-                    AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOSERVER);
-            if (DoParseAppPolicy(prefix, a, name, state, complete_state_ts, STREAM_TOSERVER,
-                        fw_policies, app_fw_policies) < 0)
-                return -1;
-        }
+        if (AppLayerParserSupportsSubStates(a)) {
+            uint8_t max_sub_state = AppLayerParserGetMaxSubState(a);
+            SCLogDebug("%s: max sub state for %u is %u", AppProtoToString(a), a, max_sub_state);
+            for (uint8_t s = 1; s <= max_sub_state; s++) {
+                SCLogDebug("%s: checking sub state %u", AppProtoToString(a), s);
 
-        const uint8_t complete_state_tc =
-                (const uint8_t)AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOCLIENT);
-        for (uint8_t state = 0; state <= complete_state_tc; state++) {
-            const char *name =
-                    AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOCLIENT);
-            if (DoParseAppPolicy(prefix, a, name, state, complete_state_tc, STREAM_TOCLIENT,
-                        fw_policies, app_fw_policies) < 0)
-                return -1;
+                const char *sub_state_name = AppLayerParserGetSubStateName(a, s);
+                if (sub_state_name == NULL)
+                    continue;
+
+                // iterate the states belonging to the sub state
+                const uint8_t max_state = AppLayerParserGetSubStateCompletion(
+                        a, s); // TODO allow different completion per direction?
+                /* to_server */
+                for (uint8_t state = 0; state <= max_state; state++) {
+                    SCLogDebug("protocol %s: sub state:%s state:%u", AppProtoToString(a),
+                            sub_state_name, state);
+                    const char *state_name =
+                            AppLayerParserGetSubStateProgressName(a, s, state, STREAM_TOSERVER);
+                    BUG_ON(state_name == NULL);
+                    SCLogDebug("protocol %s: sub state:%s state:%s", AppProtoToString(a),
+                            sub_state_name, state_name);
+                    if (DoParseAppSubStatePolicy(prefix, a, s, sub_state_name, state, state_name,
+                                max_state, STREAM_TOSERVER, fw_policies, app_fw_policies) < 0)
+                        return -1;
+                }
+                /* to_client */
+                for (uint8_t state = 0; state <= max_state; state++) {
+                    SCLogDebug("protocol %s: to_client: sub state:%s state:%u", AppProtoToString(a),
+                            sub_state_name, state);
+                    const char *state_name =
+                            AppLayerParserGetSubStateProgressName(a, s, state, STREAM_TOCLIENT);
+                    BUG_ON(state_name == NULL);
+                    SCLogDebug("protocol %s: to_client: sub state:%s state:%s", AppProtoToString(a),
+                            sub_state_name, state_name);
+                    if (DoParseAppSubStatePolicy(prefix, a, s, sub_state_name, state, state_name,
+                                max_state, STREAM_TOCLIENT, fw_policies, app_fw_policies) < 0)
+                        return -1;
+                }
+            }
+        } else {
+            const uint8_t complete_state_ts =
+                    (const uint8_t)AppLayerParserGetStateProgressCompletionStatus(
+                            a, STREAM_TOSERVER);
+            for (uint8_t state = 0; state <= complete_state_ts; state++) {
+                const char *name =
+                        AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOSERVER);
+                if (DoParseAppPolicy(prefix, a, name, state, complete_state_ts, STREAM_TOSERVER,
+                            fw_policies, app_fw_policies) < 0)
+                    return -1;
+            }
+            const uint8_t complete_state_tc =
+                    (const uint8_t)AppLayerParserGetStateProgressCompletionStatus(
+                            a, STREAM_TOCLIENT);
+            for (uint8_t state = 0; state <= complete_state_tc; state++) {
+                const char *name =
+                        AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOCLIENT);
+                if (DoParseAppPolicy(prefix, a, name, state, complete_state_tc, STREAM_TOCLIENT,
+                            fw_policies, app_fw_policies) < 0)
+                    return -1;
+            }
         }
     }
-
     return 0;
 }
 
