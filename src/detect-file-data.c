@@ -96,24 +96,6 @@ DetectFileHandlerProtocol_t al_protocols[ALPROTO_WITHFILES_MAX] = {
     { .alproto = ALPROTO_SMTP, .direction = SIG_FLAG_TOSERVER }, { .alproto = ALPROTO_UNKNOWN }
 };
 
-void DetectFileRegisterProto(AppProto alproto, int direction, int progress_tc, int progress_ts)
-{
-    size_t i = 0;
-    while (i < ALPROTO_WITHFILES_MAX && al_protocols[i].alproto != ALPROTO_UNKNOWN) {
-        i++;
-    }
-    if (i == ALPROTO_WITHFILES_MAX) {
-        return;
-    }
-    al_protocols[i].alproto = alproto;
-    al_protocols[i].direction = direction;
-    al_protocols[i].progress_tc = progress_tc;
-    al_protocols[i].progress_ts = progress_ts;
-    if (i + 1 < ALPROTO_WITHFILES_MAX) {
-        al_protocols[i + 1].alproto = ALPROTO_UNKNOWN;
-    }
-}
-
 void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *reg)
 {
     for (size_t i = 0; i < g_alproto_max; i++) {
