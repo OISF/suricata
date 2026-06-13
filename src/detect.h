@@ -942,6 +942,9 @@ struct DetectFirewallPolicies {
     /* hash table with a Signature object per default policy that has `alert` enabled. */
     HashTable *policy_signatures;
 
+    /* hard coded for now: http2 substates. Index at substate - 1. */
+    struct DetectFirewallAppPolicy http2_substates[2];
+
     /** app layer policies, one per alproto */
     struct DetectFirewallAppPolicy app[];
 };
