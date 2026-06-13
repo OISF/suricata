@@ -34,6 +34,15 @@ also check all the new features that have been added but are not covered by
 this guide. Those features are either not enabled by default or require
 dedicated new configuration.
 
+Upgrading to 7.0.17
+-------------------
+
+Deprecations
+~~~~~~~~~~~~~
+
+- The ``flowbits`` ``toggle`` command is now deprecated and will be removed in
+  Suricata 9.0.
+
 Upgrading to 7.0.14
 -------------------
 

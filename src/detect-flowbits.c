@@ -301,6 +301,11 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
         fb_cmd = DETECT_FLOWBITS_CMD_UNSET;
     } else if (strcmp(fb_cmd_str,"toggle") == 0) {
         fb_cmd = DETECT_FLOWBITS_CMD_TOGGLE;
+        if ((de_ctx->flags & DE_WARN_FLOWBITS_TOGGLE_DEPRECATION) == 0) {
+            de_ctx->flags |= DE_WARN_FLOWBITS_TOGGLE_DEPRECATION;
+            SCLogWarning("flowbits \"toggle\" command is deprecated and will be removed in "
+                         "Suricata 9 (see ticket #8595)");
+        }
     } else {
         SCLogError("ERROR: flowbits action \"%s\" is not supported.", fb_cmd_str);
         goto error;

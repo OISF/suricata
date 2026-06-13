@@ -27,6 +27,9 @@ flowbits: isset, name
 flowbits: toggle, name
   Reverses the present setting. So for example if a condition is set,
   it will be unset and vice-versa.
+
+  .. deprecated:: 7.0.17
+     The ``toggle`` command is deprecated and will be removed in Suricata 9.0.
 flowbits: unset, name
   Can be used to unset the condition in the flow.
 flowbits: isnotset, name
