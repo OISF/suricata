@@ -1361,6 +1361,9 @@ security:
   # Use landlock security module under Linux
   landlock:
     enabled: no
+    # set to false if ever plugins are not trusted. This means the
+    # landlock configuration needs to be done manually in this section.
+    plugin-setup: true
     directories:
       #write:
       #  - @e_rundir@

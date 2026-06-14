@@ -506,7 +506,13 @@ void LandlockSandboxing(SCInstance *suri)
 
     /* Let plugins declare their landlock needs. */
 #ifdef HAVE_PLUGINS
-    SCPluginsLandlockEnable(ruleset);
+    int enabled = 1;
+    int ret = SCConfGetBool("security.landlock.plugin-setup", &enabled);
+    if (ret == 0 || enabled == 1) {
+        SCPluginsLandlockEnable(ruleset);
+    } else {
+        SCLogInfo("Landlock sandboxing function of plugins will not be called");
+    }
 #endif
 
     /* Let registered output modules declare theirs. */
