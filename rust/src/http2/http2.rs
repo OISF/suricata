@@ -134,7 +134,8 @@ pub enum HTTP2FrameTypeData {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
+#[derive(AppLayerState, Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
+#[suricata(alstate_strip_prefix = "HTTP2Prog")]
 pub enum HTTP2TxProgress {
     HTTP2ProgStart = 0,
     HTTP2ProgHeaders = 1,
@@ -144,7 +145,8 @@ pub enum HTTP2TxProgress {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
+#[derive(AppLayerState, Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
+#[suricata(alstate_strip_prefix = "HTTP2ProgGlobal")]
 pub enum HTTP2TxGlobalProgress {
     HTTP2ProgGlobalStart = 0,
     HTTP2ProgGlobalComplete = 1,
