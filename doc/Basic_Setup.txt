@@ -56,8 +56,8 @@ the Rule_vars_section_of_the_yaml. You need to set the ip-address(es) of your
 local network at HOME_NET. It is recommended to set EXTERNAL_NET to !$HOME_NET.
 This way, every ip-address but the one set at HOME_NET will be treated as
 external. It is also possible to set EXTERNAL_NET to 'any', only the
-recommended setting is more precise and lowers the change that false positives
-will be generated. HTTP_SERVERS, SMTP_SERVERS , SQL_SERVERS , DNS_SERVERS and
+recommended setting is more precise and lowers the chance that false positives
+will be generated. HTTP_SERVERS, SMTP_SERVERS, SQL_SERVERS, DNS_SERVERS and
 TELNET_SERVERS are by default set to HOME_NET. AIM_SERVERS is by default set at
 'any'. These variables have to be set for servers on your network. All settings
 have to be set to let it have a more accurate effect.
@@ -109,7 +109,7 @@ And:
 
   tail -n 50 stats.log
 
-To make sure the information displayed is up-dated in real time, use the -f
+To make sure the information displayed is updated in real time, use the -f
 option before eve.json and stats.log:
 
   tail -f eve.json stats.log
