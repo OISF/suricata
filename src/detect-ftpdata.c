@@ -105,17 +105,7 @@ static int DetectFtpdataMatch(DetectEngineThreadCtx *det_ctx,
     if (ftp_state == NULL)
         return 0;
 
-    if (ftpcommandd->command == ftp_state->command) {
-        /* Only match if the flow is in the good direction */
-        if ((flags & STREAM_TOSERVER) && (ftpcommandd->command == FTP_COMMAND_RETR)) {
-            return 0;
-        } else if ((flags & STREAM_TOCLIENT) && (ftpcommandd->command == FTP_COMMAND_STOR)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    return 0;
+    return ftpcommandd->command == ftp_state->command;
 }
 
 /**
