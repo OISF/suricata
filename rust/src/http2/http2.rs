@@ -42,9 +42,9 @@ use std::io;
 use suricata_sys::sys::AppProtoEnum::ALPROTO_HTTP1;
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, HttpRangeContainerBlock, SCAppLayerForceProtocolChange,
-    SCAppLayerParserConfParserEnabled, SCAppLayerParserRegisterLogger,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCFileFlowFlagsToFlags,
-    SCHTTP2MimicHttp1Request,
+    SCAppLayerParserConfParserEnabled, SCAppLayerParserRegisterGetTxSubStateFuncs,
+    SCAppLayerParserRegisterLogger, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCFileFlowFlagsToFlags, SCHTTP2MimicHttp1Request,
 };
 
 static mut ALPROTO_HTTP2: AppProto = ALPROTO_UNKNOWN;
@@ -1773,6 +1773,20 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
             }
         }
         SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP2);
+
+        SCAppLayerParserRegisterGetTxSubStateFuncs(
+            ALPROTO_HTTP2,
+            HTTP2TxType::HTTP2TxTypeStream as u8,
+            Some(HTTP2TxProgress::ffi_id_from_name),
+            Some(HTTP2TxProgress::ffi_name_from_id),
+        );
+        SCAppLayerParserRegisterGetTxSubStateFuncs(
+            ALPROTO_HTTP2,
+            HTTP2TxType::HTTP2TxTypeGlobal as u8,
+            Some(HTTP2TxGlobalProgress::ffi_id_from_name),
+            Some(HTTP2TxGlobalProgress::ffi_name_from_id),
+        );
+
         SCLogDebug!("Rust http2 parser registered.");
     } else {
         SCLogNotice!("Protocol detector and parser disabled for HTTP2.");
