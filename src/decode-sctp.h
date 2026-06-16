@@ -77,7 +77,7 @@ typedef struct SCTPChunkHdr_ {
 
 typedef struct SCTPVars_ {
     uint16_t hlen;             /**< total header length (common header + chunks) */
-    uint8_t chunk_cnt;         /**< number of chunks parsed */
+    uint16_t chunk_cnt;        /**< number of chunks parsed */
     uint8_t tracked_chunk_cnt; /**< number of chunks tracked (capped at SCTP_MAX_TRACKED_CHUNKS) */
     uint8_t chunk_types[SCTP_MAX_TRACKED_CHUNKS]; /**< types of first N chunks */
     uint8_t data_chunk_cnt;                       /**< number of DATA chunk payloads tracked */
