@@ -201,6 +201,16 @@ typedef struct AppLayerTxData {
     uint8_t detect_progress_ts;
     uint8_t detect_progress_tc;
 
+    /// Type of transaction. Meaning is defined by the parser. Used to
+    /// select a state machine. 0 means it is not used.
+    uint8_t tx_type;
+    /// End of TX progress values
+    ///
+    /// toserver end of tx progress value
+    uint8_t tx_type_eop_ts;
+    /// toclient end of tx progress value
+    uint8_t tx_type_eop_tc;
+
     DetectEngineState *de_state;
     AppLayerDecoderEvents *events;
     GenericVar *txbits;
@@ -282,6 +292,11 @@ void AppLayerParserRegisterGetStateFuncs(uint8_t ipproto, AppProto alproto,
         AppLayerParserGetStateIdByNameFn GetStateIdByName,
         AppLayerParserGetStateNameByIdFn GetStateNameById);
 
+/** \brief register state<>name funcs for a substate */
+void SCAppLayerParserRegisterGetTxSubStateFuncs(AppProto alproto, const uint8_t sub_state,
+        AppLayerParserGetStateIdByNameFn GetIdByNameFunc,
+        AppLayerParserGetStateNameByIdFn GetNameByIdFunc);
+
 void AppLayerParserRegisterTxDataFunc(uint8_t ipproto, AppProto alproto,
         AppLayerTxData *(*GetTxData)(void *tx));
 void AppLayerParserRegisterApplyTxConfigFunc(uint8_t ipproto, AppProto alproto,
@@ -314,7 +329,15 @@ int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
                         void *alstate, uint8_t direction);
 uint64_t AppLayerParserGetTxCnt(const Flow *, void *alstate);
 void *AppLayerParserGetTx(uint8_t ipproto, AppProto alproto, void *alstate, uint64_t tx_id);
+int8_t AppLayerParserGetSubStateProgressId(
+        const AppProto alproto, const uint8_t sub_state, const char *state, const uint8_t dir_flag);
+const char *AppLayerParserGetSubStateProgressName(const AppProto alproto, const uint8_t sub_state,
+        const uint8_t state, const uint8_t dir_flag);
+uint8_t AppLayerParserGetSubStateCompletion(const AppProto alproto, const uint8_t sub_state);
 uint8_t AppLayerParserGetStateProgressCompletionStatus(AppProto alproto, uint8_t direction);
+const char *AppLayerParserGetSubStateName(const AppProto alproto, const uint8_t sub_state);
+uint8_t AppLayerParserGetMaxSubState(const AppProto alproto);
+bool AppLayerParserSupportsSubStates(const AppProto alproto);
 int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *event_name,
         uint8_t *event_id, AppLayerEventType *event_type);
 int AppLayerParserGetEventInfoById(uint8_t ipproto, AppProto alproto, uint8_t event_id,

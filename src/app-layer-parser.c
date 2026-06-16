@@ -61,6 +61,12 @@ struct AppLayerParserThreadCtx_ {
     void *(*alproto_local_storage)[FLOW_PROTO_MAX];
 };
 
+struct AppLayerParserSubStateMapping {
+    uint8_t sub_state;
+    AppLayerParserGetStateIdByNameFn GetStateIdByName;
+    AppLayerParserGetStateNameByIdFn GetStateNameById;
+    struct AppLayerParserSubStateMapping *next;
+};
 
 /**
  * \brief App layer protocol parser context.
@@ -125,6 +131,13 @@ typedef struct AppLayerParserProtoCtx_
 #ifdef UNITTESTS
     void (*RegisterUnittests)(void);
 #endif
+
+    /* list of mappings per sub state
+     * only set for FLOW_PROTO_DEFAULT */
+    struct AppLayerParserSubStateMapping *sub_state_mappings;
+    /* max value of a sub state
+     * only set for FLOW_PROTO_DEFAULT */
+    uint8_t max_sub_state;
 } AppLayerParserProtoCtx;
 
 typedef struct AppLayerParserCtx_ {
@@ -151,6 +164,10 @@ struct AppLayerParserState_ {
 
     FramesContainer *frames;
 };
+
+static inline uint8_t GetTxEndProgress(uint8_t ipproto, AppProto alproto, void *tx, uint8_t flags);
+static inline uint8_t GetTxdEndProgress(uint8_t ipproto, AppProto alproto,
+        const AppLayerTxData *txd, uint8_t flags, uint8_t complete);
 
 enum ExceptionPolicy g_applayerparser_error_policy = EXCEPTION_POLICY_NOT_SET;
 
@@ -285,6 +302,21 @@ void AppLayerParserPostStreamSetup(void)
 int AppLayerParserDeSetup(void)
 {
     SCEnter();
+
+    /* inclusive loop as some parsers use FLOW_PROTO_DEFAULT */
+    for (int flow_proto = 0; flow_proto <= FLOW_PROTO_DEFAULT; flow_proto++) {
+        for (AppProto a = 0; a < g_alproto_max; a++) {
+            if (alp_ctx.ctxs[a][flow_proto].sub_state_mappings == NULL)
+                continue;
+
+            while (alp_ctx.ctxs[a][flow_proto].sub_state_mappings) {
+                struct AppLayerParserSubStateMapping *next =
+                        alp_ctx.ctxs[a][flow_proto].sub_state_mappings->next;
+                SCFree(alp_ctx.ctxs[a][flow_proto].sub_state_mappings);
+                alp_ctx.ctxs[a][flow_proto].sub_state_mappings = next;
+            }
+        }
+    }
 
     SCFree(alp_ctx.ctxs);
 
@@ -576,6 +608,38 @@ void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
+void SCAppLayerParserRegisterGetTxSubStateFuncs(AppProto alproto, const uint8_t sub_state,
+        AppLayerParserGetStateIdByNameFn GetIdByNameFunc,
+        AppLayerParserGetStateNameByIdFn GetNameByIdFunc)
+{
+    SCEnter();
+    /* validate input */
+    BUG_ON(sub_state == 0);
+    BUG_ON(GetIdByNameFunc == NULL);
+    BUG_ON(GetNameByIdFunc == NULL);
+
+    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT];
+    /* double registration not allowed */
+    for (struct AppLayerParserSubStateMapping *m = p->sub_state_mappings; m != NULL; m = m->next) {
+        BUG_ON(sub_state == m->sub_state);
+    }
+    struct AppLayerParserSubStateMapping *m = SCCalloc(1, sizeof(*m));
+    if (m == NULL)
+        FatalError("failed to register substate");
+
+    m->sub_state = sub_state;
+    m->GetStateIdByName = GetIdByNameFunc;
+    m->GetStateNameById = GetNameByIdFunc;
+    m->next = p->sub_state_mappings;
+    p->sub_state_mappings = m;
+
+    p->max_sub_state = MAX(p->max_sub_state, sub_state);
+    SCLogDebug("alproto %u:%s, sub_state:%u max:%u %p:%p", alproto, AppProtoToString(alproto),
+            sub_state, p->max_sub_state, m->GetStateIdByName, m->GetStateNameById);
+
+    SCReturn;
+}
+
 void AppLayerParserRegisterGetStateFuncs(uint8_t ipproto, AppProto alproto,
         AppLayerParserGetStateIdByNameFn GetIdByNameFunc,
         AppLayerParserGetStateNameByIdFn GetNameByIdFunc)
@@ -798,11 +862,13 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
         void *tx = ires.tx_ptr;
         idx = ires.tx_id;
 
+        AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
+        const int tx_end_state =
+                GetTxdEndProgress(ipproto, alproto, txd, flags, (uint8_t)state_done_progress);
         int state_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, flags);
-        if (state_progress < state_done_progress)
+        if (state_progress < tx_end_state)
             break;
 
-        AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
         if (tag_txs_as_inspected) {
             const uint8_t inspected_flag = (flags & STREAM_TOSERVER) ? APP_LAYER_TX_INSPECTED_TS
                                                                      : APP_LAYER_TX_INSPECTED_TC;
@@ -837,11 +903,13 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
             }
             idx = ires.tx_id;
 
+            AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
+            const int tx_end_state =
+                    GetTxdEndProgress(ipproto, alproto, txd, flags, (uint8_t)state_done_progress);
             const int state_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, flags);
-            if (state_progress < state_done_progress)
+            if (state_progress < tx_end_state)
                 break;
 
-            AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
             const uint8_t inspected_flag = (flags & STREAM_TOSERVER) ? APP_LAYER_TX_INSPECTED_TS
                                                                      : APP_LAYER_TX_INSPECTED_TC;
             if (!(txd->flags & inspected_flag)) {
@@ -979,14 +1047,18 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
         }
         const int tx_progress_tc =
                 AppLayerParserGetStateProgress(ipproto, alproto, tx, tc_disrupt_flags);
-        if (tx_progress_tc < tx_end_state_tc) {
+        const int end_state_tc =
+                GetTxdEndProgress(ipproto, alproto, txd, STREAM_TOCLIENT, (uint8_t)tx_end_state_tc);
+        if (tx_progress_tc < end_state_tc) {
             SCLogDebug("%p/%"PRIu64" skipping: tc parser not done", tx, i);
             skipped = true;
             goto next;
         }
+        const int end_state_ts =
+                GetTxdEndProgress(ipproto, alproto, txd, STREAM_TOSERVER, (uint8_t)tx_end_state_ts);
         const int tx_progress_ts =
                 AppLayerParserGetStateProgress(ipproto, alproto, tx, ts_disrupt_flags);
-        if (tx_progress_ts < tx_end_state_ts) {
+        if (tx_progress_ts < end_state_ts) {
             SCLogDebug("%p/%"PRIu64" skipping: ts parser not done", tx, i);
             skipped = true;
             goto next;
@@ -1096,6 +1168,55 @@ static inline int StateGetProgressCompletionStatus(const AppProto alproto, const
     }
 }
 
+/** \internal
+ *  \brief get the end state (progress) for a TX
+ *  If the TX is supporting sub-states, return the value from the txd.
+ *  \param tx pointer to the transaction
+ */
+static inline uint8_t GetTxEndProgress(uint8_t ipproto, AppProto alproto, void *tx, uint8_t flags)
+{
+    const AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
+    DEBUG_VALIDATE_BUG_ON(txd == NULL);
+    uint8_t tx_end_state;
+    if (txd->tx_type == 0) {
+        tx_end_state = (uint8_t)AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
+    } else {
+        if (flags & STREAM_TOSERVER)
+            tx_end_state = txd->tx_type_eop_ts;
+        else
+            tx_end_state = txd->tx_type_eop_tc;
+    }
+    return tx_end_state;
+}
+
+/** \internal
+ *  \brief get the end state (progress) for a TX(D)
+ *  If the TX is supporting sub-states, return the value from the txd.
+ *  \param txd pointer to the transactions txd
+ *  \param complete optional final progress for the protocol
+ *
+ *  `complete` can be passed in as it is often already looked up
+ *  outside of the tx loop.
+ */
+static inline uint8_t GetTxdEndProgress(uint8_t ipproto, AppProto alproto,
+        const AppLayerTxData *txd, uint8_t flags, uint8_t complete)
+{
+    DEBUG_VALIDATE_BUG_ON(txd == NULL);
+    uint8_t tx_end_state;
+    if (txd->tx_type == 0) {
+        if (complete)
+            tx_end_state = complete;
+        else
+            tx_end_state = (uint8_t)AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
+    } else {
+        if (flags & STREAM_TOSERVER)
+            tx_end_state = txd->tx_type_eop_ts;
+        else
+            tx_end_state = txd->tx_type_eop_tc;
+    }
+    return tx_end_state;
+}
+
 /**
  *  \brief get the progress value for a tx/protocol
  *
@@ -1106,7 +1227,7 @@ int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto, void *tx, 
     SCEnter();
     int r;
     if (unlikely(IS_DISRUPTED(flags))) {
-        r = StateGetProgressCompletionStatus(alproto, flags);
+        r = (int)GetTxEndProgress(ipproto, alproto, tx, flags);
     } else {
         const uint8_t direction = flags & (STREAM_TOCLIENT | STREAM_TOSERVER);
         r = alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].StateGetProgress(tx, direction);
@@ -1134,6 +1255,106 @@ uint8_t AppLayerParserGetStateProgressCompletionStatus(AppProto alproto, uint8_t
     int r = StateGetProgressCompletionStatus(alproto, direction);
     // TODO convert StateGetProgressCompletionStatus and more to uint8_t
     return (uint8_t)r;
+}
+
+/**
+ *  \brief
+ *
+ *  Translate name to progress value for a substate `sub_state`. Calls the
+ *  registered callbacks.
+ *
+ *  \retval -1 not found
+ *  \retval id value belonging to the state name
+ */
+int8_t AppLayerParserGetSubStateProgressId(
+        const AppProto alproto, const uint8_t sub_state, const char *state, const uint8_t dir_flag)
+{
+    BUG_ON(alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].max_sub_state == 0);
+    BUG_ON(dir_flag != STREAM_TOSERVER && dir_flag != STREAM_TOCLIENT);
+
+    for (struct AppLayerParserSubStateMapping *m =
+                    alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].sub_state_mappings;
+            m != NULL; m = m->next) {
+        if (m->sub_state == sub_state) {
+            BUG_ON(m->GetStateNameById == NULL);
+            BUG_ON(m->GetStateIdByName == NULL);
+
+            int v = m->GetStateIdByName(state, dir_flag);
+            if (v < 0) {
+                /* name not found */
+                return -1;
+            }
+            SCLogDebug("state:%s v:%u", state, v);
+            BUG_ON(v > 48);
+            return (int8_t)v;
+        }
+    }
+
+    return -1;
+}
+
+const char *AppLayerParserGetSubStateProgressName(const AppProto alproto, const uint8_t sub_state,
+        const uint8_t state, const uint8_t dir_flag)
+{
+    BUG_ON(alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].max_sub_state == 0);
+    BUG_ON(dir_flag != STREAM_TOSERVER && dir_flag != STREAM_TOCLIENT);
+
+    for (struct AppLayerParserSubStateMapping *m =
+                    alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].sub_state_mappings;
+            m != NULL; m = m->next) {
+        if (m->sub_state == sub_state) {
+            BUG_ON(m->GetStateNameById == NULL);
+            BUG_ON(m->GetStateIdByName == NULL);
+
+            return m->GetStateNameById(state, dir_flag);
+        }
+    }
+
+    return NULL;
+}
+
+uint8_t AppLayerParserGetSubStateCompletion(const AppProto alproto, const uint8_t sub_state)
+{
+    BUG_ON(alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].max_sub_state == 0);
+
+    /* TODO hard coded for now */
+    BUG_ON(alproto != ALPROTO_HTTP2);
+
+    if (sub_state == 1) {
+        return 4;
+    } else if (sub_state == 2) {
+        return 1;
+    } else {
+        BUG_ON(1);
+    }
+    return 0;
+}
+
+const char *AppLayerParserGetSubStateName(const AppProto alproto, const uint8_t sub_state)
+{
+    BUG_ON(alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].max_sub_state == 0);
+
+    /* TODO hard coded for now */
+    BUG_ON(alproto != ALPROTO_HTTP2);
+
+    if (sub_state == 1) {
+        return "stream";
+    } else if (sub_state == 2) {
+        return "global";
+    } else {
+        BUG_ON(1);
+    }
+    return NULL;
+}
+
+uint8_t AppLayerParserGetMaxSubState(const AppProto alproto)
+{
+    return alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].max_sub_state;
+}
+
+bool AppLayerParserSupportsSubStates(const AppProto alproto)
+{
+    return AppLayerParserGetMaxSubState(alproto) != 0;
 }
 
 int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *event_name,
