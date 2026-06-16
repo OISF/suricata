@@ -58,7 +58,7 @@ static int DecodeSCTPChunks(Packet *p, const uint8_t *pkt, uint16_t len)
     const SCTPHdr *sctph = PacketGetSCTP(p);
     const uint32_t vtag = SCTP_GET_RAW_VTAG(sctph);
     uint32_t offset = 0;
-    uint8_t chunk_cnt = 0;
+    uint16_t chunk_cnt = 0;
     uint8_t tracked_chunk_cnt = 0;
     bool has_init = false;
     bool has_init_ack = false;
