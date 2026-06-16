@@ -1161,65 +1161,131 @@ void DetectRegisterAppLayerHookLists(void)
             alproto_name = "http1";
         SCLogDebug("alproto %u/%s", a, alproto_name);
 
-        const uint8_t max_progress_ts =
-                AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOSERVER);
-        const uint8_t max_progress_tc =
-                AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOCLIENT);
+        if (AppLayerParserSupportsSubStates(a)) {
+            uint8_t max_sub_state = AppLayerParserGetMaxSubState(a);
+            SCLogDebug("%s: max sub state for %u is %u", AppProtoToString(a), a, max_sub_state);
+            for (uint8_t s = 1; s <= max_sub_state; s++) {
+                const uint8_t max_state = AppLayerParserGetSubStateCompletion(
+                        a, s); // TODO allow different completion per direction?
+                const char *sub_state_name = AppLayerParserGetSubStateName(a, s);
+                if (sub_state_name == NULL)
+                    continue;
 
-        char ts_tx_started[64];
-        snprintf(ts_tx_started, sizeof(ts_tx_started), "%s:request_started:generic", alproto_name);
-        DetectAppLayerInspectEngineRegister(
-                ts_tx_started, a, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
-        SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "request_name", ts_tx_started,
-                (uint32_t)strlen(ts_tx_started));
+                char ts_tx_started[64];
+                snprintf(ts_tx_started, sizeof(ts_tx_started), "%s:%s:request_started:generic",
+                        alproto_name, sub_state_name);
+                DetectAppLayerInspectEngineRegisterSubState(ts_tx_started, a, SIG_FLAG_TOSERVER, s,
+                        0, DetectEngineInspectGenericList, NULL);
 
-        char tc_tx_started[64];
-        snprintf(tc_tx_started, sizeof(tc_tx_started), "%s:response_started:generic", alproto_name);
-        DetectAppLayerInspectEngineRegister(
-                tc_tx_started, a, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
-        SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "response_name", tc_tx_started,
-                (uint32_t)strlen(tc_tx_started));
+                char tc_tx_started[64];
+                snprintf(tc_tx_started, sizeof(tc_tx_started), "%s:%s:response_started:generic",
+                        alproto_name, sub_state_name);
+                DetectAppLayerInspectEngineRegisterSubState(tc_tx_started, a, SIG_FLAG_TOCLIENT, s,
+                        0, DetectEngineInspectGenericList, NULL);
 
-        char ts_tx_complete[64];
-        snprintf(ts_tx_complete, sizeof(ts_tx_complete), "%s:request_complete:generic",
-                alproto_name);
-        DetectAppLayerInspectEngineRegister(ts_tx_complete, a, SIG_FLAG_TOSERVER, max_progress_ts,
-                DetectEngineInspectGenericList, NULL);
-        SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "request_name", ts_tx_complete,
-                (uint32_t)strlen(ts_tx_complete));
+                char ts_tx_complete[64];
+                snprintf(ts_tx_complete, sizeof(ts_tx_complete), "%s:%s:request_complete:generic",
+                        alproto_name, sub_state_name);
+                DetectAppLayerInspectEngineRegisterSubState(ts_tx_complete, a, SIG_FLAG_TOSERVER, s,
+                        max_state, DetectEngineInspectGenericList, NULL);
 
-        char tc_tx_complete[64];
-        snprintf(tc_tx_complete, sizeof(tc_tx_complete), "%s:response_complete:generic",
-                alproto_name);
-        DetectAppLayerInspectEngineRegister(tc_tx_complete, a, SIG_FLAG_TOCLIENT, max_progress_tc,
-                DetectEngineInspectGenericList, NULL);
-        SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "response_name", tc_tx_complete,
-                (uint32_t)strlen(tc_tx_complete));
+                char tc_tx_complete[64];
+                snprintf(tc_tx_complete, sizeof(tc_tx_complete), "%s:%s:response_complete:generic",
+                        alproto_name, sub_state_name);
+                DetectAppLayerInspectEngineRegisterSubState(tc_tx_complete, a, SIG_FLAG_TOCLIENT, s,
+                        max_state, DetectEngineInspectGenericList, NULL);
 
-        for (uint8_t p = 0; p <= max_progress_ts; p++) {
-            const char *name = AppLayerParserGetStateNameById(
-                    IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOSERVER);
-            if (name != NULL && !IsBuiltIn(name)) {
-                char list_name[64];
-                snprintf(list_name, sizeof(list_name), "%s:%s:generic", alproto_name, name);
-                SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, name, list_name,
-                        (uint32_t)strlen(list_name));
+                /* to_server */
+                for (uint8_t state = 0; state <= max_state; state++) {
+                    const char *state_name =
+                            AppLayerParserGetSubStateProgressName(a, s, state, STREAM_TOSERVER);
+                    BUG_ON(state_name == NULL);
 
-                DetectAppLayerInspectEngineRegister(
-                        list_name, a, SIG_FLAG_TOSERVER, p, DetectEngineInspectGenericList, NULL);
+                    if (state_name != NULL && !IsBuiltIn(state_name)) {
+                        char list_name[64];
+                        snprintf(list_name, sizeof(list_name), "%s:%s:%s:generic", alproto_name,
+                                sub_state_name, state_name);
+                        DetectAppLayerInspectEngineRegisterSubState(list_name, a, SIG_FLAG_TOSERVER,
+                                s, state, DetectEngineInspectGenericList, NULL);
+                    }
+                }
+                /* to_client */
+                for (uint8_t state = 0; state <= max_state; state++) {
+                    const char *state_name =
+                            AppLayerParserGetSubStateProgressName(a, s, state, STREAM_TOCLIENT);
+                    BUG_ON(state_name == NULL);
+                    if (state_name != NULL && !IsBuiltIn(state_name)) {
+                        char list_name[64];
+                        snprintf(list_name, sizeof(list_name), "%s:%s:%s:generic", alproto_name,
+                                sub_state_name, state_name);
+                        DetectAppLayerInspectEngineRegisterSubState(list_name, a, SIG_FLAG_TOCLIENT,
+                                s, state, DetectEngineInspectGenericList, NULL);
+                    }
+                }
             }
-        }
-        for (uint8_t p = 0; p <= max_progress_tc; p++) {
-            const char *name = AppLayerParserGetStateNameById(
-                    IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOCLIENT);
-            if (name != NULL && !IsBuiltIn(name)) {
-                char list_name[64];
-                snprintf(list_name, sizeof(list_name), "%s:%s:generic", alproto_name, name);
-                SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, name, list_name,
-                        (uint32_t)strlen(list_name));
+        } else {
+            const uint8_t max_progress_ts =
+                    AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOSERVER);
+            const uint8_t max_progress_tc =
+                    AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOCLIENT);
 
-                DetectAppLayerInspectEngineRegister(
-                        list_name, a, SIG_FLAG_TOCLIENT, p, DetectEngineInspectGenericList, NULL);
+            char ts_tx_started[64];
+            snprintf(ts_tx_started, sizeof(ts_tx_started), "%s:request_started:generic",
+                    alproto_name);
+            DetectAppLayerInspectEngineRegister(
+                    ts_tx_started, a, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
+            SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "request_name", ts_tx_started,
+                    (uint32_t)strlen(ts_tx_started));
+
+            char tc_tx_started[64];
+            snprintf(tc_tx_started, sizeof(tc_tx_started), "%s:response_started:generic",
+                    alproto_name);
+            DetectAppLayerInspectEngineRegister(
+                    tc_tx_started, a, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
+            SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "response_name", tc_tx_started,
+                    (uint32_t)strlen(tc_tx_started));
+
+            char ts_tx_complete[64];
+            snprintf(ts_tx_complete, sizeof(ts_tx_complete), "%s:request_complete:generic",
+                    alproto_name);
+            DetectAppLayerInspectEngineRegister(ts_tx_complete, a, SIG_FLAG_TOSERVER,
+                    max_progress_ts, DetectEngineInspectGenericList, NULL);
+            SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "request_name", ts_tx_complete,
+                    (uint32_t)strlen(ts_tx_complete));
+
+            char tc_tx_complete[64];
+            snprintf(tc_tx_complete, sizeof(tc_tx_complete), "%s:response_complete:generic",
+                    alproto_name);
+            DetectAppLayerInspectEngineRegister(tc_tx_complete, a, SIG_FLAG_TOCLIENT,
+                    max_progress_tc, DetectEngineInspectGenericList, NULL);
+            SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "response_name", tc_tx_complete,
+                    (uint32_t)strlen(tc_tx_complete));
+
+            for (uint8_t p = 0; p <= max_progress_ts; p++) {
+                const char *name = AppLayerParserGetStateNameById(
+                        IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOSERVER);
+                if (name != NULL && !IsBuiltIn(name)) {
+                    char list_name[64];
+                    snprintf(list_name, sizeof(list_name), "%s:%s:generic", alproto_name, name);
+                    SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, name, list_name,
+                            (uint32_t)strlen(list_name));
+
+                    DetectAppLayerInspectEngineRegister(list_name, a, SIG_FLAG_TOSERVER, p,
+                            DetectEngineInspectGenericList, NULL);
+                }
+            }
+            for (uint8_t p = 0; p <= max_progress_tc; p++) {
+                const char *name = AppLayerParserGetStateNameById(
+                        IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOCLIENT);
+                if (name != NULL && !IsBuiltIn(name)) {
+                    char list_name[64];
+                    snprintf(list_name, sizeof(list_name), "%s:%s:generic", alproto_name, name);
+                    SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, name, list_name,
+                            (uint32_t)strlen(list_name));
+
+                    DetectAppLayerInspectEngineRegister(list_name, a, SIG_FLAG_TOCLIENT, p,
+                            DetectEngineInspectGenericList, NULL);
+                }
             }
         }
     }
@@ -1356,44 +1422,80 @@ static int SigParseProtoHookApp(
                 return -1;
             }
         }
-    }
-
-    SCLogDebug("h:'%s'", h);
-    if (strcmp(h, "request_started") == 0) {
-        s->flags |= SIG_FLAG_TOSERVER;
-        s->init_data->hook = SetAppHook(
-                s->alproto, sub_state, 0); // state 0 should be the starting state in each protocol.
-    } else if (strcmp(h, "response_started") == 0) {
-        s->flags |= SIG_FLAG_TOCLIENT;
-        s->init_data->hook = SetAppHook(
-                s->alproto, sub_state, 0); // state 0 should be the starting state in each protocol.
-    } else if (strcmp(h, "request_complete") == 0) {
-        s->flags |= SIG_FLAG_TOSERVER;
-        s->init_data->hook = SetAppHook(s->alproto, sub_state,
-                AppLayerParserGetStateProgressCompletionStatus(s->alproto, STREAM_TOSERVER));
-    } else if (strcmp(h, "response_complete") == 0) {
-        s->flags |= SIG_FLAG_TOCLIENT;
-        s->init_data->hook = SetAppHook(s->alproto, sub_state,
-                AppLayerParserGetStateProgressCompletionStatus(s->alproto, STREAM_TOCLIENT));
-    } else {
-        const int progress_ts = AppLayerParserGetStateIdByName(
-                IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOSERVER);
-        if (progress_ts >= 0) {
+        const uint8_t max_state = AppLayerParserGetSubStateCompletion(
+                s->alproto, sub_state); // TODO allow different completion per direction?
+        if (strcmp(h, "request_started") == 0) {
             s->flags |= SIG_FLAG_TOSERVER;
-            s->init_data->hook = SetAppHook(s->alproto, sub_state, progress_ts);
-        } else {
-            const int progress_tc = AppLayerParserGetStateIdByName(
-                    IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOCLIENT);
-            if (progress_tc < 0) {
-                return -1;
-            }
+            s->init_data->hook = SetAppHook(s->alproto, sub_state,
+                    0); // state 0 should be the starting state in each protocol.
+        } else if (strcmp(h, "response_started") == 0) {
             s->flags |= SIG_FLAG_TOCLIENT;
-            s->init_data->hook = SetAppHook(s->alproto, sub_state, progress_tc);
+            s->init_data->hook = SetAppHook(s->alproto, sub_state,
+                    0); // state 0 should be the starting state in each protocol.
+        } else if (strcmp(h, "request_complete") == 0) {
+            s->flags |= SIG_FLAG_TOSERVER;
+            s->init_data->hook = SetAppHook(s->alproto, sub_state, max_state);
+        } else if (strcmp(h, "response_complete") == 0) {
+            s->flags |= SIG_FLAG_TOCLIENT;
+            s->init_data->hook = SetAppHook(s->alproto, sub_state, max_state);
+        } else {
+            const int8_t progress_ts =
+                    AppLayerParserGetSubStateProgressId(s->alproto, sub_state, h, STREAM_TOSERVER);
+            if (progress_ts >= 0) {
+                s->flags |= SIG_FLAG_TOSERVER;
+                s->init_data->hook = SetAppHook(s->alproto, sub_state, progress_ts);
+            } else {
+                const int8_t progress_tc = AppLayerParserGetSubStateProgressId(
+                        s->alproto, sub_state, h, STREAM_TOCLIENT);
+                if (progress_tc < 0) {
+                    return -1;
+                }
+                s->flags |= SIG_FLAG_TOCLIENT;
+                s->init_data->hook = SetAppHook(s->alproto, sub_state, progress_tc);
+            }
+        }
+    } else {
+        SCLogDebug("h:'%s'", h);
+        if (strcmp(h, "request_started") == 0) {
+            s->flags |= SIG_FLAG_TOSERVER;
+            s->init_data->hook = SetAppHook(s->alproto, sub_state,
+                    0); // state 0 should be the starting state in each protocol.
+        } else if (strcmp(h, "response_started") == 0) {
+            s->flags |= SIG_FLAG_TOCLIENT;
+            s->init_data->hook = SetAppHook(s->alproto, sub_state,
+                    0); // state 0 should be the starting state in each protocol.
+        } else if (strcmp(h, "request_complete") == 0) {
+            s->flags |= SIG_FLAG_TOSERVER;
+            s->init_data->hook = SetAppHook(s->alproto, sub_state,
+                    AppLayerParserGetStateProgressCompletionStatus(s->alproto, STREAM_TOSERVER));
+        } else if (strcmp(h, "response_complete") == 0) {
+            s->flags |= SIG_FLAG_TOCLIENT;
+            s->init_data->hook = SetAppHook(s->alproto, sub_state,
+                    AppLayerParserGetStateProgressCompletionStatus(s->alproto, STREAM_TOCLIENT));
+        } else {
+            const int progress_ts = AppLayerParserGetStateIdByName(
+                    IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOSERVER);
+            if (progress_ts >= 0) {
+                if (progress_ts >= 48) {
+                    return -1;
+                }
+                s->flags |= SIG_FLAG_TOSERVER;
+                s->init_data->hook = SetAppHook(s->alproto, sub_state, (uint8_t)progress_ts);
+            } else {
+                const int progress_tc = AppLayerParserGetStateIdByName(
+                        IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOCLIENT);
+                if (progress_tc < 0 || progress_tc >= 48) {
+                    return -1;
+                }
+                s->flags |= SIG_FLAG_TOCLIENT;
+                s->init_data->hook = SetAppHook(s->alproto, sub_state, (uint8_t)progress_tc);
+            }
         }
     }
 
+    /* use in_h to include sub state */
     char generic_hook_name[64];
-    snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", p, h);
+    snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", p, in_h);
     int list = DetectBufferTypeGetByName(generic_hook_name);
     if (list < 0) {
         SCLogError("no list registered as %s for hook %s", generic_hook_name, proto_hook);
