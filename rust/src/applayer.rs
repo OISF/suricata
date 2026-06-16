@@ -144,6 +144,12 @@ pub struct AppLayerTxData {
     ///
     detect_progress_ts: u8,
     detect_progress_tc: u8,
+    #[doc = " Type of transaction. Meaning is defined by the parser. Used to\n select a state machine. 0 means it is not used."]
+    pub tx_type: u8,
+    #[doc = " End of TX progress values\n\n toserver end of tx progress value"]
+    pub tx_type_eop_ts: u8,
+    #[doc = " toclient end of tx progress value"]
+    pub tx_type_eop_tc: u8,
 
     de_state: *mut DetectEngineState,
     pub events: *mut core::AppLayerDecoderEvents,
@@ -198,6 +204,9 @@ impl AppLayerTxData {
             flags: 0,
             detect_progress_ts: 0,
             detect_progress_tc: 0,
+            tx_type: 0,
+            tx_type_eop_ts: 0,
+            tx_type_eop_tc: 0,
             de_state: std::ptr::null_mut(),
             events: std::ptr::null_mut(),
             txbits: std::ptr::null_mut(),
@@ -225,6 +234,9 @@ impl AppLayerTxData {
             detect_progress_ts: 0,
             detect_progress_tc: 0,
             flags,
+            tx_type: 0,
+            tx_type_eop_ts: 0,
+            tx_type_eop_tc: 0,
             de_state: std::ptr::null_mut(),
             events: std::ptr::null_mut(),
             txbits: std::ptr::null_mut(),
