@@ -1304,11 +1304,12 @@ static int SigParseProtoHookPkt(Signature *s, const char *proto_hook, const char
     return 0;
 }
 
-static SignatureHook SetAppHook(const AppProto alproto, uint8_t progress)
+static SignatureHook SetAppHook(const AppProto alproto, uint8_t sub_state, uint8_t progress)
 {
     SignatureHook h = {
         .type = SIGNATURE_HOOK_TYPE_APP,
         .t.app.alproto = alproto,
+        .t.app.sub_state = sub_state,
         .t.app.app_progress = progress,
     };
     return h;
@@ -1317,31 +1318,59 @@ static SignatureHook SetAppHook(const AppProto alproto, uint8_t progress)
 /**
  * \param proto_hook string of protocol and hook, e.g. dns:request_complete
  */
-static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char *p, const char *h)
+static int SigParseProtoHookApp(
+        Signature *s, const char *proto_hook, const char *p, const char *in_h)
 {
+    char hook[33];
+    strlcpy(hook, in_h, 33);
+    const char *h = hook;
+    const char *t = NULL;
+    uint8_t sub_state = 0;
+
+    bool has_type = strchr(hook, ':') != NULL;
+    if (has_type) {
+        char *rem = NULL;
+        t = strtok_r(hook, ":", &rem);
+        h = rem;
+        SCLogDebug("h: '%s' t: '%s'", h, t);
+    }
+    if (h == NULL || strlen(h) == 0) {
+        SCLogError("invalid hook specification '%s'", hook);
+        return -1;
+    }
+
+    if (t != NULL) {
+        if (strlen(t) == 0) {
+            SCLogError("invalid tx type specification '%s'", hook);
+            return -1;
+        }
+
+        /* TODO handle substate here */
+    }
+
     SCLogDebug("h:'%s'", h);
     if (strcmp(h, "request_started") == 0) {
         s->flags |= SIG_FLAG_TOSERVER;
-        s->init_data->hook =
-                SetAppHook(s->alproto, 0); // state 0 should be the starting state in each protocol.
+        s->init_data->hook = SetAppHook(
+                s->alproto, sub_state, 0); // state 0 should be the starting state in each protocol.
     } else if (strcmp(h, "response_started") == 0) {
         s->flags |= SIG_FLAG_TOCLIENT;
-        s->init_data->hook =
-                SetAppHook(s->alproto, 0); // state 0 should be the starting state in each protocol.
+        s->init_data->hook = SetAppHook(
+                s->alproto, sub_state, 0); // state 0 should be the starting state in each protocol.
     } else if (strcmp(h, "request_complete") == 0) {
         s->flags |= SIG_FLAG_TOSERVER;
-        s->init_data->hook = SetAppHook(s->alproto,
+        s->init_data->hook = SetAppHook(s->alproto, sub_state,
                 AppLayerParserGetStateProgressCompletionStatus(s->alproto, STREAM_TOSERVER));
     } else if (strcmp(h, "response_complete") == 0) {
         s->flags |= SIG_FLAG_TOCLIENT;
-        s->init_data->hook = SetAppHook(s->alproto,
+        s->init_data->hook = SetAppHook(s->alproto, sub_state,
                 AppLayerParserGetStateProgressCompletionStatus(s->alproto, STREAM_TOCLIENT));
     } else {
         const int progress_ts = AppLayerParserGetStateIdByName(
                 IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOSERVER);
         if (progress_ts >= 0) {
             s->flags |= SIG_FLAG_TOSERVER;
-            s->init_data->hook = SetAppHook(s->alproto, (uint8_t)progress_ts);
+            s->init_data->hook = SetAppHook(s->alproto, sub_state, progress_ts);
         } else {
             const int progress_tc = AppLayerParserGetStateIdByName(
                     IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOCLIENT);
@@ -1349,7 +1378,7 @@ static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char
                 return -1;
             }
             s->flags |= SIG_FLAG_TOCLIENT;
-            s->init_data->hook = SetAppHook(s->alproto, (uint8_t)progress_tc);
+            s->init_data->hook = SetAppHook(s->alproto, sub_state, progress_tc);
         }
     }
 
