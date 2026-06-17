@@ -125,7 +125,13 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
     }
 
     /* if decompress_depth is 0, keep the flash file length */
-    uint32_t decompressed_data_len = (decompress_depth == 0) ? decompressed_swf_len : decompress_depth;
+    uint32_t decompressed_data_len = decompressed_swf_len;
+    // only restrict the decompressed_data_len, a too big decompress_depth does not make us more
+    // than we need
+    if (decompress_depth > 0 && decompress_depth < decompressed_data_len)
+        decompressed_data_len = decompress_depth;
+
+    // cannot overflow as decompressed_swf_len maxed out at MAX_SWF_DECOMPRESSED_LEN 50000000
     decompressed_data_len += 8;
 
     /* make sure the inspection buffer has enough space */
