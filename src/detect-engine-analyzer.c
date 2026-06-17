@@ -781,6 +781,10 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                     AnalyzerNote(ctx,
                             (char *)"'/B' (rawbytes) option is a no-op and is silently ignored");
                 }
+                if (cd->flags & DETECT_PCRE_HAS_UNICODE_CLUSTER) {
+                    AnalyzerNote(ctx, (char *)"pcre with \\X (Unicode extended grapheme cluster) "
+                                              "may be slow");
+                }
                 break;
             }
             case DETECT_BYTEJUMP: {
