@@ -732,7 +732,6 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
         goto error;
 #else
         pd->flags |= DETECT_PCRE_HAS_UNICODE_CLUSTER;
-        break;
 #endif
     }
 
