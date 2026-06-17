@@ -114,7 +114,6 @@ impl DCERPCUDPState {
         for i in 0..len {
             let tx = &self.transactions[i];
             if tx.id == tx_id {
-                //+ 1 {
                 found = true;
                 index = i;
                 SCLogDebug!("tx {} progress {}/{}", tx.id, tx.req_done, tx.resp_done);
