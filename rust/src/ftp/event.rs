@@ -25,6 +25,10 @@ pub enum FtpEvent {
     FtpEventRequestCommandTooLong,
     #[name("response_command_too_long")]
     FtpEventResponseCommandTooLong,
+    #[name("file_before_port")]
+    FtpEventFileBeforePort,
+    #[name("file_without_name")]
+    FtpEventFileWithoutName,
 }
 
 /// Wrapper around the Rust generic function for get_event_info.
