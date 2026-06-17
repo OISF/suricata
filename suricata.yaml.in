@@ -909,6 +909,8 @@ app-layer:
       # unsubscribe-topic-match-limit: 100
       # Maximum number of live MQTT transactions per flow
       # max-tx: 4096
+      # Maximum number of messages per transaction
+      # max-messages: 1024
     krb5:
       enabled: yes
     bittorrent-dht:
