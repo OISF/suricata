@@ -46,6 +46,8 @@ static mut MAX_MSG_LEN: u32 = 1048576;
 
 static mut MQTT_MAX_TX: usize = 1024;
 
+static mut MQTT_MAX_MSGS: usize = 1024;
+
 pub(super) static mut ALPROTO_MQTT: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(AppLayerFrameType)]
@@ -68,6 +70,7 @@ pub enum MQTTEvent {
     UnassignedMsgType,
     TooManyTransactions,
     MalformedTraffic,
+    TooManyMessages,
 }
 
 #[derive(Debug)]
@@ -318,7 +321,11 @@ impl MQTTState {
             }
             MQTTOperation::PUBREC(ref v) | MQTTOperation::PUBREL(ref v) => {
                 if let Some(tx) = self.get_tx_by_pkt_id(v.message_id as u32) {
-                    tx.msg.push(msg);
+                    if tx.msg.len() >= unsafe { MQTT_MAX_MSGS } {
+                        tx.tx_data.set_event(MQTTEvent::TooManyMessages as u8);
+                    } else {
+                        tx.msg.push(msg);
+                    }
                 } else {
                     let mut tx = self.new_tx(msg, toclient);
                     MQTTState::set_event(&mut tx, MQTTEvent::MissingPublish);
@@ -799,6 +806,13 @@ pub unsafe extern "C" fn SCMqttRegisterParser() {
                 MQTT_MAX_TX = v;
             } else {
                 SCLogError!("Invalid value for mqtt.max-tx");
+            }
+        }
+        if let Some(val) = conf_get("app-layer.protocols.mqtt.max-messages") {
+            if let Ok(v) = val.parse::<usize>() {
+                MQTT_MAX_MSGS = v;
+            } else {
+                SCLogWarning!("Invalid value for mqtt.max-messages");
             }
         }
         if let Some(val) = conf_get("app-layer.protocols.mqtt.max-msg-length") {
