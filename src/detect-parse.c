@@ -1340,8 +1340,18 @@ static int SigParseProtoHookApp(
             SCLogError("invalid tx type specification '%s'", hook);
             return -1;
         }
-
-        /* TODO handle substate here */
+        if (strcmp(p, "http2") == 0) {
+            if (strcmp(t, "stream") == 0) {
+                sub_state = HTTP2TxTypeStream;
+            } else if (strcmp(t, "global") == 0) {
+                sub_state = HTTP2TxTypeGlobal;
+            } else {
+                SCLogError("unknown http/2 tx type specification '%s': valid values are 'stream' "
+                           "and 'global'",
+                        hook);
+                return -1;
+            }
+        }
     }
 
     SCLogDebug("h:'%s'", h);
