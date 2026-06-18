@@ -40,7 +40,7 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 
-pub(super) static mut ALPROTO_WEBSOCKET: AppProto = ALPROTO_UNKNOWN;
+pub(crate) static mut ALPROTO_WEBSOCKET: AppProto = ALPROTO_UNKNOWN;
 
 static mut WEBSOCKET_MAX_PAYLOAD_SIZE: u32 = 0xFFFF;
 
@@ -59,7 +59,7 @@ pub enum WebSocketEvent {
     ReassemblyLimitReached,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct WebSocketTransaction {
     tx_id: u64,
     pub pdu: parser::WebSocketPdu,
@@ -81,17 +81,17 @@ impl Transaction for WebSocketTransaction {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct WebSocketReassemblyBuffer {
     data: Vec<u8>,
     compress: bool,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct WebSocketState {
     state_data: AppLayerStateData,
     tx_id: u64,
-    transactions: VecDeque<WebSocketTransaction>,
+    pub transactions: VecDeque<WebSocketTransaction>,
 
     c2s_dec: Option<flate2::Decompress>,
     s2c_dec: Option<flate2::Decompress>,
@@ -147,15 +147,20 @@ impl WebSocketState {
         return tx;
     }
 
-    fn parse(
+    pub(crate) fn parse(
         &mut self, stream_slice: StreamSlice, direction: Direction, flow: *mut Flow,
+        slice_input: &[u8],
     ) -> AppLayerResult {
         let to_skip = if direction == Direction::ToClient {
             &mut self.to_skip_tc
         } else {
             &mut self.to_skip_ts
         };
-        let input = stream_slice.as_slice();
+        let input = if flow.is_null() {
+            slice_input
+        } else {
+            stream_slice.as_slice()
+        };
         let mut start = input;
         if *to_skip > 0 {
             if *to_skip >= input.len() as u64 {
@@ -172,30 +177,32 @@ impl WebSocketState {
             match parser::parse_message(start, max_pl_size) {
                 Ok((rem, pdu)) => {
                     let mut tx = self.new_tx(direction);
-                    let _pdu = Frame::new(
-                        flow,
-                        &stream_slice,
-                        start,
-                        (start.len() - rem.len() - pdu.payload.len()) as i64,
-                        WebSocketFrameType::Header as u8,
-                        Some(tx.tx_id),
-                    );
-                    let _pdu = Frame::new(
-                        flow,
-                        &stream_slice,
-                        start,
-                        (start.len() - rem.len()) as i64,
-                        WebSocketFrameType::Pdu as u8,
-                        Some(tx.tx_id),
-                    );
-                    let _pdu = Frame::new(
-                        flow,
-                        &stream_slice,
-                        &start[(start.len() - rem.len() - pdu.payload.len())..],
-                        pdu.payload.len() as i64,
-                        WebSocketFrameType::Data as u8,
-                        Some(tx.tx_id),
-                    );
+                    if !flow.is_null() {
+                        let _pdu = Frame::new(
+                            flow,
+                            &stream_slice,
+                            start,
+                            (start.len() - rem.len() - pdu.payload.len()) as i64,
+                            WebSocketFrameType::Header as u8,
+                            Some(tx.tx_id),
+                        );
+                        let _pdu = Frame::new(
+                            flow,
+                            &stream_slice,
+                            start,
+                            (start.len() - rem.len()) as i64,
+                            WebSocketFrameType::Pdu as u8,
+                            Some(tx.tx_id),
+                        );
+                        let _pdu = Frame::new(
+                            flow,
+                            &stream_slice,
+                            &start[(start.len() - rem.len() - pdu.payload.len())..],
+                            pdu.payload.len() as i64,
+                            WebSocketFrameType::Data as u8,
+                            Some(tx.tx_id),
+                        );
+                    }
                     start = rem;
                     if pdu.to_skip > 0 {
                         if direction == Direction::ToClient {
@@ -287,7 +294,7 @@ impl WebSocketState {
                             }
                         }
                     }
-                    if tx.pdu.fin {
+                    if tx.pdu.fin && !flow.is_null() {
                         sc_app_layer_parser_trigger_raw_stream_inspection(flow, direction as i32);
                     }
                     self.transactions.push_back(tx);
@@ -351,7 +358,7 @@ unsafe extern "C" fn websocket_parse_request(
     stream_slice: StreamSlice, _data: *mut c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, WebSocketState);
-    state.parse(stream_slice, Direction::ToServer, flow)
+    state.parse(stream_slice, Direction::ToServer, flow, &[])
 }
 
 unsafe extern "C" fn websocket_parse_response(
@@ -359,7 +366,7 @@ unsafe extern "C" fn websocket_parse_response(
     stream_slice: StreamSlice, _data: *mut c_void,
 ) -> AppLayerResult {
     let state = cast_pointer!(state, WebSocketState);
-    state.parse(stream_slice, Direction::ToClient, flow)
+    state.parse(stream_slice, Direction::ToClient, flow, &[])
 }
 
 unsafe extern "C" fn websocket_state_get_tx(state: *mut c_void, tx_id: u64) -> *mut c_void {
