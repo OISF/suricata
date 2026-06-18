@@ -6866,6 +6866,25 @@
                                 }
                             }
                         },
+                        "dpdk": {
+                            "type": "object",
+                            "description": "Statistics for DPDK capture module",
+                            "additionalProperties": false,
+                            "properties": {
+                                "ierrors": {
+                                    "type": "integer",
+                                    "description": "Total number of erroneous received packets. "
+                                },
+                                "imissed": {
+                                    "type": "integer",
+                                    "description": "Total of Rx packets dropped by the HW, because there are no available buffers (i.e. Rx queues are full)."
+                                },
+                                "no_mbufs": {
+                                    "type": "integer",
+                                    "description": "Total number of Rx mbuf allocation failures. "
+                                }
+                            }
+                        },
                         "errors": {
                             "type": "integer",
                             "description": "Number of Suricata errors reported while reading capture module"
