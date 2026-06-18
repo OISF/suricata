@@ -102,4 +102,4 @@ while IFS= read -r requirement; do
             echo "error: unknown requirement: $1"
             ;;
     esac
-done < ./requirements.txt
+done < ./requirements
