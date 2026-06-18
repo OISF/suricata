@@ -341,6 +341,29 @@ void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alprot
     AppLayerInspectEngineRegisterInternal(
             name, alproto, dir, 0, (uint8_t)progress, Callback, NULL, GetData, NULL);
 }
+void DetectAppLayerInspectEngineRegisterSingleSubState(const char *name, AppProto alproto,
+        uint32_t dir, uint8_t substate, uint8_t progress, InspectEngineFuncPtr Callback,
+        InspectionSingleBufferGetDataPtr GetData)
+{
+    /* before adding, check that we don't add a duplicate entry, which will
+     * propagate all the way into the packet runtime if allowed. */
+    DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+    while (t != NULL) {
+        const uint32_t t_direction = t->dir == 0 ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT;
+        const int sm_list = DetectBufferTypeGetByName(name);
+
+        if (t->sm_list == sm_list && t->alproto == alproto && t_direction == dir &&
+                t->progress == progress && t->v2.Callback == Callback &&
+                t->v2.GetDataSingle == GetData) {
+            DEBUG_VALIDATE_BUG_ON(1);
+            return;
+        }
+        t = t->next;
+    }
+
+    AppLayerInspectEngineRegisterInternal(
+            name, alproto, dir, substate, (uint8_t)progress, Callback, NULL, GetData, NULL);
+}
 
 /* copy an inspect engine with transforms to a new list id. */
 static void DetectAppLayerInspectEngineCopy(

@@ -91,6 +91,9 @@ int SCDetectRegisterMpmGeneric(const char *name, const char *desc, AppProto alpr
         uint8_t direction, InspectionBufferGetDataPtr GetData, uint8_t progress);
 int SCDetectHelperBufferProgressMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionSingleBufferGetDataPtr GetData, uint8_t progress);
+int SCDetectHelperBufferProgressMpmRegisterSubState(const char *name, AppProto alproto,
+        uint8_t direction, InspectionSingleBufferGetDataPtr GetData, uint8_t sub_state,
+        uint8_t progress);
 int SCDetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionMultiBufferGetDataPtr GetData);
 int SCDetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc,

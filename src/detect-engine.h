@@ -172,6 +172,9 @@ void DetectAppLayerInspectEngineRegisterSubState(const char *name, AppProto alpr
 
 void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alproto, uint32_t dir,
         uint8_t progress, InspectEngineFuncPtr Callback2, InspectionSingleBufferGetDataPtr GetData);
+void DetectAppLayerInspectEngineRegisterSingleSubState(const char *name, AppProto alproto,
+        uint32_t dir, uint8_t substate, uint8_t progress, InspectEngineFuncPtr Callback2,
+        InspectionSingleBufferGetDataPtr GetData);
 
 void DetectAppLayerMultiRegisterSubState(const char *name, AppProto alproto, uint32_t dir,
         uint8_t sub_state, uint8_t progress, InspectionMultiBufferGetDataPtr GetData, int priority);

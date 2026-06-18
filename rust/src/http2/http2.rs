@@ -32,6 +32,9 @@ use crate::flow::Flow;
 use crate::frames::Frame;
 
 use crate::dns::dns::{dns_parse_request, dns_parse_response, DNSTransaction};
+use crate::websocket::websocket::{
+    WebSocketState, WebSocketTransaction, WebsocketProgress, ALPROTO_WEBSOCKET,
+};
 
 use nom7::Err;
 use std;
@@ -88,6 +91,7 @@ pub(super) static mut HTTP2_COMPRESSION_BOMB_LIMIT: u64 = 1_048_576;
 pub enum HTTP2TxType {
     HTTP2TxTypeStream = 1,
     HTTP2TxTypeGlobal = 2,
+    HTTP2TxTypeWebsocket = 3,
 }
 
 #[derive(AppLayerFrameType)]
@@ -239,46 +243,44 @@ impl HTTP2GlobalProgress {
 pub enum HTTP2Progress {
     STREAM(HTTP2StreamProgress),
     GLOBAL(HTTP2GlobalProgress),
+    WEBSOCKET, // always complete
 }
 
 impl HTTP2Progress {
     fn get(&self, direction: u8) -> i32 {
-        if let HTTP2Progress::STREAM(ref s) = self {
-            if direction == STREAM_TOSERVER {
-                return s.progress_ts as i32;
-            } else {
-                return s.progress_tc as i32;
+        match self {
+            HTTP2Progress::STREAM(ref s) => {
+                if direction == STREAM_TOSERVER {
+                    s.progress_ts as i32
+                } else {
+                    s.progress_tc as i32
+                }
             }
-        } else if let HTTP2Progress::GLOBAL(ref g) = self {
-            if direction == STREAM_TOSERVER {
-                return g.progress_ts as i32;
-            } else {
-                return g.progress_tc as i32;
+            HTTP2Progress::GLOBAL(ref g) => {
+                if direction == STREAM_TOSERVER {
+                    g.progress_ts as i32
+                } else {
+                    g.progress_tc as i32
+                }
             }
+            HTTP2Progress::WEBSOCKET => WebsocketProgress::WebsocketProgComplete as i32,
         }
-        0
     }
 
     fn is_complete(&self) -> bool {
-        let complete = if let HTTP2Progress::STREAM(ref s) = self {
-            s.is_complete()
-        } else if let HTTP2Progress::GLOBAL(ref g) = self {
-            g.is_complete()
-        } else {
-            false
-        };
-        complete
+        match self {
+            HTTP2Progress::STREAM(ref s) => s.is_complete(),
+            HTTP2Progress::GLOBAL(ref g) => g.is_complete(),
+            HTTP2Progress::WEBSOCKET => true,
+        }
     }
 
     pub fn is_complete_for_direction(&self, direction: u8) -> bool {
-        let complete = if let HTTP2Progress::STREAM(ref s) = self {
-            s.is_complete_for_direction(direction)
-        } else if let HTTP2Progress::GLOBAL(ref g) = self {
-            g.is_complete_for_direction(direction)
-        } else {
-            false
-        };
-        complete
+        match self {
+            HTTP2Progress::STREAM(ref s) => s.is_complete_for_direction(direction),
+            HTTP2Progress::GLOBAL(ref g) => g.is_complete_for_direction(direction),
+            HTTP2Progress::WEBSOCKET => true,
+        }
     }
 }
 
@@ -304,6 +306,8 @@ pub struct HTTP2Transaction {
     pub resp_line: Vec<u8>,
 
     pub doh: Option<DohHttp2Tx>,
+    pub is_websocket: Option<WebSocketState>,
+    pub websocket_tx: Option<WebSocketTransaction>,
 }
 
 impl Transaction for HTTP2Transaction {
@@ -336,6 +340,8 @@ impl HTTP2Transaction {
             req_line: Vec::new(),
             resp_line: Vec::new(),
             doh: None,
+            is_websocket: None,
+            websocket_tx: None,
         }
     }
 
@@ -371,9 +377,19 @@ impl HTTP2Transaction {
         let mut path = None;
         let mut doh = false;
         let mut host = None;
+        let mut is_connect = false;
         for block in blocks {
             if block.name.as_ref() == b"content-encoding" {
                 self.decoder.http2_encoding_fromvec(&block.value, dir);
+            } else if block.name.as_ref() == b":method" && block.value.as_ref() == b"CONNECT" {
+                is_connect = true;
+            } else if block.name.as_ref() == b":protocol"
+                && block.value.as_ref() == b"websocket"
+                && is_connect
+                && self.is_websocket.is_none()
+                && unsafe { ALPROTO_WEBSOCKET } != ALPROTO_UNKNOWN
+            {
+                self.is_websocket = Some(WebSocketState::new());
             } else if block.name.as_ref() == b"accept" {
                 //TODO? faster pattern matching
                 if block.value.as_ref() == b"application/dns-message" {
@@ -515,6 +531,14 @@ impl HTTP2Transaction {
                     }
                 }
             }
+        }
+        if let Some(ref mut wss) = &mut self.is_websocket {
+            wss.parse(
+                StreamSlice::default(),
+                dir,
+                std::ptr::null_mut(),
+                decompressed,
+            );
         }
         return Ok(());
     }
@@ -891,6 +915,16 @@ impl HTTP2State {
         // a global tx (stream id 0) does not hold files cf RFC 9113 section 5.1.1
         self.transactions.push_back(tx);
         return self.transactions.back_mut().unwrap();
+    }
+
+    fn create_websocket_tx(t: WebSocketTransaction, dir: Direction) -> HTTP2Transaction {
+        //special transaction with websocket wrapped
+        let mut tx = HTTP2Transaction::new();
+        tx.tx_data = AppLayerTxData::for_direction(dir);
+        tx.tx_data.0.tx_type = HTTP2TxType::HTTP2TxTypeWebsocket as u8;
+        tx.progress = HTTP2Progress::WEBSOCKET;
+        tx.websocket_tx = Some(t);
+        return tx;
     }
 
     pub fn find_or_create_tx(
@@ -1462,15 +1496,24 @@ impl HTTP2State {
                             )
                         };
                         let (il, ol) = (il + comp_len, ol + decomp_len);
-                        if ol > decompression::DEFAULT_BOMB_RATIO * il {
-                            if ol > unsafe { HTTP2_COMPRESSION_BOMB_LIMIT } {
-                                tx.set_event(HTTP2Event::CompressionBomb);
-                                return AppLayerResult::err();
+                        if ol > decompression::DEFAULT_BOMB_RATIO * il
+                            && ol > unsafe { HTTP2_COMPRESSION_BOMB_LIMIT }
+                        {
+                            tx.set_event(HTTP2Event::CompressionBomb);
+                            return AppLayerResult::err();
+                        }
+                        if let Some(wss) = &mut tx.is_websocket {
+                            let websocket_txs = std::mem::take(&mut wss.transactions);
+                            for t in websocket_txs {
+                                let mut ht = Self::create_websocket_tx(t, dir);
+                                ht.tx_id = self.tx_id + 1;
+                                self.tx_id += 1;
+                                self.transactions.push_back(ht);
                             }
-                            if over {
-                                self.comp_len += il;
-                                self.decomp_len += ol;
-                            }
+                        }
+                        if ol > decompression::DEFAULT_BOMB_RATIO * il && over {
+                            self.comp_len += il;
+                            self.decomp_len += ol;
                         }
                     }
                     sc_app_layer_parser_trigger_raw_stream_inspection(flow, dir as i32);
@@ -1563,6 +1606,13 @@ impl HTTP2State {
 }
 
 // C exports.
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2GetWebsocketTx(tx: &HTTP2Transaction) -> *mut std::os::raw::c_void {
+    if let Some(wtx) = &tx.websocket_tx {
+        return wtx as *const _ as *mut _;
+    }
+    std::ptr::null_mut()
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDoH2GetDnsTx(
@@ -1800,6 +1850,12 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
             HTTP2TxType::HTTP2TxTypeGlobal as u8,
             Some(HTTP2TxGlobalProgress::ffi_id_from_name),
             Some(HTTP2TxGlobalProgress::ffi_name_from_id),
+        );
+        SCAppLayerParserRegisterGetTxSubStateFuncs(
+            ALPROTO_HTTP2,
+            HTTP2TxType::HTTP2TxTypeWebsocket as u8,
+            Some(WebsocketProgress::ffi_id_from_name),
+            Some(WebsocketProgress::ffi_name_from_id),
         );
 
         SCLogDebug!("Rust http2 parser registered.");

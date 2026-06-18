@@ -1343,6 +1343,8 @@ uint8_t AppLayerParserGetSubStateCompletion(const AppProto alproto, const uint8_
         return 4;
     } else if (sub_state == 2) {
         return 1;
+    } else if (sub_state == 3) {
+        return 1;
     } else {
         BUG_ON(1);
     }
@@ -1366,6 +1368,8 @@ const char *AppLayerParserGetSubStateName(const AppProto alproto, const uint8_t 
         return "stream";
     } else if (sub_state == 2) {
         return "global";
+    } else if (sub_state == 3) {
+        return "websocket";
     } else {
         BUG_ON(1);
     }
