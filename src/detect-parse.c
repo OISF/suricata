@@ -1417,6 +1417,9 @@ static int SigParseProtoHookApp(
                         hook);
                 return -1;
             }
+        } else {
+            SCLogError("sub states currently only supported for http2");
+            return -1;
         }
         const uint8_t max_state = AppLayerParserGetSubStateCompletion(
                 s->alproto, sub_state); // TODO allow different completion per direction?
