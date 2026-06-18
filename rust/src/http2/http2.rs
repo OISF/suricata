@@ -1353,7 +1353,6 @@ impl HTTP2State {
                             }
                         }
                         if let Some(wss) = &mut tx.is_websocket {
-                            println!("lol {}", wss.transactions.len());
                             let mut v = Vec::new();
                             loop {
                                 if let Some(t) = wss.transactions.pop_front() {
