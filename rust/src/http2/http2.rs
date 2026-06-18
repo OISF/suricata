@@ -32,6 +32,7 @@ use crate::flow::Flow;
 use crate::frames::Frame;
 
 use crate::dns::dns::{dns_parse_request, dns_parse_response, DNSTransaction};
+use crate::websocket::websocket::{WebSocketState, WebSocketTransaction, ALPROTO_WEBSOCKET};
 
 use nom7::Err;
 use std;
@@ -180,6 +181,8 @@ pub struct HTTP2Transaction {
     pub resp_line: Vec<u8>,
 
     pub doh: Option<DohHttp2Tx>,
+    pub is_websocket: Option<WebSocketState>,
+    pub websocket_tx: Option<WebSocketTransaction>,
 }
 
 impl Transaction for HTTP2Transaction {
@@ -213,6 +216,8 @@ impl HTTP2Transaction {
             req_line: Vec::new(),
             resp_line: Vec::new(),
             doh: None,
+            is_websocket: None,
+            websocket_tx: None,
         }
     }
 
@@ -247,9 +252,19 @@ impl HTTP2Transaction {
         let mut path = None;
         let mut doh = false;
         let mut host = None;
+        let mut is_connect = false;
         for block in blocks {
             if block.name.as_ref() == b"content-encoding" {
                 self.decoder.http2_encoding_fromvec(&block.value, dir);
+            } else if block.name.as_ref() == b":method" && block.value.as_ref() == b"CONNECT" {
+                is_connect = true;
+            } else if block.name.as_ref() == b":protocol"
+                && block.value.as_ref() == b"websocket"
+                && is_connect
+                && self.is_websocket.is_none()
+                && unsafe { ALPROTO_WEBSOCKET } != ALPROTO_UNKNOWN
+            {
+                self.is_websocket = Some(WebSocketState::new());
             } else if block.name.as_ref() == b"accept" {
                 //TODO? faster pattern matching
                 if block.value.as_ref() == b"application/dns-message" {
@@ -391,6 +406,14 @@ impl HTTP2Transaction {
                     }
                 }
             }
+        }
+        if let Some(ref mut wss) = &mut self.is_websocket {
+            wss.parse(
+                StreamSlice::default(),
+                dir,
+                std::ptr::null_mut(),
+                decompressed,
+            );
         }
         return Ok(());
     }
@@ -759,6 +782,18 @@ impl HTTP2State {
         // a global tx (stream id 0) does not hold files cf RFC 9113 section 5.1.1
         self.transactions.push_back(tx);
         return self.transactions.back_mut().unwrap();
+    }
+
+    fn create_websocket_tx(t: WebSocketTransaction, dir: Direction) -> HTTP2Transaction {
+        //special transaction with only one frame
+        //as it affects the global connection, there is no end to it
+        let mut tx = HTTP2Transaction::new();
+        tx.tx_data = AppLayerTxData::for_direction(dir);
+        tx.progress_tc = HTTP2TxProgress::HTTP2ProgGlobal;
+        tx.progress_ts = HTTP2TxProgress::HTTP2ProgGlobal;
+        tx.websocket_tx = Some(t);
+        // a global tx (stream id 0) does not hold files cf RFC 9113 section 5.1.1
+        return tx;
     }
 
     pub fn find_or_create_tx(
@@ -1316,6 +1351,17 @@ impl HTTP2State {
                                 tx.set_event(HTTP2Event::CompressionBomb);
                                 return AppLayerResult::err();
                             }
+                        }
+                        if let Some(wss) = &mut tx.is_websocket {
+                            let websocket_txs = std::mem::take(&mut wss.transactions);
+                            for t in websocket_txs {
+                                let mut ht = Self::create_websocket_tx(t, dir);
+                                ht.tx_id = self.tx_id + 1;
+                                self.tx_id = self.tx_id + 1;
+                                self.transactions.push_back(ht);
+                            }
+                        }
+                        if ol > decompression::DEFAULT_BOMB_RATIO * il {
                             if over {
                                 self.comp_len += il;
                                 self.decomp_len += ol;
@@ -1412,6 +1458,16 @@ impl HTTP2State {
 }
 
 // C exports.
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2GetWebsocketTx(
+    tx: &HTTP2Transaction, _flags: u8,
+) -> *mut std::os::raw::c_void {
+    if let Some(wtx) = &tx.websocket_tx {
+        return wtx as *const _ as *mut _;
+    }
+    std::ptr::null_mut()
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDoH2GetDnsTx(

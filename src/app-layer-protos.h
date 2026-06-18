@@ -113,6 +113,8 @@ static inline bool AppProtoEquals(AppProto sigproto, AppProto alproto)
             return (alproto == ALPROTO_HTTP1) || (alproto == ALPROTO_HTTP2);
         case ALPROTO_DCERPC:
             return (alproto == ALPROTO_SMB);
+        case ALPROTO_WEBSOCKET:
+            return (alproto == ALPROTO_HTTP2);
     }
     return false;
 }
