@@ -368,6 +368,14 @@ static void AlertAddAppLayer(const Packet *p, SCJsonBuilder *jb, const uint64_t 
         SCJbGetMark(jb, &mark);
         switch (proto) {
             // first check some protocols need special options for alerts logging
+            case ALPROTO_HTTP2:
+                void *wtx = SCHttp2GetWebsocketTx(tx);
+                if (wtx == NULL) {
+                    break;
+                } else {
+                    tx = wtx;
+                }
+                // fallthrough
             case ALPROTO_WEBSOCKET:
                 if (option_flags &
                         (LOG_JSON_WEBSOCKET_PAYLOAD | LOG_JSON_WEBSOCKET_PAYLOAD_BASE64)) {
