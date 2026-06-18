@@ -1396,6 +1396,22 @@ impl HTTP2State {
                     if let Some(frame) = frame_pdu {
                         frame.set_tx(flow, tx.tx_id);
                     }
+                    // Validate: per RFC 9113 only SETTINGS, WINDOW_UPDATE, PING, and GOAWAY are allowed on stream 0
+                    if head.stream_id == 0
+                        && head.ftype != parser::HTTP2FrameType::Settings as u8
+                        && head.ftype != parser::HTTP2FrameType::WindowUpdate as u8
+                        && head.ftype != parser::HTTP2FrameType::Ping as u8
+                        && head.ftype != parser::HTTP2FrameType::GoAway as u8
+                    {
+                        if head.ftype == parser::HTTP2FrameType::Data as u8 && head.stream_id == 0 {
+                            tx.tx_data.set_event(HTTP2Event::DataStreamZero as u8);
+                        } else {
+                            tx.tx_data.set_event(HTTP2Event::InvalidFrameHeader as u8);
+                        }
+                        input = &rem[hlsafe..];
+                        continue; // skip this frame, continue parsing the next
+                    }
+
                     if let Some(doh_req_buf) = tx.handle_frame(&head, &txdata, dir) {
                         if let Ok(mut dtx) = dns_parse_request(&doh_req_buf, &DnsVariant::Dns) {
                             dtx.id = 1;
@@ -1434,9 +1450,7 @@ impl HTTP2State {
                     } else {
                         tx.tx_data.set_event(HTTP2Event::TooManyFrames as u8);
                     }
-                    if ftype == parser::HTTP2FrameType::Data as u8 && sid == 0 {
-                        tx.tx_data.set_event(HTTP2Event::DataStreamZero as u8);
-                    } else if ftype == parser::HTTP2FrameType::Data as u8 && sid > 0 {
+                    if ftype == parser::HTTP2FrameType::Data as u8 && sid > 0 {
                         tx.handle_data_frame(rem, hlsafe, dir, flow, padded, over);
                         let (il, ol) = if dir == Direction::ToClient {
                             (
