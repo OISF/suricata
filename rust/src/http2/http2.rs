@@ -535,8 +535,6 @@ impl HTTP2Transaction {
                         if stream_tx.progress_tc < HTTP2TxProgress::HTTP2ProgHeaders {
                             stream_tx.progress_tc = HTTP2TxProgress::HTTP2ProgHeaders;
                         }
-                    } else {
-                        panic!("global");
                     }
                 }
                 r = self.handle_headers(&hs.blocks, dir);
