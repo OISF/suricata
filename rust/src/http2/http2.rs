@@ -1467,7 +1467,7 @@ impl HTTP2State {
 
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2GetWebsocketTx(
-    tx: &HTTP2Transaction, flags: u8,
+    tx: &HTTP2Transaction, _flags: u8,
 ) -> *mut std::os::raw::c_void {
     if let Some(wtx) = &tx.websocket_tx {
         return wtx as *const _ as *mut _;
