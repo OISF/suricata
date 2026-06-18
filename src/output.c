@@ -1030,6 +1030,38 @@ error:
     return TM_ECODE_FAILED;
 }
 
+static int Http2WebsocketLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *state, void *tx, uint64_t tx_id)
+{
+    OutputJsonThreadCtx *thread = thread_data;
+    EveJsonSimpleAppLayerLogger *al = SCEveJsonSimpleGetLogger(ALPROTO_WEBSOCKET);
+    if (al == NULL) {
+        return TM_ECODE_FAILED;
+    }
+
+    SCJsonBuilder *js = CreateEveHeader(p, LOG_DIR_PACKET, "websocket", NULL, thread->ctx);
+    if (unlikely(js == NULL)) {
+        return TM_ECODE_FAILED;
+    }
+
+    tx = SCHttp2GetWebsocketTx(tx);
+    if (tx == NULL) {
+        return TM_ECODE_FAILED;
+    }
+    if (!al->LogTx(tx, js)) {
+        goto error;
+    }
+
+    OutputJsonBuilderBuffer(tv, p, p->flow, js, thread);
+    SCJbFree(js);
+
+    return TM_ECODE_OK;
+
+error:
+    SCJbFree(js);
+    return TM_ECODE_FAILED;
+}
+
 static int JsonGenericDirPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
         void *state, void *tx, uint64_t tx_id)
 {
@@ -1105,6 +1137,10 @@ void OutputRegisterLoggers(void)
             "eve-log.http2", OutputJsonLogInitSub, ALPROTO_HTTP2, HTTP2TxTypeGlobal,
             JsonGenericDirFlowLogger, HTTP2ProgGlobalComplete, HTTP2ProgGlobalComplete,
             JsonLogThreadInit, JsonLogThreadDeinit);
+    OutputRegisterTxSubModuleWithProgressSubState(LOGGER_JSON_TX, "eve-log",
+            "LogHttp2Log::websocket", "eve-log.websocket", OutputJsonLogInitSub, ALPROTO_HTTP2,
+            HTTP2TxTypeWebsocket, Http2WebsocketLogger, 1, 1, JsonLogThreadInit,
+            JsonLogThreadDeinit);
     /* tls log */
     JsonTlsLogRegister();
     LogTlsStoreRegister();
