@@ -19,6 +19,7 @@ use super::http2::{HTTP2Frame, HTTP2FrameTypeData, HTTP2Transaction};
 use super::parser;
 use crate::detect::EnumString;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use crate::websocket::logger::log_websocket;
 use std;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
@@ -197,6 +198,12 @@ fn log_http2_frames(frames: &[HTTP2Frame], js: &mut JsonBuilder) -> Result<bool,
 }
 
 fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonError> {
+    if let Some(wt) = &tx.websocket_tx {
+        match log_websocket(wt, js, false, false) {
+            Ok(()) => return Ok(true),
+            Err(e) => return Err(e),
+        }
+    }
     js.open_object("http")?;
     js.set_string("version", "2")?;
 
