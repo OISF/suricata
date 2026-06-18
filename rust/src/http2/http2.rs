@@ -1467,6 +1467,16 @@ impl HTTP2State {
 // C exports.
 
 #[no_mangle]
+pub unsafe extern "C" fn SCHttp2GetWebsocketTx(
+    tx: &HTTP2Transaction, flags: u8,
+) -> *mut std::os::raw::c_void {
+    if let Some(wtx) = &tx.websocket_tx {
+        return wtx as *const _ as *mut _;
+    }
+    std::ptr::null_mut()
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn SCDoH2GetDnsTx(
     tx: &HTTP2Transaction, flags: u8,
 ) -> *mut std::os::raw::c_void {
