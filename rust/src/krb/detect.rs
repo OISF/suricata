@@ -21,8 +21,9 @@ use crate::krb::krb5::{test_weak_encryption, KRB5Transaction};
 use suricata_sys::sys::AppProtoEnum::ALPROTO_KRB5;
 use suricata_sys::sys::{
     AppProto, DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectHelperKeywordRegister, SCDetectKeywordAppLayerMapRegister,
+    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
+    Signature,
 };
 
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
@@ -446,4 +447,5 @@ pub unsafe extern "C" fn SCDetectKrb5MsgTypeRegister() {
         STREAM_TOCLIENT | STREAM_TOSERVER,
         1,
     );
+    SCDetectKeywordAppLayerMapRegister(G_KRB5_MSG_TYPE_KW_ID, b"krb5_msg_type\0".as_ptr() as *const libc::c_char);
 }

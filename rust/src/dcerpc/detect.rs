@@ -30,7 +30,8 @@ use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, DetectEngineTransforms, Flow, InspectionBuffer,
     SCDetectBufferSetActiveList, SCDetectHelperBufferMpmRegister,
     SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordAliasRegister,
-    SCDetectHelperKeywordRegister, SCDetectRegisterMpmGeneric, SCDetectSignatureSetAppProto,
+    SCDetectHelperKeywordRegister, SCDetectKeywordAppLayerMapRegister, SCDetectRegisterMpmGeneric,
+    SCDetectSignatureSetAppProto,
     SCFlowGetAppProtocol, SCInspectionBufferGet, SCInspectionBufferSetupAndApplyTransforms,
     SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
@@ -473,6 +474,7 @@ pub unsafe extern "C" fn SCDetectDcerpcRegister() {
         G_DCERPC_OPNUM_KW_ID,
         b"dce_opnum\0".as_ptr() as *const libc::c_char,
     );
+    SCDetectKeywordAppLayerMapRegister(G_DCERPC_OPNUM_KW_ID, b"dce_generic\0".as_ptr() as *const libc::c_char);
 
     let kw = SCSigTableAppLiteElmt {
         name: b"dcerpc.iface\0".as_ptr() as *const libc::c_char,
@@ -489,6 +491,7 @@ pub unsafe extern "C" fn SCDetectDcerpcRegister() {
         G_DCERPC_IFACE_KW_ID,
         b"dce_iface\0".as_ptr() as *const libc::c_char,
     );
+    SCDetectKeywordAppLayerMapRegister(G_DCERPC_IFACE_KW_ID, b"dce_generic\0".as_ptr() as *const libc::c_char);
 
     let kw_stub = SigTableElmtStickyBuffer {
         name: String::from("dcerpc.stub_data"),

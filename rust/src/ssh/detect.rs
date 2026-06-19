@@ -26,8 +26,8 @@ use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, SCDetectBufferSetActiveList, SCDetectHelperBufferProgressMpmRegister,
     SCDetectHelperKeywordAliasRegister, SCDetectHelperKeywordRegister,
-    SCDetectRegisterBufferLowerMd5Callbacks, SCDetectSignatureSetAppProto,
-    SCSigMatchSilentErrorEnabled, SCSigTableAppLiteElmt, Signature,
+    SCDetectKeywordAppLayerProtoRegister, SCDetectRegisterBufferLowerMd5Callbacks,
+    SCDetectSignatureSetAppProto, SCSigMatchSilentErrorEnabled, SCSigTableAppLiteElmt, Signature,
 };
 
 #[no_mangle]
@@ -314,7 +314,8 @@ pub unsafe extern "C" fn SCDetectSshRegister() {
         Free: None,
         flags: 0,
     };
-    _ = SCDetectHelperKeywordRegister(&kw);
+    let kw_id = SCDetectHelperKeywordRegister(&kw);
+    SCDetectKeywordAppLayerProtoRegister(kw_id, ALPROTO_SSH);
 
     let kw = SCSigTableAppLiteElmt {
         name: b"ssh.protoversion\0".as_ptr() as *const libc::c_char,
@@ -325,7 +326,8 @@ pub unsafe extern "C" fn SCDetectSshRegister() {
         Free: None,
         flags: 0,
     };
-    _ = SCDetectHelperKeywordRegister(&kw);
+    let kw_id = SCDetectHelperKeywordRegister(&kw);
+    SCDetectKeywordAppLayerProtoRegister(kw_id, ALPROTO_SSH);
 
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ssh.proto"),

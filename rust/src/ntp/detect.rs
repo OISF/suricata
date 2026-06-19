@@ -29,8 +29,9 @@ use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferProgressMpmRegister, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectHelperKeywordRegister, SCDetectKeywordAppLayerMapRegister,
+    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
+    Signature,
 };
 
 static mut G_NTP_VERSION_KW_ID: u16 = 0;
@@ -208,6 +209,7 @@ pub(super) unsafe extern "C" fn detect_ntp_register() {
         STREAM_TOSERVER | STREAM_TOCLIENT,
         1,
     );
+    SCDetectKeywordAppLayerMapRegister(G_NTP_VERSION_KW_ID, b"ntp.generic\0".as_ptr() as *const libc::c_char);
 
     let kw = SCSigTableAppLiteElmt {
         name: b"ntp.mode\0".as_ptr() as *const libc::c_char,
@@ -219,6 +221,7 @@ pub(super) unsafe extern "C" fn detect_ntp_register() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT | SIGMATCH_SUPPORT_FIREWALL,
     };
     G_NTP_MODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectKeywordAppLayerMapRegister(G_NTP_MODE_KW_ID, b"ntp.generic\0".as_ptr() as *const libc::c_char);
 
     let kw = SCSigTableAppLiteElmt {
         name: b"ntp.stratum\0".as_ptr() as *const libc::c_char,
@@ -230,6 +233,7 @@ pub(super) unsafe extern "C" fn detect_ntp_register() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_SUPPORT_FIREWALL,
     };
     G_NTP_STRATUM_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectKeywordAppLayerMapRegister(G_NTP_STRATUM_KW_ID, b"ntp.generic\0".as_ptr() as *const libc::c_char);
 
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ntp.reference_id"),

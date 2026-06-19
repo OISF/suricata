@@ -40,8 +40,8 @@ use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister,
     SCDetectHelperKeywordRegister, SCDetectHelperMultiBufferMpmRegister,
-    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
-    Signature,
+    SCDetectKeywordAppLayerMapRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 unsafe extern "C" fn ike_get_nonce_data(
@@ -495,7 +495,7 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
         url: String::from("/rules/ike-keywords.html#ike-init-spi-ike-resp-spi"),
         setup: ike_spi_initiator_setup,
     };
-    helper_keyword_register_sticky_buffer(&kw_initiator);
+    let mut kw_id = helper_keyword_register_sticky_buffer(&kw_initiator);
     G_IKE_SPI_INITIATOR_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"ike_init_spi\0".as_ptr() as *const libc::c_char,
         b"ike init spi\0".as_ptr() as *const libc::c_char,
@@ -503,6 +503,7 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
         STREAM_TOSERVER,
         Some(ike_tx_get_spi_initiator),
     );
+    SCDetectKeywordAppLayerMapRegister(kw_id, b"ike_init_spi\0".as_ptr() as *const libc::c_char);
 
     let kw_responder = SigTableElmtStickyBuffer {
         name: String::from("ike.resp_spi"),
@@ -510,7 +511,7 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
         url: String::from("/rules/ike-keywords.html#ike-init-spi-ike-resp-spi"),
         setup: ike_spi_responder_setup,
     };
-    helper_keyword_register_sticky_buffer(&kw_responder);
+    kw_id = helper_keyword_register_sticky_buffer(&kw_responder);
     G_IKE_SPI_RESPONDER_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"ike_resp_spi\0".as_ptr() as *const libc::c_char,
         b"ike resp spi\0".as_ptr() as *const libc::c_char,
@@ -518,6 +519,7 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
         STREAM_TOCLIENT,
         Some(ike_tx_get_spi_responder),
     );
+    SCDetectKeywordAppLayerMapRegister(kw_id, b"ike_resp_spi\0".as_ptr() as *const libc::c_char);
 
     let kw = SigTableElmtStickyBuffer {
         name: String::from("ike.key_exchange_payload"),
@@ -539,7 +541,7 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
         url: String::from("/rules/ike-keywords.html#ike-vendor"),
         setup: ike_vendor_setup,
     };
-    helper_keyword_register_multi_buffer(&kw);
+    kw_id = helper_keyword_register_multi_buffer(&kw);
     G_IKE_VENDOR_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"ike.vendor.dn\0".as_ptr() as *const libc::c_char,
         b"Like vendor\0".as_ptr() as *const libc::c_char,
@@ -547,6 +549,7 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
         STREAM_TOSERVER,
         Some(ike_tx_get_vendor),
     );
+    SCDetectKeywordAppLayerMapRegister(kw_id, b"ike.vendor.dn\0".as_ptr() as *const libc::c_char);
 }
 
 unsafe extern "C" fn ike_spi_initiator_setup(

@@ -869,6 +869,12 @@ extern "C" {
     pub fn SCDetectHelperKeywordAliasRegister(kwid: u16, alias: *const ::std::os::raw::c_char);
 }
 extern "C" {
+    pub fn SCDetectKeywordAppLayerProtoRegister(keyword_id: u16, alproto: AppProto);
+}
+extern "C" {
+    pub fn SCDetectKeywordAppLayerMapRegister(keyword_id: u16, buffer_name: *const  ::std::os::raw::c_char);
+}
+extern "C" {
     pub fn SCDetectHelperBufferProgressRegister(
         name: *const ::std::os::raw::c_char, alproto: AppProto, direction: u8,
         progress: ::std::os::raw::c_int,

@@ -43,7 +43,8 @@ use crate::detect::{
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
+    SCDetectHelperKeywordRegister, SCDetectKeywordAppLayerMapRegister,
+    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
     SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
@@ -1364,6 +1365,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         STREAM_TOSERVER | STREAM_TOCLIENT,
         0,
     );
+    SCDetectKeywordAppLayerMapRegister(G_ENIP_CIPSERVICE_KW_ID, b"cip\0".as_ptr() as *const libc::c_char);
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.capabilities\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP capabilities\0".as_ptr() as *const libc::c_char,
@@ -1540,6 +1542,7 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         STREAM_TOSERVER | STREAM_TOCLIENT,
         0,
     );
+    SCDetectKeywordAppLayerMapRegister(G_ENIP_COMMAND_KW_ID, b"enip.command\0".as_ptr() as *const libc::c_char);
     let kw = SCSigTableAppLiteElmt {
         name: b"enip.identity_status\0".as_ptr() as *const libc::c_char,
         desc: b"rules for detecting EtherNet/IP identity_status\0".as_ptr() as *const libc::c_char,

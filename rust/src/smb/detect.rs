@@ -28,9 +28,9 @@ use std::os::raw::{c_char, c_int, c_uint, c_void};
 use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectGetLastSMFromLists, SCDetectHelperBufferMpmRegister,
-    SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordAliasRegister,
-    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
+    SCDetectGetLastSMFromLists, SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister,
+    SCDetectHelperKeywordAliasRegister, SCDetectHelperKeywordRegister,
+    SCDetectKeywordAppLayerMapRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
     SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
@@ -427,7 +427,7 @@ pub unsafe extern "C" fn SCDetectSmbRegister() {
     };
 
     G_SMB_VERSION_KW_ID = SCDetectHelperKeywordRegister(&version_kw);
-
+    SCDetectKeywordAppLayerMapRegister(G_SMB_VERSION_KW_ID, b"smb_version\0".as_ptr() as *const libc::c_char);
     G_SMB_VERSION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"smb_version\0".as_ptr() as *const libc::c_char,
         ALPROTO_SMB,

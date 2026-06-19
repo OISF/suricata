@@ -80,6 +80,8 @@ int SCDetectHelperNewKeywordId(void);
 
 uint16_t SCDetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw);
 void SCDetectHelperKeywordAliasRegister(uint16_t kwid, const char *alias);
+void SCDetectKeywordAppLayerMapRegister(uint16_t keyword_id, const char *buffer_name);
+void SCDetectKeywordAppLayerProtoRegister(uint16_t keyword_id, AppProto alproto);
 int SCDetectHelperBufferProgressRegister(
         const char *name, AppProto alproto, uint8_t direction, int progress);
 

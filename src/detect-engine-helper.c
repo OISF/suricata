@@ -165,6 +165,18 @@ void SCDetectHelperKeywordAliasRegister(uint16_t kwid, const char *alias)
     sigmatch_table[kwid].alias = alias;
 }
 
+void SCDetectKeywordAppLayerMapRegister(uint16_t keyword_id, const char *buffer_name)
+{
+    DetectKeywordAppLayerMapRegister(keyword_id, buffer_name);
+}
+
+/** \brief Rust-facing wrapper to associate a keyword with an app-layer
+ *         protocol directly (tier-3 keywords without an inspection buffer). */
+void SCDetectKeywordAppLayerProtoRegister(uint16_t keyword_id, AppProto alproto)
+{
+    DetectKeywordAppLayerProtoRegister(keyword_id, alproto);
+}
+
 int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw)
 {
     int transform_id = SCDetectHelperNewKeywordId();
