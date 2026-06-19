@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -470,6 +470,10 @@ typedef struct DetectBufferType_ {
             const struct Signature_ *, const char **sigerror, const struct DetectBufferType_ *);
     DetectEngineTransforms transforms;
     TransformIdData xform_id[DETECT_TRANSFORMS_MAX];
+    /* A transform of this buffer reads its key from a byte_extract or
+     * byte_math variable. The variable is set during rule inspection, after
+     * prefilter, so this buffer can't supply the fast pattern. */
+    bool var_transform;
 } DetectBufferType;
 
 struct DetectEnginePktInspectionEngine;
@@ -686,6 +690,11 @@ typedef struct SignatureInitData_ {
 
     /* Signature is a "firewall" rule. */
     bool firewall_rule;
+
+    /* True while the queued transforms include one that reads its key from a
+     * byte_extract or byte_math variable. DetectBufferGetActiveList() moves
+     * the flag to the transformed buffer type and clears it. */
+    bool var_transform;
 } SignatureInitData;
 
 /** \brief Signature container */

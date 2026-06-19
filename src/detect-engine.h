@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -56,6 +56,8 @@ int DetectEngineBufferTypeRegisterWithFrameEngines(DetectEngineCtx *de_ctx, cons
 int DetectEngineBufferTypeRegister(DetectEngineCtx *de_ctx, const char *name);
 const char *DetectEngineBufferTypeGetNameById(const DetectEngineCtx *de_ctx, const int id);
 const DetectBufferType *DetectEngineBufferTypeGetById(const DetectEngineCtx *de_ctx, const int id);
+void DetectEngineBufferTypeSetVarTransform(DetectEngineCtx *de_ctx, const int id);
+bool DetectEngineBufferTypeIsVarTransform(const DetectEngineCtx *de_ctx, const int id);
 bool DetectEngineBufferTypeSupportsMpmGetById(const DetectEngineCtx *de_ctx, const int id);
 bool DetectEngineBufferTypeSupportsPacketGetById(const DetectEngineCtx *de_ctx, const int id);
 bool DetectEngineBufferTypeSupportsMultiInstanceGetById(
