@@ -39,8 +39,26 @@ int ListKeywords(const char *keyword_info)
     SpmTableSetup();
     AppLayerSetup();
     SigTableInit();
+    DetectKeywordAppLayerListingEnable(); /* record keyword->app-layer map for the listing */
     SigTableSetup(); /* load the rule keywords */
     return SigTableList(keyword_info);
+}
+
+int ListAppLayerKeywords(const char *proto_name)
+{
+    EngineModeSetIDS();
+    SCLogLoadConfig(0, 0, 0, 0);
+    MpmTableSetup();
+    SpmTableSetup();
+    AppLayerSetup();
+    SigTableInit();
+    DetectKeywordAppLayerListingEnable(); /* record keyword->app-layer map for the listing */
+    SigTableSetup();                      /* load the rule keywords */
+    if (!DetectKeywordListByAppProto(proto_name)) {
+        SCLogError("unknown app-layer protocol \"%s\"", proto_name);
+        return TM_ECODE_FAILED;
+    }
+    return TM_ECODE_DONE;
 }
 
 int ListAppLayerProtocols(const char *conf_filename)

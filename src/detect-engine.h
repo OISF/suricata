@@ -166,6 +166,14 @@ int DetectEngineInspectPktBufferGeneric(
 void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
         int progress, InspectEngineFuncPtr Callback2, InspectionBufferGetDataPtr GetData);
 
+void DetectKeywordAppLayerMapRegister(uint16_t keyword_id, const char *buffer_name);
+void DetectKeywordAppLayerProtoRegister(uint16_t keyword_id, AppProto alproto);
+bool DetectKeywordAcceptsAppLayerStates(uint16_t keyword_id);
+void DetectKeywordAppLayerStatesList(uint16_t keyword_id, const char *prefix);
+void DetectKeywordAppLayerProtoList(uint16_t keyword_id, const char *prefix);
+void DetectKeywordAppLayerListingEnable(void);
+bool DetectKeywordListByAppProto(const char *proto_name);
+
 void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alproto, uint32_t dir,
         int progress, InspectEngineFuncPtr Callback2, InspectionSingleBufferGetDataPtr GetData);
 

@@ -24,6 +24,7 @@
 #define SURICATA_UTIL_RUNNING_MODES_H
 
 int ListKeywords(const char *keyword_info);
+int ListAppLayerKeywords(const char *proto_name);
 int ListAppLayerProtocols(const char *conf_filename);
 int ListRuleProtocols(const char *conf_filename);
 int ListAppLayerHooks(const char *conf_filename);

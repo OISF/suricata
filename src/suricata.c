@@ -746,6 +746,8 @@ static void PrintUsage(const char *progname)
            "rules\n");
     printf("\t--list-app-layer-frames              : list supported app layer frames for use with "
            "'frame' keyword\n");
+    printf("\t--list-app-layer-keywords[=<proto>]  : list keywords registered for an app layer "
+           "protocol (all protocols if none given)\n");
     printf("\t--dump-config                        : show the running configuration\n");
     printf("\t--dump-features                      : display provided features\n");
     printf("\t--build-info                         : display build information\n");
@@ -1177,6 +1179,7 @@ static void SCInstanceInit(SCInstance *suri, const char *progname)
     suri->regex_arg = NULL;
 
     suri->keyword_info = NULL;
+    suri->app_layer_keyword_proto = NULL;
     suri->runmode_custom_mode = NULL;
 #ifndef OS_WIN32
     suri->user_name = NULL;
@@ -1444,6 +1447,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
     int list_rule_protocols = 0;
     int list_app_layer_hooks = 0;
     int list_app_layer_frames = 0;
+    int list_app_layer_keywords = 0;
     int list_unittests = 0;
     int list_runmodes = 0;
     int list_keywords = 0;
@@ -1496,6 +1500,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
         {"list-rule-protos", 0, &list_rule_protocols, 1},
         {"list-app-layer-hooks", 0, &list_app_layer_hooks, 1},
         {"list-app-layer-frames", 0, &list_app_layer_frames, 1},
+        {"list-app-layer-keywords", optional_argument, &list_app_layer_keywords, 1},
         {"list-unittests", 0, &list_unittests, 1},
         {"list-runmodes", 0, &list_runmodes, 1},
         {"list-keywords", optional_argument, &list_keywords, 1},
@@ -1691,6 +1696,10 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                 /* listing all supported app layer protocols */
             } else if (strcmp((long_opts[option_index]).name, "list-app-layer-hooks") == 0) {
                 /* listing all supported app layer hooks */
+            } else if (strcmp((long_opts[option_index]).name, "list-app-layer-keywords") == 0) {
+                if (optarg) {
+                    suri->app_layer_keyword_proto = optarg;
+                }
             } else if (strcmp((long_opts[option_index]).name, "list-unittests") == 0) {
 #ifdef UNITTESTS
                 suri->run_mode = RUNMODE_LIST_UNITTEST;
@@ -2183,6 +2192,8 @@ TmEcode SCParseCommandLine(int argc, char **argv)
         suri->run_mode = RUNMODE_LIST_APP_LAYER_HOOKS;
     if (list_app_layer_frames)
         suri->run_mode = RUNMODE_LIST_APP_LAYER_FRAMES;
+    if (list_app_layer_keywords)
+        suri->run_mode = RUNMODE_LIST_APP_LAYER_KEYWORDS;
     if (list_keywords)
         suri->run_mode = RUNMODE_LIST_KEYWORDS;
     if (list_unittests)
@@ -2478,6 +2489,8 @@ int SCStartInternalRunMode(int argc, char **argv)
             } else {
                 return ListAppLayerFrames(DEFAULT_CONF_FILE);
             }
+        case RUNMODE_LIST_APP_LAYER_KEYWORDS:
+            return ListAppLayerKeywords(suri->app_layer_keyword_proto);
         case RUNMODE_PRINT_VERSION:
             PrintVersion();
             return TM_ECODE_DONE;

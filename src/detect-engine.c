@@ -111,6 +111,26 @@ static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 static DetectEnginePktInspectionEngine *g_pkt_inspect_engines = NULL;
 static DetectEngineFrameInspectionEngine *g_frame_inspect_engines = NULL;
 
+typedef struct DetectKeywordAppLayerMap_ {
+    uint16_t keyword_id;
+    /* NULL for a direct app-proto association (keywords that match a transaction without an
+     * inspection buffer of their own). */
+    const char *buffer_name;
+    /* set only when buffer_name is NULL: the app-layer protocol this keyword
+     * is valid for. ALPROTO_UNKNOWN otherwise. */
+    AppProto alproto;
+    struct DetectKeywordAppLayerMap_ *next;
+} DetectKeywordAppLayerMap;
+static DetectKeywordAppLayerMap *g_keyword_applayer_map = NULL;
+
+/* Enable recording g_keyword_applayer_map for CLI listings only. */
+static bool g_keyword_applayer_listing = false;
+
+void DetectKeywordAppLayerListingEnable(void)
+{
+    g_keyword_applayer_listing = true;
+}
+
 // clang-format off
 // rule types documentation tag start: SignatureProperties
 const struct SignatureProperties signature_properties[SIG_TYPE_MAX] = {
@@ -313,6 +333,226 @@ void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alprot
 
     AppLayerInspectEngineRegisterInternal(
             name, alproto, dir, progress, Callback, NULL, GetData, NULL);
+}
+
+static DetectKeywordAppLayerMap *DetectKeywordAppLayerMapNew(uint16_t keyword_id)
+{
+    DetectKeywordAppLayerMap *map = SCCalloc(1, sizeof(*map));
+    if (unlikely(map == NULL))
+        FatalError("failed to allocate keyword app-layer map entry");
+    map->keyword_id = keyword_id;
+    if (g_keyword_applayer_map == NULL) {
+        g_keyword_applayer_map = map;
+    } else {
+        DetectKeywordAppLayerMap *existing = g_keyword_applayer_map;
+        while (existing->next != NULL)
+            existing = existing->next;
+        existing->next = map;
+    }
+    return map;
+}
+
+void DetectKeywordAppLayerMapRegister(uint16_t keyword_id, const char *buffer_name)
+{
+    if (!g_keyword_applayer_listing)
+        return;
+    DetectKeywordAppLayerMap *m = DetectKeywordAppLayerMapNew(keyword_id);
+    m->buffer_name = buffer_name;
+}
+
+/** \brief Associate a keyword with an app-layer protocol directly.
+ *
+ *  For when the proto cannot be derived from a buffer. */
+void DetectKeywordAppLayerProtoRegister(uint16_t keyword_id, AppProto alproto)
+{
+    if (!g_keyword_applayer_listing)
+        return;
+    DetectKeywordAppLayerMap *m = DetectKeywordAppLayerMapNew(keyword_id);
+    m->alproto = alproto;
+}
+
+static void DetectBufferTypeHooksList(int sm_list, const char *prefix)
+{
+    char indent[64];
+    snprintf(indent, sizeof(indent), "%s  ", prefix);
+
+    for (const DetectEngineAppInspectionEngine *e = g_app_inspect_engines; e != NULL; e = e->next) {
+        if (e->sm_list != (uint16_t)sm_list)
+            continue;
+
+        const char *alproto_name = AppProtoToString(e->alproto);
+        const char *dir_str = e->dir == 0 ? "toserver" : "toclient";
+        const char *state_name = AppLayerParserGetStateNameById(IPPROTO_TCP, e->alproto,
+                e->progress, e->dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
+        if (state_name == NULL)
+            state_name = "(no state name defined)";
+
+        printf("%s%-10s %-10s %s\n", indent, alproto_name, dir_str, state_name);
+    }
+}
+
+/** \brief Collect the inspection-buffer list ids a keyword is associated with.
+ *
+ *  Sources, in priority order:
+ *    1. explicit keyword -> buffer map;
+ *    2. if the keyword has no explicit entry, fall back to a buffer registered
+ *       under the keyword's own name or alias.
+ *
+ *  \param lists  output array of (deduplicated) sm_list ids
+ *  \param max    capacity of lists
+ *  \retval number of list ids written to lists
+ */
+#define DETECT_KEYWORD_MAX_LISTS 4 /* arbitrary cap, real max is 2*/
+static int DetectKeywordGetAppLayerLists(uint16_t keyword_id, int *lists, int max)
+{
+    int cnt = 0;
+    bool had_explicit = false;
+    for (const DetectKeywordAppLayerMap *m = g_keyword_applayer_map; m != NULL; m = m->next) {
+        if (m->keyword_id != keyword_id)
+            continue;
+        had_explicit = true;
+        if (m->buffer_name == NULL) /* direct app-proto association, no buffer */
+            continue;
+        const int sm_list = DetectBufferTypeGetByName(m->buffer_name);
+        if (sm_list < 0)
+            continue;
+        bool dup = false;
+        for (int i = 0; i < cnt; i++) {
+            if (lists[i] == sm_list) {
+                dup = true;
+                break;
+            }
+        }
+        if (!dup && cnt < max)
+            lists[cnt++] = sm_list;
+    }
+    if (!had_explicit) {
+        const char *name = sigmatch_table[keyword_id].name;
+        int sm_list = (name != NULL) ? DetectBufferTypeGetByName(name) : -1;
+        if (sm_list < 0 && sigmatch_table[keyword_id].alias != NULL)
+            sm_list = DetectBufferTypeGetByName(sigmatch_table[keyword_id].alias);
+        if (sm_list >= 0 && cnt < max)
+            lists[cnt++] = sm_list;
+    }
+    return cnt;
+}
+
+/** \brief Collect the app-layer protocols a keyword is directly associated
+ *         with.
+ *
+ *  \retval number of (deduplicated) protocols written to protos
+ */
+static int DetectKeywordGetAppLayerProtos(uint16_t keyword_id, AppProto *protos, int max)
+{
+    int cnt = 0;
+    for (const DetectKeywordAppLayerMap *m = g_keyword_applayer_map; m != NULL; m = m->next) {
+        if (m->keyword_id != keyword_id)
+            continue;
+        if (m->buffer_name != NULL || m->alproto == ALPROTO_UNKNOWN)
+            continue;
+        bool dup = false;
+        for (int i = 0; i < cnt; i++) {
+            if (protos[i] == m->alproto) {
+                dup = true;
+                break;
+            }
+        }
+        if (!dup && cnt < max)
+            protos[cnt++] = m->alproto;
+    }
+    return cnt;
+}
+
+bool DetectKeywordAcceptsAppLayerStates(uint16_t keyword_id)
+{
+    int lists[DETECT_KEYWORD_MAX_LISTS];
+    return DetectKeywordGetAppLayerLists(keyword_id, lists, DETECT_KEYWORD_MAX_LISTS) > 0;
+}
+
+void DetectKeywordAppLayerStatesList(uint16_t keyword_id, const char *prefix)
+{
+    int lists[DETECT_KEYWORD_MAX_LISTS];
+    const int n = DetectKeywordGetAppLayerLists(keyword_id, lists, DETECT_KEYWORD_MAX_LISTS);
+    for (int i = 0; i < n; i++)
+        DetectBufferTypeHooksList(lists[i], prefix);
+}
+
+/** \brief Print the app-layer protocol(s) a keyword is tied to when it has NO
+ *         inspection-buffer / parser-state hook (post-match actions, obsolete
+ *         aliases, ...). */
+void DetectKeywordAppLayerProtoList(uint16_t keyword_id, const char *prefix)
+{
+    AppProto protos[DETECT_KEYWORD_MAX_LISTS];
+    const int proto_name =
+            DetectKeywordGetAppLayerProtos(keyword_id, protos, DETECT_KEYWORD_MAX_LISTS);
+    for (int i = 0; i < proto_name; i++)
+        printf("%sApp-layer: %s (no app-layer state hook)\n", prefix, AppProtoToString(protos[i]));
+}
+
+static bool DetectKeywordProtoMatch(AppProto queried, AppProto registered)
+{
+    if (queried == registered)
+        return true;
+    if (queried == ALPROTO_HTTP)
+        return registered == ALPROTO_HTTP1 || registered == ALPROTO_HTTP2;
+    return false;
+}
+
+static bool DetectKeywordRegisteredForProto(uint16_t keyword_id, AppProto alproto)
+{
+    int lists[DETECT_KEYWORD_MAX_LISTS];
+    const int n = DetectKeywordGetAppLayerLists(keyword_id, lists, DETECT_KEYWORD_MAX_LISTS);
+    for (int i = 0; i < n; i++) {
+        for (const DetectEngineAppInspectionEngine *e = g_app_inspect_engines; e != NULL;
+                e = e->next) {
+            if (e->sm_list == (uint16_t)lists[i] && DetectKeywordProtoMatch(alproto, e->alproto)) {
+                return true;
+            }
+        }
+    }
+    AppProto protos[DETECT_KEYWORD_MAX_LISTS];
+    const int pn = DetectKeywordGetAppLayerProtos(keyword_id, protos, DETECT_KEYWORD_MAX_LISTS);
+    for (int i = 0; i < pn; i++) {
+        if (DetectKeywordProtoMatch(alproto, protos[i]))
+            return true;
+    }
+    return false;
+}
+
+static int DetectKeywordListForProto(AppProto alproto)
+{
+    int count = 0;
+    for (size_t i = 0; i < (size_t)DETECT_TBLSIZE_IDX; i++) {
+        const char *name = sigmatch_table[i].name;
+        if (name == NULL || strlen(name) == 0)
+            continue;
+        if (name[0] == '_' || strcmp(name, "template") == 0)
+            continue;
+        if (!DetectKeywordRegisteredForProto((uint16_t)i, alproto))
+            continue;
+        if (count == 0)
+            printf("===== %s keywords =====\n", AppProtoToString(alproto));
+        printf("%s\n", name);
+        count++;
+    }
+    return count;
+}
+
+bool DetectKeywordListByAppProto(const char *proto_name)
+{
+    if (proto_name != NULL) {
+        AppProto alproto = StringToAppProto(proto_name);
+        if (alproto == ALPROTO_UNKNOWN) {
+            return false;
+        }
+        DetectKeywordListForProto(alproto);
+        return true;
+    }
+
+    for (AppProto a = 0; a < g_alproto_max; a++) {
+        DetectKeywordListForProto(a);
+    }
+    return true;
 }
 
 /* copy an inspect engine with transforms to a new list id. */

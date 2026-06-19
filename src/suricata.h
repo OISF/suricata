@@ -146,6 +146,7 @@ typedef struct SCInstance_ {
     bool is_firewall;
 
     char *keyword_info;
+    const char *app_layer_keyword_proto;
     char *runmode_custom_mode;
 #ifndef OS_WIN32
     const char *user_name;

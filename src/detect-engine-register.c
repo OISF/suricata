@@ -379,6 +379,12 @@ static void SigMultilinePrint(size_t i, const char *prefix)
         printf("\n%sReplaced by: %s", prefix, sigmatch_table[sigmatch_table[i].alternative].name);
     }
     printf("\n");
+    if (DetectKeywordAcceptsAppLayerStates((uint16_t)i)) {
+        printf("%sApp-layer state:\n", prefix);
+        DetectKeywordAppLayerStatesList((uint16_t)i, prefix);
+    } else {
+        DetectKeywordAppLayerProtoList((uint16_t)i, prefix);
+    }
 }
 
 /** \brief Check if a keyword exists. */
@@ -450,15 +456,18 @@ int SigTableList(const char *keyword)
         }
     } else {
         for (i = 0; i < size; i++) {
-            if ((sigmatch_table[i].name != NULL) &&
-                strcmp(sigmatch_table[i].name, keyword) == 0) {
+            if (sigmatch_table[i].name == NULL)
+                continue;
+            if (strcmp(sigmatch_table[i].name, keyword) == 0 ||
+                    (sigmatch_table[i].alias != NULL &&
+                            strcmp(sigmatch_table[i].alias, keyword) == 0)) {
                 printf("= %s =\n", sigmatch_table[i].name);
                 SigMultilinePrint(i, "");
                 return TM_ECODE_DONE;
             }
-        }
-        printf("Non existing keyword\n");
-        return TM_ECODE_FAILED;
+            }
+            printf("Non existing keyword\n");
+            return TM_ECODE_FAILED;
     }
     return TM_ECODE_DONE;
 }
