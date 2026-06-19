@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1477,6 +1477,22 @@ const DetectBufferType *DetectEngineBufferTypeGetById(const DetectEngineCtx *de_
     const DetectBufferType *res =
             HashListTableLookup(de_ctx->buffer_type_hash_id, (void *)&lookup, 0);
     return res;
+}
+
+void DetectEngineBufferTypeSetVarTransform(DetectEngineCtx *de_ctx, const int id)
+{
+    DetectBufferType lookup;
+    memset(&lookup, 0, sizeof(lookup));
+    lookup.id = id;
+    DetectBufferType *res = HashListTableLookup(de_ctx->buffer_type_hash_id, (void *)&lookup, 0);
+    if (res != NULL)
+        res->var_transform = true;
+}
+
+bool DetectEngineBufferTypeIsVarTransform(const DetectEngineCtx *de_ctx, const int id)
+{
+    const DetectBufferType *map = DetectEngineBufferTypeGetById(de_ctx, id);
+    return map != NULL && map->var_transform;
 }
 
 const char *DetectEngineBufferTypeGetNameById(const DetectEngineCtx *de_ctx, const int id)
