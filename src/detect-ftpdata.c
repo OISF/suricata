@@ -79,6 +79,7 @@ void DetectFtpdataRegister(void) {
     DetectAppLayerInspectEngineRegister("ftpdata_command", ALPROTO_FTPDATA, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectGenericList, NULL);
     g_ftpdata_buffer_id = DetectBufferTypeGetByName("ftpdata_command");
+    DetectKeywordAppLayerMapRegister(DETECT_FTPDATA, "ftpdata_command");
 
     /* set up the PCRE for keyword parsing */
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);

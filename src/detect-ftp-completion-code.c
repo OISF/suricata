@@ -101,6 +101,7 @@ void DetectFtpCompletionCodeRegister(void)
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_ftp_ccode_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
+    DetectKeywordAppLayerMapRegister(DETECT_FTP_COMPLETION_CODE, BUFFER_NAME);
 
     SCLogDebug("registering " BUFFER_NAME " rule option");
 }

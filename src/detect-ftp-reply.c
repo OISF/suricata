@@ -103,6 +103,7 @@ void DetectFtpReplyRegister(void)
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_ftp_reply_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
+    DetectKeywordAppLayerMapRegister(DETECT_FTP_REPLY, BUFFER_NAME);
 
     SCLogDebug("registering " BUFFER_NAME " rule option");
 }

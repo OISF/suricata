@@ -68,6 +68,8 @@ void DetectFtpbounceRegister(void)
     sigmatch_table[DETECT_FTPBOUNCE].flags = SIGMATCH_NOOPT;
 
     g_ftp_request_list_id = DetectBufferTypeGetByName("ftp:request_complete:generic");
+
+    DetectKeywordAppLayerMapRegister(DETECT_FTPBOUNCE, "ftp:request_complete:generic");
 }
 
 /**

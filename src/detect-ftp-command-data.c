@@ -102,6 +102,7 @@ void DetectFtpCommandDataRegister(void)
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_ftp_cmd_data_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
+    DetectKeywordAppLayerMapRegister(DETECT_FTP_COMMAND_DATA, BUFFER_NAME);
 
     SCLogDebug("registering " BUFFER_NAME " rule option");
 }
