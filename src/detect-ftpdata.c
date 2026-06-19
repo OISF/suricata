@@ -62,6 +62,7 @@ void DetectFtpdataRegister(void) {
     /* description: listed in "suricata --list-keywords=all" */
     sigmatch_table[DETECT_FTPDATA].desc = "match FTP command triggering a FTP data channel";
     sigmatch_table[DETECT_FTPDATA].url = "/rules/ftp-keywords.html#ftpdata-command";
+    sigmatch_table[DETECT_FTPDATA].flags |= SIGMATCH_SUPPORT_FIREWALL;
     sigmatch_table[DETECT_FTPDATA].AppLayerTxMatch = DetectFtpdataMatch;
     /* setup function is called during signature parsing, when the ftpcommand
      * keyword is encountered in the rule */
