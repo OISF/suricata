@@ -404,6 +404,7 @@ void DetectDnsResponseRegister(void)
     DetectBufferTypeSupportsMultiInstance(keyword);
 
     detect_buffer_id = DetectBufferTypeGetByName(keyword);
+    DetectKeywordAppLayerMapRegister(DETECT_DNS_RESPONSE, "dns.response.rrname");
 
     SCDetectMdnsResponseRrnameRegister();
     SCDetectLlmnrResponseRrnameRegister();

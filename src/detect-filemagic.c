@@ -129,6 +129,8 @@ void DetectFilemagicRegister(void)
 
     g_file_magic_buffer_id = DetectBufferTypeGetByName("file.magic");
     SCLogDebug("registering filemagic rule option");
+
+    DetectKeywordAppLayerMapRegister(DETECT_FILE_MAGIC, "file.magic");
 }
 
 #define FILEMAGIC_MIN_SIZE  512

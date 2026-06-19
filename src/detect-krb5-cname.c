@@ -67,6 +67,7 @@ void DetectKrb5CNameRegister(void)
             "Kerberos 5 ticket client name");
 
     g_krb5_cname_buffer_id = DetectBufferTypeGetByName("krb5_cname");
+    DetectKeywordAppLayerMapRegister(DETECT_KRB5_CNAME, "krb5_cname");
 
     DetectBufferTypeSupportsMultiInstance("krb5_cname");
 }

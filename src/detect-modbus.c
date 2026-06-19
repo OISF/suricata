@@ -131,4 +131,5 @@ void DetectModbusRegister(void)
             "modbus", ALPROTO_MODBUS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
 
     g_modbus_buffer_id = DetectBufferTypeGetByName("modbus");
+    DetectKeywordAppLayerMapRegister(DETECT_MODBUS, "modbus");
 }

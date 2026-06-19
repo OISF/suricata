@@ -75,6 +75,7 @@ void DetectNfsVersionRegister (void)
     DetectAppLayerInspectEngineRegister(
             "nfs_request", ALPROTO_NFS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
     g_nfs_request_buffer_id = DetectBufferTypeGetByName("nfs_request");
+    DetectKeywordAppLayerMapRegister(DETECT_NFS_VERSION, "nfs_request");
 
     SCLogDebug("g_nfs_request_buffer_id %d", g_nfs_request_buffer_id);
 }

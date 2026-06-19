@@ -169,6 +169,7 @@ void DetectFiledataRegister(void)
     DetectBufferTypeSupportsMultiInstance("file_data");
 
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+    DetectKeywordAppLayerMapRegister(DETECT_FILE_DATA, "file_data");
 }
 
 static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {

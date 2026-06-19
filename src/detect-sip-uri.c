@@ -120,6 +120,7 @@ void DetectSipUriRegister(void)
     DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectUrilenValidateContent);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
+    DetectKeywordAppLayerMapRegister(DETECT_SIP_URI, BUFFER_NAME);
 
     SCLogDebug("registering " BUFFER_NAME " rule option");
 }

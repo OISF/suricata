@@ -81,5 +81,6 @@ void DetectKrb5TicketEncryptionRegister(void)
             0, DetectEngineInspectGenericList, NULL);
 
     g_krb5_ticket_encryption_list_id = DetectBufferTypeRegister("krb5_ticket_encryption");
+    DetectKeywordAppLayerMapRegister(DETECT_KRB5_TICKET_ENCRYPTION, "krb5_ticket_encryption");
     SCLogDebug("g_krb5_ticket_encryption_list_id %d", g_krb5_ticket_encryption_list_id);
 }

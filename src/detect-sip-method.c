@@ -146,6 +146,7 @@ void DetectSipMethodRegister(void)
             DetectSipMethodValidateCallback);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
+    DetectKeywordAppLayerMapRegister(DETECT_SIP_METHOD, BUFFER_NAME);
 
     SCLogDebug("registering " BUFFER_NAME " rule option");
 }

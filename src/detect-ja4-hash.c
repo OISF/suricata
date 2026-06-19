@@ -97,6 +97,7 @@ void DetectJa4HashRegister(void)
     DetectBufferTypeSetDescriptionByName("ja4.hash", "TLS JA4 hash");
 
     g_ja4_hash_buffer_id = DetectBufferTypeGetByName("ja4.hash");
+    DetectKeywordAppLayerMapRegister(DETECT_JA4_HASH, "ja4.hash");
 #endif /* HAVE_JA4 */
 }
 

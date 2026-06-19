@@ -358,6 +358,7 @@ static void DetectDNP3DataRegister(void)
             GetDNP3Data, ALPROTO_DNP3, 0);
 
     g_dnp3_data_buffer_id = DetectBufferTypeGetByName("dnp3_data");
+    DetectKeywordAppLayerMapRegister(DETECT_DNP3DATA, "dnp3_data");
     SCReturn;
 }
 
