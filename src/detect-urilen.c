@@ -73,6 +73,9 @@ void DetectUrilenRegister(void)
 
     g_http_uri_buffer_id = DetectBufferTypeRegister("http_uri");
     g_http_raw_uri_buffer_id = DetectBufferTypeRegister("http_raw_uri");
+    // TODO map to proper buffer/ proto
+    DetectKeywordAppLayerMapRegister(DETECT_URILEN, "http_uri");
+    DetectKeywordAppLayerMapRegister(DETECT_URILEN, "http_raw_uri");
 }
 
 /**

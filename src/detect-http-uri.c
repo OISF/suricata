@@ -166,6 +166,11 @@ void DetectHttpUriRegister (void)
     DetectBufferTypeRegisterValidateCallback("http_raw_uri", DetectUrilenValidateContent);
 
     g_http_raw_uri_buffer_id = DetectBufferTypeGetByName("http_raw_uri");
+
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_URI_CM, "http_uri");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_URI, "http_uri");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_RAW_URI, "http_raw_uri");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_URI_RAW, "http_raw_uri");
 }
 
 /**

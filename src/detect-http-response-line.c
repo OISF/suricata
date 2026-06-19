@@ -124,6 +124,7 @@ void DetectHttpResponseLineRegister(void)
             "http response line");
 
     g_http_response_line_id = DetectBufferTypeGetByName("http_response_line");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_RESPONSE_LINE, "http_response_line");
 }
 
 /**

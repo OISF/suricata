@@ -132,6 +132,8 @@ void DetectHttpRawHeaderRegister(void)
             "http2.raw_header", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
 
     g_http_raw_header_buffer_id = DetectBufferTypeGetByName("http_raw_header");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_RAW_HEADER_CM, "http_raw_header");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_RAW_HEADER, "http_raw_header");
 }
 
 /**

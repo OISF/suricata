@@ -120,6 +120,8 @@ void DetectHttpUARegister(void)
             "http_user_agent", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
 
     g_http_ua_buffer_id = DetectBufferTypeGetByName("http_user_agent");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_USER_AGENT, "http_user_agent");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_UA, "http_user_agent");
 }
 
 /**

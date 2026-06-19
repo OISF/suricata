@@ -412,6 +412,8 @@ void DetectHttpHeaderRegister(void)
             "http headers");
 
     g_http_header_buffer_id = DetectBufferTypeGetByName("http_header");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_HEADER_CM, "http_header");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_HEADER, "http_header");
 
     g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs("http_header",
             HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
@@ -581,6 +583,7 @@ void DetectHttpRequestHeaderRegister(void)
 
     DetectBufferTypeSetDescriptionByName("http_request_header", "HTTP header name and value");
     g_http_request_header_buffer_id = DetectBufferTypeGetByName("http_request_header");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_REQUEST_HEADER, "http_request_header");
     DetectBufferTypeSupportsMultiInstance("http_request_header");
     g_request_header_thread_id = DetectRegisterThreadCtxGlobalFuncs("http_request_header",
             HttpMultiBufHeaderThreadDataInit, NULL, HttpMultiBufHeaderThreadDataFree);
@@ -617,6 +620,7 @@ void DetectHttpResponseHeaderRegister(void)
 
     DetectBufferTypeSetDescriptionByName("http_response_header", "HTTP header name and value");
     g_http_response_header_buffer_id = DetectBufferTypeGetByName("http_response_header");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_RESPONSE_HEADER, "http_response_header");
     DetectBufferTypeSupportsMultiInstance("http_response_header");
     g_response_header_thread_id = DetectRegisterThreadCtxGlobalFuncs("http_response_header",
             HttpMultiBufHeaderThreadDataInit, NULL, HttpMultiBufHeaderThreadDataFree);

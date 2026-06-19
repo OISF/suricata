@@ -119,6 +119,8 @@ void DetectHttpMethodRegister(void)
             DetectHttpMethodValidateCallback);
 
     g_http_method_buffer_id = DetectBufferTypeGetByName("http_method");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_METHOD_CM, "http_method");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_METHOD, "http_method");
 
     SCLogDebug("registering http_method rule option");
 }

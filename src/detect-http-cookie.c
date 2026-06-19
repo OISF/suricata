@@ -136,6 +136,8 @@ void DetectHttpCookieRegister(void)
             "http_cookie", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
 
     g_http_cookie_buffer_id = DetectBufferTypeGetByName("http_cookie");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_COOKIE_CM, "http_cookie");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_COOKIE, "http_cookie");
 }
 
 /**

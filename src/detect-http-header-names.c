@@ -248,6 +248,7 @@ void DetectHttpHeaderNamesRegister(void)
             BUFFER_DESC);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_HEADER_NAMES, BUFFER_NAME);
 
     g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs(KEYWORD_NAME,
             HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);

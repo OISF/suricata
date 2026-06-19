@@ -117,6 +117,8 @@ void DetectHttpStatCodeRegister (void)
             "http response status code");
 
     g_http_stat_code_buffer_id = DetectBufferTypeGetByName("http_stat_code");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_STAT_CODE_CM, "http_stat_code");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_STAT_CODE, "http_stat_code");
 }
 
 /**

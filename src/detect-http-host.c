@@ -167,6 +167,10 @@ void DetectHttpHHRegister(void)
             "http_raw_host", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
 
     g_http_raw_host_buffer_id = DetectBufferTypeGetByName("http_raw_host");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_HOST_CM, "http_host");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_HOST, "http_host");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_RAW_HOST, "http_raw_host");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_HOST_RAW, "http_raw_host");
 }
 
 /**

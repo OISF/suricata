@@ -126,6 +126,8 @@ void DetectHttpStatMsgRegister (void)
             "http response status message");
 
     g_http_stat_msg_buffer_id = DetectBufferTypeGetByName("http_stat_msg");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_STAT_MSG_CM, "http_stat_msg");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_STAT_MSG, "http_stat_msg");
 }
 
 /**

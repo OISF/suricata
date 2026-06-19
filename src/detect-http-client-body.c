@@ -123,6 +123,8 @@ void DetectHttpClientBodyRegister(void)
             DetectHttpClientBodySetupCallback);
 
     g_http_client_body_buffer_id = DetectBufferTypeGetByName("http_client_body");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_CLIENT_BODY, "http_client_body");
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_REQUEST_BODY, "http_client_body");
 }
 
 static void DetectHttpClientBodySetupCallback(

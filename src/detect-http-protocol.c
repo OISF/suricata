@@ -186,4 +186,5 @@ void DetectHttpProtocolRegister(void)
     DetectBufferTypeRegisterValidateCallback(BUFFER_NAME, DetectHttpProtocolValidateCallback);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
+    DetectKeywordAppLayerMapRegister(DETECT_HTTP_PROTOCOL, BUFFER_NAME);
 }
