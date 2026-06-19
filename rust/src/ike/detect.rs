@@ -544,7 +544,7 @@ pub unsafe extern "C" fn SCDetectIkeRegister() {
     kw_id = helper_keyword_register_multi_buffer(&kw);
     G_IKE_VENDOR_BUFFER_ID = SCDetectHelperMultiBufferMpmRegister(
         b"ike.vendor.dn\0".as_ptr() as *const libc::c_char,
-        b"Like vendor\0".as_ptr() as *const libc::c_char,
+        b"ike vendor\0".as_ptr() as *const libc::c_char,
         ALPROTO_IKE,
         STREAM_TOSERVER,
         Some(ike_tx_get_vendor),
