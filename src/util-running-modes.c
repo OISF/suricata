@@ -87,7 +87,7 @@ int ListAppLayerHooks(const char *conf_filename)
     AppProto alprotos[g_alproto_max];
     AppLayerProtoDetectSupportedAppProtocols(alprotos);
 
-    printf("=========Supported App Layer Hooks=========\n");
+    printf("=========Supported App Layer Hooks=========\n\n");
     for (AppProto a = 0; a < g_alproto_max; a++) {
         if (alprotos[a] != 1)
             continue;
@@ -102,25 +102,26 @@ int ListAppLayerHooks(const char *conf_filename)
         const int max_progress_tc =
                 AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOCLIENT);
 
-        printf("%s:%s\n", alproto_name, "request_started");
+        printf("=== %s ===\n", alproto_name);
+        printf("%s\n", "request_started");
         for (int p = 0; p <= max_progress_ts; p++) {
             const char *name = AppLayerParserGetStateNameById(
                     IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOSERVER);
             if (name != NULL && !IsBuiltIn(name)) {
-                printf("%s:%s\n", alproto_name, name);
+                printf("%s\n", name);
             }
         }
-        printf("%s:%s\n", alproto_name, "request_complete");
+        printf("%s\n", "request_complete");
 
-        printf("%s:%s\n", alproto_name, "response_started");
+        printf("%s\n", "response_started");
         for (int p = 0; p <= max_progress_tc; p++) {
             const char *name = AppLayerParserGetStateNameById(
                     IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOCLIENT);
             if (name != NULL && !IsBuiltIn(name)) {
-                printf("%s:%s\n", alproto_name, name);
+                printf("%s\n", name);
             }
         }
-        printf("%s:%s\n", alproto_name, "response_complete");
+        printf("%s\n\n", "response_complete");
     }
     return TM_ECODE_DONE;
 }
