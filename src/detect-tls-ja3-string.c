@@ -107,6 +107,7 @@ void DetectTlsJa3StringRegister(void)
     DetectBufferTypeSetDescriptionByName("ja3.string", "TLS JA3 string");
 
     g_tls_ja3_str_buffer_id = DetectBufferTypeGetByName("ja3.string");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_JA3_STRING, "ja3.string");
 #endif /* HAVE_JA3 */
 }
 

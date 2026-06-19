@@ -77,6 +77,7 @@ void DetectTlsRandomTimeRegister(void)
     DetectBufferTypeSetDescriptionByName("tls.random_time", "TLS Random Time");
 
     g_tls_random_time_buffer_id = DetectBufferTypeGetByName("tls.random_time");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_RANDOM_TIME, "tls.random_time");
 }
 
 void DetectTlsRandomBytesRegister(void)
@@ -104,6 +105,7 @@ void DetectTlsRandomBytesRegister(void)
     DetectBufferTypeSetDescriptionByName("tls.random_bytes", "TLS Random Bytes");
 
     g_tls_random_bytes_buffer_id = DetectBufferTypeGetByName("tls.random_bytes");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_RANDOM_BYTES, "tls.random_bytes");
 }
 
 /**
@@ -136,6 +138,7 @@ void DetectTlsRandomRegister(void)
     DetectBufferTypeSetDescriptionByName("tls.random", "TLS Random");
 
     g_tls_random_buffer_id = DetectBufferTypeGetByName("tls.random");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_RANDOM, "tls.random");
 }
 
 /**

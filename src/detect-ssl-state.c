@@ -93,6 +93,7 @@ void DetectSslStateRegister(void)
             "tls_generic", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
     DetectAppLayerInspectEngineRegister(
             "tls_generic", ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
+    DetectKeywordAppLayerMapRegister(DETECT_SSL_STATE, "tls_generic");
 }
 
 /**

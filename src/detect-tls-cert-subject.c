@@ -96,6 +96,7 @@ void DetectTlsSubjectRegister(void)
             "TLS certificate subject");
 
     g_tls_cert_subject_buffer_id = DetectBufferTypeGetByName("tls.cert_subject");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_CERT_SUBJECT, "tls.cert_subject");
 }
 
 /**

@@ -106,6 +106,7 @@ void DetectTlsSerialRegister(void)
             DetectTlsSerialValidateCallback);
 
     g_tls_cert_serial_buffer_id = DetectBufferTypeGetByName("tls.cert_serial");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_CERT_SERIAL, "tls.cert_serial");
 }
 
 /**

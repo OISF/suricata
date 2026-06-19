@@ -76,6 +76,8 @@ void DetectSslVersionRegister(void)
 #endif
 
     g_tls_generic_list_id = DetectBufferTypeRegister("tls_generic");
+
+    DetectKeywordAppLayerMapRegister(DETECT_SSL_VERSION, "tls_generic");
 }
 
 /**

@@ -110,6 +110,7 @@ void DetectTlsJa3HashRegister(void)
     DetectBufferTypeRegisterValidateCallback("ja3.hash", DetectMd5ValidateCallback);
 
     g_tls_ja3_hash_buffer_id = DetectBufferTypeGetByName("ja3.hash");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_JA3_HASH, "ja3.hash");
 #endif /* HAVE_JA3 */
 }
 

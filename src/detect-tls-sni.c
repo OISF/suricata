@@ -84,6 +84,7 @@ void DetectTlsSniRegister(void)
             "TLS Server Name Indication (SNI) extension");
 
     g_tls_sni_buffer_id = DetectBufferTypeGetByName("tls.sni");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_SNI, "tls.sni");
 }
 
 

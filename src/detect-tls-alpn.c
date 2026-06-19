@@ -102,6 +102,7 @@ void DetectTlsAlpnRegister(void)
     DetectBufferTypeSupportsMultiInstance("tls.alpn");
 
     g_tls_alpn_buffer_id = DetectBufferTypeGetByName("tls.alpn");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_ALPN, "tls.alpn");
 }
 
 /**

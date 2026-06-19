@@ -148,6 +148,11 @@ void DetectTlsRegister (void)
 
     DetectAppLayerInspectEngineRegister("tls_cert", ALPROTO_TLS, SIG_FLAG_TOSERVER,
             TLS_STATE_CLIENT_CERT_DONE, DetectEngineInspectGenericList, NULL);
+
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_SUBJECT, "tls_cert");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_ISSUERDN, "tls_cert");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_FINGERPRINT, "tls.cert_fingerprint");
+    DetectKeywordAppLayerProtoRegister(DETECT_TLS_STORE, ALPROTO_TLS);
 }
 
 /**

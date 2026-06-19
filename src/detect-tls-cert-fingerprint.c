@@ -103,6 +103,7 @@ void DetectTlsFingerprintRegister(void)
             DetectTlsFingerprintValidateCallback);
 
     g_tls_cert_fingerprint_buffer_id = DetectBufferTypeGetByName("tls.cert_fingerprint");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_CERT_FINGERPRINT, "tls.cert_fingerprint");
 }
 
 /**

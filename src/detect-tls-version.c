@@ -86,6 +86,8 @@ void DetectTlsVersionRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_tls_generic_list_id = DetectBufferTypeRegister("tls_generic");
+
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_VERSION, "tls_generic");
 }
 
 /**

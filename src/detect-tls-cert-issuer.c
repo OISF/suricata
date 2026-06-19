@@ -96,6 +96,7 @@ void DetectTlsIssuerRegister(void)
             "TLS certificate issuer");
 
     g_tls_cert_issuer_buffer_id = DetectBufferTypeGetByName("tls.cert_issuer");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_CERT_ISSUER, "tls.cert_issuer");
 }
 
 

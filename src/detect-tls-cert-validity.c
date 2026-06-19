@@ -125,6 +125,10 @@ void DetectTlsValidityRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
     g_tls_validity_buffer_id = DetectBufferTypeGetByName("tls:server_cert_done:generic");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_NOTBEFORE, "tls:server_cert_done:generic");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_NOTAFTER, "tls:server_cert_done:generic");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_EXPIRED, "tls:server_cert_done:generic");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_VALID, "tls:server_cert_done:generic");
 }
 
 /**

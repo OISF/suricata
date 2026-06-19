@@ -124,6 +124,7 @@ void DetectTlsCertsRegister(void)
     DetectBufferTypeSupportsMultiInstance("tls.certs");
 
     g_tls_certs_buffer_id = DetectBufferTypeGetByName("tls.certs");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_CERTS, "tls.certs");
 }
 
 /**
@@ -246,6 +247,7 @@ void DetectTlsCertChainLenRegister(void)
     sigmatch_table[KEYWORD_ID].flags = SIGMATCH_SUPPORT_FIREWALL | SIGMATCH_INFO_UINT32;
 
     g_tls_cert_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
+    DetectKeywordAppLayerMapRegister(KEYWORD_ID, BUFFER_NAME);
 }
 
 #ifdef UNITTESTS

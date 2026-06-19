@@ -99,6 +99,7 @@ void DetectTlsSubjectAltNameRegister(void)
     DetectBufferTypeSupportsMultiInstance("tls.subjectaltname");
 
     g_tls_subjectaltname_buffer_id = DetectBufferTypeGetByName("tls.subjectaltname");
+    DetectKeywordAppLayerMapRegister(DETECT_TLS_SUBJECTALTNAME, "tls.subjectaltname");
 }
 
 /**
