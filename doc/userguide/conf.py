@@ -40,6 +40,9 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 # ones.
 extensions = []
 
+# Allow users to switch to dark mode
+default_dark_mode = False
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
