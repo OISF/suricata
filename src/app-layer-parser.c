@@ -1269,6 +1269,9 @@ uint8_t AppLayerParserGetStateProgressCompletionStatus(AppProto alproto, uint8_t
 int8_t AppLayerParserGetSubStateProgressId(
         const AppProto alproto, const uint8_t sub_state, const char *state, const uint8_t dir_flag)
 {
+    if (alproto == ALPROTO_DOH2)
+        return AppLayerParserGetSubStateProgressId(ALPROTO_HTTP2, sub_state, state, dir_flag);
+
     BUG_ON(alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].max_sub_state == 0);
     BUG_ON(dir_flag != STREAM_TOSERVER && dir_flag != STREAM_TOCLIENT);
 
@@ -1296,6 +1299,9 @@ int8_t AppLayerParserGetSubStateProgressId(
 const char *AppLayerParserGetSubStateProgressName(const AppProto alproto, const uint8_t sub_state,
         const uint8_t state, const uint8_t dir_flag)
 {
+    if (alproto == ALPROTO_DOH2)
+        return AppLayerParserGetSubStateProgressName(ALPROTO_HTTP2, sub_state, state, dir_flag);
+
     BUG_ON(alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].max_sub_state == 0);
     BUG_ON(dir_flag != STREAM_TOSERVER && dir_flag != STREAM_TOCLIENT);
 
@@ -1315,6 +1321,9 @@ const char *AppLayerParserGetSubStateProgressName(const AppProto alproto, const 
 
 uint8_t AppLayerParserGetSubStateCompletion(const AppProto alproto, const uint8_t sub_state)
 {
+    if (alproto == ALPROTO_DOH2)
+        return AppLayerParserGetSubStateCompletion(ALPROTO_HTTP2, sub_state);
+
     BUG_ON(alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].max_sub_state == 0);
 
     /* TODO hard coded for now */
@@ -1332,6 +1341,9 @@ uint8_t AppLayerParserGetSubStateCompletion(const AppProto alproto, const uint8_
 
 const char *AppLayerParserGetSubStateName(const AppProto alproto, const uint8_t sub_state)
 {
+    if (alproto == ALPROTO_DOH2)
+        return AppLayerParserGetSubStateName(ALPROTO_HTTP2, sub_state);
+
     BUG_ON(alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].max_sub_state == 0);
 
     /* TODO hard coded for now */
@@ -1349,6 +1361,8 @@ const char *AppLayerParserGetSubStateName(const AppProto alproto, const uint8_t 
 
 uint8_t AppLayerParserGetMaxSubState(const AppProto alproto)
 {
+    if (alproto == ALPROTO_DOH2)
+        return AppLayerParserGetMaxSubState(ALPROTO_HTTP2);
     return alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].max_sub_state;
 }
 
