@@ -1386,8 +1386,8 @@ static SignatureHook SetAppHook(const AppProto alproto, uint8_t sub_state, uint8
 static int SigParseProtoHookApp(
         Signature *s, const char *proto_hook, const char *p, const char *in_h)
 {
-    char hook[33];
-    strlcpy(hook, in_h, 33);
+    char hook[64];
+    strlcpy(hook, in_h, sizeof(hook));
     const char *h = hook;
     const char *t = NULL;
     uint8_t sub_state = 0;
@@ -1496,7 +1496,7 @@ static int SigParseProtoHookApp(
     }
 
     /* use in_h to include sub state */
-    char generic_hook_name[64];
+    char generic_hook_name[128];
     snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", p, in_h);
     int list = DetectBufferTypeGetByName(generic_hook_name);
     if (list < 0) {
@@ -1535,11 +1535,11 @@ void DetectListSupportedProtocols(void)
 static int SigParseProto(Signature *s, const char *protostr)
 {
     SCEnter();
-    if (strlen(protostr) > 32)
+    if (strlen(protostr) >= 64)
         return -1;
 
-    char proto[33];
-    strlcpy(proto, protostr, 33);
+    char proto[64];
+    strlcpy(proto, protostr, sizeof(proto));
     const char *p = proto;
     const char *h = NULL;
 
