@@ -481,9 +481,12 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
          * control direction.
          */
         if ((state->active && state->command == FTP_COMMAND_STOR) ||
-                (!state->active && state->command == FTP_COMMAND_RETR)) {
+                (!state->active && (state->command == FTP_COMMAND_RETR ||
+                                           state->command == FTP_COMMAND_NLST))) {
             direction = STREAM_TOCLIENT;
         }
+
+        bool has_file = false;
 
         switch (state->command) {
             case FTP_COMMAND_EPRT:
@@ -509,30 +512,39 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                 break;
             case FTP_COMMAND_RETR:
                 // fallthrough
-            case FTP_COMMAND_STOR: {
-                /* Ensure that there is a negotiated dyn port and a file
-                 * name -- need more than 5 chars: cmd [4], space, <filename>
+            case FTP_COMMAND_STOR:
+                /* Ensure that there is a file name
+                 * -- need more than 5 chars: cmd [4], space, <filename>
                  */
-                if (state->dyn_port == 0) {
-                    SCAppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, FtpEventFileBeforePort);
-                    break;
-                }
                 if (line.len < 6) {
                     SCAppLayerDecoderEventsSetEventRaw(
                             &tx->tx_data.events, FtpEventFileWithoutName);
                     break;
                 }
+                has_file = true;
+                /* fallthrough */
+            case FTP_COMMAND_NLST: {
+                /* Ensure a port has been negotiated. */
+                if (state->dyn_port == 0) {
+                    SCAppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, FtpEventFileBeforePort);
+                    break;
+                }
+
                 FtpTransferCmd *data = SCFTPTransferCmdNew();
                 if (data == NULL)
                     SCReturnStruct(APP_LAYER_ERROR);
                 FTPIncrMemuse((uint64_t)(sizeof *data));
+                data->cmd = state->command;
+                data->flow_id = FlowGetId(f);
+                data->direction = direction;
                 data->data_free = FtpTransferCmdFree;
 
                 /*
                  * Min size has been checked in FTPParseRequestCommand
                  * SC_FILENAME_MAX includes the null
                  */
-                uint32_t file_name_len = MIN(SC_FILENAME_MAX - 1, line.len - 5);
+                if (has_file) {
+                    uint32_t file_name_len = MIN(SC_FILENAME_MAX - 1, line.len - 5);
 #if SC_FILENAME_MAX > UINT16_MAX
 #error SC_FILENAME_MAX is greater than UINT16_MAX
 #endif
@@ -544,26 +556,25 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                     data->file_name[file_name_len] = 0;
                     data->file_len = (uint16_t)file_name_len;
                     memcpy(data->file_name, line.buf + 5, file_name_len);
-                    data->cmd = state->command;
-                    data->flow_id = FlowGetId(f);
-                    data->direction = direction;
-                    int ret = AppLayerExpectationCreate(f, direction,
-                                            0, state->dyn_port, ALPROTO_FTPDATA, data);
-                    if (ret == -1) {
-                        FtpTransferCmdFree(data);
-                        SCLogDebug("No expectation created.");
-                        SCReturnStruct(APP_LAYER_ERROR);
-                    } else {
-                        SCLogDebug("Expectation created [direction: %s, dynamic port %"PRIu16"].",
-                            state->active ? "to server" : "to client",
-                            state->dyn_port);
-                    }
+                }
+                int ret = AppLayerExpectationCreate(
+                        f, direction, 0, state->dyn_port, ALPROTO_FTPDATA, data);
+                if (ret == -1) {
+                    FtpTransferCmdFree(data);
+                    SCLogDebug("No expectation created.");
+                    SCReturnStruct(APP_LAYER_ERROR);
+                } else {
+                    SCLogDebug("Expectation created [direction: %s, dynamic port %" PRIu16 "].",
+                            state->active ? "to server" : "to client", state->dyn_port);
+                }
 
-                    /* reset the dyn port to avoid duplicate */
-                    state->dyn_port = 0;
-                    /* reset active/passive indicator */
-                    state->active = false;
-            } break;
+                /* reset the dyn port to avoid duplicate */
+                state->dyn_port = 0;
+                /* reset active/passive indicator */
+                state->active = false;
+
+                break;
+            }
             default:
                 break;
         }
@@ -1038,7 +1049,7 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
             (direction & STREAM_TOSERVER) ? "toserver" : "toclient", eof ? "true" : "false");
 
     SCLogDebug("FTP-DATA flags %04x dir %d", flags, direction);
-    if (input_len && ftpdata_state->files == NULL) {
+    if (!ftpdata_state->initialized && input_len) {
         FtpTransferCmd *data =
                 (FtpTransferCmd *)SCFlowGetStorageById(f, AppLayerExpectationGetFlowId());
         if (data == NULL) {
@@ -1055,16 +1066,18 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
             SCReturnStruct(APP_LAYER_OK);
         }
 
-        ftpdata_state->files = FileContainerAlloc();
-        if (ftpdata_state->files == NULL) {
-            SCFlowFreeStorageById(f, AppLayerExpectationGetFlowId());
-            SCReturnStruct(APP_LAYER_ERROR);
-        }
+        if (data->file_name) {
+            ftpdata_state->files = FileContainerAlloc();
+            if (ftpdata_state->files == NULL) {
+                SCFlowFreeStorageById(f, AppLayerExpectationGetFlowId());
+                SCReturnStruct(APP_LAYER_ERROR);
+            }
 
-        ftpdata_state->file_name = data->file_name;
-        ftpdata_state->file_len = data->file_len;
-        data->file_name = NULL;
-        data->file_len = 0;
+            ftpdata_state->file_name = data->file_name;
+            ftpdata_state->file_len = data->file_len;
+            data->file_name = NULL;
+            data->file_len = 0;
+        }
         f->parent_id = data->flow_id;
         ftpdata_state->command = data->cmd;
         switch (data->cmd) {
@@ -1078,21 +1091,29 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
                 SCLogDebug("RETR data to %s",
                         (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
                 break;
+            case FTP_COMMAND_NLST:
+                ftpdata_state->direction = data->direction;
+                SCLogDebug("NLST data to %s",
+                        (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
+                break;
             default:
                 break;
         }
 
-        /* open with fixed track_id 0 as we can have just one
-         * file per ftp-data flow. */
-        if (FileOpenFileWithId(ftpdata_state->files, &sbcfg,
-                         0ULL, (uint8_t *) ftpdata_state->file_name,
-                         ftpdata_state->file_len,
-                         input, input_len, flags) != 0) {
-            SCLogDebug("Can't open file");
-            ret = -1;
+        if (ftpdata_state->file_name) {
+            /* open with fixed track_id 0 as we can have just one
+             * file per ftp-data flow. */
+            if (FileOpenFileWithId(ftpdata_state->files, &sbcfg, 0ULL,
+                        (uint8_t *)ftpdata_state->file_name, ftpdata_state->file_len, input,
+                        input_len, flags) != 0) {
+                SCLogDebug("Can't open file");
+                ret = -1;
+            }
+            ftpdata_state->tx_data.files_opened = 1;
         }
         SCFlowFreeStorageById(f, AppLayerExpectationGetFlowId());
-        ftpdata_state->tx_data.files_opened = 1;
+
+        ftpdata_state->initialized = true;
     } else {
         if ((direction & ftpdata_state->direction) == 0) {
             if (input_len) {
@@ -1109,7 +1130,7 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
             DEBUG_VALIDATE_BUG_ON(input_len); // data after state finished is a bug.
             SCReturnStruct(APP_LAYER_OK);
         }
-        if (input_len != 0) {
+        if (ftpdata_state->file_name && input_len != 0) {
             ret = FileAppendData(ftpdata_state->files, &sbcfg, input, input_len);
             if (ret == -2) {
                 ret = 0;
@@ -1125,7 +1146,9 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
 
     DEBUG_VALIDATE_BUG_ON((direction & ftpdata_state->direction) == 0); // should be unreachable
     if (eof) {
-        ret = FileCloseFile(ftpdata_state->files, &sbcfg, NULL, 0, flags);
+        if (ftpdata_state->file_name) {
+            ret = FileCloseFile(ftpdata_state->files, &sbcfg, NULL, 0, flags);
+        }
         ftpdata_state->state = FTPDATA_STATE_FINISHED;
         SCLogDebug("closed because of eof: state now FTPDATA_STATE_FINISHED");
     }
@@ -1426,6 +1449,9 @@ bool EveFTPDataAddMetadata(void *vtx, SCJsonBuilder *jb)
             break;
         case FTP_COMMAND_RETR:
             JB_SET_STRING(jb, "command", "RETR");
+            break;
+        case FTP_COMMAND_NLST:
+            JB_SET_STRING(jb, "command", "NLST");
             break;
         default:
             break;
