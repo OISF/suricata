@@ -37,7 +37,7 @@
 /**
  * \brief Regex for parsing our keyword options
  */
-#define PARSE_REGEX  "^\\s*(stor|retr)\\s*$"
+#define PARSE_REGEX "^\\s*(stor|retr|nlst)\\s*$"
 static DetectParseRegex parse_regex;
 
 /* Prototypes of functions registered in DetectFtpdataRegister below */
@@ -145,6 +145,8 @@ static DetectFtpdataData *DetectFtpdataParse(const char *ftpcommandstr)
         ftpcommandd->command = FTP_COMMAND_STOR;
     } else if (!strcmp(arg1, "retr")) {
         ftpcommandd->command = FTP_COMMAND_RETR;
+    } else if (!strcmp(arg1, "nlst")) {
+        ftpcommandd->command = FTP_COMMAND_NLST;
     } else {
         SCLogError("Invalid command value");
         goto error;
