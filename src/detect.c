@@ -1726,34 +1726,16 @@ static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
         const DetectTransaction *tx, Packet *p, const AppProto alproto, const uint8_t direction,
         const uint8_t progress)
 {
-    const struct DetectFirewallPolicy *policy;
     SCLogDebug("packet %" PRIu64 ": tx type %u", p->pcap_cnt, tx->tx_type);
-    if (tx->tx_type != 0) {
-        // TODO hard coded to HTTP/2 for now
-        BUG_ON(alproto != ALPROTO_HTTP2);
-        if (direction & STREAM_TOSERVER) {
-            policy = &policies->http2_substates[tx->tx_type - 1].ts[progress];
-            SCLogDebug("packet %" PRIu64
-                       ", sub_state:%u, hook:%u, toserver, policy: action %02x scope %u",
-                    p->pcap_cnt, tx->tx_type, progress, policy->action, policy->action_scope);
-        } else {
-            policy = &policies->http2_substates[tx->tx_type - 1].tc[progress];
-            SCLogDebug("packet %" PRIu64
-                       ", sub_state:%u, hook:%u, toclient, policy: action %02x scope %u",
-                    p->pcap_cnt, tx->tx_type, progress, policy->action, policy->action_scope);
-        }
 
-    } else {
-        if (direction & STREAM_TOSERVER) {
-            policy = &policies->app[alproto].ts[progress];
-            SCLogDebug("packet %" PRIu64 ", hook:%u, toserver, policy: action %02x scope %u",
-                    p->pcap_cnt, progress, policy->action, policy->action_scope);
-        } else {
-            policy = &policies->app[alproto].tc[progress];
-            SCLogDebug("packet %" PRIu64 ", hook:%u, toclient, policy: action %02x scope %u",
-                    p->pcap_cnt, progress, policy->action, policy->action_scope);
-        }
-    }
+    const struct DetectFirewallAppPolicy lookup = {
+        .alproto = alproto, .sub_state = tx->tx_type, .progress = progress, .direction = direction
+    };
+    const struct DetectFirewallAppPolicy *ap =
+            HashTableLookup(policies->app_policies, (void *)&lookup, 0);
+    /* table should be fully populated, so this should not be able to fail */
+    DEBUG_VALIDATE_BUG_ON(ap == NULL);
+    const struct DetectFirewallPolicy *policy = &ap->policy;
 
     if (policy->action & ACTION_DROP) {
         SCLogDebug("dropping packet PKT_DROP_REASON_FW_DEFAULT_APP_POLICY");
