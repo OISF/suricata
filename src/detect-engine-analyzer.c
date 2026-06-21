@@ -2116,12 +2116,12 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
 #include "app-layer-parser.h"
 
 static void AddPolicy(const DetectEngineCtx *de_ctx, RuleAnalyzer *ctx, const AppProto a,
-        const uint8_t state, const uint8_t direction)
+        const uint8_t sub_state, const uint8_t state, const uint8_t direction)
 {
     char policy_string[64] = "";
     const struct DetectFirewallPolicies *fw_policies = de_ctx->fw_policies;
     const struct DetectFirewallAppPolicy lookup = {
-        .alproto = a, .sub_state = 0, .progress = state, .direction = direction
+        .alproto = a, .sub_state = sub_state, .progress = state, .direction = direction
     };
     const struct DetectFirewallAppPolicy *ap =
             HashTableLookup(fw_policies->app_policies, (void *)&lookup, 0);
@@ -2159,12 +2159,12 @@ static void AddPolicy(const DetectEngineCtx *de_ctx, RuleAnalyzer *ctx, const Ap
 }
 
 static void FirewallAddRulesForState(const DetectEngineCtx *de_ctx, const AppProto a,
-        const uint8_t state, const uint8_t direction, RuleAnalyzer *ctx)
+        const uint8_t sub_state, const uint8_t state, const uint8_t direction, RuleAnalyzer *ctx)
 {
     uint32_t accept_rules = 0;
-    AddPolicy(de_ctx, ctx, a, state, direction);
+    AddPolicy(de_ctx, ctx, a, sub_state, state, direction);
     SCJbOpenArray(ctx->js, "rules");
-    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+    for (const Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
         if ((s->flags & SIG_FLAG_FIREWALL) == 0)
             break;
         if (s->type != SIG_TYPE_APP_TX)
@@ -2182,6 +2182,25 @@ static void FirewallAddRulesForState(const DetectEngineCtx *de_ctx, const AppPro
             }
         }
 
+        /* sig has no sub_state field, so check the app inspect engines (if any).
+         * We assume that the only engines we have either:
+         * - are unknown/substate 0
+         * - matching the rule's substate */
+        if (s->app_inspect != NULL) {
+            bool skip_rule = false;
+            for (const DetectEngineAppInspectionEngine *engine = s->app_inspect; engine != NULL;
+                    engine = engine->next) {
+                if (engine->alproto == ALPROTO_UNKNOWN) {
+                    // skip engines targeting unknown, like stream or app-layer-event
+                } else if (engine->sub_state != sub_state) {
+                    skip_rule = true;
+                    break;
+                }
+            }
+            if (skip_rule) {
+                continue;
+            }
+        }
         if ((s->flags & SIG_FLAG_FW_HOOK_LTE) && state < s->app_progress_hook) {
             SCJbAppendString(ctx->js, s->sig_str);
             accept_rules += ((s->action & ACTION_ACCEPT) != 0);
@@ -2241,6 +2260,55 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
         if (!AppProtoIsValid(a))
             continue;
 
+        if (AppLayerParserSupportsSubStates(a)) {
+            SCJbOpenObject(ctx.js, AppProtoToString(a));
+            const uint8_t max_sub_state = AppLayerParserGetMaxSubState(a);
+            for (uint8_t sub_state = 1; sub_state <= max_sub_state; sub_state++) {
+                const char *sub_state_name = AppLayerParserGetSubStateName(a, sub_state);
+                const uint8_t max_progress = AppLayerParserGetSubStateCompletion(a, sub_state);
+                for (uint8_t state = 0; state <= max_progress; state++) {
+                    const char *name = AppLayerParserGetSubStateProgressName(
+                            a, sub_state, state, STREAM_TOSERVER);
+                    BUG_ON(name == NULL);
+
+                    char table_name[256];
+                    snprintf(table_name, sizeof(table_name), "app:%s:%s:%s", AppProtoToString(a),
+                            sub_state_name, name);
+                    SCJbOpenObject(ctx.js, table_name);
+                    FirewallAddRulesForState(de_ctx, a, sub_state, state, STREAM_TOSERVER, &ctx);
+                    if (ctx.js_warnings) {
+                        SCJbClose(ctx.js_warnings);
+                        SCJbSetObject(ctx.js, "warnings", ctx.js_warnings);
+                        SCJbFree(ctx.js_warnings);
+                        ctx.js_warnings = NULL;
+                    }
+                    SCJbClose(ctx.js);
+                }
+                for (uint8_t state = 0; state <= max_progress; state++) {
+                    const char *name = AppLayerParserGetSubStateProgressName(
+                            a, sub_state, state, STREAM_TOCLIENT);
+                    BUG_ON(name == NULL);
+
+                    char table_name[256];
+                    snprintf(table_name, sizeof(table_name), "app:%s:%s:%s", AppProtoToString(a),
+                            sub_state_name, name);
+                    SCJbOpenObject(ctx.js, table_name);
+                    FirewallAddRulesForState(de_ctx, a, sub_state, state, STREAM_TOCLIENT, &ctx);
+                    if (ctx.js_warnings) {
+                        SCJbClose(ctx.js_warnings);
+                        SCJbSetObject(ctx.js, "warnings", ctx.js_warnings);
+                        SCJbFree(ctx.js_warnings);
+                        ctx.js_warnings = NULL;
+                    }
+                    SCJbClose(ctx.js);
+                }
+            }
+            SCJbClose(ctx.js); // app layer
+            continue;
+        }
+
+        /* no sub state follows */
+
         const uint8_t complete_state_ts =
                 (const uint8_t)AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOSERVER);
         SCJbOpenObject(ctx.js, AppProtoToString(a));
@@ -2259,7 +2327,7 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
             char table_name[128];
             snprintf(table_name, sizeof(table_name), "app:%s:%s", AppProtoToString(a), name);
             SCJbOpenObject(ctx.js, table_name);
-            FirewallAddRulesForState(de_ctx, a, state, STREAM_TOSERVER, &ctx);
+            FirewallAddRulesForState(de_ctx, a, 0, state, STREAM_TOSERVER, &ctx);
             if (ctx.js_warnings) {
                 SCJbClose(ctx.js_warnings);
                 SCJbSetObject(ctx.js, "warnings", ctx.js_warnings);
@@ -2284,7 +2352,7 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
             char table_name[128];
             snprintf(table_name, sizeof(table_name), "app:%s:%s", AppProtoToString(a), name);
             SCJbOpenObject(ctx.js, table_name);
-            FirewallAddRulesForState(de_ctx, a, state, STREAM_TOCLIENT, &ctx);
+            FirewallAddRulesForState(de_ctx, a, 0, state, STREAM_TOCLIENT, &ctx);
             if (ctx.js_warnings) {
                 SCJbClose(ctx.js_warnings);
                 SCJbSetObject(ctx.js, "warnings", ctx.js_warnings);
