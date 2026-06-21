@@ -3928,6 +3928,33 @@ void DetectSetupParseRegexes(const char *parse_str, DetectParseRegex *detect_par
     }
 }
 
+static uint32_t AppPolicyHashFunc(HashTable *ht, void *data, uint16_t datalen)
+{
+    const struct DetectFirewallAppPolicy *p = data;
+    /* use a prime-mix hash */
+    uint32_t hash = p->alproto * 65537 + p->sub_state * 257 + p->progress * 5 +
+                    (p->direction == STREAM_TOSERVER);
+    hash ^= (hash >> 10) ^ (hash >> 20);
+    return hash % ht->array_size;
+}
+
+static char AppPolicyCompareFunc(void *data1, uint16_t datalen1, void *data2, uint16_t datalen2)
+{
+    const struct DetectFirewallAppPolicy *p1 = data1;
+    const struct DetectFirewallAppPolicy *p2 = data2;
+
+    if (p1 == NULL || p2 == NULL)
+        return 0;
+
+    return p1->direction == p2->direction && p1->alproto == p2->alproto &&
+           p1->sub_state == p2->sub_state && p1->progress == p2->progress;
+}
+
+static void AppPolicyHashFree(void *data)
+{
+    struct DetectFirewallAppPolicy *p = data;
+    SCFree(p);
+}
 static uint32_t PolicySignatureHashFunc(HashTable *ht, void *data, uint16_t datalen)
 {
     const Signature *s = data;
@@ -4108,7 +4135,7 @@ static int DoParsePolicy(const char *policy_name, struct DetectFirewallPolicy *p
 static int DoParseAppSubStatePolicy(const char *prefix, const AppProto app_proto,
         const uint8_t sub_state, const char *sub_state_name, const uint8_t state,
         const char *hookname, const uint8_t complete_state, const int direction,
-        struct DetectFirewallPolicies *fw_policies, struct DetectFirewallAppPolicy *app_fw_policies)
+        struct DetectFirewallPolicies *fw_policies)
 {
     char policy_name[256];
     BUG_ON(sub_state_name == NULL);
@@ -4131,18 +4158,33 @@ static int DoParseAppSubStatePolicy(const char *prefix, const AppProto app_proto
         FatalError("internal error: failed to assemble firewall policy config string");
     }
 
-    struct DetectFirewallPolicy *pol;
-    if (direction == STREAM_TOSERVER)
-        pol = &fw_policies->http2_substates[sub_state - 1].ts[state];
-    else
-        pol = &fw_policies->http2_substates[sub_state - 1].tc[state];
+    struct DetectFirewallAppPolicy *app_pol = SCCalloc(1, sizeof(*app_pol));
+    if (app_pol == NULL)
+        return -1;
 
-    r = DoParsePolicy(policy_name, pol);
+    app_pol->alproto = app_proto;
+    app_pol->sub_state = sub_state;
+    app_pol->progress = state;
+    app_pol->direction = (uint8_t)direction;
+    /* init to drop:flow by default, will be overwritten by DoParsePolicy if there
+     * is a config for this hook. */
+    app_pol->policy.action = ACTION_DROP;
+    app_pol->policy.action_scope = ACTION_SCOPE_FLOW;
+
+    r = DoParsePolicy(policy_name, &app_pol->policy);
+    if (r < 0) {
+        SCFree(app_pol);
+        return -1;
+    }
+
+    if (HashTableAdd(fw_policies->app_policies, app_pol, 0) != 0) {
+        FatalError("internal error: insert policy into hash table");
+    }
     /* for policies with an alert action, create a policy sig */
-    if (r == 1 && pol->action & ACTION_ALERT) {
+    if (r == 1 && app_pol->policy.action & ACTION_ALERT) {
         SCLogDebug("adding policy signature");
         return AddAppPolicySignature(fw_policies->policy_signatures, direction, app_proto, app_name,
-                state, hookname, pol);
+                state, hookname, &app_pol->policy);
     }
     SCLogDebug("r %d", r);
     return r;
@@ -4150,7 +4192,7 @@ static int DoParseAppSubStatePolicy(const char *prefix, const AppProto app_proto
 
 static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const char *hookname,
         const uint8_t state, const uint8_t complete_state, const int direction,
-        struct DetectFirewallPolicies *fw_policies, struct DetectFirewallAppPolicy *app_fw_policies)
+        struct DetectFirewallPolicies *fw_policies)
 {
     char policy_name[256];
     const char *in_name = hookname;
@@ -4184,12 +4226,20 @@ static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const 
         FatalError("internal error: failed to assemble firewall policy config string");
     }
 
-    struct DetectFirewallPolicy *pol;
-    if (direction == STREAM_TOSERVER)
-        pol = &app_fw_policies[app_proto].ts[state];
-    else
-        pol = &app_fw_policies[app_proto].tc[state];
-    r = DoParsePolicy(policy_name, pol);
+    struct DetectFirewallAppPolicy *app_pol = SCCalloc(1, sizeof(*app_pol));
+    if (app_pol == NULL)
+        return -1;
+
+    app_pol->alproto = app_proto;
+    app_pol->sub_state = 0;
+    app_pol->progress = state;
+    app_pol->direction = (uint8_t)direction;
+    /* init to drop:flow by default, will be overwritten by DoParsePolicy if there
+     * is a config for this hook. */
+    app_pol->policy.action = ACTION_DROP;
+    app_pol->policy.action_scope = ACTION_SCOPE_FLOW;
+
+    r = DoParsePolicy(policy_name, &app_pol->policy);
     if (r == 0 && in_name != NULL) {
         if (state == 0) {
             if (direction == STREAM_TOSERVER)
@@ -4209,32 +4259,46 @@ static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const 
             FatalError("internal error: failed to assemble firewall policy config string");
         }
 
-        r = DoParsePolicy(policy_name, pol);
+        r = DoParsePolicy(policy_name, &app_pol->policy);
+    }
+    if (r < 0) {
+        SCFree(app_pol);
+        return -1;
+    }
+
+    if (HashTableAdd(fw_policies->app_policies, app_pol, 0) != 0) {
+        FatalError("internal error: insert policy into hash table");
     }
 
     /* for policies with an alert action, create a policy sig */
-    if (r == 1 && pol->action & ACTION_ALERT) {
+    if (r == 1 && app_pol->policy.action & ACTION_ALERT) {
         SCLogDebug("adding policy signature");
         return AddAppPolicySignature(fw_policies->policy_signatures, direction, app_proto, app_name,
-                state, hookname, pol);
+                state, hookname, &app_pol->policy);
     }
+
     return r;
 }
 
 /** \brief allocate and initialize to default values the policies table */
 int DetectFirewallInitDefaultPolicies(DetectEngineCtx *de_ctx)
 {
-    struct DetectFirewallPolicies *fw_policies = SCCalloc(
-            1, sizeof(*fw_policies) + g_alproto_max * sizeof(struct DetectFirewallAppPolicy));
+    struct DetectFirewallPolicies *fw_policies = SCCalloc(1, sizeof(*fw_policies));
     if (fw_policies == NULL)
         return -1;
-    struct DetectFirewallAppPolicy *app_fw_policies = fw_policies->app;
-    if (app_fw_policies == NULL)
-        goto error;
     fw_policies->policy_signatures = HashTableInit(
             512, PolicySignatureHashFunc, PolicySignatureCompareFunc, PolicySignatureHashFree);
-    if (fw_policies->policy_signatures == NULL)
-        goto error;
+    if (fw_policies->policy_signatures == NULL) {
+        SCFree(fw_policies);
+        return -1;
+    }
+    fw_policies->app_policies =
+            HashTableInit(512, AppPolicyHashFunc, AppPolicyCompareFunc, AppPolicyHashFree);
+    if (fw_policies->app_policies == NULL) {
+        HashTableFree(fw_policies->policy_signatures);
+        SCFree(fw_policies);
+        return -1;
+    }
 
     fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER].action = ACTION_DROP;
     fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER].action_scope = ACTION_SCOPE_PACKET;
@@ -4245,31 +4309,8 @@ int DetectFirewallInitDefaultPolicies(DetectEngineCtx *de_ctx)
     fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_STREAM].action = ACTION_ACCEPT;
     fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_STREAM].action_scope = ACTION_SCOPE_HOOK;
 
-    for (AppProto a = 0; a < g_alproto_max; a++) {
-        for (int i = 0; i < 48; i++) {
-            app_fw_policies[a].ts[i].action = ACTION_DROP;
-            app_fw_policies[a].ts[i].action_scope = ACTION_SCOPE_FLOW;
-            app_fw_policies[a].tc[i].action = ACTION_DROP;
-            app_fw_policies[a].tc[i].action_scope = ACTION_SCOPE_FLOW;
-        }
-    }
-
-    /* TODO hard coded for HTTP/2 for now */
-    for (int s = 0; s < 2; s++) {
-        for (int i = 0; i < 48; i++) {
-            fw_policies->http2_substates[s].ts[i].action = ACTION_DROP;
-            fw_policies->http2_substates[s].ts[i].action_scope = ACTION_SCOPE_FLOW;
-            fw_policies->http2_substates[s].tc[i].action = ACTION_DROP;
-            fw_policies->http2_substates[s].tc[i].action_scope = ACTION_SCOPE_FLOW;
-        }
-    }
-
     de_ctx->fw_policies = fw_policies;
     return 0;
-
-error:
-    SCFree(fw_policies);
-    return -1;
 }
 
 int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
@@ -4283,9 +4324,6 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
 
     struct DetectFirewallPolicies *fw_policies = de_ctx->fw_policies;
     if (fw_policies == NULL)
-        return -1;
-    struct DetectFirewallAppPolicy *app_fw_policies = fw_policies->app;
-    if (app_fw_policies == NULL)
         return -1;
 
     r = snprintf(policy_name, sizeof(policy_name), "%s.packet-filter", prefix);
@@ -4352,7 +4390,7 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
                     SCLogDebug("protocol %s: sub state:%s state:%s", AppProtoToString(a),
                             sub_state_name, state_name);
                     if (DoParseAppSubStatePolicy(prefix, a, s, sub_state_name, state, state_name,
-                                max_state, STREAM_TOSERVER, fw_policies, app_fw_policies) < 0)
+                                max_state, STREAM_TOSERVER, fw_policies) < 0)
                         return -1;
                 }
                 /* to_client */
@@ -4365,7 +4403,7 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
                     SCLogDebug("protocol %s: to_client: sub state:%s state:%s", AppProtoToString(a),
                             sub_state_name, state_name);
                     if (DoParseAppSubStatePolicy(prefix, a, s, sub_state_name, state, state_name,
-                                max_state, STREAM_TOCLIENT, fw_policies, app_fw_policies) < 0)
+                                max_state, STREAM_TOCLIENT, fw_policies) < 0)
                         return -1;
                 }
             }
@@ -4377,7 +4415,7 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
                 const char *name =
                         AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOSERVER);
                 if (DoParseAppPolicy(prefix, a, name, state, complete_state_ts, STREAM_TOSERVER,
-                            fw_policies, app_fw_policies) < 0)
+                            fw_policies) < 0)
                     return -1;
             }
             const uint8_t complete_state_tc =
@@ -4387,7 +4425,7 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
                 const char *name =
                         AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOCLIENT);
                 if (DoParseAppPolicy(prefix, a, name, state, complete_state_tc, STREAM_TOCLIENT,
-                            fw_policies, app_fw_policies) < 0)
+                            fw_policies) < 0)
                     return -1;
             }
         }

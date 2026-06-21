@@ -2135,13 +2135,16 @@ static void AddPolicy(const DetectEngineCtx *de_ctx, RuleAnalyzer *ctx, const Ap
         const uint8_t state, const uint8_t direction)
 {
     char policy_string[64] = "";
-    const struct DetectFirewallPolicy *p = NULL;
     const struct DetectFirewallPolicies *fw_policies = de_ctx->fw_policies;
-    if (direction == STREAM_TOSERVER) {
-        p = &fw_policies->app[a].ts[state];
-    } else {
-        p = &fw_policies->app[a].tc[state];
-    }
+    const struct DetectFirewallAppPolicy lookup = {
+        .alproto = a, .sub_state = 0, .progress = state, .direction = direction
+    };
+    const struct DetectFirewallAppPolicy *ap =
+            HashTableLookup(fw_policies->app_policies, (void *)&lookup, 0);
+    if (ap == NULL)
+        return;
+    const struct DetectFirewallPolicy *p = &ap->policy;
+
     const char *as = ActionScopeToString(p->action_scope);
     DEBUG_VALIDATE_BUG_ON(as == NULL);
     if (as == NULL)
