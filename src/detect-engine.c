@@ -2889,6 +2889,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
             }
         }
         HashTableFree(de_ctx->fw_policies->policy_signatures);
+        HashTableFree(de_ctx->fw_policies->app_policies);
     }
     SCFree(de_ctx->fw_policies);
     SCFree(de_ctx);

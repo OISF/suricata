@@ -930,12 +930,12 @@ struct DetectFirewallPolicy {
     uint8_t action_scope; /**< same as Signature::action_scope. Scope argument for the action. */
 };
 
-/** Application layer firewall policies per hook. */
 struct DetectFirewallAppPolicy {
-    /** policy per hook/progress value (max 48) for toserver direction. */
-    struct DetectFirewallPolicy ts[48];
-    /** policy per hook/progress value (max 48) for toclient direction. */
-    struct DetectFirewallPolicy tc[48];
+    AppProto alproto;
+    uint8_t sub_state;
+    uint8_t progress;
+    uint8_t direction;
+    struct DetectFirewallPolicy policy;
 };
 
 struct DetectFirewallPolicies {
@@ -946,11 +946,8 @@ struct DetectFirewallPolicies {
     /* hash table with a Signature object per default policy that has `alert` enabled. */
     HashTable *policy_signatures;
 
-    /* hard coded for now: http2 substates. Index at substate - 1. */
-    struct DetectFirewallAppPolicy http2_substates[2];
-
-    /** app layer policies, one per alproto */
-    struct DetectFirewallAppPolicy app[];
+    /* hash table with policies, hashed by alproto, sub_state, progress and direction */
+    HashTable *app_policies;
 };
 
 /* Flow states:
