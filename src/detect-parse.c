@@ -3953,35 +3953,12 @@ static char AppPolicyCompareFunc(void *data1, uint16_t datalen1, void *data2, ui
 static void AppPolicyHashFree(void *data)
 {
     struct DetectFirewallAppPolicy *p = data;
+    Signature *s = p->alert_signature;
+    if (s != NULL) {
+        SCFree(s->msg);
+        SCFree(s);
+    }
     SCFree(p);
-}
-static uint32_t PolicySignatureHashFunc(HashTable *ht, void *data, uint16_t datalen)
-{
-    const Signature *s = data;
-    const int dir = 1 + (s->flags & SIG_FLAG_TOSERVER) != 0; // 2 for ts, 1 for tc
-    uint32_t hash = s->alproto * s->app_progress_hook * dir;
-    hash = hash % ht->array_size;
-    return hash;
-}
-
-static char PolicySignatureCompareFunc(
-        void *data1, uint16_t datalen1, void *data2, uint16_t datalen2)
-{
-    const Signature *s1 = data1;
-    const Signature *s2 = data2;
-
-    if (s1 == NULL || s2 == NULL)
-        return 0;
-
-    return s1->flags == s2->flags && s1->alproto == s2->alproto &&
-           s1->app_progress_hook == s2->app_progress_hook;
-}
-
-static void PolicySignatureHashFree(void *data)
-{
-    Signature *s = data;
-    SCFree(s->msg);
-    SCFree(s);
 }
 
 const char *ActionScopeToString(enum ActionScope s)
@@ -4073,9 +4050,7 @@ static int AddPktPolicySignature(struct DetectFirewallPolicies *fw_policies,
     return 0;
 }
 
-static int AddAppPolicySignature(HashTable *ht, const int direction, const AppProto alproto,
-        const char *app_name, const uint8_t hook, const char *hookname,
-        struct DetectFirewallPolicy *pol)
+static int AddAppPolicySignature(struct DetectFirewallAppPolicy *pol)
 {
     Signature *s = SCCalloc(1, sizeof(*s)); // SigAlloc does way more than we need
     if (s == NULL)
@@ -4087,11 +4062,11 @@ static int AddAppPolicySignature(HashTable *ht, const int direction, const AppPr
         SCFree(s);
         return -1;
     }
-    s->app_progress_hook = hook;
-    s->action = pol->action;
-    s->action_scope = pol->action_scope;
-    s->alproto = alproto;
-    s->flags = (direction == STREAM_TOSERVER) ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT;
+    s->app_progress_hook = pol->progress;
+    s->action = pol->policy.action;
+    s->action_scope = pol->policy.action_scope;
+    s->alproto = pol->alproto;
+    s->flags = (pol->direction == STREAM_TOSERVER) ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT;
     s->flags |= SIG_FLAG_FIREWALL;
     s->type = SIG_TYPE_APP_TX;
     s->detect_table = DETECT_TABLE_APP_FILTER;
@@ -4100,11 +4075,7 @@ static int AddAppPolicySignature(HashTable *ht, const int direction, const AppPr
     s->gid = 1;
     s->prio = 3;
 
-    if (HashTableAdd(ht, s, 0) != 0) {
-        SCFree(s->msg);
-        SCFree(s);
-        return -1;
-    }
+    pol->alert_signature = s;
     SCLogDebug("added to hash");
     return 0;
 }
@@ -4183,8 +4154,7 @@ static int DoParseAppSubStatePolicy(const char *prefix, const AppProto app_proto
     /* for policies with an alert action, create a policy sig */
     if (r == 1 && app_pol->policy.action & ACTION_ALERT) {
         SCLogDebug("adding policy signature");
-        return AddAppPolicySignature(fw_policies->policy_signatures, direction, app_proto, app_name,
-                state, hookname, &app_pol->policy);
+        return AddAppPolicySignature(app_pol);
     }
     SCLogDebug("r %d", r);
     return r;
@@ -4273,8 +4243,7 @@ static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const 
     /* for policies with an alert action, create a policy sig */
     if (r == 1 && app_pol->policy.action & ACTION_ALERT) {
         SCLogDebug("adding policy signature");
-        return AddAppPolicySignature(fw_policies->policy_signatures, direction, app_proto, app_name,
-                state, hookname, &app_pol->policy);
+        return AddAppPolicySignature(app_pol);
     }
 
     return r;
@@ -4286,16 +4255,9 @@ int DetectFirewallInitDefaultPolicies(DetectEngineCtx *de_ctx)
     struct DetectFirewallPolicies *fw_policies = SCCalloc(1, sizeof(*fw_policies));
     if (fw_policies == NULL)
         return -1;
-    fw_policies->policy_signatures = HashTableInit(
-            512, PolicySignatureHashFunc, PolicySignatureCompareFunc, PolicySignatureHashFree);
-    if (fw_policies->policy_signatures == NULL) {
-        SCFree(fw_policies);
-        return -1;
-    }
     fw_policies->app_policies =
             HashTableInit(512, AppPolicyHashFunc, AppPolicyCompareFunc, AppPolicyHashFree);
     if (fw_policies->app_policies == NULL) {
-        HashTableFree(fw_policies->policy_signatures);
         SCFree(fw_policies);
         return -1;
     }
@@ -4431,22 +4393,6 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
         }
     }
     return 0;
-}
-
-Signature *DetectFirewallGetPolicySignature(struct DetectFirewallPolicies *fw_policies,
-        const AppProto alproto, const int direction, const uint8_t hook)
-{
-    if (fw_policies != NULL && fw_policies->policy_signatures != NULL) {
-        Signature lookup;
-        lookup.alproto = alproto;
-        lookup.flags = SIG_FLAG_FIREWALL |
-                       (direction == STREAM_TOSERVER ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT);
-        lookup.app_progress_hook = hook;
-
-        Signature *s = HashTableLookup(fw_policies->policy_signatures, &lookup, 0);
-        return s;
-    }
-    return NULL;
 }
 
 /*
