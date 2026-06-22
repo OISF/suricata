@@ -53,8 +53,7 @@ void DetectSCTPChunkTypeRegister(void)
     sigmatch_table[DETECT_SCTP_CHUNK_TYPE].Match = DetectSCTPChunkTypeMatch;
     sigmatch_table[DETECT_SCTP_CHUNK_TYPE].Setup = DetectSCTPChunkTypeSetup;
     sigmatch_table[DETECT_SCTP_CHUNK_TYPE].Free = DetectSCTPChunkTypeFree;
-    sigmatch_table[DETECT_SCTP_CHUNK_TYPE].flags =
-            SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT;
+    sigmatch_table[DETECT_SCTP_CHUNK_TYPE].flags = SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT;
     sigmatch_table[DETECT_SCTP_CHUNK_TYPE].SupportsPrefilter =
             PrefilterSCTPChunkTypeIsPrefilterable;
     sigmatch_table[DETECT_SCTP_CHUNK_TYPE].SetupPrefilter = PrefilterSetupSCTPChunkType;
