@@ -127,12 +127,13 @@ void DetectFtpModeRegister(void)
     sigmatch_table[DETECT_FTP_MODE].Setup = DetectFtpModeSetup;
     sigmatch_table[DETECT_FTP_MODE].AppLayerTxMatch = DetectFtpModeMatch;
     sigmatch_table[DETECT_FTP_MODE].Free = DetectFtpModeFree;
+    sigmatch_table[DETECT_FTP_MODE].flags = SIGMATCH_SUPPORT_FIREWALL;
 
-    DetectAppLayerInspectEngineRegister(
-            BUFFER_NAME, ALPROTO_FTP, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_FTP, SIG_FLAG_TOCLIENT,
+            FTP_STATE_FINISHED, DetectEngineInspectGenericList, NULL);
 
-    DetectAppLayerInspectEngineRegister(
-            BUFFER_NAME, ALPROTO_FTP, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_FTP, SIG_FLAG_TOSERVER,
+            FTP_STATE_FINISHED, DetectEngineInspectGenericList, NULL);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
