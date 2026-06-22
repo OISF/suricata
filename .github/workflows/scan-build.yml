@@ -165,3 +165,63 @@ jobs:
           name: scan-build-results
           path: scan-build-report/
           retention-days: 5
+  gcc-analyzer:
+    name: GCC analyzer
+    runs-on: ubuntu-latest
+    container: ubuntu:26.04
+    steps:
+      - name: Cache scan-build
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
+        with:
+          path: ~/.cargo
+          key: scan-build
+
+      - name: Install system packages
+        run: |
+          apt update
+          apt -y install \
+                libpcre2-dev \
+                build-essential \
+                autoconf \
+                automake \
+                cargo \
+                cbindgen \
+                dpdk-dev \
+                gcc-16 \
+                git \
+                libtool \
+                libpcap-dev \
+                libnet1-dev \
+                libyaml-0-2 \
+                libyaml-dev \
+                libcap-ng-dev \
+                libcap-ng0 \
+                libmagic-dev \
+                libnetfilter-log-dev \
+                libnetfilter-queue-dev \
+                libnetfilter-queue1 \
+                libnfnetlink-dev \
+                libnfnetlink0 \
+                libnuma-dev \
+                libhiredis-dev \
+                libhyperscan-dev \
+                libjansson-dev \
+                libevent-dev \
+                libevent-pthreads-2.1-7 \
+                liblz4-dev \
+                make \
+                python3-yaml \
+                rustc \
+                software-properties-common \
+                zlib1g \
+                zlib1g-dev
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - run: git config --global --add safe.directory /__w/suricata/suricata
+      - run: ./scripts/bundle.sh
+      - run: ./autogen.sh
+      - run: ./configure --enable-warnings --enable-dpdk --enable-nfqueue --enable-nflog --enable-debug-validation
+        env:
+          CC: gcc-16
+          CFLAGS: "-fanalyzer -Werror"
+          SURICATA_LUA_SYS_CFLAGS: ""
+      - run: make

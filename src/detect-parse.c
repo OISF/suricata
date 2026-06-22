@@ -2700,38 +2700,48 @@ static int SigValidateCheckBuffers(
 
         const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
         for (; app != NULL; app = app->next) {
-            if (app->sm_list == b->id &&
-                    (AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
-                SCLogDebug("engine %s dir %d alproto %d",
-                        DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list), app->dir,
-                        app->alproto);
-                SCLogDebug("b->id %d nlists %d", b->id, nlists);
+            if (app->sm_list != b->id)
+                continue;
 
-                if (b->only_tc) {
-                    if (app->dir == 1)
-                        (*tc_excl)++;
-                } else if (b->only_ts) {
-                    if (app->dir == 0)
-                        (*ts_excl)++;
-                } else {
-                    bufdir[b->id].ts += (app->dir == 0);
-                    bufdir[b->id].tc += (app->dir == 1);
-                }
-
+            if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
                 /* only allow rules to use the hook for engines at that
                  * exact progress for now. */
-                if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
-                    if ((s->flags & SIG_FLAG_TOSERVER) && (app->dir == 0) &&
-                            app->progress != s->init_data->hook.t.app.app_progress) {
-                        SCLogError("engine progress value %d doesn't match hook %u", app->progress,
-                                s->init_data->hook.t.app.app_progress);
-                        SCReturnInt(0);
-                    }
-                    if ((s->flags & SIG_FLAG_TOCLIENT) && (app->dir == 1) &&
-                            app->progress != s->init_data->hook.t.app.app_progress) {
-                        SCLogError("engine progress value doesn't match hook");
-                        SCReturnInt(0);
-                    }
+                if (app->alproto != s->alproto) {
+                    continue;
+                }
+            } else {
+                if (!(AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
+                    continue;
+                }
+            }
+
+            SCLogDebug("engine %s dir %d alproto %d",
+                    DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list), app->dir,
+                    app->alproto);
+            SCLogDebug("b->id %d nlists %d", b->id, nlists);
+
+            if (b->only_tc) {
+                if (app->dir == 1)
+                    (*tc_excl)++;
+            } else if (b->only_ts) {
+                if (app->dir == 0)
+                    (*ts_excl)++;
+            } else {
+                bufdir[b->id].ts += (app->dir == 0);
+                bufdir[b->id].tc += (app->dir == 1);
+            }
+
+            if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+                if ((s->flags & SIG_FLAG_TOSERVER) && (app->dir == 0) &&
+                        app->progress != s->init_data->hook.t.app.app_progress) {
+                    SCLogError("engine progress value %d doesn't match hook %u", app->progress,
+                            s->init_data->hook.t.app.app_progress);
+                    SCReturnInt(0);
+                }
+                if ((s->flags & SIG_FLAG_TOCLIENT) && (app->dir == 1) &&
+                        app->progress != s->init_data->hook.t.app.app_progress) {
+                    SCLogError("engine progress value doesn't match hook");
+                    SCReturnInt(0);
                 }
             }
         }
@@ -3390,7 +3400,9 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
             sw_tmp.s = de_ctx->sig_list;
             sw_old = HashListTableLookup(de_ctx->dup_sig_hash_table,
                                          (void *)&sw_tmp, 0);
-            /* sw_old == NULL case is impossible */
+            /* sw_old == NULL case is impossible: every sig in sig_list
+             * must have a corresponding dup_sig_hash_table entry */
+            DEBUG_VALIDATE_BUG_ON(sw_old == NULL);
             sw_old->s_prev = sig;
         }
 
@@ -3425,6 +3437,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
         if (sw_temp.s != NULL) {
             sw_next = HashListTableLookup(de_ctx->dup_sig_hash_table,
                                           (void *)&sw_temp, 0);
+            DEBUG_VALIDATE_BUG_ON(sw_next == NULL);
             sw_next->s_prev = sw_dup->s_prev;
         }
         SigFree(de_ctx, sw_dup->s);
@@ -3455,6 +3468,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
         if (sw_temp.s != NULL) {
             sw_next = HashListTableLookup(de_ctx->dup_sig_hash_table,
                                           (void *)&sw_temp, 0);
+            DEBUG_VALIDATE_BUG_ON(sw_next == NULL);
             sw_next->s_prev = sw_dup->s_prev;
         }
         SigFree(de_ctx, sw_dup->s);
@@ -3470,6 +3484,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
         sw_tmp.s = de_ctx->sig_list;
         SigDuplWrapper *sw_old = HashListTableLookup(de_ctx->dup_sig_hash_table,
                                                      (void *)&sw_tmp, 0);
+        DEBUG_VALIDATE_BUG_ON(sw_old == NULL);
         if (sw_old->s != sw_dup->s) {
             // Link on top of the list if there was another element
             sw_old->s_prev = sig;

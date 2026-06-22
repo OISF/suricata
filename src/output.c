@@ -656,6 +656,7 @@ void OutputDeregisterAll(void)
 
     while ((module = TAILQ_FIRST(&output_modules))) {
         TAILQ_REMOVE(&output_modules, module, entries);
+        DEBUG_VALIDATE_BUG_ON(TAILQ_FIRST(&output_modules) == module);
         SCFree(module);
     }
     SCFree(simple_json_applayer_loggers);
@@ -898,6 +899,7 @@ void OutputClearActiveLoggers(void)
     RootLogger *logger;
     while ((logger = TAILQ_FIRST(&active_loggers)) != NULL) {
         TAILQ_REMOVE(&active_loggers, logger, entries);
+        DEBUG_VALIDATE_BUG_ON(TAILQ_FIRST(&active_loggers) == logger);
         SCFree(logger);
     }
 }

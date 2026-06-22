@@ -8,7 +8,7 @@ build:
 
 python:
   install:
-    - requirements: doc/userguide/requirements.txt
+    - requirements: doc/userguide/bundle.txt
 
 sphinx:
   builder: html

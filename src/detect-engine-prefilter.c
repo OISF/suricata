@@ -317,6 +317,7 @@ int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh, PrefilterP
 
     e->name = name;
     e->gid = PrefilterStoreGetId(de_ctx, e->name, e->Free);
+    SCLogDebug("sgh->init->pkt_engines %p", sgh->init->pkt_engines);
     return 0;
 }
 
@@ -944,10 +945,11 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             for (uint8_t state = 0; state < s->app_progress_hook; state++) {
                 SCLogDebug("handle HOOK %u LTE", state);
                 const int dir = (s->flags & SIG_FLAG_TOSERVER) ? 0 : 1;
-                const char *pname = AppLayerParserGetStateNameById(IPPROTO_TCP, // TODO
+                const char *pname = DetectEngineAppHookToName(
                         s->alproto, state, dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
-                if (pname == NULL)
+                if (pname == NULL) {
                     goto error;
+                }
                 const int sm_list = DetectEngineAppHookToSmlist(
                         s->alproto, state, dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
                 if (TxNonPFAddSig(de_ctx, tx_engines_hash, s->alproto, dir, (int16_t)state, sm_list,
@@ -1089,6 +1091,7 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                 pkt_mask = s->mask;
                 pkt_mask_init = true;
             }
+            SCLogDebug("s->id %u added", s->id);
         }
     }
 
@@ -1131,6 +1134,7 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     tx_engines_hash = NULL;
 
     if (pkt_non_pf_array_size) {
+        SCLogDebug("pkt_non_pf_array_size %u", pkt_non_pf_array_size);
         struct PrefilterNonPFData *data =
                 SCCalloc(1, sizeof(*data) + pkt_non_pf_array_size * sizeof(data->array[0]));
         if (data == NULL)
@@ -1224,10 +1228,12 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
      * match arrays */
     PrefilterEngineList *el;
     if (sgh->init->pkt_engines != NULL) {
+        SCLogDebug("for %p we have %p", sgh, sgh->init->pkt_engines);
         uint32_t cnt = 0;
         for (el = sgh->init->pkt_engines ; el != NULL; el = el->next) {
             cnt++;
         }
+        SCLogDebug("cnt %u", cnt);
         sgh->pkt_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
         if (sgh->pkt_engines == NULL) {
             return -1;

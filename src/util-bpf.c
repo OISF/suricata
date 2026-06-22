@@ -36,7 +36,7 @@ void ConfSetBPFFilter(
     }
 
     /* command line value has precedence */
-    if (SCConfGet("bpf-filter", bpf_filter) == 1) {
+    if (SCConfGetNonNull("bpf-filter", bpf_filter) == 1) {
         if (strlen(*bpf_filter) > 0) {
             SCLogConfig("%s: using command-line provided bpf filter '%s'", iface, *bpf_filter);
         }

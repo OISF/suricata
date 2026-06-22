@@ -342,7 +342,7 @@ static int ThresholdsInit(struct Thresholds *t)
     uint64_t memcap = 16 * 1024 * 1024;
 
     const char *str;
-    if (SCConfGet("detect.thresholds.memcap", &str) == 1) {
+    if (SCConfGetNonNull("detect.thresholds.memcap", &str) == 1) {
         if (ParseSizeStringU64(str, &memcap) < 0) {
             SCLogError("Error parsing detect.thresholds.memcap from conf file - %s", str);
             return -1;
