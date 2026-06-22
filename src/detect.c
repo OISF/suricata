@@ -1719,12 +1719,10 @@ struct DetectFirewallAppTxState {
 };
 
 static inline void DetectRunAppendDefaultAppPolicyAlert(DetectEngineThreadCtx *det_ctx, Packet *p,
-        const bool apply_to_packet, const int direction, const uint64_t tx_id,
-        const AppProto alproto, const uint8_t hook)
+        const bool apply_to_packet, const uint64_t tx_id, const struct DetectFirewallAppPolicy *ap)
 {
     if (EngineModeIsFirewall()) {
-        Signature *s = DetectFirewallGetPolicySignature(
-                det_ctx->de_ctx->fw_policies, alproto, direction, hook);
+        const Signature *s = ap->alert_signature;
         BUG_ON(s == NULL);
         uint8_t alert_flags = apply_to_packet ? PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET : 0;
         AlertQueueAppendAppTx(det_ctx, s, p, tx_id, alert_flags);
@@ -1765,8 +1763,7 @@ static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
             p->flow->flags |= FLOW_ACTION_BY_FIREWALL;
         }
         if (policy->action & ACTION_ALERT) {
-            DetectRunAppendDefaultAppPolicyAlert(
-                    det_ctx, p, true, direction, tx->tx_id, alproto, progress);
+            DetectRunAppendDefaultAppPolicyAlert(det_ctx, p, true, tx->tx_id, ap);
         }
     } else if (policy->action & ACTION_ACCEPT) {
         /* should the accept be applied to the packet?
@@ -1799,8 +1796,7 @@ static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
 
         if (policy->action & ACTION_ALERT) {
             SCLogDebug("policy alert, do the append");
-            DetectRunAppendDefaultAppPolicyAlert(
-                    det_ctx, p, apply_to_packet, direction, tx->tx_id, alproto, progress);
+            DetectRunAppendDefaultAppPolicyAlert(det_ctx, p, apply_to_packet, tx->tx_id, ap);
         } else if (apply_to_packet) {
             SCLogDebug("default accept: last_tx");
             DetectRunAppendDefaultAccept(det_ctx, p);

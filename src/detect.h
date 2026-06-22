@@ -936,15 +936,15 @@ struct DetectFirewallAppPolicy {
     uint8_t progress;
     uint8_t direction;
     struct DetectFirewallPolicy policy;
+    /* signature that will be logged if the policy includes "alert". Will
+     * be set to NULL if alert is not part of the policy. */
+    Signature *alert_signature;
 };
 
 struct DetectFirewallPolicies {
     /** policy for packet_filter, pre_flow, pre_stream hooks */
     struct DetectFirewallPolicy pkt[DETECT_FIREWALL_POLICY_SIZE];
     Signature *pkt_policy_signatures[DETECT_FIREWALL_POLICY_SIZE];
-
-    /* hash table with a Signature object per default policy that has `alert` enabled. */
-    HashTable *policy_signatures;
 
     /* hash table with policies, hashed by alproto, sub_state, progress and direction */
     HashTable *app_policies;
