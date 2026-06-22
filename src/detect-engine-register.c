@@ -444,7 +444,7 @@ int SigTableList(const char *keyword)
             if (name != NULL && strlen(name) > 0) {
                 if (name[0] == '_' || strcmp(name, "template") == 0)
                     continue;
-                printf("%s:\n", sigmatch_table[i].name);
+                printf("=== %s:\n", sigmatch_table[i].name);
                 SigMultilinePrint(i, "\t");
             }
         }
