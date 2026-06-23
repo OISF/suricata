@@ -22,6 +22,14 @@ from typing import Optional
 
 MULTI_UINT_RE = re.compile(r"multi .*uint\d+")
 
+# Per-integer-width checks: feature word -> rule option to test
+UINT_CHECKS: dict[str, tuple[re.Pattern[str], str]] = {
+    "uint8":  (re.compile(r"\buint8\b"),  ">1"),
+    "uint16": (re.compile(r"\buint16\b"), ">0x101"),
+    "uint32": (re.compile(r"\buint32\b"), ">0x10001"),
+    "uint64": (re.compile(r"\buint64\b"), ">0x100000001"),
+}
+
 
 def resolve_suricata_bin(repo_root: Path, configured: Optional[str]) -> Path:
     if configured:
@@ -41,8 +49,8 @@ def resolve_suricata_bin(repo_root: Path, configured: Optional[str]) -> Path:
     )
 
 
-def list_multi_uint_keywords(suricata_bin: Path) -> list[str]:
-    """Return keyword names whose features column matches 'multi .*uint<N>'."""
+def list_keywords(suricata_bin: Path) -> list[tuple[str, str]]:
+    """Return (name, features) pairs for all keywords from --list-keywords=csv."""
     proc = subprocess.run(
         [str(suricata_bin), "--list-keywords=csv"],
         check=False,
@@ -51,39 +59,43 @@ def list_multi_uint_keywords(suricata_bin: Path) -> list[str]:
     )
     output = proc.stdout or proc.stderr
     reader = csv.reader(io.StringIO(output), delimiter=";")
-    keywords = []
+    result = []
     for i, row in enumerate(reader):
         if i == 0:
-            # header row
             continue
         if len(row) < 4:
             continue
-        name = row[0].strip()
-        features = row[3].strip()
-        if MULTI_UINT_RE.search(features):
-            keywords.append(name)
-    return keywords
+        result.append((row[0].strip(), row[3].strip()))
+    return result
 
 
 SID_RE = re.compile(r"sid:(?P<sid>\d+)")
 
 
 def check_keywords(
-    keywords: list[str],
+    entries: list[tuple[str, str]],
     suricata_bin: Path,
     suricata_yaml: Path,
-) -> dict[str, list[str]]:
-    """Write all rules to one file, run suricata -T once, return keyword->errors map."""
-    sid_to_keyword: dict[int, str] = {}
-    rules = []
-    for sid, keyword in enumerate(keywords, start=1):
-        sid_to_keyword[sid] = keyword
-        rules.append(
-            f'alert ip any any -> any any '
-            f'(msg:"check {keyword} multi uint"; {keyword}: >1,all; sid:{sid};)\n'
-        )
+) -> dict[int, list[str]]:
+    """Write one rule per (keyword, option) entry, run suricata -T once.
 
-    with tempfile.TemporaryDirectory(prefix="multi-uint-check-") as tmpdir:
+    Returns a mapping of entry index (0-based) -> error lines for failed rules.
+    """
+    rules = []
+    for sid, (keyword, option) in enumerate(entries, start=1):
+        if keyword == "bsize":
+            # bsize is a special case: it requires a sticky buffer first.
+            rules.append(
+                f'alert ip any any -> any any '
+                f'(msg:"check {keyword} {option}"; http.uri; {keyword}: {option}; sid:{sid};)\n'
+            )
+        else:
+            rules.append(
+                f'alert ip any any -> any any '
+                f'(msg:"check {keyword} {option}"; {keyword}: {option}; sid:{sid};)\n'
+            )
+
+    with tempfile.TemporaryDirectory(prefix="uint-check-") as tmpdir:
         rule_file = Path(tmpdir) / "test.rules"
         rule_file.write_text("".join(rules))
         cmd = [
@@ -100,17 +112,16 @@ def check_keywords(
             text=True,
         )
 
-        # Attribute each error line to the keyword via the sid embedded in the message.
-        keyword_errors: dict[str, list[str]] = {}
-        current_sid: Optional[int] = None
+        # Attribute each error line to its entry via the sid embedded in the message.
+        errors_by_idx: dict[int, list[str]] = {}
+        current_idx: Optional[int] = None
         for line in proc.stderr.splitlines():
             m = SID_RE.search(line)
             if m:
-                current_sid = int(m.group("sid"))
-            if current_sid is not None and current_sid in sid_to_keyword:
-                kw = sid_to_keyword[current_sid]
-                keyword_errors.setdefault(kw, []).append(line)
-        return keyword_errors
+                current_idx = int(m.group("sid")) - 1  # convert to 0-based
+            if current_idx is not None and 0 <= current_idx < len(entries):
+                errors_by_idx.setdefault(current_idx, []).append(line)
+        return errors_by_idx
 
 
 def main() -> int:
@@ -141,31 +152,61 @@ def main() -> int:
             f"suricata.yaml not found: {suricata_yaml}. Use --suricata-yaml."
         )
 
-    keywords = list_multi_uint_keywords(suricata_bin)
-    if not keywords:
-        print("No multi-uint keywords found.")
+    all_kw = list_keywords(suricata_bin)
+
+    # Build the flat list of (keyword, option) entries for a single suricata run,
+    # alongside metadata needed for reporting.
+    # Each entry: (group_label, keyword, option)
+    groups: list[tuple[str, str, str]] = []
+
+    for name, features in all_kw:
+        if MULTI_UINT_RE.search(features):
+            groups.append(("multi-uint", name, ">1,all"))
+
+    for type_name, (pattern, option) in UINT_CHECKS.items():
+        for name, features in all_kw:
+            if pattern.search(features):
+                groups.append((type_name, name, option))
+
+    if not groups:
+        print("No matching keywords found.")
         return 0
 
-    print(f"Testing {len(keywords)} multi-uint keyword(s): {', '.join(keywords)}\n")
+    entries = [(kw, opt) for _, kw, opt in groups]
+    print(f"Running {len(entries)} check(s) across {len(set(kw for _, kw, _ in groups))} keyword(s)...\n")
 
-    keyword_errors = check_keywords(keywords, suricata_bin, suricata_yaml)
+    errors_by_idx = check_keywords(entries, suricata_bin, suricata_yaml)
 
-    for keyword in keywords:
-        status = "FAIL" if keyword in keyword_errors else "OK"
-        print(f"  [{status}] {keyword}")
+    # Report grouped by label
+    seen_labels: list[str] = []
+    for label in [g[0] for g in groups]:
+        if label not in seen_labels:
+            seen_labels.append(label)
 
-    if keyword_errors:
-        print(f"\n{len(keyword_errors)} keyword(s) failed:\n")
-        for keyword in keywords:
-            if keyword not in keyword_errors:
-                continue
-            errors = "\n".join(keyword_errors[keyword])
-            print(f"  keyword: {keyword}")
-            print(f"  suricata output:\n    " + errors.replace("\n", "\n    "))
+    any_failure = False
+    failures: list[tuple[str, str, str, str]] = []  # (label, keyword, option, output)
+
+    for label in seen_labels:
+        label_entries = [(i, kw, opt) for i, (lbl, kw, opt) in enumerate(groups) if lbl == label]
+        print(f"--- {label} ---")
+        for idx, keyword, option in label_entries:
+            failed = idx in errors_by_idx
+            status = "FAIL" if failed else "OK"
+            print(f"  [{status}] {keyword}: {option}")
+            if failed:
+                any_failure = True
+                failures.append((label, keyword, option, "\n".join(errors_by_idx[idx])))
+        print()
+
+    if any_failure:
+        print(f"{len(failures)} check(s) failed:\n")
+        for label, keyword, option, output in failures:
+            print(f"  [{label}] {keyword}: {option}")
+            print(f"  suricata output:\n    " + output.replace("\n", "\n    "))
             print()
         return 1
 
-    print("\nAll keywords passed.")
+    print("All checks passed.")
     return 0
 
 
