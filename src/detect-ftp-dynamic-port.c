@@ -87,6 +87,8 @@ static int DetectFtpDynamicPortMatch(DetectEngineThreadCtx *det_ctx, Flow *f, ui
     FTPTransaction *tx = (FTPTransaction *)txv;
     if (tx->command_descriptor.command_code == FTP_COMMAND_UNKNOWN)
         return 0;
+    if (tx->dyn_port == 0)
+        return 0;
 
     const DetectU16Data *ftpd = (const DetectU16Data *)ctx;
 
