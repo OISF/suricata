@@ -94,8 +94,9 @@ void DetectFtpReplyRegister(void)
     sigmatch_table[DETECT_FTP_REPLY].desc = "sticky buffer to match on the FTP reply buffer";
     sigmatch_table[DETECT_FTP_REPLY].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_FTP_REPLY].Setup = DetectFtpReplySetup;
-    sigmatch_table[DETECT_FTP_REPLY].flags |=
-            SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
+    sigmatch_table[DETECT_FTP_REPLY].flags |= SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER |
+                                              SIGMATCH_INFO_MULTI_BUFFER |
+                                              SIGMATCH_SUPPORT_FIREWALL;
 
     DetectAppLayerMultiRegister(
             BUFFER_NAME, ALPROTO_FTP, SIG_FLAG_TOCLIENT, 1, DetectFTPReplyGetData, 2);
