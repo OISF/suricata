@@ -94,7 +94,7 @@ void DetectFtpCommandDataRegister(void)
             "sticky buffer to match on the FTP command data buffer";
     sigmatch_table[DETECT_FTP_COMMAND_DATA].url = "/rules/" KEYWORD_DOC;
     sigmatch_table[DETECT_FTP_COMMAND_DATA].Setup = DetectFtpCommandDataSetup;
-    sigmatch_table[DETECT_FTP_COMMAND_DATA].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_FTP_COMMAND_DATA].flags |= SIGMATCH_NOOPT | SIGMATCH_SUPPORT_FIREWALL;
 
     g_ftp_cmd_data_buffer_id = SCDetectHelperBufferProgressMpmRegister(BUFFER_NAME, BUFFER_DESC,
             ALPROTO_FTP, STREAM_TOSERVER, DetectFTPCommandDataGetData, FTP_STATE_FINISHED);
