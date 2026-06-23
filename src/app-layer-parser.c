@@ -999,8 +999,7 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
             goto next;
         }
 
-        // for passing flow, do not skip tx as we will not run detection on the other side
-        if (has_tx_detect_flags && (f->flags & (FLOW_ACTION_PASS)) == 0) {
+        if (has_tx_detect_flags) {
             if (!IS_DISRUPTED(ts_disrupt_flags) &&
                     (f->sgh_toserver != NULL || (f->flags & FLOW_SGH_TOSERVER) == 0)) {
                 if ((txd->flags & (APP_LAYER_TX_INSPECTED_TS | APP_LAYER_TX_SKIP_INSPECT_TS)) ==
