@@ -65,7 +65,7 @@ void DetectFtpbounceRegister(void)
     sigmatch_table[DETECT_FTPBOUNCE].Setup = DetectFtpbounceSetup;
     sigmatch_table[DETECT_FTPBOUNCE].AppLayerTxMatch = DetectFtpbounceALMatch;
     sigmatch_table[DETECT_FTPBOUNCE].url = "/rules/ftp-keywords.html#ftpbounce";
-    sigmatch_table[DETECT_FTPBOUNCE].flags = SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_FTPBOUNCE].flags = SIGMATCH_NOOPT | SIGMATCH_SUPPORT_FIREWALL;
 
     g_ftp_request_list_id = DetectBufferTypeGetByName("ftp:request_complete:generic");
 }
