@@ -481,7 +481,8 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
          * control direction.
          */
         if ((state->active &&
-                    (state->command == FTP_COMMAND_STOR || state->command == FTP_COMMAND_APPE)) ||
+                    (state->command == FTP_COMMAND_STOR || state->command == FTP_COMMAND_APPE ||
+                            state->command == FTP_COMMAND_STOU)) ||
                 (!state->active &&
                         (state->command == FTP_COMMAND_RETR || state->command == FTP_COMMAND_NLST ||
                                 state->command == FTP_COMMAND_LIST ||
@@ -528,6 +529,11 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                 }
                 has_file = true;
                 /* fallthrough */
+            case FTP_COMMAND_STOU:
+                if (line.len >= 6) {
+                    has_file = true;
+                }
+                /* fallthrough */
             case FTP_COMMAND_NLST:
             case FTP_COMMAND_LIST:
             case FTP_COMMAND_MLSD: {
@@ -563,6 +569,17 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                     data->file_name[file_name_len] = 0;
                     data->file_len = (uint16_t)file_name_len;
                     memcpy(data->file_name, line.buf + 5, file_name_len);
+                } else if (state->command == FTP_COMMAND_STOU) {
+                    const char default_file_name[] = "<stou>";
+                    uint32_t file_name_len = sizeof(default_file_name);
+                    data->file_name = FTPCalloc(file_name_len, sizeof(char));
+                    if (data->file_name == NULL) {
+                        FtpTransferCmdFree(data);
+                        SCReturnStruct(APP_LAYER_ERROR);
+                    }
+                    data->file_name[file_name_len - 1] = 0;
+                    data->file_len = (uint16_t)file_name_len - 1;
+                    memcpy(data->file_name, default_file_name, file_name_len);
                 }
                 int ret = AppLayerExpectationCreate(
                         f, direction, 0, state->dyn_port, ALPROTO_FTPDATA, data);
@@ -1098,6 +1115,11 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
                 SCLogDebug("APPE data to %s",
                         (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
                 break;
+            case FTP_COMMAND_STOU:
+                ftpdata_state->direction = data->direction;
+                SCLogDebug("STOU data to %s",
+                        (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
+                break;
             case FTP_COMMAND_RETR:
                 ftpdata_state->direction = data->direction;
                 SCLogDebug("RETR data to %s",
@@ -1472,6 +1494,9 @@ bool EveFTPDataAddMetadata(void *vtx, SCJsonBuilder *jb)
         case FTP_COMMAND_APPE:
             JB_SET_STRING(jb, "command", "APPE");
             break;
+        case FTP_COMMAND_STOU:
+            JB_SET_STRING(jb, "command", "STOU");
+            break;
         case FTP_COMMAND_RETR:
             JB_SET_STRING(jb, "command", "RETR");
             break;
@@ -1686,4 +1711,3 @@ void FTPParserRegisterTests(void)
     UtRegisterTest("FTPParserTest13", FTPParserTest13);
 #endif /* UNITTESTS */
 }
-
