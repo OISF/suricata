@@ -480,9 +480,12 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
          * For ftp active mode, data connection direction is opposite to
          * control direction.
          */
-        if ((state->active && state->command == FTP_COMMAND_STOR) ||
-                (!state->active && (state->command == FTP_COMMAND_RETR ||
-                                           state->command == FTP_COMMAND_NLST))) {
+        if ((state->active &&
+                    (state->command == FTP_COMMAND_STOR || state->command == FTP_COMMAND_APPE)) ||
+                (!state->active &&
+                        (state->command == FTP_COMMAND_RETR || state->command == FTP_COMMAND_NLST ||
+                                state->command == FTP_COMMAND_LIST ||
+                                state->command == FTP_COMMAND_MLSD))) {
             direction = STREAM_TOCLIENT;
         }
 
@@ -513,6 +516,8 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
             case FTP_COMMAND_RETR:
                 // fallthrough
             case FTP_COMMAND_STOR:
+                // fallthrough
+            case FTP_COMMAND_APPE:
                 /* Ensure that there is a file name
                  * -- need more than 5 chars: cmd [4], space, <filename>
                  */
@@ -523,7 +528,9 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                 }
                 has_file = true;
                 /* fallthrough */
-            case FTP_COMMAND_NLST: {
+            case FTP_COMMAND_NLST:
+            case FTP_COMMAND_LIST:
+            case FTP_COMMAND_MLSD: {
                 /* Ensure a port has been negotiated. */
                 if (state->dyn_port == 0) {
                     SCAppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, FtpEventFileBeforePort);
@@ -1086,6 +1093,11 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
                 SCLogDebug("STOR data to %s",
                         (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
                 break;
+            case FTP_COMMAND_APPE:
+                ftpdata_state->direction = data->direction;
+                SCLogDebug("APPE data to %s",
+                        (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
+                break;
             case FTP_COMMAND_RETR:
                 ftpdata_state->direction = data->direction;
                 SCLogDebug("RETR data to %s",
@@ -1094,6 +1106,16 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
             case FTP_COMMAND_NLST:
                 ftpdata_state->direction = data->direction;
                 SCLogDebug("NLST data to %s",
+                        (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
+                break;
+            case FTP_COMMAND_LIST:
+                ftpdata_state->direction = data->direction;
+                SCLogDebug("LIST data to %s",
+                        (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
+                break;
+            case FTP_COMMAND_MLSD:
+                ftpdata_state->direction = data->direction;
+                SCLogDebug("MLSD data to %s",
                         (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
                 break;
             default:
@@ -1447,11 +1469,20 @@ bool EveFTPDataAddMetadata(void *vtx, SCJsonBuilder *jb)
         case FTP_COMMAND_STOR:
             JB_SET_STRING(jb, "command", "STOR");
             break;
+        case FTP_COMMAND_APPE:
+            JB_SET_STRING(jb, "command", "APPE");
+            break;
         case FTP_COMMAND_RETR:
             JB_SET_STRING(jb, "command", "RETR");
             break;
         case FTP_COMMAND_NLST:
             JB_SET_STRING(jb, "command", "NLST");
+            break;
+        case FTP_COMMAND_LIST:
+            JB_SET_STRING(jb, "command", "LIST");
+            break;
+        case FTP_COMMAND_MLSD:
+            JB_SET_STRING(jb, "command", "MLSD");
             break;
         default:
             break;
@@ -1600,6 +1631,50 @@ static int FTPParserTest12(void)
     StreamTcpFreeConfig(true);
     PASS;
 }
+
+/** \test Supply APPE without a filename */
+static int FTPParserTest13(void)
+{
+    Flow f;
+    uint8_t ftpbuf1[] = "PORT 192,168,1,1,0,80\r\n";
+    uint8_t ftpbuf2[] = "APPE\r\n";
+    uint8_t ftpbuf3[] = "227 OK\r\n";
+    TcpSession ssn;
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_FTP;
+
+    StreamTcpInitConfig(true);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER | STREAM_START,
+            ftpbuf1, sizeof(ftpbuf1) - 1);
+    FAIL_IF(r != 0);
+
+    /* Response */
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOCLIENT, ftpbuf3, sizeof(ftpbuf3) - 1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER, ftpbuf2, sizeof(ftpbuf2) - 1);
+    FAIL_IF(r != 0);
+
+    FtpState *ftp_state = f.alstate;
+    FAIL_IF_NULL(ftp_state);
+
+    FAIL_IF(ftp_state->command != FTP_COMMAND_APPE);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
 #endif /* UNITTESTS */
 
 void FTPParserRegisterTests(void)
@@ -1608,6 +1683,7 @@ void FTPParserRegisterTests(void)
     UtRegisterTest("FTPParserTest01", FTPParserTest01);
     UtRegisterTest("FTPParserTest11", FTPParserTest11);
     UtRegisterTest("FTPParserTest12", FTPParserTest12);
+    UtRegisterTest("FTPParserTest13", FTPParserTest13);
 #endif /* UNITTESTS */
 }
 
