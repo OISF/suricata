@@ -37,7 +37,7 @@
 /**
  * \brief Regex for parsing our keyword options
  */
-#define PARSE_REGEX "^\\s*(stor|retr|nlst)\\s*$"
+#define PARSE_REGEX "^\\s*(stor|retr|nlst|list|mlsd)\\s*$"
 static DetectParseRegex parse_regex;
 
 /* Prototypes of functions registered in DetectFtpdataRegister below */
@@ -147,6 +147,10 @@ static DetectFtpdataData *DetectFtpdataParse(const char *ftpcommandstr)
         ftpcommandd->command = FTP_COMMAND_RETR;
     } else if (!strcmp(arg1, "nlst")) {
         ftpcommandd->command = FTP_COMMAND_NLST;
+    } else if (!strcmp(arg1, "list")) {
+        ftpcommandd->command = FTP_COMMAND_LIST;
+    } else if (!strcmp(arg1, "mlsd")) {
+        ftpcommandd->command = FTP_COMMAND_MLSD;
     } else {
         SCLogError("Invalid command value");
         goto error;
@@ -213,6 +217,16 @@ static int DetectFtpdataParseTest01(void)
     FAIL_IF_NULL(ftpcommandd);
     FAIL_IF(!(ftpcommandd->command == FTP_COMMAND_STOR));
     DetectFtpdataFree(NULL, ftpcommandd);
+
+    ftpcommandd = DetectFtpdataParse("list");
+    FAIL_IF_NULL(ftpcommandd);
+    FAIL_IF(!(ftpcommandd->command == FTP_COMMAND_LIST));
+    DetectFtpdataFree(NULL, ftpcommandd);
+
+    ftpcommandd = DetectFtpdataParse("mlsd");
+    FAIL_IF_NULL(ftpcommandd);
+    FAIL_IF(!(ftpcommandd->command == FTP_COMMAND_MLSD));
+    DetectFtpdataFree(NULL, ftpcommandd);
     PASS;
 }
 
@@ -225,7 +239,14 @@ static int DetectFtpdataSignatureTest01(void)
     FAIL_IF_NULL(sig);
     sig = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (ftpdata_command:retr; sid:2; rev:1;)");
     FAIL_IF_NULL(sig);
-    sig = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (ftpdata_command:xxx; sid:3; rev:1;)");
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (ftpdata_command:list; sid:3; rev:1;)");
+    FAIL_IF_NULL(sig);
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (ftpdata_command:mlsd; sid:4; rev:1;)");
+    FAIL_IF_NULL(sig);
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (ftpdata_command:xxx; sid:5; rev:1;)");
     FAIL_IF_NOT_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);

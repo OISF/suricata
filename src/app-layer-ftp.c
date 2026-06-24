@@ -480,8 +480,10 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
          * control direction.
          */
         if ((state->active && state->command == FTP_COMMAND_STOR) ||
-                (!state->active && (state->command == FTP_COMMAND_RETR ||
-                                           state->command == FTP_COMMAND_NLST))) {
+                (!state->active &&
+                        (state->command == FTP_COMMAND_RETR || state->command == FTP_COMMAND_NLST ||
+                                state->command == FTP_COMMAND_LIST ||
+                                state->command == FTP_COMMAND_MLSD))) {
             direction = STREAM_TOCLIENT;
         }
 
@@ -521,7 +523,9 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                 }
                 has_file = true;
                 /* fallthrough */
-            case FTP_COMMAND_NLST: {
+            case FTP_COMMAND_NLST:
+            case FTP_COMMAND_LIST:
+            case FTP_COMMAND_MLSD: {
                 /* Ensure a port has been negotiated. */
                 if (state->dyn_port == 0) {
                     AppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, FtpEventFileBeforePort);
@@ -1081,6 +1085,16 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
                 SCLogDebug("NLST data to %s",
                         (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
                 break;
+            case FTP_COMMAND_LIST:
+                ftpdata_state->direction = data->direction;
+                SCLogDebug("LIST data to %s",
+                        (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
+                break;
+            case FTP_COMMAND_MLSD:
+                ftpdata_state->direction = data->direction;
+                SCLogDebug("MLSD data to %s",
+                        (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
+                break;
             default:
                 break;
         }
@@ -1437,6 +1451,12 @@ bool EveFTPDataAddMetadata(void *vtx, SCJsonBuilder *jb)
             break;
         case FTP_COMMAND_NLST:
             JB_SET_STRING(jb, "command", "NLST");
+            break;
+        case FTP_COMMAND_LIST:
+            JB_SET_STRING(jb, "command", "LIST");
+            break;
+        case FTP_COMMAND_MLSD:
+            JB_SET_STRING(jb, "command", "MLSD");
             break;
         default:
             break;
