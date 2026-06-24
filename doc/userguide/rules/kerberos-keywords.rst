@@ -35,7 +35,8 @@ Signature examples::
 krb5_cname
 ----------
 
-Kerberos client name, provided in the ticket (for AS-REQ and TGS-REQ messages).
+Kerberos client name, provided in the ticket (for AS-REP and TGS-REP messages)
+or in the error message.
 
 If the client name from the Kerberos message is composed of several parts, the
 name is compared to each part and the match will succeed if any is identical.
@@ -59,7 +60,7 @@ Syntax::
 krb5_sname
 ----------
 
-Kerberos server name, provided in the ticket (for AS-REQ and TGS-REQ messages)
+Kerberos server name, provided in the ticket (for AS-REP and TGS-REP messages)
 or in the error message.
 
 If the server name from the Kerberos message is composed of several parts, the
