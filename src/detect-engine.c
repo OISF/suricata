@@ -200,6 +200,11 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
         InspectionBufferGetDataPtr GetData, InspectionSingleBufferGetDataPtr GetDataSingle,
         InspectionMultiBufferGetDataPtr GetMultiData)
 {
+    /* ignore special case unknown */
+    if (alproto != ALPROTO_UNKNOWN && AppLayerParserIsEnabled(alproto)) {
+        DEBUG_VALIDATE_BUG_ON(AppLayerParserSupportsSubStates(alproto) && sub_state == 0);
+        DEBUG_VALIDATE_BUG_ON(!AppLayerParserSupportsSubStates(alproto) && sub_state != 0);
+    }
     BUG_ON(progress >= 48);
 
     DetectBufferTypeRegister(name);
@@ -2230,6 +2235,7 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
 void DetectAppLayerMultiRegisterSubState(const char *name, AppProto alproto, uint32_t dir,
         uint8_t sub_state, uint8_t progress, InspectionMultiBufferGetDataPtr GetData, int priority)
 {
+    BUG_ON(AppLayerParserSupportsSubStates(alproto) && sub_state == 0);
     AppLayerInspectEngineRegisterInternal(name, alproto, dir, sub_state, progress,
             DetectEngineInspectMultiBufferGeneric, NULL, NULL, GetData);
     DetectAppLayerMpmMultiRegisterSubState(name, dir, priority, PrefilterMultiGenericMpmRegister,
@@ -2241,6 +2247,7 @@ void DetectAppLayerMultiRegisterSubState(const char *name, AppProto alproto, uin
 void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, uint8_t progress,
         InspectionMultiBufferGetDataPtr GetData, int priority)
 {
+    BUG_ON(AppLayerParserSupportsSubStates(alproto));
     AppLayerInspectEngineRegisterInternal(name, alproto, dir, 0, (uint8_t)progress,
             DetectEngineInspectMultiBufferGeneric, NULL, NULL, GetData);
     DetectAppLayerMpmMultiRegister(
