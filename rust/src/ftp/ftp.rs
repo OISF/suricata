@@ -78,6 +78,7 @@ lazy_static! {
         FtpCommand::new("MDTM", FtpRequestCommand::FTP_COMMAND_MDTM),
         FtpCommand::new("MKD", FtpRequestCommand::FTP_COMMAND_MKD),
         FtpCommand::new("MLFL", FtpRequestCommand::FTP_COMMAND_MLFL),
+        FtpCommand::new("MLSD", FtpRequestCommand::FTP_COMMAND_MLSD),
         FtpCommand::new("MODE", FtpRequestCommand::FTP_COMMAND_MODE),
         FtpCommand::new("MRCP", FtpRequestCommand::FTP_COMMAND_MRCP),
         FtpCommand::new("MRSQ", FtpRequestCommand::FTP_COMMAND_MRSQ),
