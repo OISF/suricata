@@ -101,6 +101,8 @@ static void RegisterInternal(const char *name, int direction, int priority,
         return;
     }
     SCLogDebug("%s is enabled", AppProtoToString(alproto));
+    DEBUG_VALIDATE_BUG_ON(AppLayerParserSupportsSubStates(alproto) && sub_state == 0);
+    DEBUG_VALIDATE_BUG_ON(!AppLayerParserSupportsSubStates(alproto) && sub_state != 0);
 
     BUG_ON(tx_min_progress >= 48);
 

@@ -127,6 +127,7 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         }
 
         if (engine->ctx.app.tx_min_progress != -1) {
+            DEBUG_VALIDATE_BUG_ON(engine->alproto == ALPROTO_UNKNOWN);
 #ifdef DEBUG
             const char *pname = AppLayerParserGetStateNameById(ipproto, engine->alproto,
                     engine->ctx.app.tx_min_progress,
@@ -178,6 +179,7 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
                         engine->is_last_for_progress, tx->detect_progress);
             }
         } else {
+            DEBUG_VALIDATE_BUG_ON(engine->alproto != ALPROTO_UNKNOWN);
             PREFILTER_PROFILING_START(det_ctx);
             engine->cb.PrefilterTx(det_ctx, engine->pectx, p, p->flow, tx_ptr, tx->tx_id,
                     tx->tx_data_ptr, flow_flags);
@@ -367,6 +369,7 @@ int PrefilterAppendTxEngineSubState(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         PrefilterTxFn PrefilterTxFunc, AppProto alproto, uint8_t sub_state,
         const int8_t tx_min_progress, void *pectx, void (*FreeFunc)(void *pectx), const char *name)
 {
+    BUG_ON(AppLayerParserSupportsSubStates(alproto) && sub_state == 0);
     if (sgh == NULL || PrefilterTxFunc == NULL || pectx == NULL)
         return -1;
 
