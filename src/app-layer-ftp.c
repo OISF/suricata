@@ -480,7 +480,8 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
          * For ftp active mode, data connection direction is opposite to
          * control direction.
          */
-        if ((state->active && state->command == FTP_COMMAND_STOR) ||
+        if ((state->active &&
+                    (state->command == FTP_COMMAND_STOR || state->command == FTP_COMMAND_APPE)) ||
                 (!state->active &&
                         (state->command == FTP_COMMAND_RETR || state->command == FTP_COMMAND_NLST ||
                                 state->command == FTP_COMMAND_LIST ||
@@ -515,6 +516,8 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
             case FTP_COMMAND_RETR:
                 // fallthrough
             case FTP_COMMAND_STOR:
+                // fallthrough
+            case FTP_COMMAND_APPE:
                 /* Ensure that there is a file name
                  * -- need more than 5 chars: cmd [4], space, <filename>
                  */
@@ -1090,6 +1093,11 @@ static AppLayerResult FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
                 SCLogDebug("STOR data to %s",
                         (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
                 break;
+            case FTP_COMMAND_APPE:
+                ftpdata_state->direction = data->direction;
+                SCLogDebug("APPE data to %s",
+                        (ftpdata_state->direction & STREAM_TOSERVER) ? "toserver" : "toclient");
+                break;
             case FTP_COMMAND_RETR:
                 ftpdata_state->direction = data->direction;
                 SCLogDebug("RETR data to %s",
@@ -1460,6 +1468,9 @@ bool EveFTPDataAddMetadata(void *vtx, SCJsonBuilder *jb)
     switch (ftp_state->command) {
         case FTP_COMMAND_STOR:
             JB_SET_STRING(jb, "command", "STOR");
+            break;
+        case FTP_COMMAND_APPE:
+            JB_SET_STRING(jb, "command", "APPE");
             break;
         case FTP_COMMAND_RETR:
             JB_SET_STRING(jb, "command", "RETR");

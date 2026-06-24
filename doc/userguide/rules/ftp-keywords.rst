@@ -7,12 +7,12 @@ ftpdata_command
 ---------------
 
 Filter ftp-data channel based on command used on the FTP command channel.
-Currently supported commands are STOR (put on a file), RETR (get a file), and
-NLST, LIST and MLSD (list directory contents).
+Currently supported commands are STOR and APPE (put/upload a file), RETR (get a
+file), and NLST, LIST and MLSD (list directory contents).
 
 Syntax::
 
-  ftpdata_command:(stor|retr|nlst|list|mlsd)
+  ftpdata_command:(stor|appe|retr|nlst|list|mlsd)
 
 Signature Example:
 
