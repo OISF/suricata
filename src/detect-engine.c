@@ -207,7 +207,7 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
         DEBUG_VALIDATE_BUG_ON(AppLayerParserSupportsSubStates(alproto) && sub_state == 0);
         DEBUG_VALIDATE_BUG_ON(!AppLayerParserSupportsSubStates(alproto) && sub_state != 0);
     }
-    BUG_ON(progress >= 48);
+    BUG_ON(progress >= APP_LAYER_MAX_PROGRESS);
 
     DetectBufferTypeRegister(name);
     const int sm_list = DetectBufferTypeGetByName(name);
