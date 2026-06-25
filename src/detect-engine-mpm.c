@@ -28,6 +28,7 @@
 #include "suricata-common.h"
 
 #include "app-layer-protos.h"
+#include "app-layer-parser.h"
 
 #include "decode.h"
 #include "detect.h"
@@ -94,6 +95,12 @@ static void RegisterInternal(const char *name, int direction, int priority,
 {
     SCLogDebug("registering %s/%d/%d/%p/%p/%u/%d", name, direction, priority,
             PrefilterRegister, GetData, alproto, tx_min_progress);
+
+    if (!AppLayerParserIsEnabled(alproto)) {
+        SCLogDebug("%s is disabled", AppProtoToString(alproto));
+        return;
+    }
+    SCLogDebug("%s is enabled", AppProtoToString(alproto));
 
     BUG_ON(tx_min_progress >= 48);
 
