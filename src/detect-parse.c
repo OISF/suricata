@@ -1475,7 +1475,7 @@ static int SigParseProtoHookApp(
             const int progress_ts = AppLayerParserGetStateIdByName(
                     IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOSERVER);
             if (progress_ts >= 0) {
-                if (progress_ts >= 48) {
+                if (progress_ts >= APP_LAYER_MAX_PROGRESS) {
                     return -1;
                 }
                 s->flags |= SIG_FLAG_TOSERVER;
@@ -1483,7 +1483,7 @@ static int SigParseProtoHookApp(
             } else {
                 const int progress_tc = AppLayerParserGetStateIdByName(
                         IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOCLIENT);
-                if (progress_tc < 0 || progress_tc >= 48) {
+                if (progress_tc < 0 || progress_tc >= APP_LAYER_MAX_PROGRESS) {
                     return -1;
                 }
                 s->flags |= SIG_FLAG_TOCLIENT;
