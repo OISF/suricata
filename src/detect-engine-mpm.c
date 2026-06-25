@@ -104,7 +104,7 @@ static void RegisterInternal(const char *name, int direction, int priority,
     DEBUG_VALIDATE_BUG_ON(AppLayerParserSupportsSubStates(alproto) && sub_state == 0);
     DEBUG_VALIDATE_BUG_ON(!AppLayerParserSupportsSubStates(alproto) && sub_state != 0);
 
-    BUG_ON(tx_min_progress >= 48);
+    BUG_ON(tx_min_progress >= APP_LAYER_MAX_PROGRESS);
 
     // must register GetData with PrefilterGenericMpmRegister
     BUG_ON(PrefilterRegister == PrefilterGenericMpmRegister && GetData == NULL);

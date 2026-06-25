@@ -1288,7 +1288,7 @@ int8_t AppLayerParserGetSubStateProgressId(
                 return -1;
             }
             SCLogDebug("state:%s v:%u", state, v);
-            BUG_ON(v > 48);
+            BUG_ON(v >= APP_LAYER_MAX_PROGRESS);
             return (int8_t)v;
         }
     }

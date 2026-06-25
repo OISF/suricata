@@ -71,6 +71,9 @@ typedef struct AppLayerGetFileState AppLayerGetFileState;
 
 int AppLayerParserProtoIsRegistered(uint8_t ipproto, AppProto alproto);
 
+/** progress values need to stay under this. */
+#define APP_LAYER_MAX_PROGRESS 48
+
 /***** transaction handling *****/
 
 int AppLayerParserSetup(void);
