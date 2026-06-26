@@ -324,8 +324,8 @@ static void AlertAddPayload(AlertJsonOutputCtx *json_output_ctx, SCJsonBuilder *
     }
 }
 
-static void AlertAddAppLayer(
-        const Packet *p, SCJsonBuilder *jb, const uint64_t tx_id, const uint16_t option_flags)
+static void AlertAddAppLayer(const Packet *p, SCJsonBuilder *jb, const uint64_t tx_id,
+        const uint8_t sub_state, const uint16_t option_flags)
 {
     const AppProto proto = SCFlowGetAppProtocol(p->flow);
     EveJsonSimpleAppLayerLogger *al = SCEveJsonSimpleGetLogger(proto);
@@ -343,6 +343,13 @@ static void AlertAddAppLayer(
                         AppLayerParserGetStateNameById(p->flow->proto, proto, ts, STREAM_TOSERVER));
                 SCJbSetString(jb, "tc_progress",
                         AppLayerParserGetStateNameById(p->flow->proto, proto, tc, STREAM_TOCLIENT));
+                if (sub_state) {
+                    const char *sname = AppLayerParserGetSubStateName(proto, sub_state);
+                    if (sname != NULL) {
+                        SCJbSetString(jb, "sub_state", sname);
+                    }
+                }
+
                 SCJbGetMark(jb, &mark);
                 switch (proto) {
                     // first check some protocols need special options for alerts logging
@@ -377,6 +384,12 @@ static void AlertAddAppLayer(
                     AppLayerParserGetStateNameById(p->flow->proto, proto, ts, STREAM_TOSERVER));
             SCJbSetString(jb, "tc_progress",
                     AppLayerParserGetStateNameById(p->flow->proto, proto, tc, STREAM_TOCLIENT));
+            if (sub_state) {
+                const char *sname = AppLayerParserGetSubStateName(proto, sub_state);
+                if (sname != NULL) {
+                    SCJbSetString(jb, "sub_state", sname);
+                }
+            }
         }
     }
     switch (proto) {
@@ -762,7 +775,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         if (p->flow != NULL) {
             if (pa->flags & PACKET_ALERT_FLAG_TX) {
                 if (json_output_ctx->flags & LOG_JSON_APP_LAYER) {
-                    AlertAddAppLayer(p, jb, pa->tx_id, json_output_ctx->flags);
+                    AlertAddAppLayer(p, jb, pa->tx_id, pa->sub_state, json_output_ctx->flags);
                 }
                 /* including fileinfo data is configured by the metadata setting */
                 if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {
