@@ -156,7 +156,7 @@ impl WebSocketState {
         } else {
             &mut self.to_skip_ts
         };
-        let input = if flow == std::ptr::null_mut() {
+        let input = if flow.is_null() {
             slice_input
         } else {
             stream_slice.as_slice()
@@ -177,7 +177,7 @@ impl WebSocketState {
             match parser::parse_message(start, max_pl_size) {
                 Ok((rem, pdu)) => {
                     let mut tx = self.new_tx(direction);
-                    if flow != std::ptr::null_mut() {
+                    if !flow.is_null() {
                         let _pdu = Frame::new(
                             flow,
                             &stream_slice,
@@ -294,7 +294,7 @@ impl WebSocketState {
                             }
                         }
                     }
-                    if tx.pdu.fin && flow != std::ptr::null_mut() {
+                    if tx.pdu.fin && !flow.is_null() {
                         sc_app_layer_parser_trigger_raw_stream_inspection(flow, direction as i32);
                     }
                     self.transactions.push_back(tx);

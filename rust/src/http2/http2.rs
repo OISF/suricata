@@ -1357,7 +1357,7 @@ impl HTTP2State {
                             for t in websocket_txs {
                                 let mut ht = Self::create_websocket_tx(t, dir);
                                 ht.tx_id = self.tx_id + 1;
-                                self.tx_id = self.tx_id + 1;
+                                self.tx_id += 1;
                                 self.transactions.push_back(ht);
                             }
                         }
