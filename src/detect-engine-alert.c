@@ -392,8 +392,8 @@ static inline PacketAlert PacketAlertSet(
 /**
  * \brief Append signature to local packet alert queue for later preprocessing
  */
-void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p, uint64_t tx_id,
-        uint8_t alert_flags)
+static void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p,
+        uint64_t tx_id, uint8_t alert_flags)
 {
     /* first time we see a drop action signature, set that in the packet */
     /* we do that even before inserting into the queue, so we save it even if appending fails */
@@ -416,6 +416,37 @@ void AlertQueueAppend(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet
     SCLogDebug("packet %" PRIu64 ": appending sid %" PRIu32 ", s->iid %" PRIu32 " to alert queue",
             PcapPacketCntGet(p), s->id, s->iid);
     det_ctx->alert_queue_size++;
+}
+
+/**
+ * \brief Append signature to local packet alert queue for later preprocessing
+ */
+void AlertQueueAppendAppTx(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p,
+        uint64_t tx_id, uint8_t alert_flags)
+{
+    alert_flags |= (PACKET_ALERT_FLAG_TX | PACKET_ALERT_FLAG_STATE_MATCH);
+    return AlertQueueAppend(det_ctx, s, p, tx_id, alert_flags);
+}
+
+/**
+ * \brief Append signature to local packet alert queue for later preprocessing
+ * This does not automatically set PACKET_ALERT_FLAG_STATE_MATCH as this
+ * comes from the packet alert path.
+ */
+void AlertQueueAppendAppTxFromPacket(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p,
+        uint64_t tx_id, uint8_t alert_flags)
+{
+    alert_flags |= PACKET_ALERT_FLAG_TX;
+    return AlertQueueAppend(det_ctx, s, p, tx_id, alert_flags);
+}
+
+/**
+ * \brief Append signature to local packet alert queue for later preprocessing
+ */
+void AlertQueueAppendPacket(
+        DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p, uint8_t alert_flags)
+{
+    return AlertQueueAppend(det_ctx, s, p, PACKET_ALERT_NOTX, alert_flags);
 }
 
 /** \internal
