@@ -717,7 +717,7 @@ static uint8_t DetectRunApplyPacketPolicy(const DetectEngineCtx *de_ctx,
     }
     Signature *s = de_ctx->fw_policies->pkt_policy_signatures[policy];
     if (s != NULL) {
-        AlertQueueAppend(det_ctx, s, p, 0, PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET);
+        AlertQueueAppendPacket(det_ctx, s, p, PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET);
     }
     return p->action;
 }
@@ -854,7 +854,11 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
                 }
             }
         }
-        AlertQueueAppend(det_ctx, s, p, txid, alert_flags);
+        if (alert_flags & PACKET_ALERT_FLAG_TX) {
+            AlertQueueAppendAppTx(det_ctx, s, p, txid, alert_flags);
+        } else {
+            AlertQueueAppendPacket(det_ctx, s, p, alert_flags);
+        }
 
         if (det_ctx->post_rule_work_queue.len > 0) {
             /* run post match prefilter engines on work queue */
@@ -1649,8 +1653,7 @@ static inline void DetectRunAppendDefaultAppPolicyAlert(DetectEngineThreadCtx *d
                 det_ctx->de_ctx->fw_policies, alproto, direction, hook);
         BUG_ON(s == NULL);
         uint8_t alert_flags = apply_to_packet ? PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET : 0;
-        alert_flags |= PACKET_ALERT_FLAG_TX;
-        AlertQueueAppend(det_ctx, s, p, tx_id, alert_flags);
+        AlertQueueAppendAppTx(det_ctx, s, p, tx_id, alert_flags);
     }
 }
 
@@ -1983,7 +1986,7 @@ static void DetectRunAppendDefaultAccept(DetectEngineThreadCtx *det_ctx, Packet 
     default_accept.flags = SIG_FLAG_FIREWALL;
     default_accept.detect_table =
             DETECT_TABLE_APP_FILTER; // TODO review, hope this makes it last in sorting
-    AlertQueueAppend(det_ctx, &default_accept, p, 0, PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET);
+    AlertQueueAppendPacket(det_ctx, &default_accept, p, PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET);
 }
 
 /** \internal
@@ -2137,8 +2140,10 @@ static void DetectRunTxFirewallRuleFullMatch(DetectEngineThreadCtx *det_ctx, con
         DetectTransaction *tx, struct DetectFirewallAppTxState *fw_state, Flow *f, Packet *p,
         const uint8_t flow_flags)
 {
-    uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_TX);
     if (s->action & ACTION_ACCEPT) {
+        /* add alert now, as ApplyAccept may also trigger
+         * policy matches that could add alerts. */
+        SCLogDebug("append alert");
         /* see if we need to apply tx/hook accept to the packet. This can be needed
          * when we've completed the inspection so far for an incomplete tx, and an
          * accept:tx or accept:hook is the last match.*/
@@ -2146,14 +2151,11 @@ static void DetectRunTxFirewallRuleFullMatch(DetectEngineThreadCtx *det_ctx, con
         if (fw_accept_to_packet) {
             SCLogDebug("packet %" PRIu64 ": apply accept to packet", p->pcap_cnt);
             SCLogDebug("accept:(tx|hook): should be applied to the packet");
-            alert_flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET;
+            AlertQueueAppendAppTx(
+                    det_ctx, s, p, tx->tx_id, PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET);
+        } else {
+            AlertQueueAppendAppTx(det_ctx, s, p, tx->tx_id, 0);
         }
-        SCLogDebug("append alert");
-
-        /* add alert now, as ApplyAccept may also trigger
-         * policy matches that could add alerts. */
-        AlertQueueAppend(det_ctx, s, p, tx->tx_id, alert_flags);
-
         DetectRunTxFirewallApplyAccept(det_ctx, p, flow_flags, s, tx, fw_state);
     } else if (s->action & ACTION_DROP) {
         SCLogDebug("drop packet because of rule with drop action");
@@ -2164,10 +2166,10 @@ static void DetectRunTxFirewallRuleFullMatch(DetectEngineThreadCtx *det_ctx, con
             f->aux_flags |= FLOW_AUX_ACTION_BY_FIREWALL;
         }
         SCLogDebug("append alert");
-        AlertQueueAppend(det_ctx, s, p, tx->tx_id, alert_flags);
+        AlertQueueAppendAppTx(det_ctx, s, p, tx->tx_id, 0);
     } else {
         SCLogDebug("append alert");
-        AlertQueueAppend(det_ctx, s, p, tx->tx_id, alert_flags);
+        AlertQueueAppendAppTx(det_ctx, s, p, tx->tx_id, 0);
     }
 }
 
@@ -2544,8 +2546,7 @@ static void DetectRunTx(ThreadVars *tv,
                         "%p/%" PRIu64 " sig %u (%u) matched", tx.tx_ptr, tx.tx_id, s->id, s->iid);
 
                 if ((s->flags & SIG_FLAG_FIREWALL) == 0) {
-                    AlertQueueAppend(det_ctx, s, p, tx.tx_id,
-                            (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_TX));
+                    AlertQueueAppendAppTx(det_ctx, s, p, tx.tx_id, 0);
                 } else {
                     DetectRunTxFirewallRuleFullMatch(det_ctx, s, &tx, &fw_state, f, p, flow_flags);
                 }
@@ -2756,15 +2757,16 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
                 if (r) {
                     /* match */
                     DetectRunPostMatch(tv, det_ctx, p, s);
-
-                    uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_FRAME);
                     det_ctx->frame_id = frame->id;
                     SCLogDebug(
                             "%p/%" PRIi64 " sig %u (%u) matched", frame, frame->id, s->id, s->iid);
+                    const uint8_t alert_flags =
+                            (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_FRAME);
                     if (frame->flags & FRAME_FLAG_TX_ID_SET) {
-                        alert_flags |= PACKET_ALERT_FLAG_TX;
+                        AlertQueueAppendAppTx(det_ctx, s, p, frame->tx_id, alert_flags);
+                    } else {
+                        AlertQueueAppendPacket(det_ctx, s, p, alert_flags);
                     }
-                    AlertQueueAppend(det_ctx, s, p, frame->tx_id, alert_flags);
                 }
             }
             DetectVarProcessList(det_ctx, p->flow, p);
