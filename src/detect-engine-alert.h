@@ -33,9 +33,9 @@ void AlertQueueFree(DetectEngineThreadCtx *det_ctx);
 void AlertQueueAppendPacket(
         DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p, uint8_t alert_flags);
 void AlertQueueAppendAppTxFromPacket(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p,
-        uint64_t tx_id, uint8_t alert_flags);
+        uint64_t tx_id, const uint8_t sub_state, uint8_t alert_flags);
 void AlertQueueAppendAppTx(DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p,
-        uint64_t tx_id, uint8_t alert_flags);
+        uint64_t tx_id, const uint8_t sub_state, uint8_t alert_flags);
 void PacketAlertFinalize(const DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);
 #ifdef UNITTESTS
 int PacketAlertCheck(Packet *, uint32_t);
