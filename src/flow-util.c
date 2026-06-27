@@ -38,6 +38,7 @@
 #include "util-macset.h"
 #include "util-flow-rate.h"
 #include "flow-storage.h"
+#include "source-pcap-file-helper.h"
 
 #include "detect.h"
 #include "detect-engine-state.h"
@@ -211,6 +212,10 @@ void FlowInit(ThreadVars *tv, Flow *f, const Packet *p)
         DEBUG_VALIDATE_BUG_ON(SCFlowGetStorageById(f, FlowRateGetStorageID()) != NULL);
         FlowRateStore *frs = FlowRateStoreInit();
         SCFlowSetStorageById(f, FlowRateGetStorageID(), frs);
+    }
+
+    if (FlowPcapFileVarsStorageEnabled() && p->pcap_v.pfv != NULL) {
+        FlowSetPcapFileVars(f, p->pcap_v.pfv);
     }
 
     SCFlowRunInitCallbacks(tv, f, p);
