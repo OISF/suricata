@@ -207,7 +207,7 @@ static void BuildBasicPname(char *out, const size_t out_size, const char *name, 
 static void AppendTransformsToPname(
         char *out, const size_t out_size, const DetectEngineTransforms *transforms)
 {
-    if (transforms == NULL || transforms->cnt == 0)
+    if (transforms == NULL || transforms->cnt <= 0)
         return;
 
     ssize_t left = (ssize_t)out_size - (ssize_t)strlen(out) - (ssize_t)4;
