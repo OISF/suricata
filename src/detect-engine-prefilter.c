@@ -973,14 +973,15 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             for (uint8_t state = 0; state < s->app_progress_hook; state++) {
                 SCLogDebug("handle HOOK %u LTE", state);
                 const int dir = (s->flags & SIG_FLAG_TOSERVER) ? 0 : 1;
+                const uint8_t sub_state = s->init_data->hook.t.app.sub_state;
                 const char *pname = DetectEngineAppHookToName(
-                        s->alproto, state, dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
+                        s->alproto, sub_state, state, dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
                 if (pname == NULL) {
                     goto error;
                 }
-                const int sm_list = DetectEngineAppHookToSmlist(
-                        s->alproto, state, dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
-                uint8_t sub_state = s->init_data->hook.t.app.sub_state;
+                const uint8_t direction = dir == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT;
+                const int sm_list =
+                        DetectEngineAppHookToSmlist(s->alproto, sub_state, state, direction);
                 if (TxNonPFAddSig(de_ctx, tx_engines_hash, s->alproto, sub_state, dir, state,
                             sm_list, pname, s) != 0) {
                     goto error;
