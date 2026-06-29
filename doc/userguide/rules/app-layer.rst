@@ -11,6 +11,7 @@ Match on the detected app-layer protocol.
 Syntax::
 
     app-layer-protocol:[!]<protocol>(,<mode>);
+    app-layer-protocol:[!]<proto1>|<proto2>[|...|<protoN>](,<mode>);
 
 Examples::
 
@@ -21,6 +22,10 @@ Examples::
     app-layer-protocol:http,to_server; app-layer-protocol:tls,to_client;
     app-layer-protocol:http2,final; app-layer-protocol:http1,original;
     app-layer-protocol:unknown;
+    app-layer-protocol:unknown|tls;
+    app-layer-protocol:unknown|tls|http;
+    app-layer-protocol:!tls|http;
+    app-layer-protocol:tls|http,either;
 
 A special value 'failed' can be used for matching on flows in which
 protocol detection failed. This can happen if Suricata doesn't know
@@ -47,6 +52,69 @@ Here is an example of a rule matching non-http traffic on port 80:
 .. container:: example-rule
 
     alert tcp any any -> any 80 (msg:"non-HTTP traffic over HTTP standard port"; flow:to_server; app-layer-protocol:!http,final; sid:1; )
+
+Multi-value form
+~~~~~~~~~~~~~~~~
+
+The ``app-layer-protocol`` keyword also accepts a pipe-separated (``|``) list
+of protocol values. A rule matches when the flow's resolved application-layer
+protocol equals **any** value in the list (logical OR).
+
+Syntax::
+
+    app-layer-protocol:[!]<proto1>|<proto2>[|...|<protoN>](,<mode>);
+
+Using ``|`` for the list keeps the optional trailing ``,<mode>`` qualifier
+unambiguous, so the single-value ``<protocol>,<mode>`` form is unchanged.
+
+Examples::
+
+    app-layer-protocol:unknown|tls;
+    app-layer-protocol:unknown|tls|http;
+    app-layer-protocol:tls|http,either;
+    app-layer-protocol:!tls|http;
+
+The ``unknown|<proto>`` detection-window idiom
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When Suricata has not yet classified a flow's protocol (the "detection
+window"), the flow's app-layer protocol is ``unknown``. Once protocol
+detection completes, the protocol transitions to its classified value
+(e.g., ``tls``, ``http``). Including ``unknown`` in a multi-value list
+allows a single rule to cover both the detection window and the confirmed
+protocol::
+
+    app-layer-protocol:unknown|tls;
+
+This rule matches during the detection window (while the protocol is still
+``unknown``) **and** after classification (when the protocol is ``tls``).
+If the flow is classified to a protocol not in the list (e.g., ``http``),
+the rule stops matching after the detection window closes and the
+default-drop verdict applies if no other rule accepts the flow.
+
+The detection window is bounded by Suricata's existing app-layer probing
+budget. No new configuration knob is introduced.
+
+Negated multi-value (NOR semantics)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When the multi-value form is negated with ``!``, it implements NOR semantics
+across the entire list: the rule matches when the resolved application-layer
+protocol is **known** AND matches **none** of the listed values.
+
+Example::
+
+    app-layer-protocol:!tls|http;
+
+This matches when the flow's protocol is known and is neither ``tls`` nor
+``http`` (e.g., it matches ``dns``, ``ssh``, ``smtp``, etc.).
+
+.. note:: Negated multi-value rules do not match during the detection window
+   (when the protocol is still ``unknown``). This prevents false positives
+   before protocol classification is complete.
+
+.. note:: The value ``unknown`` cannot appear in a negated list. The parser
+   rejects ``!unknown`` and ``!unknown|tls`` at rule-load time.
 
 .. _proto-detect-bail-out:
 
