@@ -836,37 +836,46 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
  * \param direction STREAM_TOSERVER or STREAM_TOCLIENT
  */
 const char *DetectEngineAppHookToName(
-        const AppProto p, const uint8_t state, const uint8_t direction)
+        const AppProto p, const uint8_t sub_state, const uint8_t state, const uint8_t direction)
 {
     if (!((direction & (STREAM_TOSERVER | STREAM_TOCLIENT)) == STREAM_TOSERVER) &&
             !((direction & (STREAM_TOSERVER | STREAM_TOCLIENT)) == STREAM_TOCLIENT))
         return NULL;
 
-    const char *pname = AppLayerParserGetStateNameById(IPPROTO_TCP, // TODO
-            p, state, direction);
-    if (pname == NULL) {
-        if (state == 0) {
-            if (direction == STREAM_TOSERVER) {
-                pname = "request_started";
-            } else {
-                pname = "response_started";
-            }
-        } else {
-            const int complete = AppLayerParserGetStateProgressCompletionStatus(p, direction);
-            if (state == complete) {
+    if (sub_state == 0) {
+        const char *pname = AppLayerParserGetStateNameById(IPPROTO_TCP, // TODO
+                p, state, direction);
+        if (pname == NULL) {
+            if (state == 0) {
                 if (direction == STREAM_TOSERVER) {
-                    pname = "request_complete";
+                    pname = "request_started";
                 } else {
-                    pname = "response_complete";
+                    pname = "response_started";
+                }
+            } else {
+                const int complete = AppLayerParserGetStateProgressCompletionStatus(p, direction);
+                if (state == complete) {
+                    if (direction == STREAM_TOSERVER) {
+                        pname = "request_complete";
+                    } else {
+                        pname = "response_complete";
+                    }
                 }
             }
         }
+        return pname;
+    } else {
+        BUG_ON(!AppLayerParserSupportsSubStates(p));
+        const char *name = AppLayerParserGetSubStateProgressName(p, sub_state, state, direction);
+        return name;
     }
-    return pname;
 }
 
-/** \brief get the sm_list for a app hook */
-int DetectEngineAppHookToSmlist(const AppProto p, const uint8_t state, const int direction)
+/** \brief get the sm_list for a app hook
+ *  \param sub_state sub_state to use or 0 if not in use
+ * */
+int DetectEngineAppHookToSmlist(
+        const AppProto p, const uint8_t sub_state, const uint8_t state, const uint8_t direction)
 {
     const char *app_proto = AppProtoToString(p);
     if (app_proto == NULL) {
@@ -876,20 +885,45 @@ int DetectEngineAppHookToSmlist(const AppProto p, const uint8_t state, const int
     if (strcmp(app_proto, "http") == 0)
         app_proto = "http1";
 
-    const char *name =
-            DetectEngineAppHookToName(p, state, direction & (STREAM_TOSERVER | STREAM_TOCLIENT));
-    if (name == NULL) {
-        return -1;
-    }
-
     char generic_hook_name[256];
-    snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", app_proto, name);
-    int list = DetectBufferTypeGetByName(generic_hook_name);
-    if (list < 0) {
-        SCLogError("no list registered as %s for %s hook %s", generic_hook_name, app_proto, name);
-        return -1;
+    if (sub_state == 0) {
+        const char *name = DetectEngineAppHookToName(
+                p, 0, state, direction & (STREAM_TOSERVER | STREAM_TOCLIENT));
+        if (name == NULL) {
+            return -1;
+        }
+
+        snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", app_proto, name);
+
+        int list = DetectBufferTypeGetByName(generic_hook_name);
+        if (list < 0) {
+            SCLogError(
+                    "no list registered as %s for %s hook %s", generic_hook_name, app_proto, name);
+            return -1;
+        }
+        return list;
+    } else {
+        BUG_ON(!AppLayerParserSupportsSubStates(p));
+
+        const char *sname = AppLayerParserGetSubStateName(p, sub_state);
+        if (sname == NULL)
+            return -1;
+
+        const char *name = AppLayerParserGetSubStateProgressName(p, sub_state, state, direction);
+        if (name == NULL)
+            return -1;
+
+        snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:%s:generic", app_proto, sname,
+                name);
+
+        int list = DetectBufferTypeGetByName(generic_hook_name);
+        if (list < 0) {
+            SCLogError("no list registered as %s for %s sub_state %s hook %s", generic_hook_name,
+                    app_proto, sname, name);
+            return -1;
+        }
+        return list;
     }
-    return list;
 }
 
 /**
@@ -908,7 +942,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
         SCLogDebug("need an inspect engine per state, range 0-%u", s->app_progress_hook);
         for (uint8_t state = 0; state < s->app_progress_hook; state++) {
             uint8_t dir = 0;
-            int direction = 0;
+            uint8_t direction = 0;
             BUG_ON((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) ==
                     (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT));
             BUG_ON((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) == 0);
@@ -920,8 +954,8 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
                 dir = 1;
             }
 
-            int sm_list =
-                    DetectEngineAppHookToSmlist(s->init_data->hook.t.app.alproto, 0, direction);
+            int sm_list = DetectEngineAppHookToSmlist(s->init_data->hook.t.app.alproto,
+                    s->init_data->hook.t.app.sub_state, 0, direction);
             if (sm_list < 0)
                 return -1;
 
