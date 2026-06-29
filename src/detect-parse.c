@@ -1388,6 +1388,7 @@ static int SigParseProtoHookApp(
         Signature *s, const char *proto_hook, const char *p, const char *in_h)
 {
     char hook[64];
+    char generic_hook_name[256];
     strlcpy(hook, in_h, sizeof(hook));
     const char *h = hook;
     const char *t = NULL;
@@ -1425,6 +1426,12 @@ static int SigParseProtoHookApp(
             SCLogError("sub states currently only supported for http2");
             return -1;
         }
+        /* FW hook LTE mode */
+        if (*h == '<') {
+            h++;
+            SCLogDebug("hook and prior hooks: '%s'", h);
+            s->flags |= SIG_FLAG_FW_HOOK_LTE;
+        }
         const uint8_t max_state = AppLayerParserGetSubStateCompletion(
                 s->alproto, sub_state); // TODO allow different completion per direction?
         if (strcmp(h, "request_started") == 0) {
@@ -1457,7 +1464,14 @@ static int SigParseProtoHookApp(
                 s->init_data->hook = SetAppHook(s->alproto, sub_state, progress_tc);
             }
         }
+        snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:%s:generic", p, t, h);
     } else {
+        /* FW hook LTE mode */
+        if (*h == '<') {
+            h++;
+            SCLogDebug("hook and prior hooks: '%s'", h);
+            s->flags |= SIG_FLAG_FW_HOOK_LTE;
+        }
         SCLogDebug("h:'%s'", h);
         if (strcmp(h, "request_started") == 0) {
             s->flags |= SIG_FLAG_TOSERVER;
@@ -1494,11 +1508,10 @@ static int SigParseProtoHookApp(
                 s->init_data->hook = SetAppHook(s->alproto, sub_state, (uint8_t)progress_tc);
             }
         }
+        snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", p, h);
     }
+    SCLogDebug("generic_hook_name %s", generic_hook_name);
 
-    /* use in_h to include sub state */
-    char generic_hook_name[128];
-    snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", p, in_h);
     int list = DetectBufferTypeGetByName(generic_hook_name);
     if (list < 0) {
         SCLogError("no list registered as %s for hook %s", generic_hook_name, proto_hook);
@@ -1569,14 +1582,6 @@ static int SigParseProto(Signature *s, const char *protostr)
                 if (strlen(h) == 0) {
                     SCLogError("invalid protocol specification '%s'", proto);
                     return -1;
-                }
-
-                /* FW hook LTE mode */
-                SCLogDebug("hook '%s'", h);
-                if (*h == '<') {
-                    h++;
-                    SCLogDebug("hook and prior hooks: '%s'", h);
-                    s->flags |= SIG_FLAG_FW_HOOK_LTE;
                 }
                 if (SigParseProtoHookApp(s, protostr, p, h) < 0) {
                     SCLogError("protocol \"%s\" does not support hook \"%s\"", p, h);
