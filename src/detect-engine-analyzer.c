@@ -1095,6 +1095,21 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 SCJbClose(js);
                 break;
             }
+            case DETECT_APP_LAYER_PROTOCOL: {
+                const DetectAppLayerProtocolData *ad = (const DetectAppLayerProtocolData *)smd->ctx;
+                SCJbOpenObject(js, "app_layer_protocol");
+                if (ad->is_list) {
+                    char list_buf[512];
+                    DetectAppLayerProtocolListToString(ad, list_buf, sizeof(list_buf));
+                    SCJbSetString(js, "protocols", list_buf);
+                } else {
+                    SCJbSetString(js, "protocols", AppProtoToString(ad->alproto));
+                }
+                SCJbSetString(js, "mode", DetectAppLayerProtocolModeName(ad->mode));
+                SCJbSetBool(js, "negated", ad->negated);
+                SCJbClose(js);
+                break;
+            }
         }
         SCJbClose(js);
 
@@ -1985,47 +2000,6 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         }
         if (s->alproto != ALPROTO_UNKNOWN) {
             fprintf(fp, "    App layer protocol is %s.\n", AppProtoToString(s->alproto));
-        }
-        /* app_layer_protocol_list: emit the protocol value list and resolved
-         * mode for rules using the multi-value form of app-layer-protocol:
-         * (list_count > 0). Single-value rules are NOT emitted here because
-         * they are already covered by the baseline "App layer protocol is X"
-         * line above. */
-        {
-            SigMatch *alp_sm = NULL;
-            for (int32_t lid = 0; lid < DETECT_SM_LIST_MAX && alp_sm == NULL; lid++) {
-                for (SigMatch *sm_iter = s->init_data->smlists[lid];
-                        sm_iter != NULL; sm_iter = sm_iter->next) {
-                    if (sm_iter->type == DETECT_APP_LAYER_PROTOCOL) {
-                        const DetectAppLayerProtocolData *alp_data =
-                                (const DetectAppLayerProtocolData *)sm_iter->ctx;
-                        if (alp_data != NULL && alp_data->list_count > 0) {
-                            alp_sm = sm_iter;
-                            break;
-                        }
-                    }
-                }
-            }
-            if (alp_sm != NULL) {
-                const DetectAppLayerProtocolData *alp_data =
-                        (const DetectAppLayerProtocolData *)alp_sm->ctx;
-                fprintf(fp, "    app_layer_protocol_list: [");
-                for (uint8_t i = 0; i < alp_data->list_count; i++) {
-                    if (i > 0)
-                        fprintf(fp, ",");
-                    fprintf(fp, "%s", AppProtoToString(alp_data->list_alprotos[i]));
-                }
-                const char *mode_name = "direction";
-                switch (alp_data->mode) {
-                    case 0: mode_name = "direction"; break;
-                    case 1: mode_name = "final"; break;
-                    case 2: mode_name = "either"; break;
-                    case 3: mode_name = "to_server"; break;
-                    case 4: mode_name = "to_client"; break;
-                    case 5: mode_name = "original"; break;
-                }
-                fprintf(fp, "] mode: %s\n", mode_name);
-            }
         }
 
         if (rule_content || rule_content_http || rule_pcre || rule_pcre_http) {

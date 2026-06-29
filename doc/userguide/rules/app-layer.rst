@@ -11,7 +11,7 @@ Match on the detected app-layer protocol.
 Syntax::
 
     app-layer-protocol:[!]<protocol>(,<mode>);
-    app-layer-protocol:[!]<proto1>,<proto2>[,...,<protoN>](,<mode>);
+    app-layer-protocol:[!]<proto1>|<proto2>[|...|<protoN>](,<mode>);
 
 Examples::
 
@@ -22,10 +22,10 @@ Examples::
     app-layer-protocol:http,to_server; app-layer-protocol:tls,to_client;
     app-layer-protocol:http2,final; app-layer-protocol:http1,original;
     app-layer-protocol:unknown;
-    app-layer-protocol:unknown,tls;
-    app-layer-protocol:unknown,tls,http;
-    app-layer-protocol:!tls,http;
-    app-layer-protocol:tls,http,either;
+    app-layer-protocol:unknown|tls;
+    app-layer-protocol:unknown|tls|http;
+    app-layer-protocol:!tls|http;
+    app-layer-protocol:tls|http,either;
 
 A special value 'failed' can be used for matching on flows in which
 protocol detection failed. This can happen if Suricata doesn't know
@@ -56,55 +56,26 @@ Here is an example of a rule matching non-http traffic on port 80:
 Multi-value form
 ~~~~~~~~~~~~~~~~
 
-The ``app-layer-protocol`` keyword also accepts a comma-separated list of
-protocol values. A rule matches when the flow's resolved application-layer
+The ``app-layer-protocol`` keyword also accepts a pipe-separated (``|``) list
+of protocol values. A rule matches when the flow's resolved application-layer
 protocol equals **any** value in the list (logical OR).
 
 Syntax::
 
-    app-layer-protocol:[!]<proto1>,<proto2>[,...,<protoN>](,<mode>);
+    app-layer-protocol:[!]<proto1>|<proto2>[|...|<protoN>](,<mode>);
 
-The list may contain up to 16 protocol values. The total argument length
-must not exceed 1024 characters, and each individual token must not exceed
-50 characters.
+Using ``|`` for the list keeps the optional trailing ``,<mode>`` qualifier
+unambiguous, so the single-value ``<protocol>,<mode>`` form is unchanged.
 
 Examples::
 
-    app-layer-protocol:unknown,tls;
-    app-layer-protocol:unknown,tls,http;
-    app-layer-protocol:tls,http,either;
-    app-layer-protocol:!tls,http;
+    app-layer-protocol:unknown|tls;
+    app-layer-protocol:unknown|tls|http;
+    app-layer-protocol:tls|http,either;
+    app-layer-protocol:!tls|http;
 
-Mode disambiguation rule
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-When the keyword argument contains two or more comma-separated tokens, the
-parser applies the following disambiguation rule to determine whether the
-final token is a mode qualifier or a protocol value:
-
-- If the final token matches one of the six recognized mode qualifier names
-  (``final``, ``original``, ``either``, ``to_server``, ``to_client``,
-  ``direction``), it is parsed as the mode qualifier and the preceding tokens
-  form the protocol value list.
-- Otherwise, all tokens are parsed as protocol values and the mode defaults
-  to ``direction``.
-
-For example::
-
-    app-layer-protocol:tls,http,either;
-
-Here ``either`` is recognized as a mode qualifier, so the protocol list is
-``[tls, http]`` with mode ``either``.
-
-::
-
-    app-layer-protocol:unknown,tls,http;
-
-Here ``http`` is not a recognized mode qualifier name, so all three tokens
-are protocol values with the default mode ``direction``.
-
-The ``unknown,<proto>`` Detection Window idiom
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The ``unknown|<proto>`` detection-window idiom
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When Suricata has not yet classified a flow's protocol (the "detection
 window"), the flow's app-layer protocol is ``unknown``. Once protocol
@@ -113,7 +84,7 @@ detection completes, the protocol transitions to its classified value
 allows a single rule to cover both the detection window and the confirmed
 protocol::
 
-    app-layer-protocol:unknown,tls;
+    app-layer-protocol:unknown|tls;
 
 This rule matches during the detection window (while the protocol is still
 ``unknown``) **and** after classification (when the protocol is ``tls``).
@@ -133,7 +104,7 @@ protocol is **known** AND matches **none** of the listed values.
 
 Example::
 
-    app-layer-protocol:!tls,http;
+    app-layer-protocol:!tls|http;
 
 This matches when the flow's protocol is known and is neither ``tls`` nor
 ``http`` (e.g., it matches ``dns``, ``ssh``, ``smtp``, etc.).
@@ -143,7 +114,7 @@ This matches when the flow's protocol is known and is neither ``tls`` nor
    before protocol classification is complete.
 
 .. note:: The value ``unknown`` cannot appear in a negated list. The parser
-   rejects ``!unknown`` and ``!unknown,tls`` at rule-load time.
+   rejects ``!unknown`` and ``!unknown|tls`` at rule-load time.
 
 .. _proto-detect-bail-out:
 

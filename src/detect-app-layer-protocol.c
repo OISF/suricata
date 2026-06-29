@@ -48,11 +48,45 @@ enum {
     DETECT_ALPROTO_ORIG = 5,
 };
 
-/** \brief maximum number of comma-separated values a single
- *         app-layer-protocol: keyword may carry. */
-#define MAX_ALPROTO_LIST 16
-
 static void DetectAppLayerProtocolFree(DetectEngineCtx *de_ctx, void *ptr);
+
+/** \internal \brief size in bytes of an alproto bitmask (g_alproto_max bits). */
+static inline uint32_t AlprotoBitmaskSize(void)
+{
+    return (uint32_t)((g_alproto_max + 7) / 8);
+}
+
+static inline void AlprotoBitmaskSet(uint8_t *bm, AppProto a)
+{
+    bm[a >> 3] |= (uint8_t)(1u << (a & 7));
+}
+
+static inline bool AlprotoBitmaskTest(const uint8_t *bm, AppProto a)
+{
+    return (bm[a >> 3] & (uint8_t)(1u << (a & 7))) != 0;
+}
+
+/** \internal \brief Set the bit for a value; the generic ALPROTO_HTTP umbrella
+ *  also sets the http1/http2 bits. */
+static void AlprotoBitmaskSetValue(uint8_t *bm, AppProto a)
+{
+    AlprotoBitmaskSet(bm, a);
+    if (a == ALPROTO_HTTP) {
+        AlprotoBitmaskSet(bm, ALPROTO_HTTP1);
+        AlprotoBitmaskSet(bm, ALPROTO_HTTP2);
+    }
+}
+
+/** \internal \brief Exact comparison for the single-value prefilter path,
+ *  mirroring AlprotoBitmaskSetValue(). */
+static bool DetectAppLayerProtocolMatchExact(AppProto sigproto, AppProto alproto)
+{
+    if (sigproto == alproto)
+        return true;
+    if (sigproto == ALPROTO_HTTP)
+        return alproto == ALPROTO_HTTP1 || alproto == ALPROTO_HTTP2;
+    return false;
+}
 
 static int DetectAppLayerProtocolPacketMatch(
         DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const SigMatchCtx *ctx)
@@ -114,28 +148,15 @@ static int DetectAppLayerProtocolPacketMatch(
         }
     }
 
-    const AppProto *protos = (data->list_count == 0) ? &data->alproto : data->list_alprotos;
-    const uint8_t count = (data->list_count == 0) ? 1 : data->list_count;
-
     bool r = false;
     if (data->mode == DETECT_ALPROTO_EITHER) {
-        for (uint8_t i = 0; i < count; i++) {
-            if (AppProtoEquals(protos[i], f->alproto_ts) ||
-                    AppProtoEquals(protos[i], f->alproto_tc)) {
-                r = true;
-                break;
-            }
-        }
+        r = AlprotoBitmaskTest(data->alprotos, f->alproto_ts) ||
+            AlprotoBitmaskTest(data->alprotos, f->alproto_tc);
     } else {
-        for (uint8_t i = 0; i < count; i++) {
-            if (AppProtoEquals(protos[i], resolved_alproto)) {
-                r = true;
-                break;
-            }
-        }
+        r = AlprotoBitmaskTest(data->alprotos, resolved_alproto);
     }
 
-    /* XOR with negated → NOR semantics for negated lists. */
+    /* XOR with negated for NOR semantics. */
     r = r ^ data->negated;
 
     if (r) {
@@ -164,6 +185,49 @@ static int DetectAppLayerProtocolMapModeName(const char *name)
     if (strcmp(name, "direction") == 0)
         return DETECT_ALPROTO_DIRECTION;
     return -1;
+}
+
+/** \brief Map a DETECT_ALPROTO_* mode value to its textual qualifier. */
+const char *DetectAppLayerProtocolModeName(uint8_t mode)
+{
+    switch (mode) {
+        case DETECT_ALPROTO_FINAL:
+            return "final";
+        case DETECT_ALPROTO_ORIG:
+            return "original";
+        case DETECT_ALPROTO_EITHER:
+            return "either";
+        case DETECT_ALPROTO_TOSERVER:
+            return "to_server";
+        case DETECT_ALPROTO_TOCLIENT:
+            return "to_client";
+        case DETECT_ALPROTO_DIRECTION:
+        default:
+            return "direction";
+    }
+}
+
+/** \brief Format a multi-value keyword's value set as a comma-separated string
+ *  of protocol names (used by the engine-analyzer). */
+void DetectAppLayerProtocolListToString(
+        const DetectAppLayerProtocolData *data, char *buf, size_t buflen)
+{
+    if (buflen == 0)
+        return;
+    buf[0] = '\0';
+
+    size_t offset = 0;
+    for (AppProto a = 0; a < g_alproto_max; a++) {
+        if (!AlprotoBitmaskTest(data->alprotos, a))
+            continue;
+        const char *name = AppProtoToString(a);
+        if (name == NULL)
+            continue;
+        int w = snprintf(buf + offset, buflen - offset, "%s%s", (offset == 0) ? "" : ",", name);
+        if (w < 0 || (size_t)w >= buflen - offset)
+            break;
+        offset += (size_t)w;
+    }
 }
 
 /** \internal
@@ -213,134 +277,100 @@ static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg, 
         return NULL;
     }
 
-    /* Tokenize on ','. */
     char buf[1025];
     strlcpy(buf, arg, sizeof(buf));
 
-    const char *tokens[MAX_ALPROTO_LIST + 1];
-    int token_count = 0;
-    char *cur = buf;
-    while (1) {
-        char *comma = strchr(cur, ',');
-        if (comma != NULL)
-            *comma = '\0';
-
-        if (token_count >= MAX_ALPROTO_LIST + 1) {
-            SCLogError("app-layer-protocol keyword value list in \"%s\" exceeds the "
-                       "maximum of %d comma-separated values",
-                    arg, MAX_ALPROTO_LIST);
+    /* The protocol list and the mode are separated by a single ','; the list
+     * itself is pipe-separated. */
+    uint8_t mode = DETECT_ALPROTO_DIRECTION;
+    char *mode_str = strchr(buf, ',');
+    if (mode_str != NULL) {
+        *mode_str = '\0';
+        mode_str++;
+        int m = DetectAppLayerProtocolMapModeName(mode_str);
+        if (m < 0) {
+            SCLogError("app-layer-protocol keyword supplied with unknown mode "
+                       "\"%s\" in \"%s\"",
+                    mode_str, arg);
             return NULL;
         }
+        mode = (uint8_t)m;
+    }
+
+    /* Allocate the keyword data and its value bitmask up front. */
+    DetectAppLayerProtocolData *data = SCCalloc(1, sizeof(*data));
+    if (unlikely(data == NULL))
+        return NULL;
+    data->alprotos = SCCalloc(1, AlprotoBitmaskSize());
+    if (unlikely(data->alprotos == NULL)) {
+        SCFree(data);
+        return NULL;
+    }
+    data->negated = negate;
+    data->mode = mode;
+    data->alproto = ALPROTO_UNKNOWN;
+
+    /* Tokenize the protocol list on '|' and set a bit per resolved value. */
+    int value_count = 0;
+    char *cur = buf;
+    while (1) {
+        char *pipe = strchr(cur, '|');
+        if (pipe != NULL)
+            *pipe = '\0';
 
         size_t tlen = strlen(cur);
         if (tlen == 0) {
             SCLogError("app-layer-protocol keyword value \"%s\" contains an empty token", arg);
-            return NULL;
+            goto error;
         }
         if (tlen >= MAX_ALPROTO_NAME) {
             SCLogError("app-layer-protocol keyword token \"%s\" in \"%s\" exceeds the "
                        "maximum token length of %d characters",
                     cur, arg, MAX_ALPROTO_NAME - 1);
-            return NULL;
+            goto error;
         }
 
-        tokens[token_count++] = cur;
-        if (comma == NULL)
-            break;
-        cur = comma + 1;
-    }
-
-    /* Mode disambiguation: trailing token is a mode qualifier
-     * only when 2+ tokens are present; a single token is always a protocol. */
-    uint8_t mode = DETECT_ALPROTO_DIRECTION;
-    uint8_t mode_explicit = 0;
-    int value_token_count = token_count;
-    if (token_count >= 2) {
-        int m = DetectAppLayerProtocolMapModeName(tokens[token_count - 1]);
-        if (m >= 0) {
-            mode = (uint8_t)m;
-            mode_explicit = 1;
-            value_token_count = token_count - 1;
-        }
-    }
-
-    /* Validate value count. */
-    if (value_token_count == 0) {
-        SCLogError("app-layer-protocol keyword value \"%s\" contains no protocol "
-                   "values (an empty value list is not permitted)",
-                arg);
-        return NULL;
-    }
-    if (value_token_count > MAX_ALPROTO_LIST) {
-        SCLogError("app-layer-protocol keyword value list in \"%s\" exceeds the "
-                   "maximum of %d comma-separated values",
-                arg, MAX_ALPROTO_LIST);
-        return NULL;
-    }
-
-    /* Per-token resolution. */
-    AppProto values[MAX_ALPROTO_LIST];
-    for (int i = 0; i < value_token_count; i++) {
-        const char *name = tokens[i];
-        if (strcmp(name, "failed") == 0) {
-            values[i] = ALPROTO_FAILED;
-        } else if (strcmp(name, "unknown") == 0) {
+        AppProto value;
+        if (strcmp(cur, "failed") == 0) {
+            value = ALPROTO_FAILED;
+        } else if (strcmp(cur, "unknown") == 0) {
             if (negate) {
                 SCLogError("app-layer-protocol "
                            "keyword can't use negation with protocol 'unknown'");
-                return NULL;
+                goto error;
             }
-            values[i] = ALPROTO_UNKNOWN;
+            value = ALPROTO_UNKNOWN;
         } else {
-            AppProto ap = AppLayerGetProtoByName(name);
-            if (ap == ALPROTO_UNKNOWN) {
+            value = AppLayerGetProtoByName(cur);
+            if (value == ALPROTO_UNKNOWN) {
                 char supported[1024];
                 DetectAppLayerProtocolBuildSupportedList(supported, sizeof(supported));
                 SCLogError("app-layer-protocol keyword supplied with unknown protocol "
                            "\"%s\" in \"%s\"; supported protocols: %s",
-                        name, arg, supported);
-                return NULL;
+                        cur, arg, supported);
+                goto error;
             }
-            values[i] = ap;
         }
+
+        if (value_count == 0)
+            data->alproto = value;
+        AlprotoBitmaskSetValue(data->alprotos, value);
+        value_count++;
+
+        if (pipe == NULL)
+            break;
+        cur = pipe + 1;
     }
 
-    /* Allocate and populate. */
-    DetectAppLayerProtocolData *data = SCMalloc(sizeof(DetectAppLayerProtocolData));
-    if (unlikely(data == NULL))
-        return NULL;
-    memset(data, 0, sizeof(*data));
-    data->alproto = values[0];
-    data->negated = negate ? 1 : 0;
-    data->mode = mode;
-    data->mode_explicit = mode_explicit;
-    if (value_token_count == 1) {
-        data->list_count = 0;
-        data->list_alprotos = NULL;
-    } else {
-        data->list_count = (uint8_t)value_token_count;
-        data->list_alprotos = SCMalloc(sizeof(AppProto) * (size_t)value_token_count);
-        if (unlikely(data->list_alprotos == NULL)) {
-            SCFree(data);
-            return NULL;
-        }
-        memcpy(data->list_alprotos, values, sizeof(AppProto) * (size_t)value_token_count);
-    }
+    data->is_list = (value_count > 1);
+    if (data->is_list)
+        data->alproto = ALPROTO_UNKNOWN; /* not a single-value prefilter bucket key */
 
     return data;
-}
 
-/**
- * \brief Get the value set for a DetectAppLayerProtocolData entry.
- */
-static inline const AppProto *GetValueSet(const DetectAppLayerProtocolData *data, uint8_t *count)
-{
-    if (data->list_count > 0) {
-        *count = data->list_count;
-        return data->list_alprotos;
-    }
-    *count = 1;
-    return &data->alproto;
+error:
+    DetectAppLayerProtocolFree(NULL, data);
+    return NULL;
 }
 
 /**
@@ -363,34 +393,27 @@ static bool HasConflicts(
         return true;
     }
 
-    /* Mixed negation under same mode: always conflict. Enumerate
-     * intersecting values for the error message. */
-    uint8_t us_count = 0, them_count = 0;
-    const AppProto *us_vals = GetValueSet(us, &us_count);
-    const AppProto *them_vals = GetValueSet(them, &them_count);
-
-    /* Collect intersecting value names for the error message. */
+    /* Mixed negation under the same mode: conflict. Collect the intersecting
+     * values for the error message. */
     char conflict_buf[512];
     size_t buf_offset = 0;
     bool has_intersection = false;
 
-    for (uint8_t i = 0; i < us_count; i++) {
-        for (uint8_t j = 0; j < them_count; j++) {
-            if (us_vals[i] == them_vals[j]) {
-                has_intersection = true;
-                const char *name = AppProtoToString(us_vals[i]);
-                if (name == NULL)
-                    name = "unknown";
-                if (buf_offset > 0 && buf_offset < sizeof(conflict_buf) - 2) {
-                    conflict_buf[buf_offset++] = ',';
-                    conflict_buf[buf_offset++] = ' ';
-                }
-                size_t name_len = strlen(name);
-                if (buf_offset + name_len < sizeof(conflict_buf) - 1) {
-                    memcpy(conflict_buf + buf_offset, name, name_len);
-                    buf_offset += name_len;
-                }
-            }
+    for (AppProto a = 0; a < g_alproto_max; a++) {
+        if (!AlprotoBitmaskTest(us->alprotos, a) || !AlprotoBitmaskTest(them->alprotos, a))
+            continue;
+        has_intersection = true;
+        const char *name = AppProtoToString(a);
+        if (name == NULL)
+            name = "unknown";
+        if (buf_offset > 0 && buf_offset < sizeof(conflict_buf) - 2) {
+            conflict_buf[buf_offset++] = ',';
+            conflict_buf[buf_offset++] = ' ';
+        }
+        size_t name_len = strlen(name);
+        if (buf_offset + name_len < sizeof(conflict_buf) - 1) {
+            memcpy(conflict_buf + buf_offset, name, name_len);
+            buf_offset += name_len;
         }
     }
     conflict_buf[buf_offset] = '\0';
@@ -454,8 +477,8 @@ static void DetectAppLayerProtocolFree(DetectEngineCtx *de_ctx, void *ptr)
     DetectAppLayerProtocolData *data = (DetectAppLayerProtocolData *)ptr;
     if (data == NULL)
         return;
-    if (data->list_alprotos != NULL)
-        SCFree(data->list_alprotos);
+    if (data->alprotos != NULL)
+        SCFree(data->alprotos);
     SCFree(data);
 }
 
@@ -510,15 +533,15 @@ static void PrefilterPacketAppProtoMatch(
             // the one in the signature ctx
             if (negated) {
                 if (f->alproto_tc != ALPROTO_UNKNOWN &&
-                        !AppProtoEquals(ctx->v1.u16[0], f->alproto_tc)) {
+                        !DetectAppLayerProtocolMatchExact(ctx->v1.u16[0], f->alproto_tc)) {
                     PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
                 } else if (f->alproto_ts != ALPROTO_UNKNOWN &&
-                           !AppProtoEquals(ctx->v1.u16[0], f->alproto_ts)) {
+                           !DetectAppLayerProtocolMatchExact(ctx->v1.u16[0], f->alproto_ts)) {
                     PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
                 }
             } else {
-                if (AppProtoEquals(ctx->v1.u16[0], f->alproto_tc) ||
-                        AppProtoEquals(ctx->v1.u16[0], f->alproto_ts)) {
+                if (DetectAppLayerProtocolMatchExact(ctx->v1.u16[0], f->alproto_tc) ||
+                        DetectAppLayerProtocolMatchExact(ctx->v1.u16[0], f->alproto_ts)) {
                     PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
                 }
             }
@@ -528,12 +551,12 @@ static void PrefilterPacketAppProtoMatch(
 
     if (negated) {
         if (alproto != ALPROTO_UNKNOWN) {
-            if (!AppProtoEquals(ctx->v1.u16[0], alproto)) {
+            if (!DetectAppLayerProtocolMatchExact(ctx->v1.u16[0], alproto)) {
                 PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
             }
         }
     } else {
-        if (AppProtoEquals(ctx->v1.u16[0], alproto)) {
+        if (DetectAppLayerProtocolMatchExact(ctx->v1.u16[0], alproto)) {
             PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
         }
     }
@@ -571,7 +594,7 @@ static bool PrefilterAppProtoIsPrefilterable(const Signature *s)
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_APP_LAYER_PROTOCOL) {
             const DetectAppLayerProtocolData *data = (const DetectAppLayerProtocolData *)sm->ctx;
-            if (data->list_count > 0) {
+            if (data->is_list) {
                 return false;
             }
             break;
@@ -879,9 +902,8 @@ static int DetectAppLayerProtocolTest15(void)
     FAIL_IF(data->alproto != ALPROTO_HTTP);
     FAIL_IF(data->negated != 0);
     FAIL_IF(data->mode != DETECT_ALPROTO_FINAL);
-    FAIL_IF(data->mode_explicit != 1);
-    FAIL_IF(data->list_count != 0);
-    FAIL_IF(data->list_alprotos != NULL);
+    FAIL_IF(data->is_list);
+    FAIL_IF_NOT(AlprotoBitmaskTest(data->alprotos, ALPROTO_HTTP));
     DetectAppLayerProtocolFree(NULL, data);
     PASS;
 }
@@ -889,14 +911,12 @@ static int DetectAppLayerProtocolTest15(void)
 /** \test Multi-value without mode qualifier. */
 static int DetectAppLayerProtocolTest16(void)
 {
-    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("tls,http", false);
+    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("tls|http", false);
     FAIL_IF_NULL(data);
-    FAIL_IF(data->list_count != 2);
-    FAIL_IF_NULL(data->list_alprotos);
-    FAIL_IF(data->list_alprotos[0] != ALPROTO_TLS);
-    FAIL_IF(data->list_alprotos[1] != ALPROTO_HTTP);
+    FAIL_IF_NOT(data->is_list);
+    FAIL_IF_NOT(AlprotoBitmaskTest(data->alprotos, ALPROTO_TLS));
+    FAIL_IF_NOT(AlprotoBitmaskTest(data->alprotos, ALPROTO_HTTP));
     FAIL_IF(data->mode != DETECT_ALPROTO_DIRECTION); /* default */
-    FAIL_IF(data->mode_explicit != 0);
     FAIL_IF(data->negated != 0);
     DetectAppLayerProtocolFree(NULL, data);
     PASS;
@@ -905,19 +925,17 @@ static int DetectAppLayerProtocolTest16(void)
 /** \test Multi-value with mode qualifier. */
 static int DetectAppLayerProtocolTest17(void)
 {
-    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("tls,http,either", false);
+    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("tls|http,either", false);
     FAIL_IF_NULL(data);
-    FAIL_IF(data->list_count != 2);
-    FAIL_IF_NULL(data->list_alprotos);
-    FAIL_IF(data->list_alprotos[0] != ALPROTO_TLS);
-    FAIL_IF(data->list_alprotos[1] != ALPROTO_HTTP);
+    FAIL_IF_NOT(data->is_list);
+    FAIL_IF_NOT(AlprotoBitmaskTest(data->alprotos, ALPROTO_TLS));
+    FAIL_IF_NOT(AlprotoBitmaskTest(data->alprotos, ALPROTO_HTTP));
     FAIL_IF(data->mode != DETECT_ALPROTO_EITHER);
-    FAIL_IF(data->mode_explicit != 1);
     DetectAppLayerProtocolFree(NULL, data);
     PASS;
 }
 
-/** \test Mode disambiguation: 'final' as sole token → protocol lookup (fails), not mode. */
+/** \test A bare mode name with no protocol is treated as a protocol lookup (fails). */
 static int DetectAppLayerProtocolTest18(void)
 {
     /* "final" alone is treated as a protocol name (which won't resolve). */
@@ -926,15 +944,15 @@ static int DetectAppLayerProtocolTest18(void)
     PASS;
 }
 
-/** \test Mode disambiguation: 'direction' as trailing token in multi-value → mode. */
+/** \test Multi-value list with an explicit 'direction' mode qualifier. */
 static int DetectAppLayerProtocolTest19(void)
 {
-    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("tls,direction", false);
+    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("tls|http,direction", false);
     FAIL_IF_NULL(data);
-    FAIL_IF(data->list_count != 0); /* single value after stripping mode */
-    FAIL_IF(data->alproto != ALPROTO_TLS);
+    FAIL_IF_NOT(data->is_list);
+    FAIL_IF_NOT(AlprotoBitmaskTest(data->alprotos, ALPROTO_TLS));
+    FAIL_IF_NOT(AlprotoBitmaskTest(data->alprotos, ALPROTO_HTTP));
     FAIL_IF(data->mode != DETECT_ALPROTO_DIRECTION);
-    FAIL_IF(data->mode_explicit != 1);
     DetectAppLayerProtocolFree(NULL, data);
     PASS;
 }
@@ -967,24 +985,23 @@ static int DetectAppLayerProtocolTest22(void)
     PASS;
 }
 
-/** \test Empty token in comma-separated list rejected. */
+/** \test Empty token in pipe-separated list rejected. */
 static int DetectAppLayerProtocolTest23(void)
 {
-    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("tls,,http", false);
+    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("tls||http", false);
     FAIL_IF_NOT_NULL(data);
     PASS;
 }
 
-/** \test Negated multi-value parses correctly (!tls,http). */
+/** \test Negated multi-value parses correctly (!tls|http). */
 static int DetectAppLayerProtocolTest24(void)
 {
-    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("tls,http", true);
+    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("tls|http", true);
     FAIL_IF_NULL(data);
     FAIL_IF(data->negated != 1);
-    FAIL_IF(data->list_count != 2);
-    FAIL_IF_NULL(data->list_alprotos);
-    FAIL_IF(data->list_alprotos[0] != ALPROTO_TLS);
-    FAIL_IF(data->list_alprotos[1] != ALPROTO_HTTP);
+    FAIL_IF_NOT(data->is_list);
+    FAIL_IF_NOT(AlprotoBitmaskTest(data->alprotos, ALPROTO_TLS));
+    FAIL_IF_NOT(AlprotoBitmaskTest(data->alprotos, ALPROTO_HTTP));
     DetectAppLayerProtocolFree(NULL, data);
     PASS;
 }
@@ -992,7 +1009,7 @@ static int DetectAppLayerProtocolTest24(void)
 /** \test Unknown protocol name in list rejected. */
 static int DetectAppLayerProtocolTest25(void)
 {
-    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("tls,bogus_proto_xyz", false);
+    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("tls|bogus_proto_xyz", false);
     FAIL_IF_NOT_NULL(data);
     PASS;
 }
@@ -1029,7 +1046,7 @@ static int DetectAppLayerProtocolTest27(void)
     de_ctx->flags |= DE_QUIET;
 
     Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                                                 "(app-layer-protocol:tls,dns; sid:1;)");
+                                                 "(app-layer-protocol:tls|dns; sid:1;)");
     FAIL_IF_NULL(s);
 
     /* Verify the parsed data is list-valued BEFORE SigGroupBuild. */
@@ -1037,7 +1054,7 @@ static int DetectAppLayerProtocolTest27(void)
     FAIL_IF_NULL(sm);
     DetectAppLayerProtocolData *data = (DetectAppLayerProtocolData *)sm->ctx;
     FAIL_IF_NULL(data);
-    FAIL_IF(data->list_count != 2);
+    FAIL_IF_NOT(data->is_list);
 
     /* A single-valued packet-detect-only rule is prefilter-eligible; the
      * multi-value guard must exclude this one. init_data is read by the
@@ -1056,10 +1073,10 @@ static int DetectAppLayerProtocolTest28(void)
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    /* tls.sni binds s->alproto = TLS, so app-layer-protocol:tls,dns is rejected. */
+    /* tls.sni binds s->alproto = TLS, so app-layer-protocol:tls|dns is rejected. */
     Signature *s = DetectEngineAppendSig(de_ctx,
             "alert tcp any any -> any any "
-            "(tls.sni; content:\"example.com\"; app-layer-protocol:tls,dns; sid:1;)");
+            "(tls.sni; content:\"example.com\"; app-layer-protocol:tls|dns; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
     DetectEngineCtxFree(de_ctx);

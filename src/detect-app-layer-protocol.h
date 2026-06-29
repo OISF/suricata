@@ -27,22 +27,24 @@
 #include "app-layer-protos.h"
 
 void DetectAppLayerProtocolRegister(void);
+const char *DetectAppLayerProtocolModeName(uint8_t mode);
+struct DetectAppLayerProtocolData_;
+void DetectAppLayerProtocolListToString(
+        const struct DetectAppLayerProtocolData_ *data, char *buf, size_t buflen);
 
 /**
  * \brief Per-rule keyword data for `app-layer-protocol:`.
  *
- * Single-value rules use `alproto` directly (no heap allocation) and
- * participate in prefilter bucketing. Multi-value rules use the
- * heap-allocated `list_alprotos` array and skip prefilter (the bucket
- * key is single-valued).
+ * The set of protocol values is a bitmask (`alprotos`), one bit per AppProto,
+ * sized g_alproto_max bits. `alproto` is the single-value prefilter bucket
+ * key (ALPROTO_UNKNOWN for multi-value rules, which are not prefilterable).
  */
 typedef struct DetectAppLayerProtocolData_ {
-    AppProto alproto; /**< single value; also used as prefilter bucket key */
-    uint8_t negated;
+    AppProto alproto; /**< single-value bucket key; ALPROTO_UNKNOWN if list */
+    bool negated;
     uint8_t mode;
-    uint8_t list_count;      /**< 0 = single-value; >0 = list-valued */
-    uint8_t mode_explicit;   /**< 1 iff input had explicit mode token */
-    AppProto *list_alprotos; /**< heap array of length list_count */
+    bool is_list;      /**< true if the rule carried more than one value */
+    uint8_t *alprotos; /**< bitmask of g_alproto_max bits */
 } DetectAppLayerProtocolData;
 
 #endif /* SURICATA_DETECT_APP_LAYER_PROTOCOL__H */
