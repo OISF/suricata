@@ -67,7 +67,7 @@
 #define PARSE_REGEX                                                                                \
     "^\\s*" PARSE_REGEX_NAME "\\s+" PARSE_REGEX_VALUE "\\s*,\\s*" PARSE_REGEX_NAME                 \
     "\\s+" PARSE_REGEX_VALUE "\\s*,\\s*" PARSE_REGEX_NAME "\\s+" PARSE_REGEX_VALUE                 \
-    "\\s*,\\s*" PARSE_REGEX_NAME "\\s+" PARSE_REGEX_VALUE "\\s*"
+    "\\s*,\\s*" PARSE_REGEX_NAME "\\s+" PARSE_REGEX_VALUE "\\s*$"
 
 static DetectParseRegex parse_regex;
 
