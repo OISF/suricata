@@ -85,6 +85,8 @@ You can specify the value as an integer or a string:
  - 7: trap_v2
  - 8: report
 
+See ``suricata --list-keywords=json | jq '."snmp.pdu_type".enum_values'``
+
 This keyword will not match if the value is not accessible within (for ex, an encrypted
 SNMP v3 message).
 
@@ -113,6 +115,8 @@ You can specify the value as an integer or a string:
  - 4: authenticationfailure
  - 5: egpneighborloss
  - 6: enterprisespecific
+
+See ``suricata --list-keywords=json | jq '."snmp.pdu_type".enum_values'``
 
 Syntax::
 
