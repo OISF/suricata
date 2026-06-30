@@ -263,7 +263,7 @@
 
    List all supported application layer protocols.
 
-.. option:: --list-keywords=[all|csv|<kword>]
+.. option:: --list-keywords=[json|csv|<kword>]
 
    List all supported rule keywords.
 
