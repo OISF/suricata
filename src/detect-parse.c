@@ -1407,19 +1407,19 @@ static int SigParseProtoHookApp(
             SCLogError("invalid tx type specification '%s'", hook);
             return -1;
         }
-        if (strcmp(p, "http2") == 0) {
+        if (strcmp(p, "http2") == 0 || strcmp(p, "doh2") == 0) {
             if (strcmp(t, "stream") == 0) {
                 sub_state = HTTP2TxTypeStream;
             } else if (strcmp(t, "global") == 0) {
                 sub_state = HTTP2TxTypeGlobal;
             } else {
-                SCLogError("unknown http/2 tx type specification '%s': valid values are 'stream' "
+                SCLogError("unknown %s tx type specification '%s': valid values are 'stream' "
                            "and 'global'",
-                        hook);
+                        p, hook);
                 return -1;
             }
         } else {
-            SCLogError("sub states currently only supported for http2");
+            SCLogError("sub states currently only supported for http2 and doh2");
             return -1;
         }
         /* FW hook LTE mode */
@@ -1462,6 +1462,12 @@ static int SigParseProtoHookApp(
         }
         snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:%s:generic", p, t, h);
     } else {
+        if (AppLayerParserSupportsSubStates(s->alproto)) {
+            SCLogError(
+                    "protocol %s requires a substate specification: %s:<sub_state>:%s", p, p, hook);
+            return -1;
+        }
+
         /* FW hook LTE mode */
         if (*h == '<') {
             h++;
