@@ -80,6 +80,7 @@ int SCDetectHelperNewKeywordId(void);
 
 uint16_t SCDetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw);
 void SCDetectHelperKeywordAliasRegister(uint16_t kwid, const char *alias);
+void SCDetectHelperKeywordJsonInfoRegister(uint16_t kwid, void (*cb)(struct SCJsonBuilder *));
 int SCDetectHelperBufferProgressRegister(
         const char *name, AppProto alproto, uint8_t direction, uint8_t progress);
 

@@ -457,6 +457,10 @@ static void SigJsonPrint(size_t i)
     }
     SCJbClose(js);
 
+    if (sigmatch_table[i].JsonAdditionalInfo) {
+        sigmatch_table[i].JsonAdditionalInfo(js);
+    }
+
     SCJbClose(js); // SCJbOpenObject keyword name
 
     SCJbClose(js);
