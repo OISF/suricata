@@ -48,6 +48,8 @@ static void DetectAsn1Free(DetectEngineCtx *, void *);
 void DetectAsn1Register(void)
 {
     sigmatch_table[DETECT_ASN1].name = "asn1";
+    sigmatch_table[DETECT_ASN1].desc = "decode ASN.1 structures and match on specific properties";
+    sigmatch_table[DETECT_ASN1].url = "/rules/payload-keywords.html#asn1";
     sigmatch_table[DETECT_ASN1].Setup = DetectAsn1Setup;
     sigmatch_table[DETECT_ASN1].Free  = DetectAsn1Free;
 #ifdef UNITTESTS

@@ -57,6 +57,8 @@ static void MarkRegisterTests(void);
 void DetectMarkRegister (void)
 {
     sigmatch_table[DETECT_MARK].name = "nfq_set_mark";
+    sigmatch_table[DETECT_MARK].desc = "set a Netfilter mark on the packet (NFQ mode only)";
+    sigmatch_table[DETECT_MARK].url = "/rules/header-keywords.html#nfq-set-mark";
     sigmatch_table[DETECT_MARK].Match = DetectMarkPacket;
     sigmatch_table[DETECT_MARK].Setup = DetectMarkSetup;
     sigmatch_table[DETECT_MARK].Free  = DetectMarkDataFree;

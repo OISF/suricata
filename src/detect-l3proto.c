@@ -54,6 +54,8 @@ static void DetectL3protoRegisterTests(void);
 void DetectL3ProtoRegister(void)
 {
     sigmatch_table[DETECT_L3PROTO].name = "l3_proto";
+    sigmatch_table[DETECT_L3PROTO].desc = "constrain a rule to match only on IPv4 or IPv6 traffic";
+    sigmatch_table[DETECT_L3PROTO].url = "/rules/header-keywords.html#l3-proto";
     sigmatch_table[DETECT_L3PROTO].Match = NULL;
     sigmatch_table[DETECT_L3PROTO].Setup = DetectL3ProtoSetup;
     sigmatch_table[DETECT_L3PROTO].Free  = NULL;

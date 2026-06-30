@@ -130,6 +130,25 @@ The named variant of that example would be::
 
     ip_proto:ICMP;
 
+.. _l3-proto:
+
+l3_proto
+^^^^^^^^
+
+Match on the IP version of the packet. Restricts a rule to IPv4 or IPv6 only.
+
+Valid values: ``ipv4``, ``ipv6``
+
+Syntax::
+
+  l3_proto:<ipv4|ipv6>;
+
+Example:
+
+.. container:: example-rule
+
+   alert tcp any any -> any any (msg:"TCP over IPv6"; :example-rule-emphasis:`l3_proto:ipv6;` sid:1;)
+
 ipv4.hdr
 ^^^^^^^^
 
@@ -812,6 +831,94 @@ Example rule:
     alert ip $EXTERNAL_NET any -> $HOME_NET any (:example-rule-emphasis:`icmpv6.mtu:<1280;` sid:1234; rev:5;)
 
 
+Checksum Keywords
+-----------------
+
+The following keywords match on the validity of a protocol checksum field.
+Each keyword accepts either ``valid`` or ``invalid`` as its argument.
+
+Format::
+
+  <keyword>:valid;
+  <keyword>:invalid;
+
+.. _ipv4-csum:
+
+ipv4-csum
+^^^^^^^^^
+
+Match on the validity of the IPv4 header checksum.
+
+.. container:: example-rule
+
+   alert ip any any -> any any (:example-rule-emphasis:`ipv4-csum:invalid;` sid:1234; rev:5;)
+
+.. _tcpv4-csum:
+
+tcpv4-csum
+^^^^^^^^^^
+
+Match on the validity of the TCP checksum for IPv4 packets.
+
+.. container:: example-rule
+
+   alert tcp any any -> any any (:example-rule-emphasis:`tcpv4-csum:invalid;` sid:1234; rev:5;)
+
+.. _tcpv6-csum:
+
+tcpv6-csum
+^^^^^^^^^^
+
+Match on the validity of the TCP checksum for IPv6 packets.
+
+.. container:: example-rule
+
+   alert tcp any any -> any any (:example-rule-emphasis:`tcpv6-csum:invalid;` sid:1234; rev:5;)
+
+.. _udpv4-csum:
+
+udpv4-csum
+^^^^^^^^^^
+
+Match on the validity of the UDP checksum for IPv4 packets.
+
+.. container:: example-rule
+
+   alert udp any any -> any any (:example-rule-emphasis:`udpv4-csum:invalid;` sid:1234; rev:5;)
+
+.. _udpv6-csum:
+
+udpv6-csum
+^^^^^^^^^^
+
+Match on the validity of the UDP checksum for IPv6 packets.
+
+.. container:: example-rule
+
+   alert udp any any -> any any (:example-rule-emphasis:`udpv6-csum:invalid;` sid:1234; rev:5;)
+
+.. _icmpv4-csum:
+
+icmpv4-csum
+^^^^^^^^^^^
+
+Match on the validity of the ICMPv4 checksum.
+
+.. container:: example-rule
+
+   alert icmp any any -> any any (:example-rule-emphasis:`icmpv4-csum:invalid;` sid:1234; rev:5;)
+
+.. _icmpv6-csum:
+
+icmpv6-csum
+^^^^^^^^^^^
+
+Match on the validity of the ICMPv6 checksum.
+
+.. container:: example-rule
+
+   alert ip any any -> any any (:example-rule-emphasis:`icmpv6-csum:invalid;` sid:1234; rev:5;)
+
 IGMP keywords
 -------------
 
@@ -866,3 +973,26 @@ Format::
 .. container:: example-rule
 
    alert igmp any any -> any any (:example-rule-emphasis:`igmp-csum:invalid;` sid:1234; rev:5;)
+
+NFQ Keywords
+------------
+
+.. _nfq-set-mark:
+
+nfq_set_mark
+^^^^^^^^^^^^
+
+Set a Netfilter packet mark on a matching packet. Only available in NFQ
+inline mode.
+
+The mark is applied as ``(mark & mask) | (existing_mark & ~mask)``.
+
+Syntax::
+
+  nfq_set_mark:<mark>/<mask>;
+
+Example:
+
+.. container:: example-rule
+
+   alert tcp any any -> any any (msg:"set nfq mark"; :example-rule-emphasis:`nfq_set_mark:0x10/0xff;` sid:1;)

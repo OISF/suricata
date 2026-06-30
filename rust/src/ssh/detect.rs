@@ -308,7 +308,7 @@ pub unsafe extern "C" fn SCDetectSshRegister() {
     let kw = SCSigTableAppLiteElmt {
         name: b"ssh.softwareversion\0".as_ptr() as *const libc::c_char,
         desc: b"obsolete keyword, use now ssh.software\0".as_ptr() as *const libc::c_char,
-        url: std::ptr::null(),
+        url: b"/rules/ssh-keywords.html#ssh-software\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: None,
         Setup: Some(ssh_software_obsolete_setup),
         Free: None,
@@ -319,7 +319,7 @@ pub unsafe extern "C" fn SCDetectSshRegister() {
     let kw = SCSigTableAppLiteElmt {
         name: b"ssh.protoversion\0".as_ptr() as *const libc::c_char,
         desc: b"obsolete keyword, use now ssh.proto\0".as_ptr() as *const libc::c_char,
-        url: std::ptr::null(),
+        url: b"/rules/ssh-keywords.html#ssh-proto\0".as_ptr() as *const libc::c_char,
         AppLayerTxMatch: None,
         Setup: Some(ssh_proto_obsolete_setup),
         Free: None,

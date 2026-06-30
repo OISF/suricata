@@ -119,3 +119,23 @@ Examples::
 
     app-layer-state:request_headers;
     app-layer-state:>request_body;
+
+.. _frame:
+
+frame
+-----
+
+Sticky buffer to match on a specific app-layer frame type. Each app-layer
+parser defines its own frame types.
+
+Syntax::
+
+  frame:<protocol>.<frame type>;
+
+Example:
+
+.. container:: example-rule
+
+   alert ssh any any -> any any (msg:"SSH record"; frame:ssh.record_hdr; content:"\|15\|"; endswith; bsize:6; sid:1;)
+
+See each protocol's keyword documentation for available frame types.
