@@ -282,6 +282,94 @@ static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
     return 0;
 }
 
+#elif defined(__aarch64__)
+#include <arm_neon.h>
+
+#if defined(__ARM_FEATURE_SVE)
+#include <arm_sve.h>
+
+static inline int SCMemcmp(const void *s1, const void *s2, size_t len)
+{
+    uint64_t i = 0;
+    int vec_size = svcntb();
+    svbool_t pg = svwhilelt_b8(i, len);
+    do {
+        svuint8_t b1 = svld1(pg, (uint8_t *)s1 + i);
+        svuint8_t b2 = svld1(pg, (uint8_t *)s2 + i);
+        svbool_t match = svcmpne(pg, b1, b2);
+        if (svptest_any(pg, match))
+            return 1;
+
+        i += vec_size;
+        pg = svwhilelt_b8(i, len);
+    } while (svptest_any(svptrue_b64(), pg));
+    return 0;
+}
+
+#else
+
+/* wrapper around memcmp to match the retvals of the SIMD implementations */
+#define SCMemcmp(a, b, c) ({ memcmp((a), (b), (c)) ? 1 : 0; })
+
+#endif
+
+#define SCMEMCMP_BYTES 16
+
+#define UPPER_LOW   0x41 /* "A" */
+#define UPPER_HIGH  0x5A /* "Z" */
+#define UPPER_DELTA 0x20
+
+static inline int SCMemcmpLowercase(const void *s1, const void *s2, size_t len)
+{
+    size_t offset = 0;
+    uint8x16_t b1, mask1, mask2, delta, b3, equiv;
+    uint8x16_t b2, upper1, upper2;
+    uint64_t eqt, eqb;
+
+    /* setup registers for upper to lower conversion */
+    upper1 = vdupq_n_u8(UPPER_LOW);
+    upper2 = vdupq_n_u8(UPPER_HIGH);
+    delta = vdupq_n_u8(UPPER_DELTA);
+
+    do {
+        if (likely(len - offset < SCMEMCMP_BYTES)) {
+            return MemcmpLowercase(s1, s2, len - offset);
+        }
+
+        /* unaligned loading of the bytes to compare */
+        b1 = vld1q_u8(s1);
+        b2 = vld1q_u8(s2);
+
+        /* mark all chars bigger than upper1 */
+        mask1 = vcgeq_u8(b2, upper1);
+        /* mark all chars lower than upper2 */
+        mask2 = vcleq_u8(b2, upper2);
+        /* merge the two, leaving only those that are true in both */
+        mask1 = vandq_u8(mask1, mask2);
+
+        /* Generate only 0x20 which is the delta from a upper-case to lower-case */
+        mask1 = vandq_u8(mask1, delta);
+
+        /* add 0x20 to each upper case value */
+        b3 = vaddq_u8(b2, mask1);
+
+        /* do the actual compare */
+        equiv = vceqq_u8(b1, b3);
+
+        /* move the values to a GP */
+        eqb = vgetq_lane_u64(vreinterpretq_u64_u8(equiv), 0);
+        eqt = vgetq_lane_u64(vreinterpretq_u64_u8(equiv), 1);
+
+        if (!(~eqb == 0 && ~eqt == 0)) {
+            return 1;
+        }
+        offset += SCMEMCMP_BYTES;
+        s1 += SCMEMCMP_BYTES;
+        s2 += SCMEMCMP_BYTES;
+    } while (len > offset);
+
+    return 0;
+}
 #else
 
 /* No SIMD support, fall back to plain memcmp and a home grown lowercase one */
