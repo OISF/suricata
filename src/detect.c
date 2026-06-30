@@ -744,6 +744,41 @@ static uint8_t DetectRunApplyPacketPolicy(const DetectEngineCtx *de_ctx,
     return p->action;
 }
 
+/** \internal
+ *  \brief helper for appending a packet alert
+ *  Tries to find (guess) a TX to add to the alert.
+ */
+static void DetectRulePacketAppendAlert(const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p, Flow *f,
+        const uint8_t alert_flags_in)
+{
+    DEBUG_VALIDATE_BUG_ON(alert_flags_in & PACKET_ALERT_FLAG_TX);
+
+    if (f && f->alstate) {
+        const uint8_t dir = (p->flowflags & FLOW_PKT_TOCLIENT) ? STREAM_TOCLIENT : STREAM_TOSERVER;
+        const uint64_t tx_id = AppLayerParserGetTransactionInspectId(f->alparser, dir);
+        if ((s->alproto != ALPROTO_UNKNOWN && f->proto == IPPROTO_UDP) ||
+                (de_ctx->guess_applayer && IsOnlyTxInDirection(f, tx_id, dir))) {
+            // if there is a UDP specific app-layer signature,
+            // or only one live transaction
+            // try to use the good tx for the packet direction
+            void *tx_ptr = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, tx_id);
+            AppLayerTxData *txd =
+                    tx_ptr ? AppLayerParserGetTxData(f->proto, f->alproto, tx_ptr) : NULL;
+            if (txd && txd->guessed_applayer_logged < de_ctx->guess_applayer_log_limit) {
+                uint8_t alert_flags = alert_flags_in;
+                if (f->proto != IPPROTO_UDP) {
+                    alert_flags |= PACKET_ALERT_FLAG_TX_GUESSED;
+                }
+                txd->guessed_applayer_logged++;
+                AlertQueueAppendAppTxFromPacket(det_ctx, s, p, tx_id, alert_flags);
+                return;
+            }
+        }
+    }
+    AlertQueueAppendPacket(det_ctx, s, p, alert_flags_in);
+}
+
 static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
         const DetectEngineCtx *const de_ctx, DetectEngineThreadCtx *const det_ctx, Packet *const p,
         Flow *const pflow, const DetectRunScratchpad *scratch)
@@ -852,34 +887,7 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
 #endif
         DetectRunPostMatch(tv, det_ctx, p, s);
 
-        uint64_t txid = PACKET_ALERT_NOTX;
-        if (pflow && pflow->alstate) {
-            uint8_t dir = (p->flowflags & FLOW_PKT_TOCLIENT) ? STREAM_TOCLIENT : STREAM_TOSERVER;
-            txid = AppLayerParserGetTransactionInspectId(pflow->alparser, dir);
-            if ((s->alproto != ALPROTO_UNKNOWN && pflow->proto == IPPROTO_UDP) ||
-                    (de_ctx->guess_applayer && IsOnlyTxInDirection(pflow, txid, dir))) {
-                // if there is a UDP specific app-layer signature,
-                // or only one live transaction
-                // try to use the good tx for the packet direction
-                void *tx_ptr =
-                        AppLayerParserGetTx(pflow->proto, pflow->alproto, pflow->alstate, txid);
-                AppLayerTxData *txd =
-                        tx_ptr ? AppLayerParserGetTxData(pflow->proto, pflow->alproto, tx_ptr)
-                               : NULL;
-                if (txd && txd->guessed_applayer_logged < de_ctx->guess_applayer_log_limit) {
-                    alert_flags |= PACKET_ALERT_FLAG_TX;
-                    if (pflow->proto != IPPROTO_UDP) {
-                        alert_flags |= PACKET_ALERT_FLAG_TX_GUESSED;
-                    }
-                    txd->guessed_applayer_logged++;
-                }
-            }
-        }
-        if (alert_flags & PACKET_ALERT_FLAG_TX) {
-            AlertQueueAppendAppTx(det_ctx, s, p, txid, alert_flags);
-        } else {
-            AlertQueueAppendPacket(det_ctx, s, p, alert_flags);
-        }
+        DetectRulePacketAppendAlert(de_ctx, det_ctx, s, p, pflow, alert_flags);
 
         if (det_ctx->post_rule_work_queue.len > 0) {
             /* run post match prefilter engines on work queue */
