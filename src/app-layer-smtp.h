@@ -70,6 +70,18 @@ typedef struct SMTPString_ {
     TAILQ_ENTRY(SMTPString_) next;
 } SMTPString;
 
+enum SMTPRequestProgress {
+    SMTP_REQUEST_STARTED = 0,
+    SMTP_REQUEST_DATA = 1,
+    SMTP_REQUEST_COMPLETE = 2,
+};
+
+enum SMTPResponseProgress {
+    SMTP_RESPONSE_STARTED = 0,
+    SMTP_RESPONSE_DATA = 1,
+    SMTP_RESPONSE_COMPLETE = 2,
+};
+
 typedef struct SMTPTransaction_ {
     /** id of this tx, starting at 0 */
     uint64_t tx_id;
@@ -78,6 +90,10 @@ typedef struct SMTPTransaction_ {
 
     /** the tx is complete and can be logged and cleaned */
     bool done;
+    /** to-server firewall progress state. */
+    uint8_t progress_ts;
+    /** to-client firewall progress state. */
+    uint8_t progress_tc;
     /** the tx has seen a DATA command */
     // another DATA command within the same context
     // will trigger an app-layer event.
@@ -134,6 +150,8 @@ typedef struct SMTPState_ {
     uint32_t bdat_chunk_len;
     /** bdat chunk idx */
     uint32_t bdat_chunk_idx;
+    /** bdat chunk is the final message chunk */
+    bool bdat_last;
 
     /* the request commands are store here and the reply handler uses these
      * stored command in the buffer to match the reply(ies) with the command */
