@@ -110,6 +110,8 @@ pub enum HtpLogCode {
     LZMA_MEMLIMIT_REACHED,
     /// Reached configured time limit for decompression or reached bomb limit.
     COMPRESSION_BOMB,
+    /// Reached configured time limit for decompression or reached bomb limit.
+    COMPRESSION_BOMB_LIMIT_REACHED,
     /// Unexpected response body present.
     RESPONSE_BODY_UNEXPECTED,
     /// Content-length parsing contains extra leading characters.

@@ -22,6 +22,8 @@ const DEFAULT_TIME_LIMIT: u32 = 100_000;
 const DEFAULT_TIME_FREQ_TEST: u32 = 256;
 /// Default number of layers that will be decompressed
 const DEFAULT_LAYER_LIMIT: u32 = 2;
+/// Default number of bombs before skipping decompression for the flow
+const DEFAULT_BOMB_NB_LIMIT: u8 = 3;
 
 #[derive(Copy, Clone)]
 /// Decompression options
@@ -32,6 +34,8 @@ pub(crate) struct Options {
     lzma_layers: Option<u32>,
     /// max output size for a compression bomb.
     bomb_limit: u64,
+    /// max number of compression bombs before skipping decompression for the flow
+    bomb_nb_limit: u8,
     /// max compressed-to-decrompressed ratio that should not be exceeded during decompression.
     bomb_ratio: u64,
     /// max time for a decompression bomb in microseconds.
@@ -70,6 +74,16 @@ impl Options {
     /// Get the compression bomb limit.
     pub(crate) fn get_bomb_limit(&self) -> u64 {
         self.bomb_limit
+    }
+
+    /// Get the maximum compression bombs number.
+    pub(crate) fn get_max_bombs(&self) -> u8 {
+        self.bomb_nb_limit
+    }
+
+    /// Set the maximum number of compression bombs before skipping decompression for the flow.
+    pub(crate) fn set_max_bombs(&mut self, max_bombs: u8) {
+        self.bomb_nb_limit = max_bombs;
     }
 
     /// Set the compression bomb limit.
@@ -123,6 +137,7 @@ impl Default for Options {
             }),
             lzma_layers: Some(DEFAULT_LZMA_LAYERS),
             bomb_limit: DEFAULT_BOMB_LIMIT,
+            bomb_nb_limit: DEFAULT_BOMB_NB_LIMIT,
             bomb_ratio: DEFAULT_BOMB_RATIO,
             time_limit: DEFAULT_TIME_LIMIT,
             time_test_freq: DEFAULT_TIME_FREQ_TEST,
