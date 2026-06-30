@@ -1725,22 +1725,31 @@ static inline void DetectRunAppendDefaultAppPolicyAlert(DetectEngineThreadCtx *d
  *  \note alproto and progress are unused right now, will be used
  *        to look up configurable default policies later
  */
-static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
+static struct DetectFirewallPolicy DetectFirewallApplyDefaultAppPolicy(
         DetectEngineThreadCtx *det_ctx, const struct DetectFirewallPolicies *policies,
         const DetectTransaction *tx, Packet *p, const AppProto alproto, const uint8_t direction,
         const uint8_t progress)
 {
+    const uint8_t dir_flags = direction & (STREAM_TOSERVER | STREAM_TOCLIENT);
+
     SCLogDebug("packet %" PRIu64 ": tx type %u", p->pcap_cnt, tx->tx_type);
 
+    const struct DetectFirewallPolicy drop_policy = { .action = ACTION_DROP,
+        .action_scope = ACTION_SCOPE_FLOW };
     const struct DetectFirewallAppPolicy lookup = {
-        .alproto = alproto, .sub_state = tx->tx_type, .progress = progress, .direction = direction
+        .alproto = alproto, .sub_state = tx->tx_type, .progress = progress, .direction = dir_flags
     };
+    const struct DetectFirewallPolicy *policy = NULL;
     const struct DetectFirewallAppPolicy *ap =
             HashTableLookup(policies->app_policies, (void *)&lookup, 0);
-    /* table should be fully populated, so this should not be able to fail */
+    /* table should be fully populated, so this should not be able to fail.
+     * However as it continues to confuse tooling, at a fallback. */
     DEBUG_VALIDATE_BUG_ON(ap == NULL);
-    const struct DetectFirewallPolicy *policy = &ap->policy;
-
+    if (likely(ap != NULL)) {
+        policy = &ap->policy;
+    } else {
+        policy = &drop_policy;
+    }
     if (policy->action & ACTION_DROP) {
         SCLogDebug("dropping packet PKT_DROP_REASON_FW_DEFAULT_APP_POLICY");
         PacketDrop(p, policy->action, PKT_DROP_REASON_FW_DEFAULT_APP_POLICY);
@@ -1792,7 +1801,7 @@ static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
         /* should be unreachable */
         DEBUG_VALIDATE_BUG_ON(1);
     }
-    return policy;
+    return *policy;
 }
 
 /** \internal
@@ -1828,27 +1837,27 @@ static enum DetectTxFirewallFlowControl DetectFirewallApplyDefaultPolicies(
                 direction & STREAM_TOSERVER ? "toserver" : "toclient", hook,
                 BOOL2STR(apply_to_packet));
 
-        const struct DetectFirewallPolicy *policy = DetectFirewallApplyDefaultAppPolicy(
+        const struct DetectFirewallPolicy policy = DetectFirewallApplyDefaultAppPolicy(
                 det_ctx, policies, tx, p, alproto, direction, hook);
-        SCLogDebug("fw: hook:%u policy:%02x apply_to_packet:%s", hook, policy->action,
+        SCLogDebug("fw: hook:%u policy:%02x apply_to_packet:%s", hook, policy.action,
                 BOOL2STR(apply_to_packet));
-        if (policy->action & ACTION_DROP) {
-            SCLogDebug("fw: action %02x", policy->action);
+        if (policy.action & ACTION_DROP) {
+            SCLogDebug("fw: action %02x", policy.action);
             return DETECT_TX_FW_FC_BREAK;
 
-        } else if (policy->action & ACTION_ACCEPT) {
-            SCLogDebug("fw: accept hook %u action %02x", hook, policy->action);
+        } else if (policy.action & ACTION_ACCEPT) {
+            SCLogDebug("fw: accept hook %u action %02x", hook, policy.action);
 
             /* accepting flow, so skip rest of the fw rules */
-            if (policy->action_scope == ACTION_SCOPE_FLOW) {
+            if (policy.action_scope == ACTION_SCOPE_FLOW) {
                 SCLogDebug("fw: accept flow");
                 return DETECT_TX_FW_FC_SKIP;
 
                 /* accepting flow, so skip rest of the fw rules for this tx */
-            } else if (policy->action_scope == ACTION_SCOPE_TX) {
+            } else if (policy.action_scope == ACTION_SCOPE_TX) {
                 return DETECT_TX_FW_FC_SKIP;
 
-            } else if (policy->action_scope == ACTION_SCOPE_HOOK) {
+            } else if (policy.action_scope == ACTION_SCOPE_HOOK) {
                 /* we're done */
                 if (apply_to_packet) {
                     return DETECT_TX_FW_FC_SKIP;
@@ -2282,10 +2291,10 @@ static int DetectRunTxFirewallRuleNoMatch(DetectEngineThreadCtx *det_ctx, const 
          * we have to invoke the default policy. We only check the current rule hook.
          * DROP is immediate, flow control for various accept options is handled by
          * the DetectRunTxPreCheckFirewallPolicy function for the next rule. */
-        const struct DetectFirewallPolicy *policy = DetectFirewallApplyDefaultAppPolicy(det_ctx,
+        const struct DetectFirewallPolicy policy = DetectFirewallApplyDefaultAppPolicy(det_ctx,
                 det_ctx->de_ctx->fw_policies, tx, p, s->alproto, flow_flags, s->app_progress_hook);
-        SCLogDebug("fw_last_for_progress policy %02x", policy->action);
-        if (policy->action & ACTION_DROP) {
+        SCLogDebug("fw_last_for_progress policy %02x", policy.action);
+        if (policy.action & ACTION_DROP) {
             return 1;
         }
     }
