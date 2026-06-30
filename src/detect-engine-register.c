@@ -460,6 +460,9 @@ static void SigJsonPrint(void)
         }
         SCJbClose(js);
 
+        if (sigmatch_table[i].JsonAdditionalInfo) {
+            sigmatch_table[i].JsonAdditionalInfo(js);
+        }
         SCJbClose(js); // SCJbOpenObject keyword name
     }
 
