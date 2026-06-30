@@ -248,6 +248,20 @@ pub unsafe extern "C" fn htp_config_set_compression_bomb_limit(
     }
 }
 
+/// Configures the maximum number of compression bombs LibHTP will decompress.
+/// # Safety
+/// When calling this method, you have to ensure that cfg is either properly initialized or NULL
+#[no_mangle]
+pub unsafe extern "C" fn htp_config_set_max_nb_compression_bombs(
+    cfg: *mut Config, max_bombs: libc::size_t,
+) {
+    if let Ok(max_bombs) = max_bombs.try_into() {
+        if let Some(cfg) = cfg.as_mut() {
+            cfg.compression_options.set_max_bombs(max_bombs)
+        }
+    }
+}
+
 /// Configures the maximum compression time LibHTP will allow.
 /// # Safety
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL

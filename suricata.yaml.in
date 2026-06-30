@@ -1182,6 +1182,10 @@ app-layer:
            # Maximum decompressed size with a compression ratio
            # above 2048 (only LZMA can reach this ratio, deflate cannot)
            #compression-bomb-limit: 1 MiB
+           # Maximum times in a single flow a compression bomb is allowed.
+           # If this is reached no more decompression will happen for the
+           # rest of that flow.
+           #compression-bomb-count: 3
            # Maximum time spent decompressing a single transaction in usec
            #decompression-time-limit: 100000
            # Maximum number of live transactions per flow

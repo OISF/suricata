@@ -1243,6 +1243,10 @@ impl ConnectionParser {
     /// Prepend a decompressor to the request
     fn request_prepend_decompressor(&mut self, encoding: HtpContentEncoding) -> Result<()> {
         let compression_options = self.cfg.compression_options;
+        if self.bombs >= compression_options.get_max_bombs() {
+            // skip decompression for this flow if too many bombs were seen
+            return Ok(());
+        }
         if encoding != HtpContentEncoding::None {
             // ensured by caller
             let req = self.request_mut().unwrap();
@@ -1328,10 +1332,15 @@ impl ConnectionParser {
                     request_entity_len, request_message_len,
                 )
             );
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "compression_bomb_limit reached",
-            ));
+            self.bombs += 1;
+            if self.bombs == compression_options.get_max_bombs() {
+                htp_error!(
+                    self.logger,
+                    HtpLogCode::COMPRESSION_BOMB_LIMIT_REACHED,
+                    format!("Compression bomb: happened {} times", self.bombs,)
+                );
+            }
+            return Err(std::io::Error::other("compression_bomb_limit reached"));
         }
         Ok(tx_data.len())
     }
