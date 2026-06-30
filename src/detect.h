@@ -1494,6 +1494,9 @@ typedef struct DetectEngineThreadCtx_ {
 #endif
 } DetectEngineThreadCtx;
 
+// forward declaration
+typedef struct SCJsonBuilder SCJsonBuilder;
+
 /** \brief element in sigmatch type table.
  */
 typedef struct SigTableElmt_ {
@@ -1543,6 +1546,9 @@ typedef struct SigTableElmt_ {
 
     // Cleanup function for freeing rust allocated name or such
     void (*Cleanup)(struct SigTableElmt_ *);
+
+    // Cleanup function for freeing rust allocated name or such
+    void (*JsonAdditionalInfo)(struct SCJsonBuilder *);
 } SigTableElmt;
 
 /* event code */
