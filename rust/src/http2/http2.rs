@@ -1347,10 +1347,11 @@ impl HTTP2State {
                         };
                         let (il, ol) = (il + comp_len, ol + decomp_len);
                         if ol > decompression::DEFAULT_BOMB_RATIO * il
-                            && ol > unsafe { HTTP2_COMPRESSION_BOMB_LIMIT } {
-                                tx.set_event(HTTP2Event::CompressionBomb);
-                                return AppLayerResult::err();
-                            }
+                            && ol > unsafe { HTTP2_COMPRESSION_BOMB_LIMIT }
+                        {
+                            tx.set_event(HTTP2Event::CompressionBomb);
+                            return AppLayerResult::err();
+                        }
                         if let Some(wss) = &mut tx.is_websocket {
                             let websocket_txs = std::mem::take(&mut wss.transactions);
                             for t in websocket_txs {
@@ -1360,11 +1361,10 @@ impl HTTP2State {
                                 self.transactions.push_back(ht);
                             }
                         }
-                        if ol > decompression::DEFAULT_BOMB_RATIO * il
-                            && over {
-                                self.comp_len += il;
-                                self.decomp_len += ol;
-                            }
+                        if ol > decompression::DEFAULT_BOMB_RATIO * il && over {
+                            self.comp_len += il;
+                            self.decomp_len += ol;
+                        }
                     }
                     sc_app_layer_parser_trigger_raw_stream_inspection(flow, dir as i32);
                     input = &rem[hlsafe..];
