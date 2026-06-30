@@ -166,6 +166,11 @@ void SCDetectHelperKeywordAliasRegister(uint16_t kwid, const char *alias)
     sigmatch_table[kwid].alias = alias;
 }
 
+void SCDetectHelperKeywordJsonInfoRegister(uint16_t kwid, void (*cb)(struct SCJsonBuilder *))
+{
+    sigmatch_table[kwid].JsonAdditionalInfo = cb;
+}
+
 int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw)
 {
     int transform_id = SCDetectHelperNewKeywordId();
