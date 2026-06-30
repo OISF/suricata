@@ -869,6 +869,11 @@ extern "C" {
     pub fn SCDetectHelperKeywordAliasRegister(kwid: u16, alias: *const ::std::os::raw::c_char);
 }
 extern "C" {
+    pub fn SCDetectHelperKeywordJsonInfoRegister(
+        kwid: u16, cb: ::std::option::Option<unsafe extern "C" fn(arg1: *mut SCJsonBuilder)>,
+    );
+}
+extern "C" {
     pub fn SCDetectHelperBufferProgressRegister(
         name: *const ::std::os::raw::c_char, alproto: AppProto, direction: u8, progress: u8,
     ) -> ::std::os::raw::c_int;
