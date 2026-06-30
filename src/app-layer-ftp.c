@@ -580,8 +580,13 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
                 /* Ensure that there is a negotiated dyn port and a file
                  * name -- need more than 5 chars: cmd [4], space, <filename>
                  */
-                if (state->dyn_port == 0 || line.len < 6) {
-                    SCReturnStruct(APP_LAYER_ERROR);
+                if (state->dyn_port == 0) {
+                    AppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, FtpEventFileBeforePort);
+                    break;
+                }
+                if (line.len < 6) {
+                    AppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, FtpEventFileWithoutName);
+                    break;
                 }
                 struct FtpTransferCmd *data = FTPCalloc(1, sizeof(struct FtpTransferCmd));
                 if (data == NULL)
@@ -1520,7 +1525,7 @@ static int FTPParserTest11(void)
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
                                 STREAM_TOSERVER, ftpbuf2,
                                 sizeof(ftpbuf2) - 1);
-    FAIL_IF(r == 0);
+    FAIL_IF(r != 0);
 
     FtpState *ftp_state = f.alstate;
     FAIL_IF_NULL(ftp_state);
@@ -1567,7 +1572,7 @@ static int FTPParserTest12(void)
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
                                 STREAM_TOSERVER, ftpbuf2,
                                 sizeof(ftpbuf2) - 1);
-    FAIL_IF(r == 0);
+    FAIL_IF(r != 0);
 
     FtpState *ftp_state = f.alstate;
     FAIL_IF_NULL(ftp_state);
