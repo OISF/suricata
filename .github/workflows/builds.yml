@@ -3413,7 +3413,7 @@ jobs:
               pcre2 \
               pkgconf \
               python3 \
-              py311-pyyaml \
+              py312-pyyaml \
               rust
           run: |
             tar xf prep/suricata-verify.tar.gz
