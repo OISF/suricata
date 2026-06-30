@@ -93,7 +93,8 @@ DetectFileHandlerProtocol al_protocols[ALPROTO_WITHFILES_MAX] = {
             .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
             .progress_tc = HTTP2ProgData,
             .progress_ts = HTTP2ProgData },
-    { .alproto = ALPROTO_SMTP, .direction = SIG_FLAG_TOSERVER }, { .alproto = ALPROTO_UNKNOWN }
+    { .alproto = ALPROTO_SMTP, .direction = SIG_FLAG_TOSERVER, .progress_ts = SMTP_REQUEST_DATA },
+    { .alproto = ALPROTO_UNKNOWN }
 };
 
 void DetectFileRegisterProto(
