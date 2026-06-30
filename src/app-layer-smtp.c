@@ -760,7 +760,12 @@ static int SMTPProcessCommandDATA(
     } else if (smtp_config.raw_extraction) {
         // message not over, store the line. This is a substitution of
         // ProcessDataChunk
-        FileAppendData(&tx->files_ts, &smtp_config.sbcfg, line->buf, line->len + line->delim_len);
+        int r = FileAppendData(&tx->files_ts, &smtp_config.sbcfg, line->buf, line->len + line->delim_len);
+        if (r == -2) {
+            SCLogDebug("FileAppendData() - file no longer being extracted");
+        } else if (r < 0) {
+            SCLogDebug("FileAppendData() failed: %d", r);
+        }
     }
 
     /* If DATA, then parse out a MIME message */
