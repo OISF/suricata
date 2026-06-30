@@ -1098,13 +1098,14 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
             case DETECT_APP_LAYER_PROTOCOL: {
                 const DetectAppLayerProtocolData *ad = (const DetectAppLayerProtocolData *)smd->ctx;
                 SCJbOpenObject(js, "app_layer_protocol");
-                if (ad->is_list) {
-                    char list_buf[512];
-                    DetectAppLayerProtocolListToString(ad, list_buf, sizeof(list_buf));
-                    SCJbSetString(js, "protocols", list_buf);
-                } else {
-                    SCJbSetString(js, "protocols", AppProtoToString(ad->alproto));
+                AppProto vals[256];
+                uint16_t n = DetectAppLayerProtocolGetValues(
+                        ad, vals, (uint16_t)(sizeof(vals) / sizeof(vals[0])));
+                SCJbOpenArray(js, "protocols");
+                for (uint16_t i = 0; i < n; i++) {
+                    SCJbAppendString(js, AppProtoToString(vals[i]));
                 }
+                SCJbClose(js);
                 SCJbSetString(js, "mode", DetectAppLayerProtocolModeName(ad->mode));
                 SCJbSetBool(js, "negated", ad->negated);
                 SCJbClose(js);

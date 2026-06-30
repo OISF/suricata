@@ -29,8 +29,8 @@
 void DetectAppLayerProtocolRegister(void);
 const char *DetectAppLayerProtocolModeName(uint8_t mode);
 struct DetectAppLayerProtocolData_;
-void DetectAppLayerProtocolListToString(
-        const struct DetectAppLayerProtocolData_ *data, char *buf, size_t buflen);
+uint16_t DetectAppLayerProtocolGetValues(
+        const struct DetectAppLayerProtocolData_ *data, AppProto *out, uint16_t max);
 
 /**
  * \brief Per-rule keyword data for `app-layer-protocol:`.

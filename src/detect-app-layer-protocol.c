@@ -50,7 +50,8 @@ enum {
 
 static void DetectAppLayerProtocolFree(DetectEngineCtx *de_ctx, void *ptr);
 
-/** \internal \brief size in bytes of an alproto bitmask (g_alproto_max bits). */
+/** \internal
+ *  \brief size in bytes of an alproto bitmask (g_alproto_max bits). */
 static inline uint32_t AlprotoBitmaskSize(void)
 {
     return (uint32_t)((g_alproto_max + 7) / 8);
@@ -66,8 +67,9 @@ static inline bool AlprotoBitmaskTest(const uint8_t *bm, AppProto a)
     return (bm[a >> 3] & (uint8_t)(1u << (a & 7))) != 0;
 }
 
-/** \internal \brief Set the bit for a value; the generic ALPROTO_HTTP umbrella
- *  also sets the http1/http2 bits. */
+/** \internal
+ *  \brief Set the bit for a value; the generic ALPROTO_HTTP umbrella
+ *         also sets the http1/http2 bits. */
 static void AlprotoBitmaskSetValue(uint8_t *bm, AppProto a)
 {
     AlprotoBitmaskSet(bm, a);
@@ -77,8 +79,9 @@ static void AlprotoBitmaskSetValue(uint8_t *bm, AppProto a)
     }
 }
 
-/** \internal \brief Exact comparison for the single-value prefilter path,
- *  mirroring AlprotoBitmaskSetValue(). */
+/** \internal
+ *  \brief Exact comparison for the single-value prefilter path,
+ *         mirroring AlprotoBitmaskSetValue(). */
 static bool DetectAppLayerProtocolMatchExact(AppProto sigproto, AppProto alproto)
 {
     if (sigproto == alproto)
@@ -207,27 +210,17 @@ const char *DetectAppLayerProtocolModeName(uint8_t mode)
     }
 }
 
-/** \brief Format a multi-value keyword's value set as a comma-separated string
- *  of protocol names (used by the engine-analyzer). */
-void DetectAppLayerProtocolListToString(
-        const DetectAppLayerProtocolData *data, char *buf, size_t buflen)
+/** \brief Fill out[] with the keyword's set protocol values.
+ *  \retval number of values written (capped at max). */
+uint16_t DetectAppLayerProtocolGetValues(
+        const DetectAppLayerProtocolData *data, AppProto *out, uint16_t max)
 {
-    if (buflen == 0)
-        return;
-    buf[0] = '\0';
-
-    size_t offset = 0;
-    for (AppProto a = 0; a < g_alproto_max; a++) {
-        if (!AlprotoBitmaskTest(data->alprotos, a))
-            continue;
-        const char *name = AppProtoToString(a);
-        if (name == NULL)
-            continue;
-        int w = snprintf(buf + offset, buflen - offset, "%s%s", (offset == 0) ? "" : ",", name);
-        if (w < 0 || (size_t)w >= buflen - offset)
-            break;
-        offset += (size_t)w;
+    uint16_t n = 0;
+    for (AppProto a = 0; a < g_alproto_max && n < max; a++) {
+        if (AlprotoBitmaskTest(data->alprotos, a))
+            out[n++] = a;
     }
+    return n;
 }
 
 /** \internal
