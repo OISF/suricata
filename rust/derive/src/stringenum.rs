@@ -180,6 +180,12 @@ where
                     _ => None
                 }
             }
+            fn list_values(jsb: &mut #crate_id::jsonbuilder::JsonBuilder) -> Result<(), #crate_id::jsonbuilder::JsonError> {
+                jsb.open_object("enum_values")?;
+                #( jsb.set_uint(#names, #values as u64)?;)*
+                jsb.close()?;
+                Ok(())
+            }
         }
     };
 
