@@ -882,6 +882,17 @@ packets to process. The detect threads running on other cores will
 process more packets. This is only the case after setting the option
 to 'yes'.
 
+On NUMA systems where ``set-cpu-affinity`` is enabled you can also opt
+into binding each thread's memory to its local NUMA node so per-flow,
+per-thread and packet pool allocations stay on the same node as the
+worker CPU::
+
+  set-memory-affinity: yes
+
+This requires Suricata to be built with libnuma (already pulled in by
+``--enable-dpdk`` and the Napatech build). On a single NUMA node system
+the option has no effect.
+
 *Example 7	Balancing workload*
 
 .. image:: suricata-yaml/balancing_workload.png
