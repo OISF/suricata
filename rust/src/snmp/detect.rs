@@ -24,16 +24,18 @@ use crate::detect::uint::{
     SCDetectU8Free, SCDetectU8Match,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
-    SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8, SIGMATCH_SUPPORT_FIREWALL,
+    helper_keyword_register_sticky_buffer, EnumString, SigTableElmtStickyBuffer,
+    SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8, SIGMATCH_SUPPORT_FIREWALL,
 };
+use crate::jsonbuilder::JsonBuilder;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferProgressMpmRegister, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectHelperKeywordJsonInfoRegister, SCDetectHelperKeywordRegister,
+    SCDetectSignatureSetAppProto, SCJsonBuilder, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt,
+    SigMatchCtx, Signature,
 };
 
 static mut G_SNMP_VERSION_KW_ID: u16 = 0;
@@ -259,6 +261,16 @@ unsafe extern "C" fn snmp_detect_community_get_data(
     return false;
 }
 
+unsafe extern "C" fn snmp_detect_pdutype_list_values(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = SnmpPduType::list_values(jsb);
+}
+
+unsafe extern "C" fn snmp_detect_traptype_list_values(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = SnmpTrapType::list_values(jsb);
+}
+
 pub(super) unsafe extern "C" fn detect_snmp_register() {
     G_SNMP_GENERIC_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"snmp.generic\0".as_ptr() as *const libc::c_char,
@@ -287,6 +299,10 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_ENUM_UINT | SIGMATCH_SUPPORT_FIREWALL,
     };
     G_SNMP_PDUTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordJsonInfoRegister(
+        G_SNMP_PDUTYPE_KW_ID,
+        Some(snmp_detect_pdutype_list_values),
+    );
 
     let kw = SigTableElmtStickyBuffer {
         name: String::from("snmp.usm"),
@@ -330,4 +346,8 @@ pub(super) unsafe extern "C" fn detect_snmp_register() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT | SIGMATCH_SUPPORT_FIREWALL,
     };
     G_SNMP_TRAPTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordJsonInfoRegister(
+        G_SNMP_TRAPTYPE_KW_ID,
+        Some(snmp_detect_traptype_list_values),
+    );
 }
