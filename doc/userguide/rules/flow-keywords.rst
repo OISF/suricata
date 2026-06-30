@@ -166,7 +166,11 @@ Examples::
 
 .. container:: example-rule
 
-  accept:hook tcp:all any any <> any any (:example-rule-options:`tcp.session:setup,established;` sid:1;)
+  :example-rule-action:`alert` :example-rule-header:`tcp any any -> any any` (:example-rule-options:`tcp.session:setup,established;` sid:1;)
+
+In firewall mode it is typically used in an ``accept`` rule::
+
+  accept:hook tcp:all any any <> any any (tcp.session:setup,established; sid:1;)
 
 .. note::
 

@@ -1840,8 +1840,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
                 if (sm->ctx != NULL) {
                     rule_flags = 1;
                 }
-            }
-            else if (sm->type == DETECT_TCP_SESSION) {
+            } else if (sm->type == DETECT_TCP_SESSION) {
                 /* Multiple tcp.session: SigMatches on the same rule are AND-ed
                  * at match time but the engine-analyzer summarises the union
                  * of phases bound to the rule for diagnostic clarity. */
@@ -2409,8 +2408,7 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
             continue;
         for (;;) {
             if (smd->type == DETECT_TCP_SESSION) {
-                const DetectTcpSessionData *tsd =
-                        (const DetectTcpSessionData *)smd->ctx;
+                const DetectTcpSessionData *tsd = (const DetectTcpSessionData *)smd->ctx;
                 if (tsd != NULL) {
                     char sid_key[32];
                     snprintf(sid_key, sizeof(sid_key), "%u", s->id);
