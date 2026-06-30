@@ -111,8 +111,14 @@ SCEnumCharMap flowbit_cmds[] = {
     { "isset", DETECT_FLOWBITS_CMD_ISSET },
 };
 
+typedef enum {
+    FLOWBIT_VALIDATE_OK = 0,
+    FLOWBIT_VALIDATE_SKIP,
+    FLOWBIT_VALIDATE_ERROR,
+} DetectFlowbitValidateResult;
+
 static inline int DetectFlowbitValidateDo(
-        Signature *s, uint8_t cmd, uint8_t cmd2, uint32_t idx, bool err)
+        Signature *s, uint8_t cmd, uint32_t idx, bool err, SigMatch **found)
 {
     bool postmatch = DetectFlowbitIsPostmatch(cmd);
     SigMatch *list = postmatch ? s->init_data->smlists[DETECT_SM_LIST_POSTMATCH]
@@ -124,24 +130,19 @@ static inline int DetectFlowbitValidateDo(
 
         DetectFlowbitsData *fd = (DetectFlowbitsData *)sm->ctx;
         if ((fd->idx == idx) && (fd->cmd == cmd)) {
-            if (err) {
-                SCLogError("invalid flowbit command combination in the same signature: isset and "
-                           "isnotset");
+            if (err)
                 return -1;
-            }
-            SCLogWarning(
-                    "inconsequential flowbit command combination in the same signature: %s and %s",
-                    SCMapEnumValueToName(cmd, flowbit_cmds),
-                    SCMapEnumValueToName(cmd2, flowbit_cmds));
-            return 0;
+            *found = sm;
+            return 1;
         }
     }
 
     /* no invalid or inconsequential command pair was found */
-    return 1;
+    return 0;
 }
 
-static int DetectFlowbitValidate(Signature *s, DetectFlowbitsData *fd)
+static DetectFlowbitValidateResult DetectFlowbitValidate(
+        Signature *s, const DetectFlowbitsData *fd, const char *fb_name, SigMatch **remove)
 {
     struct DetectFlowbitInvalidCmdMap_ {
         uint8_t cmd1;
@@ -159,25 +160,44 @@ static int DetectFlowbitValidate(Signature *s, DetectFlowbitsData *fd)
         { DETECT_FLOWBITS_CMD_ISSET, DETECT_FLOWBITS_CMD_ISNOTSET, true },
     };
 
-    int ret = 0;
-
     for (uint8_t i = 0; i < ARRAY_SIZE(icmds_map); i++) {
+        uint8_t self, mapped;
         if (fd->cmd == icmds_map[i].cmd1) {
-            ret = DetectFlowbitValidateDo(
-                    s, icmds_map[i].cmd2, icmds_map[i].cmd1, fd->idx, icmds_map[i].err);
-            if (ret != 1) {
-                return ret;
-            }
+            self = icmds_map[i].cmd1;
+            mapped = icmds_map[i].cmd2;
         } else if (fd->cmd == icmds_map[i].cmd2) {
-            ret = DetectFlowbitValidateDo(
-                    s, icmds_map[i].cmd1, icmds_map[i].cmd2, fd->idx, icmds_map[i].err);
-            if (ret != 1) {
-                return ret;
+            self = icmds_map[i].cmd2;
+            mapped = icmds_map[i].cmd1;
+        } else {
+            continue;
+        }
+
+        SigMatch *partner = NULL;
+        int ret = DetectFlowbitValidateDo(s, mapped, fd->idx, icmds_map[i].err, &partner);
+        if (ret == -1) {
+            SCLogError("invalid flowbit command combination in the same signature: isset and "
+                       "isnotset");
+            return FLOWBIT_VALIDATE_ERROR;
+        }
+        if (ret == 1) {
+            SCLogWarning(
+                    "inconsequential flowbit command combination in the same signature: %s and %s, "
+                    "skipping set/unset from matching logic for flowbit '%s' in sid: %u",
+                    SCMapEnumValueToName(mapped, flowbit_cmds),
+                    SCMapEnumValueToName(self, flowbit_cmds), fb_name, s->id);
+
+            if (DetectFlowbitIsPostmatch(fd->cmd)) {
+                /* It's the invalid WRITE cmd, tell caller to drop it */
+                return FLOWBIT_VALIDATE_SKIP;
             }
+
+            /* the set/unset was parsed earlier and is already on the POSTMATCH list,
+             * hand it back so the caller can remove it */
+            *remove = partner;
         }
     }
 
-    return 0;
+    return FLOWBIT_VALIDATE_OK;
 }
 
 static int FlowbitOrAddData(DetectEngineCtx *de_ctx, DetectFlowbitsData *cd, char *arrptr)
@@ -434,8 +454,24 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawst
             cd->idx, fb_cmd_str, strlen(fb_name) ? fb_name : "(none)");
     }
 
-    if (DetectFlowbitValidate(s, cd) != 0) {
-        goto error;
+    SigMatch *write_sm = NULL;
+    switch (DetectFlowbitValidate(s, cd, fb_name, &write_sm)) {
+        case FLOWBIT_VALIDATE_SKIP:
+            DetectFlowbitFree(de_ctx, cd);
+            return 0;
+        case FLOWBIT_VALIDATE_ERROR:
+            goto error;
+        case FLOWBIT_VALIDATE_OK:
+            break;
+    }
+
+    /* an inconsequential set/unset from an earlier keyword is removed */
+    if (write_sm != NULL) {
+        const DetectFlowbitsData *rfd = (const DetectFlowbitsData *)write_sm->ctx;
+        int remove_list = DetectFlowbitIsPostmatch(rfd->cmd) ? DETECT_SM_LIST_POSTMATCH
+                                                             : DETECT_SM_LIST_MATCH;
+        SigMatchRemoveSMFromList(s, write_sm, remove_list);
+        SigMatchFree(de_ctx, write_sm);
     }
 
     /* Okay so far so good, lets get this into a SigMatch
