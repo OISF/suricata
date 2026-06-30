@@ -1330,6 +1330,11 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
         if (!(inspect_flags & BIT_U32(engine->id)) &&
                 (direction == engine->dir || ((s->flags & SIG_FLAG_TXBOTHDIR) && direction == 1))) {
 
+            DEBUG_VALIDATE_BUG_ON(
+                    AppLayerParserSupportsSubStates(engine->alproto) && engine->sub_state == 0);
+            DEBUG_VALIDATE_BUG_ON(
+                    !AppLayerParserSupportsSubStates(engine->alproto) && engine->sub_state != 0);
+
             if (engine->alproto != ALPROTO_UNKNOWN && // app-layer-events is registered for each
                                                       // proto this way
                     tx->tx_type != engine->sub_state) {

@@ -113,6 +113,11 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
                 engine, AppProtoToString(engine->alproto), engine->ctx.app.tx_min_progress,
                 engine->ctx.app.sub_state, tx->tx_type);
 
+        DEBUG_VALIDATE_BUG_ON(
+                AppLayerParserSupportsSubStates(engine->alproto) && engine->ctx.app.sub_state == 0);
+        DEBUG_VALIDATE_BUG_ON(!AppLayerParserSupportsSubStates(engine->alproto) &&
+                              engine->ctx.app.sub_state != 0);
+
         if (engine->alproto != ALPROTO_UNKNOWN && engine->ctx.app.sub_state != tx->tx_type) {
             SCLogDebug("%" PRIu64 ": engine %p sub_state %u mismatch with tx %u", p->pcap_cnt,
                     engine, engine->ctx.app.sub_state, tx->tx_type);
