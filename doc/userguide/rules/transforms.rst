@@ -188,6 +188,11 @@ url_decode
 Decodes url-encoded data, ie replacing '+' with space and '%HH' with its value.
 This does not decode unicode '%uZZZZ' encoding
 
+This transform takes an optional argument.
+The only accepted value is ``only_decode_plus_after_query`` which limits the replacing
+of '+' with space to the part of the buffer after the first '?' character.
+This is useful for decoding HTTP query strings in compliance with RFC 1886 while leaving the path component of the URI unchanged.
+
 xor
 ---
 
