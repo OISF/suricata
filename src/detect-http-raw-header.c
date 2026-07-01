@@ -128,8 +128,8 @@ void DetectHttpRawHeaderRegister(void)
 
     DetectBufferTypeRegisterValidateCallback("http_raw_header",
             DetectHttpRawHeaderValidateCallback);
-    g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
-            "http2.raw_header", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
+    g_http2_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
+            "http2.raw_header", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     g_http_raw_header_buffer_id = DetectBufferTypeGetByName("http_raw_header");
 }
@@ -220,7 +220,7 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        void *thread_buf = SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
         if (thread_buf == NULL)
             return NULL;
         if (SCHttp2TxGetHeadersRaw(txv, flow_flags, &b, &b_len, thread_buf) != 1)

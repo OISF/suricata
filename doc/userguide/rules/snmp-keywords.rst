@@ -121,3 +121,37 @@ Syntax::
 Signature example::
 
  alert snmp any any -> any 162 (msg:"SNMP trap cold start"; snmp.pdu_type:trap_v1; snmp.trap_type:coldstart; sid:3; rev:1;)
+
+snmp.trap_oid
+-------------
+
+SNMP Trap OID (Object Identifier) is used to uniquely identify the type of trap being sent.
+
+Syntax::
+
+ snmp.trap_oid; content:"1.3.6.1.4.1.4.1.2.21";
+
+.. container:: example-rule
+
+ alert snmp any any -> any any (msg:"SNMP trap OID example"; snmp.trap_oid; content:"1.3.6.1.4.1.4.1.2.21"; sid:4; rev:1;)
+
+``snmp.trap_oid`` is a 'sticky buffer'.
+
+``snmp.trap_oid`` can be used as ``fast_pattern``.
+
+snmp.trap_address
+-----------------
+
+SNMP Trap Address is the IP address of the agent.
+
+Syntax::
+
+ snmp.trap_address; content:"192.168.1.2";
+
+.. container:: example-rule
+
+ alert snmp any any -> any any (msg:"SNMP trap address example"; snmp.trap_address; content:"192.168.1.2"; sid:4; rev:1;)
+
+``snmp.trap_address`` is a 'sticky buffer'.
+
+``snmp.trap_address`` can be used as ``fast_pattern``.
