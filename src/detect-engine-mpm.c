@@ -2172,8 +2172,16 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             case DETECT_BUFFER_MPM_TYPE_APP: {
                 for (int e = 0; e < engines_idx[list]; e++) {
                     const AppProto alproto = engines[list][e];
-                    if (!(AppProtoEquals(s->alproto, alproto) || s->alproto == 0))
-                        continue;
+                    if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+                        /* SIGNATURE_HOOK_TYPE_APP rules are exact about their protocol */
+                        if (!(AppProtoEqualsStrict(s->alproto, alproto))) {
+                            continue;
+                        }
+                    } else {
+                        /* other rules use the more relax AppProtoEquals logic */
+                        if (!(AppProtoEquals(s->alproto, alproto) || s->alproto == 0))
+                            continue;
+                    }
 
                     DetectBufferInstance lookup = { .list = list, .alproto = alproto };
                     DetectBufferInstance *instance = HashListTableLookup(bufs, &lookup, 0);

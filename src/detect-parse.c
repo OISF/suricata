@@ -2850,7 +2850,7 @@ static int SigValidateCheckBuffers(
             if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
                 /* only allow rules to use the hook for engines at that
                  * exact progress for now. */
-                if (app->alproto != s->alproto) {
+                if (!(AppProtoEqualsStrict(s->alproto, app->alproto))) {
                     continue;
                 }
             } else {
