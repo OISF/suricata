@@ -1889,6 +1889,14 @@ detect:
       include-rules: false      # very verbose
       include-mpm-stats: false
 
+  flowbits:
+    # In order to determine the correct order of signatures when flowbits are present
+    # and may have inter dependencies, Suricata makes a dependency graph of the
+    # signatures with flowbits and attempts to resolve any cycles that can be
+    # fixed to give a plausible order of signatures. This value determines how many
+    # times Suricata will try to resolve cycles before it gives up.
+    #max-cycle-resolution: 100
+
 # Select the multi pattern algorithm you want to run for scan/search the
 # in the engine.
 #
