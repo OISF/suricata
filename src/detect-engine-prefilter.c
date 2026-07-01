@@ -1038,6 +1038,13 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                             AppProtoToString(app->alproto), app->sm_list,
                             s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT));
 
+                    /* extra strict alproto check for SIGNATURE_HOOK_TYPE_APP,
+                     * just like with mpm and per rule app engine. */
+                    if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+                        if (!AppProtoEqualsStrict(s->alproto, app->alproto))
+                            continue;
+                    }
+
                     /* skip if:
                      * - not in our dir
                      * - not our list
