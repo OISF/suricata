@@ -60,6 +60,7 @@
 #include "flow-storage.h"
 #include "util-validate.h"
 #include "action-globals.h"
+#include "rust.h"
 
 #ifdef HAVE_AF_PACKET
 
@@ -355,7 +356,13 @@ typedef struct AFPThreadVars_
     int ebpf_filter_fd;
     struct ebpf_timeout_config ebpf_t_config;
 #endif
-
+#ifdef AFPACKET_TEST_REPLAY
+    // Number of packets to read on afpacket interface before stopping Suricata
+    // This is meant for test purposes, especially to run suricata-verify against tcpreplay
+    // to test features that are not available when reading from a pcap (such as ebpf)
+    // Value 0 means no packet (and should thus not be used).
+    uint32_t max_packets;
+#endif
 } AFPThreadVars;
 
 static TmEcode ReceiveAFPThreadInit(ThreadVars *, const void *, void **);
@@ -740,6 +747,16 @@ static inline int AFPSuriFailure(AFPThreadVars *ptv, union thdr h)
     }
     SCReturnInt(AFP_SURI_FAILURE);
 }
+
+#ifdef HAVE_PACKET_EBPF
+void AFPReadCopyBypass(Packet *dst, Packet *src)
+{
+    dst->BypassPacketsFlow = src->BypassPacketsFlow;
+    dst->afp_v.v4_map_fd = src->afp_v.v4_map_fd;
+    dst->afp_v.v6_map_fd = src->afp_v.v6_map_fd;
+    dst->afp_v.nr_cpus = src->afp_v.nr_cpus;
+}
+#endif
 
 static inline void AFPReadApplyBypass(const AFPThreadVars *ptv, Packet *p)
 {
@@ -1430,6 +1447,15 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
         } else if (r > 0) {
             StatsCounterIncr(&ptv->tv->stats, ptv->capture_afp_poll_data);
             r = AFPReadFunc(ptv);
+#ifdef AFPACKET_TEST_REPLAY
+            // When we reached the configured maximum number of packets
+            // we tell Suricata to stop.
+            // This is useful for test purposes when tcpreplaying a pcap
+            // so we know we do not expect anymore packets.
+            if (ptv->max_packets > 0 && ptv->pkts >= ptv->max_packets) {
+                suricata_ctl_flags |= SURICATA_STOP;
+            }
+#endif
             switch (r) {
                 case AFP_READ_OK:
                     /* Trigger one dump of stats every second */
@@ -2245,11 +2271,20 @@ static int AFPSetFlowStorage(Packet *p, int map_fd, void *key0, void* key1,
     return 1;
 }
 
+// unsupported by ebpf : tunnel with multiple layers of vlans inside
 #define FlowKeyIpFill(k, p)                                                                        \
     {                                                                                              \
         (k)->ip_proto = ((p)->proto == IPPROTO_TCP) ? 1 : 0;                                       \
         (k)->vlan0 = (p)->vlan_id[0];                                                              \
-        (k)->vlan1 = (p)->vlan_id[1];                                                              \
+        if ((p)->tunnel_id) {                                                                      \
+            if ((p)->vlan_id[1]) {                                                                 \
+                return 0;                                                                          \
+            }                                                                                      \
+            (k)->tunnel = 1;                                                                       \
+            (k)->vlan1_or_tunnel_id = (p)->tunnel_id;                                              \
+        } else {                                                                                   \
+            (k)->vlan1_or_tunnel_id = (p)->vlan_id[1];                                             \
+        }                                                                                          \
     }
 
 /**
@@ -2280,10 +2315,9 @@ static int AFPBypassCallback(Packet *p)
     if (p->flow == NULL) {
         return 0;
     }
-    /* Bypassing tunneled packets is currently not supported
-     * because we can't discard the inner packet only due to
-     * primitive parsing in eBPF */
-    if (PacketIsTunnel(p)) {
+    /* Bypassing tunneled packets is now supported based on the
+     * configured tunnel with their ids */
+    if (p->tunnel_id == PKT_TUNNEL_UNKNOWN) {
         return 0;
     }
     LiveDevice *dev = LiveDeviceGetById(p->livedev_id);
@@ -2411,10 +2445,9 @@ static int AFPXDPBypassCallback(Packet *p)
     if (p->flow == NULL) {
         return 0;
     }
-    /* Bypassing tunneled packets is currently not supported
-     * because we can't discard the inner packet only due to
-     * primitive parsing in eBPF */
-    if (PacketIsTunnel(p)) {
+    /* Bypassing tunneled packets is now supported based on the
+     * configured tunnel with their ids */
+    if (p->tunnel_id == PKT_TUNNEL_UNKNOWN) {
         return 0;
     }
     LiveDevice *dev = LiveDeviceGetById(p->livedev_id);
@@ -2568,6 +2601,9 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     ptv->promisc = afpconfig->promisc;
     ptv->checksum_mode = afpconfig->checksum_mode;
     ptv->bpf_filter = NULL;
+#ifdef AFPACKET_TEST_REPLAY
+    ptv->max_packets = afpconfig->max_packets;
+#endif
 
     ptv->threads = 1;
 #ifdef HAVE_PACKET_FANOUT
