@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2022 Open Information Security Foundation
+/* Copyright (C) 2018-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -197,7 +197,9 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                     let mut oldname = rd.oldname;
                     oldname.retain(|&i|i != 0x00);
 
-                    let tx = state.new_rename_tx(Vec::new(), oldname, newname);
+                    let Some(tx) = state.new_rename_tx(Vec::new(), oldname, newname) else {
+                        return;
+                    };
                     tx.hdr = tx_hdr;
                     tx.request_done = true;
                     tx.vercmd.set_smb1_cmd(SMB1_COMMAND_RENAME);
@@ -226,8 +228,10 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                                             SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION DONE {:?}", disp);
                                             let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
 
-                                            let tx = state.new_setpathinfo_tx(pd.oldname,
-                                                    rd.subcmd, pd.loi, disp.delete);
+                                            let Some(tx) = state.new_setpathinfo_tx(pd.oldname,
+                                                    rd.subcmd, pd.loi, disp.delete) else {
+                                                return;
+                                            };
                                             tx.hdr = tx_hdr;
                                             tx.request_done = true;
                                             tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
@@ -256,7 +260,11 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
 
                                             let fid : Vec<u8> = Vec::new();
 
-                                            let tx = state.new_rename_tx(fid, pd.oldname, newname);
+                                            let Some(tx) =
+                                                state.new_rename_tx(fid, pd.oldname, newname)
+                                            else {
+                                                return;
+                                            };
                                             tx.hdr = tx_hdr;
                                             tx.request_done = true;
                                             tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
@@ -309,8 +317,10 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                                                 Some(n) => n.to_vec(),
                                                 None => b"<unknown>".to_vec(),
                                             };
-                                            let tx = state.new_setfileinfo_tx(filename, pd.fid.to_vec(),
-                                                    rd.subcmd, pd.loi, disp.delete);
+                                            let Some(tx) = state.new_setfileinfo_tx(filename, pd.fid.to_vec(),
+                                                    rd.subcmd, pd.loi, disp.delete) else {
+                                                return;
+                                            };
                                             tx.hdr = tx_hdr;
                                             tx.request_done = true;
                                             tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
@@ -344,7 +354,9 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                                                 Some(n) => n.to_vec(),
                                                 None => b"<unknown>".to_vec(),
                                             };
-                                            let tx = state.new_rename_tx(pd.fid.to_vec(), oldname, newname);
+                                            let Some(tx) = state.new_rename_tx(pd.fid.to_vec(), oldname, newname) else {
+                                                return;
+                                            };
                                             tx.hdr = tx_hdr;
                                             tx.request_done = true;
                                             tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
@@ -451,7 +463,9 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                         None => { false },
                     };
                     if !found {
-                        let tx = state.new_negotiate_tx(1);
+                        let Some(tx) = state.new_negotiate_tx(1) else {
+                            return;
+                        };
                         if let Some(SMBTransactionTypeData::NEGOTIATE(ref mut tdn)) = tx.type_data {
                             tdn.dialects = dialects;
                         }
@@ -481,8 +495,10 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
                     state.ssn2vec_cache.put(name_key, name_val);
 
                     let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-                    let tx = state.new_create_tx(&cr.file_name,
-                            cr.disposition, del, dir, tx_hdr);
+                    let Some(tx) = state.new_create_tx(&cr.file_name,
+                            cr.disposition, del, dir, tx_hdr) else {
+                        return;
+                    };
                     tx.vercmd.set_smb1_cmd(command);
                     SCLogDebug!("TS CREATE TX {} created", tx.id);
                     true
@@ -510,7 +526,9 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
 
                     // store hdr as SMBHDR_TYPE_TREE, so with tree id 0
                     // when the response finds this we update it
-                    let tx = state.new_treeconnect_tx(name_key, name_val);
+                    let Some(tx) = state.new_treeconnect_tx(name_key, name_val) else {
+                        return;
+                    };
                     if let Some(SMBTransactionTypeData::TREECONNECT(ref mut tdn)) = tx.type_data {
                         tdn.req_service = Some(tr.service.to_vec());
                     }
@@ -572,7 +590,9 @@ fn smb1_request_record_one(state: &mut SMBState, r: &SmbRecord, command: u8, and
     };
     if !have_tx && smb1_create_new_tx(command) {
         let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-        let tx = state.new_generic_tx(1, command as u16, tx_key);
+        let Some(tx) = state.new_generic_tx(1, command as u16, tx_key) else {
+            return;
+        };
         SCLogDebug!("tx {} created for {}/{}", tx.id, command, &smb1_command_string(command));
         tx.set_events(events);
         if no_response_expected {
@@ -985,7 +1005,10 @@ pub fn smb1_write_request_record(state: &mut SMBState, r: &SmbRecord, andx_offse
                     let vercmd = SMBVerCmdStat::new1_with_ntstatus(command, r.nt_status);
                     smb_write_dcerpc_record(state, vercmd, hdr, rd.data);
                 } else {
-                    let tx = state.new_file_tx(&file_fid, &file_name, Direction::ToServer);
+                    let Some(tx) = state.new_file_tx(&file_fid, &file_name, Direction::ToServer)
+                    else {
+                        return;
+                    };
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
                         if rd.offset < tdf.file_tracker.tracked {
@@ -1075,7 +1098,11 @@ pub fn smb1_read_response_record(state: &mut SMBState, r: &SmbRecord, andx_offse
                         None => { false },
                     };
                     if !found {
-                        let tx = state.new_file_tx(&file_fid, &file_name, Direction::ToClient);
+                        let Some(tx) =
+                            state.new_file_tx(&file_fid, &file_name, Direction::ToClient)
+                        else {
+                            return;
+                        };
                         if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                             let file_id : u32 = tx.id as u32;
                             SCLogDebug!("FID {:?} found at tx {}", file_fid, tx.id);
@@ -1121,7 +1148,9 @@ pub fn smb1_read_response_record(state: &mut SMBState, r: &SmbRecord, andx_offse
 fn smb1_request_record_generic(state: &mut SMBState, r: &SmbRecord, events: Vec<SMBEvent>) {
     if smb1_create_new_tx(r.command) || !events.is_empty() {
         let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-        let tx = state.new_generic_tx(1, r.command as u16, tx_key);
+        let Some(tx) = state.new_generic_tx(1, r.command as u16, tx_key) else {
+            return;
+        };
         tx.set_events(events);
     }
 }
@@ -1140,7 +1169,9 @@ fn smb1_response_record_generic(state: &mut SMBState, r: &SmbRecord, events: Vec
         return;
     }
     if !events.is_empty() {
-        let tx = state.new_generic_tx(1, r.command as u16, tx_key);
+        let Some(tx) = state.new_generic_tx(1, r.command as u16, tx_key) else {
+            return;
+        };
         tx.request_done = true;
         tx.response_done = true;
         SCLogDebug!("tx {} cmd {} is done", tx.id, r.command);
