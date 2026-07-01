@@ -24,6 +24,7 @@
 
 #include "detect-engine-helper.h"
 #include "detect-parse.h"
+#include "flow.h"
 #include "flow-callbacks.h"
 #include "flow-storage.h"
 #include "output-eve.h"
@@ -71,13 +72,11 @@ static inline struct NdpiThreadContext *NdpiGetThreadContext(ThreadVars *tv)
 
 /**
  * Safe helper to get nDPI flow context. Returns NULL if the flow
- * or its storage is not available. Guards against the case where
- * f->storage is NULL (uninitialized flow) which would crash inside
- * SCStorageGetById.
+ * context is not available.
  */
 static inline struct NdpiFlowContext *NdpiGetFlowContext(const Flow *f)
 {
-    if (unlikely(f == NULL || flow_storage_id.id < 0 || f->storage == NULL))
+    if (unlikely(f == NULL || flow_storage_id.id < 0))
         return NULL;
     return SCFlowGetStorageById(f, flow_storage_id);
 }
@@ -108,11 +107,6 @@ static void OnFlowInit(ThreadVars *tv, Flow *f, const Packet *p, void *_data)
     if (unlikely(f == NULL))
         return;
 
-    if (unlikely(f->storage == NULL)) {
-        SCLogDebug("Flow %p has no storage, skipping nDPI init", f);
-        return;
-    }
-
     struct NdpiFlowContext *flowctx = SCCalloc(1, sizeof(*flowctx));
     if (flowctx == NULL) {
         SCLogDebug("Failed to allocate nDPI flow context");
@@ -128,14 +122,19 @@ static void OnFlowInit(ThreadVars *tv, Flow *f, const Packet *p, void *_data)
 
     memset(flowctx->ndpi_flow, 0, SIZEOF_FLOW_STRUCT);
     flowctx->detection_completed = false;
-    SCFlowSetStorageById(f, flow_storage_id, flowctx);
+    if (SCFlowSetStorageById(f, flow_storage_id, flowctx) != 0) {
+        SCLogDebug("Failed to set nDPI flow storage");
+        FlowStorageFree(flowctx);
+    }
 }
 
 static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
 {
+    const uint8_t flow_proto = SCFlowGetIPProtocol(f);
+
     /* Ignore packets that have a different protocol than the
      * flow. This can happen with ICMP unreachable packets. */
-    if (p->proto != f->proto) {
+    if (p->proto != flow_proto) {
         return;
     }
 
@@ -173,9 +172,10 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
                     flowctx->detection_completed = true;
             }
         } else {
-            uint16_t max_num_pkts = (f->proto == IPPROTO_UDP) ? 8 : 24;
+            uint16_t max_num_pkts = (flow_proto == IPPROTO_UDP) ? 8 : 24;
 
-            if ((f->todstpktcnt + f->tosrcpktcnt) > max_num_pkts) {
+            if ((SCFlowGetToServerPacketCount(f) + SCFlowGetToClientPacketCount(f)) >
+                    max_num_pkts) {
                 uint8_t proto_guessed;
 
                 flowctx->detected_l7_protocol =

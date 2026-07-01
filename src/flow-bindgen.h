@@ -21,10 +21,25 @@
 /* forward declaration for macset include */
 typedef struct Flow_ Flow;
 
+typedef struct SCFlowAddress_ {
+    union {
+        uint32_t address_un_data32[4]; /* type-specific field */
+        uint16_t address_un_data16[8]; /* type-specific field */
+        uint8_t address_un_data8[16];  /* type-specific field */
+    } address;
+} SCFlowAddress;
+
 void SCFlowGetLastTimeAsParts(const Flow *flow, uint64_t *secs, uint64_t *usecs);
 uint64_t SCFlowGetFlags(const Flow *flow);
+bool SCFlowIsIPv4(const Flow *flow);
+bool SCFlowIsIPv6(const Flow *flow);
+uint8_t SCFlowGetIPProtocol(const Flow *flow);
 uint16_t SCFlowGetSourcePort(const Flow *flow);
 uint16_t SCFlowGetDestinationPort(const Flow *flow);
+const SCFlowAddress *SCFlowGetSourceAddressPtr(const Flow *flow);
+const SCFlowAddress *SCFlowGetDestinationAddressPtr(const Flow *flow);
+uint32_t SCFlowGetToServerPacketCount(const Flow *flow);
+uint32_t SCFlowGetToClientPacketCount(const Flow *flow);
 AppProto SCFlowGetAppProtocol(const Flow *f);
 
 #endif /* SURICATA_FLOW_BINDGEN_H */

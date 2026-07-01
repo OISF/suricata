@@ -36,7 +36,6 @@
 #include "util-time.h"
 
 #include "flow.h"
-#include "flow-bindgen.h"
 #include "flow-queue.h"
 #include "flow-hash.h"
 #include "flow-util.h"
@@ -1237,6 +1236,46 @@ uint16_t SCFlowGetSourcePort(const Flow *flow)
     return flow->sp;
 }
 
+/**
+ * \brief Get flow source address.
+ */
+const SCFlowAddress *SCFlowGetSourceAddressPtr(const Flow *flow)
+{
+    return &flow->src;
+}
+
+/**
+ * \brief Get flow destination address.
+ */
+const SCFlowAddress *SCFlowGetDestinationAddressPtr(const Flow *flow)
+{
+    return &flow->dst;
+}
+
+/**
+ * \brief Return true if the flow is IPv4.
+ */
+bool SCFlowIsIPv4(const Flow *flow)
+{
+    return FLOW_IS_IPV4(flow);
+}
+
+/**
+ * \brief Return true if the flow is IPv6.
+ */
+bool SCFlowIsIPv6(const Flow *flow)
+{
+    return FLOW_IS_IPV6(flow);
+}
+
+/**
+ * \brief Get flow IP protocol.
+ */
+uint8_t SCFlowGetIPProtocol(const Flow *flow)
+{
+    return flow->proto;
+}
+
 AppProto SCFlowGetAppProtocol(const Flow *f)
 {
     return f->alproto;
@@ -1252,6 +1291,22 @@ AppProto SCFlowGetAppProtocol(const Flow *f)
 uint16_t SCFlowGetDestinationPort(const Flow *flow)
 {
     return flow->dp;
+}
+
+/**
+ * \brief Get the number of packets seen toserver.
+ */
+uint32_t SCFlowGetToServerPacketCount(const Flow *flow)
+{
+    return flow->todstpktcnt;
+}
+
+/**
+ * \brief Get the number of packets seen toclient.
+ */
+uint32_t SCFlowGetToClientPacketCount(const Flow *flow)
+{
+    return flow->tosrcpktcnt;
 }
 
 /**
