@@ -736,7 +736,7 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     } else if (s->alproto != ALPROTO_UNKNOWN) {
         if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
             /* SIGNATURE_HOOK_TYPE_APP rules are exact about their protocol */
-            if (t->alproto != s->alproto) {
+            if (!(AppProtoEqualsStrict(s->alproto, t->alproto))) {
                 return;
             }
         } else {
