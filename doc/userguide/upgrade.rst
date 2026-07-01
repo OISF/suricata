@@ -39,6 +39,12 @@ Upgrading to 8.0.6
 
 Deprecations
 ~~~~~~~~~~~~~
+<<<<<<< HEAD
+- An SMB flow that reaches its transaction limit
+  (``app-layer.protocols.smb.max-tx``) is now put into an application-layer
+  error state instead of force-completing older transactions. Such a flow is
+  then handled according to ``app-layer.error-policy`` (for example, dropped in
+  IPS mode), and the ``too_many_transactions`` event is raised.
 
 - The ``flowbits`` ``toggle`` command is now deprecated and will be removed in
   Suricata 9.0.
