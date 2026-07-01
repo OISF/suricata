@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2022 Open Information Security Foundation
+/* Copyright (C) 2017-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -252,7 +252,10 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                         None => b"<unknown>".to_vec(),
                     };
 
-                    let tx = state.new_file_tx(&file_guid, &file_name, Direction::ToClient);
+                    let Some(tx) = state.new_file_tx(&file_guid, &file_name, Direction::ToClient)
+                    else {
+                        return;
+                    };
                     tx.vercmd.set_smb2_cmd(SMB2_COMMAND_READ);
                     tx.hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER, r.session_id, r.tree_id, 0); // TODO move into new_file_tx
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -311,7 +314,9 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
     SCLogDebug!("SMBv2/WRITE: request record");
     if smb2_create_new_tx(r.command) {
         let tx_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
-        let tx = state.new_generic_tx(2, r.command, tx_key);
+        let Some(tx) = state.new_generic_tx(2, r.command, tx_key) else {
+            return;
+        };
         tx.request_done = true;
     }
     match parse_smb2_request_write(r.data) {
@@ -426,7 +431,10 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                     SCLogDebug!("non-DCERPC pipe: skip rest of the record");
                     state.set_skip(Direction::ToServer, nbss_remaining);
                 } else {
-                    let tx = state.new_file_tx(&file_guid, &file_name, Direction::ToServer);
+                    let Some(tx) = state.new_file_tx(&file_guid, &file_name, Direction::ToServer)
+                    else {
+                        return;
+                    };
                     tx.vercmd.set_smb2_cmd(SMB2_COMMAND_WRITE);
                     tx.hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER, r.session_id, r.tree_id, 0); // TODO move into new_file_tx
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -503,7 +511,10 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record) {
                                 Some(n) => n.to_vec(),
                                 None => b"<unknown>".to_vec(),
                             };
-                            let tx = state.new_rename_tx(rd.guid.to_vec(), oldname, newname);
+                            let Some(tx) = state.new_rename_tx(rd.guid.to_vec(), oldname, newname)
+                            else {
+                                return;
+                            };
                             tx.hdr = tx_hdr;
                             tx.request_done = true;
                             tx.vercmd.set_smb2_cmd(SMB2_COMMAND_SET_INFO);
@@ -528,13 +539,15 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record) {
                                     }
                                 }
                             };
-                            let tx = state.new_setfileinfo_tx(
+                            let Some(tx) = state.new_setfileinfo_tx(
                                 fname,
                                 rd.guid.to_vec(),
                                 rd.class as u16,
                                 rd.infolvl as u16,
                                 dis.delete,
-                            );
+                            ) else {
+                                return;
+                            };
                             tx.hdr = tx_hdr;
                             tx.request_done = true;
                             tx.vercmd.set_smb2_cmd(SMB2_COMMAND_SET_INFO);
@@ -575,7 +588,9 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record) {
                 }
 
                 if state.get_negotiate_tx(2).is_none() {
-                    let tx = state.new_negotiate_tx(2);
+                    let Some(tx) = state.new_negotiate_tx(2) else {
+                        return;
+                    };
                     if let Some(SMBTransactionTypeData::NEGOTIATE(ref mut tdn)) = tx.type_data {
                         tdn.dialects2 = dialects;
                         tdn.client_guid = Some(rd.client_guid.to_vec());
@@ -601,7 +616,9 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record) {
                     name_val = name_val[1..].to_vec();
                 }
 
-                let tx = state.new_treeconnect_tx(name_key, name_val);
+                let Some(tx) = state.new_treeconnect_tx(name_key, name_val) else {
+                    return;
+                };
                 tx.request_done = true;
                 tx.vercmd.set_smb2_cmd(SMB2_COMMAND_TREE_CONNECT);
                 true
@@ -644,7 +661,10 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record) {
                 state.ssn2vec_cache.put(name_key, cr.data.to_vec());
 
                 let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
-                let tx = state.new_create_tx(cr.data, cr.disposition, del, dir, tx_hdr);
+                let Some(tx) = state.new_create_tx(cr.data, cr.disposition, del, dir, tx_hdr)
+                else {
+                    return;
+                };
                 tx.vercmd.set_smb2_cmd(r.command);
                 SCLogDebug!("TS CREATE TX {} created", tx.id);
                 true
@@ -702,7 +722,9 @@ pub fn smb2_request_record(state: &mut SMBState, r: &Smb2Record) {
     /* if we don't have a tx, create it here (maybe) */
     if !have_tx && smb2_create_new_tx(r.command) {
         let tx_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
-        let tx = state.new_generic_tx(2, r.command, tx_key);
+        let Some(tx) = state.new_generic_tx(2, r.command, tx_key) else {
+            return;
+        };
         SCLogDebug!(
             "TS TX {} command {} created with session_id {} tree_id {} message_id {}",
             tx.id,

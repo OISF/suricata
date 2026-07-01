@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -36,8 +36,8 @@ impl SMBTransactionSessionSetup {
 }
 
 impl SMBState {
-    pub fn new_sessionsetup_tx(&mut self, hdr: SMBCommonHdr) -> &mut SMBTransaction {
-        let mut tx = self.new_tx();
+    pub fn new_sessionsetup_tx(&mut self, hdr: SMBCommonHdr) -> Option<&mut SMBTransaction> {
+        let mut tx = self.new_tx()?;
 
         tx.hdr = hdr;
         tx.type_data = Some(SMBTransactionTypeData::SESSIONSETUP(
@@ -48,8 +48,7 @@ impl SMBState {
 
         SCLogDebug!("SMB: TX SESSIONSETUP created: ID {}", tx.id);
         self.transactions.push_back(tx);
-        let tx_ref = self.transactions.back_mut();
-        return tx_ref.unwrap();
+        self.transactions.back_mut()
     }
 
     pub fn get_sessionsetup_tx(&mut self, hdr: SMBCommonHdr) -> Option<&mut SMBTransaction> {

@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-2022 Open Information Security Foundation
+/* Copyright (C) 2018-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -89,8 +89,8 @@ fn filetracker_update(ft: &mut FileTransferTracker, data: &[u8], gap_size: u32) 
 impl SMBState {
     pub fn new_file_tx(
         &mut self, fuid: &[u8], file_name: &[u8], direction: Direction,
-    ) -> &mut SMBTransaction {
-        let mut tx = self.new_tx();
+    ) -> Option<&mut SMBTransaction> {
+        let mut tx = self.new_tx()?;
         tx.type_data = Some(SMBTransactionTypeData::FILE(SMBTransactionFile::new()));
         if let Some(SMBTransactionTypeData::FILE(ref mut d)) = tx.type_data {
             d.direction = direction;
@@ -112,8 +112,7 @@ impl SMBState {
             String::from_utf8_lossy(file_name)
         );
         self.transactions.push_back(tx);
-        let tx_ref = self.transactions.back_mut();
-        return tx_ref.unwrap();
+        self.transactions.back_mut()
     }
 
     /// get file tx for a open file. Returns None if a file for the fuid exists,

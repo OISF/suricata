@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2022 Open Information Security Foundation
+/* Copyright (C) 2017-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -358,8 +358,8 @@ impl SMBTransactionSetFilePathInfo {
 impl SMBState {
     pub fn new_setfileinfo_tx(
         &mut self, filename: Vec<u8>, fid: Vec<u8>, subcmd: u16, loi: u16, delete_on_close: bool,
-    ) -> &mut SMBTransaction {
-        let mut tx = self.new_tx();
+    ) -> Option<&mut SMBTransaction> {
+        let mut tx = self.new_tx()?;
 
         tx.type_data = Some(SMBTransactionTypeData::SETFILEPATHINFO(
             SMBTransactionSetFilePathInfo::new(filename, fid, subcmd, loi, delete_on_close),
@@ -369,14 +369,13 @@ impl SMBState {
 
         SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
         self.transactions.push_back(tx);
-        let tx_ref = self.transactions.back_mut();
-        return tx_ref.unwrap();
+        self.transactions.back_mut()
     }
 
     pub fn new_setpathinfo_tx(
         &mut self, filename: Vec<u8>, subcmd: u16, loi: u16, delete_on_close: bool,
-    ) -> &mut SMBTransaction {
-        let mut tx = self.new_tx();
+    ) -> Option<&mut SMBTransaction> {
+        let mut tx = self.new_tx()?;
 
         let fid: Vec<u8> = Vec::new();
         tx.type_data = Some(SMBTransactionTypeData::SETFILEPATHINFO(
@@ -387,8 +386,7 @@ impl SMBState {
 
         SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
         self.transactions.push_back(tx);
-        let tx_ref = self.transactions.back_mut();
-        return tx_ref.unwrap();
+        self.transactions.back_mut()
     }
 }
 
@@ -412,8 +410,8 @@ impl SMBTransactionRename {
 impl SMBState {
     pub fn new_rename_tx(
         &mut self, fuid: Vec<u8>, oldname: Vec<u8>, newname: Vec<u8>,
-    ) -> &mut SMBTransaction {
-        let mut tx = self.new_tx();
+    ) -> Option<&mut SMBTransaction> {
+        let mut tx = self.new_tx()?;
 
         tx.type_data = Some(SMBTransactionTypeData::RENAME(SMBTransactionRename::new(
             fuid, oldname, newname,
@@ -423,8 +421,7 @@ impl SMBState {
 
         SCLogDebug!("SMB: TX RENAME created: ID {}", tx.id);
         self.transactions.push_back(tx);
-        let tx_ref = self.transactions.back_mut();
-        return tx_ref.unwrap();
+        self.transactions.back_mut()
     }
 }
 
@@ -745,7 +742,6 @@ pub struct SMBState {
 
     /// transactions list
     pub transactions: VecDeque<SMBTransaction>,
-    tx_index_completed: usize,
 
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
@@ -818,7 +814,6 @@ impl SMBState {
             check_post_gap_file_txs: false,
             post_gap_files_checked: false,
             transactions: VecDeque::new(),
-            tx_index_completed: 0,
             tx_id: 0,
             dialect: 0,
             dialect_vec: None,
@@ -834,27 +829,21 @@ impl SMBState {
         self._debug_tx_stats();
     }
 
-    pub fn new_tx(&mut self) -> SMBTransaction {
+    pub fn new_tx(&mut self) -> Option<SMBTransaction> {
+        if self.transactions.len() >= unsafe { SMB_MAX_TX } {
+            // Refuse to create a transaction once the list is at the limit. This
+            // bounds the number of transactions a single input can create, no
+            // matter the path (compound records, dcerpc, ...). Callers stop
+            // using the transaction and the parser puts the flow into an error
+            // state (see issue 8629).
+            self.set_event(SMBEvent::TooManyTransactions);
+            return None;
+        }
         let mut tx = SMBTransaction::new();
         self.tx_id += 1;
         tx.id = self.tx_id;
         SCLogDebug!("TX {} created", tx.id);
-        if self.transactions.len() > unsafe { SMB_MAX_TX } {
-            let mut index = self.tx_index_completed;
-            for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
-                index += 1;
-                if !tx_old.request_done || !tx_old.response_done {
-                    tx_old.tx_data.0.updated_tc = true;
-                    tx_old.tx_data.0.updated_ts = true;
-                    tx_old.request_done = true;
-                    tx_old.response_done = true;
-                    tx_old.set_event(SMBEvent::TooManyTransactions);
-                    break;
-                }
-            }
-            self.tx_index_completed = index;
-        }
-        return tx;
+        Some(tx)
     }
 
     pub fn free_tx(&mut self, tx_id: u64) {
@@ -885,7 +874,6 @@ impl SMBState {
                 self.transactions.len(),
                 self.tx_id
             );
-            self.tx_index_completed = 0;
             self.transactions.remove(index);
         }
     }
@@ -942,8 +930,8 @@ impl SMBState {
 
     pub fn new_generic_tx(
         &mut self, smb_ver: u8, smb_cmd: u16, key: SMBCommonHdr,
-    ) -> &mut SMBTransaction {
-        let mut tx = self.new_tx();
+    ) -> Option<&mut SMBTransaction> {
+        let mut tx = self.new_tx()?;
         if smb_ver == 1 && smb_cmd <= 255 {
             tx.vercmd.set_smb1_cmd(smb_cmd as u8);
         } else if smb_ver == 2 {
@@ -962,8 +950,7 @@ impl SMBState {
             &tx
         );
         self.transactions.push_back(tx);
-        let tx_ref = self.transactions.back_mut();
-        return tx_ref.unwrap();
+        self.transactions.back_mut()
     }
 
     pub fn get_last_tx(&mut self, smb_ver: u8, smb_cmd: u16) -> Option<&mut SMBTransaction> {
@@ -1017,8 +1004,8 @@ impl SMBState {
         return None;
     }
 
-    pub fn new_negotiate_tx(&mut self, smb_ver: u8) -> &mut SMBTransaction {
-        let mut tx = self.new_tx();
+    pub fn new_negotiate_tx(&mut self, smb_ver: u8) -> Option<&mut SMBTransaction> {
+        let mut tx = self.new_tx()?;
         if smb_ver == 1 {
             tx.vercmd.set_smb1_cmd(SMB1_COMMAND_NEGOTIATE_PROTOCOL);
         } else if smb_ver == 2 {
@@ -1037,8 +1024,7 @@ impl SMBState {
             smb_ver
         );
         self.transactions.push_back(tx);
-        let tx_ref = self.transactions.back_mut();
-        return tx_ref.unwrap();
+        self.transactions.back_mut()
     }
 
     pub fn get_negotiate_tx(&mut self, smb_ver: u8) -> Option<&mut SMBTransaction> {
@@ -1056,8 +1042,10 @@ impl SMBState {
         return None;
     }
 
-    pub fn new_treeconnect_tx(&mut self, hdr: SMBCommonHdr, name: Vec<u8>) -> &mut SMBTransaction {
-        let mut tx = self.new_tx();
+    pub fn new_treeconnect_tx(
+        &mut self, hdr: SMBCommonHdr, name: Vec<u8>,
+    ) -> Option<&mut SMBTransaction> {
+        let mut tx = self.new_tx()?;
 
         tx.hdr = hdr;
         tx.type_data = Some(SMBTransactionTypeData::TREECONNECT(
@@ -1072,8 +1060,7 @@ impl SMBState {
             String::from_utf8_lossy(&name)
         );
         self.transactions.push_back(tx);
-        let tx_ref = self.transactions.back_mut();
-        return tx_ref.unwrap();
+        self.transactions.back_mut()
     }
 
     pub fn get_treeconnect_tx(&mut self, hdr: SMBCommonHdr) -> Option<&mut SMBTransaction> {
@@ -1094,8 +1081,8 @@ impl SMBState {
 
     pub fn new_create_tx(
         &mut self, file_name: &[u8], disposition: u32, del: bool, dir: bool, hdr: SMBCommonHdr,
-    ) -> &mut SMBTransaction {
-        let mut tx = self.new_tx();
+    ) -> Option<&mut SMBTransaction> {
+        let mut tx = self.new_tx()?;
         tx.hdr = hdr;
         tx.type_data = Some(SMBTransactionTypeData::CREATE(SMBTransactionCreate::new(
             file_name.to_vec(),
@@ -1107,8 +1094,7 @@ impl SMBState {
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
         self.transactions.push_back(tx);
-        let tx_ref = self.transactions.back_mut();
-        return tx_ref.unwrap();
+        self.transactions.back_mut()
     }
 
     pub fn get_service_for_guid(&mut self, guid: &[u8]) -> (&'static str, bool) {
@@ -1551,6 +1537,13 @@ impl SMBState {
     pub fn parse_tcp_data_ts(
         &mut self, flow: *mut Flow, stream_slice: &StreamSlice,
     ) -> AppLayerResult {
+        // The transaction list is full: new_tx() is refusing to create more, so
+        // put the flow into an error state and stop processing it (see issue
+        // 8629).
+        if self.transactions.len() >= unsafe { SMB_MAX_TX } {
+            self.set_event(SMBEvent::TooManyTransactions);
+            return AppLayerResult::err();
+        }
         let mut cur_i = stream_slice.as_slice();
         let consumed = self.handle_skip(Direction::ToServer, cur_i.len() as u32);
         if consumed > 0 {
@@ -2105,6 +2098,13 @@ impl SMBState {
     pub fn parse_tcp_data_tc(
         &mut self, flow: *mut Flow, stream_slice: &StreamSlice,
     ) -> AppLayerResult {
+        // The transaction list is full: new_tx() is refusing to create more, so
+        // put the flow into an error state and stop processing it (see issue
+        // 8629).
+        if self.transactions.len() >= unsafe { SMB_MAX_TX } {
+            self.set_event(SMBEvent::TooManyTransactions);
+            return AppLayerResult::err();
+        }
         let mut cur_i = stream_slice.as_slice();
         let consumed = self.handle_skip(Direction::ToClient, cur_i.len() as u32);
         if consumed > 0 {
