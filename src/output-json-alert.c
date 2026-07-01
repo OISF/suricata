@@ -324,74 +324,61 @@ static void AlertAddPayload(AlertJsonOutputCtx *json_output_ctx, SCJsonBuilder *
     }
 }
 
+static void AlertAddAppLayerStates(const Packet *p, const AppProto alproto, const uint8_t sub_state,
+        void *tx, SCJsonBuilder *jb)
+{
+    const int ts = AppLayerParserGetStateProgress(p->flow->proto, alproto, tx, STREAM_TOSERVER);
+    const int tc = AppLayerParserGetStateProgress(p->flow->proto, alproto, tx, STREAM_TOCLIENT);
+    SCJbSetString(jb, "ts_progress",
+            AppLayerParserGetStateNameById(p->flow->proto, alproto, ts, STREAM_TOSERVER));
+    SCJbSetString(jb, "tc_progress",
+            AppLayerParserGetStateNameById(p->flow->proto, alproto, tc, STREAM_TOCLIENT));
+    if (sub_state) {
+        const char *sname = AppLayerParserGetSubStateName(alproto, sub_state);
+        if (sname != NULL) {
+            SCJbSetString(jb, "sub_state", sname);
+        }
+    }
+}
+
 static void AlertAddAppLayer(const Packet *p, SCJsonBuilder *jb, const uint64_t tx_id,
         const uint8_t sub_state, const uint16_t option_flags)
 {
     const AppProto proto = SCFlowGetAppProtocol(p->flow);
     EveJsonSimpleAppLayerLogger *al = SCEveJsonSimpleGetLogger(proto);
+    void *state = FlowGetAppState(p->flow);
+    void *tx = NULL;
+    if (state) {
+        tx = AppLayerParserGetTx(p->flow->proto, proto, state, tx_id);
+    }
+    if (tx == NULL)
+        return;
+
+    AlertAddAppLayerStates(p, proto, sub_state, tx, jb);
+
     SCJsonBuilderMark mark = { 0, 0, 0 };
     if (al && al->LogTx) {
-        void *state = FlowGetAppState(p->flow);
-        if (state) {
-            void *tx = AppLayerParserGetTx(p->flow->proto, proto, state, tx_id);
-            if (tx) {
-                const int ts =
-                        AppLayerParserGetStateProgress(p->flow->proto, proto, tx, STREAM_TOSERVER);
-                const int tc =
-                        AppLayerParserGetStateProgress(p->flow->proto, proto, tx, STREAM_TOCLIENT);
-                SCJbSetString(jb, "ts_progress",
-                        AppLayerParserGetStateNameById(p->flow->proto, proto, ts, STREAM_TOSERVER));
-                SCJbSetString(jb, "tc_progress",
-                        AppLayerParserGetStateNameById(p->flow->proto, proto, tc, STREAM_TOCLIENT));
-                if (sub_state) {
-                    const char *sname = AppLayerParserGetSubStateName(proto, sub_state);
-                    if (sname != NULL) {
-                        SCJbSetString(jb, "sub_state", sname);
+        SCJbGetMark(jb, &mark);
+        switch (proto) {
+            // first check some protocols need special options for alerts logging
+            case ALPROTO_WEBSOCKET:
+                if (option_flags &
+                        (LOG_JSON_WEBSOCKET_PAYLOAD | LOG_JSON_WEBSOCKET_PAYLOAD_BASE64)) {
+                    const bool pp = (option_flags & LOG_JSON_WEBSOCKET_PAYLOAD) != 0;
+                    const bool pb64 = (option_flags & LOG_JSON_WEBSOCKET_PAYLOAD_BASE64) != 0;
+                    if (!SCWebSocketLogDetails(tx, jb, pp, pb64)) {
+                        SCJbRestoreMark(jb, &mark);
                     }
+                    // nothing more to log or do
+                    return;
                 }
-
-                SCJbGetMark(jb, &mark);
-                switch (proto) {
-                    // first check some protocols need special options for alerts logging
-                    case ALPROTO_WEBSOCKET:
-                        if (option_flags &
-                                (LOG_JSON_WEBSOCKET_PAYLOAD | LOG_JSON_WEBSOCKET_PAYLOAD_BASE64)) {
-                            bool pp = (option_flags & LOG_JSON_WEBSOCKET_PAYLOAD) != 0;
-                            bool pb64 = (option_flags & LOG_JSON_WEBSOCKET_PAYLOAD_BASE64) != 0;
-                            if (!SCWebSocketLogDetails(tx, jb, pp, pb64)) {
-                                SCJbRestoreMark(jb, &mark);
-                            }
-                            // nothing more to log or do
-                            return;
-                        }
-                }
-                if (!al->LogTx(tx, jb)) {
-                    SCJbRestoreMark(jb, &mark);
-                }
-            }
+        }
+        if (!al->LogTx(tx, jb)) {
+            SCJbRestoreMark(jb, &mark);
         }
         return;
     }
-    void *state = FlowGetAppState(p->flow);
-    if (state) {
-        void *tx = AppLayerParserGetTx(p->flow->proto, proto, state, tx_id);
-        if (tx) {
-            const int ts =
-                    AppLayerParserGetStateProgress(p->flow->proto, proto, tx, STREAM_TOSERVER);
-            const int tc =
-                    AppLayerParserGetStateProgress(p->flow->proto, proto, tx, STREAM_TOCLIENT);
-            SCJbSetString(jb, "ts_progress",
-                    AppLayerParserGetStateNameById(p->flow->proto, proto, ts, STREAM_TOSERVER));
-            SCJbSetString(jb, "tc_progress",
-                    AppLayerParserGetStateNameById(p->flow->proto, proto, tc, STREAM_TOCLIENT));
-            if (sub_state) {
-                const char *sname = AppLayerParserGetSubStateName(proto, sub_state);
-                if (sname != NULL) {
-                    SCJbSetString(jb, "sub_state", sname);
-                }
-            }
-        }
-    }
+
     switch (proto) {
         case ALPROTO_HTTP1:
             // TODO: Could result in an empty http object being logged.
@@ -455,26 +442,20 @@ static void AlertAddAppLayer(const Packet *p, SCJsonBuilder *jb, const uint64_t 
                 SCJbRestoreMark(jb, &mark);
             }
             break;
-        case ALPROTO_DCERPC: {
-            if (state) {
-                void *tx = AppLayerParserGetTx(p->flow->proto, proto, state, tx_id);
-                if (tx) {
-                    SCJbGetMark(jb, &mark);
-                    SCJbOpenObject(jb, "dcerpc");
-                    if (p->proto == IPPROTO_TCP) {
-                        if (!SCDcerpcLogJsonRecordTcp(state, tx, jb)) {
-                            SCJbRestoreMark(jb, &mark);
-                        }
-                    } else {
-                        if (!SCDcerpcLogJsonRecordUdp(state, tx, jb)) {
-                            SCJbRestoreMark(jb, &mark);
-                        }
-                    }
-                    SCJbClose(jb);
+        case ALPROTO_DCERPC:
+            SCJbGetMark(jb, &mark);
+            SCJbOpenObject(jb, "dcerpc");
+            if (p->proto == IPPROTO_TCP) {
+                if (!SCDcerpcLogJsonRecordTcp(state, tx, jb)) {
+                    SCJbRestoreMark(jb, &mark);
+                }
+            } else {
+                if (!SCDcerpcLogJsonRecordUdp(state, tx, jb)) {
+                    SCJbRestoreMark(jb, &mark);
                 }
             }
+            SCJbClose(jb);
             break;
-        }
         default:
             break;
     }
