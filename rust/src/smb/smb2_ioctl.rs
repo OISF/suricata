@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -39,9 +39,9 @@ impl SMBTransactionIoctl {
 
 impl SMBState {
     pub fn new_ioctl_tx(&mut self, hdr: SMBCommonHdr, func: u32)
-        -> &mut SMBTransaction
+        -> Option<&mut SMBTransaction>
     {
-        let mut tx = self.new_tx();
+        let mut tx = self.new_tx()?;
         tx.hdr = hdr;
         tx.type_data = Some(SMBTransactionTypeData::IOCTL(
                     SMBTransactionIoctl::new(func)));
@@ -51,8 +51,7 @@ impl SMBState {
         SCLogDebug!("SMB: TX IOCTL created: ID {} FUNC {:08x}: {}",
                 tx.id, func, &fsctl_func_to_string(func));
         self.transactions.push_back(tx);
-        let tx_ref = self.transactions.back_mut();
-        return tx_ref.unwrap();
+        self.transactions.back_mut()
     }
 }
 
@@ -74,12 +73,18 @@ pub fn smb2_ioctl_request_record(state: &mut SMBState, r: &Smb2Record)
                 smb_write_dcerpc_record(state, vercmd, hdr, rd.data);
             } else {
                 SCLogDebug!("IOCTL {:08x} {}", rd.function, &fsctl_func_to_string(rd.function));
-                let tx = state.new_ioctl_tx(hdr, rd.function);
+                let tx = match state.new_ioctl_tx(hdr, rd.function) {
+                    Some(tx) => tx,
+                    None => return,
+                };
                 tx.vercmd.set_smb2_cmd(SMB2_COMMAND_IOCTL);
             }
         },
         _ => {
-            let tx = state.new_generic_tx(2, r.command, hdr);
+            let tx = match state.new_generic_tx(2, r.command, hdr) {
+                Some(tx) => tx,
+                None => return,
+            };
             tx.set_event(SMBEvent::MalformedData);
         },
     };

@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -124,9 +124,9 @@ impl SMBTransactionDCERPC {
 
 impl SMBState {
     fn new_dcerpc_tx(&mut self, hdr: SMBCommonHdr, vercmd: SMBVerCmdStat, cmd: u8, call_id: u32)
-        -> &mut SMBTransaction
+        -> Option<&mut SMBTransaction>
     {
-        let mut tx = self.new_tx();
+        let mut tx = self.new_tx()?;
         tx.hdr = hdr;
         tx.vercmd = vercmd;
         tx.type_data = Some(SMBTransactionTypeData::DCERPC(
@@ -134,14 +134,13 @@ impl SMBState {
 
         SCLogDebug!("SMB: TX DCERPC created: ID {} hdr {:?}", tx.id, tx.hdr);
         self.transactions.push_back(tx);
-        let tx_ref = self.transactions.back_mut();
-        return tx_ref.unwrap();
+        self.transactions.back_mut()
     }
 
     fn new_dcerpc_tx_for_response(&mut self, hdr: SMBCommonHdr, vercmd: SMBVerCmdStat, call_id: u32)
-        -> &mut SMBTransaction
+        -> Option<&mut SMBTransaction>
     {
-        let mut tx = self.new_tx();
+        let mut tx = self.new_tx()?;
         tx.hdr = hdr;
         tx.vercmd = vercmd;
         tx.type_data = Some(SMBTransactionTypeData::DCERPC(
@@ -149,8 +148,7 @@ impl SMBState {
 
         SCLogDebug!("SMB: TX DCERPC created: ID {} hdr {:?}", tx.id, tx.hdr);
         self.transactions.push_back(tx);
-        let tx_ref = self.transactions.back_mut();
-        return tx_ref.unwrap();
+        self.transactions.back_mut()
     }
 
     fn get_dcerpc_tx(&mut self, hdr: &SMBCommonHdr, vercmd: &SMBVerCmdStat, call_id: u32)
@@ -237,7 +235,10 @@ pub fn smb_write_dcerpc_record(state: &mut SMBState,
                 }
             }
 
-            let tx = state.new_dcerpc_tx(hdr, vercmd, dcer.packet_type, dcer.call_id);
+            let tx = match state.new_dcerpc_tx(hdr, vercmd, dcer.packet_type, dcer.call_id) {
+                Some(tx) => tx,
+                None => return false,
+            };
             match dcer.packet_type {
                 DCERPC_TYPE_REQUEST => {
                     match parse_dcerpc_request_record(dcer.data, dcer.frag_len, dcer.little_endian) {
@@ -514,7 +515,11 @@ pub fn smb_read_dcerpc_record(state: &mut SMBState,
                 };
                 if !found {
                     // pick up DCERPC tx even if we missed the request
-                    let tx = state.new_dcerpc_tx_for_response(hdr, vercmd.clone(), dcer.call_id);
+                    let tx = match state.new_dcerpc_tx_for_response(
+                            hdr, vercmd.clone(), dcer.call_id) {
+                        Some(tx) => tx,
+                        None => return false,
+                    };
                     dcerpc_response_handle(tx, vercmd, &dcer);
                 }
             },

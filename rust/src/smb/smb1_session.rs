@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2018-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -131,7 +131,10 @@ pub fn smb1_session_setup_request(state: &mut SMBState, r: &SmbRecord, andx_offs
         Ok((rem, setup)) => {
             let hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
                     r.ssn_id as u64, 0, r.multiplex_id as u64);
-            let tx = state.new_sessionsetup_tx(hdr);
+            let tx = match state.new_sessionsetup_tx(hdr) {
+                Some(tx) => tx,
+                None => return,
+            };
             tx.vercmd.set_smb1_cmd(r.command);
 
             if let Some(SMBTransactionTypeData::SESSIONSETUP(ref mut td)) = tx.type_data {
