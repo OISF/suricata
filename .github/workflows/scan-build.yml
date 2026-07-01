@@ -23,7 +23,7 @@ jobs:
     container: ubuntu:26.04
     steps:
       - name: Cache scan-build
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.cargo
           key: scan-build
@@ -171,7 +171,7 @@ jobs:
     container: ubuntu:26.04
     steps:
       - name: Cache scan-build
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.cargo
           key: scan-build
