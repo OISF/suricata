@@ -1,4 +1,4 @@
-/* Copyright (C) 2014-2024 Open Information Security Foundation
+/* Copyright (C) 2014-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -43,23 +43,43 @@ int SCAppLayerGetEventIdByName(const char *event_name, SCEnumCharMap *table, uin
     return 0;
 }
 
+/* Detect engine events, defined once via X-macro. Each entry expands into:
+ * - det_ctx_event_table: { name, val }           (for rule parsing, unprefixed)
+ * - app_layer_event_pkt_table: { prefix.name, val } (for EVE logging, prefixed)
+ *
+ * To add a new event: add one DETECT_EVENT(prefix, name, enum_val) line below. */
+/* clang-format off */
+#define DETECT_ENGINE_EVENTS(DETECT_EVENT)                                                              \
+    DETECT_EVENT("file",   "NO_MEMORY",                 FILE_DECODER_EVENT_NO_MEM)                      \
+    DETECT_EVENT("file",   "INVALID_SWF_LENGTH",        FILE_DECODER_EVENT_INVALID_SWF_LENGTH)          \
+    DETECT_EVENT("file",   "INVALID_SWF_VERSION",       FILE_DECODER_EVENT_INVALID_SWF_VERSION)         \
+    DETECT_EVENT("file",   "Z_DATA_ERROR",              FILE_DECODER_EVENT_Z_DATA_ERROR)                \
+    DETECT_EVENT("file",   "Z_STREAM_ERROR",            FILE_DECODER_EVENT_Z_STREAM_ERROR)              \
+    DETECT_EVENT("file",   "Z_BUF_ERROR",               FILE_DECODER_EVENT_Z_BUF_ERROR)                \
+    DETECT_EVENT("file",   "Z_UNKNOWN_ERROR",           FILE_DECODER_EVENT_Z_UNKNOWN_ERROR)             \
+    DETECT_EVENT("file",   "LZMA_IO_ERROR",             FILE_DECODER_EVENT_LZMA_IO_ERROR)               \
+    DETECT_EVENT("file",   "LZMA_HEADER_TOO_SHORT_ERROR", FILE_DECODER_EVENT_LZMA_HEADER_TOO_SHORT_ERROR) \
+    DETECT_EVENT("file",   "LZMA_DECODER_ERROR",        FILE_DECODER_EVENT_LZMA_DECODER_ERROR)          \
+    DETECT_EVENT("file",   "LZMA_MEMLIMIT_ERROR",       FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR)         \
+    DETECT_EVENT("file",   "LZMA_XZ_ERROR",             FILE_DECODER_EVENT_LZMA_XZ_ERROR)               \
+    DETECT_EVENT("file",   "LZMA_UNKNOWN_ERROR",        FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR)          \
+    DETECT_EVENT("detect", "TOO_MANY_BUFFERS",          DETECT_EVENT_TOO_MANY_BUFFERS)                  \
+    DETECT_EVENT("detect", "POST_MATCH_QUEUE_FAILED",   DETECT_EVENT_POST_MATCH_QUEUE_FAILED)
+/* clang-format on */
+
 /* events raised during protocol detection are stored in the
  * packets storage, not in the flow. */
-SCEnumCharMap app_layer_event_pkt_table[ ] = {
-    { "APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS",
-      APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS },
-    { "APPLAYER_WRONG_DIRECTION_FIRST_DATA",
-      APPLAYER_WRONG_DIRECTION_FIRST_DATA },
-    { "APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION",
-      APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION },
-    { "APPLAYER_PROTO_DETECTION_SKIPPED",
-      APPLAYER_PROTO_DETECTION_SKIPPED },
-    { "APPLAYER_NO_TLS_AFTER_STARTTLS",
-      APPLAYER_NO_TLS_AFTER_STARTTLS },
-    { "APPLAYER_UNEXPECTED_PROTOCOL",
-      APPLAYER_UNEXPECTED_PROTOCOL },
-    { NULL,
-      -1 },
+SCEnumCharMap app_layer_event_pkt_table[] = {
+    { "APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS", APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS },
+    { "APPLAYER_WRONG_DIRECTION_FIRST_DATA", APPLAYER_WRONG_DIRECTION_FIRST_DATA },
+    { "APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION", APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION },
+    { "APPLAYER_PROTO_DETECTION_SKIPPED", APPLAYER_PROTO_DETECTION_SKIPPED },
+    { "APPLAYER_NO_TLS_AFTER_STARTTLS", APPLAYER_NO_TLS_AFTER_STARTTLS },
+    { "APPLAYER_UNEXPECTED_PROTOCOL", APPLAYER_UNEXPECTED_PROTOCOL },
+#define EVT_TO_PREFIXED(prefix, name, val) { prefix "." name, val },
+    DETECT_ENGINE_EVENTS(EVT_TO_PREFIXED)
+#undef EVT_TO_PREFIXED
+            { NULL, -1 },
 };
 
 int AppLayerGetEventInfoById(
@@ -145,28 +165,10 @@ void SCAppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events)
 }
 
 SCEnumCharMap det_ctx_event_table[] = {
-    { "NO_MEMORY", FILE_DECODER_EVENT_NO_MEM },
-    { "INVALID_SWF_LENGTH", FILE_DECODER_EVENT_INVALID_SWF_LENGTH },
-    { "INVALID_SWF_VERSION", FILE_DECODER_EVENT_INVALID_SWF_VERSION },
-    { "Z_DATA_ERROR", FILE_DECODER_EVENT_Z_DATA_ERROR },
-    { "Z_STREAM_ERROR", FILE_DECODER_EVENT_Z_STREAM_ERROR },
-    { "Z_BUF_ERROR", FILE_DECODER_EVENT_Z_BUF_ERROR },
-    { "Z_UNKNOWN_ERROR", FILE_DECODER_EVENT_Z_UNKNOWN_ERROR },
-    { "LZMA_IO_ERROR", FILE_DECODER_EVENT_LZMA_IO_ERROR },
-    { "LZMA_HEADER_TOO_SHORT_ERROR", FILE_DECODER_EVENT_LZMA_HEADER_TOO_SHORT_ERROR },
-    { "LZMA_DECODER_ERROR", FILE_DECODER_EVENT_LZMA_DECODER_ERROR },
-    { "LZMA_MEMLIMIT_ERROR", FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR },
-    { "LZMA_XZ_ERROR", FILE_DECODER_EVENT_LZMA_XZ_ERROR },
-    { "LZMA_UNKNOWN_ERROR", FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR },
-    {
-            "TOO_MANY_BUFFERS",
-            DETECT_EVENT_TOO_MANY_BUFFERS,
-    },
-    {
-            "POST_MATCH_QUEUE_FAILED",
-            DETECT_EVENT_POST_MATCH_QUEUE_FAILED,
-    },
-    { NULL, -1 },
+#define EVT_TO_UNPREFIXED(_prefix, name, val) { name, val },
+    DETECT_ENGINE_EVENTS(EVT_TO_UNPREFIXED)
+#undef EVT_TO_UNPREFIXED
+            { NULL, -1 },
 };
 
 int DetectEngineGetEventInfo(
