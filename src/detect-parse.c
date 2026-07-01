@@ -2940,6 +2940,19 @@ static bool SigValidateProtoPkthdr(const Signature *s)
     return true;
 }
 
+static bool SigValidateFlowbitUse(DetectEngineCtx *de_ctx, const Signature *s)
+{
+    DEBUG_VALIDATE_BUG_ON(de_ctx->max_flowbits == 0);
+
+    if (s->init_data->total_flowbits > de_ctx->max_flowbits) {
+        SCLogError(
+                "rule %u: too many flowbits (max %u per signature)", s->id, de_ctx->max_flowbits);
+        return false;
+    }
+
+    return true;
+}
+
 /**
  *  \internal
  *  \brief validate and consolidate parsed signature
@@ -2984,6 +2997,10 @@ static int SigValidateConsolidate(
     DetectRuleSetTable(s);
 
     if (!SigValidateProtoPkthdr(s)) {
+        SCReturnInt(0);
+    }
+
+    if (!SigValidateFlowbitUse(de_ctx, s)) {
         SCReturnInt(0);
     }
 
