@@ -410,6 +410,12 @@
                             "ack_result": {
                                 "type": "integer"
                             },
+                            "procedure": {
+                                "type": "string"
+                            },
+                            "service": {
+                                "type": "string"
+                            },
                             "uuid": {
                                 "type": "string",
                                 "suricata": {
