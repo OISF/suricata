@@ -70,8 +70,8 @@
 
 static void OutputJsonDeInitCtx(OutputCtx *);
 static void CreateEveCommunityFlowId(SCJsonBuilder *js, const Flow *f, const uint16_t seed);
-static int CreateJSONEther(
-        SCJsonBuilder *parent, const Packet *p, const Flow *f, enum SCOutputJsonLogDirection dir);
+static int CreateJSONEther(SCJsonBuilder *parent, const Packet *p, const Flow *f,
+        enum SCOutputJsonLogDirection dir, bool ethertype_hex);
 
 static const char *TRAFFIC_ID_PREFIX = "traffic/id/";
 static const char *TRAFFIC_LABEL_PREFIX = "traffic/label/";
@@ -402,7 +402,7 @@ void EveAddCommonOptions(const OutputJsonCommonSettings *cfg, const Packet *p, c
         EveAddMetadata(p, f, js);
     }
     if (cfg->include_ethernet) {
-        CreateJSONEther(js, p, f, dir);
+        CreateJSONEther(js, p, f, dir, cfg->ethertype_hex);
     }
     if (cfg->include_community_id && f != NULL) {
         CreateEveCommunityFlowId(js, f, cfg->community_id_seed);
@@ -722,15 +722,21 @@ static int MacSetIterateToJSON(uint8_t *val, MacSetSide side, void *data)
     return 0;
 }
 
-static int CreateJSONEther(
-        SCJsonBuilder *js, const Packet *p, const Flow *f, enum SCOutputJsonLogDirection dir)
+static int CreateJSONEther(SCJsonBuilder *js, const Packet *p, const Flow *f,
+        enum SCOutputJsonLogDirection dir, bool ethertype_hex)
 {
     if (p != NULL) {
         /* this is a packet context, so we need to add scalar fields */
         if (PacketIsEthernet(p)) {
             const EthernetHdr *ethh = PacketGetEthernet(p);
             SCJbOpenObject(js, "ether");
-            SCJbSetUint(js, "ether_type", SCNtohs(ethh->eth_type));
+            if (ethertype_hex) {
+                char ether_type[8];
+                snprintf(ether_type, sizeof(ether_type), "0x%04x", SCNtohs(ethh->eth_type));
+                SCJbSetString(js, "ether_type", ether_type);
+            } else {
+                SCJbSetUint(js, "ether_type", SCNtohs(ethh->eth_type));
+            }
             const uint8_t *src;
             const uint8_t *dst;
             switch (dir) {
@@ -1263,6 +1269,15 @@ OutputInitResult OutputJsonInitCtx(SCConfNode *conf)
             json_ctx->cfg.include_ethernet = true;
         } else {
             json_ctx->cfg.include_ethernet = false;
+        }
+
+        /* Check if ethertype values should be displayed in hex. */
+        const SCConfNode *ethertype_hex = SCConfNodeLookupChild(conf, "ethertype-hex");
+        if (ethertype_hex && ethertype_hex->val && SCConfValIsTrue(ethertype_hex->val)) {
+            SCLogConfig("Displaying ethertype values in hexadecimal.");
+            json_ctx->cfg.ethertype_hex = true;
+        } else {
+            json_ctx->cfg.ethertype_hex = false;
         }
 
         const SCConfNode *suriver = SCConfNodeLookupChild(conf, "suricata-version");
