@@ -2061,6 +2061,7 @@ jobs:
         with:
           name: prep
           path: prep
+      - run: tar xf prep/suricata-verify.tar.gz
       # packaged Rust version is too old for coverage, so get from rustup. 1.85.1 matches
       # LLVM 19
       - name: Install Rust
@@ -2129,6 +2130,8 @@ jobs:
         env:
           LLVM_PROFILE_FILE: "/tmp/afp-fw-netns-bridge.profraw"
       - run: llvm-profdata-19 merge -o afp-fw-netns-bridge.profdata /tmp/afp-fw-netns-bridge.profraw
+
+      - run: python3 ./suricata-verify/live/run.py run
 
       - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata afp-ips-bond1.profdata afp-ips-bond2.profdata afp-fw-netns-bridge.profdata nfq-fw-netns-route.profdata
       - run: llvm-cov-19 export ./src/suricata -instr-profile=combined.profdata -format=lcov --ignore-filename-regex="^(/github/home/.cargo/.*|/usr/.*|/rustc/.*)" --skip-branches > coverage.lcov
