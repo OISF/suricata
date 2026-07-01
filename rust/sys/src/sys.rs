@@ -24,6 +24,7 @@ pub const SIGMATCH_INFO_ENUM_UINT: u32 = 524288;
 pub const SIGMATCH_INFO_BITFLAGS_UINT: u32 = 1048576;
 pub const SIGMATCH_BAN_FIREWALL_RULE: u32 = 2097152;
 pub const SIGMATCH_BAN_FIREWALL_MODE: u32 = 4194304;
+pub const SIGMATCH_TRANSFORM_CAN_FAIL: u32 = 8388608;
 pub type __intmax_t = ::std::os::raw::c_long;
 pub type intmax_t = __intmax_t;
 #[repr(u32)]
@@ -668,6 +669,12 @@ extern "C" {
         s: *mut Signature, transform: ::std::os::raw::c_int, options: *mut ::std::os::raw::c_void,
     ) -> ::std::os::raw::c_int;
 }
+pub const DETECT_CI_FLAGS_START: u8 = 1;
+pub const DETECT_CI_FLAGS_END: u8 = 2;
+#[doc = "< transformation/decode error occurred"]
+pub const DETECT_CI_FLAGS_ERROR: u8 = 16;
+#[doc = " buffer is a single, non-streaming, buffer. Data sent to the content\n  inspection function contains both start and end of the data."]
+pub const DETECT_CI_FLAGS_SINGLE: u8 = 3;
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct InspectionBuffer {
@@ -722,6 +729,9 @@ extern "C" {
 }
 extern "C" {
     pub fn SCInspectionBufferTruncate(buffer: *mut InspectionBuffer, buf_len: u32);
+}
+extern "C" {
+    pub fn SCInspectionBufferSetError(buffer: *mut InspectionBuffer);
 }
 extern "C" {
     pub fn SCInspectionBufferGet(
