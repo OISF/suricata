@@ -166,8 +166,19 @@ int DetectEngineInspectPktBufferGeneric(
 void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
         uint8_t progress, InspectEngineFuncPtr Callback2, InspectionBufferGetDataPtr GetData);
 
+/**
+ * \brief register an app inspection engine for a tx type
+ * \param type the tx type
+ */
+void DetectAppLayerInspectEngineRegisterSubState(const char *name, AppProto alproto, uint32_t dir,
+        uint8_t type, uint8_t progress, InspectEngineFuncPtr Callback2,
+        InspectionBufferGetDataPtr GetData);
+
 void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alproto, uint32_t dir,
         uint8_t progress, InspectEngineFuncPtr Callback2, InspectionSingleBufferGetDataPtr GetData);
+
+void DetectAppLayerMultiRegisterSubState(const char *name, AppProto alproto, uint32_t dir,
+        uint8_t sub_state, uint8_t progress, InspectionMultiBufferGetDataPtr GetData, int priority);
 
 void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, uint8_t progress,
         InspectionMultiBufferGetDataPtr GetData, int priority);
@@ -211,7 +222,8 @@ void DetectLowerSetupCallback(
 void DeStateRegisterTests(void);
 
 const char *DetectEngineAppHookToName(
-        const AppProto p, const uint8_t state, const uint8_t direction);
-int DetectEngineAppHookToSmlist(const AppProto p, const uint8_t state, const int direction);
+        const AppProto p, const uint8_t sub_state, const uint8_t state, const uint8_t direction);
+int DetectEngineAppHookToSmlist(
+        const AppProto p, const uint8_t sub_state, const uint8_t state, const uint8_t direction);
 
 #endif /* SURICATA_DETECT_ENGINE_H */

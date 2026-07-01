@@ -117,10 +117,11 @@ void DetectHttpStatMsgRegister (void)
     DetectAppLayerMpmRegister("http_stat_msg", SIG_FLAG_TOCLIENT, 3, PrefilterGenericMpmRegister,
             GetData, ALPROTO_HTTP1, HTP_RESPONSE_PROGRESS_LINE);
 
-    DetectAppLayerInspectEngineRegister("http_stat_msg", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2ProgStart, DetectEngineInspectBufferGeneric, GetData2);
-    DetectAppLayerMpmRegister("http_stat_msg", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetData2, ALPROTO_HTTP2, HTTP2ProgStart);
+    DetectAppLayerInspectEngineRegisterSubState("http_stat_msg", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2TxTypeStream, HTTP2ProgStarted, DetectEngineInspectBufferGeneric, GetData2);
+    DetectAppLayerMpmRegisterSubState("http_stat_msg", SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister, GetData2, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgStarted);
 
     DetectBufferTypeSetDescriptionByName("http_stat_msg",
             "http response status message");
