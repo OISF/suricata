@@ -15,6 +15,9 @@
  * 02110-1301, USA.
  */
 
+use crate::core::sc_app_layer_parser_trigger_raw_stream_inspection;
+use crate::direction::Direction;
+use crate::flow::Flow;
 use crate::smb::dcerpc::*;
 use crate::smb::events::*;
 #[cfg(feature = "debug")]
@@ -58,7 +61,7 @@ impl SMBState {
 }
 
 // IOCTL responses ASYNC don't set the tree id
-pub fn smb2_ioctl_request_record(state: &mut SMBState, r: &Smb2Record) {
+pub fn smb2_ioctl_request_record(state: &mut SMBState, flow: *mut Flow, r: &Smb2Record) {
     let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
     match parse_smb2_request_ioctl(r.data) {
         Ok((_, rd)) => {
@@ -71,7 +74,7 @@ pub fn smb2_ioctl_request_record(state: &mut SMBState, r: &Smb2Record) {
             if is_dcerpc {
                 SCLogDebug!("IOCTL request data is_pipe. Calling smb_write_dcerpc_record");
                 let vercmd = SMBVerCmdStat::new2(SMB2_COMMAND_IOCTL);
-                smb_write_dcerpc_record(state, vercmd, hdr, rd.data);
+                smb_write_dcerpc_record(state, flow, vercmd, hdr, rd.data);
             } else {
                 SCLogDebug!(
                     "IOCTL {:08x} {}",
@@ -79,18 +82,20 @@ pub fn smb2_ioctl_request_record(state: &mut SMBState, r: &Smb2Record) {
                     &fsctl_func_to_string(rd.function)
                 );
                 let tx = state.new_ioctl_tx(hdr, rd.function);
+                sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                 tx.vercmd.set_smb2_cmd(SMB2_COMMAND_IOCTL);
             }
         }
         _ => {
             let tx = state.new_generic_tx(2, r.command, hdr);
+            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
             tx.set_event(SMBEvent::MalformedData);
         }
     };
 }
 
 // IOCTL responses ASYNC don't set the tree id
-pub fn smb2_ioctl_response_record(state: &mut SMBState, r: &Smb2Record) {
+pub fn smb2_ioctl_response_record(state: &mut SMBState, flow: *mut Flow, r: &Smb2Record) {
     let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
     match parse_smb2_response_ioctl(r.data) {
         Ok((_, rd)) => {
@@ -107,7 +112,7 @@ pub fn smb2_ioctl_response_record(state: &mut SMBState, r: &Smb2Record) {
                 SCLogDebug!("IOCTL response data is_pipe. Calling smb_read_dcerpc_record");
                 let vercmd = SMBVerCmdStat::new2_with_ntstatus(SMB2_COMMAND_IOCTL, r.nt_status);
                 SCLogDebug!("TODO passing empty GUID");
-                smb_read_dcerpc_record(state, vercmd, hdr, &[], rd.data);
+                smb_read_dcerpc_record(state, flow, vercmd, hdr, &[], rd.data);
             } else {
                 SCLogDebug!(
                     "SMB2_COMMAND_IOCTL/SMB_NTSTATUS_PENDING looking for {:?}",
@@ -117,6 +122,10 @@ pub fn smb2_ioctl_response_record(state: &mut SMBState, r: &Smb2Record) {
                     tx.set_status(r.nt_status, false);
                     if r.nt_status != SMB_NTSTATUS_PENDING {
                         tx.response_done = true;
+                        sc_app_layer_parser_trigger_raw_stream_inspection(
+                            flow,
+                            Direction::ToClient as i32,
+                        );
                     }
                 }
             }
@@ -131,6 +140,10 @@ pub fn smb2_ioctl_response_record(state: &mut SMBState, r: &Smb2Record) {
                 tx.set_status(r.nt_status, false);
                 if r.nt_status != SMB_NTSTATUS_PENDING {
                     tx.response_done = true;
+                    sc_app_layer_parser_trigger_raw_stream_inspection(
+                        flow,
+                        Direction::ToClient as i32,
+                    );
                 }
 
                 // parsing failed for 'SUCCESS' record, set event

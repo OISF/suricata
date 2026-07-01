@@ -1885,6 +1885,11 @@ static int DetectEngineInspectRulePayloadMatches(
         if (pmatch == 0) {
             SCLogDebug("no match in stream, fall back to packet payload");
 
+            if ((s->flags & SIG_FLAG_REQUIRE_PACKET_NO_PAYLOAD) &&
+                    !(s->flags & SIG_FLAG_REQUIRE_PACKET)) {
+                SCLogDebug("no packet payload match required");
+                return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            }
             /* skip if we don't have to inspect the packet and segment was
              * added to stream */
             if (!(s->flags & SIG_FLAG_REQUIRE_PACKET) && (p->flags & PKT_STREAM_ADD)) {
@@ -1899,6 +1904,11 @@ static int DetectEngineInspectRulePayloadMatches(
             }
         }
     } else {
+        if ((s->flags & SIG_FLAG_REQUIRE_PACKET_NO_PAYLOAD) &&
+                !(s->flags & SIG_FLAG_REQUIRE_PACKET)) {
+            SCLogDebug("no packet payload match required");
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+        }
         if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, p) != 1) {
             return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
         }

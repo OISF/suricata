@@ -2861,7 +2861,7 @@ static void SigConsolidateTcpBuffer(Signature *s)
                 for (const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL;
                         sm = sm->next) {
                     if (sm->type == DETECT_STREAM_SIZE) {
-                        s->flags |= SIG_FLAG_REQUIRE_PACKET;
+                        s->flags |= SIG_FLAG_REQUIRE_PACKET_NO_PAYLOAD;
                         break;
                     }
                 }

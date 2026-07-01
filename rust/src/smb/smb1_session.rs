@@ -15,6 +15,9 @@
  * 02110-1301, USA.
  */
 
+use crate::core::sc_app_layer_parser_trigger_raw_stream_inspection;
+use crate::direction::Direction;
+use crate::flow::Flow;
 use crate::smb::auth::*;
 use crate::smb::events::*;
 use crate::smb::smb::*;
@@ -60,7 +63,9 @@ pub fn smb1_session_setup_response_host_info(r: &SmbRecord, blob: &[u8]) -> Sess
     }
 }
 
-pub fn smb1_session_setup_request(state: &mut SMBState, r: &SmbRecord, andx_offset: usize) {
+pub fn smb1_session_setup_request(
+    state: &mut SMBState, flow: *mut Flow, r: &SmbRecord, andx_offset: usize,
+) {
     SCLogDebug!("SMB1_COMMAND_SESSION_SETUP_ANDX user_id {}", r.user_id);
     #[allow(clippy::single_match)]
     match parse_smb_setup_andx_record(&r.data[andx_offset - SMB1_HEADER_SIZE..], r) {
@@ -73,6 +78,7 @@ pub fn smb1_session_setup_request(state: &mut SMBState, r: &SmbRecord, andx_offs
             );
             let tx = state.new_sessionsetup_tx(hdr);
             tx.vercmd.set_smb1_cmd(r.command);
+            sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
 
             if let Some(SMBTransactionTypeData::SESSIONSETUP(ref mut td)) = tx.type_data {
                 td.request_host = Some(setup.request_host);
@@ -93,7 +99,9 @@ pub fn smb1_session_setup_request(state: &mut SMBState, r: &SmbRecord, andx_offs
     }
 }
 
-fn smb1_session_setup_update_tx(tx: &mut SMBTransaction, r: &SmbRecord, andx_offset: usize) {
+fn smb1_session_setup_update_tx(
+    flow: *mut Flow, tx: &mut SMBTransaction, r: &SmbRecord, andx_offset: usize,
+) {
     match parse_smb_response_setup_andx_record(&r.data[andx_offset - SMB1_HEADER_SIZE..]) {
         Ok((rem, _setup)) => {
             if let Some(SMBTransactionTypeData::SESSIONSETUP(ref mut td)) = tx.type_data {
@@ -108,9 +116,12 @@ fn smb1_session_setup_update_tx(tx: &mut SMBTransaction, r: &SmbRecord, andx_off
     tx.hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER); // to overwrite ssn_id 0
     tx.set_status(r.nt_status, r.is_dos_error);
     tx.response_done = true;
+    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
 }
 
-pub fn smb1_session_setup_response(state: &mut SMBState, r: &SmbRecord, andx_offset: usize) {
+pub fn smb1_session_setup_response(
+    state: &mut SMBState, flow: *mut Flow, r: &SmbRecord, andx_offset: usize,
+) {
     // try exact match with session id already set (e.g. NTLMSSP AUTH phase)
     let found = r.ssn_id != 0
         && match state.get_sessionsetup_tx(SMBCommonHdr::new(
@@ -120,7 +131,7 @@ pub fn smb1_session_setup_response(state: &mut SMBState, r: &SmbRecord, andx_off
             r.multiplex_id as u64,
         )) {
             Some(tx) => {
-                smb1_session_setup_update_tx(tx, r, andx_offset);
+                smb1_session_setup_update_tx(flow, tx, r, andx_offset);
                 SCLogDebug!("smb1_session_setup_response: tx {:?}", tx);
                 true
             }
@@ -134,7 +145,7 @@ pub fn smb1_session_setup_response(state: &mut SMBState, r: &SmbRecord, andx_off
             0,
             r.multiplex_id as u64,
         )) {
-            smb1_session_setup_update_tx(tx, r, andx_offset);
+            smb1_session_setup_update_tx(flow, tx, r, andx_offset);
             SCLogDebug!("smb1_session_setup_response: tx {:?}", tx);
         } else {
             SCLogDebug!("smb1_session_setup_response: tx not found for {:?}", r);
