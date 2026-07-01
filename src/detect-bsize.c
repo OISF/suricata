@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2022 Open Information Security Foundation
+/* Copyright (C) 2017-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -42,6 +42,7 @@
 static int DetectBsizeSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectBsizeFree (DetectEngineCtx *, void *);
 static int SigParseGetMaxBsize(const DetectU64Data *bsz, uint64_t *bsize);
+static bool SigBsizeBufferMaxBound(const SignatureInitDataBuffer *b, uint64_t *bound, bool *exact);
 #ifdef UNITTESTS
 static void DetectBsizeRegisterTests (void);
 #endif
@@ -49,48 +50,45 @@ static void DetectBsizeRegisterTests (void);
 bool DetectBsizeValidateContentCallback(const Signature *s, const SignatureInitDataBuffer *b)
 {
     uint64_t bsize;
-    int retval = -1;
-    const DetectU64Data *bsz;
-    for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
-        if (sm->type == DETECT_BSIZE) {
-            bsz = (const DetectU64Data *)sm->ctx;
-            retval = SigParseGetMaxBsize(bsz, &bsize);
-            break;
-        }
-    }
-
-    if (retval == -1) {
+    if (!SigBsizeBufferMaxBound(b, &bsize, NULL)) {
         return true;
     }
 
-    uint64_t needed;
-    if (retval == 0) {
-        int len, offset;
-        SigParseRequiredContentSize(s, bsize, b->head, &len, &offset);
-        SCLogDebug("bsize: %" PRIu64 "; len: %d; offset: %d [%s]", bsize, len, offset, s->sig_str);
-        needed = len;
-        if ((uint64_t)len > bsize) {
-            goto value_error;
-        }
-        if ((uint64_t)(len + offset) > bsize) {
-            needed += offset;
-            goto value_error;
-        }
+    int len, offset;
+    SigParseRequiredContentSize(s, bsize, b->head, &len, &offset);
+    SCLogDebug("bsize: %" PRIu64 "; len: %d; offset: %d [%s]", bsize, len, offset, s->sig_str);
+    uint64_t needed = len;
+    if ((uint64_t)len > bsize) {
+        goto value_error;
+    }
+    if ((uint64_t)(len + offset) > bsize) {
+        needed += offset;
+        goto value_error;
     }
 
     return true;
-value_error:
-    if (bsz->mode == DETECT_UINT_RA) {
+value_error: {
+    /* find the bsize that set the tightest bound, to describe it in the error */
+    const DetectU64Data *bsz = NULL;
+    for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
+        uint64_t cur;
+        if (sm->type == DETECT_BSIZE &&
+                SigParseGetMaxBsize((const DetectU64Data *)sm->ctx, &cur) == 0 && cur == bsize) {
+            bsz = (const DetectU64Data *)sm->ctx;
+            break;
+        }
+    }
+    if (bsz != NULL && bsz->mode == DETECT_UINT_RA) {
         SCLogError("signature can't match as required content length %" PRIu64
                    " exceeds bsize range: %" PRIu64 "-%" PRIu64,
                 needed, bsz->arg1, bsz->arg2);
     } else {
         SCLogError("signature can't match as required content length %" PRIu64
-                   " exceeds bsize value: "
-                   "%" PRIu64,
-                needed, bsz->arg1);
+                   " exceeds bsize value: %" PRIu64,
+                needed, bsz != NULL ? bsz->arg1 : bsize);
     }
     return false;
+}
 }
 
 /**
@@ -175,6 +173,117 @@ static int SigParseGetMaxBsize(const DetectU64Data *bsz, uint64_t *bsize)
             SCReturnInt(-2);
     }
     SCReturnInt(-1);
+}
+
+/**
+ * \brief find the tightest usable bsize upper bound for a buffer
+ *
+ * A buffer may carry more than one bsize; the buffer must satisfy them all, so
+ * the tightest (smallest) usable upper bound applies. bsize:>N yields no upper
+ * bound and is ignored.
+ *
+ * \param b buffer to scan
+ * \param bound set to the smallest usable upper bound on success
+ * \param exact if non-NULL, set to true when that bound comes from an exact
+ *              bsize (bsize:N)
+ * \retval true a usable upper bound was found
+ * \retval false no bsize with a usable upper bound (e.g. only bsize:>N)
+ */
+static bool SigBsizeBufferMaxBound(const SignatureInitDataBuffer *b, uint64_t *bound, bool *exact)
+{
+    uint64_t b_min = UINT64_MAX;
+    bool found = false;
+    bool is_exact = false;
+    for (const SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_BSIZE)
+            continue;
+
+        const DetectU64Data *bsz = (const DetectU64Data *)sm->ctx;
+        uint64_t cur;
+        if (SigParseGetMaxBsize(bsz, &cur) != 0)
+            continue;
+        if (cur < b_min) {
+            b_min = cur;
+            is_exact = (bsz->mode == DETECT_UINT_EQ);
+        }
+        found = true;
+    }
+
+    if (!found)
+        return false;
+
+    *bound = b_min;
+    if (exact != NULL)
+        *exact = is_exact;
+    return true;
+}
+
+/**
+ * \brief apply each buffer's bsize upper bound to its content matches
+ *
+ * When a buffer carries a bsize keyword that yields a usable upper bound
+ * (bsize:N, bsize:<N or bsize:N<>M), every content in that buffer can be
+ * constrained to that depth: the content can't match beyond the end of the
+ * buffer, and the buffer is at most \c bsize bytes long. This lets the mpm and
+ * content inspection bound their search instead of scanning the whole buffer,
+ * mirroring the dsize and urilen optimizations.
+ *
+ * As a stronger case, when an exact bsize (bsize:N) equals the length of a lone
+ * content in the buffer, that content must span the whole buffer: it both
+ * starts and ends it. Mark it startswith/endswith so the mpm anchoring and the
+ * endswith inspection short-circuit apply, as Victor described in #4226.
+ *
+ * \param s signature whose buffers are processed
+ */
+void DetectBsizeApplyToContent(const Signature *s)
+{
+    for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+        const SignatureInitDataBuffer *b = &s->init_data->buffers[x];
+
+        uint64_t bsize;
+        bool exact;
+        if (!SigBsizeBufferMaxBound(b, &bsize, &exact))
+            continue;
+
+        /* depth is a uint16_t; a larger bound can't be expressed as a depth */
+        if (bsize > UINT16_MAX)
+            continue;
+
+        uint32_t content_cnt = 0;
+        DetectContentData *single = NULL;
+        for (SigMatch *sm = b->head; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
+
+            DetectContentData *cd = (DetectContentData *)sm->ctx;
+            if (cd == NULL)
+                continue;
+
+            content_cnt++;
+            single = cd;
+
+            if (cd->depth == 0 || cd->depth > (uint16_t)bsize) {
+                cd->depth = (uint16_t)bsize;
+                cd->flags |= DETECT_CONTENT_DEPTH;
+                cd->flags |= DETECT_CONTENT_BSIZE2DEPTH;
+                SCLogDebug("updated %u, content %u to have depth %u because of bsize.", s->id,
+                        cd->id, cd->depth);
+            }
+        }
+
+        /* exact bsize matching a lone content's length: the content fills the
+         * buffer, so it starts and ends it. Skip if the content is anchored
+         * elsewhere or negated, where that doesn't hold. */
+        if (content_cnt == 1 && exact && single->content_len == (uint16_t)bsize &&
+                (single->flags & (DETECT_CONTENT_OFFSET | DETECT_CONTENT_DISTANCE |
+                                         DETECT_CONTENT_WITHIN | DETECT_CONTENT_NEGATED)) == 0) {
+            single->depth = single->content_len;
+            single->flags |=
+                    DETECT_CONTENT_DEPTH | DETECT_CONTENT_STARTS_WITH | DETECT_CONTENT_ENDS_WITH;
+            SCLogDebug("updated %u, content %u to startswith/endswith because of exact bsize %u.",
+                    s->id, single->id, (uint16_t)bsize);
+        }
+    }
 }
 
 /**

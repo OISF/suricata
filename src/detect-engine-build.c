@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -33,6 +33,7 @@
 #include "detect-engine-threshold.h"
 
 #include "detect-dsize.h"
+#include "detect-bsize.h"
 #include "detect-tcp-flags.h"
 #include "detect-flow.h"
 #include "detect-config.h"
@@ -1858,6 +1859,7 @@ int SigPrepareStage1(DetectEngineCtx *de_ctx)
         SignatureCreateMask(s);
         DetectContentPropagateLimits(s);
         SigParseApplyDsizeToContent(s);
+        DetectBsizeApplyToContent(s);
 
         RuleSetScore(s);
 
