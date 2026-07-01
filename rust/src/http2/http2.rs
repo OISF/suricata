@@ -137,7 +137,7 @@ pub enum HTTP2FrameTypeData {
 #[derive(AppLayerState, Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
 #[suricata(alstate_strip_prefix = "HTTP2Prog")]
 pub enum HTTP2TxProgress {
-    HTTP2ProgStart = 0,
+    HTTP2ProgStarted = 0,
     HTTP2ProgHeaders = 1,
     HTTP2ProgData = 2,
     HTTP2ProgClosed = 3,
@@ -148,7 +148,7 @@ pub enum HTTP2TxProgress {
 #[derive(AppLayerState, Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
 #[suricata(alstate_strip_prefix = "HTTP2ProgGlobal")]
 pub enum HTTP2TxGlobalProgress {
-    HTTP2ProgGlobalStart = 0,
+    HTTP2ProgGlobalStarted = 0,
     HTTP2ProgGlobalComplete = 1,
 }
 
@@ -180,8 +180,8 @@ pub struct HTTP2StreamProgress {
 impl HTTP2StreamProgress {
     fn init() -> Self {
         Self {
-            progress_ts: HTTP2TxProgress::HTTP2ProgStart,
-            progress_tc: HTTP2TxProgress::HTTP2ProgStart,
+            progress_ts: HTTP2TxProgress::HTTP2ProgStarted,
+            progress_tc: HTTP2TxProgress::HTTP2ProgStarted,
         }
     }
     fn complete() -> Self {
@@ -212,8 +212,8 @@ pub struct HTTP2GlobalProgress {
 impl HTTP2GlobalProgress {
     fn _init() -> Self {
         Self {
-            progress_ts: HTTP2TxGlobalProgress::HTTP2ProgGlobalStart,
-            progress_tc: HTTP2TxGlobalProgress::HTTP2ProgGlobalStart,
+            progress_ts: HTTP2TxGlobalProgress::HTTP2ProgGlobalStarted,
+            progress_tc: HTTP2TxGlobalProgress::HTTP2ProgGlobalStarted,
         }
     }
     fn complete() -> Self {
