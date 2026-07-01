@@ -1256,6 +1256,8 @@ void *DetectGetInnerTx(void *tx_ptr, AppProto alproto, AppProto engine_alproto, 
             // incompatible engine->alproto with flow alproto
             tx_ptr = NULL;
         }
+    } else if (alproto == ALPROTO_HTTP2 && engine_alproto == ALPROTO_WEBSOCKET) {
+        tx_ptr = SCHttp2GetWebsocketTx(tx_ptr, flow_flags);
     } else if (engine_alproto != alproto && engine_alproto != ALPROTO_UNKNOWN) {
         // incompatible engine->alproto with flow alproto
         tx_ptr = NULL;
