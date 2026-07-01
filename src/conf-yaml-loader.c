@@ -27,6 +27,9 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 #include <yaml.h>
+#ifdef HAVE_GLOB_H
+#include <glob.h>
+#endif
 #include "util-path.h"
 #include "util-debug.h"
 #include "util-unittest.h"
@@ -104,18 +107,17 @@ ConfYamlSetConfDirname(const char *filename)
 }
 
 /**
- * \brief Include a file in the configuration.
+ * \brief Include a single resolved file in the configuration.
  *
  * \param parent The configuration node the included configuration will be
  *          placed at.
- * \param filename The filename to include.
+ * \param filename The fully resolved filename to include.
  *
  * \retval 0 on success, -1 on failure.
  */
-int SCConfYamlHandleInclude(SCConfNode *parent, const char *filename)
+static int ConfYamlHandleIncludeOne(SCConfNode *parent, const char *filename)
 {
     yaml_parser_t parser;
-    char include_filename[PATH_MAX];
     FILE *file = NULL;
     int ret = -1;
 
@@ -124,18 +126,9 @@ int SCConfYamlHandleInclude(SCConfNode *parent, const char *filename)
         return -1;
     }
 
-    if (PathIsAbsolute(filename)) {
-        strlcpy(include_filename, filename, sizeof(include_filename));
-    }
-    else {
-        snprintf(include_filename, sizeof(include_filename), "%s/%s",
-            conf_dirname, filename);
-    }
-
-    file = fopen(include_filename, "r");
+    file = fopen(filename, "r");
     if (file == NULL) {
-        SCLogError("Failed to open configuration include file %s: %s", include_filename,
-                strerror(errno));
+        SCLogError("Failed to open configuration include file %s: %s", filename, strerror(errno));
         goto done;
     }
 
@@ -155,6 +148,62 @@ done:
     }
 
     return ret;
+}
+
+/**
+ * \brief Include a file or glob pattern in the configuration.
+ *
+ * Relative paths are resolved against the directory of the top-level config
+ * file. If the input contains glob metacharacters (\c *, \c ?, \c [) the
+ * pattern is expanded via glob(3) and each match is included in lexicographic
+ * order. A pattern that matches no files is logged as a warning and not
+ * treated as an error, to support drop-in `conf.d/` directories.
+ *
+ * \param parent The configuration node the included configuration will be
+ *          placed at.
+ * \param filename The filename or glob pattern to include.
+ *
+ * \retval 0 on success, -1 on failure.
+ */
+int SCConfYamlHandleInclude(SCConfNode *parent, const char *filename)
+{
+    char include_filename[PATH_MAX];
+
+    if (PathIsAbsolute(filename)) {
+        strlcpy(include_filename, filename, sizeof(include_filename));
+    } else {
+        snprintf(include_filename, sizeof(include_filename), "%s/%s", conf_dirname, filename);
+    }
+
+#ifdef HAVE_GLOB_H
+    if (strpbrk(filename, "*?[") != NULL) {
+        glob_t globbuf;
+        int gret = glob(include_filename, 0, NULL, &globbuf);
+
+        if (gret == GLOB_NOMATCH) {
+            SCLogWarning("No files match include pattern %s", include_filename);
+            return 0;
+        } else if (gret != 0) {
+            SCLogError(
+                    "Failed to expand include pattern %s: %s", include_filename, strerror(errno));
+            return -1;
+        }
+
+        int ret = 0;
+        for (size_t i = 0; i < (size_t)globbuf.gl_pathc; i++) {
+            const char *path = globbuf.gl_pathv[i];
+            SCLogInfo("Including configuration file %s (matched %s).", path, filename);
+            if (ConfYamlHandleIncludeOne(parent, path) != 0) {
+                ret = -1;
+                break;
+            }
+        }
+        globfree(&globbuf);
+        return ret;
+    }
+#endif
+
+    return ConfYamlHandleIncludeOne(parent, include_filename);
 }
 
 /**
