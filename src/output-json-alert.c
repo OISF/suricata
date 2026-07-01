@@ -327,15 +327,22 @@ static void AlertAddAppLayerStates(const Packet *p, const AppProto alproto, cons
 {
     const int ts = AppLayerParserGetStateProgress(p->flow->proto, alproto, tx, STREAM_TOSERVER);
     const int tc = AppLayerParserGetStateProgress(p->flow->proto, alproto, tx, STREAM_TOCLIENT);
-    SCJbSetString(jb, "ts_progress",
-            AppLayerParserGetStateNameById(p->flow->proto, alproto, ts, STREAM_TOSERVER));
-    SCJbSetString(jb, "tc_progress",
-            AppLayerParserGetStateNameById(p->flow->proto, alproto, tc, STREAM_TOCLIENT));
-    if (sub_state) {
+    if (sub_state == 0) {
+        SCJbSetString(jb, "ts_progress",
+                AppLayerParserGetStateNameById(p->flow->proto, alproto, ts, STREAM_TOSERVER));
+        SCJbSetString(jb, "tc_progress",
+                AppLayerParserGetStateNameById(p->flow->proto, alproto, tc, STREAM_TOCLIENT));
+    } else {
         const char *sname = AppLayerParserGetSubStateName(alproto, sub_state);
         if (sname != NULL) {
             SCJbSetString(jb, "sub_state", sname);
         }
+        SCJbSetString(jb, "ts_progress",
+                AppLayerParserGetSubStateProgressName(
+                        alproto, sub_state, (uint8_t)ts, STREAM_TOSERVER));
+        SCJbSetString(jb, "tc_progress",
+                AppLayerParserGetSubStateProgressName(
+                        alproto, sub_state, (uint8_t)tc, STREAM_TOCLIENT));
     }
 }
 
