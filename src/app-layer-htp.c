@@ -2508,7 +2508,7 @@ static AppLayerGetTxIterTuple HTPGetTxIterator(const uint8_t ipproto, const AppP
             AppLayerGetTxIterTuple tuple = {
                 .tx_ptr = tx,
                 .tx_id = tx_id,
-                .has_next = state->un.u64 < size,
+                .has_next = (tx_id + 1) < size,
             };
             return tuple;
         }
