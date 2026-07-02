@@ -642,7 +642,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
 
     if (!RB_EMPTY(&tracker->fragment_tree)) {
         Frag key = {
-            .offset = frag_offset - 1,
+            .offset = frag_offset,
         };
         next = RB_NFIND(IP_FRAGMENTS, &tracker->fragment_tree, &key);
         if (next == NULL) {
