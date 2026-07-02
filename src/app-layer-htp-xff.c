@@ -119,7 +119,7 @@ static int HttpXFFGetIPFromTxAux(
 
         if (xff_cfg->flags & XFF_REVERSE) {
             /** Get the last IP address from the chain */
-            p_xff = strrchr(xff_chain, ' ');
+            p_xff = strrchr((char *)xff_chain, ' ');
             if (p_xff == NULL) {
                 p_xff = xff_chain;
             } else {
