@@ -24,6 +24,27 @@
 #ifndef SURICATA_DETECT_APP_LAYER_PROTOCOL__H
 #define SURICATA_DETECT_APP_LAYER_PROTOCOL__H
 
+#include "app-layer-protos.h"
+
 void DetectAppLayerProtocolRegister(void);
+const char *DetectAppLayerProtocolModeName(uint8_t mode);
+struct DetectAppLayerProtocolData_;
+uint16_t DetectAppLayerProtocolGetValues(
+        const struct DetectAppLayerProtocolData_ *data, AppProto *out, uint16_t max);
+
+/**
+ * \brief Per-rule keyword data for `app-layer-protocol:`.
+ *
+ * The set of protocol values is a bitmask (`alprotos`), one bit per AppProto,
+ * sized g_alproto_max bits. `alproto` is the single-value prefilter bucket
+ * key (ALPROTO_UNKNOWN for multi-value rules, which are not prefilterable).
+ */
+typedef struct DetectAppLayerProtocolData_ {
+    AppProto alproto; /**< single-value bucket key; ALPROTO_UNKNOWN if list */
+    bool negated;
+    uint8_t mode;
+    bool is_list;      /**< true if the rule carried more than one value */
+    uint8_t *alprotos; /**< bitmask of g_alproto_max bits */
+} DetectAppLayerProtocolData;
 
 #endif /* SURICATA_DETECT_APP_LAYER_PROTOCOL__H */
