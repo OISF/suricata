@@ -172,7 +172,14 @@ enum {
     LTNULL_UNSUPPORTED_TYPE, /**< pkt has a type that the decoder doesn't support */
 
     /* SCTP EVENTS */
-    SCTP_PKT_TOO_SMALL, /**< sctp packet smaller than minimum size */
+    SCTP_PKT_TOO_SMALL,           /**< sctp packet smaller than minimum size */
+    SCTP_CHUNK_TOO_SMALL,         /**< remaining data too small for chunk header */
+    SCTP_CHUNK_LEN_INVALID,       /**< chunk length < 4 or exceeds remaining packet */
+    SCTP_INIT_CHUNK_BUNDLED,      /**< RFC 4960 sec 6.10: INIT/INIT_ACK bundled with other chunks */
+    SCTP_INIT_WITH_NON_ZERO_VTAG, /**< INIT with vtag != 0 */
+    SCTP_DATA_WITH_ZERO_VTAG,     /**< DATA chunk with vtag == 0 */
+    SCTP_TOO_MANY_CHUNKS,         /**< more chunks than SCTP_MAX_TRACKED_CHUNKS */
+    SCTP_TOO_MANY_DATA_CHUNKS,    /**< more DATA chunks than SCTP_MAX_DATA_CHUNKS */
 
     /* ESP EVENTS */
     ESP_PKT_TOO_SMALL, /**< esp packet smaller than minimum size */

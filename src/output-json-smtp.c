@@ -53,6 +53,10 @@
 
 static void EveSmtpDataLogger(void *state, void *vtx, SCJsonBuilder *js)
 {
+    if (state == NULL || vtx == NULL) {
+        return;
+    }
+
     SMTPTransaction *tx = vtx;
     SMTPString *rcptto_str;
     if (((SMTPState *)state)->helo) {

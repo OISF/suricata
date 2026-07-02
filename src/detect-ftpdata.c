@@ -37,7 +37,7 @@
 /**
  * \brief Regex for parsing our keyword options
  */
-#define PARSE_REGEX  "^\\s*(stor|retr)\\s*$"
+#define PARSE_REGEX "^\\s*(stor|appe|stou|retr|nlst|list|mlsd)\\s*$"
 static DetectParseRegex parse_regex;
 
 /* Prototypes of functions registered in DetectFtpdataRegister below */
@@ -62,6 +62,7 @@ void DetectFtpdataRegister(void) {
     /* description: listed in "suricata --list-keywords=all" */
     sigmatch_table[DETECT_FTPDATA].desc = "match FTP command triggering a FTP data channel";
     sigmatch_table[DETECT_FTPDATA].url = "/rules/ftp-keywords.html#ftpdata-command";
+    sigmatch_table[DETECT_FTPDATA].flags |= SIGMATCH_SUPPORT_FIREWALL;
     sigmatch_table[DETECT_FTPDATA].AppLayerTxMatch = DetectFtpdataMatch;
     /* setup function is called during signature parsing, when the ftpcommand
      * keyword is encountered in the rule */
@@ -105,17 +106,7 @@ static int DetectFtpdataMatch(DetectEngineThreadCtx *det_ctx,
     if (ftp_state == NULL)
         return 0;
 
-    if (ftpcommandd->command == ftp_state->command) {
-        /* Only match if the flow is in the good direction */
-        if ((flags & STREAM_TOSERVER) && (ftpcommandd->command == FTP_COMMAND_RETR)) {
-            return 0;
-        } else if ((flags & STREAM_TOCLIENT) && (ftpcommandd->command == FTP_COMMAND_STOR)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    return 0;
+    return ftpcommandd->command == ftp_state->command;
 }
 
 /**
@@ -152,8 +143,18 @@ static DetectFtpdataData *DetectFtpdataParse(const char *ftpcommandstr)
         goto error;
     if (!strcmp(arg1, "stor")) {
         ftpcommandd->command = FTP_COMMAND_STOR;
+    } else if (!strcmp(arg1, "appe")) {
+        ftpcommandd->command = FTP_COMMAND_APPE;
+    } else if (!strcmp(arg1, "stou")) {
+        ftpcommandd->command = FTP_COMMAND_STOU;
     } else if (!strcmp(arg1, "retr")) {
         ftpcommandd->command = FTP_COMMAND_RETR;
+    } else if (!strcmp(arg1, "nlst")) {
+        ftpcommandd->command = FTP_COMMAND_NLST;
+    } else if (!strcmp(arg1, "list")) {
+        ftpcommandd->command = FTP_COMMAND_LIST;
+    } else if (!strcmp(arg1, "mlsd")) {
+        ftpcommandd->command = FTP_COMMAND_MLSD;
     } else {
         SCLogError("Invalid command value");
         goto error;
@@ -220,6 +221,26 @@ static int DetectFtpdataParseTest01(void)
     FAIL_IF_NULL(ftpcommandd);
     FAIL_IF(!(ftpcommandd->command == FTP_COMMAND_STOR));
     DetectFtpdataFree(NULL, ftpcommandd);
+
+    ftpcommandd = DetectFtpdataParse("appe");
+    FAIL_IF_NULL(ftpcommandd);
+    FAIL_IF(!(ftpcommandd->command == FTP_COMMAND_APPE));
+    DetectFtpdataFree(NULL, ftpcommandd);
+
+    ftpcommandd = DetectFtpdataParse("stou");
+    FAIL_IF_NULL(ftpcommandd);
+    FAIL_IF(!(ftpcommandd->command == FTP_COMMAND_STOU));
+    DetectFtpdataFree(NULL, ftpcommandd);
+
+    ftpcommandd = DetectFtpdataParse("list");
+    FAIL_IF_NULL(ftpcommandd);
+    FAIL_IF(!(ftpcommandd->command == FTP_COMMAND_LIST));
+    DetectFtpdataFree(NULL, ftpcommandd);
+
+    ftpcommandd = DetectFtpdataParse("mlsd");
+    FAIL_IF_NULL(ftpcommandd);
+    FAIL_IF(!(ftpcommandd->command == FTP_COMMAND_MLSD));
+    DetectFtpdataFree(NULL, ftpcommandd);
     PASS;
 }
 
@@ -232,7 +253,20 @@ static int DetectFtpdataSignatureTest01(void)
     FAIL_IF_NULL(sig);
     sig = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (ftpdata_command:retr; sid:2; rev:1;)");
     FAIL_IF_NULL(sig);
-    sig = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (ftpdata_command:xxx; sid:3; rev:1;)");
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (ftpdata_command:appe; sid:3; rev:1;)");
+    FAIL_IF_NULL(sig);
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (ftpdata_command:stou; sid:4; rev:1;)");
+    FAIL_IF_NULL(sig);
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (ftpdata_command:list; sid:5; rev:1;)");
+    FAIL_IF_NULL(sig);
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (ftpdata_command:mlsd; sid:6; rev:1;)");
+    FAIL_IF_NULL(sig);
+    sig = DetectEngineAppendSig(
+            de_ctx, "alert ip any any -> any any (ftpdata_command:xxx; sid:7; rev:1;)");
     FAIL_IF_NOT_NULL(sig);
 
     DetectEngineCtxFree(de_ctx);

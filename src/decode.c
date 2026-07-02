@@ -143,10 +143,7 @@ ExceptionPolicyStatsSetts flow_memcap_eps_stats = {
  */
 PacketAlert *PacketAlertCreate(void)
 {
-    PacketAlert *pa_array = SCCalloc(packet_alert_max, sizeof(PacketAlert));
-    DEBUG_VALIDATE_BUG_ON(pa_array == NULL);
-
-    return pa_array;
+    return SCCalloc(packet_alert_max, sizeof(PacketAlert));
 }
 
 void PacketAlertRecycle(PacketAlert *pa_array, uint16_t cnt)
@@ -267,7 +264,10 @@ Packet *PacketGetFromAlloc(void)
     if (unlikely(p == NULL)) {
         return NULL;
     }
-    PacketInit(p);
+    if (!PacketInit(p)) {
+        SCFree(p);
+        return NULL;
+    }
     p->ReleasePacket = PacketFree;
 
     SCLogDebug("allocated a new packet only using alloc...");
@@ -656,6 +656,11 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
 
     dtv->counter_udp = StatsRegisterCounter("decoder.udp", &tv->stats);
     dtv->counter_sctp = StatsRegisterCounter("decoder.sctp", &tv->stats);
+    dtv->counter_sctp_init = StatsRegisterCounter("sctp.init", &tv->stats);
+    dtv->counter_sctp_init_ack = StatsRegisterCounter("sctp.init_ack", &tv->stats);
+    dtv->counter_sctp_data = StatsRegisterCounter("sctp.data", &tv->stats);
+    dtv->counter_sctp_abort = StatsRegisterCounter("sctp.abort", &tv->stats);
+    dtv->counter_sctp_shutdown = StatsRegisterCounter("sctp.shutdown", &tv->stats);
     dtv->counter_esp = StatsRegisterCounter("decoder.esp", &tv->stats);
     dtv->counter_icmpv4 = StatsRegisterCounter("decoder.icmpv4", &tv->stats);
     dtv->counter_icmpv6 = StatsRegisterCounter("decoder.icmpv6", &tv->stats);

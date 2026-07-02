@@ -68,11 +68,11 @@ int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, Mpm
 
 // file protocols with common file handling
 typedef struct {
-    AppProto alproto;
     int direction;
-    int to_client_progress;
-    int to_server_progress;
-} DetectFileHandlerProtocol_t;
+    AppProto alproto;
+    uint8_t progress_ts;
+    uint8_t progress_tc;
+} DetectFileHandlerProtocol;
 
 /* Table with all filehandler registrations */
 DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE_STATIC];
@@ -80,24 +80,24 @@ DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE_STATIC];
 #define ALPROTO_WITHFILES_MAX 16
 
 // file protocols with common file handling
-DetectFileHandlerProtocol_t al_protocols[ALPROTO_WITHFILES_MAX] = {
+DetectFileHandlerProtocol al_protocols[ALPROTO_WITHFILES_MAX] = {
     { .alproto = ALPROTO_NFS, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
     { .alproto = ALPROTO_SMB, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
     { .alproto = ALPROTO_FTP, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
     { .alproto = ALPROTO_FTPDATA, .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT },
     { .alproto = ALPROTO_HTTP1,
             .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
-            .to_client_progress = HTP_RESPONSE_PROGRESS_BODY,
-            .to_server_progress = HTP_REQUEST_PROGRESS_BODY },
+            .progress_tc = HTP_RESPONSE_PROGRESS_BODY,
+            .progress_ts = HTP_REQUEST_PROGRESS_BODY },
     { .alproto = ALPROTO_HTTP2,
             .direction = SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT,
-            .to_client_progress = HTTP2ProgData,
-            .to_server_progress = HTTP2ProgData },
+            .progress_tc = HTTP2ProgData,
+            .progress_ts = HTTP2ProgData },
     { .alproto = ALPROTO_SMTP, .direction = SIG_FLAG_TOSERVER }, { .alproto = ALPROTO_UNKNOWN }
 };
 
 void DetectFileRegisterProto(
-        AppProto alproto, int direction, int to_client_progress, int to_server_progress)
+        AppProto alproto, int direction, uint8_t progress_tc, uint8_t progress_ts)
 {
     size_t i = 0;
     while (i < ALPROTO_WITHFILES_MAX && al_protocols[i].alproto != ALPROTO_UNKNOWN) {
@@ -108,8 +108,8 @@ void DetectFileRegisterProto(
     }
     al_protocols[i].alproto = alproto;
     al_protocols[i].direction = direction;
-    al_protocols[i].to_client_progress = to_client_progress;
-    al_protocols[i].to_server_progress = to_server_progress;
+    al_protocols[i].progress_tc = progress_tc;
+    al_protocols[i].progress_ts = progress_ts;
     if (i + 1 < ALPROTO_WITHFILES_MAX) {
         al_protocols[i + 1].alproto = ALPROTO_UNKNOWN;
     }
@@ -127,17 +127,15 @@ void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *reg)
 
         if (direction & SIG_FLAG_TOCLIENT) {
             DetectAppLayerMpmRegister(reg->name, SIG_FLAG_TOCLIENT, reg->priority, reg->PrefilterFn,
-                    reg->GetData, al_protocols[i].alproto, al_protocols[i].to_client_progress);
+                    NULL, al_protocols[i].alproto, al_protocols[i].progress_tc);
             DetectAppLayerInspectEngineRegister(reg->name, al_protocols[i].alproto,
-                    SIG_FLAG_TOCLIENT, al_protocols[i].to_client_progress, reg->Callback,
-                    reg->GetData);
+                    SIG_FLAG_TOCLIENT, al_protocols[i].progress_tc, reg->Callback, NULL);
         }
         if (direction & SIG_FLAG_TOSERVER) {
             DetectAppLayerMpmRegister(reg->name, SIG_FLAG_TOSERVER, reg->priority, reg->PrefilterFn,
-                    reg->GetData, al_protocols[i].alproto, al_protocols[i].to_server_progress);
+                    NULL, al_protocols[i].alproto, al_protocols[i].progress_ts);
             DetectAppLayerInspectEngineRegister(reg->name, al_protocols[i].alproto,
-                    SIG_FLAG_TOSERVER, al_protocols[i].to_server_progress, reg->Callback,
-                    reg->GetData);
+                    SIG_FLAG_TOSERVER, al_protocols[i].progress_ts, reg->Callback, NULL);
         }
     }
 }
@@ -527,6 +525,13 @@ uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadC
 
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
+
+typedef struct PrefilterMpmFiledata {
+    int list_id;
+    int base_list_id;
+    const MpmCtx *mpm_ctx;
+    const DetectEngineTransforms *transforms;
+} PrefilterMpmFiledata;
 
 /** \brief Filedata Filedata Mpm prefilter callback
  *

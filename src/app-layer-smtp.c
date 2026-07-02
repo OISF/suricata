@@ -452,7 +452,7 @@ static void SMTPConfigure(void) {
     uint64_t value = SMTP_DEFAULT_MAX_TX;
     smtp_config.max_tx = SMTP_DEFAULT_MAX_TX;
     const char *str = NULL;
-    if (SCConfGet("app-layer.protocols.smtp.max-tx", &str) == 1) {
+    if (SCConfGetNonNull("app-layer.protocols.smtp.max-tx", &str) == 1) {
         if (ParseSizeStringU64(str, &value) < 0) {
             SCLogWarning("max-tx value cannot be deduced: %s,"
                          " keeping default",

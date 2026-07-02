@@ -71,6 +71,8 @@ This allows to match without needing to match on cip.service.
 
 enip.cip_attribute uses an :ref:`unsigned 32-bits integer <rules-integer-keywords>`.
 
+enip.cip_attribute is also a :ref:`multi-integer <multi-integers>`.
+
 Examples::
 
   enip.cip_attribute:1;
@@ -84,6 +86,8 @@ It uses a 32-bit unsigned integer as value.
 
 enip.cip_instance uses an :ref:`unsigned 32-bits integer <rules-integer-keywords>`.
 
+enip.cip_instance is also a :ref:`multi-integer <multi-integers>`.
+
 Examples::
 
   enip.cip_instance:1;
@@ -96,6 +100,8 @@ Match on the cip class in CIP request path.
 It uses a 32-bit unsigned integer as value.
 
 enip.cip_class uses an :ref:`unsigned 32-bits integer <rules-integer-keywords>`.
+
+enip.cip_class is also a :ref:`multi-integer <multi-integers>`.
 
 This allows to match without needing to match on cip.service.
 

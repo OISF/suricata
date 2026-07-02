@@ -738,7 +738,9 @@ int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets)
     memset(&th_v, 0, sizeof(th_v));
     StatsThreadInit(&th_v.stats);
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
-    SCSigOrderSignatures(de_ctx);
+    if (SCSigOrderSignatures(de_ctx) != 0) {
+        result = 0;
+    }
     SCSigSignatureOrderingModuleCleanup(de_ctx);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);

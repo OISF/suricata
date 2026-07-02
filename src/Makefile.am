@@ -228,6 +228,11 @@ noinst_HEADERS = \
 	detect-id.h \
 	detect-igmphdr.h \
 	detect-igmp-type.h \
+	detect-sctphdr.h \
+	detect-sctp-chunk-cnt.h \
+	detect-sctp-chunk-type.h \
+	detect-sctp-chunk-data.h \
+	detect-sctp-vtag.h \
 	detect-ipaddr.h \
 	detect-ipopts.h \
 	detect-ipproto.h \
@@ -237,10 +242,6 @@ noinst_HEADERS = \
 	detect-isdataat.h \
 	detect-itype.h \
 	detect-ja4-hash.h \
-	detect-krb5-cname.h \
-	detect-krb5-errcode.h \
-	detect-krb5-sname.h \
-	detect-krb5-ticket-encryption.h \
 	detect-l3proto.h \
 	detect-lua-extensions.h \
 	detect-lua.h \
@@ -338,7 +339,7 @@ noinst_HEADERS = \
 	ippair-storage.h \
 	ippair-timeout.h \
 	ippair.h \
-	log-flush.h \
+	log-maintenance.h \
 	log-pcap.h \
 	log-stats.h \
 	log-tcp-data.h \
@@ -804,6 +805,11 @@ libsuricata_c_a_SOURCES = \
 	detect-id.c \
 	detect-igmphdr.c \
 	detect-igmp-type.c \
+	detect-sctphdr.c \
+	detect-sctp-chunk-cnt.c \
+	detect-sctp-chunk-type.c \
+	detect-sctp-chunk-data.c \
+	detect-sctp-vtag.c \
 	detect-ipaddr.c \
 	detect-ipopts.c \
 	detect-ipproto.c \
@@ -813,10 +819,6 @@ libsuricata_c_a_SOURCES = \
 	detect-isdataat.c \
 	detect-itype.c \
 	detect-ja4-hash.c \
-	detect-krb5-cname.c \
-	detect-krb5-errcode.c \
-	detect-krb5-sname.c \
-	detect-krb5-ticket-encryption.c \
 	detect-l3proto.c \
 	detect-lua-extensions.c \
 	detect-lua.c \
@@ -911,7 +913,7 @@ libsuricata_c_a_SOURCES = \
 	ippair-storage.c \
 	ippair-timeout.c \
 	ippair.c \
-	log-flush.c \
+	log-maintenance.c \
 	log-pcap.c \
 	log-stats.c \
 	log-tcp-data.c \

@@ -182,17 +182,14 @@ int HttpXFFGetIPFromTx(
  */
 int HttpXFFGetIP(const Flow *f, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen)
 {
-    HtpState *htp_state = NULL;
-    uint64_t tx_id = AppLayerParserGetMinId(f->alparser);
-    uint64_t total_txs = 0;
-
-    htp_state = (HtpState *)FlowGetAppState(f);
+    HtpState *htp_state = (HtpState *)FlowGetAppState(f);
     if (htp_state == NULL) {
         SCLogDebug("no http state, XFF IP cannot be retrieved");
         goto end;
     }
 
-    total_txs = AppLayerParserGetTxCnt(f, htp_state);
+    uint64_t tx_id = AppLayerParserGetMinId(f->alparser);
+    const uint64_t total_txs = AppLayerParserGetTxCnt(f, htp_state);
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(f->proto, f->alproto);
     AppLayerGetTxIterState state;
     memset(&state, 0, sizeof(state));

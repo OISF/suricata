@@ -215,7 +215,7 @@ void NFQInitConfig(bool quiet)
 
     memset(&nfq_config,  0, sizeof(nfq_config));
 
-    if ((SCConfGet("nfq.mode", &nfq_mode)) == 0) {
+    if ((SCConfGetNonNull("nfq.mode", &nfq_mode)) == 0) {
         nfq_config.mode = NFQ_ACCEPT_MODE;
     } else {
         if (!strcmp("accept", nfq_mode)) {
@@ -567,6 +567,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     if (ret == -1) {
 #ifdef COUNTERS
         NFQQueueVars *q = NFQGetQueue(ntv->nfq_index);
+        DEBUG_VALIDATE_BUG_ON(q == NULL);
         q->errs++;
         q->pkts++;
         q->bytes += GET_PKT_LEN(p);
@@ -976,6 +977,7 @@ static void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv)
 {
     int ret;
     int flag = NFQVerdictCacheLen(t) ? MSG_DONTWAIT : 0;
+    DEBUG_VALIDATE_BUG_ON(t == NULL);
 
     int rv = recv(t->fd, tv->data, tv->datalen, flag);
     if (rv < 0) {
@@ -1049,6 +1051,7 @@ void ReceiveNFQThreadExitStats(ThreadVars *tv, void *data)
 {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
     NFQQueueVars *nq = NFQGetQueue(ntv->nfq_index);
+    DEBUG_VALIDATE_BUG_ON(nq == NULL);
 #ifdef COUNTERS
     SCLogNotice("(%s) Treated: Pkts %" PRIu32 ", Bytes %" PRIu64 ", Errors %" PRIu32 "",
             tv->name, nq->pkts, nq->bytes, nq->errs);

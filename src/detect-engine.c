@@ -195,7 +195,7 @@ void DetectPktInspectEngineRegister(const char *name,
  *
  *  \note errors are fatal */
 static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData,
+        uint8_t progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData,
         InspectionSingleBufferGetDataPtr GetDataSingle,
         InspectionMultiBufferGetDataPtr GetMultiData)
 {
@@ -209,8 +209,7 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     SCLogDebug("name %s id %d", name, sm_list);
 
     if ((alproto == ALPROTO_FAILED) || (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
-            (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) ||
-            (progress < 0 || progress >= SHRT_MAX) || (Callback == NULL)) {
+            (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) || (Callback == NULL)) {
         SCLogError("Invalid arguments");
         BUG_ON(1);
     } else if (Callback == DetectEngineInspectBufferGeneric && GetData == NULL) {
@@ -248,7 +247,7 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     new_engine->dir = direction;
     new_engine->sm_list = (uint16_t)sm_list;
     new_engine->sm_list_base = (uint16_t)sm_list;
-    new_engine->progress = (int16_t)progress;
+    new_engine->progress = progress;
     new_engine->v2.Callback = Callback;
     if (Callback == DetectEngineInspectBufferGeneric) {
         new_engine->v2.GetData = GetData;
@@ -271,7 +270,7 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
 }
 
 void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData)
+        uint8_t progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData)
 {
     /* before adding, check that we don't add a duplicate entry, which will
      * propagate all the way into the packet runtime if allowed. */
@@ -293,7 +292,7 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
 }
 
 void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback, InspectionSingleBufferGetDataPtr GetData)
+        uint8_t progress, InspectEngineFuncPtr Callback, InspectionSingleBufferGetDataPtr GetData)
 {
     /* before adding, check that we don't add a duplicate entry, which will
      * propagate all the way into the packet runtime if allowed. */
@@ -707,8 +706,19 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
 {
     if (t->alproto == ALPROTO_UNKNOWN) {
         /* special case, inspect engine applies to all protocols */
-    } else if (s->alproto != ALPROTO_UNKNOWN && !AppProtoEquals(s->alproto, t->alproto))
-        return;
+    } else if (s->alproto != ALPROTO_UNKNOWN) {
+        if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+            /* SIGNATURE_HOOK_TYPE_APP rules are exact about their protocol */
+            if (t->alproto != s->alproto) {
+                return;
+            }
+        } else {
+            /* other rules use the more relax AppProtoEquals logic */
+            if (!AppProtoEquals(s->alproto, t->alproto)) {
+                return;
+            }
+        }
+    }
 
     if (s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {
         if (t->dir == 1)
@@ -794,6 +804,39 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
 }
 
+/**
+ * \param direction STREAM_TOSERVER or STREAM_TOCLIENT
+ */
+const char *DetectEngineAppHookToName(
+        const AppProto p, const uint8_t state, const uint8_t direction)
+{
+    if (!((direction & (STREAM_TOSERVER | STREAM_TOCLIENT)) == STREAM_TOSERVER) &&
+            !((direction & (STREAM_TOSERVER | STREAM_TOCLIENT)) == STREAM_TOCLIENT))
+        return NULL;
+
+    const char *pname = AppLayerParserGetStateNameById(IPPROTO_TCP, // TODO
+            p, state, direction);
+    if (pname == NULL) {
+        if (state == 0) {
+            if (direction == STREAM_TOSERVER) {
+                pname = "request_started";
+            } else {
+                pname = "response_started";
+            }
+        } else {
+            const int complete = AppLayerParserGetStateProgressCompletionStatus(p, direction);
+            if (state == complete) {
+                if (direction == STREAM_TOSERVER) {
+                    pname = "request_complete";
+                } else {
+                    pname = "response_complete";
+                }
+            }
+        }
+    }
+    return pname;
+}
+
 /** \brief get the sm_list for a app hook */
 int DetectEngineAppHookToSmlist(const AppProto p, const uint8_t state, const int direction)
 {
@@ -805,10 +848,11 @@ int DetectEngineAppHookToSmlist(const AppProto p, const uint8_t state, const int
     if (strcmp(app_proto, "http") == 0)
         app_proto = "http1";
 
-    const char *name = AppLayerParserGetStateNameById(
-            IPPROTO_TCP, p, state, direction & (STREAM_TOSERVER | STREAM_TOCLIENT));
-    if (name == NULL)
+    const char *name =
+            DetectEngineAppHookToName(p, state, direction & (STREAM_TOSERVER | STREAM_TOCLIENT));
+    if (name == NULL) {
         return -1;
+    }
 
     char generic_hook_name[256];
     snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", app_proto, name);
@@ -855,7 +899,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
 
             DetectEngineAppInspectionEngine t = {
                 .alproto = s->init_data->hook.t.app.alproto,
-                .progress = (uint16_t)state,
+                .progress = state,
                 .sm_list = (uint16_t)sm_list,
                 .sm_list_base = (uint16_t)sm_list,
                 .dir = dir,
@@ -937,7 +981,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
 
         DetectEngineAppInspectionEngine t = {
             .alproto = s->init_data->hook.t.app.alproto,
-            .progress = (uint16_t)s->init_data->hook.t.app.app_progress,
+            .progress = s->init_data->hook.t.app.app_progress,
             .sm_list = (uint16_t)s->init_data->hook.sm_list,
             .sm_list_base = (uint16_t)s->init_data->hook.sm_list,
             .dir = dir,
@@ -2157,7 +2201,7 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
 
 // wrapper for both DetectAppLayerInspectEngineRegister and DetectAppLayerMpmRegister
 // with cast of callback function
-void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, int progress,
+void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, uint8_t progress,
         InspectionMultiBufferGetDataPtr GetData, int priority)
 {
     AppLayerInspectEngineRegisterInternal(name, alproto, dir, progress,
@@ -3423,8 +3467,8 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     }
     det_ctx->multi_inspect.to_clear_idx = 0;
 
-
-    DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx);
+    if (DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx) != TM_ECODE_OK)
+        return TM_ECODE_FAILED;
     DetectEngineThreadCtxInitGlobalKeywords(det_ctx);
 #ifdef PROFILE_RULES
     SCProfilingRuleThreadSetup(de_ctx->profile_ctx, det_ctx);
@@ -4419,7 +4463,7 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
         master->multi_tenant_enabled = 1;
 
         const char *handler = NULL;
-        if (SCConfGet("multi-detect.selector", &handler) == 1) {
+        if (SCConfGetNonNull("multi-detect.selector", &handler) == 1) {
             SCLogConfig("multi-tenant selector type %s", handler);
 
             if (strcmp(handler, "vlan") == 0) {
@@ -5203,12 +5247,17 @@ void DetectLowerSetupCallback(
     }
 }
 
-void SCDetectEngineRegisterRateFilterCallback(SCDetectRateFilterFunc fn, void *arg)
+bool SCDetectEngineRegisterRateFilterCallback(SCDetectRateFilterFunc fn, void *arg)
 {
     DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    if (de_ctx == NULL) {
+        SCLogError("no detection engine available for rate filter callback registration");
+        return false;
+    }
     de_ctx->RateFilterCallback = fn;
     de_ctx->rate_filter_callback_arg = arg;
     DetectEngineDeReference(&de_ctx);
+    return true;
 }
 
 int DetectEngineThreadCtxGetJsonContext(DetectEngineThreadCtx *det_ctx)
@@ -5435,6 +5484,52 @@ static int DetectEngineTest09(void)
     PASS;
 }
 
+/** \brief keyword thread-context init stub that always fails, used to mimic a
+ *  failing per-thread keyword init such as DetectFilemagicThreadInit. */
+static void *DetectEngineFailingThreadKeywordInit(void *data)
+{
+    (void)data;
+    return NULL;
+}
+
+static void DetectEngineNoopThreadKeywordFree(void *ctx)
+{
+    (void)ctx;
+}
+
+/** \test Ticket #8237: a failing per-thread keyword init must make the detect
+ *  thread context init fail rather than silently continuing with a partially
+ *  initialized keyword context array. */
+static int DetectEngineThreadCtxInitKeywordFailTest(void)
+{
+    ThreadVars th_v;
+    memset(&th_v, 0, sizeof(th_v));
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+
+    /* Register a keyword whose per-thread init fails (returns NULL). */
+    int id = DetectRegisterThreadCtxFuncs(de_ctx, "test_failing_keyword",
+            DetectEngineFailingThreadKeywordInit, NULL, DetectEngineNoopThreadKeywordFree, 0);
+    FAIL_IF(id < 0);
+
+    /* Thread context init must report failure and not hand back a context. */
+    TmEcode r = DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    FAIL_IF(r != TM_ECODE_FAILED);
+    FAIL_IF_NOT_NULL(det_ctx);
+
+    DetectEngineCtxFree(de_ctx);
+
+    PASS;
+}
+
 #endif
 
 void DetectEngineRegisterTests(void)
@@ -5446,5 +5541,7 @@ void DetectEngineRegisterTests(void)
     UtRegisterTest("DetectEngineTest04", DetectEngineTest04);
     UtRegisterTest("DetectEngineTest08", DetectEngineTest08);
     UtRegisterTest("DetectEngineTest09", DetectEngineTest09);
+    UtRegisterTest(
+            "DetectEngineThreadCtxInitKeywordFailTest", DetectEngineThreadCtxInitKeywordFailTest);
 #endif
 }

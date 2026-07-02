@@ -366,6 +366,11 @@ static int DetectPcreSetList(int list, int set)
     return set;
 }
 
+static bool DetectPcreHasUnicodeCluster(const char *re)
+{
+    return strstr(re, "\\X") != NULL;
+}
+
 static int DetectPcreHasUpperCase(const char *re)
 {
     size_t len = strlen(re);
@@ -708,6 +713,15 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
      */
     if (capture_names == NULL || strlen(capture_names) == 0)
         opts |= PCRE2_NO_AUTO_CAPTURE;
+
+    // forbid use of \X Unicode extended grapheme cluster as slow
+    if (DetectPcreHasUnicodeCluster(re)) {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+        goto error;
+#else
+        pd->flags |= DETECT_PCRE_HAS_UNICODE_CLUSTER;
+#endif
+    }
 
     pd->parse_regex.regex =
             pcre2_compile((PCRE2_SPTR8)re, PCRE2_ZERO_TERMINATED, opts, &en, &eo2, NULL);

@@ -72,8 +72,8 @@ Rule Matching
 
 Transaction progress is also used for certain keywords to know what is the minimum state before we can expect a match: until that, Suricata won't even try to look for the patterns.
 
-As seen in ``DetectAppLayerMpmRegister`` that has ``int progress`` as parameter, and ``DetectAppLayerInspectEngineRegister``, which expects ``int tx_min_progress``, for instance. In the code snippet,
-``HTTP2ProgData``, ``HTTP2ProgData`` and ``0`` are the values passed to the functions - in the last
+As seen in ``DetectAppLayerMpmRegister`` that has ``int progress`` as parameter, and ``DetectAppLayerInspectEngineRegister``, which expects ``uint8_t tx_min_progress``, for instance. In the code snippet,
+``HTTP2ProgData`` and ``0`` are the values passed to the functions - in the last
 example, for ``FTPDATA``,
 the existence of a transaction implies that a file is being transferred. Hence the ``0`` value.
 

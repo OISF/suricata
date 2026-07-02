@@ -155,6 +155,11 @@
 #include "detect-icmpv4hdr.h"
 #include "detect-igmphdr.h"
 #include "detect-igmp-type.h"
+#include "detect-sctphdr.h"
+#include "detect-sctp-chunk-type.h"
+#include "detect-sctp-chunk-cnt.h"
+#include "detect-sctp-vtag.h"
+#include "detect-sctp-chunk-data.h"
 #include "detect-urilen.h"
 #include "detect-bsize.h"
 #include "detect-detection-filter.h"
@@ -191,10 +196,6 @@
 #include "detect-icmpv6-mtu.h"
 #include "detect-ipv4hdr.h"
 #include "detect-ipv6hdr.h"
-#include "detect-krb5-cname.h"
-#include "detect-krb5-errcode.h"
-#include "detect-krb5-sname.h"
-#include "detect-krb5-ticket-encryption.h"
 #include "detect-sip-method.h"
 #include "detect-sip-uri.h"
 #include "detect-target.h"
@@ -676,6 +677,11 @@ void SigTableSetup(void)
     DetectIcmpv4HdrRegister();
     DetectIGMPHdrRegister();
     DetectIGMPTypeRegister();
+    DetectSCTPHdrRegister();
+    DetectSCTPChunkTypeRegister();
+    DetectSCTPChunkCntRegister();
+    DetectSCTPVtagRegister();
+    DetectSCTPChunkDataRegister();
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();
@@ -706,11 +712,6 @@ void SigTableSetup(void)
     DetectEtherhdrRegister();
     DetectIpv4hdrRegister();
     DetectIpv6hdrRegister();
-    DetectKrb5CNameRegister();
-    DetectKrb5ErrCodeRegister();
-    SCDetectKrb5MsgTypeRegister();
-    DetectKrb5SNameRegister();
-    DetectKrb5TicketEncryptionRegister();
     DetectSipMethodRegister();
     DetectSipUriRegister();
     DetectTargetRegister();
@@ -769,6 +770,7 @@ void SigTableSetup(void)
     SCDetectSmbRegister();
     SCDetectIkeRegister();
     SCDetectDcerpcRegister();
+    SCDetectKrb5Register();
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreregisteredCallbacks[i]();

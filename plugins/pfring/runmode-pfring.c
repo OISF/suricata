@@ -134,7 +134,7 @@ static void *OldParsePfringConfig(const char *iface)
         SCLogInfo("%s: ZC interface detected, not setting cluster-id", pfconf->iface);
     } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
         SCLogInfo("DNA interface detected, not setting cluster-id");
-    } else if (SCConfGet("pfring.cluster-id", &tmpclusterid) != 1) {
+    } else if (SCConfGetNonNull("pfring.cluster-id", &tmpclusterid) != 1) {
         SCLogError("Could not get cluster-id from config");
     } else {
         if (StringParseInt32(&pfconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
@@ -152,7 +152,7 @@ static void *OldParsePfringConfig(const char *iface)
     } else if ((pfconf->threads == 1) && (strncmp(pfconf->iface, "dna", 3) == 0)) {
         SCLogInfo(
                 "%s: DNA interface detected, not setting cluster type for PF_RING", pfconf->iface);
-    } else if (SCConfGet("pfring.cluster-type", &tmpctype) != 1) {
+    } else if (SCConfGetNonNull("pfring.cluster-type", &tmpctype) != 1) {
         SCLogError("Could not get cluster-type from config");
     } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
         SCLogInfo("%s: Using round-robin cluster mode for PF_RING", pfconf->iface);
@@ -275,7 +275,7 @@ static void *ParsePfringConfig(const char *iface)
     (void)SC_ATOMIC_ADD(pfconf->ref, pfconf->threads);
 
     /* command line value has precedence */
-    if (SCConfGet("pfring.cluster-id", &tmpclusterid) == 1) {
+    if (SCConfGetNonNull("pfring.cluster-id", &tmpclusterid) == 1) {
         if (StringParseInt32(&pfconf->cluster_id, 10, 0, (const char *)tmpclusterid) < 0) {
             SCLogWarning("Invalid value for "
                          "pfring.cluster-id: '%s'. Resetting to 1.",
@@ -425,7 +425,7 @@ static int GetDevAndParser(const char **live_dev, ConfigIfaceParserFunc *parser)
         *parser = OldParsePfringConfig;
         /* In v1: try to get interface name from config */
         if (*live_dev == NULL) {
-            if (SCConfGet("pfring.interface", live_dev) == 1) {
+            if (SCConfGetNonNull("pfring.interface", live_dev) == 1) {
                 SCLogInfo("Using interface %s", *live_dev);
                 LiveRegisterDevice(*live_dev);
             } else {
