@@ -2279,6 +2279,9 @@ static void DetectRunTx(ThreadVars *tv,
 
     uint32_t tx_inspected = 0;
     const bool have_fw_rules = EngineModeIsFirewall();
+    /* if we skipped the last tx, we did not have a chance to apply a fw accept to the packet. Since
+     * the tx is skipped, we should consider it accepted. */
+    bool last_tx_skipped = false;
 
     SCLogDebug("packet %" PRIu64, p->pcap_cnt);
     SCLogDebug("total_txs %" PRIu64, total_txs);
@@ -2295,7 +2298,7 @@ static void DetectRunTx(ThreadVars *tv,
         if (tx.tx_ptr == NULL) {
             SCLogDebug("%p/%"PRIu64" no transaction to inspect",
                     tx.tx_ptr, tx_id_min);
-
+            last_tx_skipped = !ires.has_next;
             tx_id_min++; // next (if any) run look for +1
             goto next;
         }
@@ -2304,6 +2307,7 @@ static void DetectRunTx(ThreadVars *tv,
         tx_inspected++;
 
         SCLogDebug("%p/%" PRIu64 " txd flags %02x", tx.tx_ptr, tx.tx_id, tx.tx_data_ptr->flags);
+        SCLogDebug("%p/%" PRIu64 " is_last %s", tx.tx_ptr, tx.tx_id, BOOL2STR(tx.is_last));
 
         det_ctx->tx_id = tx.tx_id;
         det_ctx->tx_id_set = true;
@@ -2629,10 +2633,18 @@ static void DetectRunTx(ThreadVars *tv,
     }
 
     SCLogDebug("packet %" PRIu64 ": tx_inspected %u", p->pcap_cnt, tx_inspected);
-    /* if all tables have been bypassed, we accept:packet */
-    if (tx_inspected == 0 && have_fw_rules) {
-        SCLogDebug("default accept: no app inspect performed");
-        DetectRunAppendDefaultAccept(det_ctx, p);
+    if (have_fw_rules) {
+        if (tx_inspected == 0) {
+            /* if all tables have been bypassed, we accept:packet */
+            SCLogDebug("default accept: no app inspect performed");
+            DetectRunAppendDefaultAccept(det_ctx, p);
+        } else if (last_tx_skipped) {
+            /* if the last tx was skipped, we need to apply accept:packet */
+            // TODO should we check drops first?
+            DEBUG_VALIDATE_BUG_ON(p->action & ACTION_DROP);
+            SCLogDebug("default accept: last tx skipped");
+            DetectRunAppendDefaultAccept(det_ctx, p);
+        }
     }
 }
 
