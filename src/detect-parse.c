@@ -2869,6 +2869,8 @@ static int SigValidateCheckBuffers(
                 if (!(AppProtoEqualsStrict(s->alproto, app->alproto))) {
                     continue;
                 }
+                if (app->sub_state != s->init_data->hook.t.app.sub_state)
+                    continue;
             } else {
                 if (!(AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
                     continue;
