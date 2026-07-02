@@ -57,6 +57,7 @@
 #include "util-var-name.h"
 #include "detect-icmp-id.h"
 #include "detect-tcp-window.h"
+#include "detect-app-layer-protocol.h"
 
 static int rule_warnings_only = 0;
 
@@ -1098,6 +1099,22 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 SCJbClose(js);
                 break;
             }
+            case DETECT_APP_LAYER_PROTOCOL: {
+                const DetectAppLayerProtocolData *ad = (const DetectAppLayerProtocolData *)smd->ctx;
+                SCJbOpenObject(js, "app_layer_protocol");
+                AppProto vals[256];
+                uint16_t n = DetectAppLayerProtocolGetValues(
+                        ad, vals, (uint16_t)(sizeof(vals) / sizeof(vals[0])));
+                SCJbOpenArray(js, "protocols");
+                for (uint16_t i = 0; i < n; i++) {
+                    SCJbAppendString(js, AppProtoToString(vals[i]));
+                }
+                SCJbClose(js);
+                SCJbSetString(js, "mode", DetectAppLayerProtocolModeName(ad->mode));
+                SCJbSetBool(js, "negated", ad->negated);
+                SCJbClose(js);
+                break;
+            }
         }
         SCJbClose(js);
 
@@ -1989,6 +2006,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         if (s->alproto != ALPROTO_UNKNOWN) {
             fprintf(fp, "    App layer protocol is %s.\n", AppProtoToString(s->alproto));
         }
+
         if (rule_content || rule_content_http || rule_pcre || rule_pcre_http) {
             fprintf(fp,
                     "    Rule contains %u content options, %u http content options, %u pcre "
