@@ -742,6 +742,11 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
             if (!(AppProtoEqualsStrict(s->alproto, t->alproto))) {
                 return;
             }
+
+            /* skip engines not for us */
+            if (s->init_data->hook.t.app.sub_state != t->sub_state) {
+                return;
+            }
         } else {
             /* other rules use the more relax AppProtoEquals logic */
             if (!AppProtoEquals(s->alproto, t->alproto)) {
