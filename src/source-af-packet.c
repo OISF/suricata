@@ -2594,9 +2594,9 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     if (ptv->flags & (AFP_BYPASS|AFP_XDPBYPASS)) {
         ptv->v4_map_fd = EBPFGetMapFDByName(ptv->iface, "flow_table_v4");
         if (ptv->v4_map_fd == -1) {
-            if (!g_flowv4_ok) {
+            if (g_flowv4_ok) {
                 SCLogError("Can't find eBPF map fd for '%s'", "flow_table_v4");
-                g_flowv4_ok = true;
+                g_flowv4_ok = false;
             }
         }
         ptv->v6_map_fd = EBPFGetMapFDByName(ptv->iface, "flow_table_v6");
