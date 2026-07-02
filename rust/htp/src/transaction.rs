@@ -963,9 +963,7 @@ impl Transaction {
     }
 
     /// Normalize a previously-parsed request URI.
-    pub(crate) fn xff_ip(
-        &self, reversed: bool, h_xff: &Header, dst: &mut [u8],
-    ) -> bool {
+    pub(crate) fn xff_ip(&self, reversed: bool, h_xff: &Header, dst: &mut [u8]) -> bool {
         if h_xff.value.len() < XFF_CHAIN_MINLEN || h_xff.value.len() >= XFF_CHAIN_MAXLEN {
             return false;
         }
@@ -1021,7 +1019,7 @@ fn parse_xff_string(ipbuf: &[u8], dst: &mut [u8]) -> bool {
             ipbuf
         }
     };
-    if IpAddr::from_str(str::from_utf8(input).unwrap_or_default()).is_ok() {
+    if IpAddr::from_str(std::str::from_utf8(input).unwrap_or_default()).is_ok() {
         dst[..input.len()].copy_from_slice(input);
         dst[input.len()] = 0;
         return true;
