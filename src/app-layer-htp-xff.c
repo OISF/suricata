@@ -29,10 +29,6 @@
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
 
-#ifndef HAVE_MEMRCHR
-#include "util-memrchr.h"
-#endif
-
 #include "util-misc.h"
 #include "util-unittest.h"
 
@@ -123,7 +119,7 @@ static int HttpXFFGetIPFromTxAux(
 
         if (xff_cfg->flags & XFF_REVERSE) {
             /** Get the last IP address from the chain */
-            p_xff = memrchr(xff_chain, ' ', htp_header_value_len(h_xff));
+            p_xff = strrchr(xff_chain, ' ');
             if (p_xff == NULL) {
                 p_xff = xff_chain;
             } else {

@@ -91,7 +91,6 @@
 #include "util-proto-name.h"
 #include "util-macset.h"
 #include "util-flow-rate.h"
-#include "util-memrchr.h"
 
 #include "util-mpm-ac.h"
 #include "util-mpm-hs.h"
