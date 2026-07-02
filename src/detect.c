@@ -2328,7 +2328,7 @@ static void DetectRunTx(ThreadVars *tv,
             tx_id_min++; // next (if any) run look for +1
             goto next;
         }
-        tx.is_last = (total_txs == tx.tx_id + 1);
+        tx.is_last = !ires.has_next;
         tx_id_min = tx.tx_id + 1; // next look for cur + 1
         tx_inspected++;
 
