@@ -1712,7 +1712,7 @@ static inline void DetectRunAppendDefaultAppPolicyAlert(DetectEngineThreadCtx *d
         const Signature *s = ap->alert_signature;
         BUG_ON(s == NULL);
         uint8_t alert_flags = apply_to_packet ? PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET : 0;
-        AlertQueueAppendAppTx(det_ctx, s, p, tx->tx_id, tx->tx_type, alert_flags);
+        AlertQueueAppendAppTxFromPacket(det_ctx, s, p, tx->tx_id, tx->tx_type, alert_flags);
     }
 }
 
