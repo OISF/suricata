@@ -44,6 +44,7 @@ pub const STREAM_TOCLIENT: u8 = 0x08;
 pub const STREAM_GAP:      u8 = 0x10;
 pub const STREAM_DEPTH:    u8 = 0x20;
 pub const STREAM_MIDSTREAM:u8 = 0x40;
+pub const STREAM_ASYNC:    u8 = 0x80;
 
 pub const ALPROTO_UNKNOWN : AppProto = AppProtoEnum::ALPROTO_UNKNOWN as AppProto;
 pub const ALPROTO_FAILED : AppProto = AppProtoEnum::ALPROTO_FAILED as AppProto;

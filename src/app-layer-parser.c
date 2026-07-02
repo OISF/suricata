@@ -884,7 +884,7 @@ static void AppLayerParserFileTxHousekeeping(
     }
 }
 
-#define IS_DISRUPTED(flags) ((flags) & (STREAM_DEPTH | STREAM_GAP))
+#define IS_DISRUPTED(flags) ((flags) & (STREAM_DEPTH | STREAM_GAP | STREAM_ASYNC))
 
 extern int g_detect_disabled;
 extern bool g_file_logger_enabled;
