@@ -1235,11 +1235,15 @@ int AppLayerParserGetStateProgressCompletionStatus(AppProto alproto,
  *  registered callbacks.
  *
  *  \retval -1 not found
+ *  \retval -2 parser is not enabled
  *  \retval id value belonging to the state name
  */
 int8_t AppLayerParserGetSubStateProgressId(
         const AppProto alproto, const uint8_t sub_state, const char *state, const uint8_t dir_flag)
 {
+    if (!AppLayerParserIsEnabled(alproto))
+        return -2;
+
     if (alproto == ALPROTO_DOH2)
         return AppLayerParserGetSubStateProgressId(ALPROTO_HTTP2, sub_state, state, dir_flag);
 
@@ -1270,6 +1274,9 @@ int8_t AppLayerParserGetSubStateProgressId(
 const char *AppLayerParserGetSubStateProgressName(const AppProto alproto, const uint8_t sub_state,
         const uint8_t state, const uint8_t dir_flag)
 {
+    if (!AppLayerParserIsEnabled(alproto))
+        return NULL;
+
     if (alproto == ALPROTO_DOH2)
         return AppLayerParserGetSubStateProgressName(ALPROTO_HTTP2, sub_state, state, dir_flag);
 
@@ -1292,6 +1299,9 @@ const char *AppLayerParserGetSubStateProgressName(const AppProto alproto, const 
 
 uint8_t AppLayerParserGetSubStateCompletion(const AppProto alproto, const uint8_t sub_state)
 {
+    if (!AppLayerParserIsEnabled(alproto))
+        return 0;
+
     if (alproto == ALPROTO_DOH2)
         return AppLayerParserGetSubStateCompletion(ALPROTO_HTTP2, sub_state);
 
@@ -1312,6 +1322,9 @@ uint8_t AppLayerParserGetSubStateCompletion(const AppProto alproto, const uint8_
 
 const char *AppLayerParserGetSubStateName(const AppProto alproto, const uint8_t sub_state)
 {
+    if (!AppLayerParserIsEnabled(alproto))
+        return NULL;
+
     if (alproto == ALPROTO_DOH2)
         return AppLayerParserGetSubStateName(ALPROTO_HTTP2, sub_state);
 
