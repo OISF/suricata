@@ -94,18 +94,15 @@ pub fn parse_float_value<T: DetectFloatType>(input: &str) -> IResult<&str, T> {
         // Handle numeric parsing, including scientific notation
         map_opt(
             recognize((
-                opt(alt((tag("+"), tag("-")))), // Handle optional signs
+                opt(alt((tag("+"), tag("-")))),               // Handle optional signs
                 alt((digit1, recognize((tag("."), digit1)))), // Handle integers & `.5`
-                opt((tag("."), digit1)), // Handle decimals like `5.`
-                opt((
-                    tag_no_case("e"),
-                    opt(alt((tag("+"), tag("-")))),
-                    digit1,
-                )), // Handle `1e10`, `-1e-5`
+                opt((tag("."), digit1)),                      // Handle decimals like `5.`
+                opt((tag_no_case("e"), opt(alt((tag("+"), tag("-")))), digit1)), // Handle `1e10`, `-1e-5`
             )),
             |float_str: &str| <T as DetectFloatType>::from_str(float_str),
         ),
-    )).parse(input)
+    ))
+    .parse(input)
 }
 fn detect_parse_float_start_equal<T: DetectFloatType>(
     i: &str,
@@ -133,7 +130,8 @@ pub fn detect_parse_float_start_interval<T: DetectFloatType>(
     let (i, _) = opt(is_a(" ")).parse(i)?;
     let (i, arg2) = verify(parse_float_value::<T>, |x| {
         *x > arg1 && *x - arg1 > <T as FloatCore>::epsilon()
-    }).parse(i)?;
+    })
+    .parse(i)?;
     let mode = if neg.is_some() {
         DetectFloatMode::DetectFloatModeNegRg
     } else {
@@ -150,7 +148,8 @@ fn detect_parse_float_mode(i: &str) -> IResult<&str, DetectFloatMode> {
         value(DetectFloatMode::DetectFloatModeLt, tag("<")),
         value(DetectFloatMode::DetectFloatModeNe, tag("!=")),
         value(DetectFloatMode::DetectFloatModeEqual, tag("=")),
-    )).parse(i)?;
+    ))
+    .parse(i)?;
     Ok((i, mode))
 }
 
@@ -223,7 +222,8 @@ fn detect_parse_float_notending<T: DetectFloatType>(i: &str) -> IResult<&str, De
         detect_parse_float_start_interval,
         detect_parse_float_start_equal,
         detect_parse_float_start_symbol,
-    )).parse(i)?;
+    ))
+    .parse(i)?;
     Ok((i, float))
 }
 

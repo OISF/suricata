@@ -5641,6 +5641,59 @@
                 }
             }
         },
+        "sctp": {
+            "type": "object",
+            "description": "SCTP protocol information",
+            "additionalProperties": false,
+            "properties": {
+                "chunk_cnt": {
+                    "type": "integer",
+                    "description": "Number of SCTP chunks in the packet",
+                    "suricata": {
+                        "keywords": [
+                            "sctp.chunk_cnt"
+                        ]
+                    }
+                },
+                "chunk_types": {
+                    "type": "array",
+                    "description": "Array of SCTP chunk type names present in the packet",
+                    "items": {
+                        "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "sctp.chunk_type"
+                        ]
+                    }
+                },
+                "has_abort": {
+                    "type": "boolean",
+                    "description": "Whether the packet contains an ABORT chunk"
+                },
+                "has_data": {
+                    "type": "boolean",
+                    "description": "Whether the packet contains a DATA chunk"
+                },
+                "has_init": {
+                    "type": "boolean",
+                    "description": "Whether the packet contains an INIT chunk"
+                },
+                "has_init_ack": {
+                    "type": "boolean",
+                    "description": "Whether the packet contains an INIT_ACK chunk"
+                },
+                "vtag": {
+                    "type": "integer",
+                    "description": "SCTP verification tag",
+                    "suricata": {
+                        "keywords": [
+                            "sctp.vtag"
+                        ]
+                    }
+                }
+            }
+        },
         "sip": {
             "type": "object",
             "additionalProperties": false,
@@ -7459,8 +7512,37 @@
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
+                                        "chunk_len_invalid": {
+                                            "type": "integer",
+                                            "description": "SCTP chunk length < 4 or exceeds remaining packet"
+                                        },
+                                        "chunk_too_small": {
+                                            "type": "integer",
+                                            "description": "Remaining data too small for SCTP chunk header"
+                                        },
+                                        "data_with_zero_vtag": {
+                                            "type": "integer",
+                                            "description": "SCTP DATA chunk with verification tag == 0"
+                                        },
+                                        "init_chunk_bundled": {
+                                            "type": "integer",
+                                            "description": "RFC 4960 sec 6.10 violation: INIT/INIT_ACK bundled with other chunks"
+                                        },
+                                        "init_with_non_zero_vtag": {
+                                            "type": "integer",
+                                            "description": "SCTP INIT with verification tag != 0"
+                                        },
                                         "pkt_too_small": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "description": "SCTP packet smaller than minimum size"
+                                        },
+                                        "too_many_chunks": {
+                                            "type": "integer",
+                                            "description": "More chunks than SCTP_MAX_TRACKED_CHUNKS"
+                                        },
+                                        "too_many_data_chunks": {
+                                            "type": "integer",
+                                            "description": "More DATA chunks than SCTP_MAX_DATA_CHUNKS"
                                         }
                                     }
                                 },
@@ -8544,6 +8626,33 @@
                         "written": {
                             "type": "integer",
                             "description": "Number of packets written"
+                        }
+                    }
+                },
+               "sctp": {
+                    "type": "object",
+                    "description": "Statistics on SCTP chunk types",
+                    "additionalProperties": false,
+                    "properties": {
+                        "abort": {
+                            "type": "integer",
+                            "description": "Number of SCTP packets with ABORT chunk"
+                        },
+                        "data": {
+                            "type": "integer",
+                            "description": "Number of SCTP packets with DATA chunk"
+                        },
+                        "init": {
+                            "type": "integer",
+                            "description": "Number of SCTP packets with INIT chunk"
+                        },
+                        "init_ack": {
+                            "type": "integer",
+                            "description": "Number of SCTP packets with INIT_ACK chunk"
+                        },
+                        "shutdown": {
+                            "type": "integer",
+                            "description": "Number of SCTP packets with SHUTDOWN chunk"
                         }
                     }
                 },

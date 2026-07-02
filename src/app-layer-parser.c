@@ -719,36 +719,30 @@ AppLayerGetTxIteratorFunc AppLayerGetTxIterator(const uint8_t ipproto,
 uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate)
 {
     SCEnter();
-
-    SCReturnCT((pstate == NULL) ? 0 : pstate->log_id, "uint64_t");
+    DEBUG_VALIDATE_BUG_ON(pstate == NULL);
+    SCReturnCT(pstate->log_id, "uint64_t");
 }
 
 uint64_t AppLayerParserGetMinId(AppLayerParserState *pstate)
 {
     SCEnter();
-
-    SCReturnCT((pstate == NULL) ? 0 : pstate->min_id, "uint64_t");
+    DEBUG_VALIDATE_BUG_ON(pstate == NULL);
+    SCReturnCT(pstate->min_id, "uint64_t");
 }
 
 void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate, uint64_t tx_id)
 {
     SCEnter();
-
-    if (pstate != NULL)
-        pstate->log_id = tx_id;
-
+    DEBUG_VALIDATE_BUG_ON(pstate == NULL);
+    pstate->log_id = tx_id;
     SCReturn;
 }
 
 uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint8_t direction)
 {
     SCEnter();
-
-    if (pstate != NULL)
-        SCReturnCT(pstate->inspect_id[(direction & STREAM_TOSERVER) ? 0 : 1], "uint64_t");
-
-    DEBUG_VALIDATE_BUG_ON(1);
-    SCReturnCT(0ULL, "uint64_t");
+    DEBUG_VALIDATE_BUG_ON(pstate == NULL);
+    SCReturnCT(pstate->inspect_id[(direction & STREAM_TOSERVER) ? 0 : 1], "uint64_t");
 }
 
 inline uint8_t AppLayerParserGetTxDetectProgress(AppLayerTxData *txd, const uint8_t dir)
@@ -812,7 +806,7 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
         if (tag_txs_as_inspected) {
             const uint8_t inspected_flag = (flags & STREAM_TOSERVER) ? APP_LAYER_TX_INSPECTED_TS
                                                                      : APP_LAYER_TX_INSPECTED_TC;
-            if (txd->flags & inspected_flag) {
+            if (!(txd->flags & inspected_flag)) {
                 txd->flags |= inspected_flag;
                 SCLogDebug("%p/%" PRIu64 " in-order tx is done for direction %s. Flags %02x", tx,
                         idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", txd->flags);
@@ -847,11 +841,10 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
             if (state_progress < state_done_progress)
                 break;
 
-            /* txd can be NULL for HTTP sessions where the user data alloc failed */
             AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
             const uint8_t inspected_flag = (flags & STREAM_TOSERVER) ? APP_LAYER_TX_INSPECTED_TS
                                                                      : APP_LAYER_TX_INSPECTED_TC;
-            if (txd->flags & inspected_flag) {
+            if (!(txd->flags & inspected_flag)) {
                 txd->flags |= inspected_flag;
                 SCLogDebug("%p/%" PRIu64 " out of order tx is done for direction %s. Flag %02x", tx,
                         idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", txd->flags);
@@ -999,8 +992,7 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
             goto next;
         }
 
-        // for passing flow, do not skip tx as we will not run detection on the other side
-        if (has_tx_detect_flags && (f->flags & (FLOW_ACTION_PASS)) == 0) {
+        if (has_tx_detect_flags) {
             if (!IS_DISRUPTED(ts_disrupt_flags) &&
                     (f->sgh_toserver != NULL || (f->flags & FLOW_SGH_TOSERVER) == 0)) {
                 if ((txd->flags & (APP_LAYER_TX_INSPECTED_TS | APP_LAYER_TX_SKIP_INSPECT_TS)) ==
@@ -1109,17 +1101,15 @@ static inline int StateGetProgressCompletionStatus(const AppProto alproto, const
  *
  *  If the stream is disrupted, we return the 'completion' value.
  */
-int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
-                        void *alstate, uint8_t flags)
+int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto, void *tx, uint8_t flags)
 {
     SCEnter();
     int r;
     if (unlikely(IS_DISRUPTED(flags))) {
         r = StateGetProgressCompletionStatus(alproto, flags);
     } else {
-        uint8_t direction = flags & (STREAM_TOCLIENT | STREAM_TOSERVER);
-        r = alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].StateGetProgress(
-                alstate, direction);
+        const uint8_t direction = flags & (STREAM_TOCLIENT | STREAM_TOSERVER);
+        r = alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].StateGetProgress(tx, direction);
     }
     SCReturnInt(r);
 }
@@ -1138,12 +1128,12 @@ void *AppLayerParserGetTx(uint8_t ipproto, AppProto alproto, void *alstate, uint
     SCReturnPtr(r, "void *");
 }
 
-int AppLayerParserGetStateProgressCompletionStatus(AppProto alproto,
-                                                   uint8_t direction)
+uint8_t AppLayerParserGetStateProgressCompletionStatus(AppProto alproto, uint8_t direction)
 {
     SCEnter();
     int r = StateGetProgressCompletionStatus(alproto, direction);
-    SCReturnInt(r);
+    // TODO convert StateGetProgressCompletionStatus and more to uint8_t
+    return (uint8_t)r;
 }
 
 int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *event_name,
@@ -1515,21 +1505,18 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     if (f->proto == IPPROTO_TCP) {
         StreamTcpDisableAppLayer(f);
     }
-    AppLayerParserSetEOF(pstate);
+    if (pstate != NULL) {
+        AppLayerParserSetEOF(pstate);
+    }
     SCReturnInt(-1);
 }
 
 void AppLayerParserSetEOF(AppLayerParserState *pstate)
 {
     SCEnter();
-
-    if (pstate == NULL)
-        goto end;
-
+    DEBUG_VALIDATE_BUG_ON(pstate == NULL);
     SCLogDebug("setting APP_LAYER_PARSER_EOF_TC and APP_LAYER_PARSER_EOF_TS");
     SCAppLayerParserStateSetFlag(pstate, (APP_LAYER_PARSER_EOF_TS | APP_LAYER_PARSER_EOF_TC));
-
- end:
     SCReturn;
 }
 
@@ -1538,14 +1525,10 @@ void AppLayerParserSetEOF(AppLayerParserState *pstate)
 bool AppLayerParserHasDecoderEvents(AppLayerParserState *pstate)
 {
     SCEnter();
-
-    if (pstate == NULL)
-        return false;
-
-    const AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(pstate);
-    if (decoder_events && decoder_events->cnt)
-        return true;
-
+    if (pstate != NULL) {
+        const AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(pstate);
+        return (decoder_events && decoder_events->cnt);
+    }
     /* if we have reached here, we don't have events */
     return false;
 }

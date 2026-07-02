@@ -103,7 +103,8 @@
 .. option:: --pcap-file-buffer-size <value>
 
    Set read buffer size using ``setvbuf`` to speed up pcap reading. Valid values
-   are 4 KiB to 64 MiB. Default value is 128 KiB. Supported on Linux only.
+   are 0, which disables ``setvbuf`` buffering, or 4 KiB to 64 MiB. Default
+   value is 128 KiB. Supported on Linux only.
 
 .. option::  -i <interface>
 

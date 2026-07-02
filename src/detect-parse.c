@@ -1161,9 +1161,9 @@ void DetectRegisterAppLayerHookLists(void)
             alproto_name = "http1";
         SCLogDebug("alproto %u/%s", a, alproto_name);
 
-        const int max_progress_ts =
+        const uint8_t max_progress_ts =
                 AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOSERVER);
-        const int max_progress_tc =
+        const uint8_t max_progress_tc =
                 AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOCLIENT);
 
         char ts_tx_started[64];
@@ -1196,7 +1196,7 @@ void DetectRegisterAppLayerHookLists(void)
         SCLogDebug("- hook %s:%s list %s (%u)", alproto_name, "response_name", tc_tx_complete,
                 (uint32_t)strlen(tc_tx_complete));
 
-        for (int p = 0; p <= max_progress_ts; p++) {
+        for (uint8_t p = 0; p <= max_progress_ts; p++) {
             const char *name = AppLayerParserGetStateNameById(
                     IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOSERVER);
             if (name != NULL && !IsBuiltIn(name)) {
@@ -1209,7 +1209,7 @@ void DetectRegisterAppLayerHookLists(void)
                         list_name, a, SIG_FLAG_TOSERVER, p, DetectEngineInspectGenericList, NULL);
             }
         }
-        for (int p = 0; p <= max_progress_tc; p++) {
+        for (uint8_t p = 0; p <= max_progress_tc; p++) {
             const char *name = AppLayerParserGetStateNameById(
                     IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOCLIENT);
             if (name != NULL && !IsBuiltIn(name)) {
@@ -1304,7 +1304,7 @@ static int SigParseProtoHookPkt(Signature *s, const char *proto_hook, const char
     return 0;
 }
 
-static SignatureHook SetAppHook(const AppProto alproto, int progress)
+static SignatureHook SetAppHook(const AppProto alproto, uint8_t progress)
 {
     SignatureHook h = {
         .type = SIGNATURE_HOOK_TYPE_APP,
@@ -1341,7 +1341,7 @@ static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char
                 IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOSERVER);
         if (progress_ts >= 0) {
             s->flags |= SIG_FLAG_TOSERVER;
-            s->init_data->hook = SetAppHook(s->alproto, progress_ts);
+            s->init_data->hook = SetAppHook(s->alproto, (uint8_t)progress_ts);
         } else {
             const int progress_tc = AppLayerParserGetStateIdByName(
                     IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOCLIENT);
@@ -1349,7 +1349,7 @@ static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char
                 return -1;
             }
             s->flags |= SIG_FLAG_TOCLIENT;
-            s->init_data->hook = SetAppHook(s->alproto, progress_tc);
+            s->init_data->hook = SetAppHook(s->alproto, (uint8_t)progress_tc);
         }
     }
 
@@ -1366,7 +1366,7 @@ static int SigParseProtoHookApp(Signature *s, const char *proto_hook, const char
             SignatureHookTypeToString(s->init_data->hook.type), s->init_data->hook.t.app.alproto,
             s->init_data->hook.t.app.app_progress);
 
-    s->app_progress_hook = (uint8_t)s->init_data->hook.t.app.app_progress;
+    s->app_progress_hook = s->init_data->hook.t.app.app_progress;
     return 0;
 }
 
@@ -1402,12 +1402,12 @@ static int SigParseProto(Signature *s, const char *protostr)
 
     bool has_hook = strchr(proto, ':') != NULL;
     if (has_hook) {
-        char *xsaveptr = NULL;
-        p = strtok_r(proto, ":", &xsaveptr);
-        h = strtok_r(NULL, ":", &xsaveptr);
+        char *rem = NULL;
+        p = strtok_r(proto, ":", &rem);
+        h = rem;
         SCLogDebug("p: '%s' h: '%s'", p, h);
     }
-    if (p == NULL) {
+    if (p == NULL || strlen(p) == 0) {
         SCLogError("invalid protocol specification '%s'", proto);
         return -1;
     }
@@ -1422,6 +1422,11 @@ static int SigParseProto(Signature *s, const char *protostr)
             AppLayerProtoDetectSupportedIpprotos(s->alproto, s->init_data->proto.proto);
 
             if (h) {
+                if (strlen(h) == 0) {
+                    SCLogError("invalid protocol specification '%s'", proto);
+                    return -1;
+                }
+
                 /* FW hook LTE mode */
                 SCLogDebug("hook '%s'", h);
                 if (*h == '<') {
@@ -2700,38 +2705,48 @@ static int SigValidateCheckBuffers(
 
         const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
         for (; app != NULL; app = app->next) {
-            if (app->sm_list == b->id &&
-                    (AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
-                SCLogDebug("engine %s dir %d alproto %d",
-                        DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list), app->dir,
-                        app->alproto);
-                SCLogDebug("b->id %d nlists %d", b->id, nlists);
+            if (app->sm_list != b->id)
+                continue;
 
-                if (b->only_tc) {
-                    if (app->dir == 1)
-                        (*tc_excl)++;
-                } else if (b->only_ts) {
-                    if (app->dir == 0)
-                        (*ts_excl)++;
-                } else {
-                    bufdir[b->id].ts += (app->dir == 0);
-                    bufdir[b->id].tc += (app->dir == 1);
-                }
-
+            if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
                 /* only allow rules to use the hook for engines at that
                  * exact progress for now. */
-                if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
-                    if ((s->flags & SIG_FLAG_TOSERVER) && (app->dir == 0) &&
-                            app->progress != s->init_data->hook.t.app.app_progress) {
-                        SCLogError("engine progress value %d doesn't match hook %u", app->progress,
-                                s->init_data->hook.t.app.app_progress);
-                        SCReturnInt(0);
-                    }
-                    if ((s->flags & SIG_FLAG_TOCLIENT) && (app->dir == 1) &&
-                            app->progress != s->init_data->hook.t.app.app_progress) {
-                        SCLogError("engine progress value doesn't match hook");
-                        SCReturnInt(0);
-                    }
+                if (app->alproto != s->alproto) {
+                    continue;
+                }
+            } else {
+                if (!(AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
+                    continue;
+                }
+            }
+
+            SCLogDebug("engine %s dir %d alproto %d",
+                    DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list), app->dir,
+                    app->alproto);
+            SCLogDebug("b->id %d nlists %d", b->id, nlists);
+
+            if (b->only_tc) {
+                if (app->dir == 1)
+                    (*tc_excl)++;
+            } else if (b->only_ts) {
+                if (app->dir == 0)
+                    (*ts_excl)++;
+            } else {
+                bufdir[b->id].ts += (app->dir == 0);
+                bufdir[b->id].tc += (app->dir == 1);
+            }
+
+            if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+                if ((s->flags & SIG_FLAG_TOSERVER) && (app->dir == 0) &&
+                        app->progress != s->init_data->hook.t.app.app_progress) {
+                    SCLogError("engine progress value %d doesn't match hook %u", app->progress,
+                            s->init_data->hook.t.app.app_progress);
+                    SCReturnInt(0);
+                }
+                if ((s->flags & SIG_FLAG_TOCLIENT) && (app->dir == 1) &&
+                        app->progress != s->init_data->hook.t.app.app_progress) {
+                    SCLogError("engine progress value doesn't match hook");
+                    SCReturnInt(0);
                 }
             }
         }
@@ -3390,7 +3405,9 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
             sw_tmp.s = de_ctx->sig_list;
             sw_old = HashListTableLookup(de_ctx->dup_sig_hash_table,
                                          (void *)&sw_tmp, 0);
-            /* sw_old == NULL case is impossible */
+            /* sw_old == NULL case is impossible: every sig in sig_list
+             * must have a corresponding dup_sig_hash_table entry */
+            DEBUG_VALIDATE_BUG_ON(sw_old == NULL);
             sw_old->s_prev = sig;
         }
 
@@ -3425,6 +3442,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
         if (sw_temp.s != NULL) {
             sw_next = HashListTableLookup(de_ctx->dup_sig_hash_table,
                                           (void *)&sw_temp, 0);
+            DEBUG_VALIDATE_BUG_ON(sw_next == NULL);
             sw_next->s_prev = sw_dup->s_prev;
         }
         SigFree(de_ctx, sw_dup->s);
@@ -3455,6 +3473,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
         if (sw_temp.s != NULL) {
             sw_next = HashListTableLookup(de_ctx->dup_sig_hash_table,
                                           (void *)&sw_temp, 0);
+            DEBUG_VALIDATE_BUG_ON(sw_next == NULL);
             sw_next->s_prev = sw_dup->s_prev;
         }
         SigFree(de_ctx, sw_dup->s);
@@ -3470,6 +3489,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
         sw_tmp.s = de_ctx->sig_list;
         SigDuplWrapper *sw_old = HashListTableLookup(de_ctx->dup_sig_hash_table,
                                                      (void *)&sw_tmp, 0);
+        DEBUG_VALIDATE_BUG_ON(sw_old == NULL);
         if (sw_old->s != sw_dup->s) {
             // Link on top of the list if there was another element
             sw_old->s_prev = sig;

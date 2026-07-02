@@ -1,12 +1,19 @@
 name: New Authors Check
 
+# pull_request_target runs with base-repo permissions (including write) even
+# for fork PRs, allowing us to post a comment directly without the artifact
+# hand-off to a second workflow_run workflow.
+#
+# Only git history is read here — no PR code is built or executed — so
+# checking out the PR head SHA is safe under pull_request_target.
 on:
-  pull_request:
+  pull_request_target:
 
-permissions: read-all
+permissions:
+  pull-requests: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -36,13 +43,17 @@ jobs:
                  echo has_new_authors="yes" >> $GITHUB_ENV
              fi
           done < commit-authors.txt
-      - run: mkdir new-authors
-      - run: cp new-authors.txt new-authors
-      - run: echo ${{ github.event.number }} > new-authors/pr-number.txt
-      - run: ls -l
-      - name: Upload new authors
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - name: Comment on PR
+        if: ${{ env.has_new_authors == 'yes' }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
-          name: new-authors
-          path: new-authors
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            let msg = 'NOTE: This PR may contain new authors.';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: msg
+            });
 

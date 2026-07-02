@@ -118,6 +118,7 @@ typedef struct FtpDataState_ {
     uint8_t direction;
     AppLayerTxData tx_data;
     AppLayerStateData state_data;
+    bool initialized;
 } FtpDataState;
 
 void RegisterFTPParsers(void);
