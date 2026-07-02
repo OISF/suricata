@@ -1707,6 +1707,7 @@ const PARSER_NAME: &[u8] = b"http2\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn SCRegisterHttp2Parser() {
+    let mut http2_enabled = false;
     let default_port = CString::new("[80]").unwrap();
     let mut parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const std::os::raw::c_char,
@@ -1749,6 +1750,7 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
         ALPROTO_HTTP2 = alproto;
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
+            http2_enabled = true;
         }
         if let Some(val) = conf_get("app-layer.protocols.http2.max-streams") {
             if let Ok(v) = val.parse::<usize>() {
@@ -1813,7 +1815,11 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
         let alproto = applayer_register_protocol_detection(&parser, 1);
         ALPROTO_DOH2 = alproto;
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
-            let _ = AppLayerRegisterParser(&parser, alproto);
+            if http2_enabled {
+                let _ = AppLayerRegisterParser(&parser, alproto);
+            } else {
+                SCLogWarning!("DOH2 cannot be enabled if http2 is disabled");
+            }
         } else {
             SCLogWarning!("DOH2 is not meant to be detection-only.");
         }
