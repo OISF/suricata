@@ -212,8 +212,7 @@ pub struct DCERPCTransaction {
 
 impl Transaction for DCERPCTransaction {
     fn id(&self) -> u64 {
-        // need +1 to match state.tx_id
-        self.id + 1
+        self.id
     }
 }
 
@@ -357,10 +356,10 @@ impl DCERPCState {
     fn create_tx(&mut self, hdr: &DCERPCHdr) -> DCERPCTransaction {
         let mut tx = DCERPCTransaction::new();
         let endianness = hdr.packed_drep[0] & 0x10;
+        self.tx_id += 1;
         tx.id = self.tx_id;
         tx.call_id = hdr.call_id;
         tx.endianness = endianness;
-        self.tx_id += 1;
         if self.transactions.len() > unsafe { DCERPC_MAX_TX } {
             let mut index = self.tx_index_completed;
             for tx_old in &mut self.transactions.range_mut(self.tx_index_completed..) {
@@ -386,8 +385,7 @@ impl DCERPCState {
         let mut index = 0;
         for i in 0..len {
             let tx = &self.transactions[i];
-            if tx.id == tx_id {
-                //+ 1 {
+            if tx.id == tx_id + 1 {
                 found = true;
                 index = i;
                 SCLogDebug!("tx {} progress {}/{}", tx.id, tx.req_done, tx.resp_done);
@@ -419,7 +417,7 @@ impl DCERPCState {
     /// Option mutable reference to DCERPCTransaction
     pub fn get_tx(&mut self, tx_id: u64) -> Option<&mut DCERPCTransaction> {
         for tx in &mut self.transactions {
-            let found = tx.id == tx_id;
+            let found = tx.id == tx_id + 1;
             if found {
                 return Some(tx);
             }
@@ -479,7 +477,7 @@ impl DCERPCState {
         );
         if self.ts_ssn_gap && dir == Direction::ToServer {
             for tx in &mut self.transactions {
-                if tx.id >= self.tx_id {
+                if tx.id > self.tx_id {
                     SCLogDebug!("post_gap_housekeeping: done");
                     break;
                 }
@@ -493,7 +491,7 @@ impl DCERPCState {
             }
         } else if self.tc_ssn_gap && dir == Direction::ToClient {
             for tx in &mut self.transactions {
-                if tx.id >= self.tx_id {
+                if tx.id > self.tx_id {
                     SCLogDebug!("post_gap_housekeeping: done");
                     break;
                 }
