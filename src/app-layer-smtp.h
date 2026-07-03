@@ -88,8 +88,6 @@ typedef struct SMTPTransaction_ {
 
     AppLayerTxData tx_data;
 
-    /** the tx is complete and can be logged and cleaned */
-    bool done;
     /** to-server firewall progress state. */
     uint8_t progress_ts;
     /** to-client firewall progress state. */
