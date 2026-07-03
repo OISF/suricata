@@ -230,6 +230,12 @@ static inline void SMTPSetProgressTC(SMTPTransaction *tx, uint8_t progress)
         tx->progress_tc = progress;
 }
 
+static bool SMTPTransactionIsComplete(const SMTPTransaction *tx)
+{
+    return tx && tx->progress_ts == SMTP_REQUEST_COMPLETE &&
+           tx->progress_tc == SMTP_RESPONSE_COMPLETE;
+}
+
 typedef struct SMTPThreadCtx_ {
     MpmThreadCtx *smtp_mpm_thread_ctx;
     PrefilterRuleStore *pmq;
@@ -761,8 +767,28 @@ static void SetMimeEvents(SMTPState *state, uint32_t events)
 static inline void SMTPTransactionComplete(SMTPState *state)
 {
     DEBUG_VALIDATE_BUG_ON(state->curr_tx == NULL);
-    if (state->curr_tx)
-        state->curr_tx->done = true;
+    if (state->curr_tx) {
+        SMTPSetProgressTS(state->curr_tx, SMTP_REQUEST_COMPLETE);
+        SMTPSetProgressTC(state->curr_tx, SMTP_RESPONSE_COMPLETE);
+    }
+}
+
+static inline void SMTPTransactionCompleteTS(SMTPState *state)
+{
+    DEBUG_VALIDATE_BUG_ON(state->curr_tx == NULL);
+    if (state->curr_tx) {
+        SMTPSetProgressTS(state->curr_tx, SMTP_REQUEST_COMPLETE);
+        SCLogDebug("marked tx as ts complete");
+    }
+}
+
+static inline void SMTPTransactionCompleteTC(SMTPState *state)
+{
+    DEBUG_VALIDATE_BUG_ON(state->curr_tx == NULL);
+    if (state->curr_tx) {
+        SMTPSetProgressTC(state->curr_tx, SMTP_RESPONSE_COMPLETE);
+        SCLogDebug("marked tx as tc complete");
+    }
 }
 
 /**
@@ -799,8 +825,7 @@ static int SMTPProcessCommandDATA(
                         FileFlowToFlags(f, STREAM_TOSERVER));
             }
         }
-        SMTPTransactionComplete(state);
-        SCLogDebug("marked tx as done");
+        SMTPTransactionCompleteTS(state);
     } else if (smtp_config.raw_extraction) {
         // message not over, store the line. This is a substitution of
         // ProcessDataChunk
@@ -1005,6 +1030,10 @@ static int SMTPProcessReply(
         }
     } else if (IsReplyToCommand(state, SMTP_COMMAND_BDAT)) {
         SMTPSetProgressTC(state->curr_tx, SMTP_RESPONSE_DATA);
+    } else if (IsReplyToCommand(state, SMTP_COMMAND_DATA_MODE)) {
+        if (!(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
+            SMTPTransactionCompleteTC(state);
+        }
     } else if (IsReplyToCommand(state, SMTP_COMMAND_RSET)) {
         if (reply_code == SMTP_REPLY_250 && state->curr_tx &&
                 !(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
@@ -1206,7 +1235,8 @@ static int SMTPProcessRequest(
     if (line->len == 0 && line->delim_len == 0) {
         return 0;
     }
-    if (state->curr_tx == NULL || (state->curr_tx->done && !NoNewTx(state, line))) {
+    if (state->curr_tx == NULL ||
+            (SMTPTransactionIsComplete(state->curr_tx) && !NoNewTx(state, line))) {
         tx = SMTPTransactionCreate(state);
         if (tx == NULL)
             return -1;
@@ -1859,8 +1889,8 @@ static int SMTPStateGetAlstateProgress(void *vtx, uint8_t direction)
 {
     SMTPTransaction *tx = vtx;
     if (direction & STREAM_TOSERVER)
-        return tx->done ? SMTP_REQUEST_COMPLETE : tx->progress_ts;
-    return tx->done ? SMTP_RESPONSE_COMPLETE : tx->progress_tc;
+        return tx->progress_ts;
+    return tx->progress_tc;
 }
 
 static AppLayerGetFileState SMTPGetTxFiles(void *txv, uint8_t direction)
@@ -2604,6 +2634,13 @@ static int SMTPParserTest02(void)
         printf("smtp parser in inconsistent state\n");
         goto end;
     }
+    if (SMTPStateGetAlstateProgress(smtp_state->curr_tx, STREAM_TOSERVER) !=
+                    SMTP_REQUEST_COMPLETE ||
+            SMTPStateGetAlstateProgress(smtp_state->curr_tx, STREAM_TOCLIENT) !=
+                    SMTP_RESPONSE_DATA) {
+        printf("smtp progress in inconsistent state\n");
+        goto end;
+    }
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
                             STREAM_TOCLIENT, reply5, reply5_len);
@@ -2614,6 +2651,13 @@ static int SMTPParserTest02(void)
     if (smtp_state->cmds_cnt != 0 || smtp_state->cmds_idx != 0 ||
             smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+    if (SMTPStateGetAlstateProgress(smtp_state->curr_tx, STREAM_TOSERVER) !=
+                    SMTP_REQUEST_COMPLETE ||
+            SMTPStateGetAlstateProgress(smtp_state->curr_tx, STREAM_TOCLIENT) !=
+                    SMTP_RESPONSE_COMPLETE) {
+        printf("smtp progress in inconsistent state\n");
         goto end;
     }
 
