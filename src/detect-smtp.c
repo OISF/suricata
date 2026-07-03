@@ -55,13 +55,12 @@ static InspectionBuffer *GetSmtpHeloData(DetectEngineThreadCtx *det_ctx,
 {
     InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
-        SMTPState *smtp_state = (SMTPState *)FlowGetAppState(f);
-        if (smtp_state) {
-            if (smtp_state->helo == NULL || smtp_state->helo_len == 0)
-                return NULL;
-            InspectionBufferSetup(det_ctx, list_id, buffer, smtp_state->helo, smtp_state->helo_len);
-            InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
+        SMTPTransaction *tx = txv;
+        if (tx == NULL || tx->helo == NULL || tx->helo_len == 0) {
+            return NULL;
         }
+        InspectionBufferSetup(det_ctx, list_id, buffer, tx->helo, tx->helo_len);
+        InspectionBufferApplyTransforms(det_ctx, buffer, transforms);
     }
     return buffer;
 }

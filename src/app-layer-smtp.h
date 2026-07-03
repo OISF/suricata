@@ -99,6 +99,10 @@ typedef struct SMTPTransaction_ {
     /** the mime decoding parser state */
     MimeStateSMTP *mime_state;
 
+    /* HELO/EHLO parameter */
+    uint8_t *helo;
+    uint16_t helo_len;
+
     /* MAIL FROM parameters */
     uint8_t *mail_from;
     uint16_t mail_from_len;
@@ -161,9 +165,11 @@ typedef struct SMTPState_ {
      *  handler */
     uint16_t cmds_idx;
 
-    /* HELO of HELO message content */
-    uint16_t helo_len;
+    /* Last HELO/EHLO parameter seen on the flow */
     uint8_t *helo;
+    uint16_t helo_len;
+    /* flow has seen at least one HELO/EHLO command */
+    bool seen_helo;
 
     /* SMTP Mime decoding and file extraction */
     /** the list of files sent to the server */

@@ -526,7 +526,20 @@ static void SMTPSetEvent(SMTPState *s, uint8_t e)
     SCLogDebug("couldn't set event %u", e);
 }
 
-static SMTPTransaction *SMTPTransactionCreate(SMTPState *state)
+static uint8_t *SMTPCopyParam(const uint8_t *src, uint16_t len)
+{
+    uint8_t *copy = SCMalloc(len + 1);
+    if (copy == NULL) {
+        return NULL;
+    }
+    if (len > 0) {
+        memcpy(copy, src, len);
+    }
+    copy[len] = '\0';
+    return copy;
+}
+
+static SMTPTransaction *SMTPTransactionCreate(SMTPState *state, bool inherit_helo)
 {
     if (state->tx_cnt > smtp_config.max_tx) {
         return NULL;
@@ -538,6 +551,14 @@ static SMTPTransaction *SMTPTransactionCreate(SMTPState *state)
 
     TAILQ_INIT(&tx->rcpt_to_list);
     tx->tx_data.file_tx = STREAM_TOSERVER; // can xfer files
+    if (inherit_helo && state->helo != NULL) {
+        tx->helo = SMTPCopyParam(state->helo, state->helo_len);
+        if (tx->helo == NULL) {
+            SCFree(tx);
+            return NULL;
+        }
+        tx->helo_len = state->helo_len;
+    }
     return tx;
 }
 
@@ -1140,11 +1161,24 @@ static int SMTPParseCommandWithParam(SMTPState *state, const SMTPLine *line, uin
 
 static int SMTPParseCommandHELO(SMTPState *state, const SMTPLine *line)
 {
-    if (state->helo) {
+    if (state->curr_tx->helo) {
         SMTPSetEvent(state, SMTP_DECODER_EVENT_DUPLICATE_FIELDS);
         return 0;
     }
-    return SMTPParseCommandWithParam(state, line, 4, &state->helo, &state->helo_len);
+    int r = SMTPParseCommandWithParam(
+            state, line, 4, &state->curr_tx->helo, &state->curr_tx->helo_len);
+    if (r == 0) {
+        uint8_t *helo = SMTPCopyParam(state->curr_tx->helo, state->curr_tx->helo_len);
+        if (helo == NULL) {
+            return -1;
+        }
+        if (state->helo) {
+            SCFree(state->helo);
+        }
+        state->helo = helo;
+        state->helo_len = state->curr_tx->helo_len;
+    }
+    return r;
 }
 
 static int SMTPParseCommandMAILFROM(SMTPState *state, const SMTPLine *line)
@@ -1176,6 +1210,12 @@ static int SMTPParseCommandRCPTTO(SMTPState *state, const SMTPLine *line)
         return -1;
     }
     return 0;
+}
+
+static bool SMTPLineIsHelo(const SMTPLine *line)
+{
+    return line->len >= 4 && (SCMemcmpLowercase("helo", line->buf, 4) == 0 ||
+                                     SCMemcmpLowercase("ehlo", line->buf, 4) == 0);
 }
 
 /* consider 'rset' and 'quit' to be part of the existing state */
@@ -1235,9 +1275,15 @@ static int SMTPProcessRequest(
     if (line->len == 0 && line->delim_len == 0) {
         return 0;
     }
-    if (state->curr_tx == NULL ||
+    const bool command_mode = !(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE);
+    const bool helo_cmd = command_mode && SMTPLineIsHelo(line);
+    const bool subsequent_helo = helo_cmd && state->seen_helo;
+    if (subsequent_helo && state->curr_tx != NULL && !SMTPTransactionIsComplete(state->curr_tx)) {
+        SMTPTransactionComplete(state);
+    }
+    if (state->curr_tx == NULL || subsequent_helo ||
             (SMTPTransactionIsComplete(state->curr_tx) && !NoNewTx(state, line))) {
-        tx = SMTPTransactionCreate(state);
+        tx = SMTPTransactionCreate(state, !subsequent_helo);
         if (tx == NULL)
             return -1;
         state->curr_tx = tx;
@@ -1313,12 +1359,12 @@ static int SMTPProcessRequest(
             state->current_command = SMTP_COMMAND_BDAT;
             SMTPSetProgressTS(tx, SMTP_REQUEST_DATA);
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
-        } else if (line->len >= 4 && ((SCMemcmpLowercase("helo", line->buf, 4) == 0) ||
-                                             SCMemcmpLowercase("ehlo", line->buf, 4) == 0)) {
+        } else if (helo_cmd) {
             r = SMTPParseCommandHELO(state, line);
             if (r == -1) {
                 SCReturnInt(-1);
             }
+            state->seen_helo = true;
             state->current_command = SMTP_COMMAND_OTHER_CMD;
         } else if (line->len >= 9 && SCMemcmpLowercase("mail from", line->buf, 9) == 0) {
             r = SMTPParseCommandMAILFROM(state, line);
@@ -1664,6 +1710,10 @@ static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
     }
 
     SCAppLayerTxDataCleanup(&tx->tx_data);
+
+    if (tx->helo) {
+        SCFree(tx->helo);
+    }
 
     if (tx->mail_from)
         SCFree(tx->mail_from);
@@ -4121,8 +4171,10 @@ static int SMTPParserTest14(void)
         goto end;
     }
 
-    if ((smtp_state->helo_len != 7) || strncmp("boo.com", (char *)smtp_state->helo, 7)) {
-        printf("incorrect parsing of HELO field '%s' (%d)\n", smtp_state->helo, smtp_state->helo_len);
+    if ((smtp_state->curr_tx->helo_len != 7) ||
+            strncmp("boo.com", (char *)smtp_state->curr_tx->helo, 7)) {
+        printf("incorrect parsing of HELO field '%s' (%d)\n", smtp_state->curr_tx->helo,
+                smtp_state->curr_tx->helo_len);
         goto end;
     }
 
@@ -4352,6 +4404,7 @@ end:
     StreamTcpFreeConfig(true);
     return result;
 }
+
 #endif /* UNITTESTS */
 
 void SMTPParserRegisterTests(void)

@@ -51,16 +51,16 @@
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
 
-static void EveSmtpDataLogger(void *state, void *vtx, SCJsonBuilder *js)
+static void EveSmtpDataLogger(void *vtx, SCJsonBuilder *js)
 {
-    if (state == NULL || vtx == NULL) {
+    if (vtx == NULL) {
         return;
     }
 
     SMTPTransaction *tx = vtx;
     SMTPString *rcptto_str;
-    if (((SMTPState *)state)->helo) {
-        SCJbSetString(js, "helo", (const char *)((SMTPState *)state)->helo);
+    if (tx->helo) {
+        SCJbSetString(js, "helo", (const char *)tx->helo);
     }
     if (tx->mail_from) {
         SCJbSetString(js, "mail_from", (const char *)tx->mail_from);
@@ -85,7 +85,7 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
         return TM_ECODE_OK;
 
     SCJbOpenObject(jb, "smtp");
-    EveSmtpDataLogger(state, tx, jb);
+    EveSmtpDataLogger(tx, jb);
     SCJbClose(jb);
 
     EveEmailLogJson(jhl, jb, p, f, state, tx, tx_id);
@@ -103,7 +103,7 @@ bool EveSMTPAddMetadata(const Flow *f, uint64_t tx_id, SCJsonBuilder *js)
     if (smtp_state) {
         SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, smtp_state, tx_id);
         if (tx) {
-            EveSmtpDataLogger(smtp_state, tx, js);
+            EveSmtpDataLogger(tx, js);
             return true;
         }
     }
