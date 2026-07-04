@@ -52,7 +52,9 @@ FixChecksum(uint16_t sum, uint16_t old, uint16_t new)
 {
     uint32_t l;
 
-    l = sum + old - new;
+    /* the sum can go negative: the unsigned wrap-around plus the fold below
+     * yields the correct ones' complement borrow handling */
+    l = (uint32_t)(sum + old - new);
     l = (l >> 16) + (l & 65535);
 
     return (uint16_t)(l & 65535);

@@ -20,13 +20,12 @@
 
 static uint32_t Upper32(uint64_t value)
 {
-    /* uint64_t -> uint32_t is defined behaviour. It slices lower 32bits. */
-    return value >> 32;
+    return (uint32_t)(value >> 32);
 }
 static uint32_t Lower32(uint64_t value)
 {
-    /* uint64_t -> uint32_t is defined behaviour. It slices lower 32bits. */
-    return value;
+    /* uint64_t -> uint32_t slices the lower 32 bits, cast makes it explicit */
+    return (uint32_t)value;
 }
 
 /* Structured test data to make it easier on my eyes */

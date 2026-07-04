@@ -942,7 +942,7 @@ static int ByteTest11 (void)
 {
     const char str[] = "-1234567890";
     int64_t val = -1234567890;
-    int64_t i64 = 0xbfbfbfbfbfbfbfbfULL;
+    int64_t i64 = (int64_t)0xbfbfbfbfbfbfbfbfULL;
     int ret = ByteExtractStringInt64(&i64, 10, sizeof(str) - 1, str);
 
     if ((ret == 11) && (i64 == val)) {
@@ -956,7 +956,7 @@ static int ByteTest12 (void)
 {
     const char str[] = "-1234567890";
     int32_t val = -1234567890;
-    int32_t i32 = 0xbfbfbfbf;
+    int32_t i32 = (int32_t)0xbfbfbfbf;
     int ret = ByteExtractStringInt32(&i32, 10, sizeof(str) - 1, str);
 
     if ((ret == 11) && (i32 == val)) {
@@ -970,7 +970,7 @@ static int ByteTest13 (void)
 {
     const char str[] = "-12345";
     int16_t val = -12345;
-    int16_t i16 = 0xbfbf;
+    int16_t i16 = (int16_t)0xbfbf;
     int ret = ByteExtractStringInt16(&i16, 10, sizeof(str) - 1, str);
 
     if ((ret == 6) && (i16 == val)) {
@@ -984,7 +984,7 @@ static int ByteTest14 (void)
 {
     const char str[] = "-123";
     int8_t val = -123;
-    int8_t i8 = 0xbf;
+    int8_t i8 = (int8_t)0xbf;
     int ret = ByteExtractStringInt8(&i8, 10, sizeof(str) - 1, str);
 
     if ((ret == 4) && (i8 == val)) {
