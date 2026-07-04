@@ -163,7 +163,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                     if (distance < 0 && (uint32_t)(abs(distance)) > offset)
                         offset = 0;
                     else
-                        offset += distance;
+                        offset += (uint32_t)distance;
 
                     SCLogDebug("cd->distance %"PRIi32", offset %"PRIu32", depth %"PRIu32,
                                distance, offset, depth);
@@ -172,13 +172,15 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 if (cd->flags & DETECT_CONTENT_WITHIN) {
                     if (cd->flags & DETECT_CONTENT_WITHIN_VAR) {
                         // This cast is wrong if a 64-bit value was extracted for within
-                        if ((int32_t)depth > (int32_t)(prev_buffer_offset + det_ctx->byte_values[cd->within] + distance)) {
-                            depth = prev_buffer_offset +
-                                    (uint32_t)det_ctx->byte_values[cd->within] + distance;
+                        const uint32_t within = (uint32_t)det_ctx->byte_values[cd->within];
+                        if ((int32_t)depth >
+                                (int32_t)(prev_buffer_offset + within + (uint32_t)distance)) {
+                            depth = prev_buffer_offset + within + (uint32_t)distance;
                         }
                     } else {
-                        if ((int32_t)depth > (int32_t)(prev_buffer_offset + cd->within + distance)) {
-                            depth = prev_buffer_offset + cd->within + distance;
+                        if ((int32_t)depth > (int32_t)(prev_buffer_offset + (uint32_t)cd->within +
+                                                       (uint32_t)distance)) {
+                            depth = prev_buffer_offset + (uint32_t)cd->within + (uint32_t)distance;
                         }
 
                         SCLogDebug("cd->within %"PRIi32", det_ctx->buffer_offset %"PRIu32", depth %"PRIu32,
