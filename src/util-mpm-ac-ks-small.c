@@ -61,7 +61,7 @@ uint32_t FUNC_NAME(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
         uint64_t index = 0;
         /* Process 4*floor(buflen/4) bytes. */
         i = 0;
-        while ((i + EXTRA) < (buflen & ~0x3)) {
+        while ((i + EXTRA) < (buflen & ~0x3u)) {
             BUF_TYPE data1 = *(BUF_TYPE* restrict)(&buf[i + 4]);
             index = SINDEX(index, state);
             state = SLOAD(state_table + index + c);
