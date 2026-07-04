@@ -997,10 +997,10 @@ void SCHSDestroyCtx(MpmCtx *mpm_ctx)
         return;
 
     if (ctx->init_hash != NULL) {
+        /* the init hash is never added to the mpm memory accounting when it
+         * is allocated in SCHSInitCtx, so don't subtract it here either */
         SCFree(ctx->init_hash);
         ctx->init_hash = NULL;
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (INIT_HASH_SIZE * sizeof(SCHSPattern *));
     }
 
     /* Decrement pattern database ref count, and delete it entirely if the
