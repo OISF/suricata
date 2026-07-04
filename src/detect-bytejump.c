@@ -97,7 +97,7 @@ void DetectBytejumpRegister (void)
  */
 static inline bool DetectBytejumpValidateNbytesOnly(const DetectBytejumpData *data, int32_t nbytes)
 {
-    return (data->flags & DETECT_BYTEJUMP_STRING && nbytes <= 23) || (nbytes <= 8);
+    return nbytes >= 0 && ((data->flags & DETECT_BYTEJUMP_STRING && nbytes <= 23) || (nbytes <= 8));
 }
 
 static bool DetectBytejumpValidateNbytes(const DetectBytejumpData *data, int32_t nbytes)
@@ -1302,6 +1302,34 @@ static int DetectByteJumpTestPacket08 (void)
 }
 
 /**
+ * \test A byte_jump nbytes taken from a byte_extract variable is packet
+ *       controlled and can be negative once cast to int32_t. Such a value must
+ *       be rejected before extraction; otherwise the (uint16_t) truncation in
+ *       DetectBytejumpDoMatch turns it back into a small positive count and
+ *       reads past the buffer.
+ */
+static int DetectByteJumpTestNbytesVarNegative(void)
+{
+    DetectBytejumpData data;
+    memset(&data, 0, sizeof(data));
+    data.flags = DETECT_BYTEJUMP_NBYTES_VAR;
+
+    /* Two byte buffer so an eight byte read runs past the end. */
+    uint8_t *buf = SCMalloc(2);
+    FAIL_IF_NULL(buf);
+    buf[0] = 0x00;
+    buf[1] = 0x00;
+
+    /* 0x80000008 is negative as int32_t but truncates to 8 as uint16_t. */
+    const int32_t nbytes = (int32_t)0x80000008;
+    bool r = DetectBytejumpDoMatch(NULL, NULL, (const SigMatchCtx *)&data, buf, 2, 0, nbytes, 0);
+    FAIL_IF(r);
+
+    SCFree(buf);
+    PASS;
+}
+
+/**
  * \brief this function registers unit tests for DetectBytejump
  */
 static void DetectBytejumpRegisterTests(void)
@@ -1334,5 +1362,6 @@ static void DetectBytejumpRegisterTests(void)
     UtRegisterTest("DetectByteJumpTestPacket06", DetectByteJumpTestPacket06);
     UtRegisterTest("DetectByteJumpTestPacket07", DetectByteJumpTestPacket07);
     UtRegisterTest("DetectByteJumpTestPacket08", DetectByteJumpTestPacket08);
+    UtRegisterTest("DetectByteJumpTestNbytesVarNegative", DetectByteJumpTestNbytesVarNegative);
 }
 #endif /* UNITTESTS */

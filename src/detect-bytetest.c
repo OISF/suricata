@@ -99,7 +99,8 @@ void DetectBytetestRegister (void)
  */
 static inline bool DetectBytetestValidateNbytesOnly(const DetectBytetestData *data, int32_t nbytes)
 {
-    return ((data->flags & DETECT_BYTETEST_STRING) && nbytes <= 23) || (nbytes <= 8);
+    return nbytes >= 0 &&
+           (((data->flags & DETECT_BYTETEST_STRING) && nbytes <= 23) || (nbytes <= 8));
 }
 
 static bool DetectBytetestValidateNbytes(
@@ -1314,6 +1315,35 @@ static int DetectBytetestTestParse24(void)
 }
 
 /**
+ * \test A byte_test nbytes taken from a byte_extract variable is packet
+ *       controlled and can be negative once cast to int32_t. Such a value must
+ *       be rejected before extraction; otherwise the (uint16_t) truncation in
+ *       DetectBytetestDoMatch turns it back into a small positive count and
+ *       reads past the buffer.
+ */
+static int DetectBytetestTestNbytesVarNegative(void)
+{
+    DetectBytetestData data;
+    memset(&data, 0, sizeof(data));
+    data.op = DETECT_BYTETEST_OP_EQ;
+    data.flags = DETECT_BYTETEST_NBYTES_VAR;
+
+    /* Two byte buffer so an eight byte read runs past the end. */
+    uint8_t *buf = SCMalloc(2);
+    FAIL_IF_NULL(buf);
+    buf[0] = 0x00;
+    buf[1] = 0x00;
+
+    /* 0x80000008 is negative as int32_t but truncates to 8 as uint16_t. */
+    const int32_t nbytes = (int32_t)0x80000008;
+    int r = DetectBytetestDoMatch(NULL, NULL, (const SigMatchCtx *)&data, buf, 2, 0, 0, nbytes, 0);
+    FAIL_IF(r != 0);
+
+    SCFree(buf);
+    PASS;
+}
+
+/**
  * \brief this function registers unit tests for DetectBytetest
  */
 static void DetectBytetestRegisterTests(void)
@@ -1345,5 +1375,6 @@ static void DetectBytetestRegisterTests(void)
     UtRegisterTest("DetectBytetestTestParse22", DetectBytetestTestParse22);
     UtRegisterTest("DetectBytetestTestParse23", DetectBytetestTestParse23);
     UtRegisterTest("DetectBytetestTestParse24", DetectBytetestTestParse24);
+    UtRegisterTest("DetectBytetestTestNbytesVarNegative", DetectBytetestTestNbytesVarNegative);
 }
 #endif /* UNITTESTS */
