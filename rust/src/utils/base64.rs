@@ -108,7 +108,10 @@ impl Default for Decoder {
 }
 
 pub fn get_decoded_buffer_size(encoded_len: u32) -> u32 {
-    return ((encoded_len * 3) + (encoded_len % 4)) / 4;
+    // Compute in u64 so encoded_len * 3 cannot overflow; the result is
+    // at most encoded_len so it always fits back in u32.
+    let encoded_len = u64::from(encoded_len);
+    return (((encoded_len * 3) + (encoded_len % 4)) / 4) as u32;
 }
 
 pub fn decode_rfc4648(
