@@ -170,10 +170,10 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
      * the packet from that point.
      */
     ptr = payload + offset;
-    len = payload_len - offset;
+    len = (int32_t)payload_len - offset;
     if (flags & DETECT_BYTEJUMP_RELATIVE) {
         ptr += det_ctx->buffer_offset;
-        len -= det_ctx->buffer_offset;
+        len -= (int32_t)det_ctx->buffer_offset;
 
         SCLogDebug("[relative] after: ptr %p [len %d]", ptr, len);
 
@@ -232,7 +232,9 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         }
     }
 
-    val += data->post_offset;
+    /* post_offset can be negative: do the addition in the signed domain and
+     * cast back, keeping the two's complement wrap-around */
+    val = (uint64_t)((int64_t)val + data->post_offset);
     SCLogDebug("val: %" PRIi64 " post_offset: %" PRIi32, val, data->post_offset);
 
     const uint8_t *jumpptr;
