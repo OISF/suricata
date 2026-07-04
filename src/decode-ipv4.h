@@ -153,7 +153,9 @@ static inline uint16_t IPV4Checksum(const uint16_t *pkt, uint16_t hlen, uint16_t
     csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[6] + pkt[7] +
         pkt[8] + pkt[9];
 
-    hlen -= 20;
+    /* hlen can be less than 20 for a malformed header: the wrapped value
+     * matches none of the fixed-size branches below, like hlen 0 */
+    hlen = (uint16_t)(hlen - 20);
     pkt += 10;
 
     if (hlen == 0) {
