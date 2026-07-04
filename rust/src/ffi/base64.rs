@@ -95,7 +95,10 @@ pub unsafe extern "C" fn SCBase64Decode(
     }
 
     let in_vec = build_slice!(input, len);
-    let out_vec = std::slice::from_raw_parts_mut(output, len);
+    // Callers such as the string dataset loader and the from_base64 transform
+    // allocate only the decoded size, so the output slice must not exceed it.
+    let out_len = get_decoded_buffer_size(len as u32) as usize;
+    let out_vec = std::slice::from_raw_parts_mut(output, out_len);
     let mut num_decoded: u32 = 0;
     let mut decoder = Decoder::new();
     match mode {
