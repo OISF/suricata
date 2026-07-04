@@ -78,9 +78,10 @@ static void *LuaAlloc(void *ud, void *ptr, size_t osize, size_t nsize)
         return nptr;
     } else {
         /* Resizing existing data. */
-        ssize_t diff = nsize - osize;
+        ssize_t diff = (ssize_t)nsize - (ssize_t)osize;
 
-        if (ctx->alloc_limit != 0 && ctx->alloc_bytes + diff > ctx->alloc_limit) {
+        if (ctx->alloc_limit != 0 && diff > 0 &&
+                ctx->alloc_bytes + (size_t)diff > ctx->alloc_limit) {
             /* This request will exceed the allocation limit. Act as
              * though allocation failed. */
             ctx->memory_limit_error = true;
@@ -91,7 +92,11 @@ static void *LuaAlloc(void *ud, void *ptr, size_t osize, size_t nsize)
         if (nptr != NULL) {
             DEBUG_VALIDATE_BUG_ON((ssize_t)ctx->alloc_bytes + diff < 0);
             DEBUG_VALIDATE_BUG_ON(osize > ctx->alloc_bytes);
-            ctx->alloc_bytes += diff;
+            if (diff < 0) {
+                ctx->alloc_bytes -= (size_t)-diff;
+            } else {
+                ctx->alloc_bytes += (size_t)diff;
+            }
         }
         return nptr;
     }
