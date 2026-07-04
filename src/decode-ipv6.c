@@ -304,8 +304,10 @@ static void DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, 
                     /* length field for each opt */
                     uint8_t ip6_optlen = *(ptr + 1);
 
-                    /* see if the optlen from the packet fits the total optslen */
-                    if ((offset + 1 + ip6_optlen) > optslen) {
+                    /* see if the optlen from the packet fits the total optslen.
+                     * the option occupies 2 header bytes (type + len) plus
+                     * ip6_optlen data bytes, so its data must end within optslen. */
+                    if ((offset + 2 + ip6_optlen) > optslen) {
                         ENGINE_SET_INVALID_EVENT(p, IPV6_EXTHDR_INVALID_OPTLEN);
                         break;
                     }
