@@ -154,7 +154,7 @@ void LuaStateSetTX(lua_State *luastate, void *txptr, const uint64_t tx_id)
     lua_settable(luastate, LUA_REGISTRYINDEX);
 
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_tx_id);
-    lua_pushinteger(luastate, tx_id);
+    lua_pushinteger(luastate, (lua_Integer)tx_id);
     lua_settable(luastate, LUA_REGISTRYINDEX);
 }
 
