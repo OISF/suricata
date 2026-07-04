@@ -1968,10 +1968,10 @@ static int RandomGetWrap(void)
     unsigned long r;
 
     do {
-        r = RandomGet();
+        r = (unsigned long)RandomGet();
     } while(r >= ULONG_MAX - (ULONG_MAX % RAND_MAX));
 
-    return r % RAND_MAX;
+    return (int)(r % RAND_MAX);
 }
 
 /*
@@ -1987,24 +1987,30 @@ static void HTPConfigSetDefaultsPhase2(const char *name, HTPCfgRec *cfg_prec)
         int rdrange = cfg_prec->randomize_range;
 
         long int r = RandomGetWrap();
-        cfg_prec->request.inspect_min_size += (int)(cfg_prec->request.inspect_min_size *
-                                                    ((double)r / RAND_MAX - 0.5) * rdrange / 100);
+        /* the fuzz delta can be negative: cast it back explicitly so the
+         * unsigned wrap-around addition is intentional */
+        cfg_prec->request.inspect_min_size +=
+                (uint32_t)(int)(cfg_prec->request.inspect_min_size * ((double)r / RAND_MAX - 0.5) *
+                                rdrange / 100);
 
         r = RandomGetWrap();
-        cfg_prec->request.inspect_window += (int)(cfg_prec->request.inspect_window *
-                                                  ((double)r / RAND_MAX - 0.5) * rdrange / 100);
+        cfg_prec->request.inspect_window +=
+                (uint32_t)(int)(cfg_prec->request.inspect_window * ((double)r / RAND_MAX - 0.5) *
+                                rdrange / 100);
         SCLogConfig("'%s' server has 'request-body-minimal-inspect-size' set to"
                     " %u and 'request-body-inspect-window' set to %u after"
                     " randomization.",
                 name, cfg_prec->request.inspect_min_size, cfg_prec->request.inspect_window);
 
         r = RandomGetWrap();
-        cfg_prec->response.inspect_min_size += (int)(cfg_prec->response.inspect_min_size *
-                                                     ((double)r / RAND_MAX - 0.5) * rdrange / 100);
+        cfg_prec->response.inspect_min_size +=
+                (uint32_t)(int)(cfg_prec->response.inspect_min_size * ((double)r / RAND_MAX - 0.5) *
+                                rdrange / 100);
 
         r = RandomGetWrap();
-        cfg_prec->response.inspect_window += (int)(cfg_prec->response.inspect_window *
-                                                   ((double)r / RAND_MAX - 0.5) * rdrange / 100);
+        cfg_prec->response.inspect_window +=
+                (uint32_t)(int)(cfg_prec->response.inspect_window * ((double)r / RAND_MAX - 0.5) *
+                                rdrange / 100);
 
         SCLogConfig("'%s' server has 'response-body-minimal-inspect-size' set to"
                     " %u and 'response-body-inspect-window' set to %u after"
