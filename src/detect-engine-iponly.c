@@ -194,7 +194,9 @@ static int InsertRange(
             new->netmask--;
         }
         new->ip[0] = htonl(first);
-        first += 1UL << (32 - new->netmask);
+        /* the 64-bit sum wraps to 0 when the block ends at 255.255.255.255,
+         * which terminates the loop via the first != 0 check */
+        first = (uint32_t)(first + (1UL << (32 - new->netmask)));
         dd = IPOnlyCIDRItemInsert(dd, new);
     }
     // update head of list
