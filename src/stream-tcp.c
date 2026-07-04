@@ -467,10 +467,10 @@ static int RandomGetWrap(void)
     unsigned long r;
 
     do {
-        r = RandomGet();
+        r = (unsigned long)RandomGet();
     } while(r >= ULONG_MAX - (ULONG_MAX % RAND_MAX));
 
-    return r % RAND_MAX;
+    return (int)(r % RAND_MAX);
 }
 
 static const char *UrgentPolicyToString(enum TcpStreamUrgentHandling pol)
