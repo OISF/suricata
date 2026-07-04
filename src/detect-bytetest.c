@@ -185,7 +185,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                    "data->offset %"PRIi32"", det_ctx->buffer_offset, data->offset);
 
         ptr = payload + det_ctx->buffer_offset;
-        len = payload_len - det_ctx->buffer_offset;
+        len = (int32_t)(payload_len - det_ctx->buffer_offset);
 
         ptr += offset;
         len -= offset;
@@ -199,7 +199,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         SCLogDebug("absolute, data->offset %"PRIi32"", data->offset);
 
         ptr = payload + offset;
-        len = payload_len - offset;
+        len = (int32_t)payload_len - offset;
     }
 
     /* Validate that the to-be-extracted is within the packet
