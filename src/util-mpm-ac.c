@@ -775,10 +775,10 @@ void SCACDestroyCtx(MpmCtx *mpm_ctx)
         return;
 
     if (mpm_ctx->init_hash != NULL) {
+        /* the init hash is never added to the mpm memory accounting when it
+         * is allocated in SCACInitCtx, so don't subtract it here either */
         SCFree(mpm_ctx->init_hash);
         mpm_ctx->init_hash = NULL;
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (MPM_INIT_HASH_SIZE * sizeof(MpmPattern *));
     }
 
     if (ctx->parray != NULL) {
