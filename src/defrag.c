@@ -582,7 +582,6 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         hlen = IPV4_GET_RAW_HLEN(ip4h);
         data_offset = (uint16_t)((uint8_t *)ip4h + hlen - GET_PKT_DATA(p));
         data_len = IPV4_GET_RAW_IPLEN(ip4h) - hlen;
-        frag_end = frag_offset + data_len;
         ip_hdr_offset = (uint16_t)((uint8_t *)ip4h - GET_PKT_DATA(p));
 
         /* Ignore fragment if the end of packet extends past the
@@ -591,6 +590,8 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             ENGINE_SET_EVENT(p, IPV4_FRAG_PKT_TOO_LARGE);
             return NULL;
         }
+        /* the check above ensures the sum fits in frag_end */
+        frag_end = (uint16_t)(frag_offset + data_len);
     }
     else if (tracker->af == AF_INET6) {
         const IPV6Hdr *ip6h = PacketGetIPv6(p);
@@ -598,7 +599,15 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         frag_offset = IPV6_EXTHDR_GET_FH_OFFSET(p);
         data_offset = p->l3.vars.ip6.eh.fh_data_offset;
         data_len = p->l3.vars.ip6.eh.fh_data_len;
-        frag_end = frag_offset + data_len;
+
+        /* Ignore fragment if the end of packet extends past the
+         * maximum size of a packet. */
+        if (frag_offset + data_len > IPV6_MAXPACKET) {
+            ENGINE_SET_EVENT(p, IPV6_FRAG_PKT_TOO_LARGE);
+            return NULL;
+        }
+        /* the check above ensures the sum fits in frag_end */
+        frag_end = (uint16_t)(frag_offset + data_len);
         ip_hdr_offset = (uint16_t)((uint8_t *)ip6h - GET_PKT_DATA(p));
         frag_hdr_offset = p->l3.vars.ip6.eh.fh_header_offset;
 
@@ -619,13 +628,6 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             ip6_nh_set_offset = p->l3.vars.ip6.eh.fh_prev_hdr_offset;
             ip6_nh_set_value = IPV6_EXTHDR_GET_FH_NH(p);
             SCLogDebug("offset %d, value %u", ip6_nh_set_offset, ip6_nh_set_value);
-        }
-
-        /* Ignore fragment if the end of packet extends past the
-         * maximum size of a packet. */
-        if (frag_offset + data_len > IPV6_MAXPACKET) {
-            ENGINE_SET_EVENT(p, IPV6_FRAG_PKT_TOO_LARGE);
-            return NULL;
         }
     }
     else {
