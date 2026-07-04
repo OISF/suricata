@@ -260,7 +260,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
     }
 
     /* Reset the store flag */
-    connp->cert_log_flag &= ~SSL_TLS_LOG_PEM;
+    connp->cert_log_flag &= ~(uint32_t)SSL_TLS_LOG_PEM;
     SCReturn;
 
 end_fwrite_fp:
