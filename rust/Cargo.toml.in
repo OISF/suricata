@@ -5,6 +5,7 @@ license = "GPL-2.0-only"
 description = "Suricata Rust components"
 edition = "2021"
 rust-version = "1.75.0"
+repository = "https://github.com/OISF/suricata"
 
 [workspace]
 members = [
