@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -44,6 +44,7 @@
 #include "detect-entropy.h"
 #include "detect-replace.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-inspect-trace.h"
 #include "detect-uricontent.h"
 #include "detect-urilen.h"
 #include "detect-engine-uint.h"
@@ -124,6 +125,9 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
         SCReturnInt(0);
     }
+
+    DETECT_TRACE_KEYWORD(
+            det_ctx, s, smd, p, inspection_mode, ctx->recursion.count, ctx->recursion.limit);
 
     if (smd->type == DETECT_CONTENT) {
         const DetectContentData *cd = (const DetectContentData *)smd->ctx;
@@ -703,6 +707,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                             DETECT_CI_FLAGS_SINGLE, DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE);
                     if (r == 1) {
                         /* Base64 is a terminal list. */
+                        DETECT_TRACE_RESULT(s, smd, buffer, buffer_len, det_ctx->buffer_offset, 1);
                         goto final_match;
                     }
                 }
@@ -723,16 +728,19 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
     }
 
 no_match:
+    DETECT_TRACE_RESULT(s, smd, buffer, buffer_len, det_ctx->buffer_offset, 0);
     KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
     SCReturnInt(0);
 
 no_match_discontinue:
+    DETECT_TRACE_RESULT(s, smd, buffer, buffer_len, det_ctx->buffer_offset, -1);
     KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
     SCReturnInt(-1);
 
 match:
     /* this sigmatch matched, inspect the next one. If it was the last,
      * the buffer portion of the signature matched. */
+    DETECT_TRACE_RESULT(s, smd, buffer, buffer_len, det_ctx->buffer_offset, 1);
     if (!smd->is_last) {
         KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
         int r = DetectEngineContentInspectionInternal(det_ctx, ctx, s, smd + 1, p, f, buffer,
