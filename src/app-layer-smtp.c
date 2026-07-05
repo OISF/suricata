@@ -95,6 +95,10 @@
 /* All other commands are represented by this var */
 #define SMTP_COMMAND_OTHER_CMD 5
 #define SMTP_COMMAND_RSET      6
+/* Like SMTP_COMMAND_BDAT, but the chunk was flagged LAST, so the server
+ * reply matched to this command is the final verdict for the
+ * transaction */
+#define SMTP_COMMAND_BDAT_LAST 7
 
 #define SMTP_DEFAULT_MAX_TX 256
 
@@ -906,6 +910,21 @@ static inline bool IsReplyToCommand(const SMTPState *state, const uint8_t cmd)
             state->cmds[state->cmds_idx] == cmd);
 }
 
+/* Get the transaction that a DATA/BDAT related server reply applies
+ * to: the oldest transaction that has completed on the request side
+ * but has not yet seen its response side completed. Falls back to the
+ * current transaction, which is the common case. */
+static SMTPTransaction *SMTPGetReplyTx(SMTPState *state)
+{
+    SMTPTransaction *tx;
+    TAILQ_FOREACH (tx, &state->tx_list, next) {
+        if (tx->done && tx->progress_tc < SMTP_RESPONSE_COMPLETE) {
+            return tx;
+        }
+    }
+    return state->curr_tx;
+}
+
 static int SMTPProcessReply(
         SMTPState *state, Flow *f, SMTPThreadCtx *td, SMTPInput *input, const SMTPLine *line)
 {
@@ -990,6 +1009,7 @@ static int SMTPProcessReply(
             }
             if (state->curr_tx) {
                 SMTPTransactionComplete(state);
+                SMTPSetProgressTC(state->curr_tx, SMTP_RESPONSE_COMPLETE);
             }
         } else {
             /* decoder event */
@@ -997,7 +1017,7 @@ static int SMTPProcessReply(
         }
     } else if (IsReplyToCommand(state, SMTP_COMMAND_DATA)) {
         if (reply_code == SMTP_REPLY_354) {
-            SMTPSetProgressTC(state->curr_tx, SMTP_RESPONSE_DATA);
+            SMTPSetProgressTC(SMTPGetReplyTx(state), SMTP_RESPONSE_DATA);
             /* Next comes the mail for the DATA command in toserver direction */
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
         } else {
@@ -1009,11 +1029,32 @@ static int SMTPProcessReply(
             SMTPSetEvent(state, SMTP_DECODER_EVENT_DATA_COMMAND_REJECTED);
         }
     } else if (IsReplyToCommand(state, SMTP_COMMAND_BDAT)) {
-        SMTPSetProgressTC(state->curr_tx, SMTP_RESPONSE_DATA);
+        SMTPSetProgressTC(SMTPGetReplyTx(state), SMTP_RESPONSE_DATA);
+    } else if (IsReplyToCommand(state, SMTP_COMMAND_BDAT_LAST)) {
+        /* the reply to the BDAT LAST chunk is the server's verdict on
+         * the transaction */
+        if (!(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
+            SMTPTransaction *reply_tx = SMTPGetReplyTx(state);
+            if (reply_tx != NULL) {
+                reply_tx->tx_data.updated_tc = true;
+                SMTPSetProgressTC(reply_tx, SMTP_RESPONSE_COMPLETE);
+            }
+        }
+    } else if (IsReplyToCommand(state, SMTP_COMMAND_DATA_MODE)) {
+        /* the reply to the mail data is the server's verdict on the
+         * transaction */
+        if (!(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
+            SMTPTransaction *reply_tx = SMTPGetReplyTx(state);
+            if (reply_tx != NULL) {
+                reply_tx->tx_data.updated_tc = true;
+                SMTPSetProgressTC(reply_tx, SMTP_RESPONSE_COMPLETE);
+            }
+        }
     } else if (IsReplyToCommand(state, SMTP_COMMAND_RSET)) {
         if (reply_code == SMTP_REPLY_250 && state->curr_tx &&
                 !(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
             SMTPTransactionComplete(state);
+            SMTPSetProgressTC(state->curr_tx, SMTP_RESPONSE_COMPLETE);
         }
     } else {
         /* we don't care for any other command for now */
@@ -1308,7 +1349,11 @@ static int SMTPProcessRequest(
             if (r == -1) {
                 SCReturnInt(-1);
             }
-            state->current_command = SMTP_COMMAND_BDAT;
+            if (state->bdat_last) {
+                state->current_command = SMTP_COMMAND_BDAT_LAST;
+            } else {
+                state->current_command = SMTP_COMMAND_BDAT;
+            }
             SMTPSetProgressTS(tx, SMTP_REQUEST_DATA);
             if (state->bdat_chunk_len == 0) {
                 state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
@@ -1360,6 +1405,7 @@ static int SMTPProcessRequest(
             return SMTPProcessCommandDATA(state, tx, f, line);
 
         case SMTP_COMMAND_BDAT:
+        case SMTP_COMMAND_BDAT_LAST:
             return SMTPProcessCommandBDAT(state, line);
 
         default:
@@ -1496,7 +1542,8 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
     /* toserver */
     if (direction == 0) {
         if (((state->current_command == SMTP_COMMAND_DATA) ||
-                    (state->current_command == SMTP_COMMAND_BDAT)) &&
+                    (state->current_command == SMTP_COMMAND_BDAT) ||
+                    (state->current_command == SMTP_COMMAND_BDAT_LAST)) &&
                 (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
             int ret = SMTPPreProcessCommands(state, f, &stream_slice, &input, &line);
             DEBUG_VALIDATE_BUG_ON(ret != 0 && ret != -1 && ret != 1);
@@ -1896,7 +1943,7 @@ static int SMTPStateGetAlstateProgress(void *vtx, uint8_t direction)
     SMTPTransaction *tx = vtx;
     if (direction & STREAM_TOSERVER)
         return tx->done ? SMTP_REQUEST_COMPLETE : tx->progress_ts;
-    return tx->done ? SMTP_RESPONSE_COMPLETE : tx->progress_tc;
+    return tx->progress_tc;
 }
 
 static AppLayerGetFileState SMTPGetTxFiles(void *txv, uint8_t direction)
