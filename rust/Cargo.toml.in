@@ -50,7 +50,7 @@ memchr = "~2.7.4"
 num = "~0.2.1"
 num-derive = "~0.4.2"
 num-traits = "~0.2.19"
-widestring = "~0.4.3"
+widestring = "~0.5.0"
 flate2 = { version = "~1.0.35", features = ["zlib"] }
 brotli = "~8.0.1"
 hkdf = "~0.12.4"
