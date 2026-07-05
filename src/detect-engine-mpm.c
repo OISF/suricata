@@ -218,7 +218,7 @@ static void AppendTransformsToPname(
          * use it to construct the 'profile' name for the engine */
         char xforms[DETECT_PROFILE_NAME_LEN + 1];
         memset(xforms, 0, DETECT_PROFILE_NAME_LEN + 1);
-        for (int i = 0; i < transforms->cnt; i++) {
+        for (uint8_t i = 0; i < transforms->cnt; i++) {
             char ttstr[64];
             (void)snprintf(ttstr, sizeof(ttstr), "%s,",
                     sigmatch_table[transforms->transforms[i].transform].name);
