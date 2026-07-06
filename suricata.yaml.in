@@ -289,6 +289,15 @@ outputs:
             # Default: all.
             #types: [a, aaaa, cname, mx, ns, ptr, txt]
         - mdns:
+            # Enable/disable this logger. Default: enabled.
+            #enabled: yes
+
+            # Control logging of requests and responses:
+            # - requests: enable logging of mDNS queries
+            # - responses: enable logging of mDNS answers
+            # By default both requests and responses are logged.
+            #requests: no
+            #responses: no
         - tls:
             extended: yes     # enable this for extended logging information
             # output TLS transaction where the session is resumed using a
