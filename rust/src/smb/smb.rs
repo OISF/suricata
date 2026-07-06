@@ -1142,14 +1142,22 @@ impl SMBState {
         (name, is_dcerpc)
     }
 
-    fn post_gap_housekeeping_for_files(&mut self) {
+    fn post_gap_housekeeping_for_files(&mut self, flow: *mut Flow) {
         let mut post_gap_txs = false;
         for tx in &mut self.transactions {
             if let Some(SMBTransactionTypeData::FILE(ref mut f)) = tx.type_data {
                 if f.post_gap_ts > 0 {
                     if self.ts > f.post_gap_ts {
                         tx.request_done = true;
+                        sc_app_layer_parser_trigger_raw_stream_inspection(
+                            flow,
+                            Direction::ToServer as i32,
+                        );
                         tx.response_done = true;
+                        sc_app_layer_parser_trigger_raw_stream_inspection(
+                            flow,
+                            Direction::ToClient as i32,
+                        );
                         filetracker_trunc(&mut f.file_tracker);
                     } else {
                         post_gap_txs = true;
@@ -1165,7 +1173,7 @@ impl SMBState {
      * can handle gaps. For the file transactions we set the current
      * (flow) time and prune them in 60 seconds if no update for them
      * was received. */
-    fn post_gap_housekeeping(&mut self, dir: Direction) {
+    fn post_gap_housekeeping(&mut self, flow: *mut Flow, dir: Direction) {
         if self.ts_ssn_gap && dir == Direction::ToServer {
             for tx in &mut self.transactions {
                 if tx.id >= self.tx_id {
@@ -1182,6 +1190,10 @@ impl SMBState {
                 } else {
                     SCLogDebug!("post_gap_housekeeping: tx {} marked as done TS", tx.id);
                     tx.request_done = true;
+                    sc_app_layer_parser_trigger_raw_stream_inspection(
+                        flow,
+                        Direction::ToServer as i32,
+                    );
                 }
             }
         } else if self.tc_ssn_gap && dir == Direction::ToClient {
@@ -1200,7 +1212,15 @@ impl SMBState {
                 } else {
                     SCLogDebug!("post_gap_housekeeping: tx {} marked as done TC", tx.id);
                     tx.request_done = true;
+                    sc_app_layer_parser_trigger_raw_stream_inspection(
+                        flow,
+                        Direction::ToServer as i32,
+                    );
                     tx.response_done = true;
+                    sc_app_layer_parser_trigger_raw_stream_inspection(
+                        flow,
+                        Direction::ToClient as i32,
+                    );
                 }
             }
         }
@@ -1466,6 +1486,7 @@ impl SMBState {
                                     nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
                                 smb1_write_request_record(
                                     self,
+                                    flow,
                                     r,
                                     SMB1_HEADER_SIZE,
                                     SMB1_COMMAND_WRITE_ANDX,
@@ -1511,7 +1532,7 @@ impl SMBState {
                                 // stay within the NBSS record.
                                 let nbss_remaining =
                                     nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
-                                smb2_write_request_record(self, smb_record, nbss_remaining);
+                                smb2_write_request_record(self, flow, smb_record, nbss_remaining);
 
                                 self.add_nbss_ts_frames(
                                     flow,
@@ -1642,7 +1663,7 @@ impl SMBState {
                                                 nbss_hdr.length as i64,
                                             );
                                             if smb_record.is_request() {
-                                                smb1_request_record(self, smb_record);
+                                                smb1_request_record(self, flow, smb_record);
                                             } else {
                                                 // If we received a response when expecting a request, set an event
                                                 // on the PDU frame instead of handling the response.
@@ -1693,7 +1714,7 @@ impl SMBState {
                                                     nbss_data_rem.len()
                                                 );
                                                 if smb_record.is_request() {
-                                                    smb2_request_record(self, smb_record);
+                                                    smb2_request_record(self, flow, smb_record);
                                                 } else {
                                                     // If we received a response when expecting a request, set an event
                                                     // on the PDU frame instead of handling the response.
@@ -1807,9 +1828,9 @@ impl SMBState {
             }
         }
 
-        self.post_gap_housekeeping(Direction::ToServer);
+        self.post_gap_housekeeping(flow, Direction::ToServer);
         if self.check_post_gap_file_txs && !self.post_gap_files_checked {
-            self.post_gap_housekeeping_for_files();
+            self.post_gap_housekeeping_for_files(flow);
             self.post_gap_files_checked = true;
         }
         AppLayerResult::ok()
@@ -2042,6 +2063,7 @@ impl SMBState {
                                     nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
                                 smb1_read_response_record(
                                     self,
+                                    flow,
                                     r,
                                     SMB1_HEADER_SIZE,
                                     nbss_remaining,
@@ -2088,7 +2110,7 @@ impl SMBState {
                                 // stay within the NBSS record.
                                 let nbss_remaining =
                                     nbss_part_hdr.length - nbss_part_hdr.data.len() as u32;
-                                smb2_read_response_record(self, smb_record, nbss_remaining);
+                                smb2_read_response_record(self, flow, smb_record, nbss_remaining);
                                 let consumed = input.len() - output.len();
                                 return consumed;
                             }
@@ -2197,7 +2219,7 @@ impl SMBState {
                                             // see https://github.com/rust-lang/rust-clippy/issues/15158
                                             #[allow(clippy::collapsible_else_if)]
                                             if smb_record.is_response() {
-                                                smb1_response_record(self, smb_record);
+                                                smb1_response_record(self, flow, smb_record);
                                             } else {
                                                 SCLogDebug!(
                                                     "SMB1 request seen from server to client"
@@ -2240,7 +2262,7 @@ impl SMBState {
                                                 // see https://github.com/rust-lang/rust-clippy/issues/15158
                                                 #[allow(clippy::collapsible_else_if)]
                                                 if smb_record.is_response() {
-                                                    smb2_response_record(self, smb_record);
+                                                    smb2_response_record(self, flow, smb_record);
                                                 } else {
                                                     SCLogDebug!(
                                                         "SMB2 request seen from server to client"
@@ -2343,9 +2365,9 @@ impl SMBState {
                 }
             }
         }
-        self.post_gap_housekeeping(Direction::ToClient);
+        self.post_gap_housekeeping(flow, Direction::ToClient);
         if self.check_post_gap_file_txs && !self.post_gap_files_checked {
-            self.post_gap_housekeeping_for_files();
+            self.post_gap_housekeeping_for_files(flow);
             self.post_gap_files_checked = true;
         }
         self._debug_tx_stats();
