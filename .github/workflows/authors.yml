@@ -4,12 +4,14 @@ name: New Authors Check
 # for fork PRs, allowing us to post a comment directly without the artifact
 # hand-off to a second workflow_run workflow.
 #
-# Only git history is read here — no PR code is built or executed — so
-# checking out the PR head SHA is safe under pull_request_target.
+# Only git history is read here. Avoid checking out fork PR files in the
+# pull_request_target trust context; the job checks out the trusted base ref and
+# fetches the PR head ref only for git-log inspection.
 on:
   pull_request_target:
 
 permissions:
+  contents: read
   pull-requests: write
 
 concurrency:
@@ -21,16 +23,24 @@ jobs:
     name: New Author Check
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR code
+      - name: Checkout trusted base branch
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+          persist-credentials: false
       - run: sudo apt -y install git
+      - name: Fetch PR head for history inspection
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          git fetch --no-tags --no-recurse-submodules origin \
+            "+refs/pull/${PR_NUMBER}/head:refs/remotes/pull-request/head"
       - name: Export known authors from main branch
         run: git log --format="%an <%ae>" origin/main | sort | uniq > authors.txt
       - name: Export authors from new commits
-        run: git log --format="%an <%ae>" ${{ github.event.pull_request.base.sha }}... | sort | uniq > commit-authors.txt
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: git log --format="%an <%ae>" "${BASE_SHA}..refs/remotes/pull-request/head" | sort | uniq > commit-authors.txt
       - name: Check new authors
         run: |
           touch new-authors.txt
