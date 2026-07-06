@@ -484,6 +484,7 @@ impl HTTP2Transaction {
                         SCAppLayerForceProtocolChange(flow, ALPROTO_DOH2);
                     }
                 }
+                doh.data_buf[dir.index()].clear();
             }
         }
     }
