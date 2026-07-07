@@ -533,6 +533,20 @@ pub unsafe extern "C" fn SCHttp2TxGetResponseLine(
 pub unsafe extern "C" fn SCHttp2TxGetUri(
     tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
+    if !tx.normalized_uri.is_empty()
+        || http2_frames_get_header_firstvalue(tx, Direction::ToServer, ":path").is_ok()
+    {
+        *buffer = tx.normalized_uri.as_ptr(); //unsafe
+        *buffer_len = tx.normalized_uri.len() as u32;
+        return 1;
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2TxGetRawUri(
+    tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> u8 {
     if let Ok(value) = http2_frames_get_header_firstvalue(tx, Direction::ToServer, ":path") {
         *buffer = value.as_ptr(); //unsafe
         *buffer_len = value.len() as u32;
@@ -1001,6 +1015,15 @@ pub unsafe extern "C" fn SCHttp2TxSetUri(
 ) {
     let slice = build_slice!(buffer, buffer_len as usize);
     http2_tx_set_header(state, ":path".as_bytes(), slice)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2TxSetNormUri(
+    state: &mut HTTP2State, buffer: *const u8, buffer_len: u32,
+) {
+    let slice = build_slice!(buffer, buffer_len as usize);
+    let tx = state.transactions.back_mut().unwrap();
+    tx.normalized_uri = slice.to_vec();
 }
 
 fn http2_tx_set_settings(state: &mut HTTP2State, input: &[u8]) {
