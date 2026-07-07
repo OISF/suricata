@@ -169,6 +169,7 @@ Default Changes
 ~~~~~~~~~~~~~~~
 - An absent configuration value for ``stream.reassembly.urgent.policy`` is now treated as ``oob`` instead of ``inline``.
 - An absent configuration value for ``stream.reassembly.urgent.oob-limit-policy`` is now treated as ``drop`` instead of ``inline``.
+- HTTP1 uri normalization now defaults ``query-plusspace-decode`` to true.
 
 Other Changes
 ~~~~~~~~~~~~~
