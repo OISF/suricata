@@ -26,6 +26,8 @@ http2.frametype is also a :ref:`multi-integer <multi-integers>`.
 
 http2.frametype does not have any corresponding log output.
 
+See ``suricata --list-keywords=json | jq '."http2.frametype".enum_values'``
+
 Examples::
 
   http2.frametype:GOAWAY;
@@ -39,6 +41,8 @@ Match on the error code in a GOWAY or RST_STREAM frame
 http2.errorcode uses an :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
 
 http2.errorcode is also a :ref:`multi-integer <multi-integers>`.
+
+See ``suricata --list-keywords=json | jq '."http2.errorcode".enum_values'``
 
 Examples::
 
