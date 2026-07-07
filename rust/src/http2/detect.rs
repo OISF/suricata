@@ -23,9 +23,9 @@ use crate::detect::uint::{
     detect_match_uint, detect_parse_array_uint_enum, detect_uint_match_at_index,
     DetectUintArrayData, DetectUintData, DetectUintIndex, DetectUintMode,
 };
-use crate::jsonbuilder::JsonBuilder;
 use crate::detect::EnumString;
 use crate::direction::Direction;
+use crate::jsonbuilder::JsonBuilder;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use std::ffi::CStr;
 use std::os::raw::c_void;
