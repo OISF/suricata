@@ -22,9 +22,9 @@ use suricata_sys::sys::AppProtoEnum::ALPROTO_KRB5;
 use suricata_sys::sys::{
     AppProto, DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordAliasRegister,
-    SCDetectHelperKeywordRegister, SCDetectHelperMultiBufferProgressMpmRegister,
-    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
-    Signature,
+    SCDetectHelperKeywordJsonInfoRegister, SCDetectHelperKeywordRegister,
+    SCDetectHelperMultiBufferProgressMpmRegister, SCDetectSignatureSetAppProto, SCJsonBuilder,
+    SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
@@ -32,9 +32,10 @@ use crate::detect::uint::{
     detect_parse_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Match,
 };
 use crate::detect::{
-    helper_keyword_register_multi_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
-    SIGMATCH_INFO_UINT32,
+    helper_keyword_register_multi_buffer, EnumString, SigTableElmtStickyBuffer,
+    SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT32,
 };
+use crate::jsonbuilder::JsonBuilder;
 use kerberos_parser::krb5::EncryptionType;
 
 use nom8::branch::alt;
@@ -528,6 +529,11 @@ unsafe extern "C" fn krb5_ticket_encryption_free(_de: *mut DetectEngineCtx, ctx:
     std::mem::drop(Box::from_raw(ctx));
 }
 
+unsafe extern "C" fn krb5_msg_type_list_values(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = Krb5MessageType::list_values(jsb);
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectKrb5Register() {
     let kw = SCSigTableAppLiteElmt {
@@ -540,6 +546,8 @@ pub unsafe extern "C" fn SCDetectKrb5Register() {
         flags: SIGMATCH_INFO_ENUM_UINT | SIGMATCH_INFO_UINT32,
     };
     G_KRB5_MSG_TYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordJsonInfoRegister(G_KRB5_MSG_TYPE_KW_ID, Some(krb5_msg_type_list_values));
+
     G_KRB5_GENERIC_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"krb5_generic\0".as_ptr() as *const libc::c_char,
         ALPROTO_KRB5 as AppProto,
