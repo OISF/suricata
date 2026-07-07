@@ -25,18 +25,20 @@ use crate::detect::uint::{
     SCDetectU8Free, SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_multi_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
-    SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT16, SIGMATCH_INFO_UINT8,
+    helper_keyword_register_multi_buffer, EnumString, SigTableElmtStickyBuffer,
+    SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT16, SIGMATCH_INFO_UINT8,
 };
 use crate::direction::Direction;
+use crate::jsonbuilder::JsonBuilder;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordAliasRegister,
-    SCDetectHelperKeywordRegister, SCDetectHelperMultiBufferProgressMpmRegister,
-    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
-    Signature, SIGMATCH_SUPPORT_FIREWALL,
+    SCDetectHelperKeywordJsonInfoRegister, SCDetectHelperKeywordRegister,
+    SCDetectHelperMultiBufferProgressMpmRegister, SCDetectSignatureSetAppProto, SCJsonBuilder,
+    SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SIGMATCH_SUPPORT_FIREWALL,
 };
 
 /// Perform the DNS opcode match.
@@ -355,6 +357,16 @@ unsafe extern "C" fn dns_detect_query_setup(
     return 0;
 }
 
+unsafe extern "C" fn dns_rcode_list_values(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = DNSRcode::list_values(jsb);
+}
+
+unsafe extern "C" fn dns_rrtype_list_values(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = DNSRecordType::list_values(jsb);
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectDNSRegister() {
     let kw = SigTableElmtStickyBuffer {
@@ -417,6 +429,8 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         flags: SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_DNS_RCODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordJsonInfoRegister(G_DNS_RCODE_KW_ID, Some(dns_rcode_list_values));
+
     G_DNS_RCODE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"dns.rcode\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
@@ -433,6 +447,7 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         flags: SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT,
     };
     G_DNS_RRTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordJsonInfoRegister(G_DNS_RRTYPE_KW_ID, Some(dns_rrtype_list_values));
     G_DNS_RRTYPE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"dns.rrtype\0".as_ptr() as *const libc::c_char,
         ALPROTO_DNS,
