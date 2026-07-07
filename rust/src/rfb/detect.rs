@@ -24,17 +24,19 @@ use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, DetectUintData, SCDetectU32Free, SCDetectU32Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
-    SIGMATCH_INFO_UINT32,
+    helper_keyword_register_sticky_buffer, EnumString, SigTableElmtStickyBuffer,
+    SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT32,
 };
+use crate::jsonbuilder::JsonBuilder;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectHelperKeywordJsonInfoRegister, SCDetectHelperKeywordRegister,
+    SCDetectSignatureSetAppProto, SCJsonBuilder, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt,
+    SigMatchCtx, Signature,
 };
 
 unsafe extern "C" fn rfb_name_get(
@@ -183,6 +185,11 @@ unsafe extern "C" fn rfb_sec_result_free(_de: *mut DetectEngineCtx, ctx: *mut c_
     SCDetectU32Free(ctx);
 }
 
+unsafe extern "C" fn rfb_sec_result_list_values(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = RFBSecurityResultStatus::list_values(jsb);
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectRfbRegister() {
     let kw = SigTableElmtStickyBuffer {
@@ -225,6 +232,8 @@ pub unsafe extern "C" fn SCDetectRfbRegister() {
         flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_RFB_SEC_RESULT_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordJsonInfoRegister(G_RFB_SEC_RESULT_KW_ID, Some(rfb_sec_result_list_values));
+
     G_RFB_SEC_RESULT_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"rfb.secresult\0".as_ptr() as *const libc::c_char,
         ALPROTO_RFB,
