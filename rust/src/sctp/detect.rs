@@ -18,6 +18,9 @@
 // Author: Giuseppe Longo <glongo@oisf.net>
 
 use crate::detect::uint::{detect_parse_uint_enum, DetectUintData};
+use crate::detect::EnumString;
+use crate::jsonbuilder::JsonBuilder;
+use suricata_sys::sys::SCJsonBuilder;
 
 use std::ffi::CStr;
 
@@ -80,6 +83,12 @@ pub extern "C" fn SCSctpChunkTypeToString(val: u8) -> *const std::os::raw::c_cha
         _ => return std::ptr::null(),
     };
     s.as_ptr() as *const std::os::raw::c_char
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectSCTPChunkTypeListValues(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = SctpChunkType::list_values(jsb);
 }
 
 #[cfg(test)]
