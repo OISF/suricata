@@ -11,6 +11,8 @@ names.
 
 ``ntp.mode`` uses an :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
 
+See ``suricata --list-keywords=json | jq '."ntp.mode".enum_values'``
+
 Syntax::
 
   ntp.mode:[op]<number>
