@@ -52,6 +52,8 @@ Syntax::
 
 ldap.request.operation uses :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
 
+See ``suricata --list-keywords=json | jq '."ldap.request.operation".enum_values'``
+
 This keyword maps to the EVE field  ``ldap.request.operation``
 
 Examples
@@ -275,6 +277,8 @@ Syntax::
 ldap.responses.result_code uses :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
 
 ldap.responses.result_code is also a :ref:`multi-integer <multi-integers>`.
+
+See ``suricata --list-keywords=json | jq '."ldap.responses.result_code".enum_values'``
 
 This keyword maps to the following eve fields:
 
