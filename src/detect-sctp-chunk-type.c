@@ -45,6 +45,11 @@ void DetectSCTPChunkTypeFree(DetectEngineCtx *, void *);
 static int PrefilterSetupSCTPChunkType(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static bool PrefilterSCTPChunkTypeIsPrefilterable(const Signature *s);
 
+static void DetectSCTPChunkTypeListValues(SCJsonBuilder *jsb)
+{
+    SCDetectSCTPChunkTypeListValues(jsb);
+}
+
 void DetectSCTPChunkTypeRegister(void)
 {
     sigmatch_table[DETECT_SCTP_CHUNK_TYPE].name = "sctp.chunk_type";
@@ -57,6 +62,7 @@ void DetectSCTPChunkTypeRegister(void)
     sigmatch_table[DETECT_SCTP_CHUNK_TYPE].SupportsPrefilter =
             PrefilterSCTPChunkTypeIsPrefilterable;
     sigmatch_table[DETECT_SCTP_CHUNK_TYPE].SetupPrefilter = PrefilterSetupSCTPChunkType;
+    sigmatch_table[DETECT_SCTP_CHUNK_TYPE].JsonAdditionalInfo = DetectSCTPChunkTypeListValues;
 }
 
 static int DetectSCTPChunkTypeMatch(
