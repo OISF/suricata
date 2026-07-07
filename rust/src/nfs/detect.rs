@@ -17,12 +17,13 @@
 
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
+use crate::jsonbuilder::JsonBuilder;
 use suricata_sys::sys::AppProtoEnum::ALPROTO_NFS;
 use suricata_sys::sys::{
     AppProto, DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordAliasRegister, SCDetectHelperKeywordRegister,
-    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
-    Signature,
+    SCDetectHelperKeywordAliasRegister, SCDetectHelperKeywordJsonInfoRegister,
+    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCJsonBuilder,
+    SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 use super::nfs::{NFSTransaction, NFSTransactionTypeData};
@@ -32,7 +33,7 @@ use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, detect_parse_uint_inclusive, DetectUintData,
     SCDetectU32Free, SCDetectU32ParseInclusive,
 };
-use crate::detect::{SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT32};
+use crate::detect::{EnumString, SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT32};
 
 use std::ffi::{c_int, CStr};
 use std::os::raw::c_void;
@@ -202,6 +203,21 @@ unsafe extern "C" fn nfs_version_free(_de: *mut DetectEngineCtx, ctx: *mut c_voi
     SCDetectU32Free(ctx);
 }
 
+unsafe extern "C" fn nfs_procedure_list_values(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = jsb.open_object("enum_values");
+    let _ = jsb.open_object("v2");
+    let _ = NfsProc2::list_values(jsb);
+    let _ = jsb.close();
+    let _ = jsb.open_object("v3");
+    let _ = NfsProc3::list_values(jsb);
+    let _ = jsb.close();
+    let _ = jsb.open_object("v4");
+    let _ = NfsProc4::list_values(jsb);
+    let _ = jsb.close();
+    let _ = jsb.close();
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectNfsRegister() {
     let kw = SCSigTableAppLiteElmt {
@@ -214,6 +230,7 @@ pub unsafe extern "C" fn SCDetectNfsRegister() {
         flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_NFS_PROCEDURE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordJsonInfoRegister(G_NFS_PROCEDURE_KW_ID, Some(nfs_procedure_list_values));
     G_NFS_PROCEDURE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"nfs_procedure\0".as_ptr() as *const libc::c_char,
         ALPROTO_NFS as AppProto,
