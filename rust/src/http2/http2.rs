@@ -293,6 +293,7 @@ pub struct HTTP2Transaction {
     pub progress: HTTP2Progress,
     to_drop: bool,
     child_stream_id: u32,
+    pub normalized_uri: Vec<u8>,
 
     pub frames_tc: Vec<HTTP2Frame>,
     pub frames_ts: Vec<HTTP2Frame>,
@@ -305,6 +306,10 @@ pub struct HTTP2Transaction {
     pub ft_ts: FileTransferTracker,
 
     pub doh: Option<DohHttp2Tx>,
+}
+
+fn http2_normalize_uri(uri: &[u8]) -> Vec<u8> {
+    htp::uri::normalize_uri(uri)
 }
 
 impl Transaction for HTTP2Transaction {
@@ -326,6 +331,7 @@ impl HTTP2Transaction {
             stream_id: 0,
             child_stream_id: 0,
             progress: HTTP2Progress::STREAM(HTTP2StreamProgress::init()),
+            normalized_uri: Vec::new(),
             to_drop: false,
             frames_tc: Vec::new(),
             frames_ts: Vec::new(),
@@ -388,7 +394,10 @@ impl HTTP2Transaction {
                         self.doh = Some(doh);
                     }
                 }
-            } else if block.name.as_ref() == b":path" {
+            } else if block.name.as_ref() == b":path" && dir == Direction::ToServer {
+                if self.normalized_uri.is_empty() {
+                    self.normalized_uri = http2_normalize_uri(&block.value);
+                }
                 path = Some(&block.value);
             } else if block.name.eq_ignore_ascii_case(b":authority") {
                 authority = Some(&block.value);
@@ -789,7 +798,7 @@ pub struct HTTP2State {
     response_frame_size: u32,
     dynamic_headers_ts: HTTP2DynTable,
     dynamic_headers_tc: HTTP2DynTable,
-    transactions: VecDeque<HTTP2Transaction>,
+    pub transactions: VecDeque<HTTP2Transaction>,
     progress: HTTP2ConnectionState,
 
     comp_len: u64,
