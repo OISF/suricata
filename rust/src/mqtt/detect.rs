@@ -24,16 +24,17 @@ use crate::detect::uint::{
     DetectUintIndex, SCDetectU8ArrayFree, SCDetectU8ArrayParse, SCDetectU8Free, SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
+    helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer, EnumString,
     SigTableElmtStickyBuffer, SIGMATCH_INFO_BITFLAGS_UINT, SIGMATCH_INFO_ENUM_UINT,
     SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT8,
 };
+use crate::jsonbuilder::JsonBuilder;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordRegister, SCDetectHelperMultiBufferMpmRegister,
-    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
-    Signature,
+    SCDetectHelperKeywordJsonInfoRegister, SCDetectHelperKeywordRegister,
+    SCDetectHelperMultiBufferMpmRegister, SCDetectSignatureSetAppProto, SCJsonBuilder,
+    SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 use super::mqtt::{MQTTState, MQTTTransaction, ALPROTO_MQTT};
@@ -906,6 +907,11 @@ unsafe extern "C" fn mqtt_conn_clientid_setup(
     return 0;
 }
 
+unsafe extern "C" fn mqtt_type_list_values(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = MQTTTypeCode::list_values(jsb);
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectMqttRegister() {
     let keyword_name = b"mqtt.unsubscribe.topic\0".as_ptr() as *const libc::c_char;
@@ -941,6 +947,8 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT,
     };
     G_MQTT_TYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordJsonInfoRegister(G_MQTT_TYPE_KW_ID, Some(mqtt_type_list_values));
+
     G_MQTT_TYPE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"mqtt.type\0".as_ptr() as *const libc::c_char,
         ALPROTO_MQTT,
