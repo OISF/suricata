@@ -38,14 +38,17 @@ use crate::detect::uint::{
     SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match, SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
-    SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT16, SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8,
+    helper_keyword_register_sticky_buffer, EnumString, SigTableElmtStickyBuffer,
+    SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT16, SIGMATCH_INFO_UINT32,
+    SIGMATCH_INFO_UINT8,
 };
+use crate::jsonbuilder::JsonBuilder;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectHelperKeywordJsonInfoRegister, SCDetectHelperKeywordRegister,
+    SCDetectSignatureSetAppProto, SCJsonBuilder, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt,
+    SigMatchCtx, Signature,
 };
 
 use crate::direction::Direction;
@@ -1378,6 +1381,16 @@ unsafe extern "C" fn service_name_get_data(
     return false;
 }
 
+unsafe extern "C" fn enip_status_list_values(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = EnipStatus::list_values(jsb);
+}
+
+unsafe extern "C" fn enip_command_list_values(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = EnipCommand::list_values(jsb);
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectEnipRegister() {
     let kw = SCSigTableAppLiteElmt {
@@ -1471,6 +1484,8 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_ENIP_STATUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordJsonInfoRegister(G_ENIP_STATUS_KW_ID, Some(enip_status_list_values));
+
     G_ENIP_STATUS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.status\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
@@ -1567,6 +1582,8 @@ pub unsafe extern "C" fn SCDetectEnipRegister() {
         flags: SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_ENIP_COMMAND_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordJsonInfoRegister(G_ENIP_COMMAND_KW_ID, Some(enip_command_list_values));
+
     G_ENIP_COMMAND_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"enip.command\0".as_ptr() as *const libc::c_char,
         ALPROTO_ENIP,
