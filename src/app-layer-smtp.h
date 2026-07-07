@@ -153,6 +153,8 @@ typedef struct SMTPState_ {
      * stored command in the buffer to match the reply(ies) with the command */
     /** the command buffer */
     uint8_t *cmds;
+    /** tx id for each stored command */
+    uint64_t *cmds_tx_ids;
     /** the buffer length */
     uint16_t cmds_buffer_len;
     /** no of commands stored in the above buffer */
