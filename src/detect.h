@@ -713,6 +713,8 @@ typedef struct Signature_ {
 
     /** firewall: progress value for this signature */
     uint8_t app_progress_hook;
+    /** tx type to match against. If 0 a sig can match multiple (e.g. http2.frametype) */
+    uint8_t app_sub_state;
 
     DetectMatchAddressIPv4 *addr_dst_match4;
     DetectMatchAddressIPv4 *addr_src_match4;

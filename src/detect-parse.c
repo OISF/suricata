@@ -1406,11 +1406,17 @@ static int SigParseProtoHookApp(
         return -1;
     }
 
-    if (t != NULL) {
-        if (strlen(t) == 0) {
+    /* first see if we get a proto:substate only */
+    const bool support_substate = AppLayerParserSupportsSubStates(s->alproto);
+    if (t != NULL || (t == NULL && support_substate)) {
+        if (t != NULL && strlen(t) == 0) {
             SCLogError("invalid tx type specification '%s'", hook);
             return -1;
         }
+        if (t == NULL) {
+            t = h;
+        }
+
         if (strcmp(p, "http2") == 0 || strcmp(p, "doh2") == 0) {
             if (strcmp(t, "stream") == 0) {
                 sub_state = HTTP2TxTypeStream;
@@ -1426,45 +1432,52 @@ static int SigParseProtoHookApp(
             SCLogError("sub states currently only supported for http2 and doh2");
             return -1;
         }
-        /* FW hook LTE mode */
-        if (*h == '<') {
-            h++;
-            SCLogDebug("hook and prior hooks: '%s'", h);
-            s->flags |= SIG_FLAG_FW_HOOK_LTE;
-        }
-        const uint8_t max_state = AppLayerParserGetSubStateCompletion(
-                s->alproto, sub_state); // TODO allow different completion per direction?
-        if (strcmp(h, "request_started") == 0) {
-            s->flags |= SIG_FLAG_TOSERVER;
-            s->init_data->hook = SetAppHook(s->alproto, sub_state,
-                    0); // state 0 should be the starting state in each protocol.
-        } else if (strcmp(h, "response_started") == 0) {
-            s->flags |= SIG_FLAG_TOCLIENT;
-            s->init_data->hook = SetAppHook(s->alproto, sub_state,
-                    0); // state 0 should be the starting state in each protocol.
-        } else if (strcmp(h, "request_complete") == 0) {
-            s->flags |= SIG_FLAG_TOSERVER;
-            s->init_data->hook = SetAppHook(s->alproto, sub_state, max_state);
-        } else if (strcmp(h, "response_complete") == 0) {
-            s->flags |= SIG_FLAG_TOCLIENT;
-            s->init_data->hook = SetAppHook(s->alproto, sub_state, max_state);
+
+        if (t == h) {
+            /* no hook, just proto:substate */
+            s->init_data->hook.t.app.sub_state = sub_state;
+            s->init_data->hook.t.app.alproto = s->alproto;
         } else {
-            const int8_t progress_ts =
-                    AppLayerParserGetSubStateProgressId(s->alproto, sub_state, h, STREAM_TOSERVER);
-            if (progress_ts >= 0) {
-                s->flags |= SIG_FLAG_TOSERVER;
-                s->init_data->hook = SetAppHook(s->alproto, sub_state, progress_ts);
-            } else {
-                const int8_t progress_tc = AppLayerParserGetSubStateProgressId(
-                        s->alproto, sub_state, h, STREAM_TOCLIENT);
-                if (progress_tc < 0) {
-                    return -1;
-                }
-                s->flags |= SIG_FLAG_TOCLIENT;
-                s->init_data->hook = SetAppHook(s->alproto, sub_state, progress_tc);
+            /* FW hook LTE mode */
+            if (*h == '<') {
+                h++;
+                SCLogDebug("hook and prior hooks: '%s'", h);
+                s->flags |= SIG_FLAG_FW_HOOK_LTE;
             }
+            const uint8_t max_state = AppLayerParserGetSubStateCompletion(
+                    s->alproto, sub_state); // TODO allow different completion per direction?
+            if (strcmp(h, "request_started") == 0) {
+                s->flags |= SIG_FLAG_TOSERVER;
+                s->init_data->hook = SetAppHook(s->alproto, sub_state,
+                        0); // state 0 should be the starting state in each protocol.
+            } else if (strcmp(h, "response_started") == 0) {
+                s->flags |= SIG_FLAG_TOCLIENT;
+                s->init_data->hook = SetAppHook(s->alproto, sub_state,
+                        0); // state 0 should be the starting state in each protocol.
+            } else if (strcmp(h, "request_complete") == 0) {
+                s->flags |= SIG_FLAG_TOSERVER;
+                s->init_data->hook = SetAppHook(s->alproto, sub_state, max_state);
+            } else if (strcmp(h, "response_complete") == 0) {
+                s->flags |= SIG_FLAG_TOCLIENT;
+                s->init_data->hook = SetAppHook(s->alproto, sub_state, max_state);
+            } else {
+                const int8_t progress_ts = AppLayerParserGetSubStateProgressId(
+                        s->alproto, sub_state, h, STREAM_TOSERVER);
+                if (progress_ts >= 0) {
+                    s->flags |= SIG_FLAG_TOSERVER;
+                    s->init_data->hook = SetAppHook(s->alproto, sub_state, progress_ts);
+                } else {
+                    const int8_t progress_tc = AppLayerParserGetSubStateProgressId(
+                            s->alproto, sub_state, h, STREAM_TOCLIENT);
+                    if (progress_tc < 0) {
+                        return -1;
+                    }
+                    s->flags |= SIG_FLAG_TOCLIENT;
+                    s->init_data->hook = SetAppHook(s->alproto, sub_state, progress_tc);
+                }
+            }
+            snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:%s:generic", p, t, h);
         }
-        snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:%s:generic", p, t, h);
     } else {
         if (AppLayerParserSupportsSubStates(s->alproto)) {
             SCLogError(
@@ -1516,20 +1529,22 @@ static int SigParseProtoHookApp(
         }
         snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", p, h);
     }
-    SCLogDebug("generic_hook_name %s", generic_hook_name);
+    if (strlen(generic_hook_name) > 0) {
+        SCLogDebug("generic_hook_name %s", generic_hook_name);
 
-    int list = DetectBufferTypeGetByName(generic_hook_name);
-    if (list < 0) {
-        SCLogError("no list registered as %s for hook %s", generic_hook_name, proto_hook);
-        return -1;
+        int list = DetectBufferTypeGetByName(generic_hook_name);
+        if (list < 0) {
+            SCLogError("no list registered as %s for hook %s", generic_hook_name, proto_hook);
+            return -1;
+        }
+        s->init_data->hook.sm_list = list;
+
+        SCLogDebug("protocol:%s hook:%s: type:%s alproto:%u hook:%d", p, h,
+                SignatureHookTypeToString(s->init_data->hook.type),
+                s->init_data->hook.t.app.alproto, s->init_data->hook.t.app.app_progress);
     }
-    s->init_data->hook.sm_list = list;
-
-    SCLogDebug("protocol:%s hook:%s: type:%s alproto:%u hook:%d", p, h,
-            SignatureHookTypeToString(s->init_data->hook.type), s->init_data->hook.t.app.alproto,
-            s->init_data->hook.t.app.app_progress);
-
     s->app_progress_hook = s->init_data->hook.t.app.app_progress;
+    s->app_sub_state = s->init_data->hook.t.app.sub_state;
     return 0;
 }
 
@@ -2875,6 +2890,13 @@ static int SigValidateCheckBuffers(
                 if (!(AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
                     continue;
                 }
+
+                /* Signature::sub_state check: 0 here means we don't check. E.g.
+                 * `alert http2 ... http2.frametype...` would apply to both stream
+                 * and global sub states. */
+                if (s->app_sub_state != 0 && s->app_sub_state != app->sub_state) {
+                    continue;
+                }
             }
 
             SCLogDebug("engine %s dir %d alproto %d",
@@ -4076,6 +4098,7 @@ static int AddAppPolicySignature(struct DetectFirewallAppPolicy *pol)
         return -1;
     }
     s->app_progress_hook = pol->progress;
+    s->app_sub_state = pol->sub_state;
     s->action = pol->policy.action;
     s->action_scope = pol->policy.action_scope;
     s->alproto = pol->alproto;

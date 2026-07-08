@@ -749,6 +749,12 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
             if (!AppProtoEquals(s->alproto, t->alproto)) {
                 return;
             }
+            /* Signature::sub_state check: 0 here means we don't check. E.g.
+             * `alert http2 ... http2.frametype...` would apply to both stream
+             * and global sub states. */
+            if (s->app_sub_state != 0 && s->app_sub_state != t->sub_state) {
+                return;
+            }
         }
     }
 

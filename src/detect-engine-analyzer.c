@@ -1134,6 +1134,13 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
 
     const char *alproto = AppProtoToString(s->alproto);
     SCJbSetString(ctx.js, "app_proto", alproto);
+    if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP && s->init_data->hook.t.app.sub_state) {
+        SCJbSetString(ctx.js, "sub_state",
+                AppLayerParserGetSubStateName(s->alproto, s->init_data->hook.t.app.sub_state));
+    } else if (s->app_sub_state) {
+        SCJbSetString(
+                ctx.js, "sub_state", AppLayerParserGetSubStateName(s->alproto, s->app_sub_state));
+    }
 
     SCJbOpenArray(ctx.js, "requirements");
     if (s->mask & SIG_MASK_REQUIRE_PAYLOAD) {
