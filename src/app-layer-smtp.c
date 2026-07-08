@@ -95,6 +95,7 @@
 /* All other commands are represented by this var */
 #define SMTP_COMMAND_OTHER_CMD 5
 #define SMTP_COMMAND_RSET      6
+#define SMTP_COMMAND_QUIT      7
 
 #define SMTP_DEFAULT_MAX_TX 256
 
@@ -1088,6 +1089,11 @@ static int SMTPProcessReply(
                 !(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
             SMTPTransactionComplete(reply_tx);
         }
+    } else if (IsReplyToCommand(state, SMTP_COMMAND_QUIT)) {
+        if (reply_code == SMTP_REPLY_221 && reply_tx &&
+                !(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
+            SMTPTransactionComplete(reply_tx);
+        }
     } else {
         /* we don't care for any other command for now */
     }
@@ -1284,8 +1290,9 @@ static int SMTPProcessRequest(
     if (line->len == 0 && line->delim_len == 0) {
         return 0;
     }
-    if (state->curr_tx == NULL ||
-            (SMTPTransactionRequestIsComplete(state->curr_tx) && !NoNewTx(state, line))) {
+    const bool no_new_tx = NoNewTx(state, line);
+    if ((state->curr_tx == NULL && (state->tx_cnt == 0 || !no_new_tx)) ||
+            (SMTPTransactionRequestIsComplete(state->curr_tx) && !no_new_tx)) {
         tx = SMTPTransactionCreate(state);
         if (tx == NULL)
             return -1;
@@ -1301,7 +1308,9 @@ static int SMTPProcessRequest(
     if (frame != NULL && state->curr_tx) {
         AppLayerFrameSetTxId(frame, state->curr_tx->tx_id);
     }
-    tx->tx_data.updated_ts = true;
+    if (tx != NULL) {
+        tx->tx_data.updated_ts = true;
+    }
 
     state->toserver_data_count += (line->len + line->delim_len);
 
@@ -1385,6 +1394,8 @@ static int SMTPProcessRequest(
             // Resets chunk index in case of connection reuse
             state->bdat_chunk_idx = 0;
             state->current_command = SMTP_COMMAND_RSET;
+        } else if (line->len >= 4 && SCMemcmpLowercase("quit", line->buf, 4) == 0) {
+            state->current_command = SMTP_COMMAND_QUIT;
         } else {
             state->current_command = SMTP_COMMAND_OTHER_CMD;
         }
@@ -2870,7 +2881,7 @@ static int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
-            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->cmds[0] != SMTP_COMMAND_QUIT ||
             smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state\n");
         goto end;
@@ -3352,7 +3363,7 @@ static int SMTPParserTest05(void)
         goto end;
     }
     if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
-            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->cmds[0] != SMTP_COMMAND_QUIT ||
             smtp_state->parser_state !=
                     (SMTP_PARSER_STATE_FIRST_REPLY_SEEN | SMTP_PARSER_STATE_PIPELINING_SERVER)) {
         printf("smtp parser in inconsistent state\n");
@@ -4370,7 +4381,7 @@ static int SMTPParserTest14(void)
         goto end;
     }
     if (smtp_state->cmds_cnt != 1 || smtp_state->cmds_idx != 0 ||
-            smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+            smtp_state->cmds[0] != SMTP_COMMAND_QUIT ||
             smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
