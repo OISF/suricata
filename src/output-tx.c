@@ -48,6 +48,7 @@ typedef struct OutputTxLoggerThreadData_ {
  * log module (e.g. http.log) with different output ctx'. */
 typedef struct OutputTxLogger_ {
     AppProto alproto;
+    uint8_t sub_state;
     TxLogger LogFunc;
     TxLoggerCondition LogCondition;
     void *initdata;
@@ -63,10 +64,13 @@ typedef struct OutputTxLogger_ {
 
 static OutputTxLogger **list = NULL;
 
-int SCOutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, TxLogger LogFunc,
-        void *initdata, int tc_log_progress, int ts_log_progress, TxLoggerCondition LogCondition,
-        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
+static int SCOutputRegisterTxLoggerInternal(LoggerId id, const char *name, AppProto alproto,
+        const uint8_t sub_state, TxLogger LogFunc, void *initdata, int tc_log_progress,
+        int ts_log_progress, TxLoggerCondition LogCondition, ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit)
 {
+    BUG_ON(sub_state > 0 && (tc_log_progress < 0 || ts_log_progress < 0));
+
     if (list == NULL) {
         list = SCCalloc(g_alproto_max, sizeof(OutputTxLogger *));
         if (unlikely(list == NULL)) {
@@ -85,6 +89,7 @@ int SCOutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, Tx
         return -1;
 
     op->alproto = alproto;
+    op->sub_state = sub_state;
     op->LogFunc = LogFunc;
     op->LogCondition = LogCondition;
     op->initdata = initdata;
@@ -129,6 +134,23 @@ int SCOutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, Tx
 
     SCLogDebug("OutputRegisterTxLogger happy");
     return 0;
+}
+
+int SCOutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, TxLogger LogFunc,
+        void *initdata, int tc_log_progress, int ts_log_progress, TxLoggerCondition LogCondition,
+        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
+{
+    return SCOutputRegisterTxLoggerInternal(id, name, alproto, 0, LogFunc, initdata,
+            tc_log_progress, ts_log_progress, LogCondition, ThreadInit, ThreadDeinit);
+}
+
+int SCOutputRegisterTxLoggerForSubState(LoggerId id, const char *name, AppProto alproto,
+        const uint8_t sub_state, TxLogger LogFunc, void *initdata, int tc_log_progress,
+        int ts_log_progress, TxLoggerCondition LogCondition, ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit)
+{
+    return SCOutputRegisterTxLoggerInternal(id, name, alproto, sub_state, LogFunc, initdata,
+            tc_log_progress, ts_log_progress, LogCondition, ThreadInit, ThreadDeinit);
 }
 
 extern bool g_file_logger_enabled;
@@ -274,8 +296,8 @@ struct Ctx {
 
 static void OutputTxLogCallLoggers(ThreadVars *tv, OutputTxLoggerThreadData *op_thread_data,
         const OutputTxLogger *logger, const OutputLoggerThreadStore *store, Packet *p, Flow *f,
-        void *alstate, void *tx, const uint64_t tx_id, const AppProto alproto, const bool eof,
-        const int tx_progress_ts, const int tx_progress_tc, struct Ctx *ctx)
+        void *alstate, void *tx, const uint64_t tx_id, AppLayerTxData *txd, const AppProto alproto,
+        const bool eof, const int tx_progress_ts, const int tx_progress_tc, struct Ctx *ctx)
 {
     DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
     DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
@@ -294,6 +316,13 @@ static void OutputTxLogCallLoggers(ThreadVars *tv, OutputTxLoggerThreadData *op_
 
             SCLogDebug("pcap_cnt %" PRIu64 ", tx_id %" PRIu64 " logger %d. EOF %s", p->pcap_cnt,
                     tx_id, logger->logger_id, eof ? "true" : "false");
+
+            if (logger->sub_state != txd->tx_type) {
+                SCLogDebug("logger:%s flow:%s: skip logger for wrong sub state: logger %u tx %u",
+                        AppProtoToString(logger->alproto), AppProtoToString(alproto),
+                        logger->sub_state, txd->tx_type);
+                goto next_logger;
+            }
 
             if (eof) {
                 SCLogDebug("EOF, so log now");
@@ -503,8 +532,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         struct Ctx ctx = { .tx_logged = txd->logged.flags, .tx_logged_old = txd->logged.flags };
         SCLogDebug("logger: expect %08x, have %08x", logger_expectation, ctx.tx_logged);
 
-        OutputTxLogCallLoggers(tv, op_thread_data, logger, store, p, f, alstate, tx, tx_id, alproto,
-                eof, tx_progress_ts, tx_progress_tc, &ctx);
+        OutputTxLogCallLoggers(tv, op_thread_data, logger, store, p, f, alstate, tx, tx_id, txd,
+                alproto, eof, tx_progress_ts, tx_progress_tc, &ctx);
 
         SCLogDebug("logger: expect %08x, have %08x", logger_expectation, ctx.tx_logged);
         if (ctx.tx_logged != ctx.tx_logged_old) {
