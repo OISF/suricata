@@ -124,6 +124,7 @@
 #include "detect-requires.h"
 #include "detect-tcp-window.h"
 #include "detect-tcp-wscale.h"
+#include "detect-tcp-session.h"
 #include "detect-ftpbounce.h"
 #include "detect-ftp-dynamic-port.h"
 #include "detect-isdataat.h"
@@ -626,6 +627,7 @@ void SigTableSetup(void)
     DetectOffsetRegister();
     DetectReplaceRegister();
     DetectFlowRegister();
+    DetectTcpSessionRegister();
     DetectFlowAgeRegister();
     DetectFlowPktsRegister();
     DetectFlowPktsToServerRegister();
