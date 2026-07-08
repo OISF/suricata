@@ -61,6 +61,8 @@ enum DetectKeywordId {
     DETECT_FLOW,
     /* end prefilter sort */
 
+    DETECT_TCP_SESSION,
+
     /* values used in util-var.c go here, to avoid int overflows */
     DETECT_THRESHOLD,
     DETECT_FLOWBITS,
