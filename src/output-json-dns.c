@@ -694,7 +694,11 @@ void JsonDnsLogRegister (void)
 
 void JsonDoh2LogRegister(void)
 {
-    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonDoH2Log", "eve-log.doh2",
-            JsonDnsLogInitCtxSub, ALPROTO_DOH2, JsonDoh2Logger, LogDnsLogThreadInit,
+    OutputRegisterTxSubModuleWithProgressSubState(LOGGER_JSON_TX, "eve-log", "JsonDoH2Log::stream",
+            "eve-log.doh2", JsonDnsLogInitCtxSub, ALPROTO_DOH2, HTTP2TxTypeStream, JsonDoh2Logger,
+            HTTP2ProgData, HTTP2ProgData, LogDnsLogThreadInit, LogDnsLogThreadDeinit);
+    OutputRegisterTxSubModuleWithProgressSubState(LOGGER_JSON_TX, "eve-log", "LogDoh2Log::global",
+            "eve-log.doh2", JsonDnsLogInitCtxSub, ALPROTO_DOH2, HTTP2TxTypeGlobal, JsonDoh2Logger,
+            HTTP2ProgGlobalComplete, HTTP2ProgGlobalComplete, LogDnsLogThreadInit,
             LogDnsLogThreadDeinit);
 }
