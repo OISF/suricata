@@ -120,6 +120,101 @@ The determination of *established* depends on the protocol:
 
   .. image:: flow-keywords/Flow2.png
 
+.. _tcp-session:
+
+tcp.session
+-----------
+
+In firewall mode, allowing a TCP connection typically requires covering both
+the handshake (``flow:not_established``) and the data transfer phase
+(``flow:established``). Without ``tcp.session``, this means two separate rules.
+The ``tcp.session`` keyword lets a rule writer collapse both into a single rule,
+reducing boilerplate::
+
+  # Before: two rules needed
+  accept:hook tcp:all any any <> any any (flow:not_established; sid:1;)
+  accept:hook tcp:all any any <> any any (flow:established; sid:2;)
+
+  # After: one rule
+  accept:hook tcp:all any any <> any any (tcp.session:setup,established; sid:1;)
+
+The ``tcp.session`` keyword matches on one or more phases of the TCP session
+lifecycle. It works in all engine modes (IDS, IPS, and firewall).
+
+The keyword argument is a comma-separated subset of ``setup``, ``established``
+and ``closing``. Tokens are case-sensitive (lowercase only), may appear in any
+order, and must not be duplicated. Multiple phases are evaluated as logical OR:
+a packet matches if it belongs to *any* of the named phases.
+
+Format::
+
+  tcp.session:<phase>[,<phase>...];
+
+The three phases map to the following TCP states:
+
+setup
+  ``TCP_NONE``, ``TCP_SYN_SENT``, ``TCP_SYN_RECV``. Equivalent to
+  ``flow:not_established`` on non-midstream flows.
+established
+  ``TCP_ESTABLISHED``. Equivalent to ``flow:established`` on non-midstream
+  flows.
+closing
+  ``TCP_FIN_WAIT1``, ``TCP_FIN_WAIT2``, ``TCP_TIME_WAIT``, ``TCP_LAST_ACK``,
+  ``TCP_CLOSE_WAIT``, ``TCP_CLOSING``. The terminal ``TCP_CLOSED`` state is
+  not part of any phase.
+
+The state sets are disjoint, but a single packet may match more than one phase
+because ``FLOW_PKT_ESTABLISHED`` is sticky — it stays set during closing
+states. A packet in ``TCP_FIN_WAIT1`` matches both ``tcp.session:established``
+and ``tcp.session:closing``.
+
+Examples::
+
+  tcp.session:setup
+  tcp.session:setup,established
+  tcp.session:established,closing
+  tcp.session:setup,established,closing
+
+.. container:: example-rule
+
+  :example-rule-action:`alert` :example-rule-header:`tcp any any -> any any` (:example-rule-options:`tcp.session:setup,established;` sid:1;)
+
+In firewall mode it is typically used in an ``accept`` rule::
+
+  accept:hook tcp:all any any <> any any (tcp.session:setup,established; sid:1;)
+
+.. note::
+
+   When used in the ``pre_stream`` hook, the TCP session state has not yet
+   been updated for the current packet. The keyword reflects the state
+   *before* the stream engine processes the packet. For example, a SYN
+   packet in the ``pre_stream`` hook will see the state from the previous
+   packet (``TCP_NONE`` for the first packet of a flow).
+
+.. note::
+
+   Using ``tcp.session`` in the ``pre_flow`` hook is not meaningful because
+   no flow (and thus no TCP session) exists yet at that point. The keyword
+   will never match in ``pre_flow``.
+
+Midstream pickup
+~~~~~~~~~~~~~~~~~
+
+When a flow is picked up midstream, ``tcp.session`` evaluates the flow's
+current TCP state directly. A midstream pickup in ``TCP_ESTABLISHED`` matches
+``tcp.session:established`` and does **not** match ``tcp.session:setup``.
+
+Combining with the ``flow`` keyword
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``tcp.session`` may be combined with ``flow:not_established`` or
+``flow:established`` in the same rule. Both keywords are evaluated
+independently (logical AND). On non-midstream flows, ``tcp.session:setup`` is
+equivalent to ``flow:not_established`` and ``tcp.session:established`` is
+equivalent to ``flow:established``.
+
+.. note:: ``tcp.session`` is TCP-specific; it never matches on non-TCP flows.
+
 .. _flowint:
 
 flowint
