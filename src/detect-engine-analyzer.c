@@ -59,6 +59,7 @@
 #include "detect-tcp-window.h"
 #include "detect-app-layer-protocol.h"
 #include "app-layer-parser.h"
+#include "detect-tcp-session.h"
 
 static int rule_warnings_only = 0;
 
@@ -1113,6 +1114,20 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 SCJbSetString(js, "mode", DetectAppLayerProtocolModeName(ad->mode));
                 SCJbSetBool(js, "negated", ad->negated);
                 SCJbClose(js);
+                break;
+            }
+            case DETECT_TCP_SESSION: {
+                const DetectTcpSessionData *tsd = (const DetectTcpSessionData *)smd->ctx;
+                SCJbOpenObject(js, "tcp_session");
+                SCJbOpenArray(js, "phases");
+                if (tsd->phase_flags & DETECT_TCP_SESSION_PHASE_SETUP)
+                    SCJbAppendString(js, "setup");
+                if (tsd->phase_flags & DETECT_TCP_SESSION_PHASE_ESTABLISHED)
+                    SCJbAppendString(js, "established");
+                if (tsd->phase_flags & DETECT_TCP_SESSION_PHASE_CLOSING)
+                    SCJbAppendString(js, "closing");
+                SCJbClose(js); // phases
+                SCJbClose(js); // tcp_session
                 break;
             }
         }
@@ -2457,6 +2472,38 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
     SCJbClose(ctx.js); // all
 
     SCJbClose(ctx.js); // lists
+
+    /* Per-rule keyword metadata for tcp.session */
+    SCJbOpenObject(ctx.js, "keyword_info");
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        const SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_MATCH];
+        if (smd == NULL)
+            continue;
+        for (;;) {
+            if (smd->type == DETECT_TCP_SESSION) {
+                const DetectTcpSessionData *tsd = (const DetectTcpSessionData *)smd->ctx;
+                if (tsd != NULL) {
+                    char sid_key[32];
+                    snprintf(sid_key, sizeof(sid_key), "%u", s->id);
+                    SCJbOpenObject(ctx.js, sid_key);
+                    SCJbOpenArray(ctx.js, "tcp_session");
+                    if (tsd->phase_flags & DETECT_TCP_SESSION_PHASE_SETUP)
+                        SCJbAppendString(ctx.js, "setup");
+                    if (tsd->phase_flags & DETECT_TCP_SESSION_PHASE_ESTABLISHED)
+                        SCJbAppendString(ctx.js, "established");
+                    if (tsd->phase_flags & DETECT_TCP_SESSION_PHASE_CLOSING)
+                        SCJbAppendString(ctx.js, "closing");
+                    SCJbClose(ctx.js); // tcp_session
+                    SCJbClose(ctx.js); // sid_key
+                }
+                break;
+            }
+            if (smd->is_last)
+                break;
+            smd++;
+        }
+    }
+    SCJbClose(ctx.js); // keyword_info
 
     SCJbClose(ctx.js); // top level object
 
