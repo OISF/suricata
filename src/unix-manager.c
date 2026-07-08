@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2018 Open Information Security Foundation
+/* Copyright (C) 2013-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -136,21 +136,25 @@ static int UnixNew(UnixCommand * this)
     SCLogInfo("unix socket '%s'", sockettarget);
 
     if (check_dir) {
-        struct stat stat_buf;
-        /* coverity[toctou] */
-        if (stat(SOCKET_PATH, &stat_buf) != 0) {
-            /* coverity[toctou] */
-            ret = SCMkDir(SOCKET_PATH, S_IRWXU|S_IXGRP|S_IRGRP);
-            if (ret != 0) {
-                int err = errno;
-                if (err != EEXIST) {
-                    SCLogError(
-                            "failed to create socket directory %s: %s", SOCKET_PATH, strerror(err));
+        ret = SCMkDir(SOCKET_PATH, S_IRWXU | S_IXGRP | S_IRGRP);
+        if (ret != 0) {
+            int err = errno;
+            if (err == EEXIST) {
+                /* The directory already exists. Berify it is a real
+                 * directory and not a symlink. */
+                struct stat st;
+                if (stat(SOCKET_PATH, &st) != 0 || !S_ISDIR(st.st_mode)) {
+                    SCLogError("failed to create socket directory %s: not a directory or does not "
+                               "exist",
+                            SOCKET_PATH);
                     return 0;
                 }
             } else {
-                SCLogInfo("created socket directory %s", SOCKET_PATH);
+                SCLogError("failed to create socket directory %s: %s", SOCKET_PATH, strerror(err));
+                return 0;
             }
+        } else {
+            SCLogInfo("created socket directory %s", SOCKET_PATH);
         }
     }
 
