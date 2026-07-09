@@ -39,13 +39,13 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let verbose = args.verbose;
     if verbose {
-        println!("Using Suricata command socket: {}", &socket_filename);
+        println!("Using Suricata command socket: {}", socket_filename);
     }
 
     let client = match Client::connect(&socket_filename, verbose) {
         Ok(client) => client,
         Err(err) => {
-            eprintln!("Unable to connect socket to {}: {}", &socket_filename, err);
+            eprintln!("Unable to connect socket to {}: {}", socket_filename, err);
             std::process::exit(1);
         }
     };
@@ -95,7 +95,7 @@ fn run_interactive(mut client: Client) -> Result<(), Box<dyn std::error::Error>>
                             break;
                         }
                         if let Err(err) = client.reconnect() {
-                            println!("Error: {}", &err);
+                            println!("Error: {}", err);
                             break;
                         } else {
                             retry = true;

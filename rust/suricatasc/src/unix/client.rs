@@ -62,7 +62,7 @@ impl Client {
     {
         let mut encoded = serde_json::to_string(&msg)?;
         if self.verbose {
-            println!("SND: {}", &encoded);
+            println!("SND: {}", encoded);
         }
         encoded.push('\n');
         self.socket.write_all(encoded.as_bytes())?;
