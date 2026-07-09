@@ -2842,21 +2842,42 @@ static int SigValidateCheckBuffers(
             SCReturnInt(0);
         }
 
+        uint32_t app_buffers_evaluated = 0;
+        bool buffer_consumed = false;
+        uint32_t buffer_skip_alproto = 0;
+        uint32_t buffer_skip_substate = 0;
         const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
         for (; app != NULL; app = app->next) {
             if (app->sm_list != b->id)
                 continue;
+            app_buffers_evaluated++;
 
             if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
                 /* only allow rules to use the hook for engines at that
-                 * exact progress for now. */
-                if (!(AppProtoEqualsStrict(s->alproto, app->alproto))) {
+                 * exact progress for now. We make an exception for generic
+                 * engines like app-layer-event. */
+                if (!(AppProtoEqualsStrict(s->alproto, app->alproto) ||
+                            app->alproto == ALPROTO_UNKNOWN)) {
+                    SCLogDebug("%u:%s: for buffer %s skip engine %s alproto %s", s->id,
+                            AppProtoToString(s->alproto), bt->name,
+                            DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list),
+                            AppProtoToString(app->alproto));
+                    buffer_skip_alproto++;
                     continue;
                 }
-                if (app->sub_state != s->init_data->hook.t.app.sub_state)
+                if (app->alproto != ALPROTO_UNKNOWN &&
+                        app->sub_state != s->init_data->hook.t.app.sub_state) {
+                    buffer_skip_substate++;
                     continue;
+                }
             } else {
-                if (!(AppProtoEquals(s->alproto, app->alproto) || s->alproto == 0)) {
+                if (!(AppProtoEquals(s->alproto, app->alproto) || s->alproto == ALPROTO_UNKNOWN ||
+                            app->alproto == ALPROTO_UNKNOWN)) {
+                    SCLogDebug("%u:%s: for buffer %s skip engine %s alproto %s", s->id,
+                            AppProtoToString(s->alproto), bt->name,
+                            DetectEngineBufferTypeGetNameById(de_ctx, app->sm_list),
+                            AppProtoToString(app->alproto));
+                    buffer_skip_alproto++;
                     continue;
                 }
             }
@@ -2890,8 +2911,15 @@ static int SigValidateCheckBuffers(
                     SCReturnInt(0);
                 }
             }
-        }
 
+            buffer_consumed = true;
+        }
+        if (app_buffers_evaluated && !buffer_consumed) {
+            SCLogError("incompatible rule conditions, skipped buffer %s, reasons: app proto %u sub "
+                       "state %u",
+                    bt->name, buffer_skip_alproto, buffer_skip_substate);
+            SCReturnInt(0);
+        }
         if (!DetectEngineBufferRunValidateCallback(de_ctx, b->id, s, &de_ctx->sigerror)) {
             SCReturnInt(0);
         }
