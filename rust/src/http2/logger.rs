@@ -128,7 +128,7 @@ fn log_http2_frames(frames: &[HTTP2Frame], js: &mut JsonBuilder) -> Result<bool,
                 js.start_object()?;
                 js.set_string(
                     "settings_id",
-                    &format!("SETTINGS{}", &e.id.to_string().to_uppercase()),
+                    &format!("SETTINGS{}", e.id.to_string().to_uppercase()),
                 )?;
                 js.set_uint("settings_value", e.value as u64)?;
                 js.close()?;

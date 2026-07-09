@@ -262,12 +262,7 @@ fn parse_connection_data(i: &[u8]) -> IResult<&[u8], String> {
         _ => (None, None),
     };
 
-    let mut connection_data = format!(
-        "{} {} {}",
-        &nettype,
-        &addrtype,
-        &connection_address.to_string()
-    );
+    let mut connection_data = format!("{} {} {}", nettype, addrtype, connection_address);
     if let Some(ttl) = ttl {
         connection_data = format!("{}/{}", connection_data, ttl);
     }
@@ -477,7 +472,7 @@ fn parse_media_description(i: &[u8]) -> IResult<&[u8], MediaDescription> {
     } else {
         format!("{}", port)
     };
-    let mut media_str = format!("{} {} {}", &media, &port, &proto);
+    let mut media_str = format!("{} {} {}", media, port, proto);
     if !fmt.is_empty() {
         let fmt: Vec<String> = fmt.into_iter().map(String::from).collect();
         media_str = format!("{} {}", media_str, fmt.join(" "));
