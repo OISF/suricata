@@ -521,3 +521,25 @@ pub unsafe extern "C" fn htp_tx_data_len(data: *const Data) -> isize {
 pub unsafe extern "C" fn htp_tx_data_is_empty(data: *const Data) -> bool {
     data.as_ref().map(|data| data.is_empty()).unwrap_or(true)
 }
+
+/// Return the ip address from the Xff header
+///
+/// Returns true if data is NULL or zero-length.
+/// # Safety
+/// When calling this method, you have to ensure that the destination buffer is correctly allocated
+/// and supply a non-NULL tx, and a valid CString for header
+#[no_mangle]
+pub unsafe extern "C" fn htp_xff_get_ip(
+    tx: *const Transaction, reversed: bool, header: *const libc::c_char, dst: *mut u8, dst_len: u32,
+) -> libc::c_int {
+    let dst = std::slice::from_raw_parts_mut(dst, dst_len as usize);
+    let h_xff = htp_headers_get(&(*tx).request_headers, header);
+    if h_xff.is_null() {
+        return 0;
+    }
+    if (*tx).xff_ip(reversed, &*h_xff, dst) {
+        1
+    } else {
+        0
+    }
+}
