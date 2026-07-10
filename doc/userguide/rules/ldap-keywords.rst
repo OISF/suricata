@@ -40,6 +40,8 @@ LDAP Request and Response operations
 The keywords ldap.request.operation and ldap.responses.operation
 accept both the operation code and the operation name as arguments.
 
+See ``suricata --list-keywords=json | jq '."ldap.request.operation".enum_values'``
+
 ldap.request.operation
 ----------------------
 
@@ -275,6 +277,8 @@ Syntax::
 ldap.responses.result_code uses :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
 
 ldap.responses.result_code is also a :ref:`multi-integer <multi-integers>`.
+
+See ``suricata --list-keywords=json | jq '."ldap.responses.result_code".enum_values'``
 
 This keyword maps to the following eve fields:
 

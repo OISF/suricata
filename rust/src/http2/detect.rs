@@ -26,11 +26,12 @@ use crate::detect::uint::{
 };
 use crate::detect::{DetectThreadBuf, EnumString};
 use crate::direction::Direction;
+use crate::jsonbuilder::JsonBuilder;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use std::ffi::CStr;
 use std::os::raw::c_void;
 use std::rc::Rc;
-use suricata_sys::sys::DetectEngineThreadCtx;
+use suricata_sys::sys::{DetectEngineThreadCtx, SCJsonBuilder};
 
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2TxHasFrametype(
@@ -1143,4 +1144,16 @@ mod tests {
             }
         }
     }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectHTTP2frameTypeListValues(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = parser::HTTP2FrameType::list_values(jsb);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectHTTP2errorcodeListValues(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = parser::HTTP2ErrorCode::list_values(jsb);
 }
