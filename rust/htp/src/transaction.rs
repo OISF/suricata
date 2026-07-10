@@ -14,10 +14,11 @@ use crate::{
     util::{validate_hostname, FlagOperations, HtpFlags},
     HtpStatus,
 };
-
 use std::any::Any;
 #[cfg(test)]
 use std::cmp::Ordering;
+use std::net::IpAddr;
+use std::str::FromStr;
 
 #[derive(Debug, Clone)]
 /// This structure is used to pass transaction data (for example
@@ -960,7 +961,62 @@ impl Transaction {
         }
         self.parsed_uri = Some(uri);
     }
+
+    /// Normalize a previously-parsed request URI.
+    pub(crate) fn xff_ip(
+        &self, reversed: bool, h_xff: &Header, dst: &mut [u8],
+    ) -> bool {
+        if h_xff.value.len() < XFF_CHAIN_MINLEN || h_xff.value.len() >= XFF_CHAIN_MAXLEN {
+            return false;
+        }
+        let ipbuf = if reversed {
+            /* Get the last IP address from the chain */
+            let cut = h_xff
+                .value
+                .iter()
+                .rev()
+                .position(|&c| c == b' ')
+                .unwrap_or(0);
+            &h_xff.value[h_xff.value.len() - cut..]
+        } else {
+            /* Get the first IP address from the chain */
+            let cut = h_xff
+                .value
+                .iter()
+                .position(|&c| c == b',')
+                .unwrap_or(h_xff.value.len());
+            &h_xff.value[..cut]
+        };
+        parse_xff_string(ipbuf, dst)
+    }
 }
+
+fn parse_xff_string(ipbuf: &[u8], dst: &mut [u8]) -> bool {
+    if ipbuf.is_empty() {
+        return false;
+    }
+    let input = if ipbuf[0] == b'[' {
+        let cut = match ipbuf.iter().position(|&c| c == b']') {
+            Some(c) => c,
+            _ => {
+                return false;
+            }
+        };
+        &ipbuf[1..cut]
+    } else {
+        let cut = ipbuf.iter().position(|&c| c == b':').unwrap_or(ipbuf.len());
+        &ipbuf[..cut]
+    };
+    if IpAddr::from_str(str::from_utf8(input).unwrap_or_default()).is_ok() {
+        dst[..input.len()].copy_from_slice(input);
+        dst[input.len()] = 0;
+        return true;
+    }
+    false
+}
+
+const XFF_CHAIN_MINLEN: usize = 7;
+const XFF_CHAIN_MAXLEN: usize = 256;
 
 impl PartialEq for Transaction {
     /// Determines if other references the same transaction.

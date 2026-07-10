@@ -36,110 +36,13 @@
 #include "util-misc.h"
 #include "util-unittest.h"
 
-/** XFF header value minimal length */
-#define XFF_CHAIN_MINLEN 7
-/** XFF header value maximum length */
-#define XFF_CHAIN_MAXLEN 256
 /** Default XFF header name */
 #define XFF_DEFAULT "X-Forwarded-For"
 
-/** \internal
- *  \brief parse XFF string
- *  \param input input string, might be modified
- *  \param output output buffer
- *  \param output_size size of output buffer
- *  \retval bool 1 ok, 0 fail
- */
-static int ParseXFFString(char *input, char *output, int output_size)
-{
-    size_t len = strlen(input);
-    if (len == 0)
-        return 0;
-
-    if (input[0] == '[') {
-        char *end = strchr(input, ']');
-        if (end == NULL) // malformed, not closed
-            return 0;
-
-        if (end != input+(len - 1)) {
-            SCLogDebug("data after closing bracket");
-            // if we ever want to parse the port, we can do it here
-        }
-
-        /* done, lets wrap up */
-        input++;        // skip past [
-        *end = '\0';    // overwrite ], ignore anything after
-
-    } else {
-        /* lets see if the xff string ends in a port */
-        int c = 0;
-        int d = 0;
-        char *p = input;
-        while (*p != '\0') {
-            if (*p == ':')
-                c++;
-            if (*p == '.')
-                d++;
-            p++;
-        }
-        /* 3 dots: ipv4, one ':' port */
-        if (d == 3 && c == 1) {
-            SCLogDebug("XFF w port %s", input);
-            char *x = strchr(input, ':');
-            if (x) {
-                *x = '\0';
-                SCLogDebug("XFF w/o port %s", input);
-                // if we ever want to parse the port, we can do it here
-            }
-        }
-    }
-
-    SCLogDebug("XFF %s", input);
-
-    /** Sanity check on extracted IP for IPv4 and IPv6 */
-    uint32_t ip[4];
-    if (inet_pton(AF_INET,  input, ip) == 1 ||
-        inet_pton(AF_INET6, input, ip) == 1)
-    {
-        strlcpy(output, input, output_size);
-        return 1; // OK
-    }
-    return 0;
-}
-
 static int HttpXFFGetIPFromTxAux(htp_tx_t *tx, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen)
 {
-    uint8_t xff_chain[XFF_CHAIN_MAXLEN];
-    uint8_t *p_xff = NULL;
-
-    const htp_header_t *h_xff = htp_tx_request_header(tx, xff_cfg->header);
-
-    if (h_xff != NULL && htp_header_value_len(h_xff) >= XFF_CHAIN_MINLEN &&
-            htp_header_value_len(h_xff) < XFF_CHAIN_MAXLEN) {
-
-        memcpy(xff_chain, htp_header_value_ptr(h_xff), htp_header_value_len(h_xff));
-        xff_chain[htp_header_value_len(h_xff)] = 0;
-
-        if (xff_cfg->flags & XFF_REVERSE) {
-            /** Get the last IP address from the chain */
-            p_xff = memrchr(xff_chain, ' ', htp_header_value_len(h_xff));
-            if (p_xff == NULL) {
-                p_xff = xff_chain;
-            } else {
-                p_xff++;
-            }
-        }
-        else {
-            /** Get the first IP address from the chain */
-            p_xff = memchr(xff_chain, ',', htp_header_value_len(h_xff));
-            if (p_xff != NULL) {
-                *p_xff = 0;
-            }
-            p_xff = xff_chain;
-        }
-        return ParseXFFString((char *)p_xff, dstbuf, dstbuflen);
-    }
-    return 0;
+    return htp_xff_get_ip(
+            tx, xff_cfg->flags & XFF_REVERSE, xff_cfg->header, (uint8_t *)dstbuf, dstbuflen);
 }
 
 /**
