@@ -26,35 +26,42 @@
 #include "util-unittest.h"
 #include "util-memrchr.h"
 
-#ifndef HAVE_MEMRCHR
-void *memrchr (const void *s, int c, size_t n)
+#if !defined(HAVE_MEMRCHR) || defined(UNITTESTS)
+static void *SCMemrchrFallback(const void *s, int c, size_t n)
 {
-    const char *end = s + n;
+    const unsigned char *p = (const unsigned char *)s + n;
+    const unsigned char uc = (unsigned char)c;
 
-    while (end > (const char *)s) {
-        if (*end == (char)c)
-            return (void *)end;
-        end--;
+    while (p > (const unsigned char *)s) {
+        p--;
+        if (*p == uc)
+            return (void *)p;
     }
     return NULL;
+}
+#endif
+
+#ifndef HAVE_MEMRCHR
+void *memrchr(const void *s, int c, size_t n)
+{
+    return SCMemrchrFallback(s, c, n);
 }
 #endif  /* HAVE_MEMRCHR */
 
 #ifdef UNITTESTS
 static int MemrchrTest01 (void)
 {
-    const char *haystack = "abcabc";
-    char needle = 'b';
+    char buf[] = { 'x', 'y', 'z' };
+    char one_byte[] = { 'q' };
+    char dup[] = { 'a', 'b', 'a' };
 
-    char *ptr = memrchr(haystack, needle, strlen(haystack));
-    if (ptr == NULL)
-        return 0;
-
-    if (strlen(ptr) != 2)
-        return 0;
-
-    if (strcmp(ptr, "bc") != 0)
-        return 0;
+    FAIL_IF(SCMemrchrFallback(buf, 'x', sizeof(buf)) != &buf[0]);
+    FAIL_IF(SCMemrchrFallback(buf, 'z', sizeof(buf)) != &buf[2]);
+    FAIL_IF(SCMemrchrFallback(buf, 'y', sizeof(buf)) != &buf[1]);
+    FAIL_IF(SCMemrchrFallback(buf, 'a', sizeof(buf)) != NULL);
+    FAIL_IF(SCMemrchrFallback(one_byte, 'q', sizeof(one_byte)) != &one_byte[0]);
+    FAIL_IF(SCMemrchrFallback(one_byte, 'q', 0) != NULL);
+    FAIL_IF(SCMemrchrFallback(dup, 'a', sizeof(dup)) != &dup[2]);
 
     return 1;
 }
