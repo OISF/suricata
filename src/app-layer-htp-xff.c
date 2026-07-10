@@ -107,8 +107,7 @@ static int ParseXFFString(char *input, char *output, int output_size)
     return 0;
 }
 
-static int HttpXFFGetIPFromTxAux(
-        const Flow *f, htp_tx_t *tx, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen)
+static int HttpXFFGetIPFromTxAux(htp_tx_t *tx, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen)
 {
     uint8_t xff_chain[XFF_CHAIN_MAXLEN];
     uint8_t *p_xff = NULL;
@@ -172,7 +171,7 @@ int HttpXFFGetIPFromTx(
         SCLogDebug("tx is NULL, XFF cannot be retrieved");
         return 0;
     }
-    return HttpXFFGetIPFromTxAux(f, tx, xff_cfg, dstbuf, dstbuflen);
+    return HttpXFFGetIPFromTxAux(tx, xff_cfg, dstbuf, dstbuflen);
 }
 
 /**
@@ -200,7 +199,7 @@ int HttpXFFGetIP(const Flow *f, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen
         if (ires.tx_ptr == NULL)
             break;
 
-        if (HttpXFFGetIPFromTxAux(f, ires.tx_ptr, xff_cfg, dstbuf, dstbuflen) == 1)
+        if (HttpXFFGetIPFromTxAux(ires.tx_ptr, xff_cfg, dstbuf, dstbuflen) == 1)
             return 1;
 
         tx_id = ires.tx_id + 1;
