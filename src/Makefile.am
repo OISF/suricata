@@ -134,6 +134,7 @@ noinst_HEADERS = \
 	detect-engine-buffer.h \
 	detect-engine-build.h \
 	detect-engine-content-inspection.h \
+	detect-engine-inspect-trace.h \
 	detect-engine-event.h \
 	detect-engine-file.h \
 	detect-engine-frame.h \
@@ -712,6 +713,7 @@ libsuricata_c_a_SOURCES = \
 	detect-engine-buffer.c \
 	detect-engine-build.c \
 	detect-engine-content-inspection.c \
+	detect-engine-inspect-trace.c \
 	detect-engine-event.c \
 	detect-engine-file.c \
 	detect-engine-frame.c \
