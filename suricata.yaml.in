@@ -1895,8 +1895,8 @@ detect:
       include-rules: false      # very verbose
       include-mpm-stats: false
 
-  flowbits:
-    max-per-signature: 8    # maximum number of flowbits keyword usage per signature, minimum value allowed is 1
+  #flowbits:
+  #  max-per-signature: 8    # maximum number of flowbits keyword usage per signature, minimum value allowed is 1
 
 # Select the multi pattern algorithm you want to run for scan/search the
 # in the engine.
