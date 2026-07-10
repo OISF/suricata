@@ -336,7 +336,8 @@ static int DetectDnsResponsePrefilterMpmRegister(DetectEngineCtx *de_ctx, SigGro
 
     return PrefilterAppendTxEngineSubState(de_ctx, sgh, DetectDnsResponsePrefilterTx,
             mpm_reg->app_v2.alproto, mpm_reg->app_v2.sub_state, mpm_reg->app_v2.tx_min_progress,
-            pectx, DetectDnsResponsePrefilterMpmFree, mpm_reg->pname);
+            mpm_reg->app_v2.tx_min_progress, pectx, DetectDnsResponsePrefilterMpmFree,
+            mpm_reg->pname);
 }
 
 static void SCDetectMdnsResponseRrnameRegister(void)
