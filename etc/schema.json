@@ -7971,6 +7971,10 @@
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
+                                "avg_bucket_depth": {
+                                    "type": "integer",
+                                    "description": "Average depth of non-empty buckets in threshold hash table"
+                                },
                                 "bitmap_alloc_fail": {
                                     "type": "integer",
                                     "description": "Count of bitmap allocation failures"
@@ -7979,6 +7983,14 @@
                                     "type": "integer",
                                     "description": "Memory usage by detection_filter bitmaps"
                                 },
+                                "entries": {
+                                    "type": "integer",
+                                    "description": "Total number of entries currently in the threshold hash table"
+                                },
+                                "max_bucket_depth": {
+                                    "type": "integer",
+                                    "description": "Current maximum bucket depth in threshold hash table"
+                                },
                                 "memcap": {
                                     "type": "integer",
                                     "description": "Memory cap for threshold hash table"
@@ -7986,6 +7998,10 @@
                                 "memuse": {
                                     "type": "integer",
                                     "description": "Memory usage by threshold hash table"
+                                },
+                                "nonempty_buckets": {
+                                    "type": "integer",
+                                    "description": "Number of non-empty buckets in threshold hash table"
                                 }
                             }
                         }
