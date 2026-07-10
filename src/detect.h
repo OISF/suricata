@@ -1174,6 +1174,9 @@ typedef struct DetectEngineCtx_ {
     pcre2_code *class_conf_regex;
     pcre2_match_data *class_conf_regex_match;
 
+    /* eve-log alert "payload-only-classtypes" filter */
+    uint8_t *payload_classtype_filter;
+
     /* reference config parsing */
 
     /* hash table used for holding the reference config info */
