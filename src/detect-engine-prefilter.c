@@ -1160,8 +1160,8 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             b = HashListTableGetListNext(b)) {
         struct TxNonPFData *t = HashListTableGetListData(b);
         SCLogDebug("%s engine for %s hook %d has %u non-pf sigs",
-                t->dir == 0 ? "toserver" : "toclient", AppProtoToString(t->alproto), t->progress,
-                t->sigs_cnt);
+                t->dir == 0 ? "toserver" : "toclient", AppProtoToString(t->alproto),
+                t->min_progress, t->sigs_cnt);
 
         if (((sgh->init->direction & SIG_FLAG_TOSERVER) && t->dir == 1) ||
                 ((sgh->init->direction & SIG_FLAG_TOCLIENT) && t->dir == 0)) {
