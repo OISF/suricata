@@ -388,7 +388,7 @@ static int FilePruneFile(File *file, const StreamingBufferConfig *cfg)
             SCLogDebug("window %"PRIu32", file_size %"PRIu64", data_size %"PRIu64,
                     window, file_size, data_size);
 
-            if (data_size > (window * 3)) {
+            if (data_size > ((uint64_t)window * 3)) {
                 file->content_inspected = MAX(file->content_inspected, file->size - window);
                 SCLogDebug("file->content_inspected now %" PRIu64, file->content_inspected);
             }
