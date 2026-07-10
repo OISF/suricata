@@ -1076,7 +1076,7 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
                         (stream)->last_ack, (stream)->next_seq);                                   \
             } else {                                                                               \
                 SCLogDebug("next_seq (%u) <> last_ack now %d", (stream)->next_seq,                 \
-                        (int)(stream)->next_seq - (ack));                                          \
+                        (int)((stream)->next_seq - (ack)));                                        \
             }                                                                                      \
             (stream)->last_ack = (ack);                                                            \
             StreamTcpSackPruneList((stream));                                                      \
