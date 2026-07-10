@@ -49,6 +49,4 @@ int HttpXFFGetIPFromTx(const Flow *f, uint64_t tx_id, HttpXFFCfg *xff_cfg, char 
 
 int HttpXFFGetIP(const Flow *f, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen);
 
-void HTPXFFParserRegisterTests(void);
-
 #endif /* SURICATA_APP_LAYER_HTP_XFF_H */
