@@ -523,7 +523,7 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
             return XDP_PASS;
         h_proto = vhdr->h_vlan_encapsulated_proto;
 #if VLAN_TRACKING
-        vlan0 = vhdr->h_vlan_TCI & 0x0fff;
+        vlan0 = __builtin_bswap16(vhdr->h_vlan_TCI) & 0x0fff;
 #else
         vlan0 = 0;
 #endif
@@ -537,7 +537,7 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
             return XDP_PASS;
         h_proto = vhdr->h_vlan_encapsulated_proto;
 #if VLAN_TRACKING
-        vlan1 = vhdr->h_vlan_TCI & 0x0fff;
+        vlan1 = __builtin_bswap16(vhdr->h_vlan_TCI) & 0x0fff;
 #else
         vlan1 = 0;
 #endif
