@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -30,8 +30,11 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
+#include "detect-engine-state.h"
 
 #include "rust.h"
+
+#include "app-layer-parser.h"
 
 #include "detect-asn1.h"
 #include "detect-content.h"
@@ -74,7 +77,50 @@ struct DetectEngineContentInspectionCtx {
         uint32_t count;
         const uint32_t limit;
     } recursion;
+    AppLayerTxData *tx_data; /**< cached TX data pointer for byte value save/restore */
 };
+
+static inline AppLayerTxData *DetectEngineContentInspectionRestoreByteValues(
+        DetectEngineThreadCtx *det_ctx, Flow *f)
+{
+    if (unlikely(!(det_ctx->tx_id_set && f != NULL && f->alstate != NULL)))
+        return NULL;
+
+    void *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, det_ctx->tx_id);
+    if (unlikely(tx == NULL))
+        return NULL;
+
+    AppLayerTxData *tx_data = AppLayerParserGetTxData(f->proto, f->alproto, tx);
+    if (tx_data != NULL && tx_data->de_state != NULL) {
+        DetectEngineStateRestoreByteValues(det_ctx, tx_data->de_state);
+    }
+
+    return tx_data;
+}
+
+static inline void DetectEngineStateSaveByteValueFromTx(
+        DetectEngineThreadCtx *det_ctx, Flow *f, AppLayerTxData **tx_data, uint32_t local_id)
+{
+    if (tx_data == NULL || det_ctx == NULL)
+        return;
+
+    if (*tx_data == NULL && det_ctx->tx_id_set && f != NULL && f->alstate != NULL) {
+        void *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, det_ctx->tx_id);
+        if (tx != NULL) {
+            *tx_data = AppLayerParserGetTxData(f->proto, f->alproto, tx);
+        }
+    }
+
+    if (*tx_data != NULL) {
+        if (unlikely((*tx_data)->de_state == NULL)) {
+            (*tx_data)->de_state = DetectEngineStateAlloc();
+        }
+        if (likely((*tx_data)->de_state != NULL)) {
+            DetectEngineStateSaveByteValue((*tx_data)->de_state, local_id,
+                    det_ctx->byte_values[local_id], det_ctx->byte_values_len);
+        }
+    }
+}
 
 /**
  * \brief Run the actual payload match functions
@@ -112,6 +158,15 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
     KEYWORD_PROFILING_START;
+
+    /* Restore byte keyword values from detection state at the top level only.
+     * Needed for any rule where the producer engine runs on an earlier packet
+     * than the consumer engine (both bidirectional and unidirectional rules).
+     * ctx->tx_data is cached here so recursive frames reuse it without
+     * re-fetching the TX. */
+    if (ctx->recursion.count == 0) {
+        ctx->tx_data = DetectEngineContentInspectionRestoreByteValues(det_ctx, f);
+    }
 
     ctx->recursion.count++;
     if (unlikely(ctx->recursion.count == ctx->recursion.limit)) {
@@ -594,6 +649,8 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
         SCLogDebug("[BE] Fetched value for index %d: %"PRIu64,
                    bed->local_id, det_ctx->byte_values[bed->local_id]);
+        /* Save byte keyword value to detection state for cross-buffer use. */
+        DetectEngineStateSaveByteValueFromTx(det_ctx, f, &ctx->tx_data, bed->local_id);
         goto match;
 
     } else if (smd->type == DETECT_BYTEMATH) {
@@ -630,6 +687,8 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
         SCLogDebug("[BM] Fetched value for index %d: %"PRIu64,
                    bmd->local_id, det_ctx->byte_values[bmd->local_id]);
+        /* Save byte keyword value to detection state for cross-buffer use. */
+        DetectEngineStateSaveByteValueFromTx(det_ctx, f, &ctx->tx_data, bmd->local_id);
         goto match;
 
     } else if (smd->type == DETECT_BSIZE) {
