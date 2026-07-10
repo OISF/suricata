@@ -407,7 +407,7 @@ static int PrefilterMpmFilemagicRegister(DetectEngineCtx *de_ctx, SigGroupHead *
 
     return PrefilterAppendTxEngineSubState(de_ctx, sgh, PrefilterTxFilemagic,
             mpm_reg->app_v2.alproto, mpm_reg->app_v2.sub_state, mpm_reg->app_v2.tx_min_progress,
-            pectx, PrefilterMpmFilemagicFree, mpm_reg->pname);
+            mpm_reg->app_v2.tx_min_progress, pectx, PrefilterMpmFilemagicFree, mpm_reg->pname);
 }
 
 #endif /* HAVE_MAGIC */
