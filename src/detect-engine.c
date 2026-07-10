@@ -195,11 +195,16 @@ void DetectPktInspectEngineRegister(const char *name,
  *
  *  \note errors are fatal */
 static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData,
-        InspectionSingleBufferGetDataPtr GetDataSingle,
+        uint8_t sub_state, uint8_t progress, InspectEngineFuncPtr Callback,
+        InspectionBufferGetDataPtr GetData, InspectionSingleBufferGetDataPtr GetDataSingle,
         InspectionMultiBufferGetDataPtr GetMultiData)
 {
-    BUG_ON(progress >= 48);
+    /* ignore special case unknown */
+    if (alproto != ALPROTO_UNKNOWN && AppLayerParserIsEnabled(alproto)) {
+        DEBUG_VALIDATE_BUG_ON(AppLayerParserSupportsSubStates(alproto) && sub_state == 0);
+        DEBUG_VALIDATE_BUG_ON(!AppLayerParserSupportsSubStates(alproto) && sub_state != 0);
+    }
+    BUG_ON(progress >= APP_LAYER_MAX_PROGRESS);
 
     DetectBufferTypeRegister(name);
     const int sm_list = DetectBufferTypeGetByName(name);
@@ -209,8 +214,8 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     SCLogDebug("name %s id %d", name, sm_list);
 
     if ((alproto == ALPROTO_FAILED) || (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
-            (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) ||
-            (progress < 0 || progress >= SHRT_MAX) || (Callback == NULL)) {
+            (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) || (progress >= 48) ||
+            (Callback == NULL)) {
         SCLogError("Invalid arguments");
         BUG_ON(1);
     } else if (Callback == DetectEngineInspectBufferGeneric && GetData == NULL) {
@@ -233,12 +238,6 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     } else {
         direction = 1;
     }
-    // every DNS or HTTP2 can be accessed from DOH2
-    if (alproto == ALPROTO_HTTP2 || alproto == ALPROTO_DNS) {
-        AppLayerInspectEngineRegisterInternal(
-                name, ALPROTO_DOH2, dir, progress, Callback, GetData, GetDataSingle, GetMultiData);
-    }
-
     DetectEngineAppInspectionEngine *new_engine =
             SCCalloc(1, sizeof(DetectEngineAppInspectionEngine));
     if (unlikely(new_engine == NULL)) {
@@ -248,7 +247,8 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     new_engine->dir = direction;
     new_engine->sm_list = (uint16_t)sm_list;
     new_engine->sm_list_base = (uint16_t)sm_list;
-    new_engine->progress = (int16_t)progress;
+    new_engine->progress = progress;
+    new_engine->sub_state = sub_state;
     new_engine->v2.Callback = Callback;
     if (Callback == DetectEngineInspectBufferGeneric) {
         new_engine->v2.GetData = GetData;
@@ -281,7 +281,8 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
         const int sm_list = DetectBufferTypeGetByName(name);
 
         if (t->sm_list == sm_list && t->alproto == alproto && t_direction == dir &&
-                t->progress == progress && t->v2.Callback == Callback && t->v2.GetData == GetData) {
+                t->sub_state == 0 && t->progress == progress && t->v2.Callback == Callback &&
+                t->v2.GetData == GetData) {
             DEBUG_VALIDATE_BUG_ON(1);
             return;
         }
@@ -289,9 +290,32 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
     }
 
     AppLayerInspectEngineRegisterInternal(
-            name, alproto, dir, progress, Callback, GetData, NULL, NULL);
+            name, alproto, dir, 0, (uint8_t)progress, Callback, GetData, NULL, NULL);
 }
 
+void DetectAppLayerInspectEngineRegisterSubState(const char *name, AppProto alproto, uint32_t dir,
+        uint8_t sub_state, uint8_t progress, InspectEngineFuncPtr Callback,
+        InspectionBufferGetDataPtr GetData)
+{
+    /* before adding, check that we don't add a duplicate entry, which will
+     * propagate all the way into the packet runtime if allowed. */
+    DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+    while (t != NULL) {
+        const uint32_t t_direction = t->dir == 0 ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT;
+        const int sm_list = DetectBufferTypeGetByName(name);
+
+        if (t->sm_list == sm_list && t->alproto == alproto && t_direction == dir &&
+                t->sub_state == sub_state && t->progress == progress &&
+                t->v2.Callback == Callback && t->v2.GetData == GetData) {
+            DEBUG_VALIDATE_BUG_ON(1);
+            return;
+        }
+        t = t->next;
+    }
+
+    AppLayerInspectEngineRegisterInternal(
+            name, alproto, dir, sub_state, progress, Callback, GetData, NULL, NULL);
+}
 void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alproto, uint32_t dir,
         int progress, InspectEngineFuncPtr Callback, InspectionSingleBufferGetDataPtr GetData)
 {
@@ -312,7 +336,7 @@ void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alprot
     }
 
     AppLayerInspectEngineRegisterInternal(
-            name, alproto, dir, progress, Callback, NULL, GetData, NULL);
+            name, alproto, dir, 0, (uint8_t)progress, Callback, NULL, GetData, NULL);
 }
 
 /* copy an inspect engine with transforms to a new list id. */
@@ -335,6 +359,7 @@ static void DetectAppLayerInspectEngineCopy(
             DEBUG_VALIDATE_BUG_ON(sm_list < 0 || sm_list > UINT16_MAX);
             new_engine->sm_list_base = (uint16_t)sm_list;
             new_engine->progress = t->progress;
+            new_engine->sub_state = t->sub_state;
             new_engine->v2 = t->v2;
             new_engine->v2.transforms = transforms; /* assign transforms */
 
@@ -368,6 +393,7 @@ static void DetectAppLayerInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_c
         new_engine->sm_list = t->sm_list;
         new_engine->sm_list_base = t->sm_list;
         new_engine->progress = t->progress;
+        new_engine->sub_state = t->sub_state;
         new_engine->v2 = t->v2;
 
         if (list == NULL) {
@@ -710,7 +736,12 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     } else if (s->alproto != ALPROTO_UNKNOWN) {
         if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
             /* SIGNATURE_HOOK_TYPE_APP rules are exact about their protocol */
-            if (t->alproto != s->alproto) {
+            if (!(AppProtoEqualsStrict(s->alproto, t->alproto))) {
+                return;
+            }
+
+            /* skip engines not for us */
+            if (s->init_data->hook.t.app.sub_state != t->sub_state) {
                 return;
             }
         } else {
@@ -751,6 +782,7 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     new_engine->smd = smd;
     new_engine->match_on_null = smd ? DetectContentInspectionMatchOnAbsentBuffer(smd) : false;
     new_engine->progress = t->progress;
+    new_engine->sub_state = t->sub_state;
     new_engine->v2 = t->v2;
     SCLogDebug("sm_list %d new_engine->v2 %p/%p/%p", new_engine->sm_list, new_engine->v2.Callback,
             new_engine->v2.GetData, new_engine->v2.transforms);
@@ -809,37 +841,46 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
  * \param direction STREAM_TOSERVER or STREAM_TOCLIENT
  */
 const char *DetectEngineAppHookToName(
-        const AppProto p, const uint8_t state, const uint8_t direction)
+        const AppProto p, const uint8_t sub_state, const uint8_t state, const uint8_t direction)
 {
     if (!((direction & (STREAM_TOSERVER | STREAM_TOCLIENT)) == STREAM_TOSERVER) &&
             !((direction & (STREAM_TOSERVER | STREAM_TOCLIENT)) == STREAM_TOCLIENT))
         return NULL;
 
-    const char *pname = AppLayerParserGetStateNameById(IPPROTO_TCP, // TODO
-            p, state, direction);
-    if (pname == NULL) {
-        if (state == 0) {
-            if (direction == STREAM_TOSERVER) {
-                pname = "request_started";
-            } else {
-                pname = "response_started";
-            }
-        } else {
-            const int complete = AppLayerParserGetStateProgressCompletionStatus(p, direction);
-            if (state == complete) {
+    if (sub_state == 0) {
+        const char *pname = AppLayerParserGetStateNameById(IPPROTO_TCP, // TODO
+                p, state, direction);
+        if (pname == NULL) {
+            if (state == 0) {
                 if (direction == STREAM_TOSERVER) {
-                    pname = "request_complete";
+                    pname = "request_started";
                 } else {
-                    pname = "response_complete";
+                    pname = "response_started";
+                }
+            } else {
+                const int complete = AppLayerParserGetStateProgressCompletionStatus(p, direction);
+                if (state == complete) {
+                    if (direction == STREAM_TOSERVER) {
+                        pname = "request_complete";
+                    } else {
+                        pname = "response_complete";
+                    }
                 }
             }
         }
+        return pname;
+    } else {
+        BUG_ON(!AppLayerParserSupportsSubStates(p));
+        const char *name = AppLayerParserGetSubStateProgressName(p, sub_state, state, direction);
+        return name;
     }
-    return pname;
 }
 
-/** \brief get the sm_list for a app hook */
-int DetectEngineAppHookToSmlist(const AppProto p, const uint8_t state, const int direction)
+/** \brief get the sm_list for a app hook
+ *  \param sub_state sub_state to use or 0 if not in use
+ * */
+int DetectEngineAppHookToSmlist(
+        const AppProto p, const uint8_t sub_state, const uint8_t state, const uint8_t direction)
 {
     const char *app_proto = AppProtoToString(p);
     if (app_proto == NULL) {
@@ -849,20 +890,45 @@ int DetectEngineAppHookToSmlist(const AppProto p, const uint8_t state, const int
     if (strcmp(app_proto, "http") == 0)
         app_proto = "http1";
 
-    const char *name =
-            DetectEngineAppHookToName(p, state, direction & (STREAM_TOSERVER | STREAM_TOCLIENT));
-    if (name == NULL) {
-        return -1;
-    }
-
     char generic_hook_name[256];
-    snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", app_proto, name);
-    int list = DetectBufferTypeGetByName(generic_hook_name);
-    if (list < 0) {
-        SCLogError("no list registered as %s for %s hook %s", generic_hook_name, app_proto, name);
-        return -1;
+    if (sub_state == 0) {
+        const char *name = DetectEngineAppHookToName(
+                p, 0, state, direction & (STREAM_TOSERVER | STREAM_TOCLIENT));
+        if (name == NULL) {
+            return -1;
+        }
+
+        snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:generic", app_proto, name);
+
+        int list = DetectBufferTypeGetByName(generic_hook_name);
+        if (list < 0) {
+            SCLogError(
+                    "no list registered as %s for %s hook %s", generic_hook_name, app_proto, name);
+            return -1;
+        }
+        return list;
+    } else {
+        BUG_ON(!AppLayerParserSupportsSubStates(p));
+
+        const char *sname = AppLayerParserGetSubStateName(p, sub_state);
+        if (sname == NULL)
+            return -1;
+
+        const char *name = AppLayerParserGetSubStateProgressName(p, sub_state, state, direction);
+        if (name == NULL)
+            return -1;
+
+        snprintf(generic_hook_name, sizeof(generic_hook_name), "%s:%s:%s:generic", app_proto, sname,
+                name);
+
+        int list = DetectBufferTypeGetByName(generic_hook_name);
+        if (list < 0) {
+            SCLogError("no list registered as %s for %s sub_state %s hook %s", generic_hook_name,
+                    app_proto, sname, name);
+            return -1;
+        }
+        return list;
     }
-    return list;
 }
 
 /**
@@ -881,7 +947,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
         SCLogDebug("need an inspect engine per state, range 0-%u", s->app_progress_hook);
         for (uint8_t state = 0; state < s->app_progress_hook; state++) {
             uint8_t dir = 0;
-            int direction = 0;
+            uint8_t direction = 0;
             BUG_ON((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) ==
                     (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT));
             BUG_ON((s->flags & (SIG_FLAG_TOSERVER | SIG_FLAG_TOCLIENT)) == 0);
@@ -893,14 +959,15 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
                 dir = 1;
             }
 
-            int sm_list =
-                    DetectEngineAppHookToSmlist(s->init_data->hook.t.app.alproto, 0, direction);
+            int sm_list = DetectEngineAppHookToSmlist(s->init_data->hook.t.app.alproto,
+                    s->init_data->hook.t.app.sub_state, 0, direction);
             if (sm_list < 0)
                 return -1;
 
             DetectEngineAppInspectionEngine t = {
                 .alproto = s->init_data->hook.t.app.alproto,
-                .progress = (uint16_t)state,
+                .progress = state,
+                .sub_state = s->init_data->hook.t.app.sub_state,
                 .sm_list = (uint16_t)sm_list,
                 .sm_list_base = (uint16_t)sm_list,
                 .dir = dir,
@@ -982,7 +1049,8 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
 
         DetectEngineAppInspectionEngine t = {
             .alproto = s->init_data->hook.t.app.alproto,
-            .progress = (uint16_t)s->init_data->hook.t.app.app_progress,
+            .progress = s->init_data->hook.t.app.app_progress,
+            .sub_state = s->init_data->hook.t.app.sub_state,
             .sm_list = (uint16_t)s->init_data->hook.sm_list,
             .sm_list_base = (uint16_t)s->init_data->hook.sm_list,
             .dir = dir,
@@ -2211,10 +2279,23 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
 
 // wrapper for both DetectAppLayerInspectEngineRegister and DetectAppLayerMpmRegister
 // with cast of callback function
-void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, int progress,
+void DetectAppLayerMultiRegisterSubState(const char *name, AppProto alproto, uint32_t dir,
+        uint8_t sub_state, uint8_t progress, InspectionMultiBufferGetDataPtr GetData, int priority)
+{
+    BUG_ON(AppLayerParserSupportsSubStates(alproto) && sub_state == 0);
+    AppLayerInspectEngineRegisterInternal(name, alproto, dir, sub_state, progress,
+            DetectEngineInspectMultiBufferGeneric, NULL, NULL, GetData);
+    DetectAppLayerMpmMultiRegisterSubState(name, dir, priority, PrefilterMultiGenericMpmRegister,
+            GetData, alproto, sub_state, progress);
+}
+
+// wrapper for both DetectAppLayerInspectEngineRegister and DetectAppLayerMpmRegister
+// with cast of callback function
+void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, uint8_t progress,
         InspectionMultiBufferGetDataPtr GetData, int priority)
 {
-    AppLayerInspectEngineRegisterInternal(name, alproto, dir, progress,
+    BUG_ON(AppLayerParserSupportsSubStates(alproto));
+    AppLayerInspectEngineRegisterInternal(name, alproto, dir, 0, (uint8_t)progress,
             DetectEngineInspectMultiBufferGeneric, NULL, NULL, GetData);
     DetectAppLayerMpmMultiRegister(
             name, dir, priority, PrefilterMultiGenericMpmRegister, GetData, alproto, progress);
@@ -2859,7 +2940,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
                 SCFree(de_ctx->fw_policies->pkt_policy_signatures[i]);
             }
         }
-        HashTableFree(de_ctx->fw_policies->policy_signatures);
+        HashTableFree(de_ctx->fw_policies->app_policies);
     }
     SCFree(de_ctx->fw_policies);
     SCFree(de_ctx);

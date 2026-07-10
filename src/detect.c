@@ -717,9 +717,44 @@ static uint8_t DetectRunApplyPacketPolicy(const DetectEngineCtx *de_ctx,
     }
     Signature *s = de_ctx->fw_policies->pkt_policy_signatures[policy];
     if (s != NULL) {
-        AlertQueueAppend(det_ctx, s, p, 0, PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET);
+        AlertQueueAppendPacket(det_ctx, s, p, PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET);
     }
     return p->action;
+}
+
+/** \internal
+ *  \brief helper for appending a packet alert
+ *  Tries to find (guess) a TX to add to the alert.
+ */
+static void DetectRulePacketAppendAlert(const DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const Signature *s, Packet *p, Flow *f,
+        const uint8_t alert_flags_in)
+{
+    DEBUG_VALIDATE_BUG_ON(alert_flags_in & PACKET_ALERT_FLAG_TX);
+
+    if (f && f->alstate) {
+        const uint8_t dir = (p->flowflags & FLOW_PKT_TOCLIENT) ? STREAM_TOCLIENT : STREAM_TOSERVER;
+        const uint64_t tx_id = AppLayerParserGetTransactionInspectId(f->alparser, dir);
+        if ((s->alproto != ALPROTO_UNKNOWN && f->proto == IPPROTO_UDP) ||
+                (de_ctx->guess_applayer && IsOnlyTxInDirection(f, tx_id, dir))) {
+            // if there is a UDP specific app-layer signature,
+            // or only one live transaction
+            // try to use the good tx for the packet direction
+            void *tx_ptr = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, tx_id);
+            AppLayerTxData *txd =
+                    tx_ptr ? AppLayerParserGetTxData(f->proto, f->alproto, tx_ptr) : NULL;
+            if (txd && txd->guessed_applayer_logged < de_ctx->guess_applayer_log_limit) {
+                uint8_t alert_flags = alert_flags_in;
+                if (f->proto != IPPROTO_UDP) {
+                    alert_flags |= PACKET_ALERT_FLAG_TX_GUESSED;
+                }
+                txd->guessed_applayer_logged++;
+                AlertQueueAppendAppTxFromPacket(det_ctx, s, p, tx_id, txd->tx_type, alert_flags);
+                return;
+            }
+        }
+    }
+    AlertQueueAppendPacket(det_ctx, s, p, alert_flags_in);
 }
 
 static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
@@ -831,30 +866,7 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
 #endif
         DetectRunPostMatch(tv, det_ctx, p, s);
 
-        uint64_t txid = PACKET_ALERT_NOTX;
-        if (pflow && pflow->alstate) {
-            uint8_t dir = (p->flowflags & FLOW_PKT_TOCLIENT) ? STREAM_TOCLIENT : STREAM_TOSERVER;
-            txid = AppLayerParserGetTransactionInspectId(pflow->alparser, dir);
-            if ((s->alproto != ALPROTO_UNKNOWN && pflow->proto == IPPROTO_UDP) ||
-                    (de_ctx->guess_applayer && IsOnlyTxInDirection(pflow, txid, dir))) {
-                // if there is a UDP specific app-layer signature,
-                // or only one live transaction
-                // try to use the good tx for the packet direction
-                void *tx_ptr =
-                        AppLayerParserGetTx(pflow->proto, pflow->alproto, pflow->alstate, txid);
-                AppLayerTxData *txd =
-                        tx_ptr ? AppLayerParserGetTxData(pflow->proto, pflow->alproto, tx_ptr)
-                               : NULL;
-                if (txd && txd->guessed_applayer_logged < de_ctx->guess_applayer_log_limit) {
-                    alert_flags |= PACKET_ALERT_FLAG_TX;
-                    if (pflow->proto != IPPROTO_UDP) {
-                        alert_flags |= PACKET_ALERT_FLAG_TX_GUESSED;
-                    }
-                    txd->guessed_applayer_logged++;
-                }
-            }
-        }
-        AlertQueueAppend(det_ctx, s, p, txid, alert_flags);
+        DetectRulePacketAppendAlert(de_ctx, det_ctx, s, p, pflow, alert_flags);
 
         if (det_ctx->post_rule_work_queue.len > 0) {
             /* run post match prefilter engines on work queue */
@@ -1226,19 +1238,34 @@ DetectRunTxSortHelper(const void *a, const void *b)
 #define TRACE_SID_TXS(sid,txs,...)
 #endif
 
-// Get inner transaction for engine
+/** \internal
+ *  \brief get correct transaction pointer
+ *
+ *  Gets an encapsulated DNS transaction in the DOH2 case.
+ *
+ *  Returns NULL is the TX is not to be inspected by this engine.
+ */
 void *DetectGetInnerTx(void *tx_ptr, AppProto alproto, AppProto engine_alproto, uint8_t flow_flags)
 {
+    SCLogDebug("pre: tx_ptr %p flow::alproto %s engine::alproto %s", tx_ptr,
+            AppProtoToString(alproto), AppProtoToString(engine_alproto));
     if (unlikely(alproto == ALPROTO_DOH2)) {
-        if (engine_alproto == ALPROTO_DNS) {
-            // need to get the dns tx pointer
-            tx_ptr = SCDoH2GetDnsTx(tx_ptr, flow_flags);
-        } else if (engine_alproto != ALPROTO_HTTP2 && engine_alproto != ALPROTO_UNKNOWN) {
-            // incompatible engine->alproto with flow alproto
-            tx_ptr = NULL;
+        switch (engine_alproto) {
+            case ALPROTO_DOH2:
+                /* need to get the dns tx pointer */
+                tx_ptr = SCDoH2GetDnsTx(tx_ptr, flow_flags);
+                break;
+            case ALPROTO_HTTP2:
+            case ALPROTO_UNKNOWN:
+                /* tx_ptr is untouched, so use outer (HTTP/2) layer */
+                break;
+            default:
+                /* any other protocol is a mismatch with DOH2 */
+                tx_ptr = NULL;
+                break;
         }
     } else if (engine_alproto != alproto && engine_alproto != ALPROTO_UNKNOWN) {
-        // incompatible engine->alproto with flow alproto
+        /* incompatible engine->alproto with flow alproto */
         tx_ptr = NULL;
     }
     return tx_ptr;
@@ -1297,14 +1324,38 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
     const DetectEngineAppInspectionEngine *engine = s->app_inspect;
     do {
         TRACE_SID_TXS(s->id, tx, "engine %p inspect_flags %x", engine, inspect_flags);
+
         // also if it is not the same direction, but
         // this is a transactional signature, and we are toclient
         if (!(inspect_flags & BIT_U32(engine->id)) &&
                 (direction == engine->dir || ((s->flags & SIG_FLAG_TXBOTHDIR) && direction == 1))) {
 
+            DEBUG_VALIDATE_BUG_ON(
+                    AppLayerParserSupportsSubStates(engine->alproto) && engine->sub_state == 0);
+            DEBUG_VALIDATE_BUG_ON(
+                    !AppLayerParserSupportsSubStates(engine->alproto) && engine->sub_state != 0);
+
+            if (engine->alproto != ALPROTO_UNKNOWN && // app-layer-events is registered for each
+                                                      // proto this way
+                    tx->tx_type != engine->sub_state) {
+                TRACE_SID_TXS(s->id, tx,
+                        "skip because engine alproto %s sub_state %u != tx_type %u (engine "
+                        "progress %u)",
+                        AppProtoToString(engine->alproto), engine->sub_state, tx->tx_type,
+                        engine->progress);
+                engine = engine->next;
+                continue;
+            }
+            TRACE_SID_TXS(s->id, tx,
+                    "inspecting engine alproto %s sub_state %u == tx_type %u (engine progress %u)",
+                    AppProtoToString(engine->alproto), engine->sub_state, tx->tx_type,
+                    engine->progress);
+
             void *tx_ptr = DetectGetInnerTx(tx->tx_ptr, f->alproto, engine->alproto, flow_flags);
             if (tx_ptr == NULL) {
+                TRACE_SID_TXS(s->id, tx, "no tx_ptr after DetectGetInnerTx");
                 if (engine->alproto != ALPROTO_UNKNOWN) {
+                    TRACE_SID_TXS(s->id, tx, "no tx_ptr skip engine");
                     /* special case: file_data on 'alert tcp' will have engines
                      * in the list that are not for us. */
                     engine = engine->next;
@@ -1313,6 +1364,7 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     tx_ptr = tx->tx_ptr;
                 }
             }
+            TRACE_SID_TXS(s->id, tx, "tx_ptr %p", tx_ptr);
 
             /* engines are sorted per progress, except that the one with
              * mpm/prefilter enabled is first */
@@ -1403,6 +1455,8 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
             break;
         } else if (!(inspect_flags & BIT_U32(engine->id)) && s->flags & SIG_FLAG_TXBOTHDIR &&
                    direction != engine->dir) {
+            TRACE_SID_TXS(s->id, tx, "handle bidir engine");
+
             // for transactional rules, the engines on the opposite direction
             // are ordered by progress on the different side
             // so we have a two mixed-up lists, and we skip the elements
@@ -1486,7 +1540,7 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
 #define NO_TX                                                                                      \
     {                                                                                              \
-        NULL, 0, NULL, NULL, 0, 0, 0, 0, false,                                                    \
+        NULL, 0, NULL, NULL, 0, 0, 0, 0, false, 0,                                                 \
     }
 
 /** \internal
@@ -1496,14 +1550,19 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
 static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alproto,
         const uint64_t tx_id, void *tx_ptr, const int tx_end_state, const uint8_t flow_flags)
 {
-    DEBUG_VALIDATE_BUG_ON(tx_end_state >= 48);
+    DEBUG_VALIDATE_BUG_ON(tx_end_state >= APP_LAYER_MAX_PROGRESS);
 
     AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx_ptr);
-    const int tx_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx_ptr, flow_flags);
-    DEBUG_VALIDATE_BUG_ON(tx_progress >= 48);
+    const uint8_t tx_progress =
+            (uint8_t)AppLayerParserGetStateProgress(ipproto, alproto, tx_ptr, flow_flags);
+    DEBUG_VALIDATE_BUG_ON(tx_progress >= APP_LAYER_MAX_PROGRESS);
+
+    const uint8_t e_tx_end_state = txd->tx_type == 0                ? (uint8_t)tx_end_state
+                                   : (flow_flags & STREAM_TOSERVER) ? txd->tx_type_eop_ts
+                                                                    : txd->tx_type_eop_tc;
 
     bool updated = (flow_flags & STREAM_TOSERVER) ? txd->updated_ts : txd->updated_tc;
-    if (!updated && tx_progress < tx_end_state && ((flow_flags & STREAM_EOF) == 0)) {
+    if (!updated && tx_progress < e_tx_end_state && ((flow_flags & STREAM_EOF) == 0)) {
         DetectTransaction no_tx = NO_TX;
         return no_tx;
     }
@@ -1524,6 +1583,10 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         return no_tx;
     }
 
+    if (txd->tx_type != 0) {
+        SCLogDebug("using tx_type %u", txd->tx_type);
+    }
+
     const uint8_t detect_progress =
             (flow_flags & STREAM_TOSERVER) ? txd->detect_progress_ts : txd->detect_progress_tc;
 
@@ -1539,8 +1602,9 @@ static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alpro
         .detect_progress = detect_progress,
         .detect_progress_orig = detect_progress,
         .tx_progress = (uint8_t)tx_progress,
-        .tx_end_state = (uint8_t)tx_end_state,
+        .tx_end_state = e_tx_end_state,
         .is_last = false,
+        .tx_type = txd->tx_type,
     };
     return tx;
 }
@@ -1641,16 +1705,14 @@ struct DetectFirewallAppTxState {
 };
 
 static inline void DetectRunAppendDefaultAppPolicyAlert(DetectEngineThreadCtx *det_ctx, Packet *p,
-        const bool apply_to_packet, const int direction, const uint64_t tx_id,
-        const AppProto alproto, const uint8_t hook)
+        const bool apply_to_packet, const DetectTransaction *tx,
+        const struct DetectFirewallAppPolicy *ap)
 {
     if (EngineModeIsFirewall()) {
-        Signature *s = DetectFirewallGetPolicySignature(
-                det_ctx->de_ctx->fw_policies, alproto, direction, hook);
+        const Signature *s = ap->alert_signature;
         BUG_ON(s == NULL);
         uint8_t alert_flags = apply_to_packet ? PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET : 0;
-        alert_flags |= PACKET_ALERT_FLAG_TX;
-        AlertQueueAppend(det_ctx, s, p, tx_id, alert_flags);
+        AlertQueueAppendAppTxFromPacket(det_ctx, s, p, tx->tx_id, tx->tx_type, alert_flags);
     }
 }
 
@@ -1663,22 +1725,31 @@ static inline void DetectRunAppendDefaultAppPolicyAlert(DetectEngineThreadCtx *d
  *  \note alproto and progress are unused right now, will be used
  *        to look up configurable default policies later
  */
-static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
-        DetectEngineThreadCtx *det_ctx, const struct DetectFirewallAppPolicy *policies,
+static struct DetectFirewallPolicy DetectFirewallApplyDefaultAppPolicy(
+        DetectEngineThreadCtx *det_ctx, const struct DetectFirewallPolicies *policies,
         const DetectTransaction *tx, Packet *p, const AppProto alproto, const uint8_t direction,
         const uint8_t progress)
 {
-    const struct DetectFirewallPolicy *policy;
-    if (direction & STREAM_TOSERVER) {
-        policy = &policies[alproto].ts[progress];
-        SCLogDebug("packet %" PRIu64 ", hook:%u, toserver, policy: action %02x scope %u",
-                p->pcap_cnt, progress, policy->action, policy->action_scope);
-    } else {
-        policy = &policies[alproto].tc[progress];
-        SCLogDebug("packet %" PRIu64 ", hook:%u, toclient, policy: action %02x scope %u",
-                p->pcap_cnt, progress, policy->action, policy->action_scope);
-    }
+    const uint8_t dir_flags = direction & (STREAM_TOSERVER | STREAM_TOCLIENT);
 
+    SCLogDebug("packet %" PRIu64 ": tx type %u", p->pcap_cnt, tx->tx_type);
+
+    const struct DetectFirewallPolicy drop_policy = { .action = ACTION_DROP,
+        .action_scope = ACTION_SCOPE_FLOW };
+    const struct DetectFirewallAppPolicy lookup = {
+        .alproto = alproto, .sub_state = tx->tx_type, .progress = progress, .direction = dir_flags
+    };
+    const struct DetectFirewallPolicy *policy = NULL;
+    const struct DetectFirewallAppPolicy *ap =
+            HashTableLookup(policies->app_policies, (void *)&lookup, 0);
+    /* table should be fully populated, so this should not be able to fail.
+     * However as it continues to confuse tooling, at a fallback. */
+    DEBUG_VALIDATE_BUG_ON(ap == NULL);
+    if (likely(ap != NULL)) {
+        policy = &ap->policy;
+    } else {
+        policy = &drop_policy;
+    }
     if (policy->action & ACTION_DROP) {
         SCLogDebug("dropping packet PKT_DROP_REASON_FW_DEFAULT_APP_POLICY");
         PacketDrop(p, policy->action, PKT_DROP_REASON_FW_DEFAULT_APP_POLICY);
@@ -1688,8 +1759,7 @@ static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
             p->flow->aux_flags |= FLOW_AUX_ACTION_BY_FIREWALL;
         }
         if (policy->action & ACTION_ALERT) {
-            DetectRunAppendDefaultAppPolicyAlert(
-                    det_ctx, p, true, direction, tx->tx_id, alproto, progress);
+            DetectRunAppendDefaultAppPolicyAlert(det_ctx, p, true, tx, ap);
         }
     } else if (policy->action & ACTION_ACCEPT) {
         /* should the accept be applied to the packet?
@@ -1722,8 +1792,7 @@ static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
 
         if (policy->action & ACTION_ALERT) {
             SCLogDebug("policy alert, do the append");
-            DetectRunAppendDefaultAppPolicyAlert(
-                    det_ctx, p, apply_to_packet, direction, tx->tx_id, alproto, progress);
+            DetectRunAppendDefaultAppPolicyAlert(det_ctx, p, apply_to_packet, tx, ap);
         } else if (apply_to_packet) {
             SCLogDebug("default accept: last_tx");
             DetectRunAppendDefaultAccept(det_ctx, p);
@@ -1732,7 +1801,7 @@ static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
         /* should be unreachable */
         DEBUG_VALIDATE_BUG_ON(1);
     }
-    return policy;
+    return *policy;
 }
 
 /** \internal
@@ -1748,7 +1817,7 @@ static const struct DetectFirewallPolicy *DetectFirewallApplyDefaultAppPolicy(
  *  \retval DETECT_TX_FW_FC_OK no action needed
  */
 static enum DetectTxFirewallFlowControl DetectFirewallApplyDefaultPolicies(
-        DetectEngineThreadCtx *det_ctx, const struct DetectFirewallAppPolicy *policies,
+        DetectEngineThreadCtx *det_ctx, const struct DetectFirewallPolicies *policies,
         DetectTransaction *tx, Packet *p, const AppProto alproto, const uint8_t direction,
         const uint8_t start_hook, const uint8_t end_hook)
 {
@@ -1768,27 +1837,27 @@ static enum DetectTxFirewallFlowControl DetectFirewallApplyDefaultPolicies(
                 direction & STREAM_TOSERVER ? "toserver" : "toclient", hook,
                 BOOL2STR(apply_to_packet));
 
-        const struct DetectFirewallPolicy *policy = DetectFirewallApplyDefaultAppPolicy(
-                det_ctx, det_ctx->de_ctx->fw_policies->app, tx, p, alproto, direction, hook);
-        SCLogDebug("fw: hook:%u policy:%02x apply_to_packet:%s", hook, policy->action,
+        const struct DetectFirewallPolicy policy = DetectFirewallApplyDefaultAppPolicy(
+                det_ctx, policies, tx, p, alproto, direction, hook);
+        SCLogDebug("fw: hook:%u policy:%02x apply_to_packet:%s", hook, policy.action,
                 BOOL2STR(apply_to_packet));
-        if (policy->action & ACTION_DROP) {
-            SCLogDebug("fw: action %02x", policy->action);
+        if (policy.action & ACTION_DROP) {
+            SCLogDebug("fw: action %02x", policy.action);
             return DETECT_TX_FW_FC_BREAK;
 
-        } else if (policy->action & ACTION_ACCEPT) {
-            SCLogDebug("fw: accept hook %u action %02x", hook, policy->action);
+        } else if (policy.action & ACTION_ACCEPT) {
+            SCLogDebug("fw: accept hook %u action %02x", hook, policy.action);
 
             /* accepting flow, so skip rest of the fw rules */
-            if (policy->action_scope == ACTION_SCOPE_FLOW) {
+            if (policy.action_scope == ACTION_SCOPE_FLOW) {
                 SCLogDebug("fw: accept flow");
                 return DETECT_TX_FW_FC_SKIP;
 
                 /* accepting flow, so skip rest of the fw rules for this tx */
-            } else if (policy->action_scope == ACTION_SCOPE_TX) {
+            } else if (policy.action_scope == ACTION_SCOPE_TX) {
                 return DETECT_TX_FW_FC_SKIP;
 
-            } else if (policy->action_scope == ACTION_SCOPE_HOOK) {
+            } else if (policy.action_scope == ACTION_SCOPE_HOOK) {
                 /* we're done */
                 if (apply_to_packet) {
                     return DETECT_TX_FW_FC_SKIP;
@@ -1884,9 +1953,9 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
                 s->app_progress_hook, tx->detect_progress, tx->detect_progress_orig);
         /* if this rule was after the state we expected meaning that there are
          * no rules for that state. Invoke the default policies. */
-        enum DetectTxFirewallFlowControl r = DetectFirewallApplyDefaultPolicies(det_ctx,
-                det_ctx->de_ctx->fw_policies->app, tx, p, s->alproto, direction,
-                tx->detect_progress_orig, s->app_progress_hook - 1);
+        enum DetectTxFirewallFlowControl r =
+                DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies, tx, p,
+                        s->alproto, direction, tx->detect_progress_orig, s->app_progress_hook - 1);
         if (r != DETECT_TX_FW_FC_OK) {
             /* both SKIP and BREAK mean: no more fw rules to inspect.
              * SKIP applies to just this TX.
@@ -1983,7 +2052,7 @@ static void DetectRunAppendDefaultAccept(DetectEngineThreadCtx *det_ctx, Packet 
     default_accept.flags = SIG_FLAG_FIREWALL;
     default_accept.detect_table =
             DETECT_TABLE_APP_FILTER; // TODO review, hope this makes it last in sorting
-    AlertQueueAppend(det_ctx, &default_accept, p, 0, PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET);
+    AlertQueueAppendPacket(det_ctx, &default_accept, p, PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET);
 }
 
 /** \internal
@@ -2047,8 +2116,8 @@ static void DetectRunTxFirewallApplyAccept(DetectEngineThreadCtx *det_ctx, Packe
                                               ? tx->tx_end_state
                                               : MIN(tx->tx_end_state, s->app_progress_hook + 1);
             enum DetectTxFirewallFlowControl r =
-                    DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies->app,
-                            tx, p, s->alproto, direction, s->app_progress_hook + 1, last_hook);
+                    DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies, tx, p,
+                            s->alproto, direction, s->app_progress_hook + 1, last_hook);
             if (r == DETECT_TX_FW_FC_BREAK) {
                 fw_state->fw_skip_app_filter = true;
                 return;
@@ -2110,8 +2179,8 @@ static int DetectTxFirewallNoRulesApplyPolicies(DetectEngineThreadCtx *det_ctx, 
             SCLogDebug("tx.detect_progress_orig %u tx.tx_progress %u", tx->detect_progress_orig,
                     tx->tx_progress);
             enum DetectTxFirewallFlowControl r =
-                    DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies->app,
-                            tx, p, alproto, flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT),
+                    DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies, tx, p,
+                            alproto, flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT),
                             tx->detect_progress_orig, tx->tx_progress);
             SCLogDebug("r %u", r);
             if (r == DETECT_TX_FW_FC_BREAK)
@@ -2137,8 +2206,10 @@ static void DetectRunTxFirewallRuleFullMatch(DetectEngineThreadCtx *det_ctx, con
         DetectTransaction *tx, struct DetectFirewallAppTxState *fw_state, Flow *f, Packet *p,
         const uint8_t flow_flags)
 {
-    uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_TX);
     if (s->action & ACTION_ACCEPT) {
+        /* add alert now, as ApplyAccept may also trigger
+         * policy matches that could add alerts. */
+        SCLogDebug("append alert");
         /* see if we need to apply tx/hook accept to the packet. This can be needed
          * when we've completed the inspection so far for an incomplete tx, and an
          * accept:tx or accept:hook is the last match.*/
@@ -2146,14 +2217,11 @@ static void DetectRunTxFirewallRuleFullMatch(DetectEngineThreadCtx *det_ctx, con
         if (fw_accept_to_packet) {
             SCLogDebug("packet %" PRIu64 ": apply accept to packet", p->pcap_cnt);
             SCLogDebug("accept:(tx|hook): should be applied to the packet");
-            alert_flags |= PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET;
+            AlertQueueAppendAppTx(det_ctx, s, p, tx->tx_id, tx->tx_type,
+                    PACKET_ALERT_FLAG_APPLY_ACTION_TO_PACKET);
+        } else {
+            AlertQueueAppendAppTx(det_ctx, s, p, tx->tx_id, tx->tx_type, 0);
         }
-        SCLogDebug("append alert");
-
-        /* add alert now, as ApplyAccept may also trigger
-         * policy matches that could add alerts. */
-        AlertQueueAppend(det_ctx, s, p, tx->tx_id, alert_flags);
-
         DetectRunTxFirewallApplyAccept(det_ctx, p, flow_flags, s, tx, fw_state);
     } else if (s->action & ACTION_DROP) {
         SCLogDebug("drop packet because of rule with drop action");
@@ -2164,10 +2232,10 @@ static void DetectRunTxFirewallRuleFullMatch(DetectEngineThreadCtx *det_ctx, con
             f->aux_flags |= FLOW_AUX_ACTION_BY_FIREWALL;
         }
         SCLogDebug("append alert");
-        AlertQueueAppend(det_ctx, s, p, tx->tx_id, alert_flags);
+        AlertQueueAppendAppTx(det_ctx, s, p, tx->tx_id, tx->tx_type, 0);
     } else {
         SCLogDebug("append alert");
-        AlertQueueAppend(det_ctx, s, p, tx->tx_id, alert_flags);
+        AlertQueueAppendAppTx(det_ctx, s, p, tx->tx_id, tx->tx_type, 0);
     }
 }
 
@@ -2223,11 +2291,10 @@ static int DetectRunTxFirewallRuleNoMatch(DetectEngineThreadCtx *det_ctx, const 
          * we have to invoke the default policy. We only check the current rule hook.
          * DROP is immediate, flow control for various accept options is handled by
          * the DetectRunTxPreCheckFirewallPolicy function for the next rule. */
-        const struct DetectFirewallPolicy *policy =
-                DetectFirewallApplyDefaultAppPolicy(det_ctx, det_ctx->de_ctx->fw_policies->app, tx,
-                        p, s->alproto, flow_flags, s->app_progress_hook);
-        SCLogDebug("fw_last_for_progress policy %02x", policy->action);
-        if (policy->action & ACTION_DROP) {
+        const struct DetectFirewallPolicy policy = DetectFirewallApplyDefaultAppPolicy(det_ctx,
+                det_ctx->de_ctx->fw_policies, tx, p, s->alproto, flow_flags, s->app_progress_hook);
+        SCLogDebug("fw_last_for_progress policy %02x", policy.action);
+        if (policy.action & ACTION_DROP) {
             return 1;
         }
     }
@@ -2544,8 +2611,7 @@ static void DetectRunTx(ThreadVars *tv,
                         "%p/%" PRIu64 " sig %u (%u) matched", tx.tx_ptr, tx.tx_id, s->id, s->iid);
 
                 if ((s->flags & SIG_FLAG_FIREWALL) == 0) {
-                    AlertQueueAppend(det_ctx, s, p, tx.tx_id,
-                            (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_TX));
+                    AlertQueueAppendAppTx(det_ctx, s, p, tx.tx_id, tx.tx_type, 0);
                 } else {
                     DetectRunTxFirewallRuleFullMatch(det_ctx, s, &tx, &fw_state, f, p, flow_flags);
                 }
@@ -2756,15 +2822,24 @@ static void DetectRunFrames(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
                 if (r) {
                     /* match */
                     DetectRunPostMatch(tv, det_ctx, p, s);
-
-                    uint8_t alert_flags = (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_FRAME);
                     det_ctx->frame_id = frame->id;
                     SCLogDebug(
                             "%p/%" PRIi64 " sig %u (%u) matched", frame, frame->id, s->id, s->iid);
+                    const uint8_t alert_flags =
+                            (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_FRAME);
                     if (frame->flags & FRAME_FLAG_TX_ID_SET) {
-                        alert_flags |= PACKET_ALERT_FLAG_TX;
+                        const uint8_t ipproto = p->proto;
+                        uint8_t sub_state = 0;
+                        void *tx = AppLayerParserGetTx(
+                                ipproto, alproto, p->flow->alstate, frame->tx_id);
+                        if (tx) {
+                            AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
+                            sub_state = txd->tx_type;
+                        }
+                        AlertQueueAppendAppTx(det_ctx, s, p, frame->tx_id, sub_state, alert_flags);
+                    } else {
+                        AlertQueueAppendPacket(det_ctx, s, p, alert_flags);
                     }
-                    AlertQueueAppend(det_ctx, s, p, frame->tx_id, alert_flags);
                 }
             }
             DetectVarProcessList(det_ctx, p->flow, p);

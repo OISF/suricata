@@ -30,6 +30,8 @@
 #include "detect-parse.h"
 #include "detect-engine-content-inspection.h"
 #include "rust.h"
+#include "app-layer-parser.h"
+#include "util-validate.h"
 
 int SCDetectHelperBufferRegister(const char *name, AppProto alproto, uint8_t direction)
 {
@@ -47,6 +49,7 @@ int SCDetectHelperBufferRegister(const char *name, AppProto alproto, uint8_t dir
 int SCDetectHelperBufferProgressRegister(
         const char *name, AppProto alproto, uint8_t direction, int progress)
 {
+    DEBUG_VALIDATE_BUG_ON(AppLayerParserSupportsSubStates(alproto));
     if (direction & STREAM_TOSERVER) {
         DetectAppLayerInspectEngineRegister(
                 name, alproto, SIG_FLAG_TOSERVER, progress, DetectEngineInspectGenericList, NULL);
@@ -58,9 +61,25 @@ int SCDetectHelperBufferProgressRegister(
     return DetectBufferTypeRegister(name);
 }
 
+int SCDetectHelperBufferProgressRegisterSubState(
+        const char *name, AppProto alproto, uint8_t direction, uint8_t sub_state, uint8_t progress)
+{
+    DEBUG_VALIDATE_BUG_ON(AppLayerParserSupportsSubStates(alproto) && sub_state == 0);
+    if (direction & STREAM_TOSERVER) {
+        DetectAppLayerInspectEngineRegisterSubState(name, alproto, SIG_FLAG_TOSERVER, sub_state,
+                (uint8_t)progress, DetectEngineInspectGenericList, NULL);
+    }
+    if (direction & STREAM_TOCLIENT) {
+        DetectAppLayerInspectEngineRegisterSubState(name, alproto, SIG_FLAG_TOCLIENT, sub_state,
+                (uint8_t)progress, DetectEngineInspectGenericList, NULL);
+    }
+    return DetectBufferTypeRegister(name);
+}
+
 int SCDetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionSingleBufferGetDataPtr GetData)
 {
+    DEBUG_VALIDATE_BUG_ON(AppLayerParserSupportsSubStates(alproto));
     if (direction & STREAM_TOSERVER) {
         DetectAppLayerInspectEngineRegisterSingle(
                 name, alproto, SIG_FLAG_TOSERVER, 0, DetectEngineInspectBufferSingle, GetData);
@@ -80,6 +99,7 @@ int SCDetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto
 int SCDetectHelperBufferProgressMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionSingleBufferGetDataPtr GetData, int progress)
 {
+    DEBUG_VALIDATE_BUG_ON(AppLayerParserSupportsSubStates(alproto));
     if (direction & STREAM_TOSERVER) {
         DetectAppLayerInspectEngineRegisterSingle(name, alproto, SIG_FLAG_TOSERVER, progress,
                 DetectEngineInspectBufferSingle, GetData);
@@ -97,8 +117,10 @@ int SCDetectHelperBufferProgressMpmRegister(const char *name, const char *desc, 
 }
 
 int SCDetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc,
-        AppProto alproto, uint8_t direction, InspectionMultiBufferGetDataPtr GetData, int progress)
+        AppProto alproto, uint8_t direction, InspectionMultiBufferGetDataPtr GetData,
+        uint8_t progress)
 {
+    DEBUG_VALIDATE_BUG_ON(AppLayerParserSupportsSubStates(alproto));
     if (direction & STREAM_TOSERVER) {
         DetectAppLayerMultiRegister(name, alproto, SIG_FLAG_TOSERVER, progress, GetData, 2);
     }
@@ -110,9 +132,28 @@ int SCDetectHelperMultiBufferProgressMpmRegister(const char *name, const char *d
     return DetectBufferTypeGetByName(name);
 }
 
+int SCDetectHelperMultiBufferProgressMpmRegisterSubState(const char *name, const char *desc,
+        AppProto alproto, uint8_t direction, InspectionMultiBufferGetDataPtr GetData,
+        uint8_t sub_state, uint8_t progress)
+{
+    DEBUG_VALIDATE_BUG_ON(AppLayerParserSupportsSubStates(alproto) && sub_state == 0);
+    if (direction & STREAM_TOSERVER) {
+        DetectAppLayerMultiRegisterSubState(
+                name, alproto, SIG_FLAG_TOSERVER, sub_state, progress, GetData, 2);
+    }
+    if (direction & STREAM_TOCLIENT) {
+        DetectAppLayerMultiRegisterSubState(
+                name, alproto, SIG_FLAG_TOCLIENT, sub_state, progress, GetData, 2);
+    }
+    DetectBufferTypeSupportsMultiInstance(name);
+    DetectBufferTypeSetDescriptionByName(name, desc);
+    return DetectBufferTypeGetByName(name);
+}
+
 int SCDetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionMultiBufferGetDataPtr GetData)
 {
+    DEBUG_VALIDATE_BUG_ON(AppLayerParserSupportsSubStates(alproto));
     return SCDetectHelperMultiBufferProgressMpmRegister(name, desc, alproto, direction, GetData, 0);
 }
 

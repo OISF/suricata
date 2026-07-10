@@ -83,35 +83,57 @@ int ListAppLayerHooks(const char *conf_filename)
         if (alprotos[a] != 1)
             continue;
 
-        const char *alproto_name = AppProtoToString(a);
-        if (strcmp(alproto_name, "http") == 0)
-            alproto_name = "http1";
-        SCLogDebug("alproto %u/%s", a, alproto_name);
-
-        const int max_progress_ts =
-                AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOSERVER);
-        const int max_progress_tc =
-                AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOCLIENT);
-
-        printf("%s:%s\n", alproto_name, "request_started");
-        for (int p = 0; p <= max_progress_ts; p++) {
-            const char *name = AppLayerParserGetStateNameById(
-                    IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOSERVER);
-            if (name != NULL && !IsBuiltIn(name)) {
-                printf("%s:%s\n", alproto_name, name);
+        if (AppLayerParserSupportsSubStates(a)) {
+            const uint8_t max_sub_state = AppLayerParserGetMaxSubState(a);
+            for (uint8_t sub_state = 1; sub_state <= max_sub_state; sub_state++) {
+                const char *sub_state_name = AppLayerParserGetSubStateName(a, sub_state);
+                const uint8_t max_progress = AppLayerParserGetSubStateCompletion(a, sub_state);
+                for (uint8_t state = 0; state <= max_progress; state++) {
+                    const char *name = AppLayerParserGetSubStateProgressName(
+                            a, sub_state, state, STREAM_TOSERVER);
+                    if (name != NULL) {
+                        printf("%s:%s:%s\n", AppProtoToString(a), sub_state_name, name);
+                    }
+                }
+                for (uint8_t state = 0; state <= max_progress; state++) {
+                    const char *name = AppLayerParserGetSubStateProgressName(
+                            a, sub_state, state, STREAM_TOCLIENT);
+                    if (name != NULL) {
+                        printf("%s:%s:%s\n", AppProtoToString(a), sub_state_name, name);
+                    }
+                }
             }
-        }
-        printf("%s:%s\n", alproto_name, "request_complete");
+        } else {
+            const char *alproto_name = AppProtoToString(a);
+            if (strcmp(alproto_name, "http") == 0)
+                alproto_name = "http1";
+            SCLogDebug("alproto %u/%s", a, alproto_name);
 
-        printf("%s:%s\n", alproto_name, "response_started");
-        for (int p = 0; p <= max_progress_tc; p++) {
-            const char *name = AppLayerParserGetStateNameById(
-                    IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOCLIENT);
-            if (name != NULL && !IsBuiltIn(name)) {
-                printf("%s:%s\n", alproto_name, name);
+            const int max_progress_ts =
+                    AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOSERVER);
+            const int max_progress_tc =
+                    AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOCLIENT);
+
+            printf("%s:%s\n", alproto_name, "request_started");
+            for (int p = 0; p <= max_progress_ts; p++) {
+                const char *name = AppLayerParserGetStateNameById(
+                        IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOSERVER);
+                if (name != NULL && !IsBuiltIn(name)) {
+                    printf("%s:%s\n", alproto_name, name);
+                }
             }
+            printf("%s:%s\n", alproto_name, "request_complete");
+
+            printf("%s:%s\n", alproto_name, "response_started");
+            for (int p = 0; p <= max_progress_tc; p++) {
+                const char *name = AppLayerParserGetStateNameById(
+                        IPPROTO_TCP /* TODO no ipproto */, a, p, STREAM_TOCLIENT);
+                if (name != NULL && !IsBuiltIn(name)) {
+                    printf("%s:%s\n", alproto_name, name);
+                }
+            }
+            printf("%s:%s\n", alproto_name, "response_complete");
         }
-        printf("%s:%s\n", alproto_name, "response_complete");
     }
     return TM_ECODE_DONE;
 }

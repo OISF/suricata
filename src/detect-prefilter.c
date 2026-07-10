@@ -29,6 +29,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-content.h"
+#include "detect-app-layer-protocol.h"
 #include "detect-engine-mpm.h"
 #include "detect-prefilter.h"
 #include "util-debug.h"
@@ -104,6 +105,16 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
     } else {
         if (sigmatch_table[sm->type].SupportsPrefilter == NULL) {
             SCLogError("prefilter is not supported for %s", sigmatch_table[sm->type].name);
+            SCReturnInt(-1);
+        }
+
+        /* A multi-value app-layer-protocol keyword stores its values in a
+         * bitmask that the single-valued prefilter bucket key can't carry, so
+         * forcing prefilter would bucket the rule under ALPROTO_UNKNOWN and
+         * silently never match. */
+        if (sm->type == DETECT_APP_LAYER_PROTOCOL &&
+                ((const DetectAppLayerProtocolData *)sm->ctx)->is_list) {
+            SCLogError("prefilter is not supported for multi-value app-layer-protocol");
             SCReturnInt(-1);
         }
 
