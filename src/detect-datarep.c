@@ -42,7 +42,7 @@
 #include "util-misc.h"
 #include "util-path.h"
 
-#define PARSE_REGEX         "([a-z]+)(?:,\\s*([\\-_A-z0-9\\s\\.]+)){1,4}"
+#define PARSE_REGEX         "^([a-z]+)(?:,\\s*([\\-_A-z0-9\\s\\.]+)){1,4}$"
 static DetectParseRegex parse_regex;
 
 int DetectDatarepMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
