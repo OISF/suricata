@@ -162,7 +162,7 @@ pub struct SshPacketKeyExchange<'a> {
     pub reserved: u32,
 }
 
-const SSH_HASSH_STRING_DELIMITER_SLICE: [u8; 1] = [b';'];
+const SSH_HASSH_STRING_DELIMITER_SLICE: [u8; 1] = *b";";
 
 impl SshPacketKeyExchange<'_> {
     pub fn generate_hassh(

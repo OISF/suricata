@@ -410,7 +410,7 @@ pub unsafe extern "C" fn SCDetectRequiresStatusLog(
                 "rule was"
             },
             suricata_version,
-            &min_version
+            min_version
         );
         parts.push(msg);
     }
@@ -447,7 +447,7 @@ pub unsafe extern "C" fn SCDetectRequiresStatusLog(
                 "rule was"
             },
             if status.feature_count > 1 { "s" } else { "" },
-            &features
+            features
         );
         parts.push(msg);
     }
