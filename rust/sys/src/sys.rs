@@ -1832,10 +1832,31 @@ extern "C" {
     pub fn SCFlowGetFlags(flow: *const Flow) -> u64;
 }
 extern "C" {
+    pub fn SCFlowIsIPv4(flow: *const Flow) -> bool;
+}
+extern "C" {
+    pub fn SCFlowIsIPv6(flow: *const Flow) -> bool;
+}
+extern "C" {
+    pub fn SCFlowGetIPProtocol(flow: *const Flow) -> u8;
+}
+extern "C" {
     pub fn SCFlowGetSourcePort(flow: *const Flow) -> u16;
 }
 extern "C" {
     pub fn SCFlowGetDestinationPort(flow: *const Flow) -> u16;
+}
+extern "C" {
+    pub fn SCFlowGetSourceAddressAsRawPtr(flow: *const Flow) -> *const u8;
+}
+extern "C" {
+    pub fn SCFlowGetDestinationAddressAsRawPtr(flow: *const Flow) -> *const u8;
+}
+extern "C" {
+    pub fn SCFlowGetToServerPacketCount(flow: *const Flow) -> u32;
+}
+extern "C" {
+    pub fn SCFlowGetToClientPacketCount(flow: *const Flow) -> u32;
 }
 extern "C" {
     pub fn SCFlowGetAppProtocol(f: *const Flow) -> AppProto;
@@ -1891,6 +1912,38 @@ extern "C" {
 extern "C" {
     #[doc = " \\internal\n\n Run all registered flow init callbacks."]
     pub fn SCFlowRunFinishCallbacks(tv: *mut ThreadVars, f: *mut Flow);
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct SCFlowStorageId {
+    pub id: ::std::os::raw::c_int,
+}
+extern "C" {
+    pub fn SCFlowStorageSize() -> ::std::os::raw::c_uint;
+}
+extern "C" {
+    pub fn SCFlowGetStorageById(h: *const Flow, id: SCFlowStorageId)
+        -> *mut ::std::os::raw::c_void;
+}
+extern "C" {
+    pub fn SCFlowSetStorageById(
+        h: *mut Flow, id: SCFlowStorageId, ptr: *mut ::std::os::raw::c_void,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCFlowFreeStorageById(h: *mut Flow, id: SCFlowStorageId);
+}
+extern "C" {
+    pub fn SCFlowFreeStorage(h: *mut Flow);
+}
+extern "C" {
+    pub fn SCRegisterFlowStorageTests();
+}
+extern "C" {
+    pub fn SCFlowStorageRegister(
+        name: *const ::std::os::raw::c_char,
+        Free: ::std::option::Option<unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void)>,
+    ) -> SCFlowStorageId;
 }
 #[doc = " \\brief Function type for thread intialization callbacks.\n\n Once registered by SCThreadRegisterInitCallback, this function will\n be called for every thread being initialized during Suricata\n startup.\n\n \\param tv The ThreadVars struct that has just been initialized.\n \\param user The user data provided when registering the callback."]
 pub type SCThreadInitCallbackFn = ::std::option::Option<

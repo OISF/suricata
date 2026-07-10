@@ -21,6 +21,7 @@
 #include "output-packet.h"
 #include "output-flow.h"
 #include "output-tx.h"
+#include "flow.h"
 #include "util-print.h"
 #include "output.h"
 
@@ -53,26 +54,34 @@ static int CustomFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     char src_ip[46] = { 0 }, dst_ip[46] = { 0 };
     Port sp, dp;
 
-    if ((f->flags & FLOW_DIR_REVERSED) == 0) {
-        if (FLOW_IS_IPV4(f)) {
-            PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), src_ip, sizeof(src_ip));
-            PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dst_ip, sizeof(dst_ip));
-        } else if (FLOW_IS_IPV6(f)) {
-            PrintInet(AF_INET6, (const void *)&(f->src.address), src_ip, sizeof(src_ip));
-            PrintInet(AF_INET6, (const void *)&(f->dst.address), dst_ip, sizeof(dst_ip));
+    if ((SCFlowGetFlags(f) & FLOW_DIR_REVERSED) == 0) {
+        if (SCFlowIsIPv4(f)) {
+            PrintInet(AF_INET, (const void *)SCFlowGetSourceAddressAsRawPtr(f), src_ip,
+                    sizeof(src_ip));
+            PrintInet(AF_INET, (const void *)SCFlowGetDestinationAddressAsRawPtr(f), dst_ip,
+                    sizeof(dst_ip));
+        } else if (SCFlowIsIPv6(f)) {
+            PrintInet(AF_INET6, (const void *)SCFlowGetSourceAddressAsRawPtr(f), src_ip,
+                    sizeof(src_ip));
+            PrintInet(AF_INET6, (const void *)SCFlowGetDestinationAddressAsRawPtr(f), dst_ip,
+                    sizeof(dst_ip));
         }
-        sp = f->sp;
-        dp = f->dp;
+        sp = SCFlowGetSourcePort(f);
+        dp = SCFlowGetDestinationPort(f);
     } else {
-        if (FLOW_IS_IPV4(f)) {
-            PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), src_ip, sizeof(src_ip));
-            PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), dst_ip, sizeof(dst_ip));
-        } else if (FLOW_IS_IPV6(f)) {
-            PrintInet(AF_INET6, (const void *)&(f->dst.address), src_ip, sizeof(src_ip));
-            PrintInet(AF_INET6, (const void *)&(f->src.address), dst_ip, sizeof(dst_ip));
+        if (SCFlowIsIPv4(f)) {
+            PrintInet(AF_INET, (const void *)SCFlowGetDestinationAddressAsRawPtr(f), src_ip,
+                    sizeof(src_ip));
+            PrintInet(AF_INET, (const void *)SCFlowGetSourceAddressAsRawPtr(f), dst_ip,
+                    sizeof(dst_ip));
+        } else if (SCFlowIsIPv6(f)) {
+            PrintInet(AF_INET6, (const void *)SCFlowGetDestinationAddressAsRawPtr(f), src_ip,
+                    sizeof(src_ip));
+            PrintInet(AF_INET6, (const void *)SCFlowGetSourceAddressAsRawPtr(f), dst_ip,
+                    sizeof(dst_ip));
         }
-        sp = f->dp;
-        dp = f->sp;
+        sp = SCFlowGetDestinationPort(f);
+        dp = SCFlowGetSourcePort(f);
     }
 
     SCLogNotice("Flow: %s:%u -> %s:%u", src_ip, sp, dst_ip, dp);
