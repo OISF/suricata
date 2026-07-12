@@ -973,7 +973,7 @@ impl Transaction {
                 .value
                 .iter()
                 .rev()
-                .position(|&c| c == b' ')
+                .position(|&c| c == b' ' || c == b',')
                 .unwrap_or(h_xff.value.len());
             &h_xff.value[h_xff.value.len() - cut..]
         } else {
@@ -981,7 +981,7 @@ impl Transaction {
             let cut = h_xff
                 .value
                 .iter()
-                .position(|&c| c == b',')
+                .position(|&c| c == b',' || c == b' ')
                 .unwrap_or(h_xff.value.len());
             &h_xff.value[..cut]
         };
