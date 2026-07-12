@@ -973,17 +973,15 @@ pub(crate) fn xff_ip(reversed: bool, h_xff: &[u8], dst: &mut [u8]) -> bool {
         let cut = h_xff
             .iter()
             .rev()
-            .position(|&c| c == b' ')
+            .position(|&c| c == b',')
             .unwrap_or(h_xff.len());
         &h_xff[h_xff.len() - cut..]
     } else {
         /* Get the first IP address from the chain */
-        let cut = h_xff
-            .iter()
-            .position(|&c| c == b',')
-            .unwrap_or(h_xff.len());
+        let cut = h_xff.iter().position(|&c| c == b',').unwrap_or(h_xff.len());
         &h_xff[..cut]
     };
+    let ipbuf = ipbuf.trim_ascii();
     parse_xff_string(ipbuf, dst)
 }
 
@@ -1118,4 +1116,15 @@ fn test_xff_ip() {
 
     let mut too_short = [0u8; 4];
     assert!(!xff_ip(true, b"1.2.3.4", &mut too_short));
+
+    assert!(xff_ip(true, b"1.1.1.1,2.2.2.2", &mut dst));
+    assert_eq!(&dst[..8], b"2.2.2.2\0");
+    assert!(xff_ip(false, b"1.1.1.1,2.2.2.2", &mut dst));
+    assert_eq!(&dst[..8], b"1.1.1.1\0");
+
+    assert!(xff_ip(true, b"1.1.1.1 , 2.2.2.2", &mut dst));
+    assert_eq!(&dst[..8], b"2.2.2.2\0");
+    assert!(xff_ip(false, b"1.1.1.1 , 2.2.2.2", &mut dst));
+    assert_eq!(&dst[..8], b"1.1.1.1\0");
+    assert!(!xff_ip(false, b"1.1.1.1 junk", &mut dst));
 }
