@@ -124,10 +124,16 @@ static int LuaHttpGetRequestUriRaw(lua_State *luastate)
         return 1;
     }
     SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
-    if (tx->alproto != ALPROTO_HTTP1) {
-        lua_pushnil(luastate);
-        return 1;
-    }
+    if (tx->alproto == ALPROTO_HTTP2 || tx->alproto == ALPROTO_DOH2) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (SCHttp2TxGetUri(txptr, &b, &b_len) != 1) {
+            lua_pushnil(luastate);
+            return 1;
+        }
+        return LuaPushStringBuffer(luastate, b, b_len);
+    } // else ALPROTO_HTTP1
     const struct bstr *uri = htp_tx_request_uri(txptr);
     if (uri == NULL) {
         lua_pushnil(luastate);
