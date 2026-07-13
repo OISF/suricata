@@ -32,15 +32,20 @@ static const char htp_tx[] = "suricata:http:tx";
 
 struct LuaTx {
     SCLuaTxRef ref;
+    AppProto alproto;
 };
 
 static int LuaHttpGetTx(lua_State *luastate)
 {
-    if (!LuaStateNeedProto(luastate, ALPROTO_HTTP1)) {
+    Flow *flow = LuaStateGetFlow(luastate);
+    if (flow == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    if (flow->alproto != ALPROTO_HTTP1 && flow->alproto != ALPROTO_HTTP2 && flow->alproto != ALPROTO_DOH2) {
         return LuaCallbackError(luastate, "error: protocol not http");
     }
 
-    htp_tx_t *tx = LuaStateGetTX(luastate);
+    void *tx = LuaStateGetTX(luastate);
     if (tx == NULL) {
         return LuaCallbackError(luastate, "error: no tx available");
     }
@@ -50,6 +55,7 @@ static int LuaHttpGetTx(lua_State *luastate)
     }
 
     SCLuaTxRefInit(luastate, &ltx->ref, LuaStateGetTxId(luastate));
+    ltx->alproto = flow->alproto;
 
     luaL_getmetatable(luastate, htp_tx);
     lua_setmetatable(luastate, -2);
@@ -65,6 +71,10 @@ static int LuaHttpGetRequestHost(lua_State *luastate)
         return 1;
     }
     SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
+    if (tx->alproto != ALPROTO_HTTP1) {
+        lua_pushnil(luastate);
+        return 1;
+    }
     const struct bstr *host = htp_tx_request_hostname(txptr);
     if (host == NULL) {
         lua_pushnil(luastate);
@@ -82,6 +92,10 @@ static int LuaHttpGetRequestUriRaw(lua_State *luastate)
         return 1;
     }
     SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
+    if (tx->alproto != ALPROTO_HTTP1) {
+        lua_pushnil(luastate);
+        return 1;
+    }
     const struct bstr *uri = htp_tx_request_uri(txptr);
     if (uri == NULL) {
         lua_pushnil(luastate);
@@ -99,6 +113,10 @@ static int LuaHttpGetRequestUriNormalized(lua_State *luastate)
         return 1;
     }
     SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
+    if (tx->alproto != ALPROTO_HTTP1) {
+        lua_pushnil(luastate);
+        return 1;
+    }
     bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(txptr);
 
     if (request_uri_normalized == NULL || bstr_ptr(request_uri_normalized) == NULL ||
@@ -113,6 +131,10 @@ static int LuaHttpGetRequestLine(lua_State *luastate)
 {
     struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
     if (tx == NULL) {
+        lua_pushnil(luastate);
+        return 1;
+    }
+    if (tx->alproto != ALPROTO_HTTP1) {
         lua_pushnil(luastate);
         return 1;
     }
@@ -134,6 +156,10 @@ static int LuaHttpGetResponseLine(lua_State *luastate)
         lua_pushnil(luastate);
         return 1;
     }
+    if (tx->alproto != ALPROTO_HTTP1) {
+        lua_pushnil(luastate);
+        return 1;
+    }
 
     SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
     const struct bstr *line = htp_tx_response_line(txptr);
@@ -149,6 +175,10 @@ static int LuaHttpGetHeader(lua_State *luastate, int dir)
 {
     struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
     if (tx == NULL) {
+        lua_pushnil(luastate);
+        return 1;
+    }
+    if (tx->alproto != ALPROTO_HTTP1) {
         lua_pushnil(luastate);
         return 1;
     }
@@ -193,6 +223,10 @@ static int LuaHttpGetRawHeaders(lua_State *luastate, int dir)
         return 1;
     }
     SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
+    if (tx->alproto != ALPROTO_HTTP1) {
+        lua_pushnil(luastate);
+        return 1;
+    }
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(txptr);
 
     uint8_t *raw = htud->request_headers_raw;
@@ -222,6 +256,10 @@ static int LuaHttpGetHeaders(lua_State *luastate, int dir)
 {
     struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
     if (tx == NULL) {
+        lua_pushnil(luastate);
+        return 1;
+    }
+    if (tx->alproto != ALPROTO_HTTP1) {
         lua_pushnil(luastate);
         return 1;
     }
@@ -264,6 +302,10 @@ static int LuaHttpGetBody(lua_State *luastate, int dir)
 {
     struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
     if (tx == NULL) {
+        lua_pushnil(luastate);
+        return 1;
+    }
+    if (tx->alproto != ALPROTO_HTTP1) {
         lua_pushnil(luastate);
         return 1;
     }
