@@ -1829,7 +1829,7 @@ void DetectBufferTypeCloseRegistration(void)
 }
 
 int DetectEngineBufferTypeGetByIdTransforms(
-        DetectEngineCtx *de_ctx, const int id, TransformData *transforms, int transform_cnt)
+        DetectEngineCtx *de_ctx, const int id, TransformData *transforms, uint8_t transform_cnt)
 {
     const DetectBufferType *base_map = DetectEngineBufferTypeGetById(de_ctx, id);
     if (!base_map) {
