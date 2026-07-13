@@ -90,17 +90,22 @@ static int LuaHttpGetRequestUriRaw(lua_State *luastate)
         lua_pushnil(luastate);
         return 1;
     }
-    if (tx->alproto != ALPROTO_HTTP1) {
-        lua_pushnil(luastate);
-        return 1;
-    }
-    const struct bstr *uri = htp_tx_request_uri(tx->tx);
-    if (uri == NULL) {
-        lua_pushnil(luastate);
-        return 1;
-    }
+    if (tx->alproto == ALPROTO_HTTP1) {
+        const struct bstr *uri = htp_tx_request_uri(tx->tx);
+        if (uri == NULL) {
+            lua_pushnil(luastate);
+            return 1;
+        }
+        return LuaPushStringBuffer(luastate, bstr_ptr(uri), bstr_len(uri));
+    } // else ALPROTO_HTTP2
+    uint32_t b_len = 0;
+    const uint8_t *b = NULL;
 
-    return LuaPushStringBuffer(luastate, bstr_ptr(uri), bstr_len(uri));
+    if (SCHttp2TxGetUri(tx->tx, &b, &b_len) != 1) {
+        lua_pushnil(luastate);
+        return 1;
+    }
+    return LuaPushStringBuffer(luastate, b, b_len);
 }
 
 static int LuaHttpGetRequestUriNormalized(lua_State *luastate)
