@@ -237,6 +237,24 @@ static inline void SMTPSetProgressTC(SMTPTransaction *tx, uint8_t progress)
     }
 }
 
+static inline void SMTPTransactionCompleteTS(SMTPTransaction *tx)
+{
+    DEBUG_VALIDATE_BUG_ON(tx == NULL);
+    if (tx) {
+        SMTPSetProgressTS(tx, SMTP_REQUEST_COMPLETE);
+        SCLogDebug("marked tx as ts complete");
+    }
+}
+
+static inline void SMTPTransactionCompleteTC(SMTPTransaction *tx)
+{
+    DEBUG_VALIDATE_BUG_ON(tx == NULL);
+    if (tx) {
+        SMTPSetProgressTC(tx, SMTP_RESPONSE_COMPLETE);
+        SCLogDebug("marked tx as tc complete");
+    }
+}
+
 static bool SMTPTransactionRequestIsComplete(const SMTPTransaction *tx)
 {
     return tx && tx->progress_ts == SMTP_REQUEST_COMPLETE;
@@ -792,24 +810,6 @@ static inline void SMTPTransactionComplete(SMTPTransaction *tx)
     if (tx) {
         SMTPSetProgressTS(tx, SMTP_REQUEST_COMPLETE);
         SMTPSetProgressTC(tx, SMTP_RESPONSE_COMPLETE);
-    }
-}
-
-static inline void SMTPTransactionCompleteTS(SMTPTransaction *tx)
-{
-    DEBUG_VALIDATE_BUG_ON(tx == NULL);
-    if (tx) {
-        SMTPSetProgressTS(tx, SMTP_REQUEST_COMPLETE);
-        SCLogDebug("marked tx as ts complete");
-    }
-}
-
-static inline void SMTPTransactionCompleteTC(SMTPTransaction *tx)
-{
-    DEBUG_VALIDATE_BUG_ON(tx == NULL);
-    if (tx) {
-        SMTPSetProgressTC(tx, SMTP_RESPONSE_COMPLETE);
-        SCLogDebug("marked tx as tc complete");
     }
 }
 
