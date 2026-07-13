@@ -1081,7 +1081,7 @@ static int SMTPProcessReply(
     } else if (IsReplyToCommand(state, SMTP_COMMAND_BDAT)) {
         SMTPSetProgressTC(reply_tx, SMTP_RESPONSE_DATA);
     } else if (IsReplyToCommand(state, SMTP_COMMAND_DATA_MODE)) {
-        if (!(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
+        if (reply_tx && !(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
             SMTPTransactionCompleteTC(reply_tx);
         }
     } else if (IsReplyToCommand(state, SMTP_COMMAND_RSET)) {
