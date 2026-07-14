@@ -1433,7 +1433,10 @@ static inline int CreatePortList(DetectEngineCtx *de_ctx, const uint8_t *unique_
             if ((p1 && p1->single) && p2->single) {
                 SCPortIntervalFindOverlappingRanges(de_ctx, port, port, &it->tree, list);
                 SCPortIntervalFindOverlappingRanges(de_ctx, port2, port2, &it->tree, list);
-                port = port2 + 1;
+                /* port2 + 1 promotes to int: cast the possible wrap-around at
+                 * port2 == UINT16_MAX back explicitly; when it wraps, port2 was
+                 * the last unique point and the value is never used */
+                port = (uint16_t)(port2 + 1);
             } else if (p1 && p1->single) {
                 SCPortIntervalFindOverlappingRanges(de_ctx, port, port, &it->tree, list);
                 if ((port2 > port + 1)) {
@@ -1441,7 +1444,7 @@ static inline int CreatePortList(DetectEngineCtx *de_ctx, const uint8_t *unique_
                             de_ctx, port + 1, port2 - 1, &it->tree, list);
                     port = port2;
                 } else {
-                    port = port + 1;
+                    port = (uint16_t)(port + 1);
                 }
             } else if (p2->single) {
                 /* If port2 is boundary and less or equal to port + 1, create a range
@@ -1451,14 +1454,14 @@ static inline int CreatePortList(DetectEngineCtx *de_ctx, const uint8_t *unique_
                 }
                 /* Deal with port2 as it is a single port */
                 SCPortIntervalFindOverlappingRanges(de_ctx, port2, port2, &it->tree, list);
-                port = port2 + 1;
+                port = (uint16_t)(port2 + 1);
             } else {
                 if ((port2 > port + 1)) {
                     SCPortIntervalFindOverlappingRanges(de_ctx, port, port2 - 1, &it->tree, list);
                     port = port2;
                 } else {
                     SCPortIntervalFindOverlappingRanges(de_ctx, port, port2, &it->tree, list);
-                    port = port2 + 1;
+                    port = (uint16_t)(port2 + 1);
                 }
             }
             /* if the current port matches the p2->port, assign it to p1 so that
