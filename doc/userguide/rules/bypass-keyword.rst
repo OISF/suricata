@@ -1,3 +1,5 @@
+.. _bypass-keyword:
+
 Bypass Keyword
 ==============
 
@@ -13,8 +15,11 @@ The ``bypass`` keyword is considered a post-match keyword.
 
 .. note::
 
-   ``bypass`` cannot be used in firewall mode, not even with Threat Detection
-   rules, as this could lead to bypassing the firewall altogether.
+   In firewall mode, ``bypass`` can only be used in firewall rules. If a threat
+   detection rule uses the ``bypass`` keyword and you want to run Suricata in
+    the offending rule will produce an error and won't be loaded. This is to
+   prevent a threat detection rule from bypassing the firewall altogether.
+   (To make the engine error out in such a case, use ``--init-errors-fatal``).
 
 bypass
 ------
@@ -25,4 +30,38 @@ Bypass a flow on matching http traffic.
 
   alert http any any -> any any (http.host; \
   content:"suricata.io"; :example-rule-emphasis:`bypass;` \
+  sid:10001; rev:1;)
+
+Firewall mode
+-------------
+
+``bypass`` is only accepted with a specific combination of `action` and `scope`:
+``accept:flow``.
+
+Not accepted:
+    - Action: ``config``
+    - Action: ``reject``
+    - Action: ``drop``
+    - Scope: ``packet``
+    - Scope: ``tx``
+    - Scope: ``hook``
+
+.. attention:: `bypass` on a firewall rule is a terminating action. Threat
+  detection rules are not evaluated for the matching packet, respecting the
+  premise of what would happen if Firewall and IPS were two separate devices.
+
+.. note:: The type of bypass will depend on whether the engine is configured
+  for local or capture bypass: offloading is not guaranteed by a firewall
+  bypass rule.
+
+.. note:: If `bypass` is used in a rule together with thresholding, the bypass
+   could be silent, if the alert is suppressed. (This can be checked with the
+   stats counter: ``detect.alerts_suppressed``).
+
+Valid firewall rule with bypass:
+
+.. container:: example-rule
+
+  :example-rule-emphasis:`accept:flow,alert` http1:request_headers any any -> \
+  any any (http.host; content:"suricata.io"; :example-rule-emphasis:`bypass;` \
   sid:10001; rev:1;)
