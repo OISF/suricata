@@ -2015,6 +2015,19 @@ default is 1 MB.
       mqtt:
         max-msg-length: 1mb
 
+RFB
+~~~
+
+RFB can have some strings whose maximum length according to the RFC is 4GiB.
+In order to limit ram consumption and log output, a configuration parameter ``max-string-length`` is available.
+This limit will also apply during detection.
+An event ``rfb.too_long_string`` will be emitted when a string exceeds the limit. The default is 4 KiB.
+
+::
+
+      rfb:
+        max-string-length: 4 KiB
+
 SMTP
 ~~~~~~
 
