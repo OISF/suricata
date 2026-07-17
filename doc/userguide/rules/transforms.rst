@@ -188,6 +188,95 @@ url_decode
 Decodes url-encoded data, ie replacing '+' with space and '%HH' with its value.
 This does not decode unicode '%uZZZZ' encoding
 
+json_normalize
+--------------
+
+Decodes and compacts json-encoded data.
+If input is valid json, the output should remain valid json. As such, an
+escaped double quote in a string will not be replaced and will remain ``\"``,
+Unpaired surrogates are an exception (see the tables below).
+
+Invalid json such as an unescaped tabulation in a string will not be escaped.
+
+.. note:: Limitation
+
+   The transform has to parse the data from its start, to know whether it is
+   inside a string. For buffers inspected in windows, such as ``file.data``,
+   it only normalizes a window that starts at the beginning of the data.
+   Later windows are still inspected, but without json_normalize, so a
+   pattern written for the normalized form will not match in them.
+
+   The size of the window that starts at the beginning is not fixed. It depends
+   on the protocol and its configuration, for example
+   ``response-body-minimal-inspect-size`` for HTTP1 response bodies.
+
+The tables below illustrate inputs and outputs affected by this transform, with examples.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 30 30
+
+   * - Input
+     - Output
+     - Example
+   * - Whitespace outside strings (space, tab, LF, CR, form feed)
+     - removed
+     - ``{ "a" : 1 }`` → ``{"a":1}``
+   * - ``\/``
+     - ``/``
+     - ``a\/b`` → ``a/b``
+   * - ``\"``, ``\\``, ``\b``, ``\f``, ``\n``, ``\r``, ``\t``
+     - unchanged
+     - ``a\tb`` → ``a\tb``
+   * - ``\u0022``, ``\u005C``
+     - ``\"``, ``\\``
+     - ``\u0022`` → ``\"``
+   * - ``\u0008``, ``\u0009``, ``\u000A``, ``\u000C``, ``\u000D``
+     - ``\b``, ``\t``, ``\n``, ``\f``, ``\r``
+     - ``\u0009`` → ``\t``
+   * - Other ``\u0000`` to ``\u001F``
+     - unchanged, hex case kept
+     - ``\u001b`` → ``\u001b``
+   * - Any other ``\uXXXX``
+     - UTF-8 bytes
+     - ``\u00E9`` → ``é`` (``|c3 a9|``)
+   * - Invalid escape (unknown letter, or ``\u`` with non-hex digits)
+     - unchanged
+     - ``\x`` → ``\x``
+   * - Escape cut off at the end of the buffer
+     - unchanged
+     - ``\u00`` → ``\u00``
+   * - Raw bytes inside strings, including control bytes
+     - unchanged
+     - a raw tab stays ``|09|``
+
+
+.. list-table:: **UTF-16 Surrogates**
+   :header-rows: 1
+   :widths: 40 30 30
+
+   * - Input
+     - Output
+     - Example
+   * - High surrogate (``\uD800`` to ``\uDBFF``) immediately followed by a
+       low surrogate (``\uDC00`` to ``\uDFFF``)
+     - 4-byte UTF-8 of the combined code point
+     - ``\uD83D\uDE80`` → ``|f0 9f 9a 80|``
+   * - High surrogate followed by anything other than a low surrogate escape
+       (a raw byte, another escape, the closing quote, or the end of the buffer)
+     - 3-byte encoding of the surrogate (not valid UTF-8); what follows is
+       handled normally
+     - ``\uD83Da`` → ``|ed a0 bd|a``
+   * - Two high surrogates followed by a low surrogate
+     - first one unpaired, second one paired
+     - ``\uD83D\uD83D\uDE80`` → ``|ed a0 bd f0 9f 9a 80|``
+   * - Low surrogate without a high surrogate before it
+     - 3-byte encoding of the surrogate (not valid UTF-8)
+     - ``\uDE80`` → ``|ed ba 80|``
+   * - Low surrogate before a high surrogate (reversed order)
+     - both unpaired
+     - ``\uDE80\uD83D`` → ``|ed ba 80 ed a0 bd|``
+
 xor
 ---
 
