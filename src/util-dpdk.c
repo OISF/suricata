@@ -26,6 +26,7 @@
 #include "util-dpdk.h"
 #include "util-debug.h"
 #include "util-device-private.h"
+#include "util-dpdk-rte-flow.h"
 
 int DPDKDeviceResourcesInit(DPDKDeviceResources **dpdk_vars, uint16_t mp_cnt)
 {
@@ -102,6 +103,8 @@ void DPDKFreeDevice(LiveDevice *ldev)
     (void)ldev; // avoid warnings of unused variable
 #ifdef HAVE_DPDK
     if (SCRunmodeGet() == RUNMODE_DPDK) {
+        if (ldev->dpdk_vars->rte_flow_bypass_data != NULL)
+            RteBypassDecRef(&ldev->dpdk_vars->rte_flow_bypass_data);
         SCLogDebug("%s: releasing packet mempools", ldev->dev);
         DPDKDeviceResourcesDeinit(&ldev->dpdk_vars);
     }
