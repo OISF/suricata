@@ -94,6 +94,7 @@ pub struct SecurityResult {
 
 pub struct FailureReason {
     pub reason_string: String,
+    pub to_skip: u32,
 }
 
 pub struct VncAuth {
@@ -123,6 +124,7 @@ pub struct ServerInit {
     pub pixel_format: PixelFormat,
     pub name_length: u32,
     pub name: Vec<u8>,
+    pub to_skip: u32,
 }
 
 pub fn parse_protocol_version(i: &[u8]) -> IResult<&[u8], ProtocolVersion> {
@@ -177,13 +179,15 @@ pub fn parse_security_result(i: &[u8]) -> IResult<&[u8], SecurityResult> {
     Ok((i, SecurityResult { status }))
 }
 
-pub fn parse_failure_reason(i: &[u8]) -> IResult<&[u8], FailureReason> {
+pub fn parse_failure_reason(i: &[u8], max_len: u32) -> IResult<&[u8], FailureReason> {
     let (i, reason_length) = be_u32(i)?;
-    let (i, reason_string) = map_res(take(reason_length as usize), str::from_utf8).parse(i)?;
+    let to_skip = reason_length.saturating_sub(max_len);
+    let (i, reason_string) = map_res(take((reason_length - to_skip) as usize), str::from_utf8).parse(i)?;
     Ok((
         i,
         FailureReason {
             reason_string: reason_string.to_string(),
+            to_skip,
         },
     ))
 }
@@ -220,18 +224,21 @@ pub fn parse_pixel_format(i: &[u8]) -> IResult<&[u8], PixelFormat> {
     Ok((i, format))
 }
 
-pub fn parse_server_init(i: &[u8]) -> IResult<&[u8], ServerInit> {
+pub fn parse_server_init(i: &[u8], max_len: u32) -> IResult<&[u8], ServerInit> {
     let (i, width) = be_u16(i)?;
     let (i, height) = be_u16(i)?;
     let (i, pixel_format) = parse_pixel_format(i)?;
     let (i, name_length) = be_u32(i)?;
-    let (i, name) = take(name_length as usize)(i)?;
+    let to_skip = name_length.saturating_sub(max_len);
+
+    let (i, name) = take((name_length - to_skip) as usize)(i)?;
     let init = ServerInit {
         width,
         height,
         pixel_format,
         name_length,
         name: name.to_vec(),
+        to_skip,
     };
     Ok((i, init))
 }
@@ -273,7 +280,7 @@ mod tests {
             0x2e, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e,
         ];
 
-        let result = parse_server_init(&buf);
+        let result = parse_server_init(&buf, 4096);
         match result {
             Ok((remainder, message)) => {
                 // Check the first message.
