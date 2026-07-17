@@ -13,8 +13,10 @@ The ``bypass`` keyword is considered a post-match keyword.
 
 .. note::
 
-   ``bypass`` cannot be used in firewall mode, not even with Threat Detection
-   rules, as this could lead to bypassing the firewall altogether.
+   In firewall mode, ``bypass`` can only be used in firewall rules. If a threat
+   detection rule uses the ``bypass`` keyword and you want to run Suricata in
+   firewall mode, the engine will error out. This is to prevent a threat detection
+   rule, from bypassing the firewall altogether.
 
 bypass
 ------
