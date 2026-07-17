@@ -735,6 +735,7 @@ void SigTableSetup(void)
     DetectTransformDotPrefixRegister();
     DetectTransformPcrexformRegister();
     DetectTransformUrlDecodeRegister();
+    DetectTransformJsonDecodeRegister();
     DetectTransformXorRegister();
     DetectTransformToLowerRegister();
     DetectTransformToUpperRegister();

@@ -188,6 +188,19 @@ url_decode
 Decodes url-encoded data, ie replacing '+' with space and '%HH' with its value.
 This does not decode unicode '%uZZZZ' encoding
 
+json_decode
+-----------
+
+Decodes and compacts json-encoded data:
+- removes unneeded whitespaces
+- replaces escaped characters with their value (eg. '\/' becomes a single slash)
+- replaces escaped unicode characters with their value (eg. '\u00E9' becomes 'é')
+
+If input is valid json, the output should remain valid json.
+As such, an escaped double quote in a string will not be replaced and will remain ``\"``.
+Invalid json such as an unescaped tabulation in a string will not be escaped.
+Single unpaired UTF-16 surrogate get unescaped.
+
 xor
 ---
 
