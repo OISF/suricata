@@ -973,11 +973,19 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         goto error;
     }
 
-    if (EngineModeIsFirewall() && (st->flags & SIGMATCH_BAN_FIREWALL_MODE) != 0) {
+    /* For non-firewall rules */
+    if (EngineModeIsFirewall() && !s->init_data->firewall_rule &&
+            (st->flags & SIGMATCH_BAN_FIREWALL_MODE) != 0) {
         SCLogError("keyword \'%s\' is not allowed in firewall mode", optname);
         goto error;
     }
 
+    if (EngineModeIsFirewall() && !s->init_data->firewall_rule &&
+            (st->flags & SIGMATCH_BAN_TD_FIREWALL_MODE) != 0) {
+        SCLogError("keyword \'%s\' is not allowed in threat detection rules with firewall mode",
+                optname);
+        goto error;
+    }
     int setup_ret = 0;
 
     /* Validate double quoting, trimming trailing white space along the way. */
