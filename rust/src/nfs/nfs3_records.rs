@@ -390,7 +390,8 @@ pub fn parse_nfs3_request_write(i: &[u8], complete: bool) -> IResult<&[u8], Nfs3
 pub fn parse_nfs3_reply_read(i: &[u8], complete: bool) -> IResult<&[u8], NfsReplyRead<'_>> {
     let (i, status) = be_u32(i)?;
     let (i, attr_follows) = verify(be_u32, |&v| v <= 1)(i)?;
-    let (i, attr_blob) = take(84_usize)(i)?; // fixed size?
+    let (i, attr_blob_opt) = cond(attr_follows == 1, take(84_usize))(i)?;
+    let attr_blob = attr_blob_opt.unwrap_or(&[]);
     let (i, count) = be_u32(i)?;
     let (i, eof) = verify(be_u32, |&v| v <= 1)(i)?;
     let (i, data_len) = verify(be_u32, |&v| v <= count)(i)?;
