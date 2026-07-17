@@ -52,6 +52,7 @@ num-traits = "~0.2.19"
 widestring = "~0.4.3"
 flate2 = { version = "~1.0.35", features = ["zlib"] }
 brotli = "~8.0.1"
+zstd = "~0.13.3"
 hkdf = "~0.12.4"
 aes = "~0.8.4"
 aes-gcm = "~0.10.3"
@@ -96,3 +97,6 @@ htp = { package = "suricata-htp", path = "./htp", version = "@PACKAGE_VERSION@" 
 [dev-dependencies]
 test-case = "~3.3.1"
 suricata-ffi = { path = "./ffi", version = "@PACKAGE_VERSION@", features = ["testing"] }
+
+[build-dependencies.jobserver]
+version = "=0.1.32"
