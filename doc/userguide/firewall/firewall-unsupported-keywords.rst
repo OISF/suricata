@@ -19,10 +19,10 @@ Unsupported Keywords
 Firewall Mode
 ~~~~~~~~~~~~~
 
-* Bypass
 * Replace
 
 Threat Detection Rules
 ~~~~~~~~~~~~~~~~~~~~~~
 
+* Bypass
 * Config (both the ``config`` keyword and the ``config`` action)
