@@ -64,7 +64,8 @@ void DetectBypassRegister(void)
     sigmatch_table[DETECT_BYPASS].Match = DetectBypassMatch;
     sigmatch_table[DETECT_BYPASS].Setup = DetectBypassSetup;
     sigmatch_table[DETECT_BYPASS].Free  = NULL;
-    sigmatch_table[DETECT_BYPASS].flags = SIGMATCH_NOOPT | SIGMATCH_BAN_FIREWALL_MODE;
+    sigmatch_table[DETECT_BYPASS].flags =
+            SIGMATCH_NOOPT | SIGMATCH_SUPPORT_FIREWALL | SIGMATCH_BAN_TD_FIREWALL_MODE;
 }
 
 static int DetectBypassSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
