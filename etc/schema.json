@@ -5594,6 +5594,9 @@
                             "type": "string"
                         }
                     }
+                },
+                "server_security_failure_reason": {
+                    "type": "string"
                 }
             }
         },
