@@ -31,6 +31,9 @@ counted as ``ips.accepted``. If it was dropped by firewall, only ``firewall.bloc
 will be incremented. No ``ips.*`` counter will be updated as conceptually the TD
 instance won't have seen the packet.
 
+.. note:: If a firewall rule uses the :ref:`bypass keyword<bypass-keyword>`, an
+   accepted packet will not, by definition, be passed along to the TD instance.
+
 Tables
 ------
 
