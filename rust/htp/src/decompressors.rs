@@ -4,6 +4,7 @@ use std::{
     io::{Cursor, Write},
     time::Instant,
 };
+use zstd;
 
 /// Buffer compression output to this chunk size.
 const ENCODING_CHUNK_SIZE: usize = 8192;
@@ -213,6 +214,8 @@ pub(crate) enum HtpContentEncoding {
     Lzma,
     /// Brotli compression.
     Brotli,
+    /// Zstd compression.
+    Zstd,
 }
 
 //a cursor turning EOF into blocking errors
@@ -309,6 +312,7 @@ impl Decompressor {
             | HtpContentEncoding::Deflate
             | HtpContentEncoding::Zlib
             | HtpContentEncoding::Brotli
+            | HtpContentEncoding::Zstd
             | HtpContentEncoding::Lzma => Ok(Decompressor::new(Box::new(InnerDecompressor::new(
                 encoding, self.inner, options,
             )?))),
@@ -756,6 +760,33 @@ impl BufWriter for BrotliBufWriter {
     }
 }
 
+/// Simple wrapper around an lzma implementation
+struct ZstdBufWriter<'a>(zstd::stream::write::Decoder<'a, BlockingCursor>);
+
+impl Write for ZstdBufWriter<'_> {
+    fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
+        self.0.write(data)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.0.flush()
+    }
+}
+
+impl BufWriter for ZstdBufWriter<'_> {
+    fn get_mut(&mut self) -> Option<&mut BlockingCursor> {
+        Some(self.0.get_mut())
+    }
+
+    fn finish(self: Box<Self>) -> std::io::Result<BlockingCursor> {
+        Ok(self.0.into_inner())
+    }
+
+    fn try_finish(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
 /// Structure that represents each decompressor in the chain.
 struct InnerDecompressor {
     /// Decoder implementation that will write to a temporary buffer.
@@ -796,6 +827,13 @@ impl InnerDecompressor {
                 ))),
                 false,
             )),
+            HtpContentEncoding::Zstd => {
+                if let Ok(z) = zstd::stream::write::Decoder::new(buf) {
+                    Ok((Box::new(ZstdBufWriter(z)), false))
+                } else {
+                    Err(std::io::Error::other("failed to create zstd decoder"))
+                }
+            }
             HtpContentEncoding::Lzma => {
                 if let Some(options) = options.lzma {
                     Ok((
@@ -996,6 +1034,7 @@ impl Decompress for InnerDecompressor {
                 // For other encodings, we retry with deflate, zlib and gzip
                 HtpContentEncoding::Lzma => HtpContentEncoding::Deflate,
                 HtpContentEncoding::Brotli => HtpContentEncoding::Deflate,
+                HtpContentEncoding::Zstd => HtpContentEncoding::Deflate,
                 HtpContentEncoding::None => {
                     return Err(std::io::Error::other("expected a valid encoding"))
                 }
