@@ -76,6 +76,7 @@ typedef struct DPDKIfaceConfig_ {
     bool mempool_cache_size_auto; // auto cache size based on mempool size
     DPDKDeviceResources *dpdk_dev_resources;
     uint16_t linkup_timeout; // in seconds how long to wait for link to come up
+    bool capture_bypass_enabled;
     SC_ATOMIC_DECLARE(uint16_t, ref);
     /* threads bind queue id one by one */
     SC_ATOMIC_DECLARE(uint16_t, queue_id);

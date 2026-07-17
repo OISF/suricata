@@ -42,6 +42,7 @@
 #include "tmqh-packetpool.h"
 #include "util-privs.h"
 #include "util-device-private.h"
+#include "util-dpdk-rte-flow.h"
 #include "action-globals.h"
 
 #ifndef HAVE_DPDK
@@ -122,6 +123,28 @@ typedef struct DPDKThreadVars_ {
     StatsCounterId capture_dpdk_rx_no_mbufs;
     StatsCounterId capture_dpdk_ierrors;
     StatsCounterId capture_dpdk_tx_errs;
+    /* bypass.rules.* : individual rte_flow hardware rules */
+    StatsCounterId capture_dpdk_rte_bypass_rules_created;
+    StatsCounterId capture_dpdk_rte_bypass_rules_error;
+    StatsCounterMaxId capture_dpdk_rte_bypass_rules_max;
+    /* bypass.ring.* : bypass ring enqueue/dequeue of flow keys and ring occupancy tracking (max,
+     * average and a helper calculation counter) */
+    StatsCounterId capture_dpdk_rte_bypass_ring_enqueue_success;
+    StatsCounterId capture_dpdk_rte_bypass_ring_enqueue_error_ring_full;
+    StatsCounterId capture_dpdk_rte_bypass_ring_dequeue_success;
+    StatsCounterId capture_dpdk_rte_bypass_ring_max;
+    StatsCounterAvgId capture_dpdk_rte_bypass_ring_occupancy_avg;
+    /* bypass.flows.* — Suricata flows bypass succeeded/failed for */
+    StatsCounterId capture_dpdk_rte_bypass_flows_bypass_success;
+    StatsCounterId capture_dpdk_rte_bypass_flows_bypass_error;
+    /* bypass.flow_lookup_error — flow-hash lookup failure during rule creation */
+    StatsCounterId capture_dpdk_rte_bypass_flow_lookup_error;
+    /* bypass.mempool.* — bypass mempool allocation failures */
+    StatsCounterId capture_dpdk_rte_bypass_mempool_key_get_error;
+    StatsCounterId capture_dpdk_rte_bypass_mempool_info_get_error;
+    /* bypass.query_error — rte_flow_query() failures */
+    StatsCounterId capture_dpdk_rte_bypass_query_error;
+    bool capture_bypass_enabled;
     unsigned int flags;
     uint16_t threads;
     /* for IPS */
@@ -190,7 +213,8 @@ static inline void DPDKFreeMbufArray(
     }
 }
 
-static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
+static void DevicePostStartPMDSpecificActions(
+        DPDKThreadVars *ptv, DPDKIfaceConfig *dpdk_config, const char *driver_name)
 {
     if (strcmp(driver_name, "net_bonding") == 0)
         driver_name = BondingDeviceDriverGet(ptv->port_id);
@@ -200,8 +224,10 @@ static void DevicePostStartPMDSpecificActions(DPDKThreadVars *ptv, const char *d
         ixgbeDeviceSetRSS(ptv->port_id, ptv->threads, ptv->livedev->dev);
     else if (strcmp(driver_name, "net_ice") == 0)
         iceDeviceSetRSS(ptv->port_id, ptv->threads, ptv->livedev->dev);
-    else if (strcmp(driver_name, "mlx5_pci") == 0)
-        mlx5DeviceSetRSS(ptv->port_id, ptv->threads, ptv->livedev->dev);
+    else if (strcmp(driver_name, "mlx5_pci") == 0) {
+        mlx5DevicePostStartActions(
+                ptv->port_id, ptv->threads, ptv->livedev->dev, dpdk_config->capture_bypass_enabled);
+    }
 }
 
 static void DevicePreClosePMDSpecificActions(DPDKThreadVars *ptv, const char *driver_name)
@@ -302,6 +328,49 @@ static inline void DPDKDumpCounters(DPDKThreadVars *ptv)
         StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_tx_errs, eth_stats.oerrors);
         SC_ATOMIC_SET(
                 ptv->livedev->drop, eth_stats.imissed + eth_stats.ierrors + eth_stats.rx_nombuf);
+        if (ptv->capture_bypass_enabled) {
+            RteFlowBypassData *rte_flow_bypass_data = ptv->livedev->dpdk_vars->rte_flow_bypass_data;
+            StatsCounterMaxUpdateI64(&ptv->tv->stats, ptv->capture_dpdk_rte_bypass_rules_max,
+                    SC_ATOMIC_GET(rte_flow_bypass_data->rte_bypass_rules_active));
+            StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_rte_bypass_rules_created,
+                    SC_ATOMIC_GET(rte_flow_bypass_data->rte_bypass_rules_created));
+            StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_rte_bypass_rules_error,
+                    SC_ATOMIC_GET(rte_flow_bypass_data->rte_bypass_rules_error));
+            StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_rte_bypass_ring_enqueue_success,
+                    SC_ATOMIC_GET(rte_flow_bypass_data->rte_bypass_ring_enqueue_success));
+            StatsCounterSetI64(&ptv->tv->stats,
+                    ptv->capture_dpdk_rte_bypass_ring_enqueue_error_ring_full,
+                    SC_ATOMIC_GET(rte_flow_bypass_data->rte_bypass_ring_enqueue_error_ring_full));
+            StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_rte_bypass_ring_dequeue_success,
+                    SC_ATOMIC_GET(rte_flow_bypass_data->rte_bypass_ring_dequeue_success));
+            StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_rte_bypass_ring_max,
+                    SC_ATOMIC_GET(rte_flow_bypass_data->rte_bypass_ring_max));
+            StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_rte_bypass_flows_bypass_success,
+                    SC_ATOMIC_GET(rte_flow_bypass_data->rte_bypass_flows_bypass_success));
+            StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_rte_bypass_flows_bypass_error,
+                    SC_ATOMIC_GET(rte_flow_bypass_data->rte_bypass_flows_bypass_error));
+            StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_rte_bypass_flow_lookup_error,
+                    SC_ATOMIC_GET(rte_flow_bypass_data->rte_bypass_flow_lookup_error));
+            StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_rte_bypass_mempool_key_get_error,
+                    SC_ATOMIC_GET(rte_flow_bypass_data->rte_bypass_mempool_key_get_error));
+            StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_rte_bypass_mempool_info_get_error,
+                    SC_ATOMIC_GET(rte_flow_bypass_data->rte_bypass_mempool_info_get_error));
+            StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_rte_bypass_query_error,
+                    SC_ATOMIC_GET(rte_flow_bypass_data->rte_bypass_query_error));
+            /* We calculate the average ring occupancy as a sum of ring occupancies throughout
+             * multiple measurements divided by the number of measurements. We then pass this result
+             * StatsCounterAvgAddI64() */
+            uint32_t ring_occupancy =
+                    SC_ATOMIC_GET(rte_flow_bypass_data->rte_bypass_ring_occupancy);
+            uint32_t ring_ops = SC_ATOMIC_GET(rte_flow_bypass_data->rte_bypass_ring_ops);
+            if (ring_ops > 0) {
+                uint32_t tmp_avg_occupancy = ring_occupancy / ring_ops;
+                StatsCounterAvgAddI64(&ptv->tv->stats,
+                        ptv->capture_dpdk_rte_bypass_ring_occupancy_avg, tmp_avg_occupancy);
+                SC_ATOMIC_SUB(rte_flow_bypass_data->rte_bypass_ring_occupancy, ring_occupancy);
+                SC_ATOMIC_SUB(rte_flow_bypass_data->rte_bypass_ring_ops, ring_ops);
+            }
+        }
     } else {
         StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_packets, ptv->pkts);
     }
@@ -428,6 +497,8 @@ static inline Packet *PacketInitFromMbuf(DPDKThreadVars *ptv, struct rte_mbuf *m
     p->ts = TimeGet();
     p->dpdk_v.mbuf = mbuf;
     p->ReleasePacket = DPDKReleasePacket;
+    if (ptv->capture_bypass_enabled)
+        p->BypassPacketsFlow = RteFlowBypassCallback;
     p->dpdk_v.copy_mode = ptv->copy_mode;
     p->dpdk_v.out_port_id = ptv->out_port_id;
     p->dpdk_v.out_queue_id = ptv->queue_id;
@@ -543,6 +614,27 @@ static void HandleShutdown(DPDKThreadVars *ptv)
         // If Suricata runs in peered mode, the peer threads might still want to send
         // packets to our port. Instead, we know, that we are done with the peered port, so
         // we stop it. The peered threads will stop our port.
+        if (ptv->capture_bypass_enabled) {
+            if (SC_ATOMIC_GET(
+                        ptv->livedev->dpdk_vars->rte_flow_bypass_data->rte_bypass_rules_active) !=
+                    0) {
+                SCLogInfo("Waiting for all bypass rte_flow rules to be removed");
+                while (SC_ATOMIC_GET(ptv->livedev->dpdk_vars->rte_flow_bypass_data
+                                       ->rte_bypass_rules_active) != 0) {
+                    rte_delay_us(10000);
+                }
+            }
+            struct rte_flow_error err = { 0 };
+            int retval = rte_flow_flush(ptv->port_id, &err);
+            if (retval != 0) {
+                SCLogError("%s: unable to flush rte_flow rules: %s Flush error msg: %s",
+                        ptv->livedev->dev, rte_strerror(-retval), err.message);
+            }
+        }
+
+        DPDKDumpCounters(ptv);
+        struct rte_flow_error err = { 0 };
+        rte_flow_flush(ptv->port_id, &err);
         if (ptv->copy_mode == DPDK_COPY_MODE_TAP || ptv->copy_mode == DPDK_COPY_MODE_IPS) {
             rte_eth_dev_stop(ptv->out_port_id);
         } else {
@@ -656,7 +748,41 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->capture_dpdk_imissed = StatsRegisterCounter("capture.dpdk.imissed", &ptv->tv->stats);
     ptv->capture_dpdk_rx_no_mbufs = StatsRegisterCounter("capture.dpdk.no_mbufs", &ptv->tv->stats);
     ptv->capture_dpdk_ierrors = StatsRegisterCounter("capture.dpdk.ierrors", &ptv->tv->stats);
-
+    /* bypass.rules.* — individual rte_flow hardware rules on the NIC */
+    ptv->capture_dpdk_rte_bypass_rules_created =
+            StatsRegisterCounter("capture.dpdk.bypass.rules.created", &ptv->tv->stats);
+    ptv->capture_dpdk_rte_bypass_rules_error =
+            StatsRegisterCounter("capture.dpdk.bypass.rules.error", &ptv->tv->stats);
+    ptv->capture_dpdk_rte_bypass_rules_max =
+            StatsRegisterMaxCounter("capture.dpdk.bypass.rules.active_max", &ptv->tv->stats);
+    /* bypass.ring.* — bypass ring enqueue/dequeue of flow keys and occupation tracking */
+    ptv->capture_dpdk_rte_bypass_ring_enqueue_success =
+            StatsRegisterCounter("capture.dpdk.bypass.ring.enqueue_success", &ptv->tv->stats);
+    ptv->capture_dpdk_rte_bypass_ring_enqueue_error_ring_full =
+            StatsRegisterCounter("capture.dpdk.bypass.ring.enqueue_error", &ptv->tv->stats);
+    ptv->capture_dpdk_rte_bypass_ring_dequeue_success =
+            StatsRegisterCounter("capture.dpdk.bypass.ring.dequeue_success", &ptv->tv->stats);
+    ptv->capture_dpdk_rte_bypass_ring_max =
+            StatsRegisterCounter("capture.dpdk.bypass.ring.occupancy_max", &ptv->tv->stats);
+    ptv->capture_dpdk_rte_bypass_ring_occupancy_avg =
+            StatsRegisterAvgCounter("capture.dpdk.bypass.ring.occupancy_avg", &ptv->tv->stats);
+    /* bypass.flows.* — Suricata flows bypass succeeded/failed for */
+    ptv->capture_dpdk_rte_bypass_flows_bypass_success =
+            StatsRegisterCounter("capture.dpdk.bypass.flows.success", &ptv->tv->stats);
+    ptv->capture_dpdk_rte_bypass_flows_bypass_error =
+            StatsRegisterCounter("capture.dpdk.bypass.flows.error", &ptv->tv->stats);
+    /* bypass.flow_lookup_error — flow-hash lookup failure during rule creation */
+    ptv->capture_dpdk_rte_bypass_flow_lookup_error =
+            StatsRegisterCounter("capture.dpdk.bypass.flow_lookup_error", &ptv->tv->stats);
+    /* bypass.mempool.* — bypass mempool allocation failures */
+    ptv->capture_dpdk_rte_bypass_mempool_key_get_error =
+            StatsRegisterCounter("capture.dpdk.bypass.mempool.key_get_error", &ptv->tv->stats);
+    ptv->capture_dpdk_rte_bypass_mempool_info_get_error =
+            StatsRegisterCounter("capture.dpdk.bypass.mempool.info_get_error", &ptv->tv->stats);
+    /* bypass.query_error — rte_flow_query() failures */
+    ptv->capture_dpdk_rte_bypass_query_error =
+            StatsRegisterCounter("capture.dpdk.bypass.query_error", &ptv->tv->stats);
+    ptv->capture_bypass_enabled = dpdk_config->capture_bypass_enabled;
     ptv->copy_mode = dpdk_config->copy_mode;
     ptv->checksum_mode = dpdk_config->checksum_mode;
 
@@ -735,7 +861,7 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
         }
 
         // some PMDs requires additional actions only after the device has started
-        DevicePostStartPMDSpecificActions(ptv, dev_info.driver_name);
+        DevicePostStartPMDSpecificActions(ptv, dpdk_config, dev_info.driver_name);
 
         uint16_t inconsistent_numa_cnt = SC_ATOMIC_GET(dpdk_config->inconsistent_numa_cnt);
         if (inconsistent_numa_cnt > 0 && ptv->port_socket_id != SOCKET_ID_ANY) {
