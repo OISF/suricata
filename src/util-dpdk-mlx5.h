@@ -28,7 +28,10 @@
 
 #ifdef HAVE_DPDK
 
-int mlx5DeviceSetRSS(int port_id, uint16_t nb_rx_queues, char *port_name);
+#define MLX5_RTE_FLOW_RULES_CAPACITY 4194304
+
+int mlx5DevicePostStartActions(
+        int port_id, uint16_t nb_rx_queues, char *port_name, bool capture_bypass_enabled);
 
 #endif /* HAVE_DPDK */
 

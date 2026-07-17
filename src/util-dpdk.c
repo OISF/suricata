@@ -102,6 +102,11 @@ void DPDKFreeDevice(LiveDevice *ldev)
     (void)ldev; // avoid warnings of unused variable
 #ifdef HAVE_DPDK
     if (SCRunmodeGet() == RUNMODE_DPDK) {
+        if (ldev->dpdk_vars->rte_flow_bypass_data != NULL &&
+                ldev->dpdk_vars->rte_flow_bypass_data->bypass_mp != NULL) {
+            rte_mempool_free(ldev->dpdk_vars->rte_flow_bypass_data->bypass_mp);
+            ldev->dpdk_vars->rte_flow_bypass_data->bypass_mp = NULL;
+        }
         SCLogDebug("%s: releasing packet mempools", ldev->dev);
         DPDKDeviceResourcesDeinit(&ldev->dpdk_vars);
     }

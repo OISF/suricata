@@ -36,21 +36,19 @@
 #ifdef HAVE_DPDK
 
 #include "conf.h"
+#include "flow-bypass.h"
+#include "flow-hash.h"
 #include "util-dpdk-common.h"
+#include "util-dpdk-rte-flow-structs.h"
 
-typedef struct RteFlowRuleStorage_ {
-    uint32_t rule_cnt;
-    uint32_t rule_size;
-    char **rules;
-    struct rte_flow **rule_handlers;
-} RteFlowRuleStorage;
-
-void RteFlowRuleStorageFree(RteFlowRuleStorage *rule_storage);
-int ConfigLoadRteFlowRules(
-        SCConfNode *if_root, const char *drop_filter_str, RteFlowRuleStorage *rule_storage);
-int RteFlowRulesCreate(uint16_t port_id, RteFlowRuleStorage *rule_storage, const char *driver_name);
-uint64_t RteFlowFilteredPacketsQuery(
-        struct rte_flow **rules, uint32_t rule_count, const char *device_name, int port_id);
+int ConfigSetCaptureBypass(DPDKIfaceConfig *);
+int RteBypassInit(DPDKIfaceConfig *iconf, const char *driver_name);
+int RteFlowCreateJumpRule(uint16_t port_id);
+int RteFlowBypassCallback(Packet *);
+int RteFlowBypassRuleLoad(
+        ThreadVars *th_v, struct flows_stats *bypassstats, struct timespec *curtime, void *data);
+bool RteBypassUpdate(Flow *flow, void *data, time_t tsec);
+void RteBypassFree(void *data);
 
 #endif /* HAVE_DPDK */
 #endif /* SURICATA_RTE_FLOW_RULES_H */

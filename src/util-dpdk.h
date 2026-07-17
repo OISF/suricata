@@ -26,14 +26,17 @@
 
 #include "util-dpdk-common.h"
 #include "util-device.h"
-#include "util-dpdk-rte-flow.h"
+#include "util-dpdk-rte-flow-structs.h"
+
+#define RTE_DEFAULT_GROUP 0
+#define RTE_JUMP_GROUP    1
 
 typedef struct {
     struct rte_mempool **pkt_mp;
     uint16_t pkt_mp_cnt;
     uint16_t pkt_mp_capa;
 #ifdef HAVE_DPDK
-    RteFlowRuleStorage *drop_filter;
+    RteFlowBypassData *rte_flow_bypass_data;
 #endif /* HAVE_DPDK */
     uint16_t port_id;
 } DPDKDeviceResources;
