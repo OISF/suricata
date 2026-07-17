@@ -43,6 +43,8 @@ typedef enum { DPDK_COPY_MODE_NONE, DPDK_COPY_MODE_TAP, DPDK_COPY_MODE_IPS } Dpd
 // Offloads
 #define DPDK_RX_CHECKSUM_OFFLOAD (1 << 4) /**< Enable chsum offload */
 
+#define DPDK_CONFIGURED_BYPASS (1 << 5) /**< Enable capture bypass */
+
 void DPDKSetTimevalOfMachineStart(void);
 
 typedef struct DPDKWorkerSync_ {
@@ -76,6 +78,9 @@ typedef struct DPDKIfaceConfig_ {
     bool mempool_cache_size_auto; // auto cache size based on mempool size
     DPDKDeviceResources *dpdk_dev_resources;
     uint16_t linkup_timeout; // in seconds how long to wait for link to come up
+    bool capture_bypass_enabled;
+    /* id of the NIC the interface belongs to */
+    uint16_t resource_id;
     SC_ATOMIC_DECLARE(uint16_t, ref);
     /* threads bind queue id one by one */
     SC_ATOMIC_DECLARE(uint16_t, queue_id);

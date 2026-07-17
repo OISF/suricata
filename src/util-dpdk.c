@@ -26,6 +26,14 @@
 #include "util-dpdk.h"
 #include "util-debug.h"
 #include "util-device-private.h"
+#include "util-dpdk-rte-flow.h"
+
+static uint32_t dpdk_devs_configured = 0;
+
+uint32_t DPDKConfiguredDeviceCount(void)
+{
+    return dpdk_devs_configured;
+}
 
 int DPDKDeviceResourcesInit(DPDKDeviceResources **dpdk_vars, uint16_t mp_cnt)
 {
@@ -44,6 +52,7 @@ int DPDKDeviceResourcesInit(DPDKDeviceResources **dpdk_vars, uint16_t mp_cnt)
     (*dpdk_vars)->pkt_mp_capa = mp_cnt;
     (*dpdk_vars)->pkt_mp_cnt = 0;
 
+    dpdk_devs_configured++;
     SCReturnInt(0);
 }
 
@@ -64,6 +73,7 @@ void DPDKDeviceResourcesDeinit(DPDKDeviceResources **dpdk_vars)
         }
         SCFree(*dpdk_vars);
         *dpdk_vars = NULL;
+        dpdk_devs_configured--;
     }
 #endif /* HAVE_DPDK */
 }
@@ -102,6 +112,8 @@ void DPDKFreeDevice(LiveDevice *ldev)
     (void)ldev; // avoid warnings of unused variable
 #ifdef HAVE_DPDK
     if (SCRunmodeGet() == RUNMODE_DPDK) {
+        if (ldev->dpdk_vars->rte_flow_bypass_data != NULL)
+            RteBypassDecRef(&ldev->dpdk_vars->rte_flow_bypass_data);
         SCLogDebug("%s: releasing packet mempools", ldev->dev);
         DPDKDeviceResourcesDeinit(&ldev->dpdk_vars);
     }

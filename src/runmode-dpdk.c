@@ -47,6 +47,7 @@
 #include "util-dpdk-ice.h"
 #include "util-dpdk-ixgbe.h"
 #include "util-dpdk-rss.h"
+#include "util-dpdk-rte-flow.h"
 #include "util-conf.h"
 #include "suricata.h"
 #include "util-affinity.h"
@@ -104,6 +105,8 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
         const struct rte_eth_conf *port_conf);
 static int DeviceValidateOutIfaceConfig(DPDKIfaceConfig *iconf);
 static int DeviceConfigureIPS(DPDKIfaceConfig *iconf);
+static int DeviceConfigureDynamicBypass(
+        DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info);
 static int DeviceConfigure(DPDKIfaceConfig *iconf);
 static void *ParseDpdkConfigAndConfigureDevice(const char *iface);
 static void DPDKDerefConfig(void *conf);
@@ -124,6 +127,7 @@ static void DPDKDerefConfig(void *conf);
 #define DPDK_CONFIG_DEFAULT_LINKUP_TIMEOUT              0
 #define DPDK_CONFIG_DEFAULT_COPY_MODE                   "none"
 #define DPDK_CONFIG_DEFAULT_COPY_INTERFACE              "none"
+#define DPDK_CONFIG_DEFAULT_CAPTURE_BYPASS              0
 
 DPDKIfaceConfigAttributes dpdk_yaml = {
     .threads = "threads",
@@ -142,6 +146,8 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
     .tx_descriptors = "tx-descriptors",
     .copy_mode = "copy-mode",
     .copy_iface = "copy-iface",
+    .capture_bypass = "capture-bypass",
+    .resource_id = "resource-id",
 };
 
 /**
@@ -324,8 +330,10 @@ static void DPDKDerefConfig(void *conf)
     DPDKIfaceConfig *iconf = (DPDKIfaceConfig *)conf;
 
     if (SC_ATOMIC_SUB(iconf->ref, 1) == 1) {
+        if (iconf->dpdk_dev_resources != NULL) {
+            RteBypassDecRef(&iconf->dpdk_dev_resources->rte_flow_bypass_data);
+        }
         DPDKDeviceResourcesDeinit(&iconf->dpdk_dev_resources);
-        iconf->RteRulesFree(&iconf->drop_filter);
         SCFree(iconf);
     }
     SCReturn;
@@ -340,6 +348,7 @@ static void ConfigInit(DPDKIfaceConfig **iconf)
         FatalError("Could not allocate memory for DPDKIfaceConfig");
 
     ptr->out_port_id = UINT16_MAX; // make sure no port is set
+    ptr->resource_id = DPDK_RESOURCE_ID_UNSET; // no user-defined NIC identity
     SC_ATOMIC_INIT(ptr->ref);
     (void)SC_ATOMIC_ADD(ptr->ref, 1);
     ptr->DerefFunc = DPDKDerefConfig;
@@ -806,6 +815,13 @@ static void ConfigSetVlanStrip(DPDKIfaceConfig *iconf, int entry_bool)
     SCReturn;
 }
 
+static void ConfigSetCaptureBypass(DPDKIfaceConfig *iconf, int entry_bool)
+{
+    SCEnter();
+    iconf->capture_bypass_enabled = entry_bool;
+    SCReturn;
+}
+
 static int ConfigSetCopyIface(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
@@ -1045,6 +1061,22 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     retval = ConfigSetCopyIfaceSettings(iconf, copy_iface_str, copy_mode_str);
     if (retval < 0)
         SCReturnInt(retval);
+
+    retval = SCConfGetChildValueBoolWithDefault(
+            if_root, if_default, dpdk_yaml.capture_bypass, &entry_bool);
+    if (retval != 1) {
+        ConfigSetCaptureBypass(iconf, DPDK_CONFIG_DEFAULT_CAPTURE_BYPASS);
+    } else {
+        ConfigSetCaptureBypass(iconf, entry_bool);
+    }
+
+    retval = SCConfGetChildValueIntWithDefault(
+            if_root, if_default, dpdk_yaml.resource_id, &entry_int);
+    if (retval == 1) {
+        retval = ConfigSetResourceId(iconf, entry_int);
+        if (retval < 0)
+            SCReturnInt(retval);
+    }
 
     SCReturnInt(0);
 }
@@ -1468,7 +1500,7 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
     if (retval < 0) {
         goto cleanup;
     }
-
+    iconf->dpdk_dev_resources->port_id = iconf->port_id;
     // +4 for VLAN header
     uint16_t mtu_size = iconf->mtu + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN + 4;
     uint16_t mbuf_size = ROUNDUP(mtu_size, 1024) + RTE_PKTMBUF_HEADROOM;
@@ -1629,6 +1661,58 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
     SCReturnInt(0);
 }
 
+static int DeviceConfigureDynamicBypass(
+        DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
+{
+    SCEnter();
+    int retval = 0;
+    static bool found_dev_tracking = false;
+    static int live_devs_entered = 0;
+    live_devs_entered++;
+
+    if (iconf->capture_bypass_enabled) {
+        const char *driver_name = dev_info->driver_name;
+        if (strcmp(dev_info->driver_name, "net_bonding") == 0) {
+            driver_name = BondingDeviceDriverGet(iconf->port_id);
+        }
+
+        if (!(strcmp(driver_name, "mlx5_pci") == 0)) {
+            SCLogError("%s: rte_flow capture bypass is not supported for driver %s", iconf->iface,
+                    driver_name);
+            SCReturnInt(-ENOTSUP);
+        }
+
+        int dev_tracking;
+        if (!found_dev_tracking && SCConfGetBool("livedev.use-for-tracking", &dev_tracking) == 1 &&
+                !dev_tracking) {
+            SCLogWarning("%s: rte_flow capture bypass is not supported with "
+                         "livedev.use-for-tracking disabled",
+                    iconf->iface);
+            SCReturnInt(-EINVAL);
+        } else {
+            found_dev_tracking = true;
+        }
+
+        if (iconf->copy_mode != DPDK_COPY_MODE_NONE) {
+            SCLogError("%s: rte_flow capture bypass is supported only in IDS mode", iconf->iface);
+            SCReturnInt(-EINVAL);
+        }
+
+        if (!(iconf->flags & DPDK_CONFIGURED_BYPASS)) {
+            retval = RteBypassRegister(iconf, driver_name);
+            if (retval != 0) {
+                SCLogError("%s: rte_flow capture bypass initialization failed", iconf->iface);
+                SCReturnInt(retval);
+            }
+            iconf->flags |= DPDK_CONFIGURED_BYPASS;
+        }
+    }
+
+    if (live_devs_entered == LiveGetDeviceCount()) {
+        retval = RteBypassFinalize();
+    }
+    SCReturnInt(retval);
+}
 /**
  * Function verifies changes in e.g. device info after configuration has
  * happened. Sometimes (e.g. DPDK Bond PMD with Intel NICs i40e/ixgbe) change
@@ -1806,6 +1890,10 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         SCReturnInt(retval);
     }
 
+    retval = DeviceConfigureDynamicBypass(iconf, &dev_info);
+    if (retval < 0) {
+        SCReturnInt(retval);
+    }
     SCReturnInt(0);
 }
 

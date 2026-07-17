@@ -239,3 +239,82 @@ Encapsulation stripping
 Suricata supports stripping the hardware-offloaded encapsulation stripping on
 the supported NICs. Currently, VLAN encapsulation stripping is supported.
 VLAN encapsulation stripping can be enabled with `vlan-strip-offload`.
+
+Dynamic bypass
+--------------
+
+Suricata in IDS mode supports hardware accelerated flow bypass directly in the NIC.
+The capabilities of the bypass, such as how many flows can be bypassed in the hardware before 
+switching to software bypass, depend on the underlying hardware and the Poll Mode Driver.
+
+The DPDK hardware bypass is enabled per-interface in the ``suricata.yaml`` file
+via the ``capture-bypass`` option (default: ``false``). It is mandatory to also
+set ``resource-id`` on every interface that has ``capture-bypass`` enabled, as
+the value identifies the physical NIC for HW resource management. The value must be
+an integer in the range 0-65534. Interfaces that share the same physical NIC
+(e.g. two ports on one multi-port mlx5 card) must use the same
+``resource-id``; up to 64 distinct values are supported.
+
+Other bypass parameters:
+
+* ``dpdk.bypass-info-mp-size``: the size of the mempool that stores bypass entries.
+  Sets the maximum number of flows that can be bypassed at once. ``auto``
+  (default) sizes it as ``(summed rule_capacity of all registered NICs) / 2 - 1``. 
+  Larger values are capped to this maximum. Ideal size is ``(2^n)-1``.
+* ``dpdk.bypass-ring-size``: the size of the ring defines how many flows can 
+  wait for being bypassed at once. Default ``16384`` and
+  **must be a power of two**. If the ring is full, further flows are not
+  bypassed in hardware and fall back to software bypass.
+* ``dpdk.bypass-ring-dequeue-burst-size``: the number of flows that are 
+  bypassed in one iteration of BypassManager rule creation cycle. 
+  Default ``16383``. Values larger than ``bypass-ring-size`` are 
+  **capped with a warning** to ``bypass-ring-size - 1``.
+
+The rule loading latency is controlled by ``flow.bypass.delay``.
+The value defines the number of iterations of a 100 microseconds sleep of BypassManager thread,
+which handles the bypass rule creation. In other words,
+``flow.bypass.delay: N`` waits ``N x 100 microseconds``
+between applying up to ``dpdk.bypass-ring-dequeue-burst-size`` bypass rules. 
+Default is ``100000`` (about 10 s). For DPDK hardware bypass a value in the range
+1-100 (100 microseconds - 10 ms) is recommended.
+
+Constraints:
+
+* The minimal DPDK version is 21.11
+* Only IDS mode is supported (``copy-mode: none`` on every bypass-enabled
+  interface).
+* ``livedev.use-for-tracking`` must be enabled (the default).
+* Only the ``mlx5_pci`` PMD is currently supported. The DPDK capture-bypass 
+  in Suricata supports offload of approximately 2 million flows on NICs with this PMD.
+* While using a bond interface with enabled capture-bypass, 
+  it is recommended to bond only interfaces on the same physical NIC, 
+  as the resources used for bypass are shared within the NIC.
+
+The global bypass statistics are gathered in eve.json (in the flow section) and stats.log (``flow_bypassed.*``).
+The DPDK bypass specific statistics, such as failed ring enqueues or average ring occupancy, 
+are gathered in stats.log, under ``capture.dpdk.bypass*`` category.
+
+Example configuration with bypass enabled on 2 interfaces:
+
+::
+
+  ...
+  dpdk:
+      eal-params:
+        proc-type: primary
+
+      bypass-info-mp-size: auto
+      bypass-ring-size: auto
+      bypass-ring-dequeue-burst-size: auto
+
+      interfaces:
+        - interface: 0000:03:00.0
+          capture-bypass: yes
+          resource-id: 0
+        - interface: 0000:03:00.1
+          capture-bypass: yes
+          resource-id: 0
+
+  flow:
+    bypass:
+      delay: 1

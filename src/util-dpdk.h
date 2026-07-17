@@ -26,14 +26,22 @@
 
 #include "util-dpdk-common.h"
 #include "util-device.h"
-#include "util-dpdk-rte-flow.h"
+#include "util-dpdk-rte-flow-structs.h"
+
+#define RTE_GROUP_DEFAULT 0
+#define RTE_GROUP_JUMP    1
+
+#define RTE_PRIORITY_DEFAULT 0
+#define RTE_PRIORITY_LOW_1   1
 
 typedef struct {
     struct rte_mempool **pkt_mp;
     uint16_t pkt_mp_cnt;
     uint16_t pkt_mp_capa;
 #ifdef HAVE_DPDK
-    RteFlowRuleStorage *drop_filter;
+    RteFlowBypassData *rte_flow_bypass_data;
+    RteFlowNicBudget *nic_budget;
+    uint16_t resource_id;
 #endif /* HAVE_DPDK */
     uint16_t port_id;
 } DPDKDeviceResources;
@@ -47,6 +55,7 @@ void DPDKCloseDevice(LiveDevice *ldev);
 void DPDKFreeDevice(LiveDevice *ldev);
 int32_t DPDKDeviceSetSocketID(uint16_t port_id, int32_t *socket_id);
 int32_t DPDKDeviceNameSetSocketID(char *iface_name, int32_t *socket_id);
+uint32_t DPDKConfiguredDeviceCount(void);
 
 #ifdef HAVE_DPDK
 const char *DPDKGetPortNameByPortID(uint16_t pid);

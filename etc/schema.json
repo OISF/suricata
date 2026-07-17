@@ -6973,6 +6973,97 @@
                             "description": "Statistics for DPDK capture module",
                             "additionalProperties": false,
                             "properties": {
+                                "bypass": {
+                                    "type": "object",
+                                    "description": "Statistics for DPDK rte_flow capture bypass",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "flows": {
+                                            "type": "object",
+                                            "description": "Statistics on Suricata flows bypassed via rte_flow",
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "error": {
+                                                    "type": "integer",
+                                                    "description": "Number of flows that failed to install rte_flow bypass rules"
+                                                },
+                                                "success": {
+                                                    "type": "integer",
+                                                    "description": "Number of flows successfully bypassed with rte_flow rules"
+                                                }
+                                            }
+                                        },
+                                        "flows_lookup_error": {
+                                            "type": "integer",
+                                            "description": "Number of flow-hash lookup failures during rte_flow rule creation"
+                                        },
+                                        "mempool": {
+                                            "type": "object",
+                                            "description": "Statistics on bypass mempool allocation failures",
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "info_get_error": {
+                                                    "type": "integer",
+                                                    "description": "Number of errors acquiring bypass_info mempool entries"
+                                                },
+                                                "key_get_error": {
+                                                    "type": "integer",
+                                                    "description": "Number of errors acquiring bypass mempool entries"
+                                                }
+                                            }
+                                        },
+                                        "query_error": {
+                                            "type": "integer",
+                                            "description": "Number of rte_flow_query() failures on bypass rules"
+                                        },
+                                        "ring": {
+                                            "type": "object",
+                                            "description": "Statistics on the bypass ring enqueue/dequeue of flow keys",
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "dequeue_success": {
+                                                    "type": "integer",
+                                                    "description": "Number of successful bypass ring dequeues"
+                                                },
+                                                "enqueue_error": {
+                                                    "type": "integer",
+                                                    "description": "Number of unsuccessful bypass ring enqueues"
+                                                },
+                                                "enqueue_success": {
+                                                    "type": "integer",
+                                                    "description": "Number of successful bypass ring enqueues"
+                                                },
+                                                "occupancy_avg": {
+                                                    "type": "integer",
+                                                    "description": "Average occupancy of the bypass ring"
+                                                },
+                                                "occupancy_max": {
+                                                    "type": "integer",
+                                                    "description": "Maximum occupancy of the bypass ring"
+                                                }
+                                            }
+                                        },
+                                        "rules": {
+                                            "type": "object",
+                                            "description": "Statistics on individual rte_flow hardware rules on the NIC",
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "active_max": {
+                                                    "type": "integer",
+                                                    "description": "Maximum number of simultaneously active rte_flow bypass rules"
+                                                },
+                                                "created": {
+                                                    "type": "integer",
+                                                    "description": "Number of created rte_flow bypass rules"
+                                                },
+                                                "error": {
+                                                    "type": "integer",
+                                                    "description": "Number of errors while creating rte_flow bypass rules"
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
                                 "ierrors": {
                                     "type": "integer",
                                     "description": "Total number of erroneous received packets. "
