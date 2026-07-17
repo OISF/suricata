@@ -343,6 +343,12 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         printf("not supported in firewall mode");
         prev = 1;
     }
+    if (flags & SIGMATCH_BAN_TD_FIREWALL_MODE) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("not supported in threat detection rules in firewall mode");
+        prev = 1;
+    }
     if (e->Transform) {
         if (prev == 1)
             printf("%c", sep);
