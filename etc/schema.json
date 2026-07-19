@@ -6866,6 +6866,69 @@
                                 }
                             }
                         },
+                        "dpdk": {
+                            "type": "object",
+                            "description": "Statistics for DPDK capture module",
+                            "additionalProperties": false,
+                            "properties": {
+                                "bypass_flow_error": {
+                                    "type": "integer",
+                                    "description": "Number of errors creating rte_flow bypass rules"
+                                },
+                                "bypass_mempool_get_error": {
+                                    "type": "integer",
+                                    "description": "Number of errors getting bypass mempool entries"
+                                },
+                                "bypass_mempool_info_get_error": {
+                                    "type": "integer",
+                                    "description": "Number of errors getting bypass_info mempool entries"
+                                },
+                                "bypass_query_errors": {
+                                    "type": "integer",
+                                    "description": "Number of errors querying rte_flow bypass rule stats"
+                                },
+                                "bypass_ring_avg": {
+                                    "type": "integer",
+                                    "description": "Average occupancy of the bypass ring"
+                                },
+                                "bypass_ring_dequeue_success": {
+                                    "type": "integer",
+                                    "description": "Number of successful bypass ring dequeues"
+                                },
+                                "bypass_ring_enqueue_error": {
+                                    "type": "integer",
+                                    "description": "Number of errors enqueuing to bypass ring"
+                                },
+                                "bypass_ring_max": {
+                                    "type": "integer",
+                                    "description": "Maximum occupancy of the bypass ring"
+                                },
+                                "bypass_rte_rules_error": {
+                                    "type": "integer",
+                                    "description": "Number of errors in rte_flow bypass rule operations"
+                                },
+                                "bypass_rules_max": {
+                                    "type": "integer",
+                                    "description": "Maximum number of active bypass rte_flow rules"
+                                },
+                                "ierrors": {
+                                    "type": "integer",
+                                    "description": "Total number of erroneous received packets. "
+                                },
+                                "imissed": {
+                                    "type": "integer",
+                                    "description": "Total of Rx packets dropped by the HW, because there are no available buffers (i.e. Rx queues are full)."
+                                },
+                                "no_mbufs": {
+                                    "type": "integer",
+                                    "description": "Total number of Rx mbuf allocation failures. "
+                                },
+                                "rte_rules_created": {
+                                    "type": "integer",
+                                    "description": "Total number of rte_flow bypass rules created"
+                                }
+                            }
+                        },
                         "errors": {
                             "type": "integer",
                             "description": "Number of Suricata errors reported while reading capture module"
