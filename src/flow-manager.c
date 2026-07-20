@@ -957,7 +957,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         if (other_last_sec == 0 || other_last_sec < (uint32_t)SCTIME_SECS(ts)) {
             if (ftd->instance == 0) {
                 StatsCounterSetI64(
-                        &th_v->stats, ftd->counter_defrag_memuse, DefragTrackerGetMemcap());
+                        &th_v->stats, ftd->counter_defrag_memuse, DefragTrackerGetMemuse());
                 uint32_t defrag_cnt = DefragTimeoutHash(ts);
                 if (defrag_cnt) {
                     StatsCounterAddI64(
