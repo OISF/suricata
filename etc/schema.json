@@ -1967,6 +1967,16 @@
                         ]
                     }
                 },
+                "signed": {
+                    "type": "boolean",
+                    "description":
+                            "True if the PE has a non-empty Certificate Table (is Authenticode-signed). Presence only; the signature is not cryptographically verified",
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
                 "imports": {
                     "type": "array",
                     "description":
@@ -2227,6 +2237,9 @@
                                 "type": "string"
                             },
                             "has_wx_section": {
+                                "type": "boolean"
+                            },
+                            "signed": {
                                 "type": "boolean"
                             },
                             "imports": {

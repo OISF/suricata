@@ -130,6 +130,8 @@ pub(crate) fn pe_log_json_fields(
 
     js.set_bool("has_wx_section", meta.has_wx_section)?;
 
+    js.set_bool("signed", meta.has_signature)?;
+
     if let Some(name) = export_name {
         js.set_string("export_name", name)?;
     }

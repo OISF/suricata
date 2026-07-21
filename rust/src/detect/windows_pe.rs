@@ -74,6 +74,8 @@ use suricata_sys::sys::{
 pub const SC_FILE_PE_META_F_PARSED: u16 = 1 << 0;
 /// Flag: PE metadata is valid (file is a valid PE).
 pub const SC_FILE_PE_META_F_VALID: u16 = 1 << 1;
+/// Flag: PE has a non-empty Certificate Table (is Authenticode-signed).
+pub const SC_FILE_PE_META_F_SIGNED: u16 = 1 << 2;
 
 /// Cached Windows PE metadata stored in the `File` object.
 ///
@@ -113,7 +115,9 @@ pub struct SCFilePeMeta {
     pub num_exports: u32,
     /// Non-zero if any section has both WRITE and EXECUTE permissions.
     pub has_wx_section: u8,
-    pub padding_: [u8; 3],
+    /// Non-zero if the PE has a non-empty Certificate Table (Authenticode-signed).
+    pub signed: u8,
+    pub padding_: [u8; 2],
 }
 
 extern "C" {
@@ -194,7 +198,48 @@ pub(crate) fn parse_pe_metadata(data: &[u8]) -> Option<SCDetectPeMetadata> {
         num_imports: 0,
         num_exports: 0,
         has_wx_section: false,
+        has_signature: parse_pe_cert_table(data, pe_offset).is_some(),
     })
+}
+
+/// Locate the Certificate Table (optional-header data directory entry 4).
+///
+/// Unlike every other data directory entry, the Certificate Table's first
+/// dword is a **file offset** (not an RVA) to the `WIN_CERTIFICATE` structure,
+/// and the second dword is its total size.  Because the entry lives in the
+/// optional header near the front of the file, presence is detectable even on
+/// a partial capture (the certificate bytes themselves sit at the file's end).
+///
+/// Returns `Some((file_offset, size))` when a non-empty certificate table is
+/// present, `None` otherwise.
+pub(crate) fn parse_pe_cert_table(data: &[u8], pe_offset: usize) -> Option<(usize, usize)> {
+    let optional_header_offset = pe_offset + 24;
+    if optional_header_offset + 2 > data.len() {
+        return None;
+    }
+    let magic =
+        u16::from_le_bytes([data[optional_header_offset], data[optional_header_offset + 1]]);
+    // Data directory base depends on PE32 vs PE32+.
+    let data_dir_off = match magic {
+        0x10b => optional_header_offset + 0x60, // PE32
+        0x20b => optional_header_offset + 0x70, // PE32+
+        _ => return None,
+    };
+    // Certificate Table is data directory entry 4 (each entry = 8 bytes).
+    let cert_entry = data_dir_off + 4 * 8;
+    if cert_entry + 8 > data.len() {
+        return None;
+    }
+    let cert_off = u32::from_le_bytes([
+        data[cert_entry], data[cert_entry + 1], data[cert_entry + 2], data[cert_entry + 3],
+    ]) as usize;
+    let cert_size = u32::from_le_bytes([
+        data[cert_entry + 4], data[cert_entry + 5], data[cert_entry + 6], data[cert_entry + 7],
+    ]) as usize;
+    if cert_off == 0 || cert_size == 0 {
+        return None;
+    }
+    Some((cert_off, cert_size))
 }
 
 // ============================================================================
@@ -507,6 +552,7 @@ pub(crate) struct SCDetectPeMetadata {
     pub(crate) size_of_headers: u32,
     pub(crate) num_exports: u32,
     pub(crate) has_wx_section: bool,
+    pub(crate) has_signature: bool,
 }
 
 impl Default for SCDetectPeMetadata {
@@ -528,6 +574,7 @@ impl Default for SCDetectPeMetadata {
             size_of_headers: 0,
             num_exports: 0,
             has_wx_section: false,
+            has_signature: false,
         }
     }
 }
@@ -562,6 +609,8 @@ pub struct DetectWindowsPEData {
     section_name: Option<String>,
     export_name: Option<String>,
     section_wx: bool,
+    /// Bare flag: require the PE to be Authenticode-signed (non-empty cert table).
+    signature: bool,
     has_filters: bool,
     /// True when the rule uses options that require expensive parsing
     /// (imports, exports, section headers) beyond the basic COFF/Optional header.
@@ -588,6 +637,7 @@ impl Default for DetectWindowsPEData {
             section_name: None,
             export_name: None,
             section_wx: false,
+            signature: false,
             has_filters: false,
             needs_deep_parse: false,
         }
@@ -664,6 +714,9 @@ fn process_executable_option(data: &mut DetectWindowsPEData, key: &str, val: &st
         "section_wx" => {
             data.section_wx = true;
         }
+        "signature" => {
+            data.signature = true;
+        }
         _ => return None,
     }
     Some(())
@@ -710,7 +763,7 @@ fn parse_executable_options(input: &str) -> Option<DetectWindowsPEData> {
             }
             // Bare flag keywords (no value required)
             let bare_key = tok.to_ascii_lowercase();
-            if bare_key == "section_wx" {
+            if bare_key == "section_wx" || bare_key == "signature" {
                 if have_kv {
                     process_executable_option(&mut data, &cur_key, &cur_val)?;
                 }
@@ -768,7 +821,8 @@ fn parse_executable_options(input: &str) -> Option<DetectWindowsPEData> {
         || !data.num_exports.is_null()
         || data.section_name.is_some()
         || data.export_name.is_some()
-        || data.section_wx;
+        || data.section_wx
+        || data.signature;
 
     data.needs_deep_parse = data.import_dlls.is_some()
         || !data.num_imports.is_null()
@@ -836,6 +890,7 @@ pub(crate) fn detect_meta_from_file_meta(meta: &SCFilePeMeta) -> SCDetectPeMetad
         size_of_headers: meta.size_of_headers,
         num_exports: meta.num_exports,
         has_wx_section: meta.has_wx_section != 0,
+        has_signature: (meta.flags & SC_FILE_PE_META_F_SIGNED) != 0,
     }
 }
 
@@ -843,6 +898,9 @@ pub(crate) fn file_meta_from_detect_meta(meta: &SCDetectPeMetadata) -> SCFilePeM
     let mut flags = SC_FILE_PE_META_F_PARSED;
     if meta.valid {
         flags |= SC_FILE_PE_META_F_VALID;
+    }
+    if meta.has_signature {
+        flags |= SC_FILE_PE_META_F_SIGNED;
     }
     SCFilePeMeta {
         flags,
@@ -861,7 +919,8 @@ pub(crate) fn file_meta_from_detect_meta(meta: &SCDetectPeMetadata) -> SCFilePeM
         size_of_headers: meta.size_of_headers,
         num_exports: meta.num_exports,
         has_wx_section: if meta.has_wx_section { 1 } else { 0 },
-        padding_: [0; 3],
+        signed: if meta.has_signature { 1 } else { 0 },
+        padding_: [0; 2],
     }
 }
 
@@ -999,6 +1058,10 @@ unsafe fn pe_match(meta: &SCDetectPeMetadata, ctx: &DetectWindowsPEData) -> bool
     check_uint!(ctx.num_exports, meta.num_exports);
 
     if ctx.section_wx && !meta.has_wx_section {
+        return false;
+    }
+
+    if ctx.signature && !meta.has_signature {
         return false;
     }
 
