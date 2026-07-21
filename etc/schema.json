@@ -2016,6 +2016,16 @@
                         ]
                     }
                 },
+                "file_version": {
+                    "type": "string",
+                    "description":
+                            "FileVersion from the VERSIONINFO resource, dotted major.minor.build.revision",
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
                 "has_wx_section": {
                     "type": "boolean",
                     "description":
@@ -2305,6 +2315,9 @@
                                 "type": "integer"
                             },
                             "export_name": {
+                                "type": "string"
+                            },
+                            "file_version": {
                                 "type": "string"
                             },
                             "has_wx_section": {
