@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -381,6 +381,26 @@ void FilePeImportsSet(File *file, void *imports)
     file->pe_imports = imports;
 }
 
+const void *FilePeSignatureGet(const File *file)
+{
+    if (file == NULL) {
+        return NULL;
+    }
+    return file->pe_signature;
+}
+
+void FilePeSignatureSet(File *file, void *sig)
+{
+    if (file == NULL) {
+        return;
+    }
+    /* Free any previous cached signature. */
+    if (file->pe_signature != NULL) {
+        SCFilePeSignatureFree(file->pe_signature);
+    }
+    file->pe_signature = sig;
+}
+
 /** \brief test if file is ready to be pruned
  *
  *  If a file is in the 'CLOSED' state, it means it has been processed
@@ -641,6 +661,8 @@ static void FileFree(File *ff, const StreamingBufferConfig *sbcfg)
         SCSha256Free(ff->sha256_ctx);
     if (ff->pe_imports != NULL)
         SCFilePeImportsFree(ff->pe_imports);
+    if (ff->pe_signature != NULL)
+        SCFilePeSignatureFree(ff->pe_signature);
     if (ff->pe_meta != NULL)
         SCFree(ff->pe_meta);
     SCFree(ff);
