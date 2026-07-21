@@ -320,9 +320,46 @@ A valid Windows PE file consists of:
 * ``section_name``: Match if any section has the given name (case-insensitive, e.g., ``.text``, ``.UPX0``)
 * ``export_name``: Match the internal DLL name from the export directory (case-insensitive)
 * ``section_wx``: Flag - match if any section has both WRITE and EXECUTE permissions (no value needed)
+* ``signature``: Flag - match if the PE is Authenticode-signed (has a non-empty Certificate Table). Presence only; the signature is not cryptographically verified (no value needed)
+* ``cert_thumbprint``: Match the SHA-1 thumbprint of an embedded signing certificate - exact match, separator-insensitive (e.g. ``29D492AD...`` or ``29:D4:92:AD:...``)
+* ``cert_serial``: Match the serial number of an embedded signing certificate - exact match, separator-insensitive
+* ``cert_subject``: Match the subject of an embedded signing certificate - case-insensitive substring
+* ``cert_issuer``: Match the issuer of an embedded signing certificate - case-insensitive substring
+* ``file_version``: Match the FileVersion from the VERSIONINFO resource - dotted ``major.minor.build.revision`` with comparison operators and ranges (e.g. ``>6.1.0.0``, ``6.0.0.0-11.0.0.0``). Only matches files that carry a version resource
 * DLL names can be specified directly to match imported DLLs from the PE Import Directory Table - case-insensitive exact match, AND logic. Multiple DLLs can be comma-separated: ``ws2_32.dll, wininet.dll``
 
 All numeric options support comparison operators: ``<``, ``>``, and range notation (e.g., ``1000<>5000``).
+
+.. note::
+
+   The ``cert_*`` filters match the identity of a certificate *carried* by the
+   file; they do not verify the signature, so a matched thumbprint or serial only
+   tells you which certificate the file claims. This is the mechanism for tracking
+   files signed with a known-revoked or stolen code-signing certificate. The
+   Certificate Table and the ``.rsrc`` resource both typically sit near the end of
+   a PE, so ``cert_*`` and ``file_version`` only match once the file has been
+   fully reassembled from offset 0; the bare ``signature`` flag reads the header
+   only and works on a partial capture.
+
+.. note::
+
+   ``cert_*`` and ``file_version`` inspect data near the end of the file, so the
+   whole file must be buffered from its start when inspection runs. The defaults
+   truncate larger files before that data is reached, so these options silently
+   fail to match files above a few tens of KB unless the following are raised to
+   at least the largest PE you want to inspect (each adds memory per concurrent
+   file, so size them to your environment):
+
+   * ``app-layer.protocols.http.libhtp.default-config.response-body-limit``
+     (default 100 KiB) -- caps how much of the HTTP body is reassembled.
+   * ``app-layer.protocols.http.libhtp.default-config.response-body-minimal-inspect-size``
+     (default 40 KiB) -- defers inspection until this many bytes are buffered, so
+     the file is inspected in one pass from offset 0 instead of a sliding window.
+   * ``stream.reassembly.depth`` -- caps TCP stream reassembly.
+
+   For example, to inspect PEs up to 8 MB, set each of the three to ``8mb``. The
+   ``signature`` presence flag needs none of this. (SMTP file transfers have the
+   analogous ``content-inspect-min-size``/``content-inspect-window`` settings.)
 
 The keyword is typically used in conjunction with ``file.data`` and content matches to
 detect PE file characteristics.
@@ -489,6 +526,38 @@ Detect PE with a specific export DLL name (case-insensitive)::
       file.data; content:"MZ"; startswith; \
       windows_pe: export_name mydll.dll; \
       sid:18; rev:1;)
+
+Detect any Authenticode-signed PE (presence only)::
+
+  alert http any any -> any any (msg:"Signed PE download"; \
+      flow:established,to_client; \
+      file.data; content:"MZ"; startswith; \
+      windows_pe: signature; \
+      sid:19; rev:1;)
+
+Track a file signed with a known-bad certificate (by thumbprint)::
+
+  alert http any any -> any any (msg:"PE signed with revoked cert"; \
+      flow:established,to_client; \
+      file.data; content:"MZ"; startswith; \
+      windows_pe: cert_thumbprint 29D492AD11646EB10B9F0BC7CB816D4318C7F4D6; \
+      sid:20; rev:1;)
+
+Match a PE signed by a specific vendor (subject substring)::
+
+  alert http any any -> any any (msg:"PE signed by Acme"; \
+      flow:established,to_client; \
+      file.data; content:"MZ"; startswith; \
+      windows_pe: cert_subject "Acme Corp"; \
+      sid:21; rev:1;)
+
+Detect a PE whose FileVersion is below a patched build::
+
+  alert http any any -> any any (msg:"Outdated PE version"; \
+      flow:established,to_client; \
+      file.data; content:"MZ"; startswith; \
+      windows_pe: file_version <6.1.7601.17514; \
+      sid:22; rev:1;)
 
 **Threat Hunting Examples**
 
