@@ -697,6 +697,12 @@ Fields:
 * "num_imports": Number of imported DLLs
 * "num_exports": Number of exported functions
 * "has_wx_section": Boolean, true if any section has both WRITE and EXECUTE permissions
+* "signed": Boolean, true if the PE has a non-empty Certificate Table (Authenticode-signed; not cryptographically verified)
+* "cert_subject": [optional] Subject of the embedded signing certificate
+* "cert_issuer": [optional] Issuer of the embedded signing certificate
+* "cert_serial": [optional] Serial number of the signing certificate (colon-separated hex)
+* "cert_thumbprint": [optional] SHA-1 thumbprint of the signing certificate (uppercase hex)
+* "file_version": [optional] FileVersion from the VERSIONINFO resource (``major.minor.build.revision``)
 * "export_name": [optional] Internal DLL name from the export directory
 * "imports": [optional] Array of imported DLL names (lowercase)
 * "sections_detail": [optional] Array of per-section objects, each containing:
@@ -742,6 +748,7 @@ Example ``fileinfo`` event with ``executable`` metadata::
         "num_imports": 3,
         "num_exports": 0,
         "has_wx_section": false,
+        "signed": false,
         "imports": ["kernel32.dll", "user32.dll", "ws2_32.dll"],
         "sections_detail": [
           {"name": ".text", "virtual_size": 8192, "virtual_address": 4096,

@@ -1809,7 +1809,7 @@ pub unsafe extern "C" fn SCDetectWindowsPERegister() {
 
     let kw = SCSigTableFileLiteElmt {
         name: b"windows_pe\0".as_ptr() as *const c_char,
-        desc: b"match Windows PE file format and metadata (arch, size, sections, entry_point, subsystem, characteristics, dll_characteristics, imported DLL names)\0".as_ptr() as *const c_char,
+        desc: b"match Windows PE file format and metadata (arch, size, sections, entry_point, subsystem, characteristics, dll_characteristics, imported DLL names, signing certificate, file_version)\0".as_ptr() as *const c_char,
         url: b"/rules/file-keywords.html#windows_pe\0".as_ptr() as *const c_char,
         FileMatch: Some(windows_pe_file_match),
         Setup: Some(windows_pe_setup),
