@@ -2081,6 +2081,16 @@
                         "type": "string"
                     }
                 },
+                "signed": {
+                    "type": "boolean",
+                    "description":
+                            "True if the PE has a non-empty Certificate Table (is Authenticode-signed). Presence only; the signature is not cryptographically verified",
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
                 "size_of_headers": {
                     "type": "integer",
                     "description":
@@ -2304,6 +2314,9 @@
                                 "items": {
                                     "type": "string"
                                 }
+                            },
+                            "signed": {
+                                "type": "boolean"
                             },
                             "size_of_headers": {
                                 "type": "integer"
