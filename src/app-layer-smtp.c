@@ -132,6 +132,7 @@ SCEnumCharMap smtp_decoder_event_table[] = {
     { "MAX_REPLY_LINE_LEN_EXCEEDED", SMTP_DECODER_EVENT_MAX_REPLY_LINE_LEN_EXCEEDED },
     { "INVALID_PIPELINED_SEQUENCE", SMTP_DECODER_EVENT_INVALID_PIPELINED_SEQUENCE },
     { "BDAT_CHUNK_LEN_EXCEEDED", SMTP_DECODER_EVENT_BDAT_CHUNK_LEN_EXCEEDED },
+    { "INVALID_BDAT", SMTP_DECODER_EVENT_INVALID_BDAT },
     { "NO_SERVER_WELCOME_MESSAGE", SMTP_DECODER_EVENT_NO_SERVER_WELCOME_MESSAGE },
     { "TLS_REJECTED", SMTP_DECODER_EVENT_TLS_REJECTED },
     { "DATA_COMMAND_REJECTED", SMTP_DECODER_EVENT_DATA_COMMAND_REJECTED },
@@ -1393,14 +1394,19 @@ static int SMTPProcessRequest(
             bool last = false;
             r = SMTPParseCommandBDAT(state, line, &last);
             if (r == -1) {
-                SCReturnInt(-1);
-            }
-            state->current_command = last ? SMTP_COMMAND_BDAT_LAST : SMTP_COMMAND_BDAT;
-            SMTPSetProgressTS(tx, SMTP_REQUEST_DATA);
-            if (state->bdat_chunk_len > 0) {
-                state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
-            } else if (last) {
-                SMTPTransactionCompleteTS(tx);
+                /* Invalid BDAT syntax is recoverable: the server rejects the
+                 * command and the session continues. */
+                SMTPSetEvent(state, SMTP_DECODER_EVENT_INVALID_BDAT);
+                state->current_command = SMTP_COMMAND_OTHER_CMD;
+                r = 0;
+            } else {
+                state->current_command = last ? SMTP_COMMAND_BDAT_LAST : SMTP_COMMAND_BDAT;
+                SMTPSetProgressTS(tx, SMTP_REQUEST_DATA);
+                if (state->bdat_chunk_len > 0) {
+                    state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
+                } else if (last) {
+                    SMTPTransactionCompleteTS(tx);
+                }
             }
         } else if (line->len >= 4 && ((SCMemcmpLowercase("helo", line->buf, 4) == 0) ||
                                              SCMemcmpLowercase("ehlo", line->buf, 4) == 0)) {
