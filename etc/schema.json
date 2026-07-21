@@ -2017,6 +2017,16 @@
                         ]
                     }
                 },
+                "file_version": {
+                    "type": "string",
+                    "description":
+                            "FileVersion from the VERSIONINFO resource, dotted major.minor.build.revision",
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
                 "imports": {
                     "type": "array",
                     "description":
@@ -2292,6 +2302,9 @@
                                 "type": "string"
                             },
                             "cert_thumbprint": {
+                                "type": "string"
+                            },
+                            "file_version": {
                                 "type": "string"
                             },
                             "imports": {

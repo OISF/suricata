@@ -121,6 +121,9 @@ pub struct SCFilePeMeta {
     /// Non-zero if the PE has a non-empty Certificate Table (Authenticode-signed).
     pub signed: u8,
     pub padding_: [u8; 2],
+    /// Packed FileVersion from the VERSIONINFO resource
+    /// (major<<48 | minor<<32 | build<<16 | revision); 0 if absent.
+    pub file_version: u64,
 }
 
 extern "C" {
@@ -204,6 +207,7 @@ pub(crate) fn parse_pe_metadata(data: &[u8]) -> Option<SCDetectPeMetadata> {
         num_exports: 0,
         has_wx_section: false,
         has_signature: parse_pe_cert_table(data, pe_offset).is_some(),
+        file_version: 0,
     })
 }
 
@@ -431,6 +435,132 @@ pub(crate) fn extract_pe_signature(data: &[u8], pe_offset: usize) -> Option<Vec<
     } else {
         Some(certs)
     }
+}
+
+// ============================================================================
+// VERSIONINFO resource parsing (file_version)
+// ============================================================================
+
+/// Find a child entry in an `IMAGE_RESOURCE_DIRECTORY` at `dir_off`.
+///
+/// When `want_id` is set, returns the ID entry matching it; otherwise the first
+/// entry.  Returns `(child_offset_relative_to_resource_base, is_subdirectory)`.
+fn resource_dir_find(data: &[u8], dir_off: usize, want_id: Option<u16>) -> Option<(u32, bool)> {
+    let ru16 = |o: usize| -> Option<u16> {
+        if o + 2 <= data.len() {
+            Some(u16::from_le_bytes([data[o], data[o + 1]]))
+        } else {
+            None
+        }
+    };
+    let ru32 = |o: usize| -> Option<u32> {
+        if o + 4 <= data.len() {
+            Some(u32::from_le_bytes([data[o], data[o + 1], data[o + 2], data[o + 3]]))
+        } else {
+            None
+        }
+    };
+    // IMAGE_RESOURCE_DIRECTORY: 12-byte header, then NamedEntries/IdEntries counts.
+    let named = ru16(dir_off + 12)?;
+    let ids = ru16(dir_off + 14)?;
+    let total = (named as usize + ids as usize).min(1024);
+    let entries = dir_off + 16;
+    for i in 0..total {
+        let e = entries + i * 8;
+        let name = ru32(e)?;
+        let offset = ru32(e + 4)?;
+        let is_subdir = offset & 0x8000_0000 != 0;
+        let child = offset & 0x7fff_ffff;
+        match want_id {
+            // ID entries have the high bit of `name` clear (named entries set it).
+            Some(id) => {
+                if name & 0x8000_0000 == 0 && (name as u16) == id {
+                    return Some((child, is_subdir));
+                }
+            }
+            None => return Some((child, is_subdir)),
+        }
+    }
+    None
+}
+
+/// Parse the FileVersion from the PE's VERSIONINFO resource, packed into a u64
+/// (major<<48 | minor<<32 | build<<16 | revision).
+///
+/// Walks the resource directory (data directory entry 2) down type `RT_VERSION`
+/// (16) → name → language → data entry, then scans the `VS_VERSIONINFO` blob for
+/// the `VS_FIXEDFILEINFO` signature `0xFEEF04BD` and reads `dwFileVersionMS/LS`.
+/// The `.rsrc` section typically sits at the end of the file, so this returns
+/// `None` on a partially reassembled buffer.
+pub(crate) fn parse_pe_file_version(
+    data: &[u8], pe_offset: usize, sections: &[SectionInfo],
+) -> Option<u64> {
+    let optional_header_offset = pe_offset + 24;
+    if optional_header_offset + 2 > data.len() {
+        return None;
+    }
+    let magic =
+        u16::from_le_bytes([data[optional_header_offset], data[optional_header_offset + 1]]);
+    let data_dir_off = match magic {
+        0x10b => optional_header_offset + 0x60,
+        0x20b => optional_header_offset + 0x70,
+        _ => return None,
+    };
+    // Resource Table is data directory entry 2 (an RVA).
+    let res_entry = data_dir_off + 2 * 8;
+    if res_entry + 4 > data.len() {
+        return None;
+    }
+    let res_rva = u32::from_le_bytes([
+        data[res_entry], data[res_entry + 1], data[res_entry + 2], data[res_entry + 3],
+    ]);
+    if res_rva == 0 {
+        return None;
+    }
+    let res_base = rva_to_offset(res_rva, sections)?;
+
+    // Level 1 (type) → RT_VERSION, Level 2 (name), Level 3 (language) → leaf.
+    let (l2, s1) = resource_dir_find(data, res_base, Some(16))?;
+    if !s1 {
+        return None;
+    }
+    let (l3, s2) = resource_dir_find(data, res_base + l2 as usize, None)?;
+    if !s2 {
+        return None;
+    }
+    let (leaf, s3) = resource_dir_find(data, res_base + l3 as usize, None)?;
+    if s3 {
+        return None; // expected a data-entry leaf, not another directory
+    }
+    // IMAGE_RESOURCE_DATA_ENTRY: OffsetToData (RVA), Size, CodePage, Reserved.
+    let leaf_off = res_base + leaf as usize;
+    if leaf_off + 8 > data.len() {
+        return None;
+    }
+    let data_rva =
+        u32::from_le_bytes([data[leaf_off], data[leaf_off + 1], data[leaf_off + 2], data[leaf_off + 3]]);
+    let size = u32::from_le_bytes([
+        data[leaf_off + 4], data[leaf_off + 5], data[leaf_off + 6], data[leaf_off + 7],
+    ]) as usize;
+    let vi_off = rva_to_offset(data_rva, sections)?;
+    let end = (vi_off + size).min(data.len());
+    if vi_off >= end {
+        return None;
+    }
+    // Scan the VS_VERSIONINFO blob for the VS_FIXEDFILEINFO signature.
+    let sig = 0xFEEF_04BDu32.to_le_bytes();
+    let blob = &data[vi_off..end];
+    let pos = blob.windows(4).position(|w| w == sig)?;
+    let fixed = vi_off + pos;
+    // dwFileVersionMS at +8, dwFileVersionLS at +12 from the signature.
+    if fixed + 16 > data.len() {
+        return None;
+    }
+    let ms = u32::from_le_bytes([data[fixed + 8], data[fixed + 9], data[fixed + 10], data[fixed + 11]]);
+    let ls = u32::from_le_bytes([
+        data[fixed + 12], data[fixed + 13], data[fixed + 14], data[fixed + 15],
+    ]);
+    Some(((ms as u64) << 32) | (ls as u64))
 }
 
 // ============================================================================
@@ -744,6 +874,7 @@ pub(crate) struct SCDetectPeMetadata {
     pub(crate) num_exports: u32,
     pub(crate) has_wx_section: bool,
     pub(crate) has_signature: bool,
+    pub(crate) file_version: u64,
 }
 
 impl Default for SCDetectPeMetadata {
@@ -766,6 +897,7 @@ impl Default for SCDetectPeMetadata {
             num_exports: 0,
             has_wx_section: false,
             has_signature: false,
+            file_version: 0,
         }
     }
 }
@@ -796,6 +928,8 @@ pub struct DetectWindowsPEData {
     size_of_headers: *mut DetectUintData<u32>,
     num_imports: *mut DetectUintData<u16>,
     num_exports: *mut DetectUintData<u32>,
+    /// Packed FileVersion filter (VERSIONINFO resource); see `parse_version_filter`.
+    file_version: *mut DetectUintData<u64>,
     import_dlls: Option<Vec<String>>,
     section_name: Option<String>,
     export_name: Option<String>,
@@ -829,6 +963,7 @@ impl Default for DetectWindowsPEData {
             size_of_headers: std::ptr::null_mut(),
             num_imports: std::ptr::null_mut(),
             num_exports: std::ptr::null_mut(),
+            file_version: std::ptr::null_mut(),
             import_dlls: None,
             section_name: None,
             export_name: None,
@@ -858,6 +993,7 @@ impl Drop for DetectWindowsPEData {
             if !self.size_of_headers.is_null() { let _ = Box::from_raw(self.size_of_headers); }
             if !self.num_imports.is_null() { let _ = Box::from_raw(self.num_imports); }
             if !self.num_exports.is_null() { let _ = Box::from_raw(self.num_exports); }
+            if !self.file_version.is_null() { let _ = Box::from_raw(self.file_version); }
             // import_dlls, section_name, export_name are Option types and drop automatically
         }
     }
@@ -879,6 +1015,66 @@ macro_rules! parse_uint_field {
 /// pasted in any common form compares equal to the parsed certificate value.
 fn normalize_hex(s: &str) -> String {
     s.chars().filter(|c| c.is_ascii_alphanumeric()).collect::<String>().to_ascii_uppercase()
+}
+
+/// Pack a dotted "major.minor.build.revision" string into the same u64 layout
+/// used for the parsed FileVersion (missing components default to 0).
+fn parse_dotted_version(s: &str) -> Option<u64> {
+    let s = s.trim();
+    if s.is_empty() {
+        return None;
+    }
+    let mut nums = [0u16; 4];
+    for (i, part) in s.split('.').enumerate() {
+        if i >= 4 {
+            return None;
+        }
+        nums[i] = part.trim().parse::<u16>().ok()?;
+    }
+    Some(
+        ((nums[0] as u64) << 48)
+            | ((nums[1] as u64) << 32)
+            | ((nums[2] as u64) << 16)
+            | (nums[3] as u64),
+    )
+}
+
+/// Parse a `file_version` filter value into `DetectUintData<u64>`.
+///
+/// Accepts the standard uint operators/ranges but with dotted version operands,
+/// e.g. `>6.1.0.0`, `<10.0.0.0`, `6.0.0.0-7.0.0.0`, `=6.1.7601.17514`, or a bare
+/// version (equality).  Each dotted operand is packed to its u64 value and the
+/// result reassembled into the canonical decimal form understood by
+/// [`detect_parse_uint`], reusing its operator/range logic.
+fn parse_version_filter(val: &str) -> Option<DetectUintData<u64>> {
+    let v = val.trim();
+    let (op, rest) = if let Some(r) = v.strip_prefix(">=") {
+        (">=", r)
+    } else if let Some(r) = v.strip_prefix("<=") {
+        ("<=", r)
+    } else if let Some(r) = v.strip_prefix("!=") {
+        ("!=", r)
+    } else if let Some(r) = v.strip_prefix('>') {
+        (">", r)
+    } else if let Some(r) = v.strip_prefix('<') {
+        ("<", r)
+    } else if let Some(r) = v.strip_prefix('=') {
+        ("=", r)
+    } else {
+        ("", v)
+    };
+
+    let canon = if op.is_empty() {
+        if let Some((a, b)) = rest.split_once("<>").or_else(|| rest.split_once('-')) {
+            format!("{}-{}", parse_dotted_version(a)?, parse_dotted_version(b)?)
+        } else {
+            format!("{}", parse_dotted_version(rest)?)
+        }
+    } else {
+        format!("{}{}", op, parse_dotted_version(rest)?)
+    };
+
+    detect_parse_uint::<u64>(&canon).ok().map(|(_, ctx)| ctx)
 }
 
 fn process_executable_option(data: &mut DetectWindowsPEData, key: &str, val: &str) -> Option<()> {
@@ -904,6 +1100,10 @@ fn process_executable_option(data: &mut DetectWindowsPEData, key: &str, val: &st
         "size_of_headers" => parse_uint_field!(data, size_of_headers, u32, val),
         "num_imports" => parse_uint_field!(data, num_imports, u16, val),
         "num_exports" => parse_uint_field!(data, num_exports, u32, val),
+        "file_version" => match parse_version_filter(val) {
+            Some(ctx) => data.file_version = Box::into_raw(Box::new(ctx)),
+            None => return None,
+        },
         "pe_type" => {
             let v = val.trim().to_ascii_lowercase();
             data.pe_type = match v.as_str() {
@@ -1045,7 +1245,8 @@ fn parse_executable_options(input: &str) -> Option<DetectWindowsPEData> {
         || data.cert_thumbprint.is_some()
         || data.cert_serial.is_some()
         || data.cert_subject.is_some()
-        || data.cert_issuer.is_some();
+        || data.cert_issuer.is_some()
+        || !data.file_version.is_null();
 
     data.needs_deep_parse = data.import_dlls.is_some()
         || !data.num_imports.is_null()
@@ -1056,7 +1257,8 @@ fn parse_executable_options(input: &str) -> Option<DetectWindowsPEData> {
         || data.cert_thumbprint.is_some()
         || data.cert_serial.is_some()
         || data.cert_subject.is_some()
-        || data.cert_issuer.is_some();
+        || data.cert_issuer.is_some()
+        || !data.file_version.is_null();
 
     Some(data)
 }
@@ -1118,6 +1320,7 @@ pub(crate) fn detect_meta_from_file_meta(meta: &SCFilePeMeta) -> SCDetectPeMetad
         num_exports: meta.num_exports,
         has_wx_section: meta.has_wx_section != 0,
         has_signature: (meta.flags & SC_FILE_PE_META_F_SIGNED) != 0,
+        file_version: meta.file_version,
     }
 }
 
@@ -1148,6 +1351,7 @@ pub(crate) fn file_meta_from_detect_meta(meta: &SCDetectPeMetadata) -> SCFilePeM
         has_wx_section: if meta.has_wx_section { 1 } else { 0 },
         signed: if meta.has_signature { 1 } else { 0 },
         padding_: [0; 2],
+        file_version: meta.file_version,
     }
 }
 
@@ -1362,6 +1566,14 @@ unsafe fn pe_match(meta: &SCDetectPeMetadata, ctx: &DetectWindowsPEData) -> bool
     check_uint!(ctx.num_imports, meta.num_imports);
     check_uint!(ctx.num_exports, meta.num_exports);
 
+    // A file_version filter only matches files that actually carry a version
+    // resource; file_version == 0 means "no VERSIONINFO", not "0.0.0.0".
+    if !ctx.file_version.is_null()
+        && (meta.file_version == 0 || !detect_match_uint(&*ctx.file_version, meta.file_version))
+    {
+        return false;
+    }
+
     if ctx.section_wx && !meta.has_wx_section {
         return false;
     }
@@ -1431,6 +1643,8 @@ pub unsafe extern "C" fn SCDetectWindowsPEFileMatch(
             file_data, meta.pe_offset as usize, meta.num_sections,
         );
         meta.has_wx_section = has_wx_section(&sections);
+        meta.file_version =
+            parse_pe_file_version(file_data, meta.pe_offset as usize, &sections).unwrap_or(0);
 
         let imports = parse_pe_imports_with_offset(
             file_data, meta.pe_offset as usize, &sections,

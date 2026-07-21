@@ -23,8 +23,9 @@
 use crate::detect::windows_pe::{
     detect_meta_full, extract_pe_signature, file_imports_get, file_imports_set, file_meta_get,
     file_meta_set, file_signature_get, file_signature_set, parse_pe_exports,
-    parse_pe_imports_with_offset, parse_pe_metadata, parse_section_headers, section_name_str,
-    PeCertInfo, SCDetectPeMetadata, SectionInfo, IMAGE_SCN_MEM_EXECUTE, IMAGE_SCN_MEM_WRITE,
+    parse_pe_file_version, parse_pe_imports_with_offset, parse_pe_metadata, parse_section_headers,
+    section_name_str, PeCertInfo, SCDetectPeMetadata, SectionInfo, IMAGE_SCN_MEM_EXECUTE,
+    IMAGE_SCN_MEM_WRITE,
 };
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use suricata_sys::sys::File;
@@ -142,6 +143,19 @@ pub(crate) fn pe_log_json_fields(
         js.set_string("cert_thumbprint", &cert.thumbprint)?;
     }
 
+    // FileVersion from the VERSIONINFO resource (dotted form), if present.
+    if meta.file_version != 0 {
+        let v = meta.file_version;
+        let ver = format!(
+            "{}.{}.{}.{}",
+            (v >> 48) & 0xffff,
+            (v >> 32) & 0xffff,
+            (v >> 16) & 0xffff,
+            v & 0xffff
+        );
+        js.set_string("file_version", &ver)?;
+    }
+
     if let Some(name) = export_name {
         js.set_string("export_name", name)?;
     }
@@ -253,6 +267,8 @@ pub unsafe extern "C" fn SCPeLogJsonByFile(
                 parse_pe_exports(file_data, meta.pe_offset as usize, &sections);
 
             detect_meta_full(&mut meta, &sections, num_imports, num_exports);
+            meta.file_version =
+                parse_pe_file_version(file_data, meta.pe_offset as usize, &sections).unwrap_or(0);
             if let Some(imp) = imports {
                 file_imports_set(file as *mut File, imp);
             }
