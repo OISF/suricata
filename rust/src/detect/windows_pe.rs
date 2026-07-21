@@ -60,9 +60,12 @@
 use crate::detect::uint::{detect_match_uint, detect_parse_uint, DetectUintData};
 #[cfg(test)]
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use der_parser::asn1_rs::{Any, Class, FromDer};
+use sha1::{Digest, Sha1};
 use std::ffi::CStr;
 use std::collections::HashSet;
 use std::os::raw::{c_char, c_int};
+use x509_parser::prelude::X509Certificate;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, File, Flow, SCDetectHelperFileKeywordRegister,
     SCDetectHelperGetFilesBufferId, SCDetectSignatureSetFileInspect, SCFileGetData,
@@ -125,6 +128,8 @@ extern "C" {
     fn FilePeMetaSet(file: *mut File, meta: *const SCFilePeMeta);
     fn FilePeImportsGet(file: *const File) -> *const std::os::raw::c_void;
     fn FilePeImportsSet(file: *mut File, imports: *mut std::os::raw::c_void);
+    fn FilePeSignatureGet(file: *const File) -> *const std::os::raw::c_void;
+    fn FilePeSignatureSet(file: *mut File, sig: *mut std::os::raw::c_void);
 }
 
 /// Validate a PE file and return the PE header offset on success.
@@ -240,6 +245,192 @@ pub(crate) fn parse_pe_cert_table(data: &[u8], pe_offset: usize) -> Option<(usiz
         return None;
     }
     Some((cert_off, cert_size))
+}
+
+// ============================================================================
+// Authenticode signing-certificate parsing
+// ============================================================================
+
+/// Identity fields extracted from one embedded signing certificate.
+///
+/// Values match the conventions used by Suricata's TLS certificate keywords:
+/// `serial` is colon-separated uppercase hex of the raw serial bytes, and
+/// `thumbprint` is the uppercase hex SHA-1 of the DER certificate (the
+/// Windows "thumbprint").  `subject`/`issuer` are RFC4514 name strings.
+#[derive(Debug, Clone)]
+pub(crate) struct PeCertInfo {
+    pub(crate) subject: String,
+    pub(crate) issuer: String,
+    pub(crate) serial: String,
+    pub(crate) thumbprint: String,
+}
+
+fn cert_info_from_x509(cert: &X509Certificate, der: &[u8]) -> PeCertInfo {
+    // Strip the leading ASN.1 sign byte so the serial matches the display form
+    // used by openssl, Windows, and threat-intel feeds (a leading 0x00 is only
+    // present to keep the DER INTEGER positive).
+    let mut raw = cert.raw_serial();
+    while raw.len() > 1 && raw[0] == 0 {
+        raw = &raw[1..];
+    }
+    let serial = raw.iter().map(|b| format!("{:02X}", b)).collect::<Vec<_>>().join(":");
+    let thumbprint = Sha1::digest(der).iter().map(|b| format!("{:02X}", b)).collect::<String>();
+    PeCertInfo {
+        subject: cert.subject().to_string(),
+        issuer: cert.issuer().to_string(),
+        serial,
+        thumbprint,
+    }
+}
+
+/// Extract the embedded X.509 certificates from a PKCS#7 SignedData blob.
+///
+/// Authenticode wraps a PKCS#7 `SignedData` whose `certificates [0] IMPLICIT
+/// SET OF Certificate` field carries the signing cert (and usually its chain).
+/// x509-parser 0.16 has no PKCS#7 helper, so we walk the ASN.1 with `der-parser`
+/// to reach that SET, then parse each concatenated `Certificate` with
+/// `X509Certificate::from_der`.  Structure:
+///
+/// ```text
+/// ContentInfo ::= SEQUENCE { contentType OID, content [0] EXPLICIT SignedData }
+/// SignedData  ::= SEQUENCE { version, digestAlgorithms SET, encapContentInfo,
+///                            certificates [0] IMPLICIT SET OPTIONAL, ... }
+/// ```
+///
+/// The certificates borrow `p7`, so it must outlive the returned `X509Certificate`
+/// values; we convert each into an owned [`PeCertInfo`] before returning.
+pub(crate) fn parse_pkcs7_certs(p7: &[u8]) -> Vec<PeCertInfo> {
+    let mut out = Vec::new();
+
+    // ContentInfo SEQUENCE.
+    let ci = match Any::from_der(p7) {
+        Ok((_, a)) if a.header.tag().0 == 16 => a,
+        _ => return out,
+    };
+    // contentType OID, then content [0] EXPLICIT.
+    let (rem, _oid) = match Any::from_der(ci.data) {
+        Ok(v) => v,
+        Err(_) => return out,
+    };
+    let c0 = match Any::from_der(rem) {
+        Ok((_, a)) if a.header.class() == Class::ContextSpecific && a.header.tag().0 == 0 => a,
+        _ => return out,
+    };
+    // Inside [0] EXPLICIT is the SignedData SEQUENCE.
+    let sd = match Any::from_der(c0.data) {
+        Ok((_, a)) if a.header.tag().0 == 16 => a,
+        _ => return out,
+    };
+    // Walk SignedData fields, capturing the [0] IMPLICIT certificates SET and the
+    // signerInfos SET (the trailing universal SET; digestAlgorithms is an earlier
+    // SET, so keeping the last one selects signerInfos).
+    let mut rem = sd.data;
+    let mut cert_bytes: Option<&[u8]> = None;
+    let mut signer_infos: Option<&[u8]> = None;
+    while let Ok((next, elem)) = Any::from_der(rem) {
+        if elem.header.class() == Class::ContextSpecific && elem.header.tag().0 == 0 {
+            cert_bytes = Some(elem.data);
+        } else if elem.header.class() == Class::Universal && elem.header.tag().0 == 17 {
+            signer_infos = Some(elem.data);
+        }
+        if next.len() >= rem.len() {
+            break; // no forward progress; bail
+        }
+        rem = next;
+    }
+    let mut certs = match cert_bytes {
+        Some(b) => b,
+        None => return out,
+    };
+
+    // The signer's issuerAndSerialNumber identifies the leaf certificate.
+    let signer_serial = signer_infos.and_then(parse_signer_serial);
+    let mut signer_idx: Option<usize> = None;
+
+    // The SET content is concatenated Certificate SEQUENCEs.
+    let mut guard = 0;
+    while !certs.is_empty() && guard < 64 {
+        guard += 1;
+        let before = certs.len();
+        match X509Certificate::from_der(certs) {
+            Ok((rest, cert)) => {
+                let der = &certs[..before - rest.len()];
+                if signer_idx.is_none() {
+                    if let Some(ref s) = signer_serial {
+                        if cert.raw_serial() == s.as_slice() {
+                            signer_idx = Some(out.len());
+                        }
+                    }
+                }
+                out.push(cert_info_from_x509(&cert, der));
+                certs = rest;
+            }
+            Err(_) => break,
+        }
+    }
+
+    // Put the signer (leaf) certificate first so logging reports the actual
+    // signer rather than an arbitrary chain/root certificate.
+    if let Some(i) = signer_idx {
+        if i != 0 {
+            out.swap(0, i);
+        }
+    }
+    out
+}
+
+/// Extract the signer's certificate serial number from a PKCS#7 `signerInfos`
+/// SET, via the first `SignerInfo`'s `issuerAndSerialNumber`.
+///
+/// ```text
+/// SignerInfo ::= SEQUENCE { version, sid SignerIdentifier, ... }
+/// SignerIdentifier ::= CHOICE { issuerAndSerialNumber IssuerAndSerialNumber,
+///                               subjectKeyIdentifier [0] ... }
+/// IssuerAndSerialNumber ::= SEQUENCE { issuer Name, serialNumber INTEGER }
+/// ```
+///
+/// Returns the raw serial INTEGER bytes (comparable to `X509Certificate::raw_serial`),
+/// or `None` for the `subjectKeyIdentifier` choice or on any parse error.
+fn parse_signer_serial(signer_infos: &[u8]) -> Option<Vec<u8>> {
+    // First SignerInfo (SEQUENCE).
+    let (_, si) = Any::from_der(signer_infos).ok()?;
+    if si.header.tag().0 != 16 {
+        return None;
+    }
+    // version INTEGER, then sid.
+    let (rem, _ver) = Any::from_der(si.data).ok()?;
+    let (_, sid) = Any::from_der(rem).ok()?;
+    // issuerAndSerialNumber is a universal SEQUENCE; the SKI choice is [0] context.
+    if sid.header.class() != Class::Universal || sid.header.tag().0 != 16 {
+        return None;
+    }
+    // issuer Name, then serialNumber INTEGER.
+    let (rem2, _issuer) = Any::from_der(sid.data).ok()?;
+    let (_, serial) = Any::from_der(rem2).ok()?;
+    if serial.header.tag().0 != 2 {
+        return None;
+    }
+    Some(serial.data.to_vec())
+}
+
+/// Locate and parse the Authenticode signing certificates of a PE, if present.
+///
+/// Returns the embedded certificate identities, or `None` when the file is
+/// unsigned or the certificate bytes are not (yet) present in the buffer.
+pub(crate) fn extract_pe_signature(data: &[u8], pe_offset: usize) -> Option<Vec<PeCertInfo>> {
+    let (cert_off, cert_size) = parse_pe_cert_table(data, pe_offset)?;
+    // WIN_CERTIFICATE: dwLength(4) + wRevision(2) + wCertificateType(2) + PKCS#7 DER.
+    if cert_off + 8 > data.len() || cert_size < 8 {
+        return None;
+    }
+    let end = (cert_off + cert_size).min(data.len());
+    let p7 = &data[cert_off + 8..end];
+    let certs = parse_pkcs7_certs(p7);
+    if certs.is_empty() {
+        None
+    } else {
+        Some(certs)
+    }
 }
 
 // ============================================================================
@@ -611,6 +802,11 @@ pub struct DetectWindowsPEData {
     section_wx: bool,
     /// Bare flag: require the PE to be Authenticode-signed (non-empty cert table).
     signature: bool,
+    /// Signing-certificate identity filters (matched against any embedded cert).
+    cert_thumbprint: Option<String>,
+    cert_serial: Option<String>,
+    cert_subject: Option<String>,
+    cert_issuer: Option<String>,
     has_filters: bool,
     /// True when the rule uses options that require expensive parsing
     /// (imports, exports, section headers) beyond the basic COFF/Optional header.
@@ -638,6 +834,10 @@ impl Default for DetectWindowsPEData {
             export_name: None,
             section_wx: false,
             signature: false,
+            cert_thumbprint: None,
+            cert_serial: None,
+            cert_subject: None,
+            cert_issuer: None,
             has_filters: false,
             needs_deep_parse: false,
         }
@@ -672,6 +872,13 @@ macro_rules! parse_uint_field {
             return None;
         }
     };
+}
+
+/// Normalize a hex identifier (thumbprint/serial) to uppercase with all
+/// non-alphanumeric separators (colons, spaces) removed, so a rule value
+/// pasted in any common form compares equal to the parsed certificate value.
+fn normalize_hex(s: &str) -> String {
+    s.chars().filter(|c| c.is_ascii_alphanumeric()).collect::<String>().to_ascii_uppercase()
 }
 
 fn process_executable_option(data: &mut DetectWindowsPEData, key: &str, val: &str) -> Option<()> {
@@ -716,6 +923,18 @@ fn process_executable_option(data: &mut DetectWindowsPEData, key: &str, val: &st
         }
         "signature" => {
             data.signature = true;
+        }
+        "cert_thumbprint" => {
+            data.cert_thumbprint = Some(normalize_hex(val));
+        }
+        "cert_serial" => {
+            data.cert_serial = Some(normalize_hex(val));
+        }
+        "cert_subject" => {
+            data.cert_subject = Some(val.trim().trim_matches('"').to_lowercase());
+        }
+        "cert_issuer" => {
+            data.cert_issuer = Some(val.trim().trim_matches('"').to_lowercase());
         }
         _ => return None,
     }
@@ -822,14 +1041,22 @@ fn parse_executable_options(input: &str) -> Option<DetectWindowsPEData> {
         || data.section_name.is_some()
         || data.export_name.is_some()
         || data.section_wx
-        || data.signature;
+        || data.signature
+        || data.cert_thumbprint.is_some()
+        || data.cert_serial.is_some()
+        || data.cert_subject.is_some()
+        || data.cert_issuer.is_some();
 
     data.needs_deep_parse = data.import_dlls.is_some()
         || !data.num_imports.is_null()
         || !data.num_exports.is_null()
         || data.export_name.is_some()
         || data.section_name.is_some()
-        || data.section_wx;
+        || data.section_wx
+        || data.cert_thumbprint.is_some()
+        || data.cert_serial.is_some()
+        || data.cert_subject.is_some()
+        || data.cert_issuer.is_some();
 
     Some(data)
 }
@@ -1014,6 +1241,84 @@ pub unsafe extern "C" fn SCFilePeImportsFree(ptr: *mut std::os::raw::c_void) {
     }
 }
 
+// ============================================================================
+// Signing-certificate caching in the File object
+// ============================================================================
+
+/// Retrieve cached signing certificates from File (opaque pointer → `Vec<PeCertInfo>`).
+pub(crate) unsafe fn file_signature_get(file: *const File) -> Option<&'static [PeCertInfo]> {
+    if file.is_null() {
+        return None;
+    }
+    let ptr = FilePeSignatureGet(file);
+    if ptr.is_null() {
+        return None;
+    }
+    let vec = &*(ptr as *const Vec<PeCertInfo>);
+    Some(vec.as_slice())
+}
+
+/// Store parsed signing certificates in the File object (ownership transferred).
+pub(crate) unsafe fn file_signature_set(file: *mut File, certs: Vec<PeCertInfo>) {
+    if file.is_null() {
+        return;
+    }
+    let boxed = Box::new(certs);
+    FilePeSignatureSet(file, Box::into_raw(boxed) as *mut std::os::raw::c_void);
+}
+
+/// Free a Rust-allocated `Vec<PeCertInfo>` stored as an opaque pointer in File.
+///
+/// Called from C's `FileFree` via `SCFilePeSignatureFree`.
+#[no_mangle]
+pub unsafe extern "C" fn SCFilePeSignatureFree(ptr: *mut std::os::raw::c_void) {
+    if !ptr.is_null() {
+        let _ = Box::from_raw(ptr as *mut Vec<PeCertInfo>);
+    }
+}
+
+/// Retrieve or parse+cache the signing certificates for a file.
+unsafe fn get_pe_signature_by_file<'a>(
+    file_ptr: *mut File, file_data: &[u8], pe_offset: usize,
+) -> Option<&'a [PeCertInfo]> {
+    if let Some(cached) = file_signature_get(file_ptr as *const File) {
+        return Some(cached);
+    }
+    let certs = extract_pe_signature(file_data, pe_offset)?;
+    file_signature_set(file_ptr, certs);
+    file_signature_get(file_ptr as *const File)
+}
+
+/// Check the certificate-identity filters against the embedded certificates.
+///
+/// Thumbprint and serial are matched exactly (after normalizing separators);
+/// subject and issuer are case-insensitive substring matches.  A filter is
+/// satisfied when *any* embedded certificate matches, so tracking a known-bad
+/// cert works whether it is the signer or elsewhere in the embedded chain.
+fn signature_matches(certs: &[PeCertInfo], ctx: &DetectWindowsPEData) -> bool {
+    if let Some(ref tp) = ctx.cert_thumbprint {
+        if !certs.iter().any(|c| &c.thumbprint == tp) {
+            return false;
+        }
+    }
+    if let Some(ref sn) = ctx.cert_serial {
+        if !certs.iter().any(|c| normalize_hex(&c.serial) == *sn) {
+            return false;
+        }
+    }
+    if let Some(ref sub) = ctx.cert_subject {
+        if !certs.iter().any(|c| c.subject.to_lowercase().contains(sub.as_str())) {
+            return false;
+        }
+    }
+    if let Some(ref iss) = ctx.cert_issuer {
+        if !certs.iter().any(|c| c.issuer.to_lowercase().contains(iss.as_str())) {
+            return false;
+        }
+    }
+    true
+}
+
 // SCPeLogJsonByFile lives in windows_pe_logger.rs.
 
 /// Check if PE metadata matches the filter criteria.
@@ -1192,6 +1497,23 @@ pub unsafe extern "C" fn SCDetectWindowsPEFileMatch(
                 _ => return 0,
             }
         }
+
+        // Signing-certificate identity filters.
+        if ctx_ref.cert_thumbprint.is_some()
+            || ctx_ref.cert_serial.is_some()
+            || ctx_ref.cert_subject.is_some()
+            || ctx_ref.cert_issuer.is_some()
+        {
+            let certs = match get_pe_signature_by_file(
+                file_ptr, file_data, meta.pe_offset as usize,
+            ) {
+                Some(c) => c,
+                None => return 0,
+            };
+            if !signature_matches(certs, ctx_ref) {
+                return 0;
+            }
+        }
     } else {
         // Header-only rule — check metadata and cache for logging.
         file_meta_set(file_ptr, &meta);
@@ -1307,7 +1629,7 @@ mod tests {
         let (export_name, num_exports) = parse_pe_exports(data, meta.pe_offset as usize, &sections);
         detect_meta_full(&mut meta, &sections, num_imports, num_exports);
         crate::detect::windows_pe_logger::pe_log_json_fields(
-            &meta, imports.as_deref(), Some(&sections), export_name.as_deref(), js,
+            &meta, imports.as_deref(), Some(&sections), export_name.as_deref(), None, js,
         )
     }
     use std::collections::HashSet;

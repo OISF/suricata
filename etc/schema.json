@@ -1977,6 +1977,46 @@
                         ]
                     }
                 },
+                "cert_subject": {
+                    "type": "string",
+                    "description":
+                            "Subject (RFC4514) of the signing certificate embedded in the Authenticode signature",
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
+                "cert_issuer": {
+                    "type": "string",
+                    "description":
+                            "Issuer (RFC4514) of the signing certificate embedded in the Authenticode signature",
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
+                "cert_serial": {
+                    "type": "string",
+                    "description":
+                            "Serial number of the signing certificate, as colon-separated uppercase hex",
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
+                "cert_thumbprint": {
+                    "type": "string",
+                    "description":
+                            "SHA-1 thumbprint of the signing certificate (uppercase hex of the DER certificate)",
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
                 "imports": {
                     "type": "array",
                     "description":
@@ -2241,6 +2281,18 @@
                             },
                             "signed": {
                                 "type": "boolean"
+                            },
+                            "cert_subject": {
+                                "type": "string"
+                            },
+                            "cert_issuer": {
+                                "type": "string"
+                            },
+                            "cert_serial": {
+                                "type": "string"
+                            },
+                            "cert_thumbprint": {
+                                "type": "string"
                             },
                             "imports": {
                                 "type": "array",

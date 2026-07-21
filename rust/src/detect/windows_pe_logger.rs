@@ -21,9 +21,10 @@
 //! and output concerns do not mix.
 
 use crate::detect::windows_pe::{
-    detect_meta_full, file_imports_get, file_imports_set, file_meta_get, file_meta_set,
-    parse_pe_exports, parse_pe_imports_with_offset, parse_pe_metadata, parse_section_headers,
-    section_name_str, SCDetectPeMetadata, SectionInfo, IMAGE_SCN_MEM_EXECUTE, IMAGE_SCN_MEM_WRITE,
+    detect_meta_full, extract_pe_signature, file_imports_get, file_imports_set, file_meta_get,
+    file_meta_set, file_signature_get, file_signature_set, parse_pe_exports,
+    parse_pe_imports_with_offset, parse_pe_metadata, parse_section_headers, section_name_str,
+    PeCertInfo, SCDetectPeMetadata, SectionInfo, IMAGE_SCN_MEM_EXECUTE, IMAGE_SCN_MEM_WRITE,
 };
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use suricata_sys::sys::File;
@@ -36,6 +37,7 @@ pub(crate) fn pe_log_json_fields(
     imports: Option<&[String]>,
     sections: Option<&[SectionInfo]>,
     export_name: Option<&str>,
+    signature: Option<&[PeCertInfo]>,
     js: &mut JsonBuilder,
 ) -> Result<(), JsonError> {
     js.open_object("executable")?;
@@ -132,6 +134,14 @@ pub(crate) fn pe_log_json_fields(
 
     js.set_bool("signed", meta.has_signature)?;
 
+    // Signing-certificate identity (first embedded certificate).
+    if let Some(cert) = signature.and_then(|c| c.first()) {
+        js.set_string("cert_subject", &cert.subject)?;
+        js.set_string("cert_issuer", &cert.issuer)?;
+        js.set_string("cert_serial", &cert.serial)?;
+        js.set_string("cert_thumbprint", &cert.thumbprint)?;
+    }
+
     if let Some(name) = export_name {
         js.set_string("export_name", name)?;
     }
@@ -174,9 +184,12 @@ pub(crate) fn pe_log_json_fields(
 /// Section details and export name are not available from the cached metadata
 /// alone (they require raw file data), so they are omitted in this path.
 fn pe_log_json_from_sc_meta(
-    meta: &SCDetectPeMetadata, imports: Option<&[String]>, js: &mut JsonBuilder,
+    meta: &SCDetectPeMetadata,
+    imports: Option<&[String]>,
+    signature: Option<&[PeCertInfo]>,
+    js: &mut JsonBuilder,
 ) -> Result<(), JsonError> {
-    pe_log_json_fields(meta, imports, None, None, js)
+    pe_log_json_fields(meta, imports, None, None, signature, js)
 }
 
 /// Cache-aware FFI entry point: log PE metadata as JSON for a given file.
@@ -201,7 +214,17 @@ pub unsafe extern "C" fn SCPeLogJsonByFile(
     if let Some(meta) = file_meta_get(file) {
         if meta.valid {
             let cached_imports = file_imports_get(file);
-            return pe_log_json_from_sc_meta(&meta, cached_imports, js).is_ok();
+            // Use the cached signature if a cert_* rule parsed it; otherwise
+            // parse it now if the file is signed and the buffer is present.
+            let mut sig = file_signature_get(file);
+            if sig.is_none() && meta.has_signature && offset == 0 && !data.is_null() {
+                let file_data = std::slice::from_raw_parts(data, data_len as usize);
+                if let Some(certs) = extract_pe_signature(file_data, meta.pe_offset as usize) {
+                    file_signature_set(file as *mut File, certs);
+                    sig = file_signature_get(file);
+                }
+            }
+            return pe_log_json_from_sc_meta(&meta, cached_imports, sig, js).is_ok();
         }
         // Parsed but invalid — not a PE.
         return false;
@@ -233,11 +256,18 @@ pub unsafe extern "C" fn SCPeLogJsonByFile(
             if let Some(imp) = imports {
                 file_imports_set(file as *mut File, imp);
             }
+            // Parse and cache the signing certificates for signed PEs.
+            if meta.has_signature {
+                if let Some(certs) = extract_pe_signature(file_data, meta.pe_offset as usize) {
+                    file_signature_set(file as *mut File, certs);
+                }
+            }
             file_meta_set(file as *mut File, &meta);
 
             let cached_imports = file_imports_get(file);
+            let cached_sig = file_signature_get(file);
             return pe_log_json_fields(
-                &meta, cached_imports, Some(&sections), export_name.as_deref(), js,
+                &meta, cached_imports, Some(&sections), export_name.as_deref(), cached_sig, js,
             ).is_ok();
         }
     }

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -186,6 +186,11 @@ typedef struct File_ {
      * SCFilePeImportsFree(). */
     void *pe_imports;
 
+    /* Cached PE signing-certificate identities (opaque, owned by Rust).
+     * NULL until first certificate-table parse; freed in FileFree via
+     * SCFilePeSignatureFree(). */
+    void *pe_signature;
+
     uint32_t *sid; /* signature id of a rule that triggered the filestore event */
     uint32_t sid_cnt;
     uint32_t sid_max;
@@ -221,6 +226,22 @@ void FilePeImportsSet(File *file, void *imports);
  * \brief Free cached PE import names (Rust-allocated).
  */
 void SCFilePeImportsFree(void *imports);
+
+/**
+ * \brief Get cached PE signing certificates from File (opaque pointer).
+ * \retval opaque pointer (NULL if not yet cached)
+ */
+const void *FilePeSignatureGet(const File *file);
+
+/**
+ * \brief Store cached PE signing certificates in File (takes ownership).
+ */
+void FilePeSignatureSet(File *file, void *sig);
+
+/**
+ * \brief Free cached PE signing certificates (Rust-allocated).
+ */
+void SCFilePeSignatureFree(void *sig);
 
 FileContainer *FileContainerAlloc(void);
 void FileContainerFree(FileContainer *, const StreamingBufferConfig *cfg);
