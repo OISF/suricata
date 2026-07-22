@@ -1049,6 +1049,7 @@ typedef struct FlowRecyclerThreadData_ {
     StatsCounterId counter_flow_active;
     StatsCounterId counter_tcp_active_sessions;
     FlowEndCounters fec;
+    FlowCounters cnt;
 } FlowRecyclerThreadData;
 
 static TmEcode FlowRecyclerThreadInit(ThreadVars *t, const void *initdata, void **data)
@@ -1091,6 +1092,33 @@ static TmEcode FlowRecyclerThreadDeinit(ThreadVars *t, void *data)
 static void Recycler(ThreadVars *tv, FlowRecyclerThreadData *ftd, Flow *f)
 {
     FLOWLOCK_WRLOCK(f);
+
+#ifdef CAPTURE_OFFLOAD
+    // If the flow was timed out already, we already updated the stats
+    if ((f->flow_end_flags & FLOW_END_FLAG_TIMEOUT) == 0) {
+        FlowTimeoutCounters counters = {
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+        };
+        FlowBypassedTimeout(f, TimeGet(), &counters);
+        // TODO use the counters to update
+        // like StatsCounterAddI64(&tv->stats, ftd->cnt.flow_bypassed_cnt_clo,
+        // (int64_t)counters.bypassed_count); same for bypassed_pkts and bypassed_bytes needs to
+        // check if the flow recycler thread can update these stats and give it access to the
+        // StatsCounterId flow_bypassed_cnt_clo and such
+    }
+#endif
 
     (void)OutputFlowLog(tv, ftd->output_thread_data, f);
 
