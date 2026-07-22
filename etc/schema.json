@@ -2185,6 +2185,19 @@
                 "type": {
                     "type": "string",
                     "description": "Executable format type identifier (e.g., \"windows_pe\")"
+                },
+                "version_info": {
+                    "type": "object",
+                    "description":
+                            "StringFileInfo key/value strings from the VERSIONINFO resource (e.g. CompanyName, ProductName, OriginalFilename)",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
                 }
             }
         },
@@ -2400,6 +2413,12 @@
                             },
                             "type": {
                                 "type": "string"
+                            },
+                            "version_info": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "string"
+                                }
                             }
                         }
                     },

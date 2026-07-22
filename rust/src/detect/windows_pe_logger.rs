@@ -22,8 +22,9 @@
 
 use crate::detect::windows_pe::{
     detect_meta_full, extract_pe_signature, file_imports_get, file_imports_set, file_meta_get,
-    file_meta_set, file_signature_get, file_signature_set, parse_pe_exports, parse_pe_file_version,
-    parse_pe_imports_with_offset, parse_pe_metadata, parse_section_headers, section_name_str,
+    file_meta_set, file_signature_get, file_signature_set, file_version_info_get,
+    file_version_info_set, parse_pe_exports, parse_pe_file_version, parse_pe_imports_with_offset,
+    parse_pe_metadata, parse_pe_version_strings, parse_section_headers, section_name_str,
     PeCertInfo, SCDetectPeMetadata, SectionInfo, IMAGE_SCN_MEM_EXECUTE, IMAGE_SCN_MEM_WRITE,
 };
 use crate::jsonbuilder::{JsonBuilder, JsonError};
@@ -34,7 +35,8 @@ use suricata_sys::sys::File;
 /// Called for both raw-buffer parsing and File-cache fallback paths.
 pub(crate) fn pe_log_json_fields(
     meta: &SCDetectPeMetadata, imports: Option<&[String]>, sections: Option<&[SectionInfo]>,
-    export_name: Option<&str>, signature: Option<&[PeCertInfo]>, js: &mut JsonBuilder,
+    export_name: Option<&str>, signature: Option<&[PeCertInfo]>,
+    version_info: Option<&[(String, String)]>, js: &mut JsonBuilder,
 ) -> Result<(), JsonError> {
     js.open_object("executable")?;
     js.set_string("type", "windows_pe")?;
@@ -178,6 +180,19 @@ pub(crate) fn pe_log_json_fields(
         js.set_string("file_version", &ver)?;
     }
 
+    // VERSIONINFO StringFileInfo strings (CompanyName, OriginalFilename, ...).
+    if let Some(entries) = version_info {
+        if !entries.is_empty() {
+            js.open_object("version_info")?;
+            for (k, v) in entries {
+                if !k.is_empty() {
+                    js.set_string(k, v)?;
+                }
+            }
+            js.close()?;
+        }
+    }
+
     if let Some(name) = export_name {
         js.set_string("export_name", name)?;
     }
@@ -221,9 +236,9 @@ pub(crate) fn pe_log_json_fields(
 /// alone (they require raw file data), so they are omitted in this path.
 fn pe_log_json_from_sc_meta(
     meta: &SCDetectPeMetadata, imports: Option<&[String]>, signature: Option<&[PeCertInfo]>,
-    js: &mut JsonBuilder,
+    version_info: Option<&[(String, String)]>, js: &mut JsonBuilder,
 ) -> Result<(), JsonError> {
-    pe_log_json_fields(meta, imports, None, None, signature, js)
+    pe_log_json_fields(meta, imports, None, None, signature, version_info, js)
 }
 
 /// Cache-aware FFI entry point: log PE metadata as JSON for a given file.
@@ -247,14 +262,30 @@ pub unsafe extern "C" fn SCPeLogJsonByFile(
             // Use the cached signature if a cert_* rule parsed it; otherwise
             // parse it now if the file is signed and the buffer is present.
             let mut sig = file_signature_get(file);
-            if sig.is_none() && meta.has_signature && offset == 0 && !data.is_null() {
+            let mut vi = file_version_info_get(file);
+            if offset == 0 && !data.is_null() {
                 let file_data = std::slice::from_raw_parts(data, data_len as usize);
-                if let Some(certs) = extract_pe_signature(file_data, meta.pe_offset as usize) {
-                    file_signature_set(file as *mut File, certs);
-                    sig = file_signature_get(file);
+                if sig.is_none() && meta.has_signature {
+                    if let Some(certs) = extract_pe_signature(file_data, meta.pe_offset as usize) {
+                        file_signature_set(file as *mut File, certs);
+                        sig = file_signature_get(file);
+                    }
+                }
+                if vi.is_none() {
+                    let sections = parse_section_headers(
+                        file_data,
+                        meta.pe_offset as usize,
+                        meta.num_sections,
+                    );
+                    let entries =
+                        parse_pe_version_strings(file_data, meta.pe_offset as usize, &sections);
+                    if !entries.is_empty() {
+                        file_version_info_set(file as *mut File, entries);
+                        vi = file_version_info_get(file);
+                    }
                 }
             }
-            return pe_log_json_from_sc_meta(&meta, cached_imports, sig, js).is_ok();
+            return pe_log_json_from_sc_meta(&meta, cached_imports, sig, vi, js).is_ok();
         }
         // Parsed but invalid — not a PE.
         return false;
@@ -293,16 +324,24 @@ pub unsafe extern "C" fn SCPeLogJsonByFile(
                     file_signature_set(file as *mut File, certs);
                 }
             }
+            // Parse and cache the VERSIONINFO strings.
+            let vi_entries =
+                parse_pe_version_strings(file_data, meta.pe_offset as usize, &sections);
+            if !vi_entries.is_empty() {
+                file_version_info_set(file as *mut File, vi_entries);
+            }
             file_meta_set(file as *mut File, &meta);
 
             let cached_imports = file_imports_get(file);
             let cached_sig = file_signature_get(file);
+            let cached_vi = file_version_info_get(file);
             return pe_log_json_fields(
                 &meta,
                 cached_imports,
                 Some(&sections),
                 export_name.as_deref(),
                 cached_sig,
+                cached_vi,
                 js,
             )
             .is_ok();

@@ -703,6 +703,7 @@ Fields:
 * "cert_serial": [optional] Serial number of the signing certificate (colon-separated hex)
 * "cert_thumbprint": [optional] SHA-1 thumbprint of the signing certificate (uppercase hex)
 * "file_version": [optional] FileVersion from the VERSIONINFO resource (``major.minor.build.revision``)
+* "version_info": [optional] Object of VERSIONINFO StringFileInfo key/value strings (e.g. ``CompanyName``, ``ProductName``, ``OriginalFilename``)
 * "export_name": [optional] Internal DLL name from the export directory
 * "imports": [optional] Array of imported DLL names (lowercase)
 * "sections_detail": [optional] Array of per-section objects, each containing:

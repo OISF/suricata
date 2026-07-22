@@ -401,6 +401,26 @@ void FilePeSignatureSet(File *file, void *sig)
     file->pe_signature = sig;
 }
 
+const void *FilePeVersionInfoGet(const File *file)
+{
+    if (file == NULL) {
+        return NULL;
+    }
+    return file->pe_version_info;
+}
+
+void FilePeVersionInfoSet(File *file, void *vi)
+{
+    if (file == NULL) {
+        return;
+    }
+    /* Free any previous cached version info. */
+    if (file->pe_version_info != NULL) {
+        SCFilePeVersionInfoFree(file->pe_version_info);
+    }
+    file->pe_version_info = vi;
+}
+
 /** \brief test if file is ready to be pruned
  *
  *  If a file is in the 'CLOSED' state, it means it has been processed
@@ -663,6 +683,8 @@ static void FileFree(File *ff, const StreamingBufferConfig *sbcfg)
         SCFilePeImportsFree(ff->pe_imports);
     if (ff->pe_signature != NULL)
         SCFilePeSignatureFree(ff->pe_signature);
+    if (ff->pe_version_info != NULL)
+        SCFilePeVersionInfoFree(ff->pe_version_info);
     if (ff->pe_meta != NULL)
         SCFree(ff->pe_meta);
     SCFree(ff);

@@ -326,6 +326,7 @@ A valid Windows PE file consists of:
 * ``cert_subject``: Match the subject of an embedded signing certificate - case-insensitive substring
 * ``cert_issuer``: Match the issuer of an embedded signing certificate - case-insensitive substring
 * ``file_version``: Match the FileVersion from the VERSIONINFO resource - dotted ``major.minor.build.revision`` with comparison operators and ranges (e.g. ``>6.1.0.0``, ``6.0.0.0-11.0.0.0``). Only matches files that carry a version resource
+* ``version_info``: Match a VERSIONINFO StringFileInfo string (``CompanyName``, ``ProductName``, ``OriginalFilename``, ``FileVersion``, etc.). Each entry is matched as ``Key: Value``, so the value can match a key, a value, or both. The value is a case-insensitive substring, or a regex when written ``/pattern/flags`` (flags ``i``/``s``/``m``/``x``)
 * DLL names can be specified directly to match imported DLLs from the PE Import Directory Table - case-insensitive exact match, AND logic. Multiple DLLs can be comma-separated: ``ws2_32.dll, wininet.dll``
 
 All numeric options support comparison operators: ``<``, ``>``, and range notation (e.g., ``1000<>5000``).
@@ -337,13 +338,23 @@ All numeric options support comparison operators: ``<``, ``>``, and range notati
    tells you which certificate the file claims. This is the mechanism for tracking
    files signed with a known-revoked or stolen code-signing certificate. The
    Certificate Table and the ``.rsrc`` resource both typically sit near the end of
-   a PE, so ``cert_*`` and ``file_version`` only match once the file has been
-   fully reassembled from offset 0; the bare ``signature`` flag reads the header
-   only and works on a partial capture.
+   a PE, so ``cert_*``, ``file_version`` and ``version_info`` only match once the
+   file has been fully reassembled from offset 0; the bare ``signature`` flag reads
+   the header only and works on a partial capture.
 
 .. note::
 
-   ``cert_*`` and ``file_version`` inspect data near the end of the file, so the
+   A ``version_info`` filter matches if *any* StringFileInfo entry matches.
+   Multiple ``version_info`` options are ANDed (each must match some entry, possibly
+   a different one), while a single regex with alternation gives OR
+   (``version_info: "/(CompanyA|CompanyB)/i"``). A regex is matched per entry, so it
+   cannot require two different fields at once (the ``regex`` crate has no
+   lookaround/backreferences); use two ``version_info`` options for that. For full
+   PCRE, use the ``pcre`` keyword on ``file.data``.
+
+.. note::
+
+   ``cert_*``, ``file_version`` and ``version_info`` inspect data near the end of the file, so the
    whole file must be buffered from its start when inspection runs. The defaults
    truncate larger files before that data is reached, so these options silently
    fail to match files above a few tens of KB unless the following are raised to
@@ -558,6 +569,22 @@ Detect a PE whose FileVersion is below a patched build::
       file.data; content:"MZ"; startswith; \
       windows_pe: file_version <6.1.7601.17514; \
       sid:22; rev:1;)
+
+Detect a PE claiming a specific vendor in its version info::
+
+  alert http any any -> any any (msg:"PE version info vendor"; \
+      flow:established,to_client; \
+      file.data; content:"MZ"; startswith; \
+      windows_pe: version_info "CompanyName: Acme Software"; \
+      sid:23; rev:1;)
+
+Detect a screensaver original filename via regex (masquerading)::
+
+  alert http any any -> any any (msg:"PE OriginalFilename .scr"; \
+      flow:established,to_client; \
+      file.data; content:"MZ"; startswith; \
+      windows_pe: version_info "/OriginalFilename: .*\\.scr$/i"; \
+      sid:24; rev:1;)
 
 **Threat Hunting Examples**
 
