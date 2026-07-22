@@ -455,8 +455,8 @@ fn http2_parse_headers_block_literal_incindex<'a>(
                         if dyn_headers.current_size <= (unsafe { HTTP2_MAX_TABLESIZE } as usize) {
                             //overflow had not yet happened
                             dyn_headers.table.push(headcopy);
-                        } else if dyn_headers.current_size > dyn_headers.max_size {
-                            //overflow happens, we cannot replace evicted headers
+                        } else {
+                            //overflow happens, we cannot record new headers
                             dyn_headers.overflow = 2;
                         }
                     }
@@ -560,7 +560,14 @@ fn http2_parse_headers_block_dynamic_size<'a>(
             toremove += 1;
         }
         dyn_headers.table.drain(0..toremove);
+        if maxsize2 <= unsafe { HTTP2_MAX_TABLESIZE.into() } {
+            dyn_headers.overflow = 0;
+        }
+    } else if maxsize2 > unsafe { HTTP2_MAX_TABLESIZE.into() } {
+        //mark potential overflow
+        dyn_headers.overflow = 1;
     }
+    dyn_headers.max_size = maxsize2 as usize;
     return Ok((
         i3,
         HTTP2FrameHeaderBlock {
