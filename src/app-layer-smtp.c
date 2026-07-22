@@ -1415,7 +1415,17 @@ static int SMTPProcessRequest(
             if (r == -1) {
                 SCReturnInt(-1);
             }
-            state->current_command = SMTP_COMMAND_OTHER_CMD;
+            if (state->curr_tx->mail_from != NULL || !TAILQ_EMPTY(&state->curr_tx->rcpt_to_list) ||
+                    state->curr_tx->progress_ts != SMTP_REQUEST_STARTED) {
+                /* Mid-session HELO/EHLO resets the state as if a RSET
+                 * had been issued (RFC 5321 4.1.4). The progress check
+                 * catches a transaction with no envelope but an attempted
+                 * DATA or BDAT, such as a rejected envelope-less DATA. */
+                state->bdat_chunk_idx = 0;
+                state->current_command = SMTP_COMMAND_RSET;
+            } else {
+                state->current_command = SMTP_COMMAND_OTHER_CMD;
+            }
         } else if (line->len >= 9 && SCMemcmpLowercase("mail from", line->buf, 9) == 0) {
             r = SMTPParseCommandMAILFROM(state, line);
             if (r == -1) {
