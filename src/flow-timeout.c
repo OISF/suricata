@@ -396,8 +396,9 @@ static inline void FlowRemoveHash(void)
             }
 
             /* in case of additional work, we pull the flow out of the
-             * hash and xfer ownership to the injected packet(s) */
-            if (FlowNeedsReassembly(f)) {
+             * hash and xfer ownership to the injected packet(s)
+             * Bypassed flows will be handled by Recycler */
+            if (FlowNeedsReassembly(f) && !FlowIsBypassed(f)) {
                 RemoveFromHash(f, prev_f);
                 f->flow_end_flags |= FLOW_END_FLAG_SHUTDOWN;
                 FlowSendToLocalThread(f);
