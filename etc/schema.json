@@ -5860,124 +5860,157 @@
             "additionalProperties": false,
             "properties": {
                 "access": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Access mask/permission requested (read, write, execute)"
                 },
                 "accessed": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Timestamp the file was last accessed"
                 },
                 "changed": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Timestamp the file's metadata last changed"
                 },
                 "client_dialects": {
                     "type": "array",
+                    "description": "SMB dialects offered by the client in NEGOTIATE",
                     "minItems": 1,
                     "items": {
                         "type": "string"
                     }
                 },
                 "client_guid": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Client-supplied GUID identifying itself to the server"
                 },
                 "command": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "SMB command/operation type (e.g. SMB2_CREATE)"
                 },
                 "created": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Timestamp the file was created"
                 },
                 "dcerpc": {
                     "type": "object",
+                    "description": "DCE/RPC-over-SMB named pipe transaction details",
                     "additionalProperties": false,
                     "properties": {
                         "call_id": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "ID matching a DCE/RPC request to its response"
                         },
                         "interfaces": {
                             "type": "array",
+                            "description": "DCE/RPC interface bindings negotiated",
                             "minItems": 1,
                             "items": {
                                 "type": "object",
                                 "additionalProperties": false,
                                 "properties": {
                                     "ack_reason": {
-                                        "type": "integer"
+                                        "type": "integer",
+                                        "description": "Reason code for accepting/rejecting the bind"
                                     },
                                     "ack_result": {
-                                        "type": "integer"
+                                        "type": "integer",
+                                        "description": "Bind result code (0 = accepted)"
                                     },
                                     "uuid": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "UUID of the bound DCE/RPC interface"
                                     },
                                     "version": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "Version of the DCE/RPC interface"
                                     }
                                 }
                             }
                         },
                         "opnum": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Operation number of the called RPC method"
                         },
                         "req": {
                             "type": "object",
+                            "description": "DCE/RPC request metadata (fragments, stub size)",
                             "additionalProperties": false,
                             "properties": {
                                 "frag_cnt": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of PDU fragments in the request"
                                 },
                                 "stub_data_size": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Size in bytes of the request stub data"
                                 }
                             }
                         },
                         "request": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Human-readable name of the DCE/RPC operation"
                         },
                         "res": {
                             "type": "object",
+                            "description": "DCE/RPC response metadata (fragments, stub size)",
                             "additionalProperties": false,
                             "properties": {
                                 "frag_cnt": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Number of PDU fragments in the response"
                                 },
                                 "stub_data_size": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "description": "Size in bytes of the response stub data"
                                 }
                             }
                         },
                         "response": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Human-readable name of the DCE/RPC response"
                         }
                     }
                 },
                 "dialect": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Negotiated SMB dialect (e.g. 2.1, 3.1.1)"
                 },
                 "directory": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Directory being accessed or created"
                 },
                 "disposition": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "How to handle the file if it exists (create/open/overwrite)"
                 },
                 "filename": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "File being accessed in the transaction"
                 },
                 "fuid": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Suricata file-handle ID correlating file events"
                 },
                 "function": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "High-level SMB function name (e.g. SMB2_NEGOTIATE)"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "SMB message ID pairing a request with its response"
                 },
                 "kerberos": {
                     "type": "object",
+                    "description": "Kerberos authentication details from session setup",
                     "additionalProperties": false,
                     "properties": {
                         "realm": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Kerberos realm (domain) from the service ticket"
                         },
                         "snames": {
                             "type": "array",
+                            "description": "Kerberos service principal name (SPN) components",
                             "minItems": 1,
                             "items": {
                                 "type": "string"
@@ -5989,32 +6022,41 @@
                     "type": "string"
                 },
                 "max_read_size": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Max bytes the client accepts in one READ response"
                 },
                 "max_write_size": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Max bytes the client sends in one WRITE request"
                 },
                 "modified": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Timestamp the file content was last modified"
                 },
                 "named_pipe": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Named pipe accessed (transport for DCE/RPC)"
                 },
                 "ntlmssp": {
                     "type": "object",
+                    "description": "NTLMSSP authentication details from the session",
                     "additionalProperties": false,
                     "properties": {
                         "domain": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Windows domain from the NTLMSSP exchange"
                         },
                         "host": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Client hostname from the NTLMSSP exchange"
                         },
                         "user": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Username authenticated via NTLMSSP"
                         },
                         "version": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Client OS version from the NTLMSSP message"
                         },
                         "warning": {
                             "type": "boolean"
@@ -6023,25 +6065,31 @@
                 },
                 "rename": {
                     "type": "object",
+                    "description": "Source and destination names for a rename",
                     "additionalProperties": false,
                     "properties": {
                         "from": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Original filename before the rename"
                         },
                         "to": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "New filename after the rename"
                         }
                     }
                 },
                 "request": {
                     "type": "object",
+                    "description": "Client session-setup fields (native OS/LanManager)",
                     "additionalProperties": false,
                     "properties": {
                         "native_lm": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Client-reported LanManager string"
                         },
                         "native_os": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Client-reported OS string"
                         }
                     }
                 },
@@ -6050,13 +6098,16 @@
                 },
                 "response": {
                     "type": "object",
+                    "description": "Server session-setup fields (native OS/LanManager)",
                     "additionalProperties": false,
                     "properties": {
                         "native_lm": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Server-reported LanManager string"
                         },
                         "native_os": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Server-reported OS string"
                         }
                     }
                 },
@@ -6064,55 +6115,69 @@
                     "type": "boolean"
                 },
                 "server_guid": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "GUID identifying the SMB server instance"
                 },
                 "service": {
                     "type": "object",
+                    "description": "Service type connected to (disk, pipe/IPC$, printer)",
                     "additionalProperties": false,
                     "properties": {
                         "request": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Service type requested on tree connect"
                         },
                         "response": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Service type granted in the tree-connect response"
                         }
                     }
                 },
                 "session_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Server-assigned authenticated session ID"
                 },
                 "set_info": {
                     "type": "object",
+                    "description": "SMB SET_INFO operation modifying file metadata",
                     "additionalProperties": false,
                     "properties": {
                         "class": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Information class of metadata being set"
                         },
                         "info_level": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Specific info level within the SET_INFO class"
                         }
                     }
                 },
                 "share": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "SMB share being accessed (e.g. C$, IPC$)"
                 },
                 "share_type": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Share type: disk, pipe, or print"
                 },
                 "size": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Size in bytes of the file/data transferred"
                 },
                 "status": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "NTSTATUS string of the operation outcome"
                 },
                 "status_code": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Raw numeric NTSTATUS result code"
                 },
                 "subcmd": {
                     "type": "string"
                 },
                 "tree_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Server-assigned ID for the share connection"
                 }
             }
         },
