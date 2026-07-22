@@ -1565,6 +1565,8 @@ dependencies = [
  "sawp",
  "sawp-modbus",
  "sawp-pop3",
+ "serde",
+ "serde_json",
  "sha1",
  "sha2",
  "snmp-parser",
@@ -1944,6 +1946,9 @@ name = "uuid"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "valuable"
