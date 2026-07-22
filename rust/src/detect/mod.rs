@@ -22,6 +22,8 @@ pub mod byte_math;
 pub mod datasets;
 pub mod entropy;
 pub mod error;
+pub mod windows_pe;
+pub mod windows_pe_logger;
 pub mod float;
 pub mod flow;
 pub mod fragbits;
@@ -60,6 +62,7 @@ pub trait EnumString<T> {
 
 pub use suricata_ffi::detect::{
     helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
+    helper_keyword_register_multi_buffer_with_options,
     SigTableElmtStickyBuffer,
 };
 

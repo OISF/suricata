@@ -748,6 +748,12 @@ extern "C" {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct File_ {
+    _unused: [u8; 0],
+}
+pub type File = File_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct SigMatchCtx_ {
     _unused: [u8; 0],
 }
@@ -939,6 +945,60 @@ extern "C" {
 extern "C" {
     pub fn SCDetectRegisterBufferLowerMd5Callbacks(name: *const ::std::os::raw::c_char);
 }
+#[doc = " Lite keyword registration struct for file-match keywords."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct SCSigTableFileLiteElmt_ {
+    pub name: *const ::std::os::raw::c_char,
+    pub desc: *const ::std::os::raw::c_char,
+    pub url: *const ::std::os::raw::c_char,
+    pub flags: u32,
+    pub FileMatch: ::std::option::Option<
+        unsafe extern "C" fn(
+            arg1: *mut DetectEngineThreadCtx,
+            arg2: *mut Flow,
+            flags: u8,
+            arg3: *mut File,
+            arg4: *const Signature,
+            arg5: *const SigMatchCtx,
+        ) -> ::std::os::raw::c_int,
+    >,
+    pub Setup: ::std::option::Option<
+        unsafe extern "C" fn(
+            arg1: *mut DetectEngineCtx,
+            arg2: *mut Signature,
+            arg3: *const ::std::os::raw::c_char,
+        ) -> ::std::os::raw::c_int,
+    >,
+    pub Free: ::std::option::Option<
+        unsafe extern "C" fn(arg1: *mut DetectEngineCtx, arg2: *mut ::std::os::raw::c_void),
+    >,
+}
+impl Default for SCSigTableFileLiteElmt_ {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[doc = " Lite keyword registration struct for file-match keywords."]
+pub type SCSigTableFileLiteElmt = SCSigTableFileLiteElmt_;
+extern "C" {
+    pub fn SCDetectHelperFileKeywordRegister(kw: *const SCSigTableFileLiteElmt) -> u16;
+}
+extern "C" {
+    pub fn SCDetectHelperGetFilesBufferId() -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCFileGetData(
+        file: *const File, data_len_out: *mut u32, offset_out: *mut u64,
+    ) -> *const u8;
+}
+extern "C" {
+    pub fn SCDetectSignatureSetFileInspect(s: *mut Signature);
+}
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct DeStateStoreItem_ {
@@ -1114,12 +1174,6 @@ pub struct StreamingBufferConfig_ {
         ::std::option::Option<unsafe extern "C" fn(ptr: *mut ::std::os::raw::c_void, size: usize)>,
 }
 pub type StreamingBufferConfig = StreamingBufferConfig_;
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct File_ {
-    _unused: [u8; 0],
-}
-pub type File = File_;
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct FileContainer_ {
