@@ -1092,6 +1092,29 @@ static void Recycler(ThreadVars *tv, FlowRecyclerThreadData *ftd, Flow *f)
 {
     FLOWLOCK_WRLOCK(f);
 
+#ifdef CAPTURE_OFFLOAD
+    // If the flow was timed out already, we already updated the stats
+    if ((f->flow_end_flags & FLOW_END_FLAG_TIMEOUT) == 0) {
+        FlowTimeoutCounters counters = {
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+        };
+        FlowBypassedTimeout(f, TimeGet(), &counters);
+        FlowCountersUpdate(tv, ftd, &counters);
+    }
+#endif
+
     (void)OutputFlowLog(tv, ftd->output_thread_data, f);
 
     FlowEndCountersUpdate(tv, &ftd->fec, f);
