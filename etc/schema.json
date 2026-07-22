@@ -2027,6 +2027,19 @@
                         ]
                     }
                 },
+                "version_info": {
+                    "type": "object",
+                    "description":
+                            "StringFileInfo key/value strings from the VERSIONINFO resource (e.g. CompanyName, ProductName, OriginalFilename)",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "windows_pe"
+                        ]
+                    }
+                },
                 "imports": {
                     "type": "array",
                     "description":
@@ -2306,6 +2319,12 @@
                             },
                             "file_version": {
                                 "type": "string"
+                            },
+                            "version_info": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "string"
+                                }
                             },
                             "imports": {
                                 "type": "array",

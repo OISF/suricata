@@ -191,6 +191,11 @@ typedef struct File_ {
      * SCFilePeSignatureFree(). */
     void *pe_signature;
 
+    /* Cached PE VERSIONINFO StringFileInfo key/value strings (opaque, owned by
+     * Rust). NULL until first version-resource parse; freed in FileFree via
+     * SCFilePeVersionInfoFree(). */
+    void *pe_version_info;
+
     uint32_t *sid; /* signature id of a rule that triggered the filestore event */
     uint32_t sid_cnt;
     uint32_t sid_max;
@@ -242,6 +247,22 @@ void FilePeSignatureSet(File *file, void *sig);
  * \brief Free cached PE signing certificates (Rust-allocated).
  */
 void SCFilePeSignatureFree(void *sig);
+
+/**
+ * \brief Get cached PE VERSIONINFO strings from File (opaque pointer).
+ * \retval opaque pointer (NULL if not yet cached)
+ */
+const void *FilePeVersionInfoGet(const File *file);
+
+/**
+ * \brief Store cached PE VERSIONINFO strings in File (takes ownership).
+ */
+void FilePeVersionInfoSet(File *file, void *vi);
+
+/**
+ * \brief Free cached PE VERSIONINFO strings (Rust-allocated).
+ */
+void SCFilePeVersionInfoFree(void *vi);
 
 FileContainer *FileContainerAlloc(void);
 void FileContainerFree(FileContainer *, const StreamingBufferConfig *cfg);

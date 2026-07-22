@@ -61,6 +61,7 @@ use crate::detect::uint::{detect_match_uint, detect_parse_uint, DetectUintData};
 #[cfg(test)]
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use der_parser::asn1_rs::{Any, Class, FromDer};
+use regex::{Regex, RegexBuilder};
 use sha1::{Digest, Sha1};
 use std::ffi::CStr;
 use std::collections::HashSet;
@@ -133,6 +134,8 @@ extern "C" {
     fn FilePeImportsSet(file: *mut File, imports: *mut std::os::raw::c_void);
     fn FilePeSignatureGet(file: *const File) -> *const std::os::raw::c_void;
     fn FilePeSignatureSet(file: *mut File, sig: *mut std::os::raw::c_void);
+    fn FilePeVersionInfoGet(file: *const File) -> *const std::os::raw::c_void;
+    fn FilePeVersionInfoSet(file: *mut File, vi: *mut std::os::raw::c_void);
 }
 
 /// Validate a PE file and return the PE header offset on success.
@@ -492,9 +495,14 @@ fn resource_dir_find(data: &[u8], dir_off: usize, want_id: Option<u16>) -> Optio
 /// the `VS_FIXEDFILEINFO` signature `0xFEEF04BD` and reads `dwFileVersionMS/LS`.
 /// The `.rsrc` section typically sits at the end of the file, so this returns
 /// `None` on a partially reassembled buffer.
-pub(crate) fn parse_pe_file_version(
+/// Locate the `VS_VERSIONINFO` blob in the resource directory.
+///
+/// Walks data directory entry 2 (resources) down `RT_VERSION` (16) → name →
+/// language to the leaf `IMAGE_RESOURCE_DATA_ENTRY`, and returns the file
+/// `(start, end)` of the `VS_VERSIONINFO` structure, or `None` if absent.
+fn locate_version_resource(
     data: &[u8], pe_offset: usize, sections: &[SectionInfo],
-) -> Option<u64> {
+) -> Option<(usize, usize)> {
     let optional_header_offset = pe_offset + 24;
     if optional_header_offset + 2 > data.len() {
         return None;
@@ -547,6 +555,13 @@ pub(crate) fn parse_pe_file_version(
     if vi_off >= end {
         return None;
     }
+    Some((vi_off, end))
+}
+
+pub(crate) fn parse_pe_file_version(
+    data: &[u8], pe_offset: usize, sections: &[SectionInfo],
+) -> Option<u64> {
+    let (vi_off, end) = locate_version_resource(data, pe_offset, sections)?;
     // Scan the VS_VERSIONINFO blob for the VS_FIXEDFILEINFO signature.
     let sig = 0xFEEF_04BDu32.to_le_bytes();
     let blob = &data[vi_off..end];
@@ -561,6 +576,163 @@ pub(crate) fn parse_pe_file_version(
         data[fixed + 12], data[fixed + 13], data[fixed + 14], data[fixed + 15],
     ]);
     Some(((ms as u64) << 32) | (ls as u64))
+}
+
+/// Round `x` up to a 4-byte boundary (VERSIONINFO nodes are DWORD-aligned).
+fn align4(x: usize) -> usize {
+    (x + 3) & !3
+}
+
+/// Decode a little-endian UTF-16 byte slice to a String, stopping at the first
+/// NUL. Lossy on malformed input so a hostile resource cannot cause an error.
+fn utf16le_to_string(bytes: &[u8]) -> String {
+    let units: Vec<u16> = bytes.chunks_exact(2).map(|c| u16::from_le_bytes([c[0], c[1]])).collect();
+    let end = units.iter().position(|&u| u == 0).unwrap_or(units.len());
+    String::from_utf16_lossy(&units[..end])
+}
+
+/// Parse one VERSIONINFO node header at `p` (bounded by `end`).
+///
+/// Every node is `wLength(2) wValueLength(2) wType(2)` then a NUL-terminated
+/// UTF-16 `szKey`, padded to a DWORD. Returns
+/// `(w_length, w_value_length, key, value_offset)` where `value_offset` is the
+/// DWORD-aligned start of the node's Value/children.
+fn vi_node_header(data: &[u8], p: usize, end: usize) -> Option<(usize, usize, String, usize)> {
+    if p + 6 > end {
+        return None;
+    }
+    let w_length = u16::from_le_bytes([data[p], data[p + 1]]) as usize;
+    let w_value_length = u16::from_le_bytes([data[p + 2], data[p + 3]]) as usize;
+    let key_start = p + 6;
+    let mut k = key_start;
+    while k + 2 <= end {
+        if u16::from_le_bytes([data[k], data[k + 1]]) == 0 {
+            break;
+        }
+        k += 2;
+    }
+    let key = utf16le_to_string(&data[key_start..k]);
+    Some((w_length, w_value_length, key, align4(k + 2)))
+}
+
+/// Parse the StringFileInfo key/value strings from the PE VERSIONINFO resource.
+///
+/// Walks `VS_VERSIONINFO` → `StringFileInfo` → `StringTable`(s) → `String`
+/// entries, returning `(key, value)` pairs (e.g. `("CompanyName", "...")`).
+/// Values are read as NUL-terminated UTF-16 (robust to the words-vs-bytes
+/// ambiguity of `wValueLength`). Everything is bounds-checked and capped.
+pub(crate) fn parse_pe_version_strings(
+    data: &[u8], pe_offset: usize, sections: &[SectionInfo],
+) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    let (vi_off, end) = match locate_version_resource(data, pe_offset, sections) {
+        Some(v) => v,
+        None => return out,
+    };
+    // VS_VERSIONINFO node: Value is VS_FIXEDFILEINFO (w_value_length bytes).
+    let (vi_len, vi_vlen, _vi_key, vi_after_key) = match vi_node_header(data, vi_off, end) {
+        Some(v) => v,
+        None => return out,
+    };
+    let vi_end = (vi_off + vi_len).min(end);
+    // Children (StringFileInfo / VarFileInfo) follow the fixed-info value.
+    let mut cp = align4(vi_after_key + vi_vlen);
+    let mut cg = 0;
+    while cp + 6 <= vi_end && cg < 32 {
+        cg += 1;
+        let (clen, _cvlen, ckey, cafter) = match vi_node_header(data, cp, vi_end) {
+            Some(v) => v,
+            None => break,
+        };
+        if clen == 0 {
+            break;
+        }
+        let cend = (cp + clen).min(vi_end);
+        if ckey == "StringFileInfo" {
+            // Children are StringTable nodes (one per language/codepage).
+            let mut tp = cafter;
+            let mut tg = 0;
+            while tp + 6 <= cend && tg < 64 {
+                tg += 1;
+                let (tlen, _tvlen, _tkey, tafter) = match vi_node_header(data, tp, cend) {
+                    Some(v) => v,
+                    None => break,
+                };
+                if tlen == 0 {
+                    break;
+                }
+                let tend = (tp + tlen).min(cend);
+                // Children are String nodes: szKey = name, Value = UTF-16 string.
+                let mut sp = tafter;
+                let mut sg = 0;
+                while sp + 6 <= tend && sg < 256 && out.len() < 256 {
+                    sg += 1;
+                    let (slen, _svlen, skey, safter) = match vi_node_header(data, sp, tend) {
+                        Some(v) => v,
+                        None => break,
+                    };
+                    if slen == 0 {
+                        break;
+                    }
+                    let send = (sp + slen).min(tend);
+                    let value = if safter < send {
+                        utf16le_to_string(&data[safter..send])
+                    } else {
+                        String::new()
+                    };
+                    if !skey.is_empty() {
+                        out.push((skey, value));
+                    }
+                    sp = align4(sp + slen);
+                }
+                tp = align4(tp + tlen);
+            }
+        }
+        cp = align4(cp + clen);
+    }
+    out
+}
+
+/// A string-match filter: a case-insensitive substring or a compiled regex.
+///
+/// Rule values wrapped as `/pattern/flags` (flags `i`/`s`/`m`/`x`) compile to a
+/// regex; anything else is a lowercased substring. Used by `version_info`.
+pub(crate) enum StrMatch {
+    Substr(String),
+    Regex(Regex),
+}
+
+impl StrMatch {
+    fn parse(val: &str) -> Option<StrMatch> {
+        let v = val.trim().trim_matches('"');
+        // Regex form: /pattern/flags with at least the two delimiters.
+        if v.len() >= 2 && v.starts_with('/') {
+            if let Some(last) = v.rfind('/') {
+                if last >= 1 {
+                    let pattern = &v[1..last];
+                    let mut b = RegexBuilder::new(pattern);
+                    for f in v[last + 1..].chars() {
+                        match f {
+                            'i' => { b.case_insensitive(true); }
+                            's' => { b.dot_matches_new_line(true); }
+                            'm' => { b.multi_line(true); }
+                            'x' => { b.ignore_whitespace(true); }
+                            _ => return None,
+                        }
+                    }
+                    return b.build().ok().map(StrMatch::Regex);
+                }
+            }
+        }
+        Some(StrMatch::Substr(v.to_lowercase()))
+    }
+
+    fn is_match(&self, haystack: &str) -> bool {
+        match self {
+            StrMatch::Substr(s) => haystack.to_lowercase().contains(s.as_str()),
+            StrMatch::Regex(re) => re.is_match(haystack),
+        }
+    }
 }
 
 // ============================================================================
@@ -941,6 +1113,8 @@ pub struct DetectWindowsPEData {
     cert_serial: Option<String>,
     cert_subject: Option<String>,
     cert_issuer: Option<String>,
+    /// VERSIONINFO StringFileInfo filters (each must match a "Key: Value" entry).
+    version_info: Vec<StrMatch>,
     has_filters: bool,
     /// True when the rule uses options that require expensive parsing
     /// (imports, exports, section headers) beyond the basic COFF/Optional header.
@@ -973,6 +1147,7 @@ impl Default for DetectWindowsPEData {
             cert_serial: None,
             cert_subject: None,
             cert_issuer: None,
+            version_info: Vec::new(),
             has_filters: false,
             needs_deep_parse: false,
         }
@@ -1136,6 +1311,9 @@ fn process_executable_option(data: &mut DetectWindowsPEData, key: &str, val: &st
         "cert_issuer" => {
             data.cert_issuer = Some(val.trim().trim_matches('"').to_lowercase());
         }
+        "version_info" => {
+            data.version_info.push(StrMatch::parse(val)?);
+        }
         _ => return None,
     }
     Some(())
@@ -1246,7 +1424,8 @@ fn parse_executable_options(input: &str) -> Option<DetectWindowsPEData> {
         || data.cert_serial.is_some()
         || data.cert_subject.is_some()
         || data.cert_issuer.is_some()
-        || !data.file_version.is_null();
+        || !data.file_version.is_null()
+        || !data.version_info.is_empty();
 
     data.needs_deep_parse = data.import_dlls.is_some()
         || !data.num_imports.is_null()
@@ -1258,7 +1437,8 @@ fn parse_executable_options(input: &str) -> Option<DetectWindowsPEData> {
         || data.cert_serial.is_some()
         || data.cert_subject.is_some()
         || data.cert_issuer.is_some()
-        || !data.file_version.is_null();
+        || !data.file_version.is_null()
+        || !data.version_info.is_empty();
 
     Some(data)
 }
@@ -1491,6 +1671,63 @@ unsafe fn get_pe_signature_by_file<'a>(
     let certs = extract_pe_signature(file_data, pe_offset)?;
     file_signature_set(file_ptr, certs);
     file_signature_get(file_ptr as *const File)
+}
+
+// ============================================================================
+// VERSIONINFO string caching in the File object
+// ============================================================================
+
+/// Retrieve cached version-info strings from File (opaque → `Vec<(String,String)>`).
+pub(crate) unsafe fn file_version_info_get(file: *const File) -> Option<&'static [(String, String)]> {
+    if file.is_null() {
+        return None;
+    }
+    let ptr = FilePeVersionInfoGet(file);
+    if ptr.is_null() {
+        return None;
+    }
+    let vec = &*(ptr as *const Vec<(String, String)>);
+    Some(vec.as_slice())
+}
+
+/// Store parsed version-info strings in the File object (ownership transferred).
+pub(crate) unsafe fn file_version_info_set(file: *mut File, vi: Vec<(String, String)>) {
+    if file.is_null() {
+        return;
+    }
+    let boxed = Box::new(vi);
+    FilePeVersionInfoSet(file, Box::into_raw(boxed) as *mut std::os::raw::c_void);
+}
+
+/// Free a Rust-allocated `Vec<(String,String)>` stored as an opaque pointer in File.
+///
+/// Called from C's `FileFree` via `SCFilePeVersionInfoFree`.
+#[no_mangle]
+pub unsafe extern "C" fn SCFilePeVersionInfoFree(ptr: *mut std::os::raw::c_void) {
+    if !ptr.is_null() {
+        let _ = Box::from_raw(ptr as *mut Vec<(String, String)>);
+    }
+}
+
+/// Retrieve or parse+cache the version-info strings for a file.
+unsafe fn get_pe_version_info_by_file<'a>(
+    file_ptr: *mut File, file_data: &[u8], pe_offset: usize, sections: &[SectionInfo],
+) -> &'a [(String, String)] {
+    if let Some(cached) = file_version_info_get(file_ptr as *const File) {
+        return cached;
+    }
+    let vi = parse_pe_version_strings(file_data, pe_offset, sections);
+    file_version_info_set(file_ptr, vi);
+    file_version_info_get(file_ptr as *const File).unwrap_or(&[])
+}
+
+/// Check the `version_info` filters against the parsed StringFileInfo entries.
+///
+/// Each filter must match at least one `"Key: Value"` entry (AND across filters).
+fn version_info_matches(entries: &[(String, String)], filters: &[StrMatch]) -> bool {
+    filters.iter().all(|f| {
+        entries.iter().any(|(k, v)| f.is_match(&format!("{}: {}", k, v)))
+    })
 }
 
 /// Check the certificate-identity filters against the embedded certificates.
@@ -1728,6 +1965,16 @@ pub unsafe extern "C" fn SCDetectWindowsPEFileMatch(
                 return 0;
             }
         }
+
+        // VERSIONINFO StringFileInfo filters.
+        if !ctx_ref.version_info.is_empty() {
+            let entries = get_pe_version_info_by_file(
+                file_ptr, file_data, meta.pe_offset as usize, &sections,
+            );
+            if !version_info_matches(entries, &ctx_ref.version_info) {
+                return 0;
+            }
+        }
     } else {
         // Header-only rule — check metadata and cache for logging.
         file_meta_set(file_ptr, &meta);
@@ -1809,7 +2056,7 @@ pub unsafe extern "C" fn SCDetectWindowsPERegister() {
 
     let kw = SCSigTableFileLiteElmt {
         name: b"windows_pe\0".as_ptr() as *const c_char,
-        desc: b"match Windows PE file format and metadata (arch, size, sections, entry_point, subsystem, characteristics, dll_characteristics, imported DLL names, signing certificate, file_version)\0".as_ptr() as *const c_char,
+        desc: b"match Windows PE file format and metadata (arch, size, sections, entry_point, subsystem, characteristics, dll_characteristics, imported DLL names, signing certificate, file_version, version_info)\0".as_ptr() as *const c_char,
         url: b"/rules/file-keywords.html#windows_pe\0".as_ptr() as *const c_char,
         FileMatch: Some(windows_pe_file_match),
         Setup: Some(windows_pe_setup),
@@ -1843,7 +2090,7 @@ mod tests {
         let (export_name, num_exports) = parse_pe_exports(data, meta.pe_offset as usize, &sections);
         detect_meta_full(&mut meta, &sections, num_imports, num_exports);
         crate::detect::windows_pe_logger::pe_log_json_fields(
-            &meta, imports.as_deref(), Some(&sections), export_name.as_deref(), None, js,
+            &meta, imports.as_deref(), Some(&sections), export_name.as_deref(), None, None, js,
         )
     }
     use std::collections::HashSet;
