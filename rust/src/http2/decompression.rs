@@ -189,15 +189,15 @@ impl HTTP2DecoderHalf {
     pub fn http2_encoding_fromvec(&mut self, input: &[u8]) {
         //use first encoding...
         if self.encoding == HTTP2ContentEncoding::Unknown {
-            if input == b"gzip" {
+            if input.eq_ignore_ascii_case(b"gzip") {
                 self.encoding = HTTP2ContentEncoding::Gzip;
                 self.decoder =
                     HTTP2Decompresser::Gzip(Box::new(GzDecoder::new(HTTP2cursor::new())));
-            } else if input == b"deflate" {
+            } else if input.eq_ignore_ascii_case(b"deflate") {
                 self.encoding = HTTP2ContentEncoding::Deflate;
                 self.decoder =
                     HTTP2Decompresser::Deflate(Box::new(DeflateDecoder::new(HTTP2cursor::new())));
-            } else if input == b"br" {
+            } else if input.eq_ignore_ascii_case(b"br") {
                 self.encoding = HTTP2ContentEncoding::Br;
                 self.decoder = HTTP2Decompresser::Brotli(Box::new(brotli::Decompressor::new(
                     HTTP2cursor::new(),
