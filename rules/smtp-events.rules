@@ -31,4 +31,6 @@ alert smtp any any -> any any (msg:"SURICATA SMTP duplicate fields"; flow:establ
 alert smtp any any -> any any (msg:"SURICATA SMTP unparsable content"; flow:established,to_server; app-layer-event:smtp.unparsable_content; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220019; rev:1;)
 alert smtp any any -> any any (msg:"SURICATA SMTP filename truncated"; flow:established,to_server; app-layer-event:smtp.mime_long_filename; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220020; rev:1;)
 alert smtp any any -> any any (msg:"SURICATA SMTP failed protocol change"; flow:established,to_client; app-layer-event:smtp.failed_protocol_change; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220021; rev:2;)
-# next sid 2220022
+alert smtp any any -> any any (msg:"SURICATA SMTP invalid BDAT command"; flow:established,to_server; app-layer-event:smtp.invalid_bdat; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220022; rev:1;)
+
+# next sid 2220023
