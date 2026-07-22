@@ -82,6 +82,7 @@ jobs:
       # flags handling.
       - run: |
           scan-build-22 --status-bugs --exclude "$(pwd)/rust/" \
+                --exclude "$HOME/\.cargo/registry/src/" \
                 -o scan-build-report/ \
                 -enable-checker core.BitwiseShift \
                 -enable-checker core.CallAndMessage \
