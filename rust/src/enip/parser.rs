@@ -235,6 +235,12 @@ pub fn parse_cip_reqresp_multiple(
     let mut size_list = Vec::new();
     let mut rem = i;
     for j in 0..nb as usize {
+        // require offsets list to be strictly increasing
+        // Avoid having multiple times the same offset,
+        // and reparsing the same expensive structure quadratically
+        if (offset_list[j] as usize) < start.len() - rem.len() {
+            return Err(nom8::Err::Error(make_error(i, ErrorKind::Satisfy)));
+        }
         if (offset_list[j] as usize) < start.len() {
             let (rem2, packet) = parse_cip_multi(&start[offset_list[j] as usize..])?;
             packet_list.push(packet);
