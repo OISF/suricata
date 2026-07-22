@@ -677,6 +677,7 @@ pub enum HTTP2Event {
     FailedDecompression,
     InvalidRange,
     HeaderIntegerOverflow,
+    HeaderTableOverflow,
     TooManyStreams,
     AuthorityHostMismatch,
     UserinfoInUri,
@@ -981,29 +982,24 @@ impl HTTP2State {
         &mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: Direction,
     ) -> Vec<HTTP2Event> {
         let mut events = Vec::new();
-        let (mut update, mut sizeup) = (false, 0);
         for block in blocks {
             if block.error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
                 events.push(HTTP2Event::InvalidHeader);
-            } else if block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate {
-                update = true;
-                if block.sizeupdate > sizeup {
-                    sizeup = block.sizeupdate;
-                }
             } else if block.error
                 == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIntegerOverflow
             {
                 events.push(HTTP2Event::HeaderIntegerOverflow);
             }
         }
-        if update {
-            //borrow checker forbids to pass directly dyn_headers
-            let dyn_headers = if dir == Direction::ToClient {
-                &mut self.dynamic_headers_tc
-            } else {
-                &mut self.dynamic_headers_ts
-            };
-            dyn_headers.max_size = sizeup as usize;
+        let dyn_headers = if dir == Direction::ToClient {
+            &mut self.dynamic_headers_tc
+        } else {
+            &mut self.dynamic_headers_ts
+        };
+        if dyn_headers.overflow == 2 {
+            // event only once
+            dyn_headers.overflow = 3;
+            events.push(HTTP2Event::HeaderTableOverflow);
         }
         return events;
     }
