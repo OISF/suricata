@@ -278,13 +278,13 @@ pub struct Uuid {
     pub node: Vec<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct DCERPCHdr {
     pub rpc_vers: u8,
     pub rpc_vers_minor: u8,
     pub hdrtype: u8,
     pub pfc_flags: u8,
-    pub packed_drep: Vec<u8>,
+    pub packed_drep: [u8; 4],
     pub frag_length: u16,
     pub auth_length: u16,
     pub call_id: u32,

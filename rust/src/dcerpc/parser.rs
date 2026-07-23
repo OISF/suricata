@@ -233,7 +233,12 @@ pub(super) fn parse_dcerpc_header(i: &[u8]) -> IResult<&[u8], DCERPCHdr> {
         rpc_vers_minor,
         hdrtype,
         pfc_flags,
-        packed_drep: packed_drep.to_vec(),
+        packed_drep: [
+            packed_drep[0],
+            packed_drep[1],
+            packed_drep[2],
+            packed_drep[3],
+        ],
         frag_length,
         auth_length,
         call_id,
