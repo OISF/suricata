@@ -93,7 +93,7 @@ pub struct SecurityResult {
 }
 
 pub struct FailureReason {
-    pub reason_string: String,
+    pub reason_string: Vec<u8>,
     pub to_skip: u32,
 }
 
@@ -182,11 +182,11 @@ pub fn parse_security_result(i: &[u8]) -> IResult<&[u8], SecurityResult> {
 pub fn parse_failure_reason(i: &[u8], max_len: u32) -> IResult<&[u8], FailureReason> {
     let (i, reason_length) = be_u32(i)?;
     let to_skip = reason_length.saturating_sub(max_len);
-    let (i, reason_string) = map_res(take((reason_length - to_skip) as usize), str::from_utf8).parse(i)?;
+    let (i, reason_string) = take((reason_length - to_skip) as usize).parse(i)?;
     Ok((
         i,
         FailureReason {
-            reason_string: reason_string.to_string(),
+            reason_string: reason_string.to_vec(),
             to_skip,
         },
     ))
