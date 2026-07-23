@@ -198,8 +198,9 @@ void DetectPktInspectEngineRegister(const char *name,
  *
  *  \note errors are fatal */
 static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alproto, uint32_t dir,
-        uint8_t sub_state, uint8_t progress, InspectEngineFuncPtr Callback,
-        InspectionBufferGetDataPtr GetData, InspectionSingleBufferGetDataPtr GetDataSingle,
+        uint8_t sub_state, uint8_t min_progress, uint8_t max_progress,
+        InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData,
+        InspectionSingleBufferGetDataPtr GetDataSingle,
         InspectionMultiBufferGetDataPtr GetMultiData)
 {
     /* ignore special case unknown */
@@ -207,7 +208,8 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
         DEBUG_VALIDATE_BUG_ON(AppLayerParserSupportsSubStates(alproto) && sub_state == 0);
         DEBUG_VALIDATE_BUG_ON(!AppLayerParserSupportsSubStates(alproto) && sub_state != 0);
     }
-    BUG_ON(progress >= APP_LAYER_MAX_PROGRESS);
+    BUG_ON(max_progress >= APP_LAYER_MAX_PROGRESS);
+    BUG_ON(max_progress < min_progress);
 
     DetectBufferTypeRegister(name);
     const int sm_list = DetectBufferTypeGetByName(name);
@@ -217,8 +219,8 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     SCLogDebug("name %s id %d", name, sm_list);
 
     if ((alproto == ALPROTO_FAILED) || (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
-            (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) || (progress >= 48) ||
-            (Callback == NULL)) {
+            (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) ||
+            (max_progress >= APP_LAYER_MAX_PROGRESS) || (Callback == NULL)) {
         SCLogError("Invalid arguments");
         BUG_ON(1);
     } else if (Callback == DetectEngineInspectBufferGeneric && GetData == NULL) {
@@ -250,8 +252,9 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     new_engine->dir = direction;
     new_engine->sm_list = (uint16_t)sm_list;
     new_engine->sm_list_base = (uint16_t)sm_list;
-    new_engine->progress = progress;
     new_engine->sub_state = sub_state;
+    new_engine->min_progress = min_progress;
+    new_engine->max_progress = max_progress;
     new_engine->v2.Callback = Callback;
     if (Callback == DetectEngineInspectBufferGeneric) {
         new_engine->v2.GetData = GetData;
@@ -273,6 +276,45 @@ static void AppLayerInspectEngineRegisterInternal(const char *name, AppProto alp
     }
 }
 
+/**
+ *  \brief register an app-layer inspect engine with a min and max progress
+ *
+ *  \param name the buffer name
+ *  \param alproto app-layer protocol
+ *  \param dir direction
+ *  \param progress1 first progress to run the engine
+ *  \param progress2 second progress where we can run the engine
+ *  \param Callback callback function, can be generic DetectEngineInspectBufferGeneric
+ *  \param GetData seconday callback in case of use of DetectEngineInspectBufferGeneric
+ */
+void DetectAppLayerInspectEngineRegister2(const char *name, AppProto alproto, uint32_t dir,
+        uint8_t progress1, uint8_t progress2, InspectEngineFuncPtr Callback,
+        InspectionBufferGetDataPtr GetData)
+{
+    /* before adding, check that we don't add a duplicate entry, which will
+     * propagate all the way into the packet runtime if allowed. */
+    DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+    if (progress1 >= progress2) {
+        FatalError(
+                "Bad order for progresses for %s : %d should be > %d", name, progress1, progress2);
+    }
+    while (t != NULL) {
+        const uint32_t t_direction = t->dir == 0 ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT;
+        const int sm_list = DetectBufferTypeGetByName(name);
+
+        if (t->sm_list == sm_list && t->alproto == alproto && t_direction == dir &&
+                t->min_progress == progress1 && t->v2.Callback == Callback &&
+                t->v2.GetData == GetData) {
+            DEBUG_VALIDATE_BUG_ON(1);
+            return;
+        }
+        t = t->next;
+    }
+
+    AppLayerInspectEngineRegisterInternal(
+            name, alproto, dir, 0, progress1, progress2, Callback, GetData, NULL, NULL);
+}
+
 void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
         uint8_t progress, InspectEngineFuncPtr Callback, InspectionBufferGetDataPtr GetData)
 {
@@ -284,7 +326,7 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
         const int sm_list = DetectBufferTypeGetByName(name);
 
         if (t->sm_list == sm_list && t->alproto == alproto && t_direction == dir &&
-                t->sub_state == 0 && t->progress == progress && t->v2.Callback == Callback &&
+                t->sub_state == 0 && t->min_progress == progress && t->v2.Callback == Callback &&
                 t->v2.GetData == GetData) {
             DEBUG_VALIDATE_BUG_ON(1);
             return;
@@ -293,7 +335,7 @@ void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uin
     }
 
     AppLayerInspectEngineRegisterInternal(
-            name, alproto, dir, 0, (uint8_t)progress, Callback, GetData, NULL, NULL);
+            name, alproto, dir, 0, progress, progress, Callback, GetData, NULL, NULL);
 }
 
 void DetectAppLayerInspectEngineRegisterSubState(const char *name, AppProto alproto, uint32_t dir,
@@ -308,7 +350,7 @@ void DetectAppLayerInspectEngineRegisterSubState(const char *name, AppProto alpr
         const int sm_list = DetectBufferTypeGetByName(name);
 
         if (t->sm_list == sm_list && t->alproto == alproto && t_direction == dir &&
-                t->sub_state == sub_state && t->progress == progress &&
+                t->sub_state == sub_state && t->min_progress == progress &&
                 t->v2.Callback == Callback && t->v2.GetData == GetData) {
             DEBUG_VALIDATE_BUG_ON(1);
             return;
@@ -317,7 +359,7 @@ void DetectAppLayerInspectEngineRegisterSubState(const char *name, AppProto alpr
     }
 
     AppLayerInspectEngineRegisterInternal(
-            name, alproto, dir, sub_state, progress, Callback, GetData, NULL, NULL);
+            name, alproto, dir, sub_state, progress, progress, Callback, GetData, NULL, NULL);
 }
 void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alproto, uint32_t dir,
         uint8_t progress, InspectEngineFuncPtr Callback, InspectionSingleBufferGetDataPtr GetData)
@@ -330,7 +372,7 @@ void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alprot
         const int sm_list = DetectBufferTypeGetByName(name);
 
         if (t->sm_list == sm_list && t->alproto == alproto && t_direction == dir &&
-                t->progress == progress && t->v2.Callback == Callback &&
+                t->min_progress == progress && t->v2.Callback == Callback &&
                 t->v2.GetDataSingle == GetData) {
             DEBUG_VALIDATE_BUG_ON(1);
             return;
@@ -339,7 +381,7 @@ void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alprot
     }
 
     AppLayerInspectEngineRegisterInternal(
-            name, alproto, dir, 0, (uint8_t)progress, Callback, NULL, GetData, NULL);
+            name, alproto, dir, 0, progress, progress, Callback, NULL, GetData, NULL);
 }
 
 /* copy an inspect engine with transforms to a new list id. */
@@ -361,7 +403,8 @@ static void DetectAppLayerInspectEngineCopy(
             new_engine->sm_list = (uint16_t)new_list; /* use new list id */
             DEBUG_VALIDATE_BUG_ON(sm_list < 0 || sm_list > UINT16_MAX);
             new_engine->sm_list_base = (uint16_t)sm_list;
-            new_engine->progress = t->progress;
+            new_engine->min_progress = t->min_progress;
+            new_engine->max_progress = t->max_progress;
             new_engine->sub_state = t->sub_state;
             new_engine->v2 = t->v2;
             new_engine->v2.transforms = transforms; /* assign transforms */
@@ -395,7 +438,8 @@ static void DetectAppLayerInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_c
         new_engine->dir = t->dir;
         new_engine->sm_list = t->sm_list;
         new_engine->sm_list_base = t->sm_list;
-        new_engine->progress = t->progress;
+        new_engine->min_progress = t->min_progress;
+        new_engine->max_progress = t->max_progress;
         new_engine->sub_state = t->sub_state;
         new_engine->v2 = t->v2;
 
@@ -615,7 +659,8 @@ static void AppendStreamInspectEngine(
     new_engine->sm_list_base = DETECT_SM_LIST_PMATCH;
     new_engine->smd = stream;
     new_engine->v2.Callback = DetectEngineInspectStream;
-    new_engine->progress = 0;
+    new_engine->min_progress = 0;
+    new_engine->max_progress = 0;
 
     /* append */
     if (s->app_inspect == NULL) {
@@ -784,7 +829,8 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     new_engine->sm_list_base = t->sm_list_base;
     new_engine->smd = smd;
     new_engine->match_on_null = smd ? DetectContentInspectionMatchOnAbsentBuffer(smd) : false;
-    new_engine->progress = t->progress;
+    new_engine->min_progress = t->min_progress;
+    new_engine->max_progress = t->max_progress;
     new_engine->sub_state = t->sub_state;
     new_engine->v2 = t->v2;
     SCLogDebug("sm_list %d new_engine->v2 %p/%p/%p", new_engine->sm_list, new_engine->v2.Callback,
@@ -802,7 +848,8 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
         }
 
         /* prepend engine if forced or if our engine has a lower progress. */
-    } else if (prepend || (!(*head_is_mpm) && s->app_inspect->progress > new_engine->progress)) {
+    } else if (prepend ||
+               (!(*head_is_mpm) && s->app_inspect->min_progress > new_engine->min_progress)) {
         new_engine->next = s->app_inspect;
         s->app_inspect = new_engine;
         if (new_engine->sm_list == files_id) {
@@ -817,7 +864,7 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     } else {
         DetectEngineAppInspectionEngine *a = s->app_inspect;
         while (a->next != NULL) {
-            if (a->next && a->next->progress > new_engine->progress) {
+            if (a->next && a->next->min_progress > new_engine->min_progress) {
                 break;
             }
             a = a->next;
@@ -969,7 +1016,8 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
 
             DetectEngineAppInspectionEngine t = {
                 .alproto = s->init_data->hook.t.app.alproto,
-                .progress = state,
+                .min_progress = state,
+                .max_progress = state,
                 .sub_state = s->init_data->hook.t.app.sub_state,
                 .sm_list = (uint16_t)sm_list,
                 .sm_list_base = (uint16_t)sm_list,
@@ -1052,7 +1100,8 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
 
         DetectEngineAppInspectionEngine t = {
             .alproto = s->init_data->hook.t.app.alproto,
-            .progress = s->init_data->hook.t.app.app_progress,
+            .min_progress = s->init_data->hook.t.app.app_progress,
+            .max_progress = s->init_data->hook.t.app.app_progress,
             .sub_state = s->init_data->hook.t.app.sub_state,
             .sm_list = (uint16_t)s->init_data->hook.sm_list,
             .sm_list_base = (uint16_t)s->init_data->hook.sm_list,
@@ -1085,9 +1134,9 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
 #ifdef DEBUG
     const DetectEngineAppInspectionEngine *iter = s->app_inspect;
     while (iter) {
-        SCLogDebug("%u: engine %s id %u progress %d %s", s->id,
-                DetectEngineBufferTypeGetNameById(de_ctx, iter->sm_list), iter->id, iter->progress,
-                iter->sm_list == mpm_list ? "MPM" : "");
+        SCLogDebug("%u: engine %s id %u progress %d-%d %s", s->id,
+                DetectEngineBufferTypeGetNameById(de_ctx, iter->sm_list), iter->id,
+                iter->min_progress, iter->max_progress, iter->sm_list == mpm_list ? "MPM" : "");
         iter = iter->next;
     }
 #endif
@@ -2169,8 +2218,8 @@ uint8_t DetectEngineInspectBufferSingle(DetectEngineCtx *de_ctx, DetectEngineThr
     const int list_id = engine->sm_list;
     SCLogDebug("running inspect on %d", list_id);
 
-    const bool eof =
-            (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
+    const bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) >
+                      engine->max_progress);
 
     SCLogDebug("list %d mpm? %s transforms %p", engine->sm_list, engine->mpm ? "true" : "false",
             engine->v2.transforms);
@@ -2230,7 +2279,8 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
     const int list_id = engine->sm_list;
     SCLogDebug("running inspect on %d", list_id);
 
-    const bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
+    const bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) >
+                      engine->max_progress);
 
     SCLogDebug("list %d mpm? %s transforms %p",
             engine->sm_list, engine->mpm ? "true" : "false", engine->v2.transforms);
@@ -2277,7 +2327,7 @@ void DetectAppLayerMultiRegisterSubState(const char *name, AppProto alproto, uin
         uint8_t sub_state, uint8_t progress, InspectionMultiBufferGetDataPtr GetData, int priority)
 {
     BUG_ON(AppLayerParserSupportsSubStates(alproto) && sub_state == 0);
-    AppLayerInspectEngineRegisterInternal(name, alproto, dir, sub_state, progress,
+    AppLayerInspectEngineRegisterInternal(name, alproto, dir, sub_state, progress, progress,
             DetectEngineInspectMultiBufferGeneric, NULL, NULL, GetData);
     DetectAppLayerMpmMultiRegisterSubState(name, dir, priority, PrefilterMultiGenericMpmRegister,
             GetData, alproto, sub_state, progress);
@@ -2289,7 +2339,7 @@ void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t di
         InspectionMultiBufferGetDataPtr GetData, int priority)
 {
     BUG_ON(AppLayerParserSupportsSubStates(alproto));
-    AppLayerInspectEngineRegisterInternal(name, alproto, dir, 0, (uint8_t)progress,
+    AppLayerInspectEngineRegisterInternal(name, alproto, dir, 0, progress, progress,
             DetectEngineInspectMultiBufferGeneric, NULL, NULL, GetData);
     DetectAppLayerMpmMultiRegister(
             name, dir, priority, PrefilterMultiGenericMpmRegister, GetData, alproto, progress);
@@ -2365,7 +2415,7 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
     if (local_id == 0) {
         // That means we did not get even one buffer value from the multi-buffer
         const bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) >
-                          engine->progress);
+                          engine->max_progress);
         if (eof && engine->match_on_null) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }
