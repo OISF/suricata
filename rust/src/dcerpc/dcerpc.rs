@@ -997,9 +997,37 @@ impl DCERPCState {
                         return AppLayerResult::err();
                     }
                 }
+                DCERPC_TYPE_PING
+                | DCERPC_TYPE_FAULT
+                | DCERPC_TYPE_WORKING
+                | DCERPC_TYPE_NOCALL
+                | DCERPC_TYPE_REJECT
+                | DCERPC_TYPE_ACK
+                | DCERPC_TYPE_CL_CANCEL
+                | DCERPC_TYPE_FACK
+                | DCERPC_TYPE_CANCEL_ACK
+                | DCERPC_TYPE_BINDNAK
+                | DCERPC_TYPE_AUTH3
+                | DCERPC_TYPE_SHUTDOWN
+                | DCERPC_TYPE_CO_CANCEL
+                | DCERPC_TYPE_ORPHANED
+                | DCERPC_TYPE_RTS => {
+                    /* Create tx even on unhandled PDU types to be able to
+                     * at least issue a match on header only fields */
+                    let mut tx = self.create_tx(&hdr);
+                    if direction == Direction::ToServer {
+                        tx.req_cmd = hdrtype;
+                    } else {
+                        tx.resp_cmd = hdrtype;
+                    }
+                    tx.req_done = true;
+                    tx.resp_done = true;
+                    self.transactions.push_back(tx);
+                    // recognized DCERPC PDU types that we do not process
+                    SCLogDebug!("Unhandled packet type: {:?}", hdrtype);
+                }
                 _ => {
                     SCLogDebug!("Unrecognized packet type: {:?}", hdrtype);
-                    // skip unrecognized packet types such as AUTH3
                 }
             }
             consumed += fraglen as u32;
