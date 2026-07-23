@@ -52,7 +52,7 @@ num-traits = "~0.2.19"
 widestring = "~0.4.3"
 flate2 = { version = "~1.0.35", features = ["zlib"] }
 brotli = "~8.0.1"
-zstd = "~0.13.3"
+zstd = { version = "~0.13.3", features = ["arrays", "zdict_builder"] }
 hkdf = "~0.12.4"
 aes = "~0.8.4"
 aes-gcm = "~0.10.3"

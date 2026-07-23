@@ -28,7 +28,7 @@ nom = "8.0.0"
 lzma-rs = { version = "0.2.0", features = ["stream"] }
 flate2 = { version = "~1.0.35", features = ["zlib-default"], default-features = false }
 brotli = "~8.0.1"
-zstd = "0.13.3"
+zstd = { version = "~0.13.3", features = ["arrays", "zdict_builder"] }
 lazy_static = "1.5.0"
 time = "~0.3.41"
 
