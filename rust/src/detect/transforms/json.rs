@@ -301,6 +301,11 @@ unsafe extern "C" fn json_decode_transform(
     if input.is_null() || input_len == 0 {
         return;
     }
+    if (*buffer).inspect_offset > 0 {
+        // Only apply json_decode transform if we are at the beginning of the buffer.
+        // Otherwise, we do not know in which state to start
+        return;
+    }
     let input = build_slice!(input, input_len as usize);
 
     let output = SCInspectionBufferCheckAndExpand(buffer, input_len);
