@@ -191,6 +191,7 @@ impl DCERPCUDPState {
             match hdr.pkt_type {
                 DCERPC_TYPE_REQUEST => {
                     tx.req_cmd = hdr.pkt_type;
+                    tx.req_seen = true;
                     tx.frag_cnt_ts = tx.frag_cnt_ts.saturating_add(1);
                     if input.len() + tx.stub_data_buffer_ts.len() < max_size {
                         tx.stub_data_buffer_ts.extend_from_slice(input);
@@ -205,6 +206,7 @@ impl DCERPCUDPState {
                 }
                 DCERPC_TYPE_RESPONSE => {
                     tx.resp_cmd = hdr.pkt_type;
+                    tx.resp_seen = true;
                     tx.frag_cnt_tc = tx.frag_cnt_tc.saturating_add(1);
                     if input.len() + tx.stub_data_buffer_tc.len() < max_size {
                         tx.stub_data_buffer_tc.extend_from_slice(input);
