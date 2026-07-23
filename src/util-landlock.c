@@ -563,6 +563,28 @@ void LandlockSandboxing(SCInstance *suri)
             SCFree(file_name);
         }
     }
+    /* Per-file read grants for classification.config, reference.config and
+     * threshold.config as they can live outside of any granted directory.
+     * When the configuration key is unset, Suricata falls back to the
+     * compiled-in CONFIG_DIR default which is granted if the file exists. */
+    const char *class_file;
+    if (SCConfGetNonNull("classification-file", &class_file) == 1) {
+        SCLandlockGrantFile(ruleset, class_file, SC_LANDLOCK_FILE_READ);
+    } else if (SCPathExists(CONFIG_DIR "/classification.config")) {
+        SCLandlockGrantFile(ruleset, CONFIG_DIR "/classification.config", SC_LANDLOCK_FILE_READ);
+    }
+    const char *ref_file;
+    if (SCConfGetNonNull("reference-config-file", &ref_file) == 1) {
+        SCLandlockGrantFile(ruleset, ref_file, SC_LANDLOCK_FILE_READ);
+    } else if (SCPathExists(CONFIG_DIR "/reference.config")) {
+        SCLandlockGrantFile(ruleset, CONFIG_DIR "/reference.config", SC_LANDLOCK_FILE_READ);
+    }
+    const char *thr_file;
+    if (SCConfGetNonNull("threshold-file", &thr_file) == 1) {
+        SCLandlockGrantFile(ruleset, thr_file, SC_LANDLOCK_FILE_READ);
+    } else if (SCPathExists(CONFIG_DIR "/threshold.config")) {
+        SCLandlockGrantFile(ruleset, CONFIG_DIR "/threshold.config", SC_LANDLOCK_FILE_READ);
+    }
     if (suri->pid_filename) {
         char *file_name = SCStrdup(suri->pid_filename);
         if (file_name != NULL) {
