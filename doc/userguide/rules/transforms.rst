@@ -201,6 +201,10 @@ As such, an escaped double quote in a string will not be replaced and will remai
 Invalid json such as an unescaped tabulation in a string will not be escaped.
 Single unpaired UTF-16 surrogate get unescaped.
 
+This transform only works if we have the buffer from its beginning
+because we need to know which state we are in to start the parsing.
+That means we can only json_decode the first 32KiB of one ``file.data``.
+
 xor
 ---
 
