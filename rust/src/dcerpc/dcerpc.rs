@@ -801,6 +801,24 @@ impl DCERPCState {
         }
     }
 
+    fn save_unhandled_ptypes(&mut self, hdr: &DCERPCHdr, direction: Direction) {
+        /* Create tx even on unhandled PDU types to be able to
+         * at least issue a match on header only fields */
+        let mut tx = self.create_tx(hdr);
+        if direction == Direction::ToServer {
+            tx.req_cmd = hdr.hdrtype;
+            tx.req_seen = true;
+        } else {
+            tx.resp_cmd = hdr.hdrtype;
+            tx.resp_seen = true;
+        }
+        tx.req_done = true;
+        tx.resp_done = true;
+        self.transactions.push_back(tx);
+        // recognized DCERPC PDU types that we do not process
+        SCLogDebug!("Unhandled packet type: {:?}", hdr.hdrtype);
+    }
+
     pub fn handle_input_data(
         &mut self, stream_slice: StreamSlice, direction: Direction,
     ) -> AppLayerResult {
@@ -893,6 +911,15 @@ impl DCERPCState {
                     // input only consists of the header and that was consumed, so, return early
                     cur_i = &cur_i[fraglen as usize..];
                     consumed += fraglen as u32;
+                    // save header-only PDU types too
+                    if matches!(
+                        hdr.hdrtype,
+                        DCERPC_TYPE_SHUTDOWN | DCERPC_TYPE_CO_CANCEL | DCERPC_TYPE_ORPHANED
+                    ) {
+                        self.save_unhandled_ptypes(&hdr, direction);
+                        /* DCERPC_TYPE_CO_CANCEL and ORPHANED can optionally be more than header
+                         * too so they're also handled later on the in the unrecognized branch */
+                    }
                     continue;
                 }
                 cmp::Ordering::Greater => {}
@@ -1006,9 +1033,24 @@ impl DCERPCState {
                         return AppLayerResult::err();
                     }
                 }
+                DCERPC_TYPE_PING
+                | DCERPC_TYPE_FAULT
+                | DCERPC_TYPE_WORKING
+                | DCERPC_TYPE_NOCALL
+                | DCERPC_TYPE_REJECT
+                | DCERPC_TYPE_ACK
+                | DCERPC_TYPE_CL_CANCEL
+                | DCERPC_TYPE_FACK
+                | DCERPC_TYPE_CANCEL_ACK
+                | DCERPC_TYPE_BINDNAK
+                | DCERPC_TYPE_AUTH3
+                | DCERPC_TYPE_CO_CANCEL
+                | DCERPC_TYPE_ORPHANED
+                | DCERPC_TYPE_RTS => {
+                    self.save_unhandled_ptypes(&hdr, direction);
+                }
                 _ => {
                     SCLogDebug!("Unrecognized packet type: {:?}", hdrtype);
-                    // skip unrecognized packet types such as AUTH3
                 }
             }
             consumed += fraglen as u32;
