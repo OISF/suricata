@@ -190,6 +190,7 @@ impl DCERPCUDPState {
             let max_size = cfg_max_stub_size() as usize;
             match hdr.pkt_type {
                 DCERPC_TYPE_REQUEST => {
+                    tx.req_cmd = hdr.pkt_type;
                     tx.frag_cnt_ts = tx.frag_cnt_ts.saturating_add(1);
                     if input.len() + tx.stub_data_buffer_ts.len() < max_size {
                         tx.stub_data_buffer_ts.extend_from_slice(input);
@@ -203,6 +204,7 @@ impl DCERPCUDPState {
                     return true;
                 }
                 DCERPC_TYPE_RESPONSE => {
+                    tx.resp_cmd = hdr.pkt_type;
                     tx.frag_cnt_tc = tx.frag_cnt_tc.saturating_add(1);
                     if input.len() + tx.stub_data_buffer_tc.len() < max_size {
                         tx.stub_data_buffer_tc.extend_from_slice(input);
