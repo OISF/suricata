@@ -205,6 +205,8 @@ pub struct DCERPCTransaction {
     pub resp_lost: bool,
     pub req_cmd: u8,
     pub resp_cmd: u8,
+    pub req_seen: bool,
+    pub resp_seen: bool,
     pub activityuuid: Vec<u8>,
     pub seqnum: u32,
     pub tx_data: AppLayerTxData,
@@ -585,6 +587,7 @@ impl DCERPCState {
                 }
                 let mut tx = self.create_tx(hdr);
                 tx.req_cmd = hdr.hdrtype;
+                tx.req_seen = true;
                 tx.req_done = true;
                 if let Some(flow) = self.flow {
                     sc_app_layer_parser_trigger_raw_stream_inspection(
@@ -762,6 +765,7 @@ impl DCERPCState {
                 match transaction {
                     Some(ref mut tx) => {
                         tx.req_cmd = hdr_type;
+                        tx.req_seen = true;
                         tx.ctxid = request.ctxid;
                         tx.opnum = request.opnum;
                         tx.first_request_seen = request.first_request_seen;
@@ -769,6 +773,7 @@ impl DCERPCState {
                     None => {
                         let mut tx = self.create_tx(hdr);
                         tx.req_cmd = hdr_type;
+                        tx.req_seen = true;
                         tx.ctxid = request.ctxid;
                         tx.opnum = request.opnum;
                         tx.first_request_seen = request.first_request_seen;
@@ -949,10 +954,12 @@ impl DCERPCState {
                         self.get_tx_by_call_id(current_call_id, Direction::ToClient, hdrtype)
                     {
                         tx.resp_cmd = hdrtype;
+                        tx.resp_seen = true;
                         tx
                     } else {
                         let mut tx = self.create_tx(&hdr);
                         tx.resp_cmd = hdrtype;
+                        tx.resp_seen = true;
                         self.transactions.push_back(tx);
                         self.transactions.back_mut().unwrap()
                     };
@@ -980,10 +987,12 @@ impl DCERPCState {
                     match transaction {
                         Some(tx) => {
                             tx.resp_cmd = hdrtype;
+                            tx.resp_seen = true;
                         }
                         None => {
                             let mut tx = self.create_tx(&hdr);
                             tx.resp_cmd = hdrtype;
+                            tx.resp_seen = true;
                             self.transactions.push_back(tx);
                         }
                     };
