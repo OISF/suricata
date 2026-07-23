@@ -97,6 +97,18 @@ SCConfNode *SCConfNodeGetNodeOrCreate(SCConfNode *parent, const char *name, int 
             node->parent = parent;
             node->final = final;
             TAILQ_INSERT_TAIL(&parent->head, node, next);
+
+            /* Numeric-only key implies the parent is a sequence (yaml
+             * "- foo" produces the same shape). This lets --set style
+             * overrides populate list-typed config nodes. */
+            if (parent != NULL) {
+                const char *p = key;
+                while (*p != '\0' && isdigit((unsigned char)*p))
+                    p++;
+                if (*p == '\0' && p != key) {
+                    parent->is_seq = 1;
+                }
+            }
         }
         key = next;
         parent = node;
