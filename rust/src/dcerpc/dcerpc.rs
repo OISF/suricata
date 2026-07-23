@@ -221,9 +221,9 @@ impl DCERPCTransaction {
         return Self {
             stub_data_buffer_ts: Vec::new(),
             stub_data_buffer_tc: Vec::new(),
-            req_cmd: DCERPC_TYPE_REQUEST,
-            resp_cmd: DCERPC_TYPE_RESPONSE,
             activityuuid: Vec::new(),
+            req_cmd: DCERPC_TYPE_UNKNOWN,
+            resp_cmd: DCERPC_TYPE_UNKNOWN,
             tx_data: AppLayerTxData::new(),
             ..Default::default()
         };
@@ -445,8 +445,8 @@ impl DCERPCState {
                         if tx.req_done || tx.req_lost {
                             continue;
                         }
-                        let resp_cmd = get_resp_type_for_req(cmd);
-                        if resp_cmd != tx.resp_cmd {
+                        /* do not match if the transaction's command does not match expected */
+                        if tx.req_cmd != cmd && get_req_type_for_resp(tx.resp_cmd) != cmd {
                             continue;
                         }
                     }
@@ -454,8 +454,8 @@ impl DCERPCState {
                         if tx.resp_done || tx.resp_lost {
                             continue;
                         }
-                        let req_cmd = get_req_type_for_resp(cmd);
-                        if req_cmd != tx.req_cmd {
+                        /* do not match if the transaction's command does not match expected */
+                        if tx.resp_cmd != cmd && get_resp_type_for_req(tx.req_cmd) != cmd {
                             continue;
                         }
                     }
