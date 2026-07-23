@@ -2001,6 +2001,8 @@ void PcapLogProfileSetup(void)
                 profiling_pcaplog_file_mode = "a";
             } else {
                 profiling_pcaplog_file_mode = "w";
+                SCLandlockRegisterFile(profiling_pcaplog_file_name,
+                        SC_LANDLOCK_FILE_WRITE | SC_LANDLOCK_FILE_TRUNCATE);
             }
 
             profiling_pcaplog_output_to_file = 1;
