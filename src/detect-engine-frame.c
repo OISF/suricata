@@ -476,7 +476,9 @@ static int FrameStreamDataInspectFunc(
     // PrintRawDataFp(stdout, data, data_len);
     // PrintRawDataFp(stdout, data, MIN(64, data_len));
 #endif
-    DEBUG_VALIDATE_BUG_ON(fsd->frame->len > 0 && (int64_t)data_len > fsd->frame->len);
+    // Only assert if the engine does not have transforms that may grow the buffer
+    DEBUG_VALIDATE_BUG_ON(fsd->frame->len > 0 && (int64_t)data_len > fsd->frame->len &&
+                          engine->sm_list == engine->sm_list_base);
 
     const bool match = DetectEngineContentInspection(det_ctx->de_ctx, det_ctx, s, engine->smd, p,
             p->flow, data, data_len, data_offset, buffer->flags,
