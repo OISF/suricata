@@ -534,6 +534,37 @@ static void LandlockGrantSystemReadPaths(struct landlock_ruleset *ruleset)
     }
 }
 
+/* Datasets declared in the configuration rewrite their state file with
+ * fopen(..., "w"), which needs truncate on that exact file. */
+static void LandlockGrantDatasetsState(struct landlock_ruleset *ruleset)
+{
+    SCConfNode *datasets = SCConfGetNode("datasets");
+    if (datasets == NULL)
+        return;
+
+    SCConfNode *iter;
+    TAILQ_FOREACH (iter, &datasets->head, next) {
+        const char *state = SCConfNodeLookupChildValue(iter, "state");
+        if (state == NULL)
+            continue;
+
+        char path[PATH_MAX];
+        if (PathIsAbsolute(state)) {
+            strlcpy(path, state, sizeof(path));
+        } else {
+            snprintf(path, sizeof(path), "%s/%s", ConfigGetDataDirectory(), state);
+        }
+
+        /* Only an existing file needs truncate, creating a missing one is
+         * covered by the write permission on the parent directory. */
+        struct stat sb;
+        if (stat(path, &sb) == 0) {
+            SCLandlockGrantFile(ruleset, path,
+                    SC_LANDLOCK_FILE_READ | SC_LANDLOCK_FILE_WRITE | SC_LANDLOCK_FILE_TRUNCATE);
+        }
+    }
+}
+
 void LandlockSandboxing(SCInstance *suri)
 {
     /* Read configuration variable and exit if no enforcement */
@@ -556,9 +587,16 @@ void LandlockSandboxing(SCInstance *suri)
     SCLandlockGrantWritePath(ruleset, SCConfigGetLogDirectory());
     struct stat sb;
     if (stat(ConfigGetDataDirectory(), &sb) == 0) {
-        LandlockSandboxingAddRule(ruleset, ConfigGetDataDirectory(),
-                _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ);
+        uint64_t data_dir_access = _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ;
+        /* Rule declared dataset files are unknown at this point, so truncate
+         * is granted on the directory if rules are allowed to write. */
+        int allow_write = 1;
+        if (SCConfGetBool("datasets.rules.allow-write", &allow_write) == 0 || allow_write) {
+            data_dir_access |= LANDLOCK_ACCESS_FS_TRUNCATE;
+        }
+        LandlockSandboxingAddRule(ruleset, ConfigGetDataDirectory(), data_dir_access);
     }
+    LandlockGrantDatasetsState(ruleset);
     if (DetectEngineMpmCachingEnabled() && stat(DetectEngineMpmCachingGetPath(), &sb) == 0) {
         LandlockSandboxingAddRule(ruleset, DetectEngineMpmCachingGetPath(),
                 _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ);
