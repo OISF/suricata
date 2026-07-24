@@ -22,6 +22,7 @@
  */
 
 #include "suricata.h"
+#include "datasets.h"
 #include "detect-engine.h"
 #include "feature.h"
 #include "util-byte.h"
@@ -50,6 +51,10 @@ void SCLandlockGrantNetBindTCP(void *ruleset, uint16_t port)
 }
 
 void SCLandlockGrantNetConnectTCP(void *ruleset, uint16_t port)
+{
+}
+
+void SCLandlockGrantTruncateFile(void *ruleset, const char *path)
 {
 }
 
@@ -260,6 +265,46 @@ void SCLandlockGrantReadPath(void *vruleset, const char *directory)
     }
 }
 
+/**
+ * \brief Grant write and truncate permission on a single existing file
+ *
+ * Used for files that are rewritten with fopen("w") such as dataset state
+ * files. The file has to exist when the rule is added.
+ *
+ * \param vruleset opaque landlock ruleset
+ * \param path path of the regular file
+ */
+void SCLandlockGrantTruncateFile(void *vruleset, const char *path)
+{
+    struct landlock_ruleset *ruleset = vruleset;
+    if (ruleset == NULL || path == NULL)
+        return;
+
+    int fd = open(path, O_PATH | O_CLOEXEC);
+    if (fd == -1) {
+        SCLogWarning("Can't open %s to grant truncate permission: %s", path, strerror(errno));
+        return;
+    }
+    struct stat sb;
+    if (fstat(fd, &sb) != 0 || !S_ISREG(sb.st_mode)) {
+        SCLogWarning("Not granting truncate permission to '%s': not a regular file", path);
+        close(fd);
+        return;
+    }
+    struct landlock_path_beneath_attr path_beneath = {
+        .allowed_access = (LANDLOCK_ACCESS_FS_WRITE_FILE | LANDLOCK_ACCESS_FS_TRUNCATE) &
+                          ruleset->attr.handled_access_fs,
+        .parent_fd = fd,
+    };
+    if (landlock_add_rule(ruleset->fd, LANDLOCK_RULE_PATH_BENEATH, &path_beneath, 0)) {
+        SCLogError("Can't add truncate rule for %s: %s", path, strerror(errno));
+        close(fd);
+        return;
+    }
+    close(fd);
+    SCLogConfig("Added write and truncate permission to '%s'", path);
+}
+
 #ifdef HAVE_LANDLOCK_RULESET_ATTR_HANDLED_ACCESS_NET
 static void LandlockGrantNetPort(
         struct landlock_ruleset *ruleset, uint16_t port, uint64_t access, const char *access_name)
@@ -371,6 +416,11 @@ void LandlockSandboxing(SCInstance *suri)
         LandlockSandboxingAddRule(ruleset, ConfigGetDataDirectory(),
                 _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ);
     }
+    /* Datasets rewrite their state file with fopen("w"), which requires
+     * FS_TRUNCATE. Only grant it on the state files of YAML defined datasets
+     * so rules can't be used to truncate arbitrary files.
+     */
+    DatasetsLandlockGrant(ruleset);
     if (DetectEngineMpmCachingEnabled() && stat(DetectEngineMpmCachingGetPath(), &sb) == 0) {
         LandlockSandboxingAddRule(ruleset, DetectEngineMpmCachingGetPath(),
                 _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ);

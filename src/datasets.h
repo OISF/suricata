@@ -33,6 +33,7 @@ int SCDatasetAddwRep(
 int DatasetsInit(void);
 void DatasetsDestroy(void);
 void DatasetsSave(void);
+void DatasetsLandlockGrant(void *ruleset);
 void DatasetReload(void);
 void DatasetPostReloadCleanup(void);
 

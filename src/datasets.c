@@ -41,6 +41,7 @@
 #include "util-path.h"
 #include "util-debug.h"
 #include "util-validate.h"
+#include "util-landlock.h"
 
 SCMutex sets_lock = SCMUTEX_INITIALIZER;
 static Dataset *sets = NULL;
@@ -845,6 +846,25 @@ static int IPv6AsAscii(const void *s, char *out, size_t out_size)
     strlcat(out, str, out_size);
     strlcat(out, "\n", out_size);
     return (int)strlen(out);
+}
+
+/**
+ * \brief Grant landlock truncate permission on YAML datasets state files
+ *
+ * Only datasets defined in the YAML configuration are trusted to rewrite
+ * their state file. Rule defined datasets don't get this permission.
+ *
+ * \param ruleset opaque landlock ruleset
+ */
+void DatasetsLandlockGrant(void *ruleset)
+{
+    DatasetLock();
+    for (Dataset *set = sets; set != NULL; set = set->next) {
+        if (set->from_yaml && strlen(set->save) > 0) {
+            SCLandlockGrantTruncateFile(ruleset, set->save);
+        }
+    }
+    DatasetUnlock();
 }
 
 void DatasetsSave(void)
