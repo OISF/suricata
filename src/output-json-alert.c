@@ -355,6 +355,8 @@ static void AlertAddAppLayer(const Packet *p, SCJsonBuilder *jb, const uint64_t 
     EveJsonSimpleAppLayerLogger *al = SCEveJsonSimpleGetLogger(proto);
     void *state = FlowGetAppState(p->flow);
     void *tx = NULL;
+    void *wtx = NULL;
+    bool pp, pb64;
     if (state) {
         tx = AppLayerParserGetTx(p->flow->proto, proto, state, tx_id);
     }
@@ -368,17 +370,22 @@ static void AlertAddAppLayer(const Packet *p, SCJsonBuilder *jb, const uint64_t 
         SCJbGetMark(jb, &mark);
         switch (proto) {
             // first check some protocols need special options for alerts logging
-            case ALPROTO_WEBSOCKET:
-                if (option_flags &
-                        (LOG_JSON_WEBSOCKET_PAYLOAD | LOG_JSON_WEBSOCKET_PAYLOAD_BASE64)) {
-                    const bool pp = (option_flags & LOG_JSON_WEBSOCKET_PAYLOAD) != 0;
-                    const bool pb64 = (option_flags & LOG_JSON_WEBSOCKET_PAYLOAD_BASE64) != 0;
-                    if (!SCWebSocketLogDetails(tx, jb, pp, pb64)) {
-                        SCJbRestoreMark(jb, &mark);
-                    }
-                    // nothing more to log or do
-                    return;
+            case ALPROTO_HTTP2:
+                wtx = SCHttp2GetWebsocketTx(tx);
+                if (wtx == NULL) {
+                    break;
+                } else {
+                    tx = wtx;
                 }
+                // fallthrough
+            case ALPROTO_WEBSOCKET:
+                pp = (option_flags & LOG_JSON_WEBSOCKET_PAYLOAD) != 0;
+                pb64 = (option_flags & LOG_JSON_WEBSOCKET_PAYLOAD_BASE64) != 0;
+                if (!SCWebSocketLogDetails(tx, jb, pp, pb64)) {
+                    SCJbRestoreMark(jb, &mark);
+                }
+                // nothing more to log or do
+                return;
         }
         if (!al->LogTx(tx, jb)) {
             SCJbRestoreMark(jb, &mark);

@@ -25,12 +25,16 @@ use crate::detect::{
     helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_BITFLAGS_UINT,
     SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8,
 };
+use crate::http2::http2::{HTTP2Transaction, HTTP2TxType, SCHttp2GetWebsocketTx};
 use crate::websocket::parser::WebSocketOpcode;
 use suricata_sys::sys::{
-    DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    AppProtoEnum, DetectEngineCtx, DetectEngineThreadCtx, DetectEngineTransforms, Flow,
+    InspectionBuffer, SCDetectBufferSetActiveList, SCDetectHelperBufferMpmRegister,
+    SCDetectHelperBufferProgressRegister, SCDetectHelperBufferProgressRegisterSubState,
+    SCDetectHelperKeywordRegister, SCDetectRegisterMpmGenericSubState,
+    SCDetectSignatureSetAppProto, SCFlowGetAppProtocol, SCInspectionBufferGet,
+    SCInspectionBufferSetupAndApplyTransforms, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt,
+    SigMatchCtx, Signature,
 };
 
 use std::ffi::CStr;
@@ -104,10 +108,21 @@ unsafe extern "C" fn websocket_detect_opcode_setup(
     return 0;
 }
 
+unsafe fn websocket_detect_tx(tx: *mut c_void, f: *mut Flow) -> *mut c_void {
+    if SCFlowGetAppProtocol(f) == AppProtoEnum::ALPROTO_HTTP2 as u16 {
+        let tx = cast_pointer!(tx, HTTP2Transaction);
+        let tx = SCHttp2GetWebsocketTx(tx);
+        return tx;
+    } else {
+        return tx;
+    }
+}
+
 unsafe extern "C" fn websocket_detect_opcode_match(
-    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    _de: *mut DetectEngineThreadCtx, f: *mut Flow, _flags: u8, _state: *mut c_void,
     tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
+    let tx = websocket_detect_tx(tx, f);
     let tx = cast_pointer!(tx, WebSocketTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     return SCDetectU8Match(tx.pdu.opcode, ctx);
@@ -145,9 +160,10 @@ unsafe extern "C" fn websocket_detect_mask_setup(
 }
 
 unsafe extern "C" fn websocket_detect_mask_match(
-    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    _de: *mut DetectEngineThreadCtx, f: *mut Flow, _flags: u8, _state: *mut c_void,
     tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
+    let tx = websocket_detect_tx(tx, f);
     let tx = cast_pointer!(tx, WebSocketTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u32>);
     if let Some(xorkey) = tx.pdu.mask {
@@ -188,9 +204,10 @@ unsafe extern "C" fn websocket_detect_flags_setup(
 }
 
 unsafe extern "C" fn websocket_detect_flags_match(
-    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    _de: *mut DetectEngineThreadCtx, f: *mut Flow, _flags: u8, _state: *mut c_void,
     tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
 ) -> c_int {
+    let tx = websocket_detect_tx(tx, f);
     let tx = cast_pointer!(tx, WebSocketTransaction);
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     return SCDetectU8Match(tx.pdu.flags, ctx);
@@ -223,6 +240,24 @@ pub unsafe extern "C" fn websocket_detect_payload_get_data(
     return true;
 }
 
+unsafe extern "C" fn websocket_h2_payload_get_data(
+    det_ctx: *mut DetectEngineThreadCtx, transforms: *const DetectEngineTransforms, f: *mut Flow,
+    _dir: u8, tx: *mut c_void, list_id: c_int,
+) -> *mut InspectionBuffer {
+    let tx = websocket_detect_tx(tx, f);
+    let tx = cast_pointer!(tx, WebSocketTransaction);
+    let buffer = SCInspectionBufferGet(det_ctx, list_id);
+    if !(*buffer).initialized {
+        let data = tx.pdu.payload.as_ptr();
+        let data_len = tx.pdu.payload.len() as u32;
+        SCInspectionBufferSetupAndApplyTransforms(
+            det_ctx, list_id, buffer, data, data_len, transforms,
+        );
+        return buffer;
+    }
+    return buffer;
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectWebsocketRegister() {
     let kw = SCSigTableAppLiteElmt {
@@ -241,6 +276,14 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         STREAM_TOSERVER | STREAM_TOCLIENT,
         1,
     );
+    _ = SCDetectHelperBufferProgressRegisterSubState(
+        b"websocket.opcode\0".as_ptr() as *const libc::c_char,
+        AppProtoEnum::ALPROTO_HTTP2 as u16,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        HTTP2TxType::HTTP2TxTypeWebsocket as u8,
+        1,
+    );
+
     let kw = SCSigTableAppLiteElmt {
         name: b"websocket.mask\0".as_ptr() as *const libc::c_char,
         desc: b"match WebSocket mask\0".as_ptr() as *const libc::c_char,
@@ -257,6 +300,14 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         STREAM_TOSERVER | STREAM_TOCLIENT,
         1,
     );
+    _ = SCDetectHelperBufferProgressRegisterSubState(
+        b"websocket.mask\0".as_ptr() as *const libc::c_char,
+        AppProtoEnum::ALPROTO_HTTP2 as u16,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        HTTP2TxType::HTTP2TxTypeWebsocket as u8,
+        1,
+    );
+
     let kw = SCSigTableAppLiteElmt {
         name: b"websocket.flags\0".as_ptr() as *const libc::c_char,
         desc: b"match WebSocket flags\0".as_ptr() as *const libc::c_char,
@@ -273,6 +324,14 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         STREAM_TOSERVER | STREAM_TOCLIENT,
         1,
     );
+    _ = SCDetectHelperBufferProgressRegisterSubState(
+        b"websocket.flags\0".as_ptr() as *const libc::c_char,
+        AppProtoEnum::ALPROTO_HTTP2 as u16,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        HTTP2TxType::HTTP2TxTypeWebsocket as u8,
+        1,
+    );
+
     let kw = SigTableElmtStickyBuffer {
         name: String::from("websocket.payload"),
         desc: String::from("match WebSocket payload"),
@@ -286,5 +345,13 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         ALPROTO_WEBSOCKET,
         STREAM_TOSERVER | STREAM_TOCLIENT,
         Some(websocket_detect_payload_get_data),
+    );
+    _ = SCDetectRegisterMpmGenericSubState(
+        b"websocket.payload\0".as_ptr() as *const libc::c_char,
+        AppProtoEnum::ALPROTO_HTTP2 as u16,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        Some(websocket_h2_payload_get_data),
+        HTTP2TxType::HTTP2TxTypeWebsocket as u8,
+        1,
     );
 }
