@@ -21,7 +21,8 @@ use brotli;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use std;
 use std::io;
-use std::io::{Cursor, Read, Write};
+use std::io::{BufReader, Cursor, Read, Write};
+use zstd;
 
 pub const HTTP2_DECOMPRESSION_CHUNK_SIZE: usize = 0x1000; // 4096
 
@@ -34,7 +35,8 @@ pub enum HTTP2ContentEncoding {
     Gzip = 1,
     Br = 2,
     Deflate = 3,
-    Unrecognized = 4,
+    Zstd = 4,
+    Unrecognized = 5,
 }
 
 //a cursor turning EOF into blocking errors
@@ -91,6 +93,9 @@ pub enum HTTP2Decompresser {
     // This one is not so large, at 88 bytes as of doing this, but box
     // for consistency.
     Deflate(Box<DeflateDecoder<HTTP2cursor>>),
+
+    // usage of 'static, alternative could be trait instead of enum
+    Zstd(Box<zstd::stream::read::Decoder<'static, BufReader<HTTP2cursor>>>),
 }
 
 impl std::fmt::Debug for HTTP2Decompresser {
@@ -100,6 +105,7 @@ impl std::fmt::Debug for HTTP2Decompresser {
             HTTP2Decompresser::Gzip(_) => write!(f, "GZIP"),
             HTTP2Decompresser::Brotli(_) => write!(f, "BROTLI"),
             HTTP2Decompresser::Deflate(_) => write!(f, "DEFLATE"),
+            HTTP2Decompresser::Zstd(_) => write!(f, "ZSTD"),
         }
     }
 }
@@ -131,6 +137,12 @@ impl GetMutCursor for DeflateDecoder<HTTP2cursor> {
 impl GetMutCursor for brotli::Decompressor<HTTP2cursor> {
     fn get_mut(&mut self) -> &mut HTTP2cursor {
         return self.get_mut();
+    }
+}
+
+impl GetMutCursor for zstd::stream::read::Decoder<'_, BufReader<HTTP2cursor>> {
+    fn get_mut(&mut self) -> &mut HTTP2cursor {
+        return self.get_mut().get_mut();
     }
 }
 
@@ -189,20 +201,33 @@ impl HTTP2DecoderHalf {
     pub fn http2_encoding_fromvec(&mut self, input: &[u8]) {
         //use first encoding...
         if self.encoding == HTTP2ContentEncoding::Unknown {
-            if input == b"gzip" {
+            if input.eq_ignore_ascii_case(b"gzip") {
                 self.encoding = HTTP2ContentEncoding::Gzip;
                 self.decoder =
                     HTTP2Decompresser::Gzip(Box::new(GzDecoder::new(HTTP2cursor::new())));
-            } else if input == b"deflate" {
+            } else if input.eq_ignore_ascii_case(b"deflate") {
                 self.encoding = HTTP2ContentEncoding::Deflate;
                 self.decoder =
                     HTTP2Decompresser::Deflate(Box::new(DeflateDecoder::new(HTTP2cursor::new())));
-            } else if input == b"br" {
+            } else if input.eq_ignore_ascii_case(b"br") {
                 self.encoding = HTTP2ContentEncoding::Br;
                 self.decoder = HTTP2Decompresser::Brotli(Box::new(brotli::Decompressor::new(
                     HTTP2cursor::new(),
                     HTTP2_DECOMPRESSION_CHUNK_SIZE,
                 )));
+            } else if input.eq_ignore_ascii_case(b"zstd") {
+                self.encoding = HTTP2ContentEncoding::Zstd;
+                if let Ok(mut z) = zstd::stream::read::Decoder::new(HTTP2cursor::new()) {
+                    if z.window_log_max(23).is_ok() {
+                        self.decoder = HTTP2Decompresser::Zstd(Box::new(z));
+                    } else {
+                        SCLogWarning!("Failed to set zstd window log max");
+                        self.decoder = HTTP2Decompresser::Unassigned;
+                    }
+                } else {
+                    SCLogWarning!("Failed to create zstd decoder");
+                    self.decoder = HTTP2Decompresser::Unassigned;
+                }
             } else {
                 self.encoding = HTTP2ContentEncoding::Unrecognized;
             }
@@ -228,6 +253,19 @@ impl HTTP2DecoderHalf {
             }
             HTTP2Decompresser::Brotli(ref mut br_decoder) => {
                 let r = http2_decompress(&mut *br_decoder.as_mut(), input, output);
+                match r {
+                    Err(_) => {
+                        self.decoder = HTTP2Decompresser::Unassigned;
+                    }
+                    Ok(o) => {
+                        self.output_len += o.len() as u64;
+                    }
+                }
+                self.input_len += input.len() as u64;
+                return r;
+            }
+            HTTP2Decompresser::Zstd(ref mut zstd_decoder) => {
+                let r = http2_decompress(&mut *zstd_decoder.as_mut(), input, output);
                 match r {
                     Err(_) => {
                         self.decoder = HTTP2Decompresser::Unassigned;
