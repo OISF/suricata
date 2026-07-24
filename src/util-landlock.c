@@ -134,6 +134,10 @@ void SCLandlockGrantWriteReferPath(void *ruleset, const char *path)
 {
 }
 
+void SCLandlockGrantWriteRemovePath(void *ruleset, const char *path)
+{
+}
+
 void SCLandlockGrantFile(void *ruleset, const char *path, uint32_t access)
 {
 }
@@ -198,9 +202,16 @@ static inline int landlock_restrict_self(const int ruleset_fd, const __u32 flags
 
 #define _LANDLOCK_ACCESS_FS_READ (LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR)
 
+/* Default write grant for directories Suricata owns. Deliberately excludes
+ * LANDLOCK_ACCESS_FS_REMOVE_FILE and LANDLOCK_ACCESS_FS_TRUNCATE: those are
+ * classic anti-forensics primitives (unlinking or zeroing logs/state to
+ * erase attacker traces). Subsystems that legitimately need to unlink or
+ * truncate their own files -- filestore staging cleanup, pcap ring-buffer
+ * rotation, datasets state.csv rewrite -- must register a scoped grant on
+ * their own directory or file. */
 #define _LANDLOCK_SURI_ACCESS_FS_WRITE                                                             \
     (LANDLOCK_ACCESS_FS_WRITE_FILE | LANDLOCK_ACCESS_FS_MAKE_DIR | LANDLOCK_ACCESS_FS_MAKE_REG |   \
-            LANDLOCK_ACCESS_FS_REMOVE_FILE | LANDLOCK_ACCESS_FS_MAKE_SOCK)
+            LANDLOCK_ACCESS_FS_MAKE_SOCK)
 
 #ifndef LANDLOCK_ACCESS_NET_BIND_TCP
 #define LANDLOCK_ACCESS_NET_BIND_TCP (1ULL << 0)
@@ -319,12 +330,12 @@ void SCLandlockGrantWritePath(void *vruleset, const char *directory)
 }
 
 /**
- * \brief Grant write access on a directory, plus rename inside it
+ * \brief Grant write access on a directory, plus rename and file removal
  *
  * Same as SCLandlockGrantWritePath() but also grants
  * LANDLOCK_ACCESS_FS_REFER, allowing rename() between subdirectories rooted
- * at \a directory. It should only be used on a directory fully owned by the
- * caller.
+ * at \a directory, and LANDLOCK_ACCESS_FS_REMOVE_FILE. It should only be used
+ * on a directory fully owned by the caller.
  *
  * \param vruleset opaque landlock ruleset
  * \param directory directory to grant the access on
@@ -334,9 +345,31 @@ void SCLandlockGrantWriteReferPath(void *vruleset, const char *directory)
     struct landlock_ruleset *ruleset = vruleset;
     if (ruleset == NULL || directory == NULL)
         return;
-    uint64_t access = _LANDLOCK_SURI_ACCESS_FS_WRITE | LANDLOCK_ACCESS_FS_REFER;
+    uint64_t access = _LANDLOCK_SURI_ACCESS_FS_WRITE | LANDLOCK_ACCESS_FS_REFER |
+                      LANDLOCK_ACCESS_FS_REMOVE_FILE;
     if (LandlockSandboxingAddRule(ruleset, directory, access) == 0) {
         SCLogConfig("Added write+refer permission to '%s'", directory);
+    }
+}
+
+/**
+ * \brief Grant write access on a directory, plus file removal
+ *
+ * Same as SCLandlockGrantWritePath() but also grants
+ * LANDLOCK_ACCESS_FS_REMOVE_FILE, allowing the caller to unlink the files it
+ * has created in \a directory.
+ *
+ * \param vruleset opaque landlock ruleset
+ * \param directory directory to grant the access on
+ */
+void SCLandlockGrantWriteRemovePath(void *vruleset, const char *directory)
+{
+    struct landlock_ruleset *ruleset = vruleset;
+    if (ruleset == NULL || directory == NULL)
+        return;
+    uint64_t access = _LANDLOCK_SURI_ACCESS_FS_WRITE | LANDLOCK_ACCESS_FS_REMOVE_FILE;
+    if (LandlockSandboxingAddRule(ruleset, directory, access) == 0) {
+        SCLogConfig("Added write+remove permission to '%s'", directory);
     }
 }
 
@@ -598,20 +631,36 @@ void LandlockSandboxing(SCInstance *suri)
     }
     LandlockGrantDatasetsState(ruleset);
     if (DetectEngineMpmCachingEnabled() && stat(DetectEngineMpmCachingGetPath(), &sb) == 0) {
+        /* MPM cache is a Suricata-private directory: HS pruning + corruption
+         * cleanup remove entries there. Grant REMOVE alongside write+read. */
         LandlockSandboxingAddRule(ruleset, DetectEngineMpmCachingGetPath(),
-                _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ);
+                _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ |
+                        LANDLOCK_ACCESS_FS_REMOVE_FILE);
     }
     if (suri->run_mode == RUNMODE_PCAP_FILE) {
         const char *pcap_file;
         if (SCConfGetNonNull("pcap-file.file", &pcap_file) == 1) {
+            /* When delete-when-done is set, the pcap reader unlinks the
+             * source pcap after processing; we then need REMOVE on the
+             * containing directory in addition to read. */
+            const char *delete_str = NULL;
+            int delete_bool = 0;
+            bool delete_when_done =
+                    (SCConfGetNonNull("pcap-file.delete-when-done", &delete_str) == 1 &&
+                            (strcmp(delete_str, "non-alerts") == 0 ||
+                                    (SCConfGetBool("pcap-file.delete-when-done", &delete_bool) ==
+                                                    1 &&
+                                            delete_bool)));
             char *file_name = SCStrdup(pcap_file);
             if (file_name != NULL) {
                 struct stat statbuf;
                 if (stat(file_name, &statbuf) != -1) {
-                    if (S_ISDIR(statbuf.st_mode)) {
-                        SCLandlockGrantReadPath(ruleset, file_name);
+                    const char *dir = S_ISDIR(statbuf.st_mode) ? file_name : dirname(file_name);
+                    if (delete_when_done) {
+                        LandlockSandboxingAddRule(ruleset, dir,
+                                _LANDLOCK_ACCESS_FS_READ | LANDLOCK_ACCESS_FS_REMOVE_FILE);
                     } else {
-                        SCLandlockGrantReadPath(ruleset, dirname(file_name));
+                        SCLandlockGrantReadPath(ruleset, dir);
                     }
                 } else {
                     SCLogError("Can't open pcap file");
@@ -650,26 +699,30 @@ void LandlockSandboxing(SCInstance *suri)
         SCLandlockGrantFile(ruleset, CONFIG_DIR "/threshold.config", SC_LANDLOCK_FILE_READ);
     }
     if (suri->pid_filename) {
+        /* PID file is written at startup and unlinked on shutdown, so REMOVE
+         * is required on its containing directory. */
         char *file_name = SCStrdup(suri->pid_filename);
         if (file_name != NULL) {
-            SCLandlockGrantWritePath(ruleset, dirname(file_name));
+            SCLandlockGrantWriteRemovePath(ruleset, dirname(file_name));
             SCFree(file_name);
         }
     }
     if (ConfUnixSocketIsEnable()) {
+        /* Suricata unlinks any stale socket before bind(), so REMOVE is
+         * required on the socket directory. */
         const char *socketname;
         if (SCConfGetNonNull("unix-command.filename", &socketname) == 1) {
             if (PathIsAbsolute(socketname)) {
                 char *file_name = SCStrdup(socketname);
                 if (file_name != NULL) {
-                    SCLandlockGrantWritePath(ruleset, dirname(file_name));
+                    SCLandlockGrantWriteRemovePath(ruleset, dirname(file_name));
                     SCFree(file_name);
                 }
             } else {
-                SCLandlockGrantWritePath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
+                SCLandlockGrantWriteRemovePath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
             }
         } else {
-            SCLandlockGrantWritePath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
+            SCLandlockGrantWriteRemovePath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
         }
     }
     if (!suri->sig_file_exclusive) {
