@@ -1475,7 +1475,7 @@ jobs:
       - run: make check
       - run: python3 ./suricata-verify/run.py -q --debug-failed
         env:
-          CARGO: cargo-1.82
+          CARGO: cargo-1.85
       - run: make install
       - run: make install-headers
       - run: make install-library
