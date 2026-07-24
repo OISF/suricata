@@ -365,8 +365,16 @@ void LandlockSandboxing(SCInstance *suri)
     SCLandlockGrantWritePath(ruleset, SCConfigGetLogDirectory());
     struct stat sb;
     if (stat(ConfigGetDataDirectory(), &sb) == 0) {
-        LandlockSandboxingAddRule(ruleset, ConfigGetDataDirectory(),
-                _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ);
+        uint64_t data_dir_access = _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ;
+        /* Datasets rewrite their state file with fopen("w"), which requires
+         * FS_TRUNCATE on the parent directory.
+         */
+        int allow_write = 1;
+        (void)SCConfGetBool("datasets.rules.allow-write", &allow_write);
+        if (allow_write) {
+            data_dir_access |= LANDLOCK_ACCESS_FS_TRUNCATE;
+        }
+        LandlockSandboxingAddRule(ruleset, ConfigGetDataDirectory(), data_dir_access);
     }
     if (DetectEngineMpmCachingEnabled() && stat(DetectEngineMpmCachingGetPath(), &sb) == 0) {
         LandlockSandboxingAddRule(ruleset, DetectEngineMpmCachingGetPath(),
