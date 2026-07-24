@@ -848,11 +848,14 @@ impl HTTP2State {
         }
     }
 
-    fn process_headers(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: Direction) {
+    fn process_headers(
+        &mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: Direction,
+    ) -> Vec<HTTP2Event> {
+        let mut events = Vec::new();
         let (mut update, mut sizeup) = (false, 0);
         for block in blocks {
             if block.error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
-                self.set_event(HTTP2Event::InvalidHeader);
+                events.push(HTTP2Event::InvalidHeader);
             } else if block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate {
                 update = true;
                 if block.sizeupdate > sizeup {
@@ -861,7 +864,7 @@ impl HTTP2State {
             } else if block.error
                 == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIntegerOverflow
             {
-                self.set_event(HTTP2Event::HeaderIntegerOverflow);
+                events.push(HTTP2Event::HeaderIntegerOverflow);
             }
         }
         if update {
@@ -873,6 +876,7 @@ impl HTTP2State {
             };
             dyn_headers.max_size = sizeup as usize;
         }
+        return events;
     }
 
     fn parse_frame_data(
@@ -1047,7 +1051,7 @@ impl HTTP2State {
                 };
                 match parser::http2_parse_frame_push_promise(input, hflags, dyn_headers) {
                     Ok((_, hs)) => {
-                        self.process_headers(&hs.blocks, dir);
+                        events.extend(self.process_headers(&hs.blocks, dir));
                         return (HTTP2FrameTypeData::PUSHPROMISE(hs), events);
                     }
                     Err(Err::Incomplete(_)) => {
@@ -1118,7 +1122,7 @@ impl HTTP2State {
                             buf.stream_id = 0;
                             buf.data.clear();
                         }
-                        self.process_headers(&hs.blocks, dir);
+                        events.extend(self.process_headers(&hs.blocks, dir));
                         return (HTTP2FrameTypeData::CONTINUATION(hs), events);
                     }
                     Err(Err::Incomplete(_)) => {
@@ -1182,7 +1186,7 @@ impl HTTP2State {
                 };
                 match parser::http2_parse_frame_headers(input, hflags, dyn_headers) {
                     Ok((hrem, hs)) => {
-                        self.process_headers(&hs.blocks, dir);
+                        events.extend(self.process_headers(&hs.blocks, dir));
                         if !hrem.is_empty() {
                             SCLogDebug!("Remaining data for HTTP2 headers");
                             events.push(HTTP2Event::ExtraHeaderData);
