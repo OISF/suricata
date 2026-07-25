@@ -88,6 +88,7 @@ int GetIfaceMTU(const char *dev)
     (void)strlcpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name));
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
+        SCLogError("%s: failed to open socket for ioctl: %s", dev, strerror(errno));
         return -1;
     }
 
@@ -153,6 +154,7 @@ int GetIfaceFlags(const char *ifname)
 
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
+        SCLogError("%s: failed to open socket for ioctl: %s", ifname, strerror(errno));
         return -1;
     }
 
@@ -188,6 +190,7 @@ int SetIfaceFlags(const char *ifname, int flags)
 
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
+        SCLogError("%s: failed to open socket for ioctl: %s", ifname, strerror(errno));
         return -1;
     }
 
@@ -218,6 +221,7 @@ int GetIfaceCaps(const char *ifname)
 
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
+        SCLogError("%s: failed to open socket for ioctl: %s", ifname, strerror(errno));
         return -1;
     }
 
@@ -241,6 +245,7 @@ int SetIfaceCaps(const char *ifname, int caps)
 
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
+        SCLogError("%s: failed to open socket for ioctl: %s", ifname, strerror(errno));
         return -1;
     }
 
@@ -269,6 +274,7 @@ static int GetEthtoolValue(const char *dev, int cmd, uint32_t *value)
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
+        SCLogError("%s: failed to open socket for ioctl: %s", dev, strerror(errno));
         return -1;
     }
     (void)strlcpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name));
@@ -294,6 +300,7 @@ static int SetEthtoolValue(const char *dev, int cmd, uint32_t value)
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
+        SCLogError("%s: failed to open socket for ioctl: %s", dev, strerror(errno));
         return -1;
     }
     (void)strlcpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name));
@@ -720,7 +727,7 @@ int GetIfaceRSSQueuesNum(const char *dev)
     (void)strlcpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name));
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
-        SCLogWarning("%s: failed to open socket for ioctl: %s", dev, strerror(errno));
+        SCLogError("%s: failed to open socket for ioctl: %s", dev, strerror(errno));
         return -1;
     }
 
