@@ -148,8 +148,7 @@ static bool EveEmailLogJsonData(
             smtp_state = (SMTPState *)state;
             if (smtp_state == NULL) {
                 SCLogDebug("no smtp state, so no request logging");
-                SCJbFree(sjs);
-                SCReturnPtr(NULL, "SCJsonBuilder");
+                SCReturnBool(false);
             }
             SMTPTransaction *tx = vtx;
             mime_state = tx->mime_state;

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -28,7 +28,7 @@
 #include "util-debug.h"
 #include "util-affinity.h"
 #include "conf.h"
-#include "log-flush.h"
+#include "log-maintenance.h"
 #include "runmodes.h"
 #include "runmode-af-packet.h"
 #include "runmode-af-xdp.h"
@@ -451,7 +451,7 @@ void RunModeDispatch(int runmode, const char *custom_mode, const char *capture_p
             BypassedFlowManagerThreadSpawn();
         }
         StatsSpawnThreads();
-        LogFlushThreads();
+        LogMaintenanceThreadSpawn();
         TmThreadsSealThreads();
     }
 }
@@ -631,10 +631,18 @@ static void SetupOutput(
         SCOutputRegisterPacketLogger(module->logger_id, module->name, module->PacketLogFunc,
                 module->PacketConditionFunc, output_ctx, module->ThreadInit, module->ThreadDeinit);
     } else if (module->TxLogFunc) {
-        SCLogDebug("%s is a tx logger", module->name);
-        SCOutputRegisterTxLogger(module->logger_id, module->name, module->alproto,
-                module->TxLogFunc, output_ctx, module->tc_log_progress, module->ts_log_progress,
-                module->TxLogCondition, module->ThreadInit, module->ThreadDeinit);
+        if (module->sub_state == 0) {
+            SCLogDebug("%s is a tx logger", module->name);
+            SCOutputRegisterTxLogger(module->logger_id, module->name, module->alproto,
+                    module->TxLogFunc, output_ctx, module->tc_log_progress, module->ts_log_progress,
+                    module->TxLogCondition, module->ThreadInit, module->ThreadDeinit);
+        } else {
+            SCLogDebug("%s is a tx logger for sub state %u", module->name, module->sub_state);
+            SCOutputRegisterTxLoggerForSubState(module->logger_id, module->name, module->alproto,
+                    module->sub_state, module->TxLogFunc, output_ctx, module->tc_log_progress,
+                    module->ts_log_progress, module->TxLogCondition, module->ThreadInit,
+                    module->ThreadDeinit);
+        }
         /* Not used with wild card loggers */
         if (module->alproto != ALPROTO_UNKNOWN) {
             logger_bits[module->alproto] |= BIT_U32(module->logger_id);

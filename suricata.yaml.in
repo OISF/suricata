@@ -954,6 +954,8 @@ app-layer:
       # unsubscribe-topic-match-limit: 100
       # Maximum number of live MQTT transactions per flow
       # max-tx: 4096
+      # Maximum number of messages per transaction
+      # max-messages: 1024
     krb5:
       enabled: yes
     bittorrent-dht:
@@ -1197,6 +1199,10 @@ app-layer:
            # Maximum decompressed size with a compression ratio
            # above 2048 (only LZMA can reach this ratio, deflate cannot)
            #compression-bomb-limit: 1 MiB
+           # Maximum times in a single flow a compression bomb is allowed.
+           # If this is reached no more decompression will happen for the
+           # rest of that flow.
+           #compression-bomb-count: 3
            # Maximum time spent decompressing a single transaction in usec
            #decompression-time-limit: 100000
            # Maximum number of live transactions per flow
@@ -1278,7 +1284,7 @@ app-layer:
       enabled: yes
 
     sip:
-      #enabled: yes
+      enabled: yes
 
     ldap:
       tcp:
@@ -1888,6 +1894,9 @@ detect:
       dump-to-disk: false
       include-rules: false      # very verbose
       include-mpm-stats: false
+
+  flowbits:
+    max-per-signature: 8    # maximum number of flowbits keyword usage per signature, minimum value allowed is 1
 
 # Select the multi pattern algorithm you want to run for scan/search the
 # in the engine.

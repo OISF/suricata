@@ -77,6 +77,9 @@ typedef bool (*TxLoggerCondition)(
 int SCOutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto, TxLogger LogFunc,
         void *, int tc_log_progress, int ts_log_progress, TxLoggerCondition LogCondition,
         ThreadInitFunc, ThreadDeinitFunc);
+int SCOutputRegisterTxLoggerForSubState(LoggerId id, const char *name, AppProto alproto,
+        const uint8_t sub_state, TxLogger LogFunc, void *, int tc_log_progress, int ts_log_progress,
+        TxLoggerCondition LogCondition, ThreadInitFunc, ThreadDeinitFunc);
 
 /** Internal function: private API. */
 void OutputTxLoggerRegister (void);

@@ -203,8 +203,8 @@ void DetectHttpStartRegister(void)
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 
-    g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs(KEYWORD_NAME,
-            HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
+    g_keyword_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
+            KEYWORD_NAME, HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
 
     SCLogDebug("keyword %s registered. Thread id %d. "
             "Buffer %s registered. Buffer id %d",

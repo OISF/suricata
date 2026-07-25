@@ -30,7 +30,7 @@ use crate::core::STREAM_TOSERVER;
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, detect_parse_uint_inclusive, DetectUintData,
 };
-use crate::detect::{SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_MULTI_UINT, SIGMATCH_INFO_UINT32};
+use crate::detect::{SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT32};
 
 use std::ffi::{c_int, CStr};
 use std::os::raw::c_void;
@@ -168,7 +168,7 @@ pub unsafe extern "C" fn SCDetectNfsProcedureRegister() {
         AppLayerTxMatch: Some(nfs_procedure_match),
         Setup: Some(nfs_procedure_setup),
         Free: Some(nfs_procedure_free),
-        flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT,
+        flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_NFS_PROCEDURE_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_NFS_PROCEDURE_BUFFER_ID = SCDetectHelperBufferProgressRegister(

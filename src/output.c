@@ -300,9 +300,9 @@ error:
 }
 
 static void OutputRegisterTxSubModuleWrapper(LoggerId id, const char *parent_name, const char *name,
-        const char *conf_name, OutputInitSubFunc InitFunc, AppProto alproto, TxLogger TxLogFunc,
-        int tc_log_progress, int ts_log_progress, TxLoggerCondition TxLogCondition,
-        ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
+        const char *conf_name, OutputInitSubFunc InitFunc, AppProto alproto,
+        const uint8_t sub_state, TxLogger TxLogFunc, int tc_log_progress, int ts_log_progress,
+        TxLoggerCondition TxLogCondition, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
     if (unlikely(TxLogFunc == NULL)) {
         goto error;
@@ -321,6 +321,7 @@ static void OutputRegisterTxSubModuleWrapper(LoggerId id, const char *parent_nam
     module->TxLogFunc = TxLogFunc;
     module->TxLogCondition = TxLogCondition;
     module->alproto = alproto;
+    module->sub_state = sub_state;
     module->tc_log_progress = tc_log_progress;
     module->ts_log_progress = ts_log_progress;
     module->ThreadInit = ThreadInit;
@@ -353,8 +354,8 @@ void OutputRegisterTxSubModuleWithCondition(LoggerId id, const char *parent_name
         const char *conf_name, OutputInitSubFunc InitFunc, AppProto alproto, TxLogger TxLogFunc,
         TxLoggerCondition TxLogCondition, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
-    OutputRegisterTxSubModuleWrapper(id, parent_name, name, conf_name, InitFunc, alproto, TxLogFunc,
-            -1, -1, TxLogCondition, ThreadInit, ThreadDeinit);
+    OutputRegisterTxSubModuleWrapper(id, parent_name, name, conf_name, InitFunc, alproto, 0,
+            TxLogFunc, -1, -1, TxLogCondition, ThreadInit, ThreadDeinit);
 }
 
 /**
@@ -378,8 +379,17 @@ void OutputRegisterTxSubModuleWithProgress(LoggerId id, const char *parent_name,
         int tc_log_progress, int ts_log_progress, ThreadInitFunc ThreadInit,
         ThreadDeinitFunc ThreadDeinit)
 {
-    OutputRegisterTxSubModuleWrapper(id, parent_name, name, conf_name, InitFunc, alproto, TxLogFunc,
-            tc_log_progress, ts_log_progress, NULL, ThreadInit, ThreadDeinit);
+    OutputRegisterTxSubModuleWrapper(id, parent_name, name, conf_name, InitFunc, alproto, 0,
+            TxLogFunc, tc_log_progress, ts_log_progress, NULL, ThreadInit, ThreadDeinit);
+}
+
+void OutputRegisterTxSubModuleWithProgressSubState(LoggerId id, const char *parent_name,
+        const char *name, const char *conf_name, OutputInitSubFunc InitFunc, AppProto alproto,
+        const uint8_t sub_state, TxLogger TxLogFunc, uint8_t tc_log_progress,
+        uint8_t ts_log_progress, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
+{
+    OutputRegisterTxSubModuleWrapper(id, parent_name, name, conf_name, InitFunc, alproto, sub_state,
+            TxLogFunc, tc_log_progress, ts_log_progress, NULL, ThreadInit, ThreadDeinit);
 }
 
 /**
@@ -402,8 +412,8 @@ void OutputRegisterTxSubModule(LoggerId id, const char *parent_name, const char 
         const char *conf_name, OutputInitSubFunc InitFunc, AppProto alproto, TxLogger TxLogFunc,
         ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit)
 {
-    OutputRegisterTxSubModuleWrapper(id, parent_name, name, conf_name, InitFunc, alproto, TxLogFunc,
-            -1, -1, NULL, ThreadInit, ThreadDeinit);
+    OutputRegisterTxSubModuleWrapper(id, parent_name, name, conf_name, InitFunc, alproto, 0,
+            TxLogFunc, -1, -1, NULL, ThreadInit, ThreadDeinit);
 }
 
 /**
@@ -656,6 +666,7 @@ void OutputDeregisterAll(void)
 
     while ((module = TAILQ_FIRST(&output_modules))) {
         TAILQ_REMOVE(&output_modules, module, entries);
+        DEBUG_VALIDATE_BUG_ON(TAILQ_FIRST(&output_modules) == module);
         SCFree(module);
     }
     SCFree(simple_json_applayer_loggers);
@@ -898,6 +909,7 @@ void OutputClearActiveLoggers(void)
     RootLogger *logger;
     while ((logger = TAILQ_FIRST(&active_loggers)) != NULL) {
         TAILQ_REMOVE(&active_loggers, logger, entries);
+        DEBUG_VALIDATE_BUG_ON(TAILQ_FIRST(&active_loggers) == logger);
         SCFree(logger);
     }
 }
@@ -1085,9 +1097,14 @@ void OutputRegisterLoggers(void)
     JsonSmtpLogRegister();
     /* http log */
     JsonHttpLogRegister();
-    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", "LogHttp2Log", "eve-log.http2",
-            OutputJsonLogInitSub, ALPROTO_HTTP2, JsonGenericDirFlowLogger, HTTP2ProgClosed,
-            HTTP2ProgClosed, JsonLogThreadInit, JsonLogThreadDeinit);
+    OutputRegisterTxSubModuleWithProgressSubState(LOGGER_JSON_TX, "eve-log", "LogHttp2Log::stream",
+            "eve-log.http2", OutputJsonLogInitSub, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            JsonGenericDirFlowLogger, HTTP2ProgClosed, HTTP2ProgClosed, JsonLogThreadInit,
+            JsonLogThreadDeinit);
+    OutputRegisterTxSubModuleWithProgressSubState(LOGGER_JSON_TX, "eve-log", "LogHttp2Log::global",
+            "eve-log.http2", OutputJsonLogInitSub, ALPROTO_HTTP2, HTTP2TxTypeGlobal,
+            JsonGenericDirFlowLogger, HTTP2ProgGlobalComplete, HTTP2ProgGlobalComplete,
+            JsonLogThreadInit, JsonLogThreadDeinit);
     /* tls log */
     JsonTlsLogRegister();
     LogTlsStoreRegister();

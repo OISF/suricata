@@ -184,7 +184,7 @@ static void BoyerMooreSuffixes(const uint8_t *x, uint16_t m, uint16_t *suff)
 static int PreBmGs(const uint8_t *x, uint16_t m, uint16_t *bmGs)
 {
     int32_t i, j;
-    uint16_t suff[m + 1];
+    uint16_t suff[m];
 
     BoyerMooreSuffixes(x, m, suff);
 
@@ -260,7 +260,7 @@ static void BoyerMooreSuffixesNocase(const uint8_t *x, uint16_t m,
 static void PreBmGsNocase(const uint8_t *x, uint16_t m, uint16_t *bmGs)
 {
     uint16_t i, j;
-    uint16_t suff[m + 1];
+    uint16_t suff[m];
 
     BoyerMooreSuffixesNocase(x, m, suff);
 

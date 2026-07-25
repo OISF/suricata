@@ -27,7 +27,7 @@ use nom8::sequence::preceded;
 use nom8::{Err, IResult, Parser};
 
 use std::ffi::CStr;
-use std::os::raw::{c_double, c_char, c_void};
+use std::os::raw::{c_char, c_double, c_void};
 use std::slice;
 
 #[repr(C)]
@@ -74,7 +74,8 @@ fn parse_entropy<'a>(
     let (_, values) = nom8::multi::separated_list1(
         tag(","),
         preceded(multispace0, nom8::bytes::complete::is_not(",")),
-    ).parse(input)?;
+    )
+    .parse(input)?;
 
     if values.len() < DETECT_ENTROPY_FIXED_PARAM_COUNT
         || values.len() > DETECT_ENTROPY_MAX_PARAM_COUNT
@@ -168,8 +169,7 @@ fn calculate_entropy(data: &[u8]) -> f64 {
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectEntropyMatch(
-    c_data: *const c_void, length: i32, ctx: &DetectEntropyData,
-    calculated_entropy: *mut c_double,
+    c_data: *const c_void, length: i32, ctx: &DetectEntropyData, calculated_entropy: *mut c_double,
 ) -> bool {
     if c_data.is_null() {
         return false;

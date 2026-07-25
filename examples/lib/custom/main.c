@@ -253,7 +253,13 @@ int main(int argc, char **argv)
      * ThreadVars will be ready. */
     SuricataInit();
 
-    SCDetectEngineRegisterRateFilterCallback(RateFilterCallback, NULL);
+    if (DetectEngineEnabled()) {
+        if (!SCDetectEngineRegisterRateFilterCallback(RateFilterCallback, NULL)) {
+            SCLogWarning("rate filter callback registration failed");
+        }
+    } else {
+        SCLogWarning("detection engine not enabled, rate filter callback not registered");
+    }
 
     /* Spawn our worker threads. */
     pthread_t worker;

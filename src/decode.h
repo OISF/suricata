@@ -250,6 +250,7 @@ typedef struct PacketAlert_ {
     SigIntId iid;   /* Internal ID, used for sorting */
     uint8_t action; /* Rule or threshold action to be applied to packet */
     uint8_t flags;
+    uint8_t sub_state; /**< tx sub state. 0 if not used. */
     const struct Signature_ *s;
     uint64_t tx_id; /* Used for sorting */
     int64_t frame_id;
@@ -491,6 +492,7 @@ struct PacketL4 {
         ICMPV4Vars icmpv4;
         ICMPV6Vars icmpv6;
         IGMPVars igmp;
+        SCTPVars sctp;
     } vars;
 };
 
@@ -1025,6 +1027,11 @@ typedef struct DecodeThreadVars_
     StatsCounterId counter_raw;
     StatsCounterId counter_null;
     StatsCounterId counter_sctp;
+    StatsCounterId counter_sctp_init;
+    StatsCounterId counter_sctp_init_ack;
+    StatsCounterId counter_sctp_data;
+    StatsCounterId counter_sctp_abort;
+    StatsCounterId counter_sctp_shutdown;
     StatsCounterId counter_esp;
     StatsCounterId counter_ppp;
     StatsCounterId counter_geneve;

@@ -170,7 +170,7 @@ static InspectionBuffer *GetBuffer2ForTX(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        void *thread_buf = SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
         if (thread_buf == NULL)
             return NULL;
 
@@ -234,26 +234,28 @@ void DetectHttpHeaderNamesRegister(void)
             HTP_RESPONSE_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetBuffer1ForTX);
 
     /* http2 */
-    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2ProgHeaders);
-    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2ProgHeaders);
+    DetectAppLayerMpmRegisterSubState(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgHeaders);
+    DetectAppLayerMpmRegisterSubState(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister, GetBuffer2ForTX, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgHeaders);
 
-    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
-    DetectAppLayerInspectEngineRegister(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
+    DetectAppLayerInspectEngineRegisterSubState(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
+    DetectAppLayerInspectEngineRegisterSubState(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetBuffer2ForTX);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
             BUFFER_DESC);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 
-    g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs(KEYWORD_NAME,
-            HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
+    g_keyword_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
+            KEYWORD_NAME, HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
 
-    g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
-            "http2.header_names", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
+    g_http2_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
+            "http2.header_names", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     SCLogDebug("keyword %s registered. Thread id %d. "
             "Buffer %s registered. Buffer id %d",

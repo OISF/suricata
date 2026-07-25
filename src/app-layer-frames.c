@@ -233,6 +233,7 @@ static void FrameClean(Frame *frame)
 
 static void FrameCopy(Frame *dst, Frame *src)
 {
+    DEBUG_VALIDATE_BUG_ON(dst == src);
     memcpy(dst, src, sizeof(*dst));
 }
 
@@ -353,8 +354,8 @@ static int FrameSlide(const char *ds, Frames *frames, const TcpStream *stream, c
 #endif
             } else {
                 Frame *nframe = &frames->sframes[x];
-                FrameCopy(nframe, frame);
                 if (frame != nframe) {
+                    FrameCopy(nframe, frame);
                     FrameClean(frame);
                 }
                 le = MIN(le, FrameLeftEdge(stream, nframe));
@@ -378,8 +379,8 @@ static int FrameSlide(const char *ds, Frames *frames, const TcpStream *stream, c
                 } else {
                     nframe = &frames->sframes[x];
                 }
-                FrameCopy(nframe, frame);
                 if (frame != nframe) {
+                    FrameCopy(nframe, frame);
                     FrameClean(frame);
                 }
                 le = MIN(le, FrameLeftEdge(stream, nframe));
@@ -780,8 +781,8 @@ static void FramePrune(Frames *frames, const TcpStream *stream, const bool eof)
                 le = MIN(le, fle);
                 SCLogDebug("le %" PRIu64 ", frame fle %" PRIu64, le, fle);
                 Frame *nframe = &frames->sframes[x];
-                FrameCopy(nframe, frame);
                 if (frame != nframe) {
+                    FrameCopy(nframe, frame);
                     FrameClean(frame);
                 }
                 x++;
@@ -808,8 +809,8 @@ static void FramePrune(Frames *frames, const TcpStream *stream, const bool eof)
                 } else {
                     nframe = &frames->sframes[x];
                 }
-                FrameCopy(nframe, frame);
                 if (frame != nframe) {
+                    FrameCopy(nframe, frame);
                     FrameClean(frame);
                 }
                 x++;

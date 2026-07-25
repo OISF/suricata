@@ -183,29 +183,40 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_HEADERNAME].flags |=
             SIGMATCH_NOOPT | SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 
-    DetectAppLayerMultiRegister("http2_header_name", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2ProgHeaders, SCHttp2TxGetHeaderName, 2);
-    DetectAppLayerMultiRegister("http2_header_name", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2ProgHeaders, SCHttp2TxGetHeaderName, 2);
+    /* registration for for Stream Tx Sub State */
+    DetectAppLayerMultiRegisterSubState("http2:header_name", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, SCHttp2TxGetHeaderName, 2);
+    DetectAppLayerMultiRegisterSubState("http2:header_name", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, SCHttp2TxGetHeaderName, 2);
 
-    DetectBufferTypeSupportsMultiInstance("http2_header_name");
-    DetectBufferTypeSetDescriptionByName("http2_header_name",
-                                         "HTTP2 header name");
-    g_http2_header_buffer_id = DetectBufferTypeGetByName("http2_header_name");
+    DetectBufferTypeSupportsMultiInstance("http2:header_name");
+    DetectBufferTypeSetDescriptionByName("http2:header_name", "HTTP2 header name");
+    g_http2_header_buffer_id = DetectBufferTypeGetByName("http2:header_name");
 
-    DetectAppLayerInspectEngineRegister(
-            "http2", ALPROTO_HTTP2, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
-    DetectAppLayerInspectEngineRegister(
-            "http2", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
+    g_http2_match_buffer_id = DetectBufferTypeRegister("http2:start");
+    /* registration for for Stream Tx Sub State */
+    DetectAppLayerInspectEngineRegisterSubState("http2:start", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2TxTypeStream, 0, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegisterSubState("http2:start", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2TxTypeStream, 0, DetectEngineInspectGenericList, NULL);
+    /* registration for for Global Tx Sub State */
+    DetectAppLayerInspectEngineRegisterSubState("http2:start", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2TxTypeGlobal, 0, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegisterSubState("http2:start", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2TxTypeGlobal, 0, DetectEngineInspectGenericList, NULL);
 
-    g_http2_match_buffer_id = DetectBufferTypeRegister("http2");
+    g_http2_complete_buffer_id = DetectBufferTypeRegister("http2:complete");
 
-    DetectAppLayerInspectEngineRegister("http2_complete", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2ProgComplete, DetectEngineInspectGenericList, NULL);
-    DetectAppLayerInspectEngineRegister("http2_complete", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2ProgComplete, DetectEngineInspectGenericList, NULL);
-
-    g_http2_complete_buffer_id = DetectBufferTypeRegister("http2_complete");
+    /* registration for for Stream Tx Sub State */
+    DetectAppLayerInspectEngineRegisterSubState("http2:complete", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2TxTypeStream, HTTP2ProgComplete, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegisterSubState("http2:complete", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2TxTypeStream, HTTP2ProgComplete, DetectEngineInspectGenericList, NULL);
+    /* registration for for Global Tx Sub State */
+    DetectAppLayerInspectEngineRegisterSubState("http2:complete", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2TxTypeGlobal, HTTP2ProgGlobalComplete, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegisterSubState("http2:complete", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2TxTypeGlobal, HTTP2ProgGlobalComplete, DetectEngineInspectGenericList, NULL);
 }
 
 /**

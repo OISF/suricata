@@ -298,7 +298,7 @@ pub unsafe extern "C" fn SCDetectSshRegister() {
         ALPROTO_SSH,
         STREAM_TOSERVER | STREAM_TOCLIENT,
         Some(SCSshTxGetSoftware),
-        SSHConnectionState::SshStateBannerDone as c_int,
+        SSHConnectionState::SshStateBannerDone as u8,
     );
     SCDetectHelperKeywordAliasRegister(
         ssh_software_kw_id,
@@ -340,7 +340,7 @@ pub unsafe extern "C" fn SCDetectSshRegister() {
         ALPROTO_SSH,
         STREAM_TOSERVER | STREAM_TOCLIENT,
         Some(SCSshTxGetProtocol),
-        SSHConnectionState::SshStateBannerDone as c_int,
+        SSHConnectionState::SshStateBannerDone as u8,
     );
     SCDetectHelperKeywordAliasRegister(
         ssh_proto_kw_id,
@@ -360,7 +360,7 @@ pub unsafe extern "C" fn SCDetectSshRegister() {
         ALPROTO_SSH,
         STREAM_TOSERVER,
         Some(SCSshTxGetHasshString),
-        SSHConnectionState::SshStateBannerDone as c_int,
+        SSHConnectionState::SshStateBannerDone as u8,
     );
     SCDetectHelperKeywordAliasRegister(
         DETECT_SSH_HASSH_STRING,
@@ -380,7 +380,7 @@ pub unsafe extern "C" fn SCDetectSshRegister() {
         ALPROTO_SSH,
         STREAM_TOCLIENT,
         Some(SCSshTxGetHasshString),
-        SSHConnectionState::SshStateBannerDone as c_int,
+        SSHConnectionState::SshStateBannerDone as u8,
     );
     SCDetectHelperKeywordAliasRegister(
         DETECT_SSH_HASSH_SERVER_STRING,
@@ -400,7 +400,7 @@ pub unsafe extern "C" fn SCDetectSshRegister() {
         ALPROTO_SSH,
         STREAM_TOSERVER,
         Some(SCSshTxGetHassh),
-        SSHConnectionState::SshStateBannerDone as c_int,
+        SSHConnectionState::SshStateBannerDone as u8,
     );
     SCDetectHelperKeywordAliasRegister(
         DETECT_SSH_HASSH,
@@ -421,7 +421,7 @@ pub unsafe extern "C" fn SCDetectSshRegister() {
         ALPROTO_SSH,
         STREAM_TOCLIENT,
         Some(SCSshTxGetHassh),
-        SSHConnectionState::SshStateBannerDone as c_int,
+        SSHConnectionState::SshStateBannerDone as u8,
     );
     SCDetectHelperKeywordAliasRegister(
         DETECT_SSH_HASSH_SERVER,

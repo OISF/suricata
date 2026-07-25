@@ -287,17 +287,16 @@ static int DetectFlowvarPostMatch(
         DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
-    DetectVarList *fs, *prev;
-    const DetectFlowvarData *fd;
-
     if (det_ctx->varlist == NULL)
         return 1;
 
-    fd = (const DetectFlowvarData *)ctx;
+    const DetectFlowvarData *fd = (const DetectFlowvarData *)ctx;
+    DetectVarList *prev = NULL;
 
-    prev = NULL;
-    fs = det_ctx->varlist;
+    DetectVarList *fs = det_ctx->varlist;
     while (fs != NULL) {
+        DetectVarList *next_fs = fs->next;
+
         if (fd->idx == 0 || fd->idx == fs->idx) {
             SCLogDebug("adding to the flow %u:", fs->idx);
             //PrintRawDataFp(stdout, fs->buffer, fs->len);
@@ -323,17 +322,16 @@ static int DetectFlowvarPostMatch(
             }
 
             if (fs == det_ctx->varlist) {
-                det_ctx->varlist = fs->next;
                 SCFree(fs);
-                fs = det_ctx->varlist;
+                det_ctx->varlist = fs = next_fs;
             } else {
-                prev->next = fs->next;
+                DEBUG_VALIDATE_BUG_ON(prev == NULL);
                 SCFree(fs);
-                fs = prev->next;
+                fs = prev->next = next_fs;
             }
         } else {
             prev = fs;
-            fs = fs->next;
+            fs = next_fs;
         }
     }
     return 1;

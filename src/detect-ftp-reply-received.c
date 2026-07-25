@@ -126,6 +126,7 @@ void DetectFtpReplyReceivedRegister(void)
     sigmatch_table[DETECT_FTP_REPLY_RECEIVED].AppLayerTxMatch = DetectFtpReplyReceivedMatch;
     sigmatch_table[DETECT_FTP_REPLY_RECEIVED].Setup = DetectFtpReplyReceivedSetup;
     sigmatch_table[DETECT_FTP_REPLY_RECEIVED].Free = DetectFtpReplyReceivedFree;
+    sigmatch_table[DETECT_FTP_REPLY_RECEIVED].flags = SIGMATCH_SUPPORT_FIREWALL;
 
     DetectAppLayerInspectEngineRegister("ftp.reply_received", ALPROTO_FTP, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectGenericList, NULL);

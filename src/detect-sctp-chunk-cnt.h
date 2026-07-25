@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2017 Open Information Security Foundation
+/* Copyright (C) 2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -17,17 +17,11 @@
 
 /**
  * \file
- *
- * \author Pierre Chifflier <chifflier@wzdftpd.net>
  */
 
-#ifndef SURICATA_DETECT_KRB5_ERRCODE_H
-#define SURICATA_DETECT_KRB5_ERRCODE_H
+#ifndef SURICATA_DETECT_SCTP_CHUNK_CNT_H
+#define SURICATA_DETECT_SCTP_CHUNK_CNT_H
 
-typedef struct DetectKrb5ErrCodeData_ {
-    int32_t err_code;
-} DetectKrb5ErrCodeData;
+void DetectSCTPChunkCntRegister(void);
 
-void DetectKrb5ErrCodeRegister(void);
-
-#endif /* SURICATA_DETECT_KRB5_ERRCODE_H */
+#endif /* SURICATA_DETECT_SCTP_CHUNK_CNT_H */

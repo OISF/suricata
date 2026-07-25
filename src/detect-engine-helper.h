@@ -81,18 +81,24 @@ int SCDetectHelperNewKeywordId(void);
 uint16_t SCDetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw);
 void SCDetectHelperKeywordAliasRegister(uint16_t kwid, const char *alias);
 int SCDetectHelperBufferProgressRegister(
-        const char *name, AppProto alproto, uint8_t direction, int progress);
+        const char *name, AppProto alproto, uint8_t direction, uint8_t progress);
 
 int SCDetectHelperBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionSingleBufferGetDataPtr GetData);
+int SCDetectHelperBufferProgressRegisterSubState(
+        const char *name, AppProto alproto, uint8_t direction, uint8_t sub_state, uint8_t progress);
 int SCDetectRegisterMpmGeneric(const char *name, const char *desc, AppProto alproto,
-        uint8_t direction, InspectionBufferGetDataPtr GetData);
+        uint8_t direction, InspectionBufferGetDataPtr GetData, uint8_t progress);
 int SCDetectHelperBufferProgressMpmRegister(const char *name, const char *desc, AppProto alproto,
-        uint8_t direction, InspectionSingleBufferGetDataPtr GetData, int progress);
+        uint8_t direction, InspectionSingleBufferGetDataPtr GetData, uint8_t progress);
 int SCDetectHelperMultiBufferMpmRegister(const char *name, const char *desc, AppProto alproto,
         uint8_t direction, InspectionMultiBufferGetDataPtr GetData);
 int SCDetectHelperMultiBufferProgressMpmRegister(const char *name, const char *desc,
-        AppProto alproto, uint8_t direction, InspectionMultiBufferGetDataPtr GetData, int progress);
+        AppProto alproto, uint8_t direction, InspectionMultiBufferGetDataPtr GetData,
+        uint8_t progress);
+int SCDetectHelperMultiBufferProgressMpmRegisterSubState(const char *name, const char *desc,
+        AppProto alproto, uint8_t direction, InspectionMultiBufferGetDataPtr GetData,
+        uint8_t sub_state, uint8_t progress);
 
 int SCDetectHelperTransformRegister(const SCTransformTableElmt *kw);
 

@@ -44,6 +44,7 @@
 #include "util-affinity.h"
 #include "util-cpu.h"
 #include "util-device-private.h"
+#include "util-host-info.h"
 
 #include "device-storage.h"
 #include "flow-storage.h"
@@ -57,8 +58,6 @@
 #include "autoconf.h"
 
 #define BPF_MAP_MAX_COUNT 16
-
-#define BYPASSED_FLOW_TIMEOUT   60
 
 static SCLiveDevStorageId g_livedev_storage_id = { .id = -1 };
 static SCFlowStorageId g_flow_storage_id = { .id = -1 };
@@ -323,12 +322,15 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         return -1;
     }
 
-    /* Sending the eBPF code to the kernel requires a large amount of
-     * locked memory so we set it to unlimited to avoid a ENOPERM error */
-    struct rlimit r = {RLIM_INFINITY, RLIM_INFINITY};
-    if (setrlimit(RLIMIT_MEMLOCK, &r) != 0) {
-        SCLogError("Unable to lock memory: %s (%d)", strerror(errno), errno);
-        return -1;
+    /* Since kernel 5.11 BPF map memory is memcg-accounted and no longer
+     * charged against RLIMIT_MEMLOCK (https://lwn.net/Articles/829307/), so
+     * raising the limit is only needed on older kernels. Raising it requires CAP_SYS_RESOURCE */
+    if (!SCKernelVersionIsAtLeast(5, 11)) {
+        struct rlimit r = { RLIM_INFINITY, RLIM_INFINITY };
+        if (setrlimit(RLIMIT_MEMLOCK, &r) != 0) {
+            SCLogError("Unable to lock memory: %s (%d)", strerror(errno), errno);
+            return -1;
+        }
     }
 
     /* Open the eBPF file and parse it */

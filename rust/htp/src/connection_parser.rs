@@ -352,6 +352,9 @@ pub struct ConnectionParser {
     /// The hook that should be receiving raw connection data.
     pub(crate) response_data_receiver_hook: Option<DataHook>,
 
+    /// Number of compression bombs seen.
+    pub(crate) bombs: u8,
+
     /// Transactions processed by this parser
     transactions: Transactions,
 }
@@ -402,6 +405,7 @@ impl ConnectionParser {
             response_state: State::Idle,
             response_state_previous: State::None,
             response_data_receiver_hook: None,
+            bombs: 0,
             transactions: Transactions::new(cfg, &logger),
         }
     }

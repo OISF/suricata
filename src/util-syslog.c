@@ -28,12 +28,15 @@
 #include "util-syslog.h"
 
 /* holds the string-enum mapping for the syslog facility in SCLogOPIfaceCtx */
+// clang-format off
 SCEnumCharMap sc_syslog_facility_map[] = {
     { "auth",           LOG_AUTH },
     { "authpriv",       LOG_AUTHPRIV },
     { "cron",           LOG_CRON },
     { "daemon",         LOG_DAEMON },
+#if defined(LOG_FTP)
     { "ftp",            LOG_FTP },
+#endif
     { "kern",           LOG_KERN },
     { "lpr",            LOG_LPR },
     { "mail",           LOG_MAIL },
@@ -52,6 +55,7 @@ SCEnumCharMap sc_syslog_facility_map[] = {
     { "local7",         LOG_LOCAL7 },
     { NULL,             -1         }
 };
+// clang-format on
 
 /** \brief returns the syslog facility enum map */
 SCEnumCharMap *SCSyslogGetFacilityMap(void)

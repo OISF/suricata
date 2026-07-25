@@ -533,7 +533,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     const char *temp_stream_memcap_str;
-    if (SCConfGet("stream.memcap", &temp_stream_memcap_str) == 1) {
+    if (SCConfGetNonNull("stream.memcap", &temp_stream_memcap_str) == 1) {
         uint64_t stream_memcap_copy;
         if (ParseSizeStringU64(temp_stream_memcap_str, &stream_memcap_copy) < 0) {
             SCLogError("Error parsing stream.memcap "
@@ -585,7 +585,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     const char *temp_stream_inline_str;
-    if (SCConfGet("stream.inline", &temp_stream_inline_str) == 1) {
+    if (SCConfGetNonNull("stream.inline", &temp_stream_inline_str) == 1) {
         int inl = 0;
 
         /* checking for "auto" and falling back to boolean to provide
@@ -705,7 +705,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     const char *temp_stream_reassembly_memcap_str;
-    if (SCConfGet("stream.reassembly.memcap", &temp_stream_reassembly_memcap_str) == 1) {
+    if (SCConfGetNonNull("stream.reassembly.memcap", &temp_stream_reassembly_memcap_str) == 1) {
         uint64_t stream_reassembly_memcap_copy;
         if (ParseSizeStringU64(temp_stream_reassembly_memcap_str,
                                &stream_reassembly_memcap_copy) < 0) {
@@ -727,7 +727,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     const char *temp_stream_reassembly_depth_str;
-    if (SCConfGet("stream.reassembly.depth", &temp_stream_reassembly_depth_str) == 1) {
+    if (SCConfGetNonNull("stream.reassembly.depth", &temp_stream_reassembly_depth_str) == 1) {
         if (ParseSizeStringU32(temp_stream_reassembly_depth_str,
                                &stream_config.reassembly_depth) < 0) {
             SCLogError("Error parsing "
@@ -754,7 +754,7 @@ void StreamTcpInitConfig(bool quiet)
 
     if (randomize) {
         const char *temp_rdrange;
-        if (SCConfGet("stream.reassembly.randomize-chunk-range", &temp_rdrange) == 1) {
+        if (SCConfGetNonNull("stream.reassembly.randomize-chunk-range", &temp_rdrange) == 1) {
             if (ParseSizeStringU16(temp_rdrange, &rdrange) < 0) {
                 SCLogError("Error parsing "
                            "stream.reassembly.randomize-chunk-range "
@@ -769,7 +769,7 @@ void StreamTcpInitConfig(bool quiet)
     }
 
     const char *temp_stream_reassembly_toserver_chunk_size_str;
-    if (SCConfGet("stream.reassembly.toserver-chunk-size",
+    if (SCConfGetNonNull("stream.reassembly.toserver-chunk-size",
                 &temp_stream_reassembly_toserver_chunk_size_str) == 1) {
         if (ParseSizeStringU16(temp_stream_reassembly_toserver_chunk_size_str,
                                &stream_config.reassembly_toserver_chunk_size) < 0) {
@@ -791,7 +791,7 @@ void StreamTcpInitConfig(bool quiet)
                         rdrange / 100);
     }
     const char *temp_stream_reassembly_toclient_chunk_size_str;
-    if (SCConfGet("stream.reassembly.toclient-chunk-size",
+    if (SCConfGetNonNull("stream.reassembly.toclient-chunk-size",
                 &temp_stream_reassembly_toclient_chunk_size_str) == 1) {
         if (ParseSizeStringU16(temp_stream_reassembly_toclient_chunk_size_str,
                                &stream_config.reassembly_toclient_chunk_size) < 0) {

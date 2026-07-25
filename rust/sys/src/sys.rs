@@ -263,6 +263,11 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCConfGetNonNull(
+        name: *const ::std::os::raw::c_char, vptr: *mut *const ::std::os::raw::c_char,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn SCConfGetInt(
         name: *const ::std::os::raw::c_char, val: *mut intmax_t,
     ) -> ::std::os::raw::c_int;
@@ -643,6 +648,12 @@ pub struct DetectEngineCtx_ {
 pub type DetectEngineCtx = DetectEngineCtx_;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct DetectEngineThreadCtx_ {
+    _unused: [u8; 0],
+}
+pub type DetectEngineThreadCtx = DetectEngineThreadCtx_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct Signature_ {
     _unused: [u8; 0],
 }
@@ -662,6 +673,21 @@ extern "C" {
     pub fn SCDetectSignatureAddTransform(
         s: *mut Signature, transform: ::std::os::raw::c_int, options: *mut ::std::os::raw::c_void,
     ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCDetectRegisterThreadCtxGlobalFuncs(
+        name: *const ::std::os::raw::c_char,
+        InitFunc: ::std::option::Option<
+            unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void) -> *mut ::std::os::raw::c_void,
+        >,
+        data: *mut ::std::os::raw::c_void,
+        FreeFunc: ::std::option::Option<unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void)>,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCDetectThreadCtxGetGlobalKeywordThreadCtx(
+        det_ctx: *mut DetectEngineThreadCtx, id: ::std::os::raw::c_int,
+    ) -> *mut ::std::os::raw::c_void;
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -692,12 +718,6 @@ impl Default for InspectionBuffer {
         }
     }
 }
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct DetectEngineThreadCtx_ {
-    _unused: [u8; 0],
-}
-pub type DetectEngineThreadCtx = DetectEngineThreadCtx_;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct DetectEngineTransforms {
@@ -865,8 +885,7 @@ extern "C" {
 }
 extern "C" {
     pub fn SCDetectHelperBufferProgressRegister(
-        name: *const ::std::os::raw::c_char, alproto: AppProto, direction: u8,
-        progress: ::std::os::raw::c_int,
+        name: *const ::std::os::raw::c_char, alproto: AppProto, direction: u8, progress: u8,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
@@ -876,16 +895,21 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCDetectHelperBufferProgressRegisterSubState(
+        name: *const ::std::os::raw::c_char, alproto: AppProto, direction: u8, sub_state: u8,
+        progress: u8,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn SCDetectRegisterMpmGeneric(
         name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
-        alproto: AppProto, direction: u8, GetData: InspectionBufferGetDataPtr,
+        alproto: AppProto, direction: u8, GetData: InspectionBufferGetDataPtr, progress: u8,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
     pub fn SCDetectHelperBufferProgressMpmRegister(
         name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
-        alproto: AppProto, direction: u8, GetData: InspectionSingleBufferGetDataPtr,
-        progress: ::std::os::raw::c_int,
+        alproto: AppProto, direction: u8, GetData: InspectionSingleBufferGetDataPtr, progress: u8,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
@@ -897,8 +921,14 @@ extern "C" {
 extern "C" {
     pub fn SCDetectHelperMultiBufferProgressMpmRegister(
         name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
-        alproto: AppProto, direction: u8, GetData: InspectionMultiBufferGetDataPtr,
-        progress: ::std::os::raw::c_int,
+        alproto: AppProto, direction: u8, GetData: InspectionMultiBufferGetDataPtr, progress: u8,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCDetectHelperMultiBufferProgressMpmRegisterSubState(
+        name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
+        alproto: AppProto, direction: u8, GetData: InspectionMultiBufferGetDataPtr, sub_state: u8,
+        progress: u8,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
@@ -1476,6 +1506,12 @@ pub struct AppLayerTxData {
     #[doc = " detection engine progress tracking for use by detection engine\n Reflects the \"progress\" of prefilter engines into this TX, where\n the value is offset by 1. So if for progress state 0 the engines\n are done, the value here will be 1. So a value of 0 means, no\n progress tracked yet.\n"]
     pub detect_progress_ts: u8,
     pub detect_progress_tc: u8,
+    #[doc = " Type of transaction. Meaning is defined by the parser. Used to\n select a state machine. 0 means it is not used."]
+    pub tx_type: u8,
+    #[doc = " End of TX progress values\n\n toserver end of tx progress value"]
+    pub tx_type_eop_ts: u8,
+    #[doc = " toclient end of tx progress value"]
+    pub tx_type_eop_tc: u8,
     pub de_state: *mut DetectEngineState,
     pub events: *mut AppLayerDecoderEvents,
     pub txbits: *mut GenericVar,
@@ -1518,6 +1554,13 @@ extern "C" {
 }
 extern "C" {
     pub fn SCAppLayerParserRegisterLogger(ipproto: u8, alproto: AppProto);
+}
+extern "C" {
+    #[doc = " \\brief register state<>name funcs for a substate"]
+    pub fn SCAppLayerParserRegisterGetTxSubStateFuncs(
+        alproto: AppProto, sub_state: u8, GetIdByNameFunc: AppLayerParserGetStateIdByNameFn,
+        GetNameByIdFunc: AppLayerParserGetStateNameByIdFn,
+    );
 }
 extern "C" {
     pub fn SCAppLayerParserTriggerRawStreamInspection(

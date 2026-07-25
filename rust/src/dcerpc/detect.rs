@@ -113,7 +113,7 @@ fn match_backuuid(
             if let Some(x) = &if_data.du16 {
                 if !detect_match_uint(x, uuidentry.version) {
                     SCLogDebug!("Interface version did not match");
-                    continue
+                    continue;
                 }
             }
 
@@ -408,7 +408,6 @@ unsafe extern "C" fn dcerpc_stub_data_setup(
 pub const DETECT_CI_FLAGS_DCE_LE: u8 = 1 << 2;
 pub const DETECT_CI_FLAGS_DCE_BE: u8 = 1 << 3;
 
-
 unsafe extern "C" fn dcerpc_tx_get_stub_data(
     det_ctx: *mut DetectEngineThreadCtx, transforms: *const DetectEngineTransforms,
     _flow: *mut Flow, dir: u8, tx: *mut c_void, list_id: c_int,
@@ -505,6 +504,7 @@ pub unsafe extern "C" fn SCDetectDcerpcRegister() {
         ALPROTO_DCERPC,
         STREAM_TOSERVER | STREAM_TOCLIENT,
         Some(dcerpc_tx_get_stub_data),
+        0,
     );
     G_DCERPC_STUB_BUFFER_ID = SCDetectHelperBufferMpmRegister(
         b"dce_stub_data\0".as_ptr() as *const libc::c_char,

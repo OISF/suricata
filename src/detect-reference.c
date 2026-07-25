@@ -153,6 +153,9 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
     if (strlen(scheme)) {
         SCLogConfig("scheme value %s overrides key %s", scheme, key);
         ref->key = SCStrdup(scheme);
+        if (ref->key == NULL) {
+            goto error;
+        }
         /* already bound checked to be REFERENCE_SYSTEM_NAME_MAX or less */
         ref->key_len = (uint16_t)strlen(scheme);
     } else {
@@ -160,6 +163,9 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
         SCRConfReference *lookup_ref_conf = SCRConfGetReference(key, de_ctx);
         if (lookup_ref_conf != NULL) {
             ref->key = SCStrdup(lookup_ref_conf->url);
+            if (ref->key == NULL) {
+                goto error;
+            }
             /* already bound checked to be REFERENCE_SYSTEM_NAME_MAX or less */
             ref->key_len = (uint16_t)strlen(ref->key);
         } else {

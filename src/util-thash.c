@@ -226,7 +226,7 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
 
     /** set config values for memcap, prealloc and hash_size */
     GET_VAR(cnf_prefix, "memcap");
-    if ((SCConfGet(varname, &conf_val)) == 1) {
+    if ((SCConfGetNonNull(varname, &conf_val)) == 1) {
         uint64_t memcap;
         if (ParseSizeStringU64(conf_val, &memcap) < 0) {
             SCLogError("Error parsing %s "
@@ -238,14 +238,14 @@ static int THashInitConfig(THashTableContext *ctx, const char *cnf_prefix)
         SC_ATOMIC_SET(ctx->config.memcap, memcap);
     }
     GET_VAR(cnf_prefix, "hash-size");
-    if ((SCConfGet(varname, &conf_val)) == 1) {
+    if ((SCConfGetNonNull(varname, &conf_val)) == 1) {
         if (StringParseUint32(&configval, 10, (uint16_t)strlen(conf_val), conf_val) > 0) {
             ctx->config.hash_size = configval;
         }
     }
 
     GET_VAR(cnf_prefix, "prealloc");
-    if ((SCConfGet(varname, &conf_val)) == 1) {
+    if ((SCConfGetNonNull(varname, &conf_val)) == 1) {
         if (StringParseUint32(&configval, 10, (uint16_t)strlen(conf_val), conf_val) > 0) {
             ctx->config.prealloc = configval;
         } else {

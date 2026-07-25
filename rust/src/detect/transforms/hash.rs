@@ -18,8 +18,8 @@
 use crate::detect::SIGMATCH_NOOPT;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
-    SCDetectSignatureAddTransform, SCTransformTableElmt, Signature, SCInspectionBufferCheckAndExpand,
-    SCInspectionBufferTruncate,
+    SCDetectSignatureAddTransform, SCInspectionBufferCheckAndExpand, SCInspectionBufferTruncate,
+    SCTransformTableElmt, Signature,
 };
 
 use crate::ffi::hashing::{G_DISABLE_HASHING, SC_SHA1_LEN, SC_SHA256_LEN};

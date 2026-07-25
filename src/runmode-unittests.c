@@ -167,6 +167,7 @@ static void RegisterUnittests(void)
     DecodeTCPRegisterTests();
     DecodeUDPV4RegisterTests();
     DecodeGRERegisterTests();
+    DecodeSCTPRegisterTests();
     DecodeESPRegisterTests();
     DecodeMPLSRegisterTests();
     DecodeNSHRegisterTests();

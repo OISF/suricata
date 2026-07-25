@@ -151,13 +151,13 @@ static const char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx)
 
         /* try loading prefix setting, fall back to global if that
          * fails. */
-        if (SCConfGet(config_value, &path) != 1) {
-            if (SCConfGet("reference-config-file", &path) != 1) {
+        if (SCConfGetNonNull(config_value, &path) != 1) {
+            if (SCConfGetNonNull("reference-config-file", &path) != 1) {
                 return (char *)SC_RCONF_DEFAULT_FILE_PATH;
             }
         }
     } else {
-        if (SCConfGet("reference-config-file", &path) != 1) {
+        if (SCConfGetNonNull("reference-config-file", &path) != 1) {
             return (char *)SC_RCONF_DEFAULT_FILE_PATH;
         }
     }

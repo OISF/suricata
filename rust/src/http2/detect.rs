@@ -16,14 +16,15 @@
  */
 
 use super::http2::{
-    HTTP2Event, HTTP2Frame, HTTP2FrameTypeData, HTTP2State, HTTP2Transaction, HTTP2TxProgress,
+    HTTP2Event, HTTP2Frame, HTTP2FrameTypeData, HTTP2Progress, HTTP2State, HTTP2Transaction,
+    HTTP2TxProgress,
 };
 use super::parser;
 use crate::detect::uint::{
     detect_match_uint, detect_parse_array_uint_enum, detect_uint_match_at_index,
     DetectUintArrayData, DetectUintData, DetectUintIndex, DetectUintMode,
 };
-use crate::detect::EnumString;
+use crate::detect::{DetectThreadBuf, EnumString};
 use crate::direction::Direction;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use std::ffi::CStr;
@@ -42,11 +43,7 @@ pub unsafe extern "C" fn SCHttp2TxHasFrametype(
     } else {
         &tx.frames_tc
     };
-    let eof = if direction & Direction::ToServer as u8 != 0 {
-        tx.progress_ts >= HTTP2TxProgress::HTTP2ProgComplete
-    } else {
-        tx.progress_tc >= HTTP2TxProgress::HTTP2ProgComplete
-    };
+    let eof = tx.progress.is_complete_for_direction(direction);
     return detect_uint_match_at_index::<HTTP2Frame, u8>(
         frames,
         ctx,
@@ -89,11 +86,7 @@ pub unsafe extern "C" fn SCHttp2TxHasErrorCode(
     } else {
         &tx.frames_tc
     };
-    let eof = if direction & Direction::ToServer as u8 != 0 {
-        tx.progress_ts >= HTTP2TxProgress::HTTP2ProgComplete
-    } else {
-        tx.progress_tc >= HTTP2TxProgress::HTTP2ProgComplete
-    };
+    let eof = tx.progress.is_complete_for_direction(direction);
     return detect_uint_match_at_index::<HTTP2Frame, u32>(frames, ctx, http2_tx_get_errorcode, eof);
 }
 
@@ -147,11 +140,7 @@ fn http2_match_priority(
     } else {
         &tx.frames_tc
     };
-    let eof = if direction == Direction::ToServer {
-        tx.progress_ts >= HTTP2TxProgress::HTTP2ProgComplete
-    } else {
-        tx.progress_tc >= HTTP2TxProgress::HTTP2ProgComplete
-    };
+    let eof = tx.progress.is_complete_for_direction(direction.into());
     return detect_uint_match_at_index::<HTTP2Frame, u8>(frames, ctx, get_http2_priority, eof);
 }
 
@@ -180,11 +169,7 @@ fn http2_match_window(
         &tx.frames_tc
     };
     // WINDOW_UPDATE frames may be sent in half-closed state
-    let eof = if direction == Direction::ToServer {
-        tx.progress_ts >= HTTP2TxProgress::HTTP2ProgComplete
-    } else {
-        tx.progress_tc >= HTTP2TxProgress::HTTP2ProgComplete
-    };
+    let eof = tx.progress.is_complete_for_direction(direction.into());
     return detect_uint_match_at_index::<HTTP2Frame, u32>(frames, ctx, get_http2_window, eof);
 }
 
@@ -572,7 +557,7 @@ pub unsafe extern "C" fn SCHttp2TxGetMethod(
 pub unsafe extern "C" fn SCHttp2TxGetHost(
     tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32, tbuf: *mut c_void,
 ) -> u8 {
-    let tbuf = cast_pointer!(tbuf, Http2ThreadBuf);
+    let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
     if let Some(value) = http2_frames_get_header_value(tx, Direction::ToServer, ":authority") {
         match value {
             Http2Header::Single(v) => {
@@ -644,7 +629,7 @@ fn http2_normalize_host(ve: Http2Header) -> Http2Header {
 pub unsafe extern "C" fn SCHttp2TxGetHostNorm(
     tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32, tbuf: *mut c_void,
 ) -> u8 {
-    let tbuf = cast_pointer!(tbuf, Http2ThreadBuf);
+    let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
     if let Some(value) = http2_frames_get_header_value(tx, Direction::ToServer, ":authority") {
         match http2_normalize_host(value) {
             Http2Header::Single(v) => {
@@ -666,7 +651,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHostNorm(
 pub unsafe extern "C" fn SCHttp2TxGetUserAgent(
     tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32, tbuf: *mut c_void,
 ) -> u8 {
-    let tbuf = cast_pointer!(tbuf, Http2ThreadBuf);
+    let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
     if let Some(value) = http2_frames_get_header_value(tx, Direction::ToServer, "user-agent") {
         match value {
             Http2Header::Single(v) => {
@@ -701,7 +686,7 @@ pub unsafe extern "C" fn SCHttp2TxGetCookie(
     tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
     tbuf: *mut c_void,
 ) -> u8 {
-    let tbuf = cast_pointer!(tbuf, Http2ThreadBuf);
+    let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
     if direction == u8::from(Direction::ToServer) {
         if let Some(value) = http2_frames_get_header_value(tx, Direction::ToServer, "cookie") {
             match value {
@@ -740,7 +725,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaderValue(
     tx: &mut HTTP2Transaction, direction: u8, strname: *const std::os::raw::c_char,
     buffer: *mut *const u8, buffer_len: *mut u32, tbuf: *mut c_void,
 ) -> u8 {
-    let tbuf = cast_pointer!(tbuf, Http2ThreadBuf);
+    let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
     let hname: &CStr = CStr::from_ptr(strname); //unsafe
     if let Ok(s) = hname.to_str() {
         if let Some(value) = http2_frames_get_header_value(tx, direction.into(), &s.to_lowercase())
@@ -772,28 +757,12 @@ fn http2_escape_header(blocks: &[parser::HTTP2FrameHeaderBlock], i: u32) -> Vec<
     return vec;
 }
 
-#[derive(Default)]
-struct Http2ThreadBuf {
-    data: Vec<u8>,
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCHttp2ThreadBufDataInit(_cfg: *mut c_void) -> *mut c_void {
-    let boxed = Box::new(Http2ThreadBuf::default());
-    return Box::into_raw(boxed) as *mut c_void;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn SCHttp2ThreadBufDataFree(ctx: *mut c_void) {
-    std::mem::drop(Box::from_raw(ctx as *mut Http2ThreadBuf));
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2TxGetHeaderNames(
     tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
     tbuf: *mut c_void,
 ) -> u8 {
-    let tbuf = cast_pointer!(tbuf, Http2ThreadBuf);
+    let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
     tbuf.data.clear();
     tbuf.data.extend_from_slice(b"\r\n");
     let frames = if direction & Direction::ToServer as u8 != 0 {
@@ -857,7 +826,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaders(
     tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
     tbuf: *mut c_void,
 ) -> u8 {
-    let tbuf = cast_pointer!(tbuf, Http2ThreadBuf);
+    let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
     tbuf.data.clear();
     let frames = if direction & Direction::ToServer as u8 != 0 {
         &tx.frames_ts
@@ -891,7 +860,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeadersRaw(
     tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
     tbuf: *mut c_void,
 ) -> u8 {
-    let tbuf = cast_pointer!(tbuf, Http2ThreadBuf);
+    let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
     tbuf.data.clear();
     let frames = if direction & Direction::ToServer as u8 != 0 {
         &tx.frames_ts
@@ -1013,7 +982,9 @@ fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
         data: txdata,
     });
     //we do not expect more data from client
-    tx.progress_ts = HTTP2TxProgress::HTTP2ProgClosed;
+    if let HTTP2Progress::STREAM(ref mut stream_tx) = tx.progress {
+        stream_tx.progress_ts = HTTP2TxProgress::HTTP2ProgClosed;
+    }
 }
 
 #[no_mangle]

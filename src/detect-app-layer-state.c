@@ -128,8 +128,17 @@ end:
         SCLogDebug("DETECT_ENGINE_INSPECT_SIG_MATCH");
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
-        if (AppLayerParserGetStateProgress(f->proto, alproto, tx, flags) ==
-                AppLayerParserGetStateProgressCompletionStatus(alproto, flags)) {
+        AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, alproto, tx);
+        uint8_t tx_end_state;
+        if (txd->tx_type == 0) {
+            tx_end_state = (uint8_t)AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
+        } else {
+            if (flags & STREAM_TOSERVER)
+                tx_end_state = txd->tx_type_eop_ts;
+            else
+                tx_end_state = txd->tx_type_eop_tc;
+        }
+        if (AppLayerParserGetStateProgress(f->proto, alproto, tx, flags) == tx_end_state) {
             SCLogDebug("DETECT_ENGINE_INSPECT_SIG_CANT_MATCH");
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
         } else {
@@ -140,7 +149,7 @@ end:
 }
 
 // TODO dedup with detect-parse.c
-static SignatureHook SetAppHook(const AppProto alproto, int progress)
+static SignatureHook SetAppHook(const AppProto alproto, uint8_t progress)
 {
     SignatureHook h = {
         .type = SIGNATURE_HOOK_TYPE_APP,
@@ -175,7 +184,7 @@ static int DetectAppLayerStateSetup(DetectEngineCtx *de_ctx, Signature *s, const
                 IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOSERVER);
         if (progress_ts >= 0) {
             s->flags |= SIG_FLAG_TOSERVER;
-            s->init_data->hook = SetAppHook(s->alproto, progress_ts);
+            s->init_data->hook = SetAppHook(s->alproto, (uint8_t)progress_ts);
         } else {
             const int progress_tc = AppLayerParserGetStateIdByName(
                     IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOCLIENT);
@@ -183,7 +192,7 @@ static int DetectAppLayerStateSetup(DetectEngineCtx *de_ctx, Signature *s, const
                 return -1;
             }
             s->flags |= SIG_FLAG_TOCLIENT;
-            s->init_data->hook = SetAppHook(s->alproto, progress_tc);
+            s->init_data->hook = SetAppHook(s->alproto, (uint8_t)progress_tc);
         }
         SCLogDebug("hook %u", s->init_data->hook.t.app.app_progress);
         return 0;

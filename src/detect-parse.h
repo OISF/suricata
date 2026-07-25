@@ -122,7 +122,5 @@ struct DetectFirewallPolicy;
 void DetectFirewallPolicyToString(const struct DetectFirewallPolicy *p, char *out, size_t out_size);
 int DetectFirewallInitDefaultPolicies(DetectEngineCtx *);
 int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *);
-Signature *DetectFirewallGetPolicySignature(struct DetectFirewallPolicies *fw_policies,
-        const AppProto alproto, const int direction, const uint8_t hook);
 
 #endif /* SURICATA_DETECT_PARSE_H */

@@ -119,21 +119,24 @@ void DetectHttpCookieRegister(void)
     DetectAppLayerMpmRegister("http_cookie", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetResponseData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
 
-    DetectAppLayerInspectEngineRegister("http_cookie", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetRequestData2);
-    DetectAppLayerInspectEngineRegister("http_cookie", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetResponseData2);
+    DetectAppLayerInspectEngineRegisterSubState("http_cookie", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetRequestData2);
+    DetectAppLayerInspectEngineRegisterSubState("http_cookie", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric,
+            GetResponseData2);
 
-    DetectAppLayerMpmRegister("http_cookie", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetRequestData2, ALPROTO_HTTP2, HTTP2ProgHeaders);
-    DetectAppLayerMpmRegister("http_cookie", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetResponseData2, ALPROTO_HTTP2, HTTP2ProgHeaders);
+    DetectAppLayerMpmRegisterSubState("http_cookie", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetRequestData2, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgHeaders);
+    DetectAppLayerMpmRegisterSubState("http_cookie", SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister, GetResponseData2, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgHeaders);
 
     DetectBufferTypeSetDescriptionByName("http_cookie",
             "http cookie header");
 
-    g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
-            "http_cookie", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
+    g_http2_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
+            "http_cookie", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     g_http_cookie_buffer_id = DetectBufferTypeGetByName("http_cookie");
 }
@@ -238,7 +241,7 @@ static InspectionBuffer *GetRequestData2(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        void *thread_buf = SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
         if (thread_buf == NULL)
             return NULL;
         if (SCHttp2TxGetCookie(txv, STREAM_TOSERVER, &b, &b_len, thread_buf) != 1)
@@ -261,7 +264,7 @@ static InspectionBuffer *GetResponseData2(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        void *thread_buf = SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
         if (thread_buf == NULL)
             return NULL;
         if (SCHttp2TxGetCookie(txv, STREAM_TOCLIENT, &b, &b_len, thread_buf) != 1)

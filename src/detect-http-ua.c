@@ -107,17 +107,18 @@ void DetectHttpUARegister(void)
     DetectAppLayerMpmRegister("http_user_agent", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
 
-    DetectAppLayerInspectEngineRegister("http_user_agent", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetData2);
+    DetectAppLayerInspectEngineRegisterSubState("http_user_agent", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetData2);
 
-    DetectAppLayerMpmRegister("http_user_agent", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetData2, ALPROTO_HTTP2, HTTP2ProgHeaders);
+    DetectAppLayerMpmRegisterSubState("http_user_agent", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetData2, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgHeaders);
 
     DetectBufferTypeSetDescriptionByName("http_user_agent",
             "http user agent");
 
-    g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
-            "http_user_agent", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
+    g_http2_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
+            "http_user_agent", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     g_http_ua_buffer_id = DetectBufferTypeGetByName("http_user_agent");
 }
@@ -196,7 +197,7 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
-        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        void *thread_buf = SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
         if (thread_buf == NULL)
             return NULL;
         if (SCHttp2TxGetUserAgent(txv, &b, &b_len, thread_buf) != 1)

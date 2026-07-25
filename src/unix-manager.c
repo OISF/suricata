@@ -121,7 +121,7 @@ static int UnixNew(UnixCommand * this)
     TAILQ_INIT(&this->clients);
 
     int check_dir = 0;
-    if (SCConfGet("unix-command.filename", &socketname) == 1) {
+    if (SCConfGetNonNull("unix-command.filename", &socketname) == 1) {
         if (PathIsAbsolute(socketname)) {
             strlcpy(sockettarget, socketname, sizeof(sockettarget));
         } else {
@@ -888,7 +888,7 @@ static TmEcode UnixManagerConfGetCommand(json_t *cmd,
     }
 
     variable = (char *)json_string_value(jarg);
-    if (SCConfGet(variable, &confval) != 1) {
+    if (SCConfGetNonNull(variable, &confval) != 1) {
         json_object_set_new(server_msg, "message", json_string("Unable to get value"));
         SCReturnInt(TM_ECODE_FAILED);
     }

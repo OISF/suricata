@@ -219,8 +219,13 @@ int SCServiceInstall(int argc, char **argv)
     do {
         memset(path, 0, sizeof(path));
 
-        if (GetModuleFileName(NULL, path, MAX_PATH) == 0 ){
+        path[0] = '"';
+        if (GetModuleFileName(NULL, path + 1, sizeof(path) - 1) == 0) {
             SCLogError("Can't get path to service binary: %d", (int)GetLastError());
+            break;
+        }
+        if (strlcat(path, "\"", sizeof(path)) >= sizeof(path)) {
+            SCLogError("failed to construct service path string: path truncated: %s", path);
             break;
         }
 
@@ -229,8 +234,14 @@ int SCServiceInstall(int argc, char **argv)
             if ((strlen(argv[i]) <= strlen("--service-install")) && (strncmp("--service-install", argv[i], strlen(argv[i])) == 0)) {
                 continue;
             }
-            strlcat(path, " ", sizeof(path) - strlen(path) - 1);
-            strlcat(path, argv[i], sizeof(path) - strlen(path) - 1);
+            if (strlcat(path, " ", sizeof(path)) >= sizeof(path)) {
+                SCLogError("failed to construct service path string: path truncated: %s", path);
+                return -1;
+            }
+            if (strlcat(path, argv[i], sizeof(path)) >= sizeof(path)) {
+                SCLogError("failed to construct service path string: path truncated: %s", path);
+                return -1;
+            }
         }
 
         if ((scm = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS)) == NULL) {
@@ -344,8 +355,13 @@ int SCServiceChangeParams(int argc, char **argv)
     do {
         memset(path, 0, sizeof(path));
 
-        if (GetModuleFileName(NULL, path, MAX_PATH) == 0 ){
+        path[0] = '"';
+        if (GetModuleFileName(NULL, path + 1, sizeof(path) - 1) == 0) {
             SCLogError("Can't get path to service binary: %d", (int)GetLastError());
+            break;
+        }
+        if (strlcat(path, "\"", sizeof(path)) >= sizeof(path)) {
+            SCLogError("failed to construct service path string: path truncated: %s", path);
             break;
         }
 
@@ -354,8 +370,14 @@ int SCServiceChangeParams(int argc, char **argv)
             if ((strlen(argv[i]) <= strlen("--service-change-params")) && (strncmp("--service-change-params", argv[i], strlen(argv[i])) == 0)) {
                 continue;
             }
-            strlcat(path, " ", sizeof(path) - strlen(path) - 1);
-            strlcat(path, argv[i], sizeof(path) - strlen(path) - 1);
+            if (strlcat(path, " ", sizeof(path)) >= sizeof(path)) {
+                SCLogError("failed to construct service path string: path truncated: %s", path);
+                return -1;
+            }
+            if (strlcat(path, argv[i], sizeof(path)) >= sizeof(path)) {
+                SCLogError("failed to construct service path string: path truncated: %s", path);
+                return -1;
+            }
         }
 
         if ((scm = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS)) == NULL) {

@@ -68,10 +68,10 @@ typedef struct LogFileTypeCtx_ {
     void *thread_data;
 } LogFileTypeCtx;
 
-typedef struct LogFileFlushEntry_ {
+typedef struct LogFileEntry_ {
     struct LogFileCtx_ *ctx;
-    TAILQ_ENTRY(LogFileFlushEntry_) entries;
-} LogFileFlushEntry;
+    TAILQ_ENTRY(LogFileEntry_) entries;
+} LogFileEntry;
 
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {
@@ -92,6 +92,7 @@ typedef struct LogFileCtx_ {
     int (*Write)(const char *buffer, int buffer_len, struct LogFileCtx_ *fp);
     void (*Close)(struct LogFileCtx_ *fp);
     void (*Flush)(struct LogFileCtx_ *fp);
+    void (*Rotate)(struct LogFileCtx_ *fp);
 
     LogFileTypeCtx filetype;
 
@@ -192,9 +193,10 @@ int SCConfLogOpenGeneric(SCConfNode *conf, LogFileCtx *, const char *, int);
 int SCConfLogReopen(LogFileCtx *);
 bool SCLogOpenThreadedFile(const char *log_path, const char *append, LogFileCtx *parent_ctx);
 
-/* Flush list management functions */
-void LogFileRegisterForFlush(LogFileCtx *ctx);
-void LogFileUnregisterForFlush(LogFileCtx *ctx);
+/* Log file list management functions */
+void LogFileRegister(LogFileCtx *ctx);
+void LogFileUnregister(LogFileCtx *ctx);
 void LogFileFlushAll(void);
+void LogFileRotateAll(void);
 
 #endif /* SURICATA_UTIL_LOGOPENFILE_H */

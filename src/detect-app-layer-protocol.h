@@ -24,6 +24,31 @@
 #ifndef SURICATA_DETECT_APP_LAYER_PROTOCOL__H
 #define SURICATA_DETECT_APP_LAYER_PROTOCOL__H
 
+#include "app-layer-protos.h"
+
 void DetectAppLayerProtocolRegister(void);
+const char *DetectAppLayerProtocolModeName(uint8_t mode);
+struct DetectAppLayerProtocolData_;
+uint16_t DetectAppLayerProtocolGetValues(
+        const struct DetectAppLayerProtocolData_ *data, AppProto *out, uint16_t max);
+
+/**
+ * \brief Per-rule keyword data for `app-layer-protocol:`.
+ *
+ * `alprotos` is the effective match set: a bitmask (one bit per AppProto,
+ * sized g_alproto_max) holding every flow protocol that should match, with the
+ * AppProtoEquals() equivalences (or, with the `exact` option, only the exact
+ * values) already expanded in at rule load. The per-packet match is then a
+ * single bitmask test. `alproto` is the first configured value, used as the
+ * prefilter bucket key for single-value (prefilterable) rules.
+ */
+typedef struct DetectAppLayerProtocolData_ {
+    AppProto alproto; /**< first configured value; single-value prefilter key */
+    bool negated;
+    bool exact;   /**< `exact` option: strict identity, no equivalences/umbrella */
+    bool is_list; /**< more than one value configured (not prefilterable) */
+    uint8_t mode;
+    uint8_t *alprotos; /**< effective match set (g_alproto_max bits) */
+} DetectAppLayerProtocolData;
 
 #endif /* SURICATA_DETECT_APP_LAYER_PROTOCOL__H */

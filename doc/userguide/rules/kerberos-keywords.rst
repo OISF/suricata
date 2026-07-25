@@ -35,7 +35,8 @@ Signature examples::
 krb5_cname
 ----------
 
-Kerberos client name, provided in the ticket (for AS-REQ and TGS-REQ messages).
+Kerberos client name, provided in the ticket (for AS-REP and TGS-REP messages)
+or in the error message.
 
 If the client name from the Kerberos message is composed of several parts, the
 name is compared to each part and the match will succeed if any is identical.
@@ -59,7 +60,7 @@ Syntax::
 krb5_sname
 ----------
 
-Kerberos server name, provided in the ticket (for AS-REQ and TGS-REQ messages)
+Kerberos server name, provided in the ticket (for AS-REP and TGS-REP messages)
 or in the error message.
 
 If the server name from the Kerberos message is composed of several parts, the
@@ -87,6 +88,8 @@ krb5_err_code
 Kerberos error code (integer). This field is matched in Kerberos error messages only.
 
 For a list of error codes, refer to RFC4120 section 7.5.9.
+
+krb5_err_code uses :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
 
 Syntax::
 

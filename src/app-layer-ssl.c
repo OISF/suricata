@@ -3137,7 +3137,7 @@ static void CheckJA3Enabled(void)
     const char *strval = NULL;
     /* Check if we should generate JA3 fingerprints */
     int enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
-    if (SCConfGet("app-layer.protocols.tls.ja3-fingerprints", &strval) != 1) {
+    if (SCConfGetNonNull("app-layer.protocols.tls.ja3-fingerprints", &strval) != 1) {
         enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
     } else if (strcmp(strval, "auto") == 0) {
         enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
@@ -3162,7 +3162,7 @@ static void CheckJA4Enabled(void)
     const char *strval = NULL;
     /* Check if we should generate JA4 fingerprints */
     int enable_ja4 = SSL_CONFIG_DEFAULT_JA4;
-    if (SCConfGet("app-layer.protocols.tls.ja4-fingerprints", &strval) != 1) {
+    if (SCConfGetNonNull("app-layer.protocols.tls.ja4-fingerprints", &strval) != 1) {
         enable_ja4 = SSL_CONFIG_DEFAULT_JA4;
     } else if (strcmp(strval, "auto") == 0) {
         enable_ja4 = SSL_CONFIG_DEFAULT_JA4;

@@ -79,6 +79,8 @@ include = [
     "FtpStateValues",
     "FtpDataStateValues",
     "HTTP2TxProgress",
+    "HTTP2TxGlobalProgress",
+    "HTTP2TxType",
     "DataRepType",
 ]
 
@@ -86,6 +88,7 @@ include = [
 # default: []
 exclude = [
     "CLuaState",
+    "DETECT_BYTEMATH_ENDIAN_DEFAULT",
 ]
 
 # Types of items that we'll generate. If empty, then all types of item are emitted.

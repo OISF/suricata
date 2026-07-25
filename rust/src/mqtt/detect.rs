@@ -1073,7 +1073,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         AppLayerTxMatch: Some(mqtt_flags_match),
         Setup: Some(mqtt_flags_setup),
         Free: Some(mqtt_flags_free),
-        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_BITFLAGS_UINT,
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_BITFLAGS_UINT,
     };
     G_MQTT_FLAGS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_FLAGS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
@@ -1089,7 +1089,7 @@ pub unsafe extern "C" fn SCDetectMqttRegister() {
         AppLayerTxMatch: Some(mqtt_conn_flags_match),
         Setup: Some(mqtt_conn_flags_setup),
         Free: Some(mqtt_conn_flags_free),
-        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_BITFLAGS_UINT,
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_BITFLAGS_UINT,
     };
     G_MQTT_CONN_FLAGS_KW_ID = SCDetectHelperKeywordRegister(&kw);
     G_MQTT_CONN_FLAGS_BUFFER_ID = SCDetectHelperBufferProgressRegister(

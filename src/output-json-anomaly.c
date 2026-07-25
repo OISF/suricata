@@ -229,8 +229,7 @@ static int JsonAnomalyTxLogger(ThreadVars *tv, void *thread_data, const Packet *
 
 static inline bool AnomalyHasParserEvents(const Packet *p)
 {
-    return (p->flow && p->flow->alparser &&
-            AppLayerParserHasDecoderEvents(p->flow->alparser));
+    return (p->flow && AppLayerParserHasDecoderEvents(p->flow->alparser));
 }
 
 static inline bool AnomalyHasPacketAppLayerEvents(const Packet *p)

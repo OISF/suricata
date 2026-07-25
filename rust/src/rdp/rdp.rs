@@ -1,4 +1,4 @@
-/* Copyright (C) 2019-2022 Open Information Security Foundation
+/* Copyright (C) 2019-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -70,11 +70,11 @@ impl Transaction for RdpTransaction {
 }
 
 impl RdpTransaction {
-    fn new(id: u64, item: RdpTransactionItem) -> Self {
+    fn new(id: u64, item: RdpTransactionItem, direction: Direction) -> Self {
         Self {
             id,
             item,
-            tx_data: AppLayerTxData::new(),
+            tx_data: AppLayerTxData::for_direction(direction),
         }
     }
 }
@@ -146,7 +146,7 @@ impl RdpState {
         let mut index = 0;
         for ii in 0..len {
             let tx = &self.transactions[ii];
-            if tx.id == tx_id {
+            if tx.id == tx_id + 1 {
                 found = true;
                 index = ii;
                 break;
@@ -158,12 +158,12 @@ impl RdpState {
     }
 
     fn get_tx(&self, tx_id: u64) -> Option<&RdpTransaction> {
-        self.transactions.iter().find(|&tx| tx.id == tx_id)
+        self.transactions.iter().find(|&tx| tx.id == tx_id + 1)
     }
 
-    fn new_tx(&mut self, item: RdpTransactionItem) -> RdpTransaction {
+    fn new_tx(&mut self, item: RdpTransactionItem, direction: Direction) -> RdpTransaction {
         self.next_id += 1;
-        let tx = RdpTransaction::new(self.next_id, item);
+        let tx = RdpTransaction::new(self.next_id, item, direction);
         return tx;
     }
 
@@ -209,8 +209,10 @@ impl RdpState {
                         match t123.child {
                             // X.224 connection request
                             T123TpktChild::X224ConnectionRequest(x224) => {
-                                let tx =
-                                    self.new_tx(RdpTransactionItem::X224ConnectionRequest(x224));
+                                let tx = self.new_tx(
+                                    RdpTransactionItem::X224ConnectionRequest(x224),
+                                    Direction::ToServer,
+                                );
                                 self.transactions.push_back(tx);
                                 if !flow.is_null() {
                                     sc_app_layer_parser_trigger_raw_stream_inspection(
@@ -225,8 +227,10 @@ impl RdpState {
                                 #[allow(clippy::single_match)]
                                 match x223.child {
                                     X223DataChild::McsConnectRequest(mcs) => {
-                                        let tx =
-                                            self.new_tx(RdpTransactionItem::McsConnectRequest(mcs));
+                                        let tx = self.new_tx(
+                                            RdpTransactionItem::McsConnectRequest(mcs),
+                                            Direction::ToServer,
+                                        );
                                         self.transactions.push_back(tx);
                                         if !flow.is_null() {
                                             sc_app_layer_parser_trigger_raw_stream_inspection(
@@ -302,8 +306,10 @@ impl RdpState {
                                             data: cert.data.to_vec(),
                                         });
                                     }
-                                    let tx =
-                                        self.new_tx(RdpTransactionItem::TlsCertificateChain(chain));
+                                    let tx = self.new_tx(
+                                        RdpTransactionItem::TlsCertificateChain(chain),
+                                        Direction::ToClient,
+                                    );
                                     self.transactions.push_back(tx);
                                     if !flow.is_null() {
                                         sc_app_layer_parser_trigger_raw_stream_inspection(
@@ -341,8 +347,10 @@ impl RdpState {
                         match t123.child {
                             // X.224 connection confirm
                             T123TpktChild::X224ConnectionConfirm(x224) => {
-                                let tx =
-                                    self.new_tx(RdpTransactionItem::X224ConnectionConfirm(x224));
+                                let tx = self.new_tx(
+                                    RdpTransactionItem::X224ConnectionConfirm(x224),
+                                    Direction::ToClient,
+                                );
                                 self.transactions.push_back(tx);
                                 if !flow.is_null() {
                                     sc_app_layer_parser_trigger_raw_stream_inspection(
@@ -357,8 +365,10 @@ impl RdpState {
                                 #[allow(clippy::single_match)]
                                 match x223.child {
                                     X223DataChild::McsConnectResponse(mcs) => {
-                                        let tx = self
-                                            .new_tx(RdpTransactionItem::McsConnectResponse(mcs));
+                                        let tx = self.new_tx(
+                                            RdpTransactionItem::McsConnectResponse(mcs),
+                                            Direction::ToClient,
+                                        );
                                         self.transactions.push_back(tx);
                                         if !flow.is_null() {
                                             sc_app_layer_parser_trigger_raw_stream_inspection(
@@ -655,8 +665,8 @@ mod tests {
         let item1 = RdpTransactionItem::McsConnectRequest(McsConnectRequest {
             children: Vec::new(),
         });
-        let tx0 = state.new_tx(item0);
-        let tx1 = state.new_tx(item1);
+        let tx0 = state.new_tx(item0, Direction::ToServer);
+        let tx1 = state.new_tx(item1, Direction::ToServer);
         assert_eq!(2, state.next_id);
         state.transactions.push_back(tx0);
         state.transactions.push_back(tx1);
@@ -665,6 +675,32 @@ mod tests {
         assert_eq!(2, state.transactions[1].id);
         assert!(!state.tls_parsing);
         assert!(!state.bypass_parsing);
+    }
+
+    #[test]
+    fn test_tx_skip_inspect_direction() {
+        // a to-server tx should be marked to skip the to-client inspection it
+        // will never be observed in, and a to-client tx the reverse
+        let ts_item = RdpTransactionItem::McsConnectRequest(McsConnectRequest {
+            children: Vec::new(),
+        });
+        let ts_tx = RdpTransaction::new(1, ts_item, Direction::ToServer);
+        assert_eq!(
+            APP_LAYER_TX_SKIP_INSPECT_TC,
+            ts_tx.tx_data.0.flags & APP_LAYER_TX_SKIP_INSPECT_TC
+        );
+        assert_eq!(0, ts_tx.tx_data.0.flags & APP_LAYER_TX_SKIP_INSPECT_TS);
+
+        let tc_tx = RdpTransaction::new(
+            2,
+            RdpTransactionItem::McsConnectResponse(McsConnectResponse {}),
+            Direction::ToClient,
+        );
+        assert_eq!(
+            APP_LAYER_TX_SKIP_INSPECT_TS,
+            tc_tx.tx_data.0.flags & APP_LAYER_TX_SKIP_INSPECT_TS
+        );
+        assert_eq!(0, tc_tx.tx_data.0.flags & APP_LAYER_TX_SKIP_INSPECT_TC);
     }
 
     #[test]
@@ -679,13 +715,13 @@ mod tests {
         let item2 = RdpTransactionItem::McsConnectRequest(McsConnectRequest {
             children: Vec::new(),
         });
-        let tx0 = state.new_tx(item0);
-        let tx1 = state.new_tx(item1);
-        let tx2 = state.new_tx(item2);
+        let tx0 = state.new_tx(item0, Direction::ToServer);
+        let tx1 = state.new_tx(item1, Direction::ToServer);
+        let tx2 = state.new_tx(item2, Direction::ToServer);
         state.transactions.push_back(tx0);
         state.transactions.push_back(tx1);
         state.transactions.push_back(tx2);
-        assert_eq!(Some(&state.transactions[1]), state.get_tx(2));
+        assert_eq!(Some(&state.transactions[1]), state.get_tx(1));
     }
 
     #[test]
@@ -700,17 +736,17 @@ mod tests {
         let item2 = RdpTransactionItem::McsConnectRequest(McsConnectRequest {
             children: Vec::new(),
         });
-        let tx0 = state.new_tx(item0);
-        let tx1 = state.new_tx(item1);
-        let tx2 = state.new_tx(item2);
+        let tx0 = state.new_tx(item0, Direction::ToServer);
+        let tx1 = state.new_tx(item1, Direction::ToServer);
+        let tx2 = state.new_tx(item2, Direction::ToServer);
         state.transactions.push_back(tx0);
         state.transactions.push_back(tx1);
         state.transactions.push_back(tx2);
-        state.free_tx(1);
+        state.free_tx(0);
         assert_eq!(3, state.next_id);
         assert_eq!(2, state.transactions.len());
         assert_eq!(2, state.transactions[0].id);
         assert_eq!(3, state.transactions[1].id);
-        assert_eq!(None, state.get_tx(1));
+        assert_eq!(None, state.get_tx(0));
     }
 }

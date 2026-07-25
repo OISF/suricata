@@ -83,13 +83,6 @@ void DetectIPProtoRegister(void)
  */
 static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
 {
-    DetectIPProtoData *data = NULL;
-    char *args[2] = { NULL, NULL };
-    int res = 0;
-    size_t pcre2_len;
-    int i;
-    const char *str_ptr;
-
     /* Execute the regex and populate args with captures. */
     pcre2_match_data *match = NULL;
     int ret = DetectParsePcreExec(&parse_regex, &match, optstr, 0, 0);
@@ -97,11 +90,19 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
         SCLogError("pcre_exec parse error, ret"
                    "%" PRId32 ", string %s",
                 ret, optstr);
-        goto error;
+        if (match) {
+            pcre2_match_data_free(match);
+        }
+        return NULL;
     }
 
-    for (i = 0; i < (ret - 1); i++) {
-        res = pcre2_substring_get_bynumber(match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
+    char *args[2] = { NULL, NULL };
+    DetectIPProtoData *data = NULL;
+
+    for (int i = 0; i < 2; i++) {
+        const char *str_ptr = NULL;
+        size_t pcre2_len = 0;
+        int res = pcre2_substring_get_bynumber(match, i + 1, (PCRE2_UCHAR8 **)&str_ptr, &pcre2_len);
         if (res < 0) {
             SCLogError("pcre2_substring_get_bynumber failed");
             goto error;
@@ -110,7 +111,7 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     }
 
     /* Initialize the data */
-    data = SCMalloc(sizeof(DetectIPProtoData));
+    data = SCCalloc(1, sizeof(DetectIPProtoData));
     if (unlikely(data == NULL))
         goto error;
     data->op = DETECT_IPPROTO_OP_EQ;
@@ -125,19 +126,19 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     if (!isdigit((unsigned char)*(args[1]))) {
         uint8_t proto;
         if (!SCGetProtoByName(args[1], &proto)) {
-            SCLogError("Unknown protocol name: \"%s\"", str_ptr);
+            SCLogError("Unknown protocol name: \"%s\"", args[1]);
             goto error;
         }
         data->proto = proto;
     }
     else {
         if (StringParseUint8(&data->proto, 10, 0, args[1]) <= 0) {
-            SCLogError("Malformed protocol number: %s", str_ptr);
+            SCLogError("Malformed protocol number: %s", args[1]);
             goto error;
         }
     }
 
-    for (i = 0; i < (ret - 1); i++){
+    for (int i = 0; i < 2; i++) {
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }
@@ -149,7 +150,7 @@ error:
     if (match) {
         pcre2_match_data_free(match);
     }
-    for (i = 0; i < (ret - 1) && i < 2; i++){
+    for (int i = 0; i < 2; i++) {
         if (args[i] != NULL)
             pcre2_substring_free((PCRE2_UCHAR8 *)args[i]);
     }

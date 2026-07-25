@@ -27,6 +27,7 @@
 // types from detect.h with only forward declarations for bindgen
 // could be #ifndef SURICATA_BINDGEN_H #include "detect.h" #endif
 typedef struct DetectEngineCtx_ DetectEngineCtx;
+typedef struct DetectEngineThreadCtx_ DetectEngineThreadCtx;
 typedef struct Signature_ Signature;
 typedef struct SigMatch_ SigMatch;
 
@@ -35,5 +36,11 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s);
 SigMatch *DetectBufferGetFirstSigMatch(const Signature *s, const uint32_t buf_id);
 SigMatch *DetectBufferGetLastSigMatch(const Signature *s, const uint32_t buf_id);
 int SCDetectSignatureAddTransform(Signature *s, int transform, void *options);
+
+// Declared here for bindgen
+// But defined in detect-engine.c to access g_master_de_ctx
+int SCDetectRegisterThreadCtxGlobalFuncs(
+        const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *));
+void *SCDetectThreadCtxGetGlobalKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id);
 
 #endif /* SURICATA_DETECT_ENGINE_BUFFER_H */

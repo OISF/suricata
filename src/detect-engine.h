@@ -80,10 +80,6 @@ DetectEngineCtx *DetectEngineCtxInitStubForMT(void);
 void DetectEngineCtxFree(DetectEngineCtx *);
 int DetectEngineThreadCtxGetJsonContext(DetectEngineThreadCtx *det_ctx);
 
-int DetectRegisterThreadCtxGlobalFuncs(const char *name,
-        void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *));
-void *DetectThreadCtxGetGlobalKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id);
-
 TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
 bool DetectEngineMpmCachingEnabled(void);
@@ -164,12 +160,23 @@ int DetectEngineInspectPktBufferGeneric(
  * \param Callback The engine callback.
  */
 void DetectAppLayerInspectEngineRegister(const char *name, AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback2, InspectionBufferGetDataPtr GetData);
+        uint8_t progress, InspectEngineFuncPtr Callback2, InspectionBufferGetDataPtr GetData);
+
+/**
+ * \brief register an app inspection engine for a tx type
+ * \param type the tx type
+ */
+void DetectAppLayerInspectEngineRegisterSubState(const char *name, AppProto alproto, uint32_t dir,
+        uint8_t type, uint8_t progress, InspectEngineFuncPtr Callback2,
+        InspectionBufferGetDataPtr GetData);
 
 void DetectAppLayerInspectEngineRegisterSingle(const char *name, AppProto alproto, uint32_t dir,
-        int progress, InspectEngineFuncPtr Callback2, InspectionSingleBufferGetDataPtr GetData);
+        uint8_t progress, InspectEngineFuncPtr Callback2, InspectionSingleBufferGetDataPtr GetData);
 
-void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, int progress,
+void DetectAppLayerMultiRegisterSubState(const char *name, AppProto alproto, uint32_t dir,
+        uint8_t sub_state, uint8_t progress, InspectionMultiBufferGetDataPtr GetData, int priority);
+
+void DetectAppLayerMultiRegister(const char *name, AppProto alproto, uint32_t dir, uint8_t progress,
         InspectionMultiBufferGetDataPtr GetData, int priority);
 
 void DetectPktInspectEngineRegister(const char *name,
@@ -210,6 +217,9 @@ void DetectLowerSetupCallback(
 
 void DeStateRegisterTests(void);
 
-int DetectEngineAppHookToSmlist(const AppProto p, const uint8_t state, const int direction);
+const char *DetectEngineAppHookToName(
+        const AppProto p, const uint8_t sub_state, const uint8_t state, const uint8_t direction);
+int DetectEngineAppHookToSmlist(
+        const AppProto p, const uint8_t sub_state, const uint8_t state, const uint8_t direction);
 
 #endif /* SURICATA_DETECT_ENGINE_H */

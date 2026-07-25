@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,9 +15,13 @@
  * 02110-1301, USA.
  */
 
-#ifndef SURICATA_DETECT_KRB5_TICKET_ENCRYPTION_H
-#define SURICATA_DETECT_KRB5_TICKET_ENCRYPTION_H
-
-void DetectKrb5TicketEncryptionRegister(void);
-
-#endif /* SURICATA_DETECT_KRB5_TICKET_ENCRYPTION_H */
+/**
+ * \file
+ *
+ * \author Jeff Lucovsky <jlucovsky@oisf.net>
+ */
+#ifndef SURICATA_LOG_MAINTENANCE_H__
+#define SURICATA_LOG_MAINTENANCE_H__
+void LogMaintenanceThreadSpawn(void);
+int OutputFlushInterval(void);
+#endif /* SURICATA_LOG_MAINTENANCE_H__ */

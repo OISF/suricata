@@ -1,4 +1,4 @@
-/* Copyright (C) 2019-2022 Open Information Security Foundation
+/* Copyright (C) 2019-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,9 +18,10 @@
 // written by Giuseppe Longo <giuseppe@glongo.it>
 
 use crate::sdp::parser::{sdp_parse_message, SdpMessage};
-use nom8::bytes::streaming::{tag, take, take_while, take_while1};
+use nom8::bytes::streaming::{tag, take, take_until, take_while, take_while1};
 use nom8::character::streaming::{char, crlf};
 use nom8::combinator::{map, map_res, opt};
+use nom8::error::{Error, ErrorKind};
 use nom8::sequence::delimited;
 use nom8::{AsChar, Err, IResult, Needed, Parser};
 use std;
@@ -39,10 +40,10 @@ pub struct Request {
     pub version: String,
     pub headers: HashMap<String, Vec<String>>,
 
-    pub request_line_len: u16,
-    pub headers_len: u16,
-    pub body_offset: u16,
-    pub body_len: u16,
+    pub request_line_len: u32,
+    pub headers_len: u32,
+    pub body_offset: u32,
+    pub body_len: u32,
     pub body: Option<SdpMessage>,
 }
 
@@ -52,10 +53,10 @@ pub struct Response {
     pub code: String,
     pub reason: String,
     pub headers: HashMap<String, Vec<String>>,
-    pub response_line_len: u16,
-    pub headers_len: u16,
-    pub body_offset: u16,
-    pub body_len: u16,
+    pub response_line_len: u32,
+    pub headers_len: u32,
+    pub body_offset: u32,
+    pub body_len: u32,
     pub body: Option<SdpMessage>,
 }
 
@@ -112,6 +113,21 @@ fn expand_header_name(h: &str) -> &str {
     }
 }
 
+pub fn sip_probe_protocol(input: &[u8]) -> IResult<&[u8], ()> {
+    let len = std::cmp::min(input.len(), 65536);
+    let i = &input[..len];
+
+    if tag::<_, _, Error<&[u8]>>("SIP/").parse(i).is_ok() {
+        return Ok((input, ()));
+    }
+
+    if take_until::<_, _, Error<&[u8]>>("SIP/").parse(i).is_ok() {
+        Ok((input, ()))
+    } else {
+        Err(Err::Error(Error::new(i, ErrorKind::Tag)))
+    }
+}
+
 pub fn parse_request(oi: &[u8]) -> IResult<&[u8], Request> {
     let (i, method) = parse_method(oi)?;
     let (i, _) = char(' ').parse(i)?;
@@ -133,10 +149,10 @@ pub fn parse_request(oi: &[u8]) -> IResult<&[u8], Request> {
             version,
             headers,
 
-            request_line_len: request_line_len as u16,
-            headers_len: headers_len as u16,
-            body_offset: body_offset as u16,
-            body_len: bi.len() as u16,
+            request_line_len: request_line_len as u32,
+            headers_len: headers_len as u32,
+            body_offset: body_offset as u32,
+            body_len: bi.len() as u32,
             body,
         },
     ))
@@ -163,10 +179,10 @@ pub fn parse_response(oi: &[u8]) -> IResult<&[u8], Response> {
             reason: reason.into(),
             headers,
 
-            response_line_len: response_line_len as u16,
-            headers_len: headers_len as u16,
-            body_offset: body_offset as u16,
-            body_len: bi.len() as u16,
+            response_line_len: response_line_len as u32,
+            headers_len: headers_len as u32,
+            body_offset: body_offset as u32,
+            body_len: bi.len() as u32,
             body,
         },
     ))
@@ -365,6 +381,18 @@ mod tests {
     }
 
     #[test]
+    fn test_probe_sip_request() {
+        let buf = b"REGISTER sip:sip.example.com SIP/2.0\r\n";
+        assert!(sip_probe_protocol(buf).is_ok());
+    }
+
+    #[test]
+    fn test_probe_sip_response() {
+        let buf = b"SIP/2.0 200 OK\r\n";
+        assert!(sip_probe_protocol(buf).is_ok());
+    }
+
+    #[test]
     fn test_header_multi_value() {
         let buf: &[u8] = "REGISTER sip:sip.cybercity.dk SIP/2.0\r\n\
                           From: <sip:voi18063@sip.cybercity.dk>;tag=903df0a\r\n\
@@ -386,5 +414,43 @@ mod tests {
             req.headers["Route"].get(1).unwrap(),
             "<sip:carol@chicago.com>"
         );
+    }
+
+    #[test]
+    fn test_parse_request_large_body() {
+        let body = vec![b'X'; 65536];
+        let mut buf: Vec<u8> = b"INVITE sip:bob@target.com SIP/2.0\r\n\
+                                 From: <sip:alice@attacker.com>;tag=abc123\r\n\
+                                 To: <sip:bob@target.com>\r\n\
+                                 Content-Type: application/sdp\r\n\
+                                 Content-Length: 65536\r\n\
+                                 \r\n"
+            .to_vec();
+        let body_offset = buf.len();
+        buf.extend_from_slice(&body);
+
+        let (rem, req) = parse_request(&buf).expect("parsing failed");
+        assert_eq!(req.method, "INVITE");
+        assert_eq!(req.body_offset as usize, body_offset);
+        assert_eq!(req.body_len, 65536);
+        assert_eq!(rem, &body[..]);
+    }
+
+    #[test]
+    fn test_parse_response_large_body() {
+        let body = vec![b'X'; 65536];
+        let mut buf: Vec<u8> = b"SIP/2.0 200 OK\r\n\
+                                 Content-Type: application/sdp\r\n\
+                                 Content-Length: 65536\r\n\
+                                 \r\n"
+            .to_vec();
+        let body_offset = buf.len();
+        buf.extend_from_slice(&body);
+
+        let (rem, resp) = parse_response(&buf).expect("parsing failed");
+        assert_eq!(resp.code, "200");
+        assert_eq!(resp.body_offset as usize, body_offset);
+        assert_eq!(resp.body_len, 65536);
+        assert_eq!(rem, &body[..]);
     }
 }

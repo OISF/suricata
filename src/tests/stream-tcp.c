@@ -1074,7 +1074,7 @@ static const char *StreamTcpParseOSPolicy(char *conf_var_name)
         goto end;
     }
 
-    if (SCConfGet(conf_var_full_name, &conf_var_value) != 1) {
+    if (SCConfGetNonNull(conf_var_full_name, &conf_var_value) != 1) {
         SCLogError("Error in getting conf value for conf name %s", conf_var_full_name);
         goto end;
     }

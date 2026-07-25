@@ -6,7 +6,7 @@ license = "GPL-2.0-only"
 description = "Nice wrappers around Suricata C interface"
 
 [dependencies]
-suricata-sys = { path = "../sys" }
+suricata-sys = { path = "../sys", version = "@PACKAGE_VERSION@" }
 
 [features]
 debug = []

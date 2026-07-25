@@ -115,11 +115,12 @@ void DetectHttpHHRegister(void)
     DetectAppLayerMpmRegister("http_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
 
-    DetectAppLayerInspectEngineRegister("http_host", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetData2);
+    DetectAppLayerInspectEngineRegisterSubState("http_host", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetData2);
 
-    DetectAppLayerMpmRegister("http_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetData2, ALPROTO_HTTP2, HTTP2ProgHeaders);
+    DetectAppLayerMpmRegisterSubState("http_host", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetData2, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgHeaders);
 
     DetectBufferTypeRegisterValidateCallback("http_host",
             DetectHttpHostValidateCallback);
@@ -127,8 +128,8 @@ void DetectHttpHHRegister(void)
     DetectBufferTypeSetDescriptionByName("http_host",
             "http host");
 
-    g_http2_thread_id = DetectRegisterThreadCtxGlobalFuncs(
-            "http_host", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
+    g_http2_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
+            "http_host", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     g_http_host_buffer_id = DetectBufferTypeGetByName("http_host");
 
@@ -154,17 +155,18 @@ void DetectHttpHHRegister(void)
     DetectAppLayerMpmRegister("http_raw_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetRawData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
 
-    DetectAppLayerInspectEngineRegister("http_raw_host", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetRawData2);
+    DetectAppLayerInspectEngineRegisterSubState("http_raw_host", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetRawData2);
 
-    DetectAppLayerMpmRegister("http_raw_host", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetRawData2, ALPROTO_HTTP2, HTTP2ProgHeaders);
+    DetectAppLayerMpmRegisterSubState("http_raw_host", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetRawData2, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgHeaders);
 
     DetectBufferTypeSetDescriptionByName("http_raw_host",
             "http raw host header");
 
-    g_http2_raw_thread_id = DetectRegisterThreadCtxGlobalFuncs(
-            "http_raw_host", SCHttp2ThreadBufDataInit, NULL, SCHttp2ThreadBufDataFree);
+    g_http2_raw_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
+            "http_raw_host", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 
     g_http_raw_host_buffer_id = DetectBufferTypeGetByName("http_raw_host");
 }
@@ -275,7 +277,7 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
-        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        void *thread_buf = SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
         if (thread_buf == NULL)
             return NULL;
         if (SCHttp2TxGetHostNorm(txv, &b, &b_len, thread_buf) != 1)
@@ -297,7 +299,8 @@ static InspectionBuffer *GetRawData2(DetectEngineThreadCtx *det_ctx,
     if (buffer->inspect == NULL) {
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
-        void *thread_buf = DetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_raw_thread_id);
+        void *thread_buf =
+                SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_raw_thread_id);
         if (thread_buf == NULL)
             return NULL;
 

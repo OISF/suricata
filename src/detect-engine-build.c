@@ -1534,16 +1534,22 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
         } else {
             /* Protocol does not match the Signature protocol and is non of IP, pkthdr */
             if (!DetectProtoContainsProto(&s->init_data->proto, ipproto)) {
-                SCLogDebug("skip");
+                SCLogDebug("skip s:%u for proto:%u", s->id, ipproto);
                 goto next;
             }
             /* Direction does not match Signature direction */
             if (direction == SIG_FLAG_TOSERVER) {
-                if (!(s->flags & SIG_FLAG_TOSERVER))
+                if (!(s->flags & SIG_FLAG_TOSERVER)) {
+                    SCLogDebug(
+                            "skip s:%u for proto:%u direction SIG_FLAG_TOSERVER", s->id, ipproto);
                     goto next;
+                }
             } else if (direction == SIG_FLAG_TOCLIENT) {
-                if (!(s->flags & SIG_FLAG_TOCLIENT))
+                if (!(s->flags & SIG_FLAG_TOCLIENT)) {
+                    SCLogDebug(
+                            "skip s:%u for proto:%u direction SIG_FLAG_TOCLIENT", s->id, ipproto);
                     goto next;
+                }
             }
 
             /* see if we want to exclude directionless sigs that really care only for
@@ -1585,6 +1591,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, uint8_t ipproto, u
                 size_unique_port_arr =
                         SetUniquePortPoints(tmp2, unique_port_points, size_unique_port_arr);
             }
+            SCLogDebug("s:%u added to group (proto:%u)", s->id, ipproto);
 
             p = p->next;
         }
@@ -2214,8 +2221,10 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
 
     Signature *s = de_ctx->sig_list;
     for (; s != NULL; s = s->next) {
+        SCLogDebug("s:%u: prepare", s->id);
         /* set up inspect engines */
-        DetectEngineAppInspectionEngine2Signature(de_ctx, s);
+        if (DetectEngineAppInspectionEngine2Signature(de_ctx, s) != 0)
+            SCReturnInt(-1);
 
         /* built-ins */
         for (int type = 0; type < DETECT_SM_LIST_MAX; type++) {

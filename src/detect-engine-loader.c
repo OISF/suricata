@@ -500,7 +500,10 @@ skip_regular_rules:
     }
 
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
-    SCSigOrderSignatures(de_ctx);
+    if (SCSigOrderSignatures(de_ctx) != 0) {
+        ret = -1;
+        goto end;
+    }
     SCSigSignatureOrderingModuleCleanup(de_ctx);
 
     if (SCThresholdConfInitContext(de_ctx) < 0) {

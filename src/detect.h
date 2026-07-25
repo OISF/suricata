@@ -423,7 +423,8 @@ typedef struct DetectEngineAppInspectionEngine_ {
     bool match_on_null;
     uint16_t sm_list;
     uint16_t sm_list_base; /**< base buffer being transformed */
-    int16_t progress;
+    uint8_t progress;
+    uint8_t sub_state; /**< matches tx type */
 
     struct {
         union {
@@ -578,9 +579,11 @@ typedef struct SignatureHook_ {
     union {
         struct {
             AppProto alproto;
+            /** sub state for a specific transaction type or 0 if not used */
+            uint8_t sub_state;
             /** progress value of the app-layer hook specified in the rule. Sets the app_proto
              *  specific progress value. */
-            int app_progress;
+            uint8_t app_progress;
         } app;
         struct {
             enum SignatureHookPkt ph;
@@ -631,6 +634,10 @@ typedef struct SignatureInitData_ {
     /* SigMatch list used for adding content and friends. E.g. file_data; */
     int list;
     bool list_set;
+
+    /* Total number of times flowbits keyword is referenced in this signature (flowbits:noalert; not
+     * included) */
+    uint16_t total_flowbits;
 
     DetectEngineTransforms transforms;
 
@@ -791,7 +798,8 @@ typedef struct DetectBufferMpmRegistry_ {
                 InspectionMultiBufferGetDataPtr GetMultiData;
             };
             AppProto alproto;
-            int tx_min_progress;
+            uint8_t tx_min_progress;
+            uint8_t sub_state;
         } app_v2;
 
         /* pkt matching: use if type == DETECT_BUFFER_MPM_TYPE_PKT */
@@ -926,12 +934,15 @@ struct DetectFirewallPolicy {
     uint8_t action_scope; /**< same as Signature::action_scope. Scope argument for the action. */
 };
 
-/** Application layer firewall policies per hook. */
 struct DetectFirewallAppPolicy {
-    /** policy per hook/progress value (max 48) for toserver direction. */
-    struct DetectFirewallPolicy ts[48];
-    /** policy per hook/progress value (max 48) for toclient direction. */
-    struct DetectFirewallPolicy tc[48];
+    AppProto alproto;
+    uint8_t sub_state;
+    uint8_t progress;
+    uint8_t direction;
+    struct DetectFirewallPolicy policy;
+    /* signature that will be logged if the policy includes "alert". Will
+     * be set to NULL if alert is not part of the policy. */
+    Signature *alert_signature;
 };
 
 struct DetectFirewallPolicies {
@@ -939,11 +950,8 @@ struct DetectFirewallPolicies {
     struct DetectFirewallPolicy pkt[DETECT_FIREWALL_POLICY_SIZE];
     Signature *pkt_policy_signatures[DETECT_FIREWALL_POLICY_SIZE];
 
-    /* hash table with a Signature object per default policy that has `alert` enabled. */
-    HashTable *policy_signatures;
-
-    /** app layer policies, one per alproto */
-    struct DetectFirewallAppPolicy app[];
+    /* hash table with policies, hashed by alproto, sub_state, progress and direction */
+    HashTable *app_policies;
 };
 
 /* Flow states:
@@ -974,10 +982,11 @@ typedef struct DetectEngineCtx_ {
     bool failure_fatal;
     uint8_t flags;       /**< only DE_QUIET */
     uint8_t mpm_matcher; /**< mpm matcher this ctx uses */
+    uint8_t max_flowbits; /**< maximum number of flowbits per signature */
+    uint32_t tenant_id;
+
     MpmConfig *mpm_cfg;
     uint8_t spm_matcher; /**< spm matcher this ctx uses */
-
-    uint32_t tenant_id;
 
     Signature *sig_list;
     uint32_t sig_cnt;
@@ -1214,7 +1223,7 @@ typedef struct DetectEngineCtx_ {
  * This callback is added to the current detection engine and will be
  * copied to all future detection engines over rule reloads.
  */
-void SCDetectEngineRegisterRateFilterCallback(SCDetectRateFilterFunc cb, void *arg);
+bool SCDetectEngineRegisterRateFilterCallback(SCDetectRateFilterFunc cb, void *arg);
 
 /* Engine groups profiles (low, medium, high, custom) */
 enum {
@@ -1589,6 +1598,8 @@ typedef struct PrefilterEngineList_ {
 
     SignatureMask pkt_mask; /**< mask for pkt engines */
 
+    uint8_t sub_state;
+
     enum SignatureHookPkt pkt_hook;
 
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
@@ -1622,9 +1633,12 @@ typedef struct PrefilterEngine_ {
             SignatureMask mask; /**< mask for pkt engines */
             uint8_t hook;       /**< enum SignatureHookPkt */
         } pkt;
-        /** Minimal Tx progress we need before running the engine. Only used
-         *  with Tx Engine. Set to -1 for all states. */
-        int8_t tx_min_progress;
+        struct {
+            /** Minimal Tx progress we need before running the engine. Only used
+             *  with Tx Engine. Set to -1 for all states. */
+            int8_t tx_min_progress;
+            uint8_t sub_state;
+        } app;
         uint8_t frame_type;
     } ctx;
 

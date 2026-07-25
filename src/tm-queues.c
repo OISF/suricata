@@ -27,6 +27,7 @@
 #include "threads.h"
 #include "tm-queues.h"
 #include "util-debug.h"
+#include "util-validate.h"
 
 static TAILQ_HEAD(TmqList_, Tmq_) tmq_list = TAILQ_HEAD_INITIALIZER(tmq_list);
 
@@ -83,6 +84,9 @@ void TmqResetQueues(void)
 
     while ((tmq = TAILQ_FIRST(&tmq_list))) {
         TAILQ_REMOVE(&tmq_list, tmq, next);
+        /* help code checkers to understand what TAILQ_REMOVE does */
+        DEBUG_VALIDATE_BUG_ON(TAILQ_FIRST(&tmq_list) == tmq);
+
         if (tmq->name) {
             SCFree(tmq->name);
         }

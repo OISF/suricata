@@ -641,7 +641,7 @@ static int CompileDataExtensionsInit(hs_expr_ext_t **ext, const SCHSPattern *p)
 {
     if (p->flags & (MPM_PATTERN_FLAG_OFFSET | MPM_PATTERN_FLAG_DEPTH)) {
         *ext = SCCalloc(1, sizeof(hs_expr_ext_t));
-        if ((*ext) == NULL) {
+        if (*ext == NULL) {
             return -1;
         }
         if (p->flags & MPM_PATTERN_FLAG_OFFSET) {
@@ -775,7 +775,8 @@ int SCHSPreparePatterns(MpmConfig *mpm_conf, MpmCtx *mpm_ctx)
     }
 
     const char *cache_path = pd->no_cache || !mpm_conf ? NULL : mpm_conf->cache_dir_path;
-    if (PatternDatabaseGetCached(&pd, cd, cache_path) == 0 && pd != NULL) {
+    if (PatternDatabaseGetCached(&pd, cd, cache_path) == 0) {
+        DEBUG_VALIDATE_BUG_ON(pd == NULL);
         cd = NULL;
         ctx->pattern_db = pd;
         if (PatternDatabaseGetSize(pd, &ctx->hs_db_size) != 0) {
@@ -1178,8 +1179,7 @@ void SCHSPrintInfo(MpmCtx *mpm_ctx)
 
 static MpmConfig *SCHSConfigInit(void)
 {
-    MpmConfig *c = SCCalloc(1, sizeof(MpmConfig));
-    return c;
+    return SCCalloc(1, sizeof(MpmConfig));
 }
 
 static void SCHSConfigDeinit(MpmConfig **c)

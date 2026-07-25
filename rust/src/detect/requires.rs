@@ -194,7 +194,8 @@ fn parse_op(input: &str) -> IResult<&str, VersionCompareOp> {
             map(tag("<="), |_| VersionCompareOp::Lte),
             map(tag("<"), |_| VersionCompareOp::Lt),
         )),
-    ).parse(input)
+    )
+    .parse(input)
 }
 
 /// Parse the next part of the version.
@@ -204,7 +205,8 @@ fn parse_next_version_part(input: &str) -> IResult<&str, u8> {
     map_res(
         take_till(|c| c == '.' || c == '-' || c == ' '),
         |s: &str| s.parse::<u8>(),
-    ).parse(input)
+    )
+    .parse(input)
 }
 
 /// Parse a version string into a SuricataVersion.
@@ -229,7 +231,8 @@ fn parse_key_value(input: &str) -> IResult<&str, (&str, &str)> {
     let (input, key) = preceded(
         multispace0,
         take_while(|c: char| c.is_alphanumeric() || c == '-' || c == '_'),
-    ).parse(input)?;
+    )
+    .parse(input)?;
     let (input, value) = preceded(multispace0, take_till(|c: char| c == ',')).parse(input)?;
     Ok((input, (key, value)))
 }

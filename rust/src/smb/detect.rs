@@ -28,10 +28,10 @@ use std::os::raw::{c_char, c_int, c_uint, c_void};
 use std::ptr;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectGetLastSMFromLists, SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordAliasRegister, SCDetectHelperKeywordRegister,
-    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
-    Signature,
+    SCDetectGetLastSMFromLists, SCDetectHelperBufferMpmRegister,
+    SCDetectHelperBufferProgressRegister, SCDetectHelperKeywordAliasRegister,
+    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 unsafe extern "C" fn smb_tx_get_share(

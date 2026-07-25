@@ -1,4 +1,4 @@
-/* Copyright (C) 2024 Open Information Security Foundation
+/* Copyright (C) 2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -17,11 +17,11 @@
 
 /**
  * \file
- *
- * \author Jeff Lucovsky <jlucovsky@oisf.net>
  */
-#ifndef SURICATA_LOG_FLUSH_H__
-#define SURICATA_LOG_FLUSH_H__
-void LogFlushThreads(void);
-int OutputFlushInterval(void);
-#endif /* SURICATA_LOG_FLUSH_H__ */
+
+#ifndef SURICATA_DETECT_SCTP_CHUNK_TYPE_H
+#define SURICATA_DETECT_SCTP_CHUNK_TYPE_H
+
+void DetectSCTPChunkTypeRegister(void);
+
+#endif /* SURICATA_DETECT_SCTP_CHUNK_TYPE_H */
