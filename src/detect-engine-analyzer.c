@@ -1556,7 +1556,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
             }
             DumpMatches(&ctx, ctx.js, app->smd);
             SCJbClose(ctx.js);
-            if (app->sm_list != DETECT_SM_LIST_PMATCH && app->v2.transforms == NULL)
+            if (app->sm_list != DETECT_SM_LIST_PMATCH)
                 AnalyzerSuggestBsize(&ctx, name, app->smd);
             if (app->mpm) {
                 app_mpm = app;
