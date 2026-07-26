@@ -120,6 +120,76 @@ void DetectBsizeRegister(void)
 #endif
 }
 
+/**
+ * \brief setup for the 'exact' keyword
+ *
+ * 'exact' is shorthand for a bsize equal to the preceding content's length: the
+ * content spans the whole buffer. It attaches a bsize:<content_len> to the
+ * buffer, so the existing bsize machinery bounds the search, validates the
+ * length against the buffer, and -- for a lone content -- marks it
+ * startswith/endswith. It takes no argument.
+ */
+static int DetectExactSetup(DetectEngineCtx *de_ctx, Signature *s, const char *unused)
+{
+    SCEnter();
+
+    SigMatch *pm = SCDetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    if (pm == NULL) {
+        SCLogError("'exact' needs a preceding content option");
+        SCReturnInt(-1);
+    }
+
+    const DetectContentData *cd = (const DetectContentData *)pm->ctx;
+    if (cd->flags & (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN | DETECT_CONTENT_NEGATED)) {
+        SCLogError("'exact' can't be used with a relative or negated content");
+        SCReturnInt(-1);
+    }
+    /* a non-zero offset means the content can't start the buffer, so it can't
+     * span it; a plain offset:0 is fine and left alone */
+    if ((cd->flags & DETECT_CONTENT_OFFSET) && cd->offset > 0) {
+        SCLogError("'exact' can't be used with a non-zero offset");
+        SCReturnInt(-1);
+    }
+
+    if (DetectBufferGetActiveList(de_ctx, s) == -1)
+        SCReturnInt(-1);
+
+    const int list = s->init_data->list;
+    /* exact injects a bsize, which -- like dsize on the payload -- only applies
+     * to an app-layer or sticky buffer, not the raw payload */
+    if (list == DETECT_SM_LIST_NOTSET || list == DETECT_SM_LIST_PMATCH) {
+        SCLogError("'exact' can only be used with an app-layer or sticky buffer");
+        SCReturnInt(-1);
+    }
+
+    /* exact == bsize for the content length */
+    char sizestr[16];
+    snprintf(sizestr, sizeof(sizestr), "%u", cd->content_len);
+    DetectU64Data *bsz = DetectU64Parse(sizestr);
+    if (bsz == NULL)
+        SCReturnInt(-1);
+
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_BSIZE, (SigMatchCtx *)bsz, list) == NULL) {
+        DetectBsizeFree(de_ctx, bsz);
+        SCReturnInt(-1);
+    }
+
+    SCReturnInt(0);
+}
+
+/**
+ * \brief Registration function for the exact: keyword
+ */
+void DetectExactRegister(void)
+{
+    sigmatch_table[DETECT_EXACT].name = "exact";
+    sigmatch_table[DETECT_EXACT].desc = "match when the preceding content spans the whole buffer "
+                                        "(bsize for the content length)";
+    sigmatch_table[DETECT_EXACT].url = "/rules/payload-keywords.html#exact";
+    sigmatch_table[DETECT_EXACT].Setup = DetectExactSetup;
+    sigmatch_table[DETECT_EXACT].flags = SIGMATCH_NOOPT | SIGMATCH_SUPPORT_FIREWALL;
+}
+
 /** \brief bsize match function
  *
  *  \param ctx match ctx

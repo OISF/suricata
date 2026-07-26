@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -95,6 +95,7 @@ enum DetectKeywordId {
     DETECT_BASE64_DECODE,
     DETECT_BASE64_DATA,
     DETECT_BSIZE,
+    DETECT_EXACT,
     DETECT_ASN1,
     DETECT_LUA,
     DETECT_ISDATAAT,

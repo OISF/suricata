@@ -25,6 +25,7 @@
 #define SURICATA_DETECT_BSIZE_H
 
 void DetectBsizeRegister(void);
+void DetectExactRegister(void);
 int DetectBsizeMatch(const SigMatchCtx *ctx, const uint64_t buffer_size, bool eof);
 bool DetectBsizeValidateContentCallback(const Signature *s, const SignatureInitDataBuffer *);
 void DetectBsizeApplyToContent(const Signature *s);
