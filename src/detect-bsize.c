@@ -120,6 +120,86 @@ void DetectBsizeRegister(void)
 #endif
 }
 
+/**
+ * \brief setup for the 'exact' keyword
+ *
+ * 'exact' is shorthand for a bsize equal to the preceding content's length: the
+ * content spans the whole buffer. It attaches a bsize:<content_len> to the
+ * buffer, so the existing bsize machinery bounds the search, validates the
+ * length against the buffer, and -- for a lone content -- marks it
+ * startswith/endswith. It takes no argument.
+ */
+static int DetectExactSetup(DetectEngineCtx *de_ctx, Signature *s, const char *unused)
+{
+    SCEnter();
+
+    if (DetectBufferGetActiveList(de_ctx, s) == -1)
+        SCReturnInt(-1);
+
+    const int list = s->init_data->list;
+    /* exact adds a bsize, and bsize needs a sticky buffer; the raw payload has
+     * dsize for its length */
+    if (list == DETECT_SM_LIST_NOTSET || list == DETECT_SM_LIST_PMATCH) {
+        SCLogError("'exact' can only be used with an app-layer or sticky buffer");
+        SCReturnInt(-1);
+    }
+
+    /* the bsize is appended to the current buffer, so the content has to come
+     * from that buffer and not from an earlier instance of the same list */
+    SigMatch *pm = NULL;
+    const SignatureInitDataBuffer *curbuf = s->init_data->curbuf;
+    if (curbuf != NULL && (int)curbuf->id == list)
+        pm = DetectGetLastSMByListPtr(s, curbuf->tail, DETECT_CONTENT, -1);
+    if (pm == NULL) {
+        SCLogError("'exact' needs a preceding content option");
+        SCReturnInt(-1);
+    }
+
+    const DetectContentData *cd = (const DetectContentData *)pm->ctx;
+    if (cd->flags & (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN | DETECT_CONTENT_NEGATED)) {
+        SCLogError("'exact' can't be used with a relative or negated content");
+        SCReturnInt(-1);
+    }
+    /* with a byte_extract variable the offset isn't known at load */
+    if (cd->flags & DETECT_CONTENT_OFFSET_VAR) {
+        SCLogError("'exact' can't be used with a variable offset");
+        SCReturnInt(-1);
+    }
+    /* a non-zero offset means the content can't start the buffer, so it can't
+     * span it; a plain offset:0 is fine and left alone */
+    if ((cd->flags & DETECT_CONTENT_OFFSET) && cd->offset > 0) {
+        SCLogError("'exact' can't be used with a non-zero offset");
+        SCReturnInt(-1);
+    }
+
+    /* exact == bsize for the content length */
+    char sizestr[16];
+    snprintf(sizestr, sizeof(sizestr), "%u", cd->content_len);
+    DetectU64Data *bsz = DetectU64Parse(sizestr);
+    if (bsz == NULL)
+        SCReturnInt(-1);
+
+    if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_BSIZE, (SigMatchCtx *)bsz, list) == NULL) {
+        DetectBsizeFree(de_ctx, bsz);
+        SCReturnInt(-1);
+    }
+
+    SCReturnInt(0);
+}
+
+/**
+ * \brief Registration function for the exact keyword
+ */
+void DetectExactRegister(void)
+{
+    sigmatch_table[DETECT_EXACT].name = "exact";
+    sigmatch_table[DETECT_EXACT].desc = "match when the preceding content spans the whole buffer "
+                                        "(bsize for the content length)";
+    sigmatch_table[DETECT_EXACT].url = "/rules/payload-keywords.html#exact";
+    sigmatch_table[DETECT_EXACT].Setup = DetectExactSetup;
+    sigmatch_table[DETECT_EXACT].flags = SIGMATCH_NOOPT | SIGMATCH_SUPPORT_FIREWALL;
+}
+
 /** \brief bsize match function
  *
  *  \param ctx match ctx
