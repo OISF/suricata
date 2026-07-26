@@ -1199,8 +1199,8 @@ static void AnalyzerSuggestBsize(RuleAnalyzer *ctx, const char *buffer, const Si
 
     AnalyzerNote(ctx,
             (char *)"buffer '%s' pins a single content to the whole buffer with "
-                    "'startswith'/'endswith'; 'bsize:%u' is an equivalent that also prefilters on "
-                    "length",
+                    "'startswith'/'endswith'; the 'exact' keyword expresses this without a literal "
+                    "length and also prefilters on it (equivalent to 'bsize:%u')",
             buffer, cd->content_len);
 }
 
