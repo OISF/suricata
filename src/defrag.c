@@ -3212,7 +3212,7 @@ static int DefragSameOffsetPrecedingOverlapTest(void)
 {
     Packet *packets[5] = { NULL };
     Packet *reassembled = NULL;
-    int id = 82320;
+    uint16_t id = 8232;
 
     DefragInit();
     default_policy = DEFRAG_POLICY_BSD;
