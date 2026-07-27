@@ -62,7 +62,7 @@ Application layer tables
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 If applayer is available, rules from the following tables apply. The tables for the
-application layer are per app layer protocol and per protocol state. e.g. ``http:request_line``.
+application layer are per app layer protocol and per protocol state. e.g. ``http1:request_line``.
 
 
 .. table::
@@ -349,29 +349,57 @@ The example below accepts ARP again, using this mechanism.
 Default policies
 ================
 
-Each hook has a default policy. By default ``packet:filter`` enforces a ``drop:packet`` policy and the
-``app:filter`` hooks applies ``drop:flow``.
+Each hook has a default policy applied to traffic that no firewall rule handled.
+By default ``packet.filter`` enforces ``drop:packet``, ``packet.pre-flow`` and
+``packet.pre-stream`` enforce ``accept:hook``, and every ``app`` hook enforces
+``drop:flow``.
 
-The policies can be configured in ``firewall`` block in the config.
-
-Example for ``packet:filter``, to use reject instead of drop::
-
-    firewall:
-      policies:
-        packet-filter: [ "reject:packet" ]
-
-
-Example for DNS::
+Defaults are configured in the ``firewall.policies`` block. A ``default-policy``
+may be given at several levels; for any hook the most specific present setting
+wins::
 
     firewall:
       policies:
-        dns:
-          request-started: ["accept:hook"]
+        default-policy: ["accept:hook"]     # global fallback (all hooks)
+        packet:
+          default-policy: ["drop:packet"]   # fallback for packet hooks
+          filter:     ["drop:packet"]
+          pre-flow:   ["accept:hook"]
+          pre-stream: ["accept:hook"]
+        app:
+          default-policy: ["drop:flow"]     # fallback for all app hooks
+          dns:
+            default-policy: ["drop:flow"]   # fallback for dns hooks
+            request-started: ["accept:hook"]
+            request-complete: ["drop:flow", "alert"]
+            response-started: ["accept:tx"]
 
-          # Drop and alert on all DNS requests that are not allowed in
-          # firewall.rules.
-          request-complete: ["drop:flow", "alert"]
+Protocols whose hooks are grouped into sub states, such as HTTP/2, take an extra
+level for the sub state name::
 
-          # Accept all responses.
-          response-started: ["accept:tx"]
+    firewall:
+      policies:
+        app:
+          http2:
+            default-policy: ["drop:flow"]   # fallback for all http2 hooks
+            stream:
+              default-policy: ["drop:flow"] # fallback for http2 stream hooks
+              request-started: ["accept:hook"]
+            global:
+              request-started: ["accept:hook"]
 
+Precedence:
+
+* packet hook: ``packet.<hook>`` > ``packet.default-policy`` >
+  ``policies.default-policy`` > built-in
+* app hook: ``app.<proto>.<hook>`` > ``app.<proto>.default-policy`` >
+  ``app.default-policy`` > ``policies.default-policy`` > built-in
+* app hook in a sub state: ``app.<proto>.<sub state>.<hook>`` >
+  ``app.<proto>.<sub state>.default-policy`` > ``app.<proto>.default-policy`` >
+  ``app.default-policy`` > ``policies.default-policy`` > built-in
+
+An action scope must be valid for the hook it is applied to. For example,
+defining ``accept:tx`` as a global default policy will fail to start Suricata,
+because ``packet`` policies do not accept ``tx``.
+Cover such hooks with a more specific setting so the incompatible default never
+reaches them.
