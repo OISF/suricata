@@ -19,6 +19,7 @@
 
 //! This module exposes items from the datasets C code to Rust.
 
+use crate::ffi::hashing::{SC_MD5_LEN, SC_SHA256_LEN};
 use base64::{self, Engine};
 use std::ffi::{c_char, CStr};
 use std::fs::{File, OpenOptions};
@@ -168,12 +169,15 @@ unsafe fn process_md5_set(
         Ok(rs) => rs,
         Err(_) => return -1,
     };
+    if md5_string.len() != SC_MD5_LEN {
+        return -1;
+    }
 
     if no_rep {
-        DatasetAdd(set, md5_string.as_ptr(), 16);
+        DatasetAdd(set, md5_string.as_ptr(), SC_MD5_LEN as u32);
     } else if let Ok(val) = v[1].to_string().parse::<u16>() {
         let rep: DataRepType = DataRepType { value: val };
-        DatasetAddwRep(set, md5_string.as_ptr(), 16, &rep);
+        DatasetAddwRep(set, md5_string.as_ptr(), SC_MD5_LEN as u32, &rep);
     } else {
         SCFatalErrorOnInit!(
             "invalid datarep value {} in {}",
@@ -192,12 +196,15 @@ unsafe fn process_sha256_set(
         Ok(rs) => rs,
         Err(_) => return -1,
     };
+    if sha256_string.len() != SC_SHA256_LEN {
+        return -1;
+    }
 
     if no_rep {
-        DatasetAdd(set, sha256_string.as_ptr(), 32);
+        DatasetAdd(set, sha256_string.as_ptr(), SC_SHA256_LEN as u32);
     } else if let Ok(val) = v[1].to_string().parse::<u16>() {
         let rep: DataRepType = DataRepType { value: val };
-        DatasetAddwRep(set, sha256_string.as_ptr(), 32, &rep);
+        DatasetAddwRep(set, sha256_string.as_ptr(), SC_SHA256_LEN as u32, &rep);
     } else {
         SCFatalErrorOnInit!(
             "invalid datarep value {} in {}",
