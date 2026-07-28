@@ -109,6 +109,22 @@ typedef struct SignatureParser_ {
     char opts[DETECT_MAX_RULE_SIZE];
 } SignatureParser;
 
+/** \brief max length of a firewall.policies YAML config path */
+#define FW_POLICY_YAML_PATH_MAX 320
+/** \brief max length of a single YAML path leaf segment (a hook name) */
+#define FW_POLICY_YAML_PATH_NAME_MAX 64
+/** \brief max number of config paths consulted to resolve one policy */
+#define FW_POLICY_CHAIN_MAX 6
+
+/**
+ * \brief Ordered, most-specific-first list of config paths a single policy can
+ *        be configured at.
+ */
+typedef struct FirewallPolicyChain {
+    char path[FW_POLICY_CHAIN_MAX][FW_POLICY_YAML_PATH_MAX];
+    uint8_t len;
+} FirewallPolicyChain;
+
 const char *DetectListToHumanString(int list)
 {
 #define CASE_CODE_STRING(E, S)  case E: return S; break
@@ -3914,75 +3930,134 @@ static int DoParsePolicy(const char *policy_name, struct DetectFirewallPolicy *p
     return 1;
 }
 
+/**
+ * \brief Append a unique inheritance tier to the chain of firewall policies to query.
+ */
+static void ATTR_FMT_PRINTF(2, 3)
+        FirewallPolicyChainAdd(FirewallPolicyChain *chain, const char *fmt, ...)
+{
+    if (chain->len >= FW_POLICY_CHAIN_MAX) {
+        FatalError("too many firewall YAML config paths, max %u", FW_POLICY_CHAIN_MAX);
+    }
+    char *path = chain->path[chain->len];
+
+    va_list ap;
+    va_start(ap, fmt);
+    int r = vsnprintf(path, FW_POLICY_YAML_PATH_MAX, fmt, ap);
+    va_end(ap);
+    if (r < 0) {
+        FatalError("%s: firewall YAML config path formatting failed", fmt);
+    }
+    if ((size_t)r >= FW_POLICY_YAML_PATH_MAX) {
+        FatalError("%s: firewall YAML config path too long", path);
+    }
+
+    for (uint8_t i = 0; i < chain->len; i++) {
+        if (strcmp(chain->path[i], path) == 0)
+            return;
+    }
+    chain->len++;
+}
+
+/**
+ * \brief Resolve a firewall policy from its config path chain.
+ *
+ * The first path in the chain that has a policy configured wins.
+ *
+ * \retval 1 a config source was used and stored in \p out
+ * \retval 0 no source present, \p out is unmodified
+ * \retval -1 parse error, e.g. an empty policy
+ */
+static int ResolveFirewallPolicy(struct DetectFirewallPolicy *out, const FirewallPolicyChain *chain)
+{
+    for (uint8_t i = 0; i < chain->len; i++) {
+        const char *path = chain->path[i];
+        struct DetectFirewallPolicy tmp = { 0 };
+        int r = DoParsePolicy(path, &tmp);
+        if (r < 0) {
+            return -1;
+        }
+        if (r == 1) {
+            if (tmp.action == 0) {
+                SCLogError("%s: policy is set but empty", path);
+                return -1;
+            }
+            *out = tmp;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void FirewallHookNameConvertUnderscoreToDash(const char *in, char *out, size_t out_size)
+{
+    if (strlcpy(out, in, out_size) >= out_size) {
+        FatalError("%s: firewall policy config name too long", in);
+    }
+    for (size_t i = 0; out[i] != '\0'; i++) {
+        if (out[i] == '_')
+            out[i] = '-';
+    }
+}
+
+/**
+ *  \brief Resolve and store one app-layer hook default policy.
+ */
 static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const char *hookname,
         const uint8_t state, const uint8_t complete_state, const int direction,
         struct DetectFirewallPolicies *fw_policies, struct DetectFirewallAppPolicy *app_fw_policies)
 {
-    char policy_name[256];
-    const char *in_name = hookname;
-    if (hookname == NULL) {
-        if (state == 0) {
-            if (direction == STREAM_TOSERVER)
-                hookname = "request-started";
-            else
-                hookname = "response-started";
-        } else if (state == complete_state) {
-            if (direction == STREAM_TOSERVER)
-                hookname = "request-complete";
-            else
-                hookname = "response-complete";
-        }
-        if (hookname == NULL)
-            return 0;
-    }
-    char *nname = SCStrdup(hookname);
-    if (nname == NULL)
+    const char *app_proto_str = AppProtoToStringRaw(app_proto);
+    if (app_proto_str == NULL) {
+        SCLogError("Unknown app proto %u", (unsigned)app_proto);
         return -1;
-    for (int i = 0; nname[i] != '\0'; i++) {
-        if (nname[i] == '_')
-            nname[i] = '-';
     }
 
-    const char *app_name = AppProtoToStringRaw(app_proto);
-    int r = snprintf(policy_name, sizeof(policy_name), "%s.app.%s.%s", prefix, app_name, nname);
-    SCFree(nname);
-    if (r < 0 || (size_t)r >= sizeof(policy_name)) {
-        FatalError("internal error: failed to assemble firewall policy config string");
+    const char *generic_hook = DetectFirewallAppGenericHookName(state, complete_state, direction);
+    char hook[FW_POLICY_YAML_PATH_NAME_MAX] = "";
+    if (hookname != NULL) {
+        FirewallHookNameConvertUnderscoreToDash(hookname, hook, sizeof(hook));
     }
 
-    struct DetectFirewallPolicy *pol;
+    FirewallPolicyChain chain = { .len = 0 };
+    if (hookname != NULL) {
+        /* <prefix>.app.<proto>.<hook> */
+        FirewallPolicyChainAdd(&chain, "%s.app.%s.%s", prefix, app_proto_str, hook);
+    }
+    if (generic_hook != NULL) {
+        /* <prefix>.app.<proto>.<generic hook alias> */
+        FirewallPolicyChainAdd(&chain, "%s.app.%s.%s", prefix, app_proto_str, generic_hook);
+    }
+    /* <prefix>.app.<proto>.default-policy */
+    FirewallPolicyChainAdd(&chain, "%s.app.%s.default-policy", prefix, app_proto_str);
+    /* <prefix>.app.<proto>.default-policy */
+    FirewallPolicyChainAdd(&chain, "%s.app.%s.default-policy", prefix, app_proto_str);
+    /* <prefix>.app.default-policy */
+    FirewallPolicyChainAdd(&chain, "%s.app.default-policy", prefix);
+    /* <prefix>.default-policy */
+    FirewallPolicyChainAdd(&chain, "%s.default-policy", prefix);
+
+    struct DetectFirewallPolicy *app_pol;
     if (direction == STREAM_TOSERVER)
-        pol = &app_fw_policies[app_proto].ts[state];
+        app_pol = &app_fw_policies[app_proto].ts[state];
     else
-        pol = &app_fw_policies[app_proto].tc[state];
-    r = DoParsePolicy(policy_name, pol);
-    if (r == 0 && in_name != NULL) {
-        if (state == 0) {
-            if (direction == STREAM_TOSERVER)
-                hookname = "request-started";
-            else
-                hookname = "response-started";
-        } else if (state == complete_state) {
-            if (direction == STREAM_TOSERVER)
-                hookname = "request-complete";
-            else
-                hookname = "response-complete";
-        }
-        if (hookname == NULL)
-            return 0;
-        r = snprintf(policy_name, sizeof(policy_name), "%s.app.%s.%s", prefix, app_name, hookname);
-        if (r < 0 || (size_t)r >= sizeof(policy_name)) {
-            FatalError("internal error: failed to assemble firewall policy config string");
-        }
+        app_pol = &app_fw_policies[app_proto].tc[state];
 
-        r = DoParsePolicy(policy_name, pol);
+    /* init to drop:flow by default, will be overwritten by ResolveFirewallPolicy if there
+     * is a config for this hook. */
+    app_pol->action = ACTION_DROP;
+    app_pol->action_scope = ACTION_SCOPE_FLOW;
+
+    int r = ResolveFirewallPolicy(app_pol, &chain);
+    if (r < 0) {
+        return -1;
     }
 
     /* for policies with an alert action, create a policy sig */
-    if (r == 1 && pol->action & ACTION_ALERT) {
+    if (r == 1 && app_pol->action & ACTION_ALERT) {
         SCLogDebug("adding policy signature");
-        return AddAppPolicySignature(fw_policies->policy_signatures, direction, app_proto, app_name,
-                state, hookname, pol);
+        return AddAppPolicySignature(fw_policies->policy_signatures, direction, app_proto,
+                app_proto_str, state, hookname, app_pol);
     }
     return r;
 }
@@ -4027,10 +4102,52 @@ error:
     return -1;
 }
 
+/**
+ *  \brief Resolve and store one packet-hook default policy.
+ */
+static int DetectFirewallLoadPacketPolicy(struct DetectFirewallPolicies *fw_policies,
+        const char *prefix, enum DetectFirewallPacketPolicies id, const char *leaf)
+{
+    /* inheritance tiers, most specific first */
+    FirewallPolicyChain chain = { .len = 0 };
+    /* <prefix>.packet.<hook> */
+    FirewallPolicyChainAdd(&chain, "%s.packet.%s", prefix, leaf);
+    /* <prefix>.packet.default-policy */
+    FirewallPolicyChainAdd(&chain, "%s.packet.default-policy", prefix);
+    /* <prefix>.default-policy */
+    FirewallPolicyChainAdd(&chain, "%s.default-policy", prefix);
+
+    struct DetectFirewallPolicy *pol = &fw_policies->pkt[id]; // built-in default
+    int r = ResolveFirewallPolicy(pol, &chain);
+    if (r < 0) {
+        return -1;
+    }
+    if (r == 1 && (pol->action & ACTION_ALERT)) {
+        return AddPktPolicySignature(fw_policies, pol, id);
+    }
+    return 0;
+}
+
+/**
+ * \brief Load the packet-hook default policies.
+ */
+static int DetectFirewallLoadPacketPolicies(
+        struct DetectFirewallPolicies *fw_policies, const char *prefix)
+{
+    if (DetectFirewallLoadPacketPolicy(
+                fw_policies, prefix, DETECT_FIREWALL_POLICY_PACKET_FILTER, "filter") < 0)
+        return -1;
+    if (DetectFirewallLoadPacketPolicy(
+                fw_policies, prefix, DETECT_FIREWALL_POLICY_PRE_FLOW, "pre-flow") < 0)
+        return -1;
+    if (DetectFirewallLoadPacketPolicy(
+                fw_policies, prefix, DETECT_FIREWALL_POLICY_PRE_STREAM, "pre-stream") < 0)
+        return -1;
+    return 0;
+}
+
 int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
 {
-    int r;
-    char policy_name[256];
     char prefix[96] = "firewall.policies";
     if (strlen(de_ctx->config_prefix) > 0) {
         snprintf(prefix, sizeof(prefix), "%s.firewall.policies", de_ctx->config_prefix);
@@ -4043,42 +4160,8 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
     if (app_fw_policies == NULL)
         return -1;
 
-    r = snprintf(policy_name, sizeof(policy_name), "%s.packet.filter", prefix);
-    if (r < 0 || (size_t)r >= sizeof(policy_name)) {
-        FatalError("internal error: failed to assemble firewall policy config string");
-    }
-    r = DoParsePolicy(policy_name, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER]);
-    if (r < 0)
+    if (DetectFirewallLoadPacketPolicies(fw_policies, prefix) < 0)
         return -1;
-    if (fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER].action & ACTION_ALERT)
-        if (AddPktPolicySignature(fw_policies,
-                    &fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER],
-                    DETECT_FIREWALL_POLICY_PACKET_FILTER) < 0)
-            return -1;
-
-    r = snprintf(policy_name, sizeof(policy_name), "%s.packet.pre-flow", prefix);
-    if (r < 0 || (size_t)r >= sizeof(policy_name)) {
-        FatalError("internal error: failed to assemble firewall policy config string");
-    }
-    r = DoParsePolicy(policy_name, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_FLOW]);
-    if (r < 0)
-        return -1;
-    if (fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_FLOW].action & ACTION_ALERT)
-        if (AddPktPolicySignature(fw_policies, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_FLOW],
-                    DETECT_FIREWALL_POLICY_PRE_FLOW) < 0)
-            return -1;
-
-    r = snprintf(policy_name, sizeof(policy_name), "%s.packet.pre-stream", prefix);
-    if (r < 0 || (size_t)r >= sizeof(policy_name)) {
-        FatalError("internal error: failed to assemble firewall policy config string");
-    }
-    r = DoParsePolicy(policy_name, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_STREAM]);
-    if (r < 0)
-        return -1;
-    if (fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_STREAM].action & ACTION_ALERT)
-        if (AddPktPolicySignature(fw_policies, &fw_policies->pkt[DETECT_FIREWALL_POLICY_PRE_STREAM],
-                    DETECT_FIREWALL_POLICY_PRE_STREAM) < 0)
-            return -1;
 
     for (AppProto a = 0; a < g_alproto_max; a++) {
         if (!AppProtoIsValid(a))
@@ -4093,7 +4176,6 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
                         fw_policies, app_fw_policies) < 0)
                 return -1;
         }
-
         const uint8_t complete_state_tc =
                 (const uint8_t)AppLayerParserGetStateProgressCompletionStatus(a, STREAM_TOCLIENT);
         for (uint8_t state = 0; state <= complete_state_tc; state++) {
