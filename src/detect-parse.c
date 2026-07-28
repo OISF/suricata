@@ -4107,7 +4107,7 @@ static int DoParseAppSubStatePolicy(const char *prefix, const AppProto app_proto
             nname[i] = '-';
     }
 
-    const char *app_name = AppProtoToString(app_proto);
+    const char *app_name = (app_proto == ALPROTO_HTTP1) ? "http1" : AppProtoToString(app_proto);
     int r = snprintf(policy_name, sizeof(policy_name), "%s.%s.%s.%s", prefix, app_name,
             sub_state_name, nname);
     SCLogDebug("policy_name %s", policy_name);
@@ -4176,7 +4176,7 @@ static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const 
             nname[i] = '-';
     }
 
-    const char *app_name = AppProtoToString(app_proto);
+    const char *app_name = (app_proto == ALPROTO_HTTP1) ? "http1" : AppProtoToString(app_proto);
     int r = snprintf(policy_name, sizeof(policy_name), "%s.%s.%s", prefix, app_name, nname);
     SCFree(nname);
     if (r < 0 || (size_t)r >= sizeof(policy_name)) {
