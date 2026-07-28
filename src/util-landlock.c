@@ -598,6 +598,21 @@ static void LandlockGrantDatasetsState(struct landlock_ruleset *ruleset)
     }
 }
 
+/** \brief Grant read access on a rule file given on the command line.
+ *
+ *  Only an absolute path gets a rule, a relative one being resolved by
+ *  DetectLoadCompleteSigPathWithKey() against a configured rule path that is
+ *  granted separately. No-op on a NULL path or on a file that does not exist.
+ */
+static void LandlockGrantRuleFile(struct landlock_ruleset *ruleset, const char *path)
+{
+    if (path == NULL || !PathIsAbsolute(path))
+        return;
+    if (!SCPathExists(path))
+        return;
+    SCLandlockGrantFile(ruleset, path, SC_LANDLOCK_FILE_READ);
+}
+
 void LandlockSandboxing(SCInstance *suri)
 {
     /* Read configuration variable and exit if no enforcement */
@@ -731,6 +746,11 @@ void LandlockSandboxing(SCInstance *suri)
             SCLandlockGrantReadPath(ruleset, rule_path);
         }
     }
+    /* The firewall rule file (--firewall-rules-exclusive) is loaded from the
+     * path as provided so an absolute one can be outside of the directories
+     * granted above. A relative path is resolved against firewall.rule-path
+     * which is already covered by the directory grants. */
+    LandlockGrantRuleFile(ruleset, suri->firewall_rule_file);
 
     SCConfNode *read_dirs = SCConfGetNode("security.landlock.directories.read");
     if (read_dirs) {

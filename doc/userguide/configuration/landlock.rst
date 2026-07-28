@@ -59,6 +59,12 @@ standard library during normal startup; granting them avoids spurious ``EACCES``
 errors and Landlock audit noise without meaningfully widening the sandbox.
 Missing paths are silently skipped.
 
+Rule files passed on the command line are handled too: ``-s``/``-S`` get read
+access on the directory holding the rule file, and
+``--firewall-rules-exclusive`` gets a per-file read grant. A relative path is
+resolved against ``default-rule-path`` (``firewall.rule-path`` for the firewall
+rule file), which is granted as a directory.
+
 Lua scripts writing their own files
 -----------------------------------
 
