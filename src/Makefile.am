@@ -247,7 +247,6 @@ noinst_HEADERS = \
 	detect-lua.h \
 	detect-mark.h \
 	detect-metadata.h \
-	detect-modbus.h \
 	detect-msg.h \
 	detect-noalert.h \
 	detect-nocase.h \
@@ -823,7 +822,6 @@ libsuricata_c_a_SOURCES = \
 	detect-lua.c \
 	detect-mark.c \
 	detect-metadata.c \
-	detect-modbus.c \
 	detect-msg.c \
 	detect-noalert.c \
 	detect-nocase.c \
