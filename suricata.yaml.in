@@ -2392,11 +2392,13 @@ firewall:
 
   # Default policies
   #
-  # Choose a default policy for each firewall hook.
-  # It is also possible to specify policies by app-layer protocol.
+  # Choose a default policy for each firewall hook. A `default-policy` covers
+  # every hook below it, so hooks that are not listed still get a policy.
+  # The most specific setting wins.
   # DNS example: Drop and alert on all DNS requests that are not allowed in firewall.rules, accept all responses.
   #
   #policies:
+  #  default-policy: ["drop:flow"]
   #  packet:
   #    filter: ["drop:packet"]
   #  app:
