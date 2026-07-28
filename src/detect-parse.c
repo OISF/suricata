@@ -4108,7 +4108,7 @@ static int DoParseAppSubStatePolicy(const char *prefix, const AppProto app_proto
     }
 
     const char *app_name = (app_proto == ALPROTO_HTTP1) ? "http1" : AppProtoToString(app_proto);
-    int r = snprintf(policy_name, sizeof(policy_name), "%s.%s.%s.%s", prefix, app_name,
+    int r = snprintf(policy_name, sizeof(policy_name), "%s.app.%s.%s.%s", prefix, app_name,
             sub_state_name, nname);
     SCLogDebug("policy_name %s", policy_name);
     SCFree(nname);
@@ -4177,7 +4177,7 @@ static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const 
     }
 
     const char *app_name = (app_proto == ALPROTO_HTTP1) ? "http1" : AppProtoToString(app_proto);
-    int r = snprintf(policy_name, sizeof(policy_name), "%s.%s.%s", prefix, app_name, nname);
+    int r = snprintf(policy_name, sizeof(policy_name), "%s.app.%s.%s", prefix, app_name, nname);
     SCFree(nname);
     if (r < 0 || (size_t)r >= sizeof(policy_name)) {
         FatalError("internal error: failed to assemble firewall policy config string");
@@ -4211,7 +4211,7 @@ static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const 
         }
         if (hookname == NULL)
             return 0;
-        r = snprintf(policy_name, sizeof(policy_name), "%s.%s.%s", prefix, app_name, hookname);
+        r = snprintf(policy_name, sizeof(policy_name), "%s.app.%s.%s", prefix, app_name, hookname);
         if (r < 0 || (size_t)r >= sizeof(policy_name)) {
             FatalError("internal error: failed to assemble firewall policy config string");
         }
@@ -4275,7 +4275,7 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
     if (fw_policies == NULL)
         return -1;
 
-    r = snprintf(policy_name, sizeof(policy_name), "%s.packet-filter", prefix);
+    r = snprintf(policy_name, sizeof(policy_name), "%s.packet.filter", prefix);
     if (r < 0 || (size_t)r >= sizeof(policy_name)) {
         FatalError("internal error: failed to assemble firewall policy config string");
     }
@@ -4288,7 +4288,7 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
                     DETECT_FIREWALL_POLICY_PACKET_FILTER) < 0)
             return -1;
 
-    r = snprintf(policy_name, sizeof(policy_name), "%s.packet-pre-flow", prefix);
+    r = snprintf(policy_name, sizeof(policy_name), "%s.packet.pre-flow", prefix);
     if (r < 0 || (size_t)r >= sizeof(policy_name)) {
         FatalError("internal error: failed to assemble firewall policy config string");
     }
@@ -4300,7 +4300,7 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
                     DETECT_FIREWALL_POLICY_PRE_FLOW) < 0)
             return -1;
 
-    r = snprintf(policy_name, sizeof(policy_name), "%s.packet-pre-stream", prefix);
+    r = snprintf(policy_name, sizeof(policy_name), "%s.packet.pre-stream", prefix);
     if (r < 0 || (size_t)r >= sizeof(policy_name)) {
         FatalError("internal error: failed to assemble firewall policy config string");
     }

@@ -2362,11 +2362,13 @@ firewall:
   # DNS example: Drop and alert on all DNS requests that are not allowed in firewall.rules, accept all responses.
   #
   #policies:
-  #  packet-filter: ["drop:packet"]
-  #  dns:
-  #    request-started: ["accept:hook"]
-  #    request-complete: ["drop:flow", "alert"]
-  #    response-started: ["accept:tx"]
+  #  packet:
+  #    filter: ["drop:packet"]
+  #  app:
+  #    dns:
+  #      request-started: ["accept:hook"]
+  #      request-complete: ["drop:flow", "alert"]
+  #      response-started: ["accept:tx"]
 
 ##
 ## Include other configs

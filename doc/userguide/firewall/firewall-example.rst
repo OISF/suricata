@@ -62,35 +62,36 @@ HTTP example with partially using default policies
 
     firewall:
       policies:
-        http1:
-          request-started:
-            - "accept:hook"
-          request-line:
-            - "drop:flow"
-            - "alert"
-          request-headers:
-            - "drop:flow"
-            - "alert"
-          request-body:
-            - "accept:hook"
-          request-trailer:
-            - "accept:hook"
-          request-complete:
-            - "accept:hook"
+        app:
+          http1:
+            request-started:
+              - "accept:hook"
+            request-line:
+              - "drop:flow"
+              - "alert"
+            request-headers:
+              - "drop:flow"
+              - "alert"
+            request-body:
+              - "accept:hook"
+            request-trailer:
+              - "accept:hook"
+            request-complete:
+              - "accept:hook"
 
-          response-started:
-            - "accept:hook"
-          response-line:
-            - "drop:flow"
-            - "alert"
-          response-headers:
-            - "accept:hook"
-          response-body:
-            - "accept:hook"
-          response-trailer:
-            - "accept:hook"
-          response-complete:
-            - "accept:hook"
+            response-started:
+              - "accept:hook"
+            response-line:
+              - "drop:flow"
+              - "alert"
+            response-headers:
+              - "accept:hook"
+            response-body:
+              - "accept:hook"
+            response-trailer:
+              - "accept:hook"
+            response-complete:
+              - "accept:hook"
 
 
 ::
