@@ -16,13 +16,20 @@
  */
 
 use super::modbus::ModbusTransaction;
+use super::modbus::ALPROTO_MODBUS;
+use crate::core::STREAM_TOSERVER;
 use lazy_static::lazy_static;
 use regex::Regex;
 use sawp_modbus::{AccessType, CodeCategory, Data, Flags, FunctionCode, Message};
 use std::ffi::CStr;
 use std::ops::{Range, RangeInclusive};
-use std::os::raw::{c_char, c_void};
+use std::os::raw::{c_char, c_int, c_void};
 use std::str::FromStr;
+use suricata_sys::sys::{
+    AppProto, DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferProgressRegister,
+    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+};
 
 lazy_static! {
     static ref ACCESS_RE: Regex = Regex::new(
@@ -133,8 +140,7 @@ fn parse_range(min_str: &str, max_str: &str) -> Result<Range<u16>, ()> {
 }
 
 /// Intermediary function between the C code and the parsing functions.
-#[no_mangle]
-pub unsafe extern "C" fn SCModbusParse(c_arg: *const c_char) -> *mut c_void {
+unsafe extern "C" fn modbus_parse(c_arg: *const c_char) -> *mut c_void {
     if c_arg.is_null() {
         return std::ptr::null_mut();
     }
@@ -150,17 +156,9 @@ pub unsafe extern "C" fn SCModbusParse(c_arg: *const c_char) -> *mut c_void {
     std::ptr::null_mut()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCModbusFree(ptr: *mut c_void) {
-    if !ptr.is_null() {
-        let _ = Box::from_raw(ptr as *mut DetectModbusRust);
-    }
-}
-
 /// Compares a transaction to a signature to determine whether the transaction
 /// matches the signature. If it does, 1 is returned; otherwise 0 is returned.
-#[no_mangle]
-pub extern "C" fn SCModbusInspect(tx: &ModbusTransaction, modbus: &DetectModbusRust) -> u8 {
+fn modbus_inspect(tx: &ModbusTransaction, modbus: &DetectModbusRust) -> c_int {
     // All necessary information can be found in the request (value inspection currently
     // only supports write functions, which hold the value in the request).
     // Only inspect the response in the case where there is no request.
@@ -189,18 +187,18 @@ pub extern "C" fn SCModbusInspect(tx: &ModbusTransaction, modbus: &DetectModbusR
             return 0;
         }
 
-        return inspect_data(msg, modbus) as u8;
+        return inspect_data(msg, modbus) as c_int;
     }
 
     if let Some(category) = modbus.category {
-        return u8::from(msg.category.intersects(category));
+        return c_int::from(msg.category.intersects(category));
     }
 
     match &modbus.function {
         Some(func) if func == &msg.function.code => match modbus.subfunction {
             Some(subfunc) => {
                 if let Data::Diagnostic { func, data: _ } = &msg.data {
-                    u8::from(subfunc == func.raw)
+                    c_int::from(subfunc == func.raw)
                 } else {
                     0
                 }
@@ -456,6 +454,68 @@ fn parse_unit_id(unit_str: &str) -> Result<DetectModbusRust, ()> {
     }
 
     Ok(modbus)
+}
+
+static mut G_MODBUS_KW_ID: u16 = 0;
+static mut G_MODBUS_BUFFER_ID: c_int = 0;
+
+unsafe extern "C" fn modbus_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS as AppProto) != 0 {
+        return -1;
+    }
+    let ctx = modbus_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_BUFFER_ID,
+    )
+    .is_null()
+    {
+        modbus_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn modbus_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectModbusRust);
+    return modbus_inspect(tx, ctx);
+}
+
+unsafe extern "C" fn modbus_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    let ctx = cast_pointer!(ctx, DetectModbusRust);
+    std::mem::drop(Box::from_raw(ctx));
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectModbusRegister() {
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus\0".as_ptr() as *const libc::c_char,
+        desc: b"match on various properties of Modbus requests\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/modbus-keyword.html#modbus-keyword\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(modbus_match),
+        Setup: Some(modbus_setup),
+        Free: Some(modbus_free),
+        flags: 0,
+    };
+    G_MODBUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus\0".as_ptr() as *const libc::c_char,
+        ALPROTO_MODBUS as AppProto,
+        STREAM_TOSERVER,
+        0,
+    );
 }
 
 #[cfg(test)]
