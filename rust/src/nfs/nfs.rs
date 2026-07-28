@@ -2080,11 +2080,6 @@ unsafe extern "C" fn nfs_get_tx_data(
 export_state_data_get!(nfs_get_state_data, NFSState);
 
 #[no_mangle]
-pub unsafe extern "C" fn SCNfsTxGetVersion(tx: &mut NFSTransaction, version: *mut u32) {
-    *version = tx.nfs_version as u32;
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn SCNfsInit(context: &'static mut SuricataFileContext) {
     SURICATA_NFS_FILE_CONFIG = Some(context);
 }
