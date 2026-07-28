@@ -350,6 +350,12 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         printf("banned from threat detection rules in firewall mode");
         prev = 1;
     }
+    if (flags & SIGMATCH_BAN_FIREWALL_SCOPE_PACKET) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("banned from firewall rules with \'packet\' scope");
+        prev = 1;
+    }
     if (e->Transform) {
         if (prev == 1)
             printf("%c", sep);

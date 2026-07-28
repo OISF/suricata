@@ -870,7 +870,7 @@ static int DetectSetupDirection(Signature *s, char **str, bool only_dir)
 
 /** \brief called only with firewall rules, to validate options
 */
-static bool SigParseFirewallRuleAllowed(uint32_t sig_flags, char *optname)
+static bool SigParseFirewallRuleAllowed(uint8_t action_scope, uint32_t sig_flags, char *optname)
 {
     if ((sig_flags & SIGMATCH_BAN_FIREWALL_RULE) != 0) {
         SCLogError("keyword \'%s\' is not allowed with firewall rules", optname);
@@ -879,6 +879,13 @@ static bool SigParseFirewallRuleAllowed(uint32_t sig_flags, char *optname)
     if ((sig_flags & SIGMATCH_BAN_FIREWALL_MODE) != 0) {
         SCLogError("keyword \'%s\' is not allowed in firewall mode", optname);
         return false;
+    }
+    if (action_scope == (uint8_t)ACTION_SCOPE_PACKET) {
+        if ((sig_flags & SIGMATCH_BAN_FIREWALL_SCOPE_PACKET) != 0) {
+            SCLogError(
+                    "keyword \'%s\' cannot be used in combination with \'packet\' scope", optname);
+            return false;
+        }
     }
     if ((sig_flags & SIGMATCH_SUPPORT_FIREWALL) == 0) {
         SCLogWarning("keyword \'%s\' has not been tested for firewall rules", optname);
@@ -987,7 +994,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
 #undef URL
     }
 
-    if (s->init_data->firewall_rule && !SigParseFirewallRuleAllowed(st->flags, optname)) {
+    if (s->init_data->firewall_rule && !SigParseFirewallRuleAllowed(s->action_scope, st->flags, optname)) {
         goto error;
     }
 
@@ -1024,7 +1031,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
 
         /* Is it problematic to have the check for support firewall converted into this function,
            and thus potentially executed before this step? */
-        if (s->init_data->firewall_rule && !SigParseFirewallRuleAllowed(st->flags, optname)) {
+        if (s->init_data->firewall_rule && !SigParseFirewallRuleAllowed(s->action_scope, st->flags, optname)) {
             goto error;
         }
 
