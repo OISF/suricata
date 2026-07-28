@@ -908,7 +908,8 @@ static int DetectSetupDirection(Signature *s, char **str, bool only_dir)
  *
  * \retval false if the keyword is not allowed for this rule's action and/or action scope
  */
-static bool SigParseFirewallRuleAllowed(uint32_t sig_flags, const char *optname)
+static bool SigParseFirewallRuleAllowed(
+        uint8_t action, uint8_t action_scope, uint32_t sig_flags, const char *optname)
 {
     if ((sig_flags & SIGMATCH_BAN_FIREWALL_RULE) != 0) {
         SCLogError("keyword \'%s\' is not allowed with firewall rules", optname);
@@ -917,6 +918,37 @@ static bool SigParseFirewallRuleAllowed(uint32_t sig_flags, const char *optname)
     if ((sig_flags & SIGMATCH_BAN_FIREWALL_MODE) != 0) {
         SCLogError("keyword \'%s\' is not allowed in firewall mode", optname);
         return false;
+    }
+    if ((action & ACTION_CONFIG) != 0 && (sig_flags & SIGMATCH_BAN_ACTION_CONFIG) != 0) {
+        SCLogError("keyword \'%s\' cannot be used in combination with \'config\' action", optname);
+        return false;
+    }
+    if ((action & ACTION_REJECT_ANY) != 0 && (sig_flags & SIGMATCH_BAN_ACTION_REJECT) != 0) {
+        SCLogError("keyword \'%s\' cannot be used in combination with \'reject\' action", optname);
+        return false;
+    }
+    if ((action & ACTION_DROP) != 0 && (sig_flags & SIGMATCH_BAN_ACTION_DROP) != 0) {
+        SCLogError("keyword \'%s\' cannot be used in combination with \'drop\' action", optname);
+        return false;
+    }
+    if (action_scope == (uint8_t)ACTION_SCOPE_PACKET) {
+        if ((sig_flags & SIGMATCH_BAN_FIREWALL_SCOPE_PACKET) != 0) {
+            SCLogError(
+                    "keyword \'%s\' cannot be used in combination with \'packet\' scope", optname);
+            return false;
+        }
+    }
+    if (action_scope == (uint8_t)ACTION_SCOPE_TX) {
+        if ((sig_flags & SIGMATCH_BAN_FIREWALL_SCOPE_TX) != 0) {
+            SCLogError("keyword \'%s\' cannot be used in combination with \'tx\' scope", optname);
+            return false;
+        }
+    }
+    if (action_scope == (uint8_t)ACTION_SCOPE_HOOK) {
+        if ((sig_flags & SIGMATCH_BAN_FIREWALL_SCOPE_HOOK) != 0) {
+            SCLogError("keyword \'%s\' cannot be used in combination with \'hook\' scope", optname);
+            return false;
+        }
     }
     /* for most cases, firewall rules should be allowed */
     return true;
@@ -1023,7 +1055,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     }
 
     if (EngineModeIsFirewall() && s->init_data->firewall_rule &&
-            !SigParseFirewallRuleAllowed(st->flags, optname)) {
+            !SigParseFirewallRuleAllowed(s->action, s->action_scope, st->flags, optname)) {
         goto error;
     }
 
