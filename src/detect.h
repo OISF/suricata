@@ -913,6 +913,11 @@ enum DetectEngineType
     DETECT_ENGINE_TYPE_TENANT = 3,
 };
 
+enum DetectFirewallPolicyClass {
+    DETECT_FIREWALL_POLICY_CLASS_PACKET,
+    DETECT_FIREWALL_POLICY_CLASS_APP
+};
+
 enum DetectFirewallPacketPolicies {
     DETECT_FIREWALL_POLICY_PACKET_FILTER,
     DETECT_FIREWALL_POLICY_PRE_FLOW,
