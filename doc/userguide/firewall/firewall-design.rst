@@ -62,7 +62,7 @@ Application layer tables
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 If applayer is available, rules from the following tables apply. The tables for the
-application layer are per app layer protocol and per protocol state. e.g. ``http:request_line``.
+application layer are per app layer protocol and per protocol state. e.g. ``http1:request_line``.
 
 
 .. table::
