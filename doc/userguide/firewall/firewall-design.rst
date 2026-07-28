@@ -327,34 +327,46 @@ of :ref:`engine analysis<config:engine-analysis>`.
 Default policies
 ================
 
-Each hook has a default policy. By default ``packet.filter`` enforces a ``drop:packet`` policy and the
-``app`` hooks apply ``drop:flow``.
+Each hook has a default policy applied to traffic that no firewall rule handled.
+By default ``packet.filter`` enforces ``drop:packet``, ``packet.pre-flow`` and
+``packet.pre-stream`` enforce ``accept:hook``, and every ``app`` hook enforces
+``drop:flow``.
 
-The policies can be configured in ``firewall`` block in the config. Packet hooks
-live under ``packet`` and app-layer hooks under ``app``, keyed by protocol.
-
-Example for ``packet.filter``, to use reject instead of drop::
+Defaults are configured in the ``firewall.policies`` block. A ``default-policy``
+for any hook may be given at several levels and the most specific present
+setting wins::
 
     firewall:
       policies:
+        default-policy: ["accept:hook"]     # global fallback (all hooks)
         packet:
-          filter: [ "reject:packet" ]
-
-
-Example for DNS::
-
-    firewall:
-      policies:
+          default-policy: ["drop:packet"]   # fallback for packet hooks
+          filter:     ["reject:packet"]
+          pre-flow:   ["accept:hook"]
+          pre-stream: ["accept:hook"]
         app:
+          default-policy: ["drop:flow"]     # fallback for all app hooks
           dns:
+            default-policy: ["drop:flow"]   # fallback for dns hooks
             request-started: ["accept:hook"]
-
             # Drop and alert on all DNS requests that are not allowed in
             # firewall.rules.
             request-complete: ["drop:flow", "alert"]
-
             # Accept all responses.
             response-started: ["accept:tx"]
+
+Precedence:
+
+* packet hook: ``packet.<hook>`` > ``packet.default-policy`` >
+  ``policies.default-policy`` > built-in (``drop:packet`` or ``accept:hook``)
+* app hook: ``app.<proto>.<hook>`` > ``app.<proto>.default-policy`` >
+  ``app.default-policy`` > ``policies.default-policy`` > built-in (``drop:flow``)
+
+An action scope must be valid for the hook it is applied to. For example,
+defining ``accept:tx`` as a global default policy will fail to start Suricata,
+because ``packet`` policies do not accept ``tx``.
+Cover such hooks with a more specific setting so the incompatible default never
+reaches them.
 
 
 ARP handling in bridge mode
