@@ -349,29 +349,32 @@ The example below accepts ARP again, using this mechanism.
 Default policies
 ================
 
-Each hook has a default policy. By default ``packet:filter`` enforces a ``drop:packet`` policy and the
-``app:filter`` hooks applies ``drop:flow``.
+Each hook has a default policy. By default ``packet.filter`` enforces a ``drop:packet`` policy and the
+``app`` hooks apply ``drop:flow``.
 
-The policies can be configured in ``firewall`` block in the config.
+The policies can be configured in ``firewall`` block in the config. Packet hooks
+live under ``packet`` and app-layer hooks under ``app``, keyed by protocol.
 
-Example for ``packet:filter``, to use reject instead of drop::
+Example for ``packet.filter``, to use reject instead of drop::
 
     firewall:
       policies:
-        packet-filter: [ "reject:packet" ]
+        packet:
+          filter: [ "reject:packet" ]
 
 
 Example for DNS::
 
     firewall:
       policies:
-        dns:
-          request-started: ["accept:hook"]
+        app:
+          dns:
+            request-started: ["accept:hook"]
 
-          # Drop and alert on all DNS requests that are not allowed in
-          # firewall.rules.
-          request-complete: ["drop:flow", "alert"]
+            # Drop and alert on all DNS requests that are not allowed in
+            # firewall.rules.
+            request-complete: ["drop:flow", "alert"]
 
-          # Accept all responses.
-          response-started: ["accept:tx"]
+            # Accept all responses.
+            response-started: ["accept:tx"]
 
