@@ -109,6 +109,23 @@ typedef struct SignatureParser_ {
     char opts[DETECT_MAX_RULE_SIZE];
 } SignatureParser;
 
+/** Valid action scopes per firewall hook class. */
+enum DetectFirewallPolicyClass {
+    DETECT_FIREWALL_POLICY_CLASS_PACKET,
+    DETECT_FIREWALL_POLICY_CLASS_APP
+};
+
+static const uint8_t fw_packet_hook_scopes[] = {
+    ACTION_SCOPE_PACKET,
+    ACTION_SCOPE_HOOK,
+    ACTION_SCOPE_FLOW,
+};
+static const uint8_t fw_app_hook_scopes[] = {
+    ACTION_SCOPE_FLOW,
+    ACTION_SCOPE_TX,
+    ACTION_SCOPE_HOOK,
+};
+
 /** \brief max length of a firewall.policies config path */
 #define FW_POLICY_PATH_MAX 320
 /** \brief max length of a single path segment: a hook or sub state name */
@@ -4189,6 +4206,59 @@ static int DoParsePolicy(const char *policy_name, struct DetectFirewallPolicy *p
     return 1;
 }
 
+static bool FirewallScopeValidForClass(uint8_t scope, enum DetectFirewallPolicyClass pol_class)
+{
+    const uint8_t *set = NULL;
+    size_t n = 0;
+    switch (pol_class) {
+        case DETECT_FIREWALL_POLICY_CLASS_PACKET:
+            set = fw_packet_hook_scopes;
+            n = ARRAY_SIZE(fw_packet_hook_scopes);
+            break;
+        case DETECT_FIREWALL_POLICY_CLASS_APP:
+            set = fw_app_hook_scopes;
+            n = ARRAY_SIZE(fw_app_hook_scopes);
+            break;
+        default:
+            FatalError("Invalid firewall policy class %u", (unsigned)pol_class);
+    }
+    for (size_t i = 0; i < n; i++) {
+        if (set[i] == scope) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * \brief Render the valid scopes for a hook class to a string.
+ */
+static void FirewallScopeHintForClass(
+        enum DetectFirewallPolicyClass pol_class, char *out, size_t out_size)
+{
+    const uint8_t *set = NULL;
+    size_t n = 0;
+    switch (pol_class) {
+        case DETECT_FIREWALL_POLICY_CLASS_PACKET:
+            set = fw_packet_hook_scopes;
+            n = ARRAY_SIZE(fw_packet_hook_scopes);
+            break;
+        case DETECT_FIREWALL_POLICY_CLASS_APP:
+            set = fw_app_hook_scopes;
+            n = ARRAY_SIZE(fw_app_hook_scopes);
+            break;
+        default:
+            FatalError("Invalid firewall policy class %u", (unsigned)pol_class);
+    }
+    out[0] = '\0';
+    for (size_t i = 0; i < n; i++) {
+        if ((i > 0 && strlcat(out, "/", out_size) >= out_size) ||
+                strlcat(out, ActionScopeToString((enum ActionScope)set[i]), out_size) >= out_size) {
+            FatalError("firewall policy scope hint too long");
+        }
+    }
+}
+
 /**
  * \brief Assemble a firewall.policies config path, fatal on truncation.
  */
@@ -4234,13 +4304,16 @@ static void ATTR_FMT_PRINTF(2, 3)
 /**
  * \brief Resolve a firewall policy from its config path chain.
  *
- * The first path in the chain that has a policy configured wins.
+ * The first path in the chain that has a policy configured wins, with its
+ * action scope validated against the target hook class.
  *
  * \retval 1 a config source was used and stored in \p out
  * \retval 0 no source present, \p out is unmodified
- * \retval -1 parse error, e.g. an empty policy
+ * \retval -1 parse error, e.g. an empty policy, or invalid scope for the target class
  */
-static int ResolveFirewallPolicy(struct DetectFirewallPolicy *out, const FirewallPolicyChain *chain)
+
+static int ResolveFirewallPolicy(struct DetectFirewallPolicy *out,
+        enum DetectFirewallPolicyClass pol_class, const FirewallPolicyChain *chain)
 {
     for (uint8_t i = 0; i < chain->len; i++) {
         const char *path = chain->path[i];
@@ -4252,6 +4325,13 @@ static int ResolveFirewallPolicy(struct DetectFirewallPolicy *out, const Firewal
         if (r == 1) {
             if (tmp.action == 0) {
                 SCLogError("%s: policy is set but empty", path);
+                return -1;
+            }
+            if (!FirewallScopeValidForClass(tmp.action_scope, pol_class)) {
+                char hint[32]; // space to combine ActionScopeToString results
+                FirewallScopeHintForClass(pol_class, hint, sizeof(hint));
+                SCLogError("%s: action scope (\"%s\") is not valid.  Valid scopes: %s", path,
+                        ActionScopeToString(tmp.action_scope), hint);
                 return -1;
             }
             *out = tmp;
@@ -4335,7 +4415,7 @@ static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const 
     app_pol->policy.action = ACTION_DROP;
     app_pol->policy.action_scope = ACTION_SCOPE_FLOW;
 
-    int r = ResolveFirewallPolicy(&app_pol->policy, &chain);
+    int r = ResolveFirewallPolicy(&app_pol->policy, DETECT_FIREWALL_POLICY_CLASS_APP, &chain);
     if (r < 0) {
         SCFree(app_pol);
         return -1;
@@ -4396,7 +4476,7 @@ static int DetectFirewallLoadPacketPolicy(struct DetectFirewallPolicies *fw_poli
     FirewallPolicyChainAdd(&chain, "%s.default-policy", prefix);
 
     struct DetectFirewallPolicy *pol = &fw_policies->pkt[id]; // built-in default
-    int r = ResolveFirewallPolicy(pol, &chain);
+    int r = ResolveFirewallPolicy(pol, DETECT_FIREWALL_POLICY_CLASS_PACKET, &chain);
     if (r < 0) {
         return -1;
     }
