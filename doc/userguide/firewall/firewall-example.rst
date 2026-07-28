@@ -67,7 +67,7 @@ In the example below: the config auto accepts various hooks, leaving just ``http
 
     firewall:
       policies:
-        http:
+        http1:
           request-started:
             - "accept:hook"
           request-line:
