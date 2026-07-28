@@ -227,7 +227,6 @@
 #include "detect-http-stat-code.h"
 #include "detect-ssl-version.h"
 #include "detect-ssl-state.h"
-#include "detect-modbus.h"
 #include "detect-dnp3.h"
 #include "detect-vlan.h"
 #include "detect-email.h"
@@ -589,7 +588,6 @@ void SigTableSetup(void)
 
     DetectDnsNameRegister();
     DetectDnsResponseRegister();
-    DetectModbusRegister();
     DetectDNP3Register();
 
     DetectTlsSniRegister();
@@ -769,6 +767,7 @@ void SigTableSetup(void)
     SCDetectDcerpcRegister();
     SCDetectKrb5Register();
     SCDetectNfsRegister();
+    SCDetectModbusRegister();
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreregisteredCallbacks[i]();

@@ -16,13 +16,20 @@
  */
 
 use super::modbus::ModbusTransaction;
+use super::modbus::ALPROTO_MODBUS;
+use crate::core::STREAM_TOSERVER;
 use lazy_static::lazy_static;
 use regex::Regex;
 use sawp_modbus::{AccessType, CodeCategory, Data, Flags, FunctionCode, Message};
 use std::ffi::CStr;
 use std::ops::{Range, RangeInclusive};
-use std::os::raw::{c_char, c_void};
+use std::os::raw::{c_char, c_int, c_void};
 use std::str::FromStr;
+use suricata_sys::sys::{
+    AppProto, DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferProgressRegister,
+    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+};
 
 lazy_static! {
     static ref ACCESS_RE: Regex = Regex::new(
@@ -133,8 +140,7 @@ fn parse_range(min_str: &str, max_str: &str) -> Result<Range<u16>, ()> {
 }
 
 /// Intermediary function between the C code and the parsing functions.
-#[no_mangle]
-pub unsafe extern "C" fn SCModbusParse(c_arg: *const c_char) -> *mut c_void {
+unsafe extern "C" fn modbus_parse(c_arg: *const c_char) -> *mut c_void {
     if c_arg.is_null() {
         return std::ptr::null_mut();
     }
@@ -150,17 +156,9 @@ pub unsafe extern "C" fn SCModbusParse(c_arg: *const c_char) -> *mut c_void {
     std::ptr::null_mut()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCModbusFree(ptr: *mut c_void) {
-    if !ptr.is_null() {
-        let _ = Box::from_raw(ptr as *mut DetectModbusRust);
-    }
-}
-
 /// Compares a transaction to a signature to determine whether the transaction
 /// matches the signature. If it does, 1 is returned; otherwise 0 is returned.
-#[no_mangle]
-pub extern "C" fn SCModbusInspect(tx: &ModbusTransaction, modbus: &DetectModbusRust) -> u8 {
+fn modbus_inspect(tx: &ModbusTransaction, modbus: &DetectModbusRust) -> c_int {
     // All necessary information can be found in the request (value inspection currently
     // only supports write functions, which hold the value in the request).
     // Only inspect the response in the case where there is no request.
@@ -189,18 +187,18 @@ pub extern "C" fn SCModbusInspect(tx: &ModbusTransaction, modbus: &DetectModbusR
             return 0;
         }
 
-        return inspect_data(msg, modbus) as u8;
+        return inspect_data(msg, modbus) as c_int;
     }
 
     if let Some(category) = modbus.category {
-        return u8::from(msg.category.intersects(category));
+        return c_int::from(msg.category.intersects(category));
     }
 
     match &modbus.function {
         Some(func) if func == &msg.function.code => match modbus.subfunction {
             Some(subfunc) => {
                 if let Data::Diagnostic { func, data: _ } = &msg.data {
-                    u8::from(subfunc == func.raw)
+                    c_int::from(subfunc == func.raw)
                 } else {
                     0
                 }
@@ -458,6 +456,68 @@ fn parse_unit_id(unit_str: &str) -> Result<DetectModbusRust, ()> {
     Ok(modbus)
 }
 
+static mut G_MODBUS_KW_ID: u16 = 0;
+static mut G_MODBUS_BUFFER_ID: c_int = 0;
+
+unsafe extern "C" fn modbus_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS as AppProto) != 0 {
+        return -1;
+    }
+    let ctx = modbus_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_BUFFER_ID,
+    )
+    .is_null()
+    {
+        modbus_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn modbus_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectModbusRust);
+    return modbus_inspect(tx, ctx);
+}
+
+unsafe extern "C" fn modbus_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    let ctx = cast_pointer!(ctx, DetectModbusRust);
+    std::mem::drop(Box::from_raw(ctx));
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectModbusRegister() {
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus\0".as_ptr() as *const libc::c_char,
+        desc: b"match on various properties of Modbus requests\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/modbus-keyword.html#modbus-keyword\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(modbus_match),
+        Setup: Some(modbus_setup),
+        Free: Some(modbus_free),
+        flags: 0,
+    };
+    G_MODBUS_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus\0".as_ptr() as *const libc::c_char,
+        ALPROTO_MODBUS as AppProto,
+        STREAM_TOSERVER,
+        0,
+    );
+}
+
 #[cfg(test)]
 mod test {
     use super::super::modbus::ModbusState;
@@ -633,7 +693,7 @@ mod test {
         assert_eq!(modbus.transactions.len(), 1);
         // function 23
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     function: Some(FunctionCode::RdWrMultRegs),
@@ -644,7 +704,7 @@ mod test {
         );
         // access write holding, address 15, value <4660
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
@@ -657,7 +717,7 @@ mod test {
         );
         // access write holding, address 15, value 4661
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
@@ -670,7 +730,7 @@ mod test {
         );
         // access write holding, address 16, value 20000<>22136
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
@@ -683,7 +743,7 @@ mod test {
         );
         // access write holding, address 16, value 22136<>30000
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
@@ -696,7 +756,7 @@ mod test {
         );
         // access write holding, address 15, value >4660
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
@@ -709,7 +769,7 @@ mod test {
         );
         // access write holding, address 16, value <22137
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
@@ -722,7 +782,7 @@ mod test {
         );
         // access write holding, address 16, value <22137
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
@@ -735,7 +795,7 @@ mod test {
         );
         // access write holding, address 17, value 39612
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
@@ -748,7 +808,7 @@ mod test {
         );
         // access write holding, address 17, value 30000<>39613
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
@@ -761,7 +821,7 @@ mod test {
         );
         // access write holding, address 15, value 4659<>5000
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
@@ -774,7 +834,7 @@ mod test {
         );
         // access write holding, address 17, value >39611
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     access_type: Some(AccessType::WRITE | AccessType::HOLDING),
@@ -787,7 +847,7 @@ mod test {
         );
         // unit 12
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     unit_id: Some(12..12),
@@ -798,7 +858,7 @@ mod test {
         );
         // unit 5<>9
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     unit_id: Some(5..9),
@@ -809,7 +869,7 @@ mod test {
         );
         // unit 11<>15
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     unit_id: Some(11..15),
@@ -820,7 +880,7 @@ mod test {
         );
         // unit >11
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     unit_id: Some(11..u16::MAX),
@@ -831,7 +891,7 @@ mod test {
         );
         // unit <9
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     unit_id: Some(u16::MIN..9),
@@ -842,7 +902,7 @@ mod test {
         );
         // unit 10
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     unit_id: Some(10..10),
@@ -853,7 +913,7 @@ mod test {
         );
         // unit 5<>15
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     unit_id: Some(5..15),
@@ -864,7 +924,7 @@ mod test {
         );
         // unit >9
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     unit_id: Some(9..u16::MAX),
@@ -875,7 +935,7 @@ mod test {
         );
         // unit <11
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     unit_id: Some(u16::MIN..11),
@@ -886,7 +946,7 @@ mod test {
         );
         // unit 10, function 20
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     function: Some(FunctionCode::RdFileRec),
@@ -898,7 +958,7 @@ mod test {
         );
         // unit 11, function 20
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     function: Some(FunctionCode::RdFileRec),
@@ -910,7 +970,7 @@ mod test {
         );
         // unit 11, function 23
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     function: Some(FunctionCode::RdWrMultRegs),
@@ -922,7 +982,7 @@ mod test {
         );
         // unit 11, function public
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     category: Some(CodeCategory::PUBLIC_ASSIGNED | CodeCategory::PUBLIC_UNASSIGNED),
@@ -934,7 +994,7 @@ mod test {
         );
         // unit 10, function user
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     category: Some(Flags::from(CodeCategory::USER_DEFINED)),
@@ -946,7 +1006,7 @@ mod test {
         );
         // unit 10, function 23
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     function: Some(FunctionCode::RdWrMultRegs),
@@ -958,7 +1018,7 @@ mod test {
         );
         // unit 10, function public
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     category: Some(CodeCategory::PUBLIC_ASSIGNED | CodeCategory::PUBLIC_UNASSIGNED),
@@ -970,7 +1030,7 @@ mod test {
         );
         // unit 10, function !user
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[0],
                 &DetectModbusRust {
                     category: Some(!CodeCategory::USER_DEFINED),
@@ -1001,7 +1061,7 @@ mod test {
         assert_eq!(modbus.transactions.len(), 2);
         // function 8, subfunction 4
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[1],
                 &DetectModbusRust {
                     function: Some(FunctionCode::Diagnostic),
@@ -1032,7 +1092,7 @@ mod test {
         assert_eq!(modbus.transactions.len(), 3);
         // function reserved
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[2],
                 &DetectModbusRust {
                     category: Some(Flags::from(CodeCategory::RESERVED)),
@@ -1060,7 +1120,7 @@ mod test {
         assert_eq!(modbus.transactions.len(), 4);
         // function !assigned
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[3],
                 &DetectModbusRust {
                     category: Some(!CodeCategory::PUBLIC_ASSIGNED),
@@ -1090,7 +1150,7 @@ mod test {
         assert_eq!(modbus.transactions.len(), 5);
         // access read
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[4],
                 &DetectModbusRust {
                     access_type: Some(Flags::from(AccessType::READ)),
@@ -1101,7 +1161,7 @@ mod test {
         );
         // access read, address 30870
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[4],
                 &DetectModbusRust {
                     access_type: Some(Flags::from(AccessType::READ)),
@@ -1113,7 +1173,7 @@ mod test {
         );
         // unit 10, access read, address 30863
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[4],
                 &DetectModbusRust {
                     access_type: Some(Flags::from(AccessType::READ)),
@@ -1126,7 +1186,7 @@ mod test {
         );
         // unit 11, access read, address 30870
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[4],
                 &DetectModbusRust {
                     access_type: Some(Flags::from(AccessType::READ)),
@@ -1139,7 +1199,7 @@ mod test {
         );
         // unit 11, access read, address 30863
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[4],
                 &DetectModbusRust {
                     access_type: Some(Flags::from(AccessType::READ)),
@@ -1152,7 +1212,7 @@ mod test {
         );
         // unit 10, access write
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[4],
                 &DetectModbusRust {
                     access_type: Some(Flags::from(AccessType::WRITE)),
@@ -1164,7 +1224,7 @@ mod test {
         );
         // unit 10, access read, address 30870
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[4],
                 &DetectModbusRust {
                     access_type: Some(Flags::from(AccessType::READ)),
@@ -1196,7 +1256,7 @@ mod test {
         assert_eq!(modbus.transactions.len(), 6);
         // access read input
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
                     access_type: Some(AccessType::READ | AccessType::INPUT),
@@ -1207,7 +1267,7 @@ mod test {
         );
         // access read input, address <9
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
                     access_type: Some(AccessType::READ | AccessType::INPUT),
@@ -1219,7 +1279,7 @@ mod test {
         );
         // access read input, address 5<>9
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
                     access_type: Some(AccessType::READ | AccessType::INPUT),
@@ -1231,7 +1291,7 @@ mod test {
         );
         // access read input, address >104
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
                     access_type: Some(AccessType::READ | AccessType::INPUT),
@@ -1243,7 +1303,7 @@ mod test {
         );
         // access read input, address 104<>110
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
                     access_type: Some(AccessType::READ | AccessType::INPUT),
@@ -1255,7 +1315,7 @@ mod test {
         );
         // access read input, address 9
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
                     access_type: Some(AccessType::READ | AccessType::INPUT),
@@ -1267,7 +1327,7 @@ mod test {
         );
         // access read input, address <10
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
                     access_type: Some(AccessType::READ | AccessType::INPUT),
@@ -1279,7 +1339,7 @@ mod test {
         );
         // access read input, address 5<>10
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
                     access_type: Some(AccessType::READ | AccessType::INPUT),
@@ -1291,7 +1351,7 @@ mod test {
         );
         // access read input, address >103
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
                     access_type: Some(AccessType::READ | AccessType::INPUT),
@@ -1303,7 +1363,7 @@ mod test {
         );
         // access read input, address 103<>110
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
                     access_type: Some(AccessType::READ | AccessType::INPUT),
@@ -1315,7 +1375,7 @@ mod test {
         );
         // access read input, address 104
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[5],
                 &DetectModbusRust {
                     access_type: Some(AccessType::READ | AccessType::INPUT),
@@ -1347,7 +1407,7 @@ mod test {
         assert_eq!(modbus.transactions.len(), 7);
         // function 1
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[6],
                 &DetectModbusRust {
                     function: Some(FunctionCode::RdCoils),
@@ -1360,7 +1420,7 @@ mod test {
         // Fails because there was no request, and the address is not retrievable
         // from the response.
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[6],
                 &DetectModbusRust {
                     access_type: Some(Flags::from(AccessType::READ)),
@@ -1392,7 +1452,7 @@ mod test {
         assert_eq!(modbus.transactions.len(), 8);
         // function 6
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[7],
                 &DetectModbusRust {
                     function: Some(FunctionCode::WrSingleReg),
@@ -1403,7 +1463,7 @@ mod test {
         );
         // access write, address 10
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[7],
                 &DetectModbusRust {
                     access_type: Some(Flags::from(AccessType::WRITE)),
@@ -1435,7 +1495,7 @@ mod test {
         assert_eq!(modbus.transactions.len(), 9);
         // function 8
         assert_eq!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[8],
                 &DetectModbusRust {
                     function: Some(FunctionCode::Diagnostic),
@@ -1446,7 +1506,7 @@ mod test {
         );
         // access read
         assert_ne!(
-            SCModbusInspect(
+            modbus_inspect(
                 &modbus.transactions[8],
                 &DetectModbusRust {
                     access_type: Some(Flags::from(AccessType::READ)),
