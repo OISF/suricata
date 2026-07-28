@@ -69,7 +69,6 @@
 #include "detect-http-host.h"
 
 #include "detect-mark.h"
-#include "detect-nfs-version.h"
 
 #include "detect-engine-event.h"
 #include "decode.h"
@@ -685,8 +684,6 @@ void SigTableSetup(void)
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();
-    SCDetectNfsProcedureRegister();
-    DetectNfsVersionRegister();
     DetectUrilenRegister();
     DetectBsizeRegister();
     DetectDetectionFilterRegister();
@@ -771,6 +768,7 @@ void SigTableSetup(void)
     SCDetectIkeRegister();
     SCDetectDcerpcRegister();
     SCDetectKrb5Register();
+    SCDetectNfsRegister();
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreregisteredCallbacks[i]();
