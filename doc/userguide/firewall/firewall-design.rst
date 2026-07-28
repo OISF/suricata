@@ -394,3 +394,9 @@ Precedence:
 * app hook in a sub state: ``app.<proto>.<sub state>.<hook>`` >
   ``app.<proto>.<sub state>.default-policy`` > ``app.<proto>.default-policy`` >
   ``app.default-policy`` > ``policies.default-policy`` > built-in (``drop:flow``)
+
+An action scope must be valid for the hook it is applied to. For example,
+defining ``accept:tx`` as a global default policy will fail to start Suricata,
+because ``packet`` policies do not accept ``tx``.
+Cover such hooks with a more specific setting so the incompatible default never
+reaches them.
