@@ -339,6 +339,11 @@ extern "C" {
     ) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
+    pub fn SCConfNodeLookupInSequence(
+        seq: *const SCConfNode, key: *const ::std::os::raw::c_char, prev: *const SCConfNode,
+    ) -> *mut SCConfNode;
+}
+extern "C" {
     pub fn SCConfNodeRemove(arg1: *mut SCConfNode);
 }
 extern "C" {
