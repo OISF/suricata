@@ -36,7 +36,7 @@ use suricata_sys::sys::{
 
 pub static mut DCERPC_MAX_STUB_SIZE: u32 = 1048576;
 
-// Constant DCERPC UDP Header length
+// Constant DCERPC TCP Header length
 pub const DCERPC_HDR_LEN: u16 = 16;
 // FIRST flag set on the packet
 pub const DCERPC_UUID_ENTRY_FLAG_FF: u16 = 0x0001;
