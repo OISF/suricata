@@ -191,6 +191,7 @@ static ExpectationList *AppLayerExpectationRemove(IPPair *ipp,
     if (exp_list->length == 0) {
         SCIPPairSetStorageById(ipp, g_ippair_expectation_id, NULL);
         ExpectationListFree(exp_list);
+        IPPairRelease(ipp);
         exp_list = NULL;
     }
     return exp_list;
