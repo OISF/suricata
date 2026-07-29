@@ -881,6 +881,10 @@ static bool SigParseFirewallRuleAllowed(
         SCLogError("keyword \'%s\' is not allowed in firewall mode", optname);
         return false;
     }
+    if ((action & ACTION_CONFIG) != 0 && (sig_flags & SIGMATCH_BAN_ACTION_CONFIG) != 0) {
+        SCLogError("keyword \'%s\' cannot be used in combination with \'config\' action", optname);
+        return false;
+    }
     if (action_scope == (uint8_t)ACTION_SCOPE_PACKET) {
         if ((sig_flags & SIGMATCH_BAN_FIREWALL_SCOPE_PACKET) != 0) {
             SCLogError(
