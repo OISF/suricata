@@ -186,6 +186,7 @@ static ExpectationList *AppLayerExpectationRemove(IPPair *ipp,
 {
     CIRCLEQ_REMOVE(&exp_list->list, exp, entries);
     AppLayerFreeExpectation(exp);
+    IPPairDecrUsecnt(ipp);
     SC_ATOMIC_SUB(expectation_count, 1);
     exp_list->length--;
     if (exp_list->length == 0) {
