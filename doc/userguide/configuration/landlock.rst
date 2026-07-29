@@ -36,8 +36,22 @@ To enable Landlock, edit the YAML and set ``enabled`` to ``yes``:
         - /etc/suricata/
 
 Following your running configuration you may have to add some directories.
-There are two lists you can use, ``write`` to add directories where write is needed
-and ``read`` for directories where read access is needed.
+There are three lists you can use, ``write`` to add directories where write is needed,
+``read`` for directories where read access is needed and ``rewrite`` for
+directories holding files that are rewritten in place.
+
+``rewrite`` grants read, write *and* truncate on the directory. It is needed
+for files that are replaced in place each time they are updated, the previous
+content being discarded first -- dataset ``save``/``state`` files are the
+typical case. Plain ``write`` deliberately leaves truncation out, since
+emptying a file is a classic way to erase traces, so a file that already has
+content cannot be rewritten with ``write`` alone::
+
+  landlock:
+    enabled: yes
+    directories:
+      rewrite:
+        - /var/lib/mysets/
 
 Built-in outputs (``pcap-log``, ``fast``, ``eve-log`` with ``redis``, ``unix_*``
 and custom ``filename`` paths, ...) declare the filesystem and network access
@@ -88,6 +102,64 @@ directory to ``security.landlock.directories.write``::
 
 Scripts that only write through Suricata's own logging facilities do not
 need any extra permission.
+
+Datasets using an absolute path
+-------------------------------
+
+Suricata's data directory (``$localstatedir/lib/suricata``, where datasets are
+kept by default) is granted read and write access automatically, so rules
+whose ``load``, ``save`` or ``state`` file is a plain relative name work out
+of the box.
+
+A rule that points at an *absolute* path is different: the file lives outside
+the data directory and Suricata cannot guess it, so nothing grants it. Note
+that absolute paths are refused outright unless
+``datasets.rules.allow-absolute-filenames`` is enabled -- once it is, the
+sandbox becomes the next thing in the way and the access has to be declared by
+hand.
+
+Which list to use depends on the dataset keyword used in the signature:
+
+``load``
+  add its directory to ``security.landlock.directories.read``, otherwise the
+  rule fails to load.
+
+``save``
+  add its directory to ``security.landlock.directories.rewrite``. Plain
+  ``write`` creates the file the first time but cannot replace the content of
+  an existing one, so the set would silently stop being updated from the second
+  run on. Note that ``rewrite`` also grants read, which a ``save``-only set
+  does not need.
+
+``state``
+  a shorthand for ``load`` plus ``save`` on the same file, so it needs the
+  same ``rewrite`` grant as ``save``.
+
+Note that a denied dataset save is quiet: the set is simply not written and no
+error is logged. If a ``save``/``state`` file stops being updated after
+enabling Landlock, a missing ``rewrite`` entry is the first thing to check.
+
+For example, with a rule such as::
+
+  alert dns any any -> any any (dns.query; \
+      dataset:isnotset,dns-seen,type string,state /var/lib/mysets/dns-seen.txt; \
+      sid:1; rev:1;)
+
+the matching configuration is::
+
+  landlock:
+    enabled: yes
+    directories:
+      rewrite:
+        - /var/lib/mysets/
+
+The same directories can be passed on the command line instead::
+
+  suricata --set security.landlock.directories.rewrite.0=/var/lib/mysets/
+
+Beware that ``--set`` on a list *replaces* the entry at that index: if the
+YAML already defines entries, use the next free index (or add the directory to
+the YAML) rather than overwriting index ``0``.
 
 Granting access to network ports
 --------------------------------
