@@ -868,6 +868,25 @@ static int DetectSetupDirection(Signature *s, char **str, bool only_dir)
     return 0;
 }
 
+/** \brief called only with firewall rules, to validate options
+*/
+static bool SigParseFirewallRuleAllowed(uint32_t sig_flags, char *optname)
+{
+    if ((sig_flags & SIGMATCH_BAN_FIREWALL_RULE) != 0) {
+        SCLogError("keyword \'%s\' is not allowed with firewall rules", optname);
+        return false;
+    }
+    if ((sig_flags & SIGMATCH_BAN_FIREWALL_MODE) != 0) {
+        SCLogError("keyword \'%s\' is not allowed in firewall mode", optname);
+        return false;
+    }
+    if ((sig_flags & SIGMATCH_SUPPORT_FIREWALL) == 0) {
+        SCLogWarning("keyword \'%s\' has not been tested for firewall rules", optname);
+    }
+    /* for most cases, firewall rules should be allowed */
+    return true;
+}
+
 static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, char *output,
         size_t output_size, bool requires)
 {
@@ -968,8 +987,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
 #undef URL
     }
 
-    if (s->init_data->firewall_rule && (st->flags & SIGMATCH_BAN_FIREWALL_RULE) != 0) {
-        SCLogError("keyword \'%s\' is not allowed with firewall rules", optname);
+    if (s->init_data->firewall_rule && !SigParseFirewallRuleAllowed(st->flags, optname)) {
         goto error;
     }
 
@@ -1004,8 +1022,10 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
             goto error;
         }
 
-        if (s->init_data->firewall_rule && (st->flags & SIGMATCH_SUPPORT_FIREWALL) == 0) {
-            SCLogWarning("keyword \'%s\' has not been tested for firewall rules", optname);
+        /* Is it problematic to have the check for support firewall converted into this function,
+           and thus potentially executed before this step? */
+        if (s->init_data->firewall_rule && !SigParseFirewallRuleAllowed(st->flags, optname)) {
+            goto error;
         }
 
         /* see if value is negated */
