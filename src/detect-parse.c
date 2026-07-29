@@ -2746,6 +2746,7 @@ static bool DetectRuleValidateTable(const Signature *s)
     return true;
 }
 
+/** \brief validates firewall rule action scope */
 static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Signature *s)
 {
     if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_NOT_SET) {
