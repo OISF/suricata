@@ -885,6 +885,10 @@ static bool SigParseFirewallRuleAllowed(
         SCLogError("keyword \'%s\' cannot be used in combination with \'config\' action", optname);
         return false;
     }
+    if ((action & ACTION_REJECT) != 0 && (sig_flags & SIGMATCH_BAN_ACTION_REJECT) != 0) {
+        SCLogError("keyword \'%s\' cannot be used in combination with \'reject\' action", optname);
+        return false;
+    }
     if ((action & ACTION_DROP) != 0 && (sig_flags & SIGMATCH_BAN_ACTION_DROP) != 0) {
         SCLogError("keyword \'%s\' cannot be used in combination with \'drop\' action", optname);
         return false;

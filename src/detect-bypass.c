@@ -67,7 +67,8 @@ void DetectBypassRegister(void)
     sigmatch_table[DETECT_BYPASS].flags = SIGMATCH_NOOPT | SIGMATCH_SUPPORT_FIREWALL |
                                           SIGMATCH_BAN_TD_FIREWALL_MODE |
                                           SIGMATCH_BAN_FIREWALL_SCOPE_PACKET |
-                                          SIGMATCH_BAN_ACTION_CONFIG | SIGMATCH_BAN_ACTION_DROP;
+                                          SIGMATCH_BAN_ACTION_CONFIG | SIGMATCH_BAN_ACTION_DROP |
+                                          SIGMATCH_BAN_ACTION_REJECT;
 }
 
 static int DetectBypassSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)

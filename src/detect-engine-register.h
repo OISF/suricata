@@ -362,7 +362,7 @@ extern int DETECT_TBLSIZE_IDX;
 // #define SIGMATCH_BAN_SCOPE_TX (1UL << (26))
 /** keyword cannot be used in combination with given action */
 #define SIGMATCH_BAN_ACTION_DROP (1UL << (27))
-// #define SIGMATCH_BAN_ACTION_REJECT (1UL << (28))
+#define SIGMATCH_BAN_ACTION_REJECT (1UL << (28))
 #define SIGMATCH_BAN_ACTION_CONFIG (1UL << (29))
 
 int SigTableList(const char *keyword);
