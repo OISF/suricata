@@ -205,6 +205,8 @@ pub struct DCERPCTransaction {
     pub resp_lost: bool,
     pub req_cmd: u8,
     pub resp_cmd: u8,
+    pub req_hdr: Option<Vec<u8>>,
+    pub resp_hdr: Option<Vec<u8>>,
     pub activityuuid: Vec<u8>,
     pub seqnum: u32,
     pub tx_data: AppLayerTxData,
@@ -288,6 +290,27 @@ pub struct DCERPCHdr {
     pub frag_length: u16,
     pub auth_length: u16,
     pub call_id: u32,
+}
+
+impl DCERPCHdr {
+    pub fn to_bytes(&self) -> [u8; DCERPC_HDR_LEN as usize] {
+        let mut b = [0u8; DCERPC_HDR_LEN as usize];
+        b[0] = self.rpc_vers;
+        b[1] = self.rpc_vers_minor;
+        b[2] = self.hdrtype;
+        b[3] = self.pfc_flags;
+        b[4..8].copy_from_slice(&self.packed_drep);
+        if self.packed_drep[0] & 0x10 != 0 {
+            b[8..10].copy_from_slice(&self.frag_length.to_le_bytes());
+            b[10..12].copy_from_slice(&self.auth_length.to_le_bytes());
+            b[12..16].copy_from_slice(&self.call_id.to_le_bytes());
+        } else {
+            b[8..10].copy_from_slice(&self.frag_length.to_be_bytes());
+            b[10..12].copy_from_slice(&self.auth_length.to_be_bytes());
+            b[12..16].copy_from_slice(&self.call_id.to_be_bytes());
+        }
+        b
+    }
 }
 
 #[derive(Debug)]
@@ -585,6 +608,7 @@ impl DCERPCState {
                 }
                 let mut tx = self.create_tx(hdr);
                 tx.req_cmd = hdr.hdrtype;
+                tx.req_hdr = Some(hdr.to_bytes().to_vec());
                 tx.req_done = true;
                 if let Some(flow) = self.flow {
                     sc_app_layer_parser_trigger_raw_stream_inspection(
@@ -762,6 +786,7 @@ impl DCERPCState {
                 match transaction {
                     Some(ref mut tx) => {
                         tx.req_cmd = hdr_type;
+                        tx.req_hdr = Some(hdr.to_bytes().to_vec());
                         tx.ctxid = request.ctxid;
                         tx.opnum = request.opnum;
                         tx.first_request_seen = request.first_request_seen;
@@ -769,6 +794,7 @@ impl DCERPCState {
                     None => {
                         let mut tx = self.create_tx(hdr);
                         tx.req_cmd = hdr_type;
+                        tx.req_hdr = Some(hdr.to_bytes().to_vec());
                         tx.ctxid = request.ctxid;
                         tx.opnum = request.opnum;
                         tx.first_request_seen = request.first_request_seen;
@@ -949,10 +975,12 @@ impl DCERPCState {
                         self.get_tx_by_call_id(current_call_id, Direction::ToClient, hdrtype)
                     {
                         tx.resp_cmd = hdrtype;
+                        tx.resp_hdr = Some(hdr.to_bytes().to_vec());
                         tx
                     } else {
                         let mut tx = self.create_tx(&hdr);
                         tx.resp_cmd = hdrtype;
+                        tx.resp_hdr = Some(hdr.to_bytes().to_vec());
                         self.transactions.push_back(tx);
                         self.transactions.back_mut().unwrap()
                     };
@@ -980,10 +1008,12 @@ impl DCERPCState {
                     match transaction {
                         Some(tx) => {
                             tx.resp_cmd = hdrtype;
+                            tx.resp_hdr = Some(hdr.to_bytes().to_vec());
                         }
                         None => {
                             let mut tx = self.create_tx(&hdr);
                             tx.resp_cmd = hdrtype;
+                            tx.resp_hdr = Some(hdr.to_bytes().to_vec());
                             self.transactions.push_back(tx);
                         }
                     };
