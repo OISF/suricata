@@ -191,8 +191,24 @@ static inline int landlock_restrict_self(const int ruleset_fd, const __u32 flags
 #define LANDLOCK_ACCESS_FS_REFER (1ULL << 13)
 #endif
 
+#ifndef LANDLOCK_ACCESS_FS_TRUNCATE
+#define LANDLOCK_ACCESS_FS_TRUNCATE (1ULL << 14)
+#endif
+
+#ifndef LANDLOCK_ACCESS_FS_IOCTL_DEV
+#define LANDLOCK_ACCESS_FS_IOCTL_DEV (1ULL << 15)
+#endif
+
 #ifndef LANDLOCK_ACCESS_FS_RESOLVE_UNIX
 #define LANDLOCK_ACCESS_FS_RESOLVE_UNIX (1ULL << 18)
+#endif
+
+#ifndef LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET
+#define LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET (1ULL << 0)
+#endif
+
+#ifndef LANDLOCK_SCOPE_SIGNAL
+#define LANDLOCK_SCOPE_SIGNAL (1ULL << 1)
 #endif
 
 #define _LANDLOCK_ACCESS_FS_WRITE                                                                  \
@@ -240,7 +256,9 @@ static inline struct landlock_ruleset *LandlockCreateRuleset(void)
 
     ruleset->attr.handled_access_fs =
             _LANDLOCK_ACCESS_FS_READ | _LANDLOCK_ACCESS_FS_WRITE | LANDLOCK_ACCESS_FS_EXECUTE;
+#ifdef HAVE_LANDLOCK_RULESET_ATTR_HANDLED_ACCESS_NET
     ruleset->attr.handled_access_net = _LANDLOCK_ACCESS_NET;
+#endif
 
     int abi = landlock_create_ruleset(NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
     if (abi < 0) {
@@ -264,7 +282,9 @@ static inline struct landlock_ruleset *LandlockCreateRuleset(void)
             __attribute__((fallthrough));
         case 3:
             /* Network access is only available from ABI 4 */
+#ifdef HAVE_LANDLOCK_RULESET_ATTR_HANDLED_ACCESS_NET
             ruleset->attr.handled_access_net &= ~_LANDLOCK_ACCESS_NET;
+#endif
             __attribute__((fallthrough));
         case 4:
             /* Device ioctl is only available from ABI 5 */
@@ -272,7 +292,9 @@ static inline struct landlock_ruleset *LandlockCreateRuleset(void)
             __attribute__((fallthrough));
         case 5:
             /* Scoping is only available from ABI 6 */
+#ifdef HAVE_LANDLOCK_RULESET_ATTR_SCOPED
             ruleset->attr.scoped &= ~(LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET | LANDLOCK_SCOPE_SIGNAL);
+#endif
             __attribute__((fallthrough));
         case 6 ... 8:
             /* Unix socket resolution is only available from ABI 9 */
@@ -472,6 +494,7 @@ void SCLandlockGrantFile(void *vruleset, const char *path, uint32_t access)
     SCLogConfig("Added file permission (0x%x) on '%s'", access, path);
 }
 
+#ifdef HAVE_LANDLOCK_RULESET_ATTR_HANDLED_ACCESS_NET
 static void LandlockGrantNetPort(
         struct landlock_ruleset *ruleset, uint16_t port, uint64_t access, const char *access_name)
 {
@@ -491,6 +514,7 @@ static void LandlockGrantNetPort(
     }
     SCLogConfig("Added net %s permission on port %u", access_name, port);
 }
+#endif
 
 /**
  * \brief Grant TCP bind permission on the given port
@@ -503,7 +527,7 @@ static void LandlockGrantNetPort(
  */
 void SCLandlockGrantNetBindTCP(void *vruleset, uint16_t port)
 {
-#ifdef LANDLOCK_ACCESS_NET_BIND_TCP
+#ifdef HAVE_LANDLOCK_RULESET_ATTR_HANDLED_ACCESS_NET
     LandlockGrantNetPort(
             (struct landlock_ruleset *)vruleset, port, LANDLOCK_ACCESS_NET_BIND_TCP, "bind-tcp");
 #else
@@ -523,7 +547,7 @@ void SCLandlockGrantNetBindTCP(void *vruleset, uint16_t port)
  */
 void SCLandlockGrantNetConnectTCP(void *vruleset, uint16_t port)
 {
-#ifdef LANDLOCK_ACCESS_NET_CONNECT_TCP
+#ifdef HAVE_LANDLOCK_RULESET_ATTR_HANDLED_ACCESS_NET
     LandlockGrantNetPort((struct landlock_ruleset *)vruleset, port, LANDLOCK_ACCESS_NET_CONNECT_TCP,
             "connect-tcp");
 #else
