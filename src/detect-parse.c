@@ -906,6 +906,12 @@ static bool SigParseFirewallRuleAllowed(
             return false;
         }
     }
+    if (action_scope == (uint8_t)ACTION_SCOPE_HOOK) {
+        if ((sig_flags & SIGMATCH_BAN_FIREWALL_SCOPE_HOOK) != 0) {
+            SCLogError("keyword \'%s\' cannot be used in combination with \'hook\' scope", optname);
+            return false;
+        }
+    }
     if ((sig_flags & SIGMATCH_SUPPORT_FIREWALL) == 0) {
         SCLogWarning("keyword \'%s\' has not been tested for firewall rules", optname);
     }

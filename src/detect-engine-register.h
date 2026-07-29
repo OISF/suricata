@@ -358,7 +358,7 @@ extern int DETECT_TBLSIZE_IDX;
 #define SIGMATCH_BAN_TD_FIREWALL_MODE (1UL << (23))
 /** keyword cannot be used in combination with indicated action scope */
 #define SIGMATCH_BAN_FIREWALL_SCOPE_PACKET (1UL << (24))
-// #define SIGMATCH_BAN_SCOPE_FLOW (1UL << (25))
+#define SIGMATCH_BAN_FIREWALL_SCOPE_HOOK (1UL << (25))
 #define SIGMATCH_BAN_FIREWALL_SCOPE_TX (1UL << (26))
 /** keyword cannot be used in combination with given action */
 #define SIGMATCH_BAN_ACTION_DROP (1UL << (27))
