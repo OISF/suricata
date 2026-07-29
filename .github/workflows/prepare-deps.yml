@@ -16,6 +16,30 @@ jobs:
         env:
           JSON: ${{ toJSON(github) }}
       - run: sudo apt update && sudo apt -y install jq curl
+      # TEMPORARY, not for merge. Demonstrates what the previous commit
+      # changes. Both calls go to /rate_limit, which is exempt from the limits
+      # it reports, so this observes without consuming anything, and it runs
+      # before the fetch below so the numbers describe the state that fetch
+      # actually faces. The anonymous "remaining" is the interesting one: it is
+      # what the unauthenticated read this branch replaces would have had to
+      # work with, on this runner, at this moment. A low value there is the
+      # evidence that the shared per-IP allowance is not ours to rely on.
+      - name: Anonymous vs authenticated API allowance (diagnostic)
+        # A diagnostic must never be the reason a build goes red.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          anon=$(curl -s https://api.github.com/rate_limit | jq -c '.resources.core')
+          auth=$(curl -s -H "Authorization: Bearer ${GH_TOKEN}" \
+              https://api.github.com/rate_limit | jq -c '.resources.core')
+          echo "anonymous:     ${anon}"
+          echo "authenticated: ${auth}"
+          # Notices land in the run summary, so the comparison can be read
+          # without opening the log.
+          echo "::notice::anonymous core ${anon}"
+          echo "::notice::authenticated core ${auth}"
+
       - name: Parse repo and branch information
         env:
           # We fetch the actual pull request to get the latest body as
