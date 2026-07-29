@@ -330,7 +330,15 @@ static int LandlockSandboxingAddRule(
 
     int dir_fd = open(directory, O_PATH | O_CLOEXEC | O_DIRECTORY);
     if (dir_fd == -1) {
-        SCLogError("Can't open %s", directory);
+        /* A directory listed in the configuration that does not exist on this
+         * system is not an error: there is simply nothing to grant. Default
+         * paths such as the sysconfdir are missing whenever Suricata runs
+         * from a build tree. Report anything else as a warning. */
+        if (errno == ENOENT) {
+            SCLogConfig("Skipping landlock rule for missing directory '%s'", directory);
+        } else {
+            SCLogWarning("Can't open '%s' for landlock rule: %s", directory, strerror(errno));
+        }
         return -1;
     }
     path_beneath.parent_fd = dir_fd;
