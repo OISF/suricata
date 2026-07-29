@@ -205,6 +205,8 @@ pub struct DCERPCTransaction {
     pub resp_lost: bool,
     pub req_cmd: u8,
     pub resp_cmd: u8,
+    pub req_flags: u16,
+    pub resp_flags: u16,
     pub activityuuid: Vec<u8>,
     pub seqnum: u32,
     pub tx_data: AppLayerTxData,
@@ -539,8 +541,6 @@ impl DCERPCState {
                 uuidentry.version = ctxitem.version;
                 uuidentry.versionminor = ctxitem.versionminor;
                 let pfcflags = hdr.pfc_flags;
-                // Store the first frag flag in the uuid as pfc_flags will
-                // be overwritten by new packets
                 if pfcflags & PFC_FIRST_FRAG > 0 {
                     uuidentry.flags |= DCERPC_UUID_ENTRY_FLAG_FF;
                 }
@@ -585,6 +585,7 @@ impl DCERPCState {
                 }
                 let mut tx = self.create_tx(hdr);
                 tx.req_cmd = hdr.hdrtype;
+                tx.req_flags |= hdr.pfc_flags as u16;
                 tx.req_done = true;
                 if let Some(flow) = self.flow {
                     sc_app_layer_parser_trigger_raw_stream_inspection(
@@ -762,6 +763,7 @@ impl DCERPCState {
                 match transaction {
                     Some(ref mut tx) => {
                         tx.req_cmd = hdr_type;
+                        tx.req_flags |= hdr.pfc_flags as u16;
                         tx.ctxid = request.ctxid;
                         tx.opnum = request.opnum;
                         tx.first_request_seen = request.first_request_seen;
@@ -769,6 +771,7 @@ impl DCERPCState {
                     None => {
                         let mut tx = self.create_tx(hdr);
                         tx.req_cmd = hdr_type;
+                        tx.req_flags |= hdr.pfc_flags as u16;
                         tx.ctxid = request.ctxid;
                         tx.opnum = request.opnum;
                         tx.first_request_seen = request.first_request_seen;
@@ -949,10 +952,12 @@ impl DCERPCState {
                         self.get_tx_by_call_id(current_call_id, Direction::ToClient, hdrtype)
                     {
                         tx.resp_cmd = hdrtype;
+                        tx.resp_flags |= hdr.pfc_flags as u16;
                         tx
                     } else {
                         let mut tx = self.create_tx(&hdr);
                         tx.resp_cmd = hdrtype;
+                        tx.resp_flags |= hdr.pfc_flags as u16;
                         self.transactions.push_back(tx);
                         self.transactions.back_mut().unwrap()
                     };
@@ -980,10 +985,12 @@ impl DCERPCState {
                     match transaction {
                         Some(tx) => {
                             tx.resp_cmd = hdrtype;
+                            tx.resp_flags |= hdr.pfc_flags as u16;
                         }
                         None => {
                             let mut tx = self.create_tx(&hdr);
                             tx.resp_cmd = hdrtype;
+                            tx.resp_flags |= hdr.pfc_flags as u16;
                             self.transactions.push_back(tx);
                         }
                     };
