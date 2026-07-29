@@ -869,8 +869,9 @@ static int DetectSetupDirection(Signature *s, char **str, bool only_dir)
 }
 
 /** \brief called only with firewall rules, to validate options
-*/
-static bool SigParseFirewallRuleAllowed(uint8_t action_scope, uint32_t sig_flags, char *optname)
+ */
+static bool SigParseFirewallRuleAllowed(
+        uint8_t action, uint8_t action_scope, uint32_t sig_flags, char *optname)
 {
     if ((sig_flags & SIGMATCH_BAN_FIREWALL_RULE) != 0) {
         SCLogError("keyword \'%s\' is not allowed with firewall rules", optname);
@@ -994,7 +995,8 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
 #undef URL
     }
 
-    if (s->init_data->firewall_rule && !SigParseFirewallRuleAllowed(s->action_scope, st->flags, optname)) {
+    if (s->init_data->firewall_rule &&
+            !SigParseFirewallRuleAllowed(s->action, s->action_scope, st->flags, optname)) {
         goto error;
     }
 
@@ -1031,7 +1033,8 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
 
         /* Is it problematic to have the check for support firewall converted into this function,
            and thus potentially executed before this step? */
-        if (s->init_data->firewall_rule && !SigParseFirewallRuleAllowed(s->action_scope, st->flags, optname)) {
+        if (s->init_data->firewall_rule &&
+                !SigParseFirewallRuleAllowed(s->action, s->action_scope, st->flags, optname)) {
             goto error;
         }
 
