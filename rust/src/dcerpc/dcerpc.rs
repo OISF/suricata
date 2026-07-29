@@ -541,8 +541,6 @@ impl DCERPCState {
                 uuidentry.version = ctxitem.version;
                 uuidentry.versionminor = ctxitem.versionminor;
                 let pfcflags = hdr.pfc_flags;
-                // Store the first frag flag in the uuid as pfc_flags will
-                // be overwritten by new packets
                 if pfcflags & PFC_FIRST_FRAG > 0 {
                     uuidentry.flags |= DCERPC_UUID_ENTRY_FLAG_FF;
                 }

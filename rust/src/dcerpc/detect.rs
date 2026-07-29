@@ -393,6 +393,68 @@ unsafe extern "C" fn dcerpc_opnum_free(_de: *mut DetectEngineCtx, ptr: *mut c_vo
     }
 }
 
+unsafe fn dcerpc_flags_parse(carg: *const c_char) -> *mut c_void {
+    let arg = match CStr::from_ptr(carg).to_str() {
+        Ok(arg) => arg,
+        Err(_) => {
+            return std::ptr::null_mut();
+        }
+    };
+    match detect_parse_uint::<u16>(arg) {
+        Ok((_, ctx)) => Box::into_raw(Box::new(ctx)) as *mut c_void,
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+unsafe extern "C" fn dcerpc_flags_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut crate::flow::Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, DCERPCTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    // request flags on to_server, response flags on to_client
+    let value = if flags & STREAM_TOSERVER != 0 {
+        tx.req_flags
+    } else {
+        tx.resp_flags
+    };
+    if detect_match_uint(ctx, value) {
+        return 1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn dcerpc_flags_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0 {
+        return -1;
+    }
+    let ctx = dcerpc_flags_parse(raw);
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_DCERPC_FLAGS_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_DCERPC_GENERIC_BUFFER_ID,
+    )
+    .is_null()
+    {
+        dcerpc_flags_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn dcerpc_flags_free(_de: *mut DetectEngineCtx, ptr: *mut c_void) {
+    if !ptr.is_null() {
+        std::mem::drop(Box::from_raw(ptr as *mut DetectUintData<u16>));
+    }
+}
+
 unsafe extern "C" fn dcerpc_stub_data_setup(
     de_ctx: *mut DetectEngineCtx, s: *mut Signature, _str: *const c_char,
 ) -> c_int {
@@ -440,6 +502,7 @@ unsafe extern "C" fn dcerpc_tx_get_stub_data(
 }
 
 static mut G_DCERPC_OPNUM_KW_ID: u16 = 0;
+static mut G_DCERPC_FLAGS_KW_ID: u16 = 0;
 static mut G_DCERPC_GENERIC_BUFFER_ID: c_int = 0;
 static mut G_DCERPC_IFACE_KW_ID: u16 = 0;
 static mut G_DCERPC_STUB_BUFFER_ID: c_int = 0;
@@ -457,6 +520,18 @@ pub unsafe extern "C" fn SCDetectDcerpcRegister() {
         flags: 0,
     };
     G_DCERPC_OPNUM_KW_ID = SCDetectHelperKeywordRegister(&kw);
+
+    let kw = SCSigTableAppLiteElmt {
+        name: b"dcerpc.flags\0".as_ptr() as *const libc::c_char,
+        desc: b"match on the PFC flags in a DCERPC header\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/dcerpc-keywords.html#dcerpc-flags\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(dcerpc_flags_match),
+        Setup: Some(dcerpc_flags_setup),
+        Free: Some(dcerpc_flags_free),
+        flags: 0,
+    };
+    G_DCERPC_FLAGS_KW_ID = SCDetectHelperKeywordRegister(&kw);
+
     G_DCERPC_GENERIC_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"dce_generic\0".as_ptr() as *const libc::c_char,
         ALPROTO_DCERPC,
