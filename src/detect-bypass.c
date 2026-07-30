@@ -64,12 +64,11 @@ void DetectBypassRegister(void)
     sigmatch_table[DETECT_BYPASS].Match = DetectBypassMatch;
     sigmatch_table[DETECT_BYPASS].Setup = DetectBypassSetup;
     sigmatch_table[DETECT_BYPASS].Free  = NULL;
-    sigmatch_table[DETECT_BYPASS].flags = SIGMATCH_NOOPT | SIGMATCH_SUPPORT_FIREWALL |
-                                          SIGMATCH_BAN_TD_FIREWALL_MODE |
-                                          SIGMATCH_BAN_FIREWALL_SCOPE_PACKET |
-                                          SIGMATCH_BAN_ACTION_CONFIG | SIGMATCH_BAN_ACTION_DROP |
-                                          SIGMATCH_BAN_ACTION_REJECT | SIGMATCH_BAN_FIREWALL_SCOPE_TX |
-                                          SIGMATCH_BAN_FIREWALL_SCOPE_HOOK;
+    sigmatch_table[DETECT_BYPASS].flags =
+            SIGMATCH_NOOPT | SIGMATCH_SUPPORT_FIREWALL | SIGMATCH_BAN_TD_FIREWALL_MODE |
+            SIGMATCH_BAN_FIREWALL_SCOPE_PACKET | SIGMATCH_BAN_ACTION_CONFIG |
+            SIGMATCH_BAN_ACTION_DROP | SIGMATCH_BAN_ACTION_REJECT | SIGMATCH_BAN_FIREWALL_SCOPE_TX |
+            SIGMATCH_BAN_FIREWALL_SCOPE_HOOK;
 }
 
 static int DetectBypassSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
