@@ -129,3 +129,162 @@ V1.0b, the MODBUS slave device addresses on serial line are assigned from 1 to
 
 Paper and presentation (in french) on Modbus support are available :
 http://www.ssi.gouv.fr/agence/publication/detection-dintrusion-dans-les-systemes-industriels-suricata-et-le-cas-modbus/
+
+Per-value keywords
+------------------
+
+The following keywords match on single values of a Modbus transaction,
+mirroring the fields logged in the EVE ``modbus`` event. They all use
+:ref:`unsigned integers <rules-integer-keywords>` and support ranges and
+negation. In to-server direction they match on the request; in to-client
+direction they match on the response.
+
+Unlike the ``address`` option of the ``modbus`` keyword above, the
+address keywords below match the raw protocol value as it is logged,
+without the +1 offset, and match only the starting address of an access
+rather than the whole accessed range.
+
+modbus.unit_id
+~~~~~~~~~~~~~~
+
+Match on the Modbus unit identifier, the address of a slave device
+connected on a sub-network behind a bridge or gateway.
+
+modbus.unit_id uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>`.
+
+Examples::
+
+  modbus.unit_id:10;
+  modbus.unit_id:>247;
+
+modbus.transaction_id
+~~~~~~~~~~~~~~~~~~~~~
+
+Match on the Modbus/TCP transaction identifier used to pair requests
+and responses.
+
+modbus.transaction_id uses an
+:ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+
+Example::
+
+  modbus.transaction_id:1;
+
+modbus.protocol_id
+~~~~~~~~~~~~~~~~~~
+
+Match on the Modbus/TCP protocol identifier. The specification requires
+this field to be 0, so a non-zero value is an anomaly.
+
+modbus.protocol_id uses an
+:ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+
+Example::
+
+  modbus.protocol_id:!0;
+
+modbus.function
+~~~~~~~~~~~~~~~
+
+Match on the Modbus function code, as it is logged in ``function_raw``.
+Error responses carry the request function code with the highest bit
+set (e.g. 136 for a failed function 8), so ``modbus.function:>127;``
+matches any error response.
+
+modbus.function uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>`.
+
+Examples::
+
+  modbus.function:8;
+  modbus.function:>127;
+
+modbus.subfunction
+~~~~~~~~~~~~~~~~~~
+
+Match on the subfunction code of Modbus Diagnostics (function 8)
+messages.
+
+modbus.subfunction uses an
+:ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+
+Example::
+
+  modbus.function:8; modbus.subfunction:4;
+
+modbus.exception_code
+~~~~~~~~~~~~~~~~~~~~~
+
+Match on the exception code of Modbus error responses.
+
+modbus.exception_code uses an
+:ref:`unsigned 8-bits integer <rules-integer-keywords>`.
+
+Example::
+
+  modbus.exception_code:11;
+
+modbus.read.address
+~~~~~~~~~~~~~~~~~~~
+
+Match on the starting address of Modbus read requests.
+
+modbus.read.address uses an
+:ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+
+Example::
+
+  modbus.read.address:1000;
+
+modbus.read.quantity
+~~~~~~~~~~~~~~~~~~~~
+
+Match on the quantity of items in Modbus read requests.
+
+modbus.read.quantity uses an
+:ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+
+Example::
+
+  modbus.read.quantity:>1000;
+
+modbus.write.address
+~~~~~~~~~~~~~~~~~~~~
+
+Match on the starting address of Modbus write accesses. In to-client
+direction this matches the address echoed in write responses.
+
+modbus.write.address uses an
+:ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+
+Example::
+
+  modbus.write.address:500;
+
+modbus.write.quantity
+~~~~~~~~~~~~~~~~~~~~~
+
+Match on the quantity of items in Modbus multiple-write requests. In
+to-client direction this matches the quantity echoed in multiple-write
+responses.
+
+modbus.write.quantity uses an
+:ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+
+Example::
+
+  modbus.write.quantity:>100;
+
+modbus.write.value
+~~~~~~~~~~~~~~~~~~
+
+Match on the value of Modbus single-write accesses. In to-client
+direction this matches the value echoed in single-write responses.
+Multiple-write responses are not matched, as they echo a quantity
+rather than a value (see ``modbus.write.quantity``).
+
+modbus.write.value uses an
+:ref:`unsigned 16-bits integer <rules-integer-keywords>`.
+
+Example::
+
+  modbus.write.address:500; modbus.write.value:>200;
