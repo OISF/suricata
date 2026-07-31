@@ -88,7 +88,10 @@ typedef struct FlowHashKey4_ {
     union {
         struct {
             uint32_t addrs[2];
-            uint16_t ports[2];
+            union {
+                uint16_t ports[2];
+                uint32_t esp_spi;
+            };
             uint8_t proto; /**< u8 so proto and recur and livedev add up to u32 */
             uint8_t recur;
             uint16_t livedev;
@@ -103,7 +106,10 @@ typedef struct FlowHashKey6_ {
     union {
         struct {
             uint32_t src[4], dst[4];
-            uint16_t ports[2];
+            union {
+                uint16_t ports[2];
+                uint32_t esp_spi;
+            };
             uint8_t proto; /**< u8 so proto and recur and livedev add up to u32 */
             uint8_t recur;
             uint16_t livedev;
@@ -251,8 +257,12 @@ static inline uint32_t FlowGetHash(const Packet *p)
             const int ai = (p->src.addr_data32[0] > p->dst.addr_data32[0]);
             fhk.addrs[1-ai] = p->src.addr_data32[0];
             fhk.addrs[ai] = p->dst.addr_data32[0];
-            fhk.ports[0] = 0xfeed;
-            fhk.ports[1] = 0xbeef;
+            if (PacketIsESP(p)) {
+                fhk.esp_spi = ESP_GET_SPI(PacketGetESP(p));
+            } else {
+                fhk.ports[0] = 0xfeed;
+                fhk.ports[1] = 0xbeef;
+            }
             FlowHashIp4Fill(&fhk, p);
 
             hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
@@ -280,8 +290,12 @@ static inline uint32_t FlowGetHash(const Packet *p)
         }
 
         const int pi = (p->sp > p->dp);
-        fhk.ports[1-pi] = p->sp;
-        fhk.ports[pi] = p->dp;
+        if (PacketIsESP(p)) {
+            fhk.esp_spi = ESP_GET_SPI(PacketGetESP(p));
+        } else {
+            fhk.ports[1 - pi] = p->sp;
+            fhk.ports[pi] = p->dp;
+        }
         FlowHashIp6Fill(&fhk, p);
 
         hash = hashword(fhk.u32, ARRAY_SIZE(fhk.u32), flow_config.hash_rand);
