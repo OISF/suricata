@@ -34,7 +34,7 @@ use suricata_sys::sys::{
 pub const REQUEST_FLOOD: usize = 500; // Default unreplied Modbus requests are considered a flood
 pub const MODBUS_PARSER: sawp_modbus::Modbus = sawp_modbus::Modbus { probe_strict: true };
 
-static mut ALPROTO_MODBUS: AppProto = ALPROTO_UNKNOWN;
+pub(super) static mut ALPROTO_MODBUS: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(AppLayerEvent)]
 enum ModbusEvent {

@@ -15,14 +15,26 @@
  * 02110-1301, USA.
  */
 
-use super::modbus::ModbusTransaction;
+use super::modbus::{ModbusTransaction, ALPROTO_MODBUS};
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::detect::uint::{
+    DetectUintData, SCDetectU16Free, SCDetectU16Match, SCDetectU16Parse, SCDetectU8Free,
+    SCDetectU8Match, SCDetectU8Parse,
+};
+use crate::detect::{SIGMATCH_INFO_UINT16, SIGMATCH_INFO_UINT8};
+use crate::direction::Direction;
 use lazy_static::lazy_static;
 use regex::Regex;
 use sawp_modbus::{AccessType, CodeCategory, Data, Flags, FunctionCode, Message};
 use std::ffi::CStr;
 use std::ops::{Range, RangeInclusive};
-use std::os::raw::{c_char, c_void};
+use std::os::raw::{c_char, c_int, c_void};
 use std::str::FromStr;
+use suricata_sys::sys::{
+    DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferProgressRegister,
+    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+};
 
 lazy_static! {
     static ref ACCESS_RE: Regex = Regex::new(
@@ -456,6 +468,204 @@ fn parse_unit_id(unit_str: &str) -> Result<DetectModbusRust, ()> {
     }
 
     Ok(modbus)
+}
+
+static mut G_MODBUS_UNIT_ID_KW_ID: u16 = 0;
+static mut G_MODBUS_UNIT_ID_BUFFER_ID: c_int = 0;
+static mut G_MODBUS_TRANSACTION_ID_KW_ID: u16 = 0;
+static mut G_MODBUS_TRANSACTION_ID_BUFFER_ID: c_int = 0;
+static mut G_MODBUS_PROTOCOL_ID_KW_ID: u16 = 0;
+static mut G_MODBUS_PROTOCOL_ID_BUFFER_ID: c_int = 0;
+
+/// Get the message matching the direction of the packet under inspection:
+/// the request for to-server, the response for to-client.
+fn tx_get_message(tx: &ModbusTransaction, direction: u8) -> Option<&Message> {
+    let direction: Direction = direction.into();
+    if direction == Direction::ToServer {
+        return tx.request.as_ref();
+    }
+    return tx.response.as_ref();
+}
+
+unsafe extern "C" fn unit_id_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = SCDetectU8Parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_UNIT_ID_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_UNIT_ID_BUFFER_ID,
+    )
+    .is_null()
+    {
+        unit_id_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn unit_id_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    if let Some(msg) = tx_get_message(tx, flags) {
+        return SCDetectU8Match(msg.unit_id, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn unit_id_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    SCDetectU8Free(ctx);
+}
+
+unsafe extern "C" fn transaction_id_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_TRANSACTION_ID_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_TRANSACTION_ID_BUFFER_ID,
+    )
+    .is_null()
+    {
+        transaction_id_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn transaction_id_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(msg) = tx_get_message(tx, flags) {
+        return SCDetectU16Match(msg.transaction_id, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn transaction_id_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    SCDetectU16Free(ctx);
+}
+
+unsafe extern "C" fn protocol_id_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_PROTOCOL_ID_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_PROTOCOL_ID_BUFFER_ID,
+    )
+    .is_null()
+    {
+        protocol_id_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn protocol_id_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(msg) = tx_get_message(tx, flags) {
+        return SCDetectU16Match(msg.protocol_id, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn protocol_id_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    SCDetectU16Free(ctx);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDetectModbusRegister() {
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.unit_id\0".as_ptr() as *const c_char,
+        desc: b"match on Modbus unit identifier\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-unit-id\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(unit_id_match),
+        Setup: Some(unit_id_setup),
+        Free: Some(unit_id_free),
+        flags: SIGMATCH_INFO_UINT8,
+    };
+    G_MODBUS_UNIT_ID_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_UNIT_ID_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.unit_id\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.transaction_id\0".as_ptr() as *const c_char,
+        desc: b"match on Modbus transaction identifier\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-transaction-id\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(transaction_id_match),
+        Setup: Some(transaction_id_setup),
+        Free: Some(transaction_id_free),
+        flags: SIGMATCH_INFO_UINT16,
+    };
+    G_MODBUS_TRANSACTION_ID_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_TRANSACTION_ID_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.transaction_id\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.protocol_id\0".as_ptr() as *const c_char,
+        desc: b"match on Modbus protocol identifier\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-protocol-id\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(protocol_id_match),
+        Setup: Some(protocol_id_setup),
+        Free: Some(protocol_id_free),
+        flags: SIGMATCH_INFO_UINT16,
+    };
+    G_MODBUS_PROTOCOL_ID_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_PROTOCOL_ID_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.protocol_id\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
 }
 
 #[cfg(test)]
