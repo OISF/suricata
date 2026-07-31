@@ -26,8 +26,11 @@ jobs:
           # Authenticating moves the limit to 1000+ requests/hour per repo.
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -eo pipefail
           if test "${PR_HREF}"; then
-              body=$(curl -s --header "Authorization: Bearer ${GH_TOKEN}" "${PR_HREF}" | jq -r .body | tr -d '\r')
+              body=$(curl --silent --show-error --fail \
+                  --header "Authorization: Bearer ${GH_TOKEN}" \
+                  "${PR_HREF}" | jq -r '.body' | tr -d '\r')
 
               echo "Parsing branch and PR info from:"
               echo "${body}"
