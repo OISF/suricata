@@ -138,6 +138,10 @@ void SCLandlockGrantWriteRemovePath(void *ruleset, const char *path)
 {
 }
 
+void SCLandlockGrantSocketPath(void *ruleset, const char *path)
+{
+}
+
 void SCLandlockGrantRewritePath(void *ruleset, const char *path)
 {
 }
@@ -222,16 +226,13 @@ static inline int landlock_restrict_self(const int ruleset_fd, const __u32 flags
 
 #define _LANDLOCK_ACCESS_FS_READ (LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR)
 
-/* Default write grant for directories Suricata owns. Deliberately excludes
- * LANDLOCK_ACCESS_FS_REMOVE_FILE and LANDLOCK_ACCESS_FS_TRUNCATE: those are
- * classic anti-forensics primitives (unlinking or zeroing logs/state to
- * erase attacker traces). Subsystems that legitimately need to unlink or
- * truncate their own files -- filestore staging cleanup, pcap ring-buffer
- * rotation, datasets state.csv rewrite -- must register a scoped grant on
- * their own directory or file. */
+/* Default write access granted on the directories Suricata writes to.
+ *
+ * File removal, truncation and socket creation are not part of it. A
+ * subsystem needing one of them has to ask for it explicitly on the
+ * directory or the file it owns. */
 #define _LANDLOCK_SURI_ACCESS_FS_WRITE                                                             \
-    (LANDLOCK_ACCESS_FS_WRITE_FILE | LANDLOCK_ACCESS_FS_MAKE_DIR | LANDLOCK_ACCESS_FS_MAKE_REG |   \
-            LANDLOCK_ACCESS_FS_MAKE_SOCK)
+    (LANDLOCK_ACCESS_FS_WRITE_FILE | LANDLOCK_ACCESS_FS_MAKE_REG | LANDLOCK_ACCESS_FS_MAKE_DIR)
 
 #ifndef LANDLOCK_ACCESS_NET_BIND_TCP
 #define LANDLOCK_ACCESS_NET_BIND_TCP (1ULL << 0)
@@ -404,6 +405,28 @@ void SCLandlockGrantWriteRemovePath(void *vruleset, const char *directory)
     uint64_t access = _LANDLOCK_SURI_ACCESS_FS_WRITE | LANDLOCK_ACCESS_FS_REMOVE_FILE;
     if (LandlockSandboxingAddRule(ruleset, directory, access) == 0) {
         SCLogConfig("Added write+remove permission to '%s'", directory);
+    }
+}
+
+/**
+ * \brief Grant write and removal access on a directory, plus socket creation
+ *
+ * Same as SCLandlockGrantWriteRemovePath() but also grants
+ * LANDLOCK_ACCESS_FS_MAKE_SOCK, so a unix socket can be bound in \a
+ * directory. Connecting to an existing socket does not need this access.
+ *
+ * \param vruleset opaque landlock ruleset
+ * \param directory directory to grant the access on
+ */
+void SCLandlockGrantSocketPath(void *vruleset, const char *directory)
+{
+    struct landlock_ruleset *ruleset = vruleset;
+    if (ruleset == NULL || directory == NULL)
+        return;
+    uint64_t access = _LANDLOCK_SURI_ACCESS_FS_WRITE | LANDLOCK_ACCESS_FS_REMOVE_FILE |
+                      LANDLOCK_ACCESS_FS_MAKE_SOCK;
+    if (LandlockSandboxingAddRule(ruleset, directory, access) == 0) {
+        SCLogConfig("Added socket permission to '%s'", directory);
     }
 }
 
@@ -781,22 +804,25 @@ void LandlockSandboxing(SCInstance *suri)
             SCFree(file_name);
         }
     }
-    if (ConfUnixSocketIsEnable()) {
-        /* Suricata unlinks any stale socket before bind(), so REMOVE is
-         * required on the socket directory. */
+    /* ConfUnixSocketIsEnable() only looks at unix-command.enabled which
+     * --unix-socket does not set, it selects the runmode instead, so both
+     * have to be checked here. */
+    if (ConfUnixSocketIsEnable() || SCRunmodeGet() == RUNMODE_UNIX_SOCKET) {
+        /* Binding the socket needs MAKE_SOCK, and Suricata unlinks any stale
+         * socket first, so REMOVE is required on the socket directory too. */
         const char *socketname;
         if (SCConfGetNonNull("unix-command.filename", &socketname) == 1) {
             if (PathIsAbsolute(socketname)) {
                 char *file_name = SCStrdup(socketname);
                 if (file_name != NULL) {
-                    SCLandlockGrantWriteRemovePath(ruleset, dirname(file_name));
+                    SCLandlockGrantSocketPath(ruleset, dirname(file_name));
                     SCFree(file_name);
                 }
             } else {
-                SCLandlockGrantWriteRemovePath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
+                SCLandlockGrantSocketPath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
             }
         } else {
-            SCLandlockGrantWriteRemovePath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
+            SCLandlockGrantSocketPath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
         }
     }
     if (!suri->sig_file_exclusive) {

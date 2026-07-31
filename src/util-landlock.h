@@ -40,6 +40,8 @@ void SCLandlockGrantWriteReferPath(void *ruleset, const char *path);
 
 void SCLandlockGrantWriteRemovePath(void *ruleset, const char *path);
 
+void SCLandlockGrantSocketPath(void *ruleset, const char *path);
+
 void SCLandlockGrantRewritePath(void *ruleset, const char *path);
 
 /** Per-file access flags for SCLandlockGrantFile(). Combine as needed. */
