@@ -178,6 +178,7 @@ static void *ParseAFXDPConfig(const char *iface)
     aconf->gro_flush_timeout = DEFAULT_GRO_FLUSH_TIMEOUT;
     aconf->napi_defer_hard_irqs = DEFAULT_NAPI_HARD_IRQS;
     aconf->mem_alignment = XSK_UMEM__DEFAULT_FLAGS;
+    SC_ATOMIC_INIT(aconf->queue_idx);
 
     /* Find initial node */
     af_xdp_node = SCConfGetNode("af-xdp");
