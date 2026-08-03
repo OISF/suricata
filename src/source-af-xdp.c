@@ -191,6 +191,10 @@ typedef struct AFXDPThreadVars_ {
     StatsCounterId capture_afxdp_empty_reads;
     StatsCounterId capture_afxdp_failed_reads;
     StatsCounterId capture_afxdp_acquire_pkt_failed;
+    StatsCounterId capture_afxdp_rx_dropped;
+    StatsCounterId capture_afxdp_rx_invalid_descs;
+    StatsCounterId capture_afxdp_rx_ring_full;
+    StatsCounterId capture_afxdp_fill_ring_empty;
 } AFXDPThreadVars;
 
 static TmEcode ReceiveAFXDPThreadInit(ThreadVars *, const void *, void **);
@@ -247,13 +251,30 @@ static inline void AFXDPDumpCounters(AFXDPThreadVars *ptv)
                 rx_dropped - StatsCounterGetLocalValue(&ptv->tv->stats, ptv->capture_kernel_drops));
         StatsCounterAddI64(&ptv->tv->stats, ptv->capture_afxdp_packets, ptv->pkts);
 
+        StatsCounterAddI64(&ptv->tv->stats, ptv->capture_afxdp_rx_dropped,
+                stats.rx_dropped -
+                        StatsCounterGetLocalValue(&ptv->tv->stats, ptv->capture_afxdp_rx_dropped));
+        StatsCounterAddI64(&ptv->tv->stats, ptv->capture_afxdp_rx_invalid_descs,
+                stats.rx_invalid_descs - StatsCounterGetLocalValue(&ptv->tv->stats,
+                                                 ptv->capture_afxdp_rx_invalid_descs));
+        StatsCounterAddI64(&ptv->tv->stats, ptv->capture_afxdp_rx_ring_full,
+                stats.rx_ring_full - StatsCounterGetLocalValue(
+                                             &ptv->tv->stats, ptv->capture_afxdp_rx_ring_full));
+        StatsCounterAddI64(&ptv->tv->stats, ptv->capture_afxdp_fill_ring_empty,
+                stats.rx_fill_ring_empty_descs - StatsCounterGetLocalValue(&ptv->tv->stats,
+                                                         ptv->capture_afxdp_fill_ring_empty));
+
         (void)SC_ATOMIC_SET(ptv->livedev->drop, rx_dropped);
         (void)SC_ATOMIC_ADD(ptv->livedev->pkts, ptv->pkts);
 
-        SCLogDebug("(%s) Kernel: Packets %" PRIu64 ", bytes %" PRIu64 ", dropped %" PRIu64 "",
+        SCLogDebug("(%s) Kernel: Packets %" PRIu64 ", bytes %" PRIu64 ", dropped %" PRIu64
+                   " (rx_dropped %" PRIu64 ", rx_ring_full %" PRIu64 ", fill_ring_empty %" PRIu64
+                   ", rx_invalid_descs %" PRIu64 ")",
                 ptv->tv->name,
                 StatsCounterGetLocalValue(&ptv->tv->stats, ptv->capture_afxdp_packets), ptv->bytes,
-                StatsCounterGetLocalValue(&ptv->tv->stats, ptv->capture_kernel_drops));
+                StatsCounterGetLocalValue(&ptv->tv->stats, ptv->capture_kernel_drops),
+                stats.rx_dropped, stats.rx_ring_full, stats.rx_fill_ring_empty_descs,
+                stats.rx_invalid_descs);
 
         ptv->pkts = 0;
     }
@@ -666,6 +687,14 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
             StatsRegisterCounter("capture.afxdp.failed_reads", &ptv->tv->stats);
     ptv->capture_afxdp_acquire_pkt_failed =
             StatsRegisterCounter("capture.afxdp.acquire_pkt_failed", &ptv->tv->stats);
+    ptv->capture_afxdp_rx_dropped =
+            StatsRegisterCounter("capture.afxdp.rx_dropped", &ptv->tv->stats);
+    ptv->capture_afxdp_rx_invalid_descs =
+            StatsRegisterCounter("capture.afxdp.rx_invalid_descs", &ptv->tv->stats);
+    ptv->capture_afxdp_rx_ring_full =
+            StatsRegisterCounter("capture.afxdp.rx_ring_full", &ptv->tv->stats);
+    ptv->capture_afxdp_fill_ring_empty =
+            StatsRegisterCounter("capture.afxdp.fill_ring_empty", &ptv->tv->stats);
 
     SCLogPerf("%s: (%s) umem params: frame_size=%u frame_nr=%u rx_ring=%u (mem: %" PRIu64
               ", %.1f MiB)",
