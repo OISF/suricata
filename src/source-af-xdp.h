@@ -42,6 +42,7 @@ typedef struct AFXDPIfaceConfig {
     uint32_t gro_flush_timeout;
     uint32_t napi_defer_hard_irqs;
 
+    SC_ATOMIC_DECLARE(uint32_t, queue_idx);
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
 } AFXDPIfaceConfig;
