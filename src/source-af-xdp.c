@@ -354,9 +354,18 @@ static TmEcode InitFillRing(AFXDPThreadVars *ptv, const uint32_t cnt)
 static TmEcode WriteLinuxTunables(AFXDPThreadVars *ptv)
 {
     char fname[SYSFS_MAX_FILENAME_SIZE];
+    char ifname[IF_NAMESIZE];
 
-    if (snprintf(fname, SYSFS_MAX_FILENAME_SIZE, "class/net/%s/gro_flush_timeout", ptv->iface) <
-            0) {
+    /* The configured interface may be an alternative name (e.g. "mon0"), but
+     * sysfs only exposes a directory for the real netdev name. Resolve it
+     * through the ifindex. */
+    if (if_indextoname(ptv->ifindex, ifname) == NULL) {
+        SCLogError("Could not resolve interface name for %s (ifindex %u): %s", ptv->iface,
+                ptv->ifindex, strerror(errno));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    if (snprintf(fname, SYSFS_MAX_FILENAME_SIZE, "class/net/%s/gro_flush_timeout", ifname) < 0) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -364,8 +373,7 @@ static TmEcode WriteLinuxTunables(AFXDPThreadVars *ptv)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    if (snprintf(fname, SYSFS_MAX_FILENAME_SIZE, "class/net/%s/napi_defer_hard_irqs", ptv->iface) <
-            0) {
+    if (snprintf(fname, SYSFS_MAX_FILENAME_SIZE, "class/net/%s/napi_defer_hard_irqs", ifname) < 0) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
