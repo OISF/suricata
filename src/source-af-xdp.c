@@ -114,11 +114,6 @@ TmEcode NoAFXDPSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #else /* We have AF_XDP support */
 
 #define POLL_TIMEOUT      100
-#define NUM_FRAMES_PROD   XSK_RING_PROD__DEFAULT_NUM_DESCS
-#define NUM_FRAMES_CONS   XSK_RING_CONS__DEFAULT_NUM_DESCS
-#define NUM_FRAMES        NUM_FRAMES_PROD
-#define FRAME_SIZE        XSK_UMEM__DEFAULT_FRAME_SIZE
-#define MEM_BYTES         (NUM_FRAMES * FRAME_SIZE * 2)
 #define RECONNECT_TIMEOUT 500000
 
 /* Interface state */
@@ -135,6 +130,7 @@ struct UmemInfo {
     struct xsk_ring_cons cq;
     struct xsk_umem_config cfg;
     int mmap_alignment_flag;
+    uint64_t mem_bytes;
 };
 
 struct QueueAssignment {
@@ -293,7 +289,7 @@ static void AFXDPAllThreadsRunning(AFXDPThreadVars *ptv)
 static TmEcode AcquireBuffer(AFXDPThreadVars *ptv)
 {
     int mmap_flags = MAP_PRIVATE | MAP_ANONYMOUS | ptv->umem.mmap_alignment_flag;
-    ptv->umem.buf = mmap(NULL, MEM_BYTES, PROT_READ | PROT_WRITE, mmap_flags, -1, 0);
+    ptv->umem.buf = mmap(NULL, ptv->umem.mem_bytes, PROT_READ | PROT_WRITE, mmap_flags, -1, 0);
 
     if (ptv->umem.buf == MAP_FAILED) {
         SCLogError("mmap: failed to acquire memory");
@@ -305,8 +301,8 @@ static TmEcode AcquireBuffer(AFXDPThreadVars *ptv)
 
 static TmEcode ConfigureXSKUmem(AFXDPThreadVars *ptv)
 {
-    if (xsk_umem__create(&ptv->umem.umem, ptv->umem.buf, MEM_BYTES, &ptv->umem.fq, &ptv->umem.cq,
-                &ptv->umem.cfg)) {
+    if (xsk_umem__create(&ptv->umem.umem, ptv->umem.buf, ptv->umem.mem_bytes, &ptv->umem.fq,
+                &ptv->umem.cq, &ptv->umem.cfg)) {
         SCLogError("failed to create umem: %s", strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -325,7 +321,7 @@ static TmEcode InitFillRing(AFXDPThreadVars *ptv, const uint32_t cnt)
     }
 
     for (uint32_t i = 0; i < cnt; i++) {
-        *xsk_ring_prod__fill_addr(&ptv->umem.fq, idx_fq++) = i * FRAME_SIZE;
+        *xsk_ring_prod__fill_addr(&ptv->umem.fq, idx_fq++) = (uint64_t)i * ptv->umem.cfg.frame_size;
     }
 
     xsk_ring_prod__submit(&ptv->umem.fq, cnt);
@@ -467,7 +463,7 @@ static TmEcode AFXDPSocketCreation(AFXDPThreadVars *ptv)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    if (InitFillRing(ptv, NUM_FRAMES * 2) != TM_ECODE_OK) {
+    if (InitFillRing(ptv, ptv->umem.cfg.fill_size) != TM_ECODE_OK) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -625,15 +621,17 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
     ptv->threads = afxdpconfig->threads;
 
     /* Socket configuration */
-    ptv->xsk.cfg.rx_size = NUM_FRAMES_CONS;
-    ptv->xsk.cfg.tx_size = NUM_FRAMES_PROD;
+    ptv->xsk.cfg.rx_size = afxdpconfig->rx_ring_size;
+    ptv->xsk.cfg.tx_size = XSK_RING_PROD__DEFAULT_NUM_DESCS;
     ptv->xsk.cfg.xdp_flags = afxdpconfig->mode;
     ptv->xsk.cfg.bind_flags = afxdpconfig->bind_flags;
 
-    /* UMEM configuration */
-    ptv->umem.cfg.fill_size = NUM_FRAMES_PROD * 2;
-    ptv->umem.cfg.comp_size = NUM_FRAMES_CONS;
-    ptv->umem.cfg.frame_size = XSK_UMEM__DEFAULT_FRAME_SIZE;
+    /* UMEM configuration, the fill ring is sized to hold the whole UMEM so
+     * every frame can be handed to the kernel at once. */
+    ptv->umem.mem_bytes = (uint64_t)afxdpconfig->umem_frames * afxdpconfig->frame_size;
+    ptv->umem.cfg.fill_size = afxdpconfig->umem_frames;
+    ptv->umem.cfg.comp_size = XSK_RING_CONS__DEFAULT_NUM_DESCS;
+    ptv->umem.cfg.frame_size = afxdpconfig->frame_size;
     ptv->umem.cfg.frame_headroom = XSK_UMEM__DEFAULT_FRAME_HEADROOM;
     ptv->umem.cfg.flags = afxdpconfig->mem_alignment;
 
@@ -668,6 +666,11 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
             StatsRegisterCounter("capture.afxdp.failed_reads", &ptv->tv->stats);
     ptv->capture_afxdp_acquire_pkt_failed =
             StatsRegisterCounter("capture.afxdp.acquire_pkt_failed", &ptv->tv->stats);
+
+    SCLogPerf("%s: (%s) umem params: frame_size=%u frame_nr=%u rx_ring=%u (mem: %" PRIu64
+              ", %.1f MiB)",
+            ptv->iface, tv->name, ptv->umem.cfg.frame_size, ptv->umem.cfg.fill_size,
+            ptv->xsk.cfg.rx_size, ptv->umem.mem_bytes, (double)ptv->umem.mem_bytes / (1024 * 1024));
 
     /* Reserve memory for umem  */
     if (AcquireBuffer(ptv) != TM_ECODE_OK) {
@@ -885,7 +888,7 @@ static TmEcode ReceiveAFXDPThreadDeinit(ThreadVars *tv, void *data)
         xsk_umem__delete(ptv->umem.umem);
         ptv->umem.umem = NULL;
     }
-    munmap(ptv->umem.buf, MEM_BYTES);
+    munmap(ptv->umem.buf, ptv->umem.mem_bytes);
 
     SCFree(ptv);
     SCReturnInt(TM_ECODE_OK);
