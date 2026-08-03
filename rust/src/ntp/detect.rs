@@ -21,16 +21,18 @@ use crate::detect::uint::{
     detect_parse_uint_enum, DetectUintData, SCDetectU8Free, SCDetectU8Match, SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT,
-    SIGMATCH_INFO_UINT8, SIGMATCH_SUPPORT_FIREWALL,
+    helper_keyword_register_sticky_buffer, EnumString, SigTableElmtStickyBuffer,
+    SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT8, SIGMATCH_SUPPORT_FIREWALL,
 };
+use crate::jsonbuilder::JsonBuilder;
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferProgressMpmRegister, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectHelperKeywordJsonInfoRegister, SCDetectHelperKeywordRegister,
+    SCDetectSignatureSetAppProto, SCJsonBuilder, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt,
+    SigMatchCtx, Signature,
 };
 
 static mut G_NTP_VERSION_KW_ID: u16 = 0;
@@ -191,6 +193,11 @@ unsafe extern "C" fn ntp_detect_reference_id_get_data(
     true
 }
 
+unsafe extern "C" fn ntp_mode_list_values(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = NTPMode::list_values(jsb);
+}
+
 pub(super) unsafe extern "C" fn detect_ntp_register() {
     let kw = SCSigTableAppLiteElmt {
         name: b"ntp.version\0".as_ptr() as *const libc::c_char,
@@ -219,6 +226,7 @@ pub(super) unsafe extern "C" fn detect_ntp_register() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT | SIGMATCH_SUPPORT_FIREWALL,
     };
     G_NTP_MODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordJsonInfoRegister(G_NTP_MODE_KW_ID, Some(ntp_mode_list_values));
 
     let kw = SCSigTableAppLiteElmt {
         name: b"ntp.stratum\0".as_ptr() as *const libc::c_char,

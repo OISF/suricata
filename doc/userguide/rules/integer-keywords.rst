@@ -73,6 +73,9 @@ have a string/meaning associated to it.
 Rules can be written using one of these strings to check for equality or inequality.
 This is meant to make rules more human-readable and equivalent for matching.
 
+Possible string values for a keyword can be found by running
+``suricata --list-keywords=json | jq '."keyword".enum_values'``
+
 Examples::
 
     websocket.opcode:text;
