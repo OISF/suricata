@@ -126,7 +126,6 @@ enum state { AFXDP_STATE_DOWN, AFXDP_STATE_UP };
 
 struct XskInitProtect {
     SCMutex queue_protect;
-    SC_ATOMIC_DECLARE(uint8_t, queue_num);
 } xsk_protect;
 
 struct UmemInfo {
@@ -279,19 +278,6 @@ TmEcode AFXDPQueueProtectionInit(void)
     SCEnter();
 
     SCMutexInit(&xsk_protect.queue_protect, NULL);
-    SC_ATOMIC_SET(xsk_protect.queue_num, 0);
-    SCReturnInt(TM_ECODE_OK);
-}
-
-static TmEcode AFXDPAssignQueueID(AFXDPThreadVars *ptv)
-{
-    if (!ptv->xsk.queue.assigned) {
-        ptv->xsk.queue.queue_num = SC_ATOMIC_GET(xsk_protect.queue_num);
-        SC_ATOMIC_ADD(xsk_protect.queue_num, 1);
-
-        /* Queue only needs assigned once, on startup */
-        ptv->xsk.queue.assigned = true;
-    }
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -439,11 +425,6 @@ static TmEcode OpenXSKSocket(AFXDPThreadVars *ptv)
     int ret;
 
     SCMutexLock(&xsk_protect.queue_protect);
-
-    if (AFXDPAssignQueueID(ptv) != TM_ECODE_OK) {
-        SCLogError("Failed to assign queue ID");
-        SCReturnInt(TM_ECODE_FAILED);
-    }
 
     if ((ret = xsk_socket__create(&ptv->xsk.xsk, ptv->livedev->dev, ptv->xsk.queue.queue_num,
                  ptv->umem.umem, &ptv->xsk.rx, &ptv->xsk.tx, &ptv->xsk.cfg))) {
@@ -667,6 +648,11 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
     ptv->xsk.busy_poll_time = afxdpconfig->busy_poll_time;
     ptv->gro_flush_timeout = afxdpconfig->gro_flush_timeout;
     ptv->napi_defer_hard_irqs = afxdpconfig->napi_defer_hard_irqs;
+
+    /* The queue numbering counter is per interface and shared by that interface's threads
+     *  which all init in parallel, so claim the index with a single atomic fetch and add. */
+    ptv->xsk.queue.queue_num = SC_ATOMIC_ADD(afxdpconfig->queue_idx, 1);
+    ptv->xsk.queue.assigned = true;
 
     /* Stats registration */
     ptv->capture_afxdp_packets = StatsRegisterCounter("capture.afxdp_packets", &ptv->tv->stats);
