@@ -89,6 +89,10 @@ static int DetectBypassMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
     PacketBypassCallback(p);
+    /* a fw bypass is terminating: mark the packet so threat detection is skipped */
+    if ((s->flags & SIG_FLAG_FIREWALL) && p->flow != NULL && !PKT_IS_PSEUDOPKT(p) &&
+            FlowIsBypassed(p->flow))
+        p->flags |= PKT_FW_BYPASSED;
 
     return 1;
 }
