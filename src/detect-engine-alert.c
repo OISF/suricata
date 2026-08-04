@@ -600,6 +600,35 @@ static struct DetectFirewallPolicy HandleFirewallRule(
     return pol;
 }
 
+/**
+ *  \brief see if a firewall rule in the queue bypassed the flow
+ *
+ *  `bypass` is applied from the postmatch list at match time. By the time the queue
+ *  is processed the flow is already out of inspection. So, Threat detection must
+ *  not be consulted for this packet. Especially when a TD rule sorts ahead
+ *  of the firewall rule, as packet:td does relative to app:filter.
+ *
+ *  Independent of the rule's action: `bypass` is a keyword, not an action, and is not tied to
+ * `accept`
+ */
+static inline bool AlertQueueHasFirewallBypass(
+        const DetectEngineThreadCtx *det_ctx, const Packet *p)
+{
+    if (p->flow == NULL || PKT_IS_PSEUDOPKT(p) || !FlowIsBypassed(p->flow))
+        return false;
+
+    for (uint16_t i = 0; i < det_ctx->alert_queue_size; i++) {
+        const Signature *s = det_ctx->alert_queue[i].s;
+        if ((s->flags & (SIG_FLAG_FIREWALL | SIG_FLAG_BYPASS)) ==
+                (SIG_FLAG_FIREWALL | SIG_FLAG_BYPASS)) {
+            SCLogDebug("packet %" PRIu64 ": fw sid %u bypassed the flow, skipping td",
+                    PcapPacketCntGet(p), s->id);
+            return true;
+        }
+    }
+    return false;
+}
+
 /*
  * Queue order after sorting:
  *
@@ -664,6 +693,10 @@ static inline void PacketAlertFinalizeProcessQueue(
                 if (s->detect_table <= skip_table_id)
                     continue;
                 skip_table = false;
+            }
+
+            if (AlertQueueHasFirewallBypass(det_ctx, p)) {
+                skip_td = true;
             }
 
             if (dropped) {
@@ -789,7 +822,9 @@ static inline void PacketAlertFinalizeProcessQueue(
 
 fw_dropped:
     /* after threat detection has been handled, see if the fw intended to accept (drop is handled
-     * immediately by the fw), as fw accept can be overruled by td drop. */
+     * immediately by the fw), as fw accept can be overruled by td drop.
+     * (this is not the case if a flow is accepted _and_ bypassed with a firewall rule
+     * (accept:flow+bypass)) */
     if (have_fw_rules) {
         if (p->action & ACTION_DROP) {
             SCLogDebug("packet %" PRIu64 ": dropped by TD", PcapPacketCntGet(p));
