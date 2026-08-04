@@ -134,6 +134,7 @@ pub struct QuicState {
     crypto_fraglen_ts: u32,
     hello_tc: bool,
     hello_ts: bool,
+    client_scid: Option<Vec<u8>>,
     has_retried: bool,
     transactions: VecDeque<QuicTransaction>,
 }
@@ -150,6 +151,7 @@ impl Default for QuicState {
             crypto_fraglen_ts: 0,
             hello_tc: false,
             hello_ts: false,
+            client_scid: None,
             has_retried: false,
             transactions: VecDeque::new(),
         }
@@ -343,6 +345,20 @@ impl QuicState {
         while !buf.is_empty() {
             match QuicHeader::from_bytes(buf, DEFAULT_DCID_LEN) {
                 Ok((rest, header)) => {
+                    let new_client_initial = to_server
+                        && header.ty == QuicType::Initial
+                        && self.client_scid.as_deref() != Some(header.scid.as_slice());
+                    if new_client_initial {
+                        self.client_scid = Some(header.scid.clone());
+                        self.keys = quic_keys_initial(u32::from(header.version), &header.dcid);
+                        self.crypto_frag_tc.clear();
+                        self.crypto_frag_ts.clear();
+                        self.crypto_fraglen_tc = 0;
+                        self.crypto_fraglen_ts = 0;
+                        self.hello_tc = false;
+                        self.hello_ts = false;
+                        self.has_retried = false;
+                    }
                     if (to_server && self.hello_ts) || (!to_server && self.hello_tc) {
                         // payload is encrypted, stop parsing here
                         return true;
