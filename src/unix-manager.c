@@ -93,6 +93,7 @@ typedef struct UnixCommand_ {
     int socket;
     struct sockaddr_un client_addr;
     int select_max;
+    char sockettarget[PATH_MAX];
     TAILQ_HEAD(, Command_) commands;
     TAILQ_HEAD(, Task_) tasks;
     TAILQ_HEAD(, UnixClient_) clients;
@@ -133,6 +134,10 @@ static int UnixNew(UnixCommand * this)
         strlcpy(sockettarget, SOCKET_TARGET, sizeof(sockettarget));
         check_dir = 1;
     }
+
+    /* Remember the socket path so it can be removed again on shutdown */
+    strlcpy(this->sockettarget, sockettarget, sizeof(this->sockettarget));
+
     SCLogInfo("unix socket '%s'", sockettarget);
 
     if (check_dir) {
@@ -1174,6 +1179,25 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
                 SCFree(item);
             }
             StatsSyncCounters(th_v);
+
+            /* Close the socket and remove the socket file.
+             * The cleanup is done in the shutdown path of UnixManager(),
+             * which is reached uniformly whether shutdown is triggered by
+             * a fatal error or a signal (e.g. SIGTERM) via THV_KILL. This
+             * also applies for a clean shutdown via 'suricatasc -c shutdown'.
+             * Guarded by command.socket so this only runs once. */
+            if (command.socket != -1) {
+                close(command.socket);
+                command.socket = -1;
+                if (unlink(command.sockettarget) != 0 && errno != ENOENT) {
+                    SCLogWarning("unable to remove unix socket file %s: %s", command.sockettarget,
+                            strerror(errno));
+                } else {
+                    SCLogDebug("unix socket file '%s' removed", command.sockettarget);
+                }
+                SCLogInfo("unix socket '%s' closed", command.sockettarget);
+            }
+
             break;
         }
 
