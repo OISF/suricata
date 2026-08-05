@@ -93,6 +93,7 @@ typedef struct UnixCommand_ {
     int socket;
     struct sockaddr_un client_addr;
     int select_max;
+    char sockettarget[PATH_MAX];
     TAILQ_HEAD(, Command_) commands;
     TAILQ_HEAD(, Task_) tasks;
     TAILQ_HEAD(, UnixClient_) clients;
@@ -133,6 +134,10 @@ static int UnixNew(UnixCommand * this)
         strlcpy(sockettarget, SOCKET_TARGET, sizeof(sockettarget));
         check_dir = 1;
     }
+
+    /* Remember the socket path so it can be removed again on shutdown */
+    strlcpy(this->sockettarget, sockettarget, sizeof(this->sockettarget));
+
     SCLogInfo("unix socket '%s'", sockettarget);
 
     if (check_dir) {
@@ -634,6 +639,22 @@ static int UnixMain(UnixCommand * this)
     if (suricata_ctl_flags & SURICATA_STOP) {
         TAILQ_FOREACH_SAFE (uclient, &this->clients, next, tclient) {
             UnixCommandClose(this, uclient->fd);
+        }
+
+        /* Close the socket and remove the socket file.
+         * Guarded by this->socket so this only runs once, even though
+         * UnixMain() keeps getting called in the management loop while
+         * shutdown is still in progress. */
+        if (this->socket != -1) {
+            close(this->socket);
+            this->socket = -1;
+            if (unlink(this->sockettarget) != 0 && errno != ENOENT) {
+                SCLogWarning("unable to remove unix socket file %s: %s", this->sockettarget,
+                        strerror(errno));
+            } else {
+                SCLogDebug("unix socket file '%s' removed", this->sockettarget);
+            }
+            SCLogInfo("unix socket '%s' closed", this->sockettarget);
         }
         return 1;
     }
