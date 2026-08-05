@@ -378,17 +378,17 @@ static int FilePruneFile(File *file, const StreamingBufferConfig *cfg)
          * do some house keeping here */
         if (file->inspect_window != 0 && file->inspect_min_size != 0) {
             const uint64_t file_offset = StreamingBufferGetOffset(file->sb);
-            uint32_t window = file->inspect_window;
+            uint64_t window = file->inspect_window;
             if (file_offset == 0)
-                window = MAX(window, file->inspect_min_size);
+                window = MAX(window, (uint64_t)file->inspect_min_size);
 
             uint64_t file_size = FileDataSize(file);
             uint64_t data_size = file_size - file_offset;
 
-            SCLogDebug("window %"PRIu32", file_size %"PRIu64", data_size %"PRIu64,
-                    window, file_size, data_size);
+            SCLogDebug("window %" PRIu64 ", file_size %" PRIu64 ", data_size %" PRIu64, window,
+                    file_size, data_size);
 
-            if (data_size > (window * 3)) {
+            if (data_size > window * 3) {
                 file->content_inspected = MAX(file->content_inspected, file->size - window);
                 SCLogDebug("file->content_inspected now %" PRIu64, file->content_inspected);
             }
