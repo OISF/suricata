@@ -221,6 +221,11 @@ uint8_t *SCInspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min
 
     uint32_t new_size = (buffer->size == 0) ? 4096 : buffer->size;
     while (new_size < min_size) {
+        /* guard against overflow */
+        if (new_size > UINT32_MAX / 2) {
+            new_size = min_size;
+            break;
+        }
         new_size *= 2;
     }
 
