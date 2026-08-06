@@ -1081,10 +1081,8 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
 #define BYTE3(x) (((x) & 0xff000000) >> 24)
 #define EXTRA 4 // need 4 extra bytes to avoid OOB reads
 
-static int CheckMatch(const SCACTileSearchCtx *ctx, PrefilterRuleStore *pmq,
-               const uint8_t *buf, uint32_t buflen,
-               uint16_t state, int i, int matches,
-               uint8_t *mpm_bitarray)
+static int CheckMatch(const SCACTileSearchCtx *ctx, PrefilterRuleStore *pmq, const uint8_t *buf,
+        uint32_t buflen, uint32_t state, int i, int matches, uint8_t *mpm_bitarray)
 {
     const SCACTilePatternList *pattern_list = ctx->pattern_list;
     const uint8_t *buf_offset = buf + i + 1; // Lift out of loop
@@ -1166,8 +1164,8 @@ uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thr
     for (i = 0; i < buflen; i++) {
         state = state_table_u32[state & 0x00FFFFFF][xlate[buf[i]]];
         if (SCHECK(state)) {
-            DEBUG_VALIDATE_BUG_ON(state < 0 || state > UINT16_MAX);
-            matches = CheckMatch(ctx, pmq, buf, buflen, (uint16_t)state, i, matches, mpm_bitarray);
+            matches = CheckMatch(ctx, pmq, buf, buflen, (uint32_t)(state & 0x00FFFFFF), i, matches,
+                    mpm_bitarray);
         }
     } /* for (i = 0; i < buflen; i++) */
 
