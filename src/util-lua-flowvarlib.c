@@ -101,8 +101,13 @@ static int LuaFlowvarValue(lua_State *L)
 
 static int LuaFlowvarSet(lua_State *L)
 {
-    const char *value = luaL_checkstring(L, 2);
-    const int len = (int)luaL_checkinteger(L, 3);
+    size_t slen = 0;
+    const char *value = luaL_checklstring(L, 2, &slen);
+    lua_Integer req = luaL_optinteger(L, 3, (lua_Integer)slen);
+    if (req < 0 || ((size_t)req > slen) || (size_t)req > UINT16_MAX) {
+        return luaL_error(L, "length out of range");
+    }
+    const size_t len = (size_t)req;
     uint32_t *flowvar_id = luaL_checkudata(L, 1, suricata_flowvar_mt);
     Flow *f = LuaStateGetFlow(L);
     if (f == NULL) {
