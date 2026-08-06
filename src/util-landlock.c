@@ -33,6 +33,35 @@
 #include "util-plugin.h"
 #include "util-validate.h"
 
+/**
+ * \brief Run \a cb for every enabled instance of the \a name output
+ *
+ * The "outputs" configuration is a YAML sequence, so an output is found at
+ * outputs.<n>.<name> and can be declared more than once. Instances whose
+ * "enabled" key is absent or not true are skipped.
+ *
+ * \param ruleset opaque landlock ruleset, passed as-is to \a cb
+ * \param name name of the output, as used in the YAML configuration
+ * \param cb callback run for each enabled instance of the output
+ */
+void SCLandlockForEachOutput(void *ruleset, const char *name, SCLandlockOutputFunc cb)
+{
+    if (name == NULL || cb == NULL)
+        return;
+
+    SCConfNode *outputs = SCConfGetNode("outputs");
+    if (outputs == NULL)
+        return;
+
+    SCConfNode *conf = NULL;
+    while ((conf = SCConfNodeLookupInSequence(outputs, name, conf)) != NULL) {
+        const char *enabled = SCConfNodeLookupChildValue(conf, "enabled");
+        if (enabled == NULL || !SCConfValIsTrue(enabled))
+            continue;
+        cb(ruleset, conf);
+    }
+}
+
 #ifndef HAVE_LINUX_LANDLOCK_H
 
 void LandlockSandboxing(SCInstance *suri)

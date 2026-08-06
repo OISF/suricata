@@ -26,6 +26,13 @@
 
 #include "suricata.h"
 
+/** Callback invoked by SCLandlockForEachOutput() for one output instance.
+ *  \a conf is the node named after the output (e.g. the "eve-log" node), not
+ *  the enclosing sequence entry. */
+typedef void (*SCLandlockOutputFunc)(void *ruleset, SCConfNode *conf);
+
+void SCLandlockForEachOutput(void *ruleset, const char *name, SCLandlockOutputFunc cb);
+
 void SCLandlockGrantReadPath(void *ruleset, const char *path);
 void SCLandlockGrantWritePath(void *ruleset, const char *path);
 
