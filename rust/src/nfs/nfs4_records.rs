@@ -983,7 +983,7 @@ fn nfs4_res_secinfo_no_name(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>>
         let (i3, _flavor) = nfs4_parse_flavors(i2)?;
         i2 = i3;
     }
-    Ok((i, Nfs4ResponseContent::SecInfoNoName(status)))
+    Ok((i2, Nfs4ResponseContent::SecInfoNoName(status)))
 }
 
 #[derive(Debug, PartialEq, Eq)]
