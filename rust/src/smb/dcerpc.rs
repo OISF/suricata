@@ -94,6 +94,8 @@ pub struct SMBTransactionDCERPC {
     pub res_cmd: u8,
     pub res_set: bool,
     pub call_id: u32,
+    pub req_flags: u8,
+    pub resp_flags: u8,
     pub frag_cnt_ts: u16,
     pub frag_cnt_tc: u16,
     pub stub_data_ts: Vec<u8>,
@@ -101,19 +103,21 @@ pub struct SMBTransactionDCERPC {
 }
 
 impl SMBTransactionDCERPC {
-    fn new_request(req: u8, call_id: u32) -> Self {
+    fn new_request(req: u8, call_id: u32, flags: u8) -> Self {
         return Self {
             opnum: 0,
             context_id: 0,
             req_cmd: req,
             req_set: true,
+            req_flags: flags,
             call_id,
             ..Default::default()
         };
     }
-    fn new_response(call_id: u32) -> Self {
+    fn new_response(call_id: u32, flags: u8) -> Self {
         return Self {
             call_id,
+            resp_flags: flags,
             ..Default::default()
         };
     }
@@ -126,12 +130,13 @@ impl SMBTransactionDCERPC {
 impl SMBState {
     fn new_dcerpc_tx(
         &mut self, hdr: SMBCommonHdr, vercmd: SMBVerCmdStat, cmd: u8, call_id: u32,
+        packet_flags: u8,
     ) -> Option<&mut SMBTransaction> {
         let mut tx = self.new_tx()?;
         tx.hdr = hdr;
         tx.vercmd = vercmd;
         tx.type_data = Some(SMBTransactionTypeData::DCERPC(
-            SMBTransactionDCERPC::new_request(cmd, call_id),
+            SMBTransactionDCERPC::new_request(cmd, call_id, packet_flags),
         ));
 
         SCLogDebug!("SMB: TX DCERPC created: ID {} hdr {:?}", tx.id, tx.hdr);
@@ -140,13 +145,13 @@ impl SMBState {
     }
 
     fn new_dcerpc_tx_for_response(
-        &mut self, hdr: SMBCommonHdr, vercmd: SMBVerCmdStat, call_id: u32,
+        &mut self, hdr: SMBCommonHdr, vercmd: SMBVerCmdStat, call_id: u32, packet_flags: u8,
     ) -> Option<&mut SMBTransaction> {
         let mut tx = self.new_tx()?;
         tx.hdr = hdr;
         tx.vercmd = vercmd;
         tx.type_data = Some(SMBTransactionTypeData::DCERPC(
-            SMBTransactionDCERPC::new_response(call_id),
+            SMBTransactionDCERPC::new_response(call_id, packet_flags),
         ));
 
         SCLogDebug!("SMB: TX DCERPC created: ID {} hdr {:?}", tx.id, tx.hdr);
@@ -249,7 +254,13 @@ pub fn smb_write_dcerpc_record(
                 }
             }
 
-            let Some(tx) = state.new_dcerpc_tx(hdr, vercmd, dcer.packet_type, dcer.call_id) else {
+            let Some(tx) = state.new_dcerpc_tx(
+                hdr,
+                vercmd,
+                dcer.packet_type,
+                dcer.call_id,
+                dcer.packet_flags,
+            ) else {
                 return false;
             };
             match dcer.packet_type {
@@ -556,9 +567,12 @@ pub fn smb_read_dcerpc_record(
                 };
                 if !found {
                     // pick up DCERPC tx even if we missed the request
-                    let Some(tx) =
-                        state.new_dcerpc_tx_for_response(hdr, vercmd.clone(), dcer.call_id)
-                    else {
+                    let Some(tx) = state.new_dcerpc_tx_for_response(
+                        hdr,
+                        vercmd.clone(),
+                        dcer.call_id,
+                        dcer.packet_flags,
+                    ) else {
                         return false;
                     };
                     dcerpc_response_handle(tx, vercmd, &dcer);

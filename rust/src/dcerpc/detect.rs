@@ -23,7 +23,7 @@ use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{detect_match_uint, detect_parse_uint, DetectUintData};
 use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use crate::smb::detect::{
-    smb_tx_get_stub_data, smb_tx_match_dce_iface, smb_tx_match_dce_opnum,
+    smb_tx_get_stub_data, smb_tx_match_dce_flags, smb_tx_match_dce_iface, smb_tx_match_dce_opnum,
 };
 use crate::smb::smb::ALPROTO_SMB;
 use std::ffi::CStr;
@@ -429,6 +429,9 @@ unsafe extern "C" fn dcerpc_flags_match(
 ) -> c_int {
     if SCFlowGetAppProtocol(f) == ALPROTO_DCERPC {
         return dcerpc_tx_match_dce_flags(tx, ctx, flags);
+    }
+    if smb_tx_match_dce_flags(tx, ctx, flags) != 1 {
+        return 0;
     }
 
     return 0;
