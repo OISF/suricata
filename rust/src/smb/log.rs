@@ -17,6 +17,7 @@
 
 use crate::conf::ConfNode;
 use crate::dcerpc::dcerpc::*;
+use crate::dcerpc::load_interfaces::DCERPC_INTERFACE_MAP;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::smb::funcs::*;
 use crate::smb::smb::*;
@@ -426,13 +427,21 @@ fn smb_common_header(
                                 jsb.open_array("interfaces")?;
                                 for i in ifaces {
                                     jsb.start_object()?;
-                                    let ifstr = uuid::Uuid::from_slice(&i.uuid);
-                                    let ifstr = ifstr
-                                        .map(|ifstr| ifstr.to_hyphenated().to_string())
+                                    let ifuuid = uuid::Uuid::from_slice(&i.uuid);
+                                    let ifstr = ifuuid
+                                        .as_ref()
+                                        .map(|ifuuid| ifuuid.to_hyphenated().to_string())
                                         .unwrap();
                                     jsb.set_string("uuid", &ifstr)?;
                                     let vstr = format!("{}.{}", i.ver, i.ver_min);
                                     jsb.set_string("version", &vstr)?;
+                                    if let Some(iface) = DCERPC_INTERFACE_MAP.get(&ifuuid.unwrap())
+                                    {
+                                        jsb.set_string("service", &iface.service)?;
+                                        if let Some(pname) = iface.opcodes.get(&x.opnum) {
+                                            jsb.set_string("procedure", pname)?;
+                                        }
+                                    }
                                     jsb.close()?;
                                 }
                                 jsb.close()?;
@@ -444,9 +453,10 @@ fn smb_common_header(
                             jsb.open_array("interfaces")?;
                             for i in ifaces {
                                 jsb.start_object()?;
-                                let ifstr = uuid::Uuid::from_slice(&i.uuid);
-                                let ifstr = ifstr
-                                    .map(|ifstr| ifstr.to_hyphenated().to_string())
+                                let ifuuid = uuid::Uuid::from_slice(&i.uuid);
+                                let ifstr = ifuuid
+                                    .as_ref()
+                                    .map(|ifuuid| ifuuid.to_hyphenated().to_string())
                                     .unwrap();
                                 jsb.set_string("uuid", &ifstr)?;
                                 let vstr = format!("{}.{}", i.ver, i.ver_min);
@@ -455,6 +465,9 @@ fn smb_common_header(
                                 if i.acked {
                                     jsb.set_uint("ack_result", i.ack_result as u64)?;
                                     jsb.set_uint("ack_reason", i.ack_reason as u64)?;
+                                }
+                                if let Some(iface) = DCERPC_INTERFACE_MAP.get(&ifuuid.unwrap()) {
+                                    jsb.set_string("service", &iface.service)?;
                                 }
                                 jsb.close()?;
                             }
