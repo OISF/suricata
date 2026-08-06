@@ -2013,7 +2013,7 @@ static inline void StreamTcp3whsStoreSynApplyToSsn(TcpSession *ssn, const TcpSta
         ssn->flags |= STREAMTCP_FLAG_SERVER_WSCALE;
         ssn->server.wscale = q->wscale;
     } else {
-        ssn->flags &= STREAMTCP_FLAG_SERVER_WSCALE;
+        ssn->flags &= ~STREAMTCP_FLAG_SERVER_WSCALE;
         ssn->server.wscale = 0;
     }
     ssn->server.window = q->win;
