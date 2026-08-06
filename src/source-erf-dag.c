@@ -104,8 +104,8 @@ typedef struct ErfDagThreadVars_ {
     LiveDevice *livedev;
 
     uint64_t bytes;
-    uint16_t packets;
-    uint16_t drops;
+    StatsCounterId packets;
+    StatsCounterId drops;
 
     /* Current location in the DAG stream input buffer.
      */
@@ -283,8 +283,8 @@ TmEcode ReceiveErfDagThreadInit(ThreadVars *tv, const void *initdata, void **dat
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    ewtn->packets = StatsRegisterCounter("capture.dag_packets", tv);
-    ewtn->drops = StatsRegisterCounter("capture.dag_drops", tv);
+    ewtn->packets = StatsRegisterCounter("capture.dag_packets", &tv->stats);
+    ewtn->drops = StatsRegisterCounter("capture.dag_drops", &tv->stats);
 
     ewtn->tv = tv;
     *data = (void *)ewtn;
