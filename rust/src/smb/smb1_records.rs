@@ -209,10 +209,12 @@ pub struct Smb1NegotiateProtocolRecord<'a> {
 pub fn parse_smb1_negotiate_protocol_record(
     i: &[u8],
 ) -> IResult<&[u8], Smb1NegotiateProtocolRecord<'_>> {
-    let (i, _wtc) = le_u8.parse(i)?;
-    let (i, _bcc) = le_u16.parse(i)?;
+    let (i, _wct) = le_u8.parse(i)?;
+    let (i, bcc) = le_u16.parse(i)?;
     // dialects is a list of [1 byte buffer format][string][0 terminator]
-    let (i, dialects) = many1(complete(take_until_and_consume(b"\0"))).parse(i)?;
+    // honour ByteCount to avoid unbounded allocation
+    let (i, payload) = take(bcc as usize).parse(i)?;
+    let (_, dialects) = many1(complete(take_until_and_consume(b"\0"))).parse(payload)?;
     let record = Smb1NegotiateProtocolRecord { dialects };
     Ok((i, record))
 }
