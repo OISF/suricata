@@ -2258,7 +2258,12 @@ static struct SSLDecoderResult SSLv2Decode(uint8_t direction, SSLState *ssl_stat
             break;
 
         case SSLV2_MT_CLIENT_HELLO:
-            if (input_len < 6) {
+            /* record_length does not count the msg_type byte.  CLIENT_HELLO
+             * body starts with 3 fixed fields: client_version (2) +
+             * cipher_spec_length (2) + session_id_length (2).  We need at
+             * least those 6 bytes after the msg_type, so record_length
+             * must be >= 7. */
+            if (input_len < 6 || ssl_state->curr_connp->record_length < 7) {
                 SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
                 return SSL_DECODER_ERROR(-1);
             }
@@ -2353,6 +2358,16 @@ static struct SSLDecoderResult SSLv2Decode(uint8_t direction, SSLState *ssl_stat
     }
 
     ssl_state->flags |= ssl_state->current_flags;
+
+    if (ssl_state->curr_connp->bytes_processed >
+            ssl_state->curr_connp->record_length + ssl_state->curr_connp->record_lengths_length) {
+        SCLogDebug("SSLv2 bytes_processed (%u) exceeds record+hdr "
+                   "len (record_length=%u, lengths_length=%u)",
+                ssl_state->curr_connp->bytes_processed, ssl_state->curr_connp->record_length,
+                ssl_state->curr_connp->record_lengths_length);
+        SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
+        return SSL_DECODER_ERROR(-1);
+    }
 
     if (input_len + ssl_state->curr_connp->bytes_processed >=
             (ssl_state->curr_connp->record_length +
