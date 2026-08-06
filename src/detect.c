@@ -2576,6 +2576,13 @@ static void DetectRunTx(ThreadVars *tv,
                 PrefilterPostRuleMatch(det_ctx, scratch->sgh, p, f);
 
                 uint32_t prev_array_idx = array_idx;
+
+                /* Check if there is room for the pmq results before appending them. */
+                const uint32_t needed = array_idx + det_ctx->pmq.rule_id_array_cnt;
+                if (!(RuleMatchCandidateTxArrayHasSpace(det_ctx, needed))) {
+                    RuleMatchCandidateTxArrayExpand(det_ctx, needed);
+                }
+
                 for (uint32_t j = 0; j < det_ctx->pmq.rule_id_array_cnt; j++) {
                     const Signature *ts = de_ctx->sig_array[det_ctx->pmq.rule_id_array[j]];
                     if (ts->app_inspect != NULL) {
