@@ -574,14 +574,32 @@ static int PcapLogSegmentCallback(
         SCTIME_TO_TIMEVAL(&tv, seg->pcap_hdr_storage->ts);
         pctx->td->pcap_log->h->ts.tv_sec = tv.tv_sec;
         pctx->td->pcap_log->h->ts.tv_usec = tv.tv_usec;
-        pctx->td->pcap_log->h->len = seg->pcap_hdr_storage->pktlen + buflen;
-        pctx->td->pcap_log->h->caplen = seg->pcap_hdr_storage->pktlen + buflen;
+
+        /* Ensure the buffer can hold the full packet: headers + payload.
+         */
+        const uint32_t pktlen = seg->pcap_hdr_storage->pktlen;
+        const uint32_t total_len = pktlen + buflen;
+
+        if (unlikely(total_len >= MEMBUFFER_SIZE(pctx->td->buf))) {
+            uint32_t expand_by = total_len + 1 - MEMBUFFER_SIZE(pctx->td->buf);
+            if (expand_by % 4096 != 0) {
+                expand_by = expand_by - (expand_by % 4096) + 4096;
+            }
+            if (unlikely(MemBufferExpand(&pctx->td->buf, expand_by) < 0)) {
+                SCLogWarning("Failed to expand pcap-log buffer for segment "
+                             "of size %u",
+                        total_len);
+                return 1;
+            }
+        }
+
+        pctx->td->pcap_log->h->len = total_len;
+        pctx->td->pcap_log->h->caplen = total_len;
         MemBufferReset(pctx->td->buf);
-        MemBufferWriteRaw(
-                pctx->td->buf, seg->pcap_hdr_storage->pkt_hdr, seg->pcap_hdr_storage->pktlen);
+        MemBufferWriteRaw(pctx->td->buf, seg->pcap_hdr_storage->pkt_hdr, pktlen);
         MemBufferWriteRaw(pctx->td->buf, buf, buflen);
 
-        PcapWrite(pctx->tv, pctx->td, (uint8_t *)pctx->td->buf->buffer, pctx->td->pcap_log->h->len);
+        PcapWrite(pctx->tv, pctx->td, (uint8_t *)pctx->td->buf->buffer, total_len);
     }
     return 1;
 }
