@@ -929,9 +929,10 @@ fn nfs4_parse_res_layoutget(i: &[u8]) -> IResult<&[u8], Nfs4ResponseLayoutGet<'_
     let (i, _strip_index) = be_u32(i)?;
     let (i, _offset) = be_u64(i)?;
     let (i, fh_handles) = be_u32(i)?;
-    // check before `count` allocates a vector
-    // so as not to run out of memory
-    if fh_handles as usize > 4 * i.len() {
+    // Each serialized handle is at least 4 bytes (be_u32 length prefix),
+    // so no more than i.len()/4 handles can be present. Also cap at the
+    // Linux kernel's NFS4_PNFS_MAX_STRIPE_CNT to bound count() preallocation.
+    if fh_handles as usize > i.len() / 4 || fh_handles > 4096 {
         return Err(Err::Error(make_error(i, ErrorKind::Count)));
     }
     let (i, file_handles) = count(nfs4_parse_handle, fh_handles as usize)(i)?;
