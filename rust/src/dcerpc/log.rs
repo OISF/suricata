@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -14,11 +14,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA.
  */
-use uuid::Uuid;
-
 use crate::dcerpc::dcerpc::*;
 use crate::dcerpc::dcerpc_udp::*;
+use crate::dcerpc::load_interfaces::DCERPC_INTERFACE_MAP;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+use uuid::Uuid;
 
 fn log_dcerpc_header_tcp(
     jsb: &mut JsonBuilder, state: &DCERPCState, tx: &DCERPCTransaction,
@@ -40,13 +40,19 @@ fn log_dcerpc_header_tcp(
                     if tx.ctxid == uuid.ctxid {
                         found = true;
                         jsb.start_object()?;
-                        let ifstr = Uuid::from_slice(uuid.uuid.as_slice());
-                        let ifstr = ifstr.map(|uuid| uuid.to_hyphenated().to_string()).unwrap();
+                        let ifuuid = Uuid::from_slice(uuid.uuid.as_slice()).unwrap();
+                        let ifstr = ifuuid.to_hyphenated().to_string();
                         jsb.set_string("uuid", &ifstr)?;
                         let vstr = format!("{}.{}", uuid.version, uuid.versionminor);
                         jsb.set_string("version", &vstr)?;
                         if uuid.acked {
                             jsb.set_uint("ack_result", uuid.result as u64)?;
+                        }
+                        if let Some(iface) = DCERPC_INTERFACE_MAP.get(&ifuuid) {
+                            jsb.set_string("service", &iface.service)?;
+                            if let Some(pname) = iface.opcodes.get(&tx.opnum) {
+                                jsb.set_string("procedure", pname)?;
+                            }
                         }
                         jsb.close()?;
                     }
@@ -65,13 +71,16 @@ fn log_dcerpc_header_tcp(
                     if tx.call_id == uuid.call_id {
                         found = true;
                         jsb.start_object()?;
-                        let ifstr = Uuid::from_slice(uuid.uuid.as_slice());
-                        let ifstr = ifstr.map(|uuid| uuid.to_hyphenated().to_string()).unwrap();
+                        let ifuuid = Uuid::from_slice(uuid.uuid.as_slice()).unwrap();
+                        let ifstr = ifuuid.to_hyphenated().to_string();
                         jsb.set_string("uuid", &ifstr)?;
                         let vstr = format!("{}.{}", uuid.version, uuid.versionminor);
                         jsb.set_string("version", &vstr)?;
                         if uuid.acked {
                             jsb.set_uint("ack_result", uuid.result as u64)?;
+                        }
+                        if let Some(iface) = DCERPC_INTERFACE_MAP.get(&ifuuid) {
+                            jsb.set_string("service", &iface.service)?;
                         }
                         jsb.close()?;
                     }

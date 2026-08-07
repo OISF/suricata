@@ -1474,6 +1474,8 @@ DCERPC fields
 * "interfaces.version" (string): interface version
 * "interfaces.ack_result" (integer): ack result
 * "interfaces.ack_reason" (integer): ack reason
+* "interfaces.service" (string): service name for the UUID
+* "interfaces.procedure" (string): procedure name for the UUID and opnum
 
 
 DCERPC REQUEST/RESPONSE::
@@ -1518,18 +1520,21 @@ DCERPC BIND/BINDACK::
       "interfaces": [
         {
           "uuid": "12345778-1234-abcd-ef00-0123456789ac",
+          "service": "samr",
           "version": "1.0",
           "ack_result": 2,
           "ack_reason": 0
         },
         {
           "uuid": "12345778-1234-abcd-ef00-0123456789ac",
+          "service": "samr",
           "version": "1.0",
           "ack_result": 0,
           "ack_reason": 0
         },
         {
           "uuid": "12345778-1234-abcd-ef00-0123456789ac",
+          "service": "samr",
           "version": "1.0",
           "ack_result": 3,
           "ack_reason": 0
