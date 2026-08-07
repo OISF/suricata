@@ -268,11 +268,11 @@ const char *SCBasename(const char *path)
 bool SCPathContainsTraversal(const char *path)
 {
 #ifdef OS_WIN32
-    const char *pattern = "..\\";
+    /* Win32 treats '/' and '\\' as equivalent directory separators */
+    return strstr(path, "../") != NULL || strstr(path, "..\\") != NULL;
 #else
-    const char *pattern = "../";
+    return strstr(path, "../") != NULL;
 #endif
-    return strstr(path, pattern) != NULL;
 }
 
 /**
