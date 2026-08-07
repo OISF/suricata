@@ -99,7 +99,8 @@ void DetectBytetestRegister (void)
  */
 static inline bool DetectBytetestValidateNbytesOnly(const DetectBytetestData *data, int32_t nbytes)
 {
-    return ((data->flags & DETECT_BYTETEST_STRING) && nbytes <= 23) || (nbytes <= 8);
+    return nbytes >= 0 &&
+           (((data->flags & DETECT_BYTETEST_STRING) && nbytes <= 23) || (nbytes <= 8));
 }
 
 static bool DetectBytetestValidateNbytes(
@@ -202,10 +203,10 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         len = payload_len - offset;
     }
 
-    /* Validate that the to-be-extracted is within the packet
+    /* Validate that the to-be-extracted is within the packet.
      * \todo Should this validate it is in the *payload*?
      */
-    if (ptr < payload || nbytes > len) {
+    if (ptr < payload || nbytes < 0 || nbytes > len) {
         SCLogDebug("Data not within payload pkt=%p, ptr=%p, len=%" PRIu32 ", nbytes=%d", payload,
                 ptr, len, nbytes);
         SCReturnInt(0);
