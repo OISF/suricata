@@ -697,6 +697,8 @@ static inline void PacketAlertFinalizeProcessQueue(
 
             if (AlertQueueHasFirewallBypass(det_ctx, p)) {
                 skip_td = true;
+                /* a bypass verdict won't be changed at this point */
+                p->flags |= PKT_FW_BYPASSED;
             }
 
             if (dropped) {
