@@ -407,6 +407,15 @@
     enable_landlock="no"
     if test "$ac_cv_header_linux_landlock_h" = "yes"; then
         enable_landlock="yes"
+        # struct landlock_ruleset_attr gained the handled_access_net field in
+        # Linux 6.7 (Landlock ABI 4), together with struct
+        # landlock_net_port_attr and LANDLOCK_RULE_NET_PORT. A struct member
+        # cannot be defined by hand, so it needs its own check.
+        AC_CHECK_MEMBER([struct landlock_ruleset_attr.handled_access_net],
+            [AC_DEFINE([HAVE_LANDLOCK_RULESET_ATTR_HANDLED_ACCESS_NET], [1],
+                [Set if struct landlock_ruleset_attr has the handled_access_net field])],
+            [],
+            [[#include <linux/landlock.h>]])
     fi
 
     #check for plugin support
