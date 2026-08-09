@@ -45,6 +45,14 @@ void SCLandlockGrantWritePath(void *ruleset, const char *path)
 {
 }
 
+void SCLandlockGrantNetBindTCP(void *ruleset, uint16_t port)
+{
+}
+
+void SCLandlockGrantNetConnectTCP(void *ruleset, uint16_t port)
+{
+}
+
 #else /* HAVE_LINUX_LANDLOCK_H */
 
 #include <linux/landlock.h>
@@ -96,6 +104,14 @@ static inline int landlock_restrict_self(const int ruleset_fd, const __u32 flags
     (LANDLOCK_ACCESS_FS_WRITE_FILE | LANDLOCK_ACCESS_FS_MAKE_DIR | LANDLOCK_ACCESS_FS_MAKE_REG |   \
             LANDLOCK_ACCESS_FS_REMOVE_FILE | LANDLOCK_ACCESS_FS_MAKE_SOCK)
 
+#ifndef LANDLOCK_ACCESS_NET_BIND_TCP
+#define LANDLOCK_ACCESS_NET_BIND_TCP (1ULL << 0)
+#endif
+#ifndef LANDLOCK_ACCESS_NET_CONNECT_TCP
+#define LANDLOCK_ACCESS_NET_CONNECT_TCP (1ULL << 1)
+#endif
+#define _LANDLOCK_ACCESS_NET (LANDLOCK_ACCESS_NET_BIND_TCP | LANDLOCK_ACCESS_NET_CONNECT_TCP)
+
 struct landlock_ruleset {
     int fd;
     struct landlock_ruleset_attr attr;
@@ -111,20 +127,28 @@ static inline struct landlock_ruleset *LandlockCreateRuleset(void)
 
     ruleset->attr.handled_access_fs =
             _LANDLOCK_ACCESS_FS_READ | _LANDLOCK_ACCESS_FS_WRITE | LANDLOCK_ACCESS_FS_EXECUTE;
+    ruleset->attr.handled_access_net = _LANDLOCK_ACCESS_NET;
 
     int abi = landlock_create_ruleset(NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
     if (abi < 0) {
         SCFree(ruleset);
         return NULL;
     }
-    if (abi < 2) {
-        if (SCRequiresFeature(FEATURE_OUTPUT_FILESTORE)) {
-            SCLogError("Landlock disabled: need Linux 5.19+ for file store support");
-            SCFree(ruleset);
-            return NULL;
-        } else {
-            ruleset->attr.handled_access_fs &= ~LANDLOCK_ACCESS_FS_REFER;
-        }
+    switch (abi) {
+        case 1:
+            /* Refer is only available from ABI 2 */
+            if (SCRequiresFeature(FEATURE_OUTPUT_FILESTORE)) {
+                SCLogError("Landlock disabled: need Linux 5.19+ for file store support");
+                SCFree(ruleset);
+                return NULL;
+            } else {
+                ruleset->attr.handled_access_fs &= ~LANDLOCK_ACCESS_FS_REFER;
+            }
+            __attribute__((fallthrough));
+        case 2:
+        case 3:
+            /* Network access is only available from ABI 4 */
+            ruleset->attr.handled_access_net &= ~_LANDLOCK_ACCESS_NET;
     }
 
     ruleset->fd = landlock_create_ruleset(&ruleset->attr, sizeof(ruleset->attr), 0);
@@ -189,6 +213,66 @@ void SCLandlockGrantReadPath(void *vruleset, const char *directory)
     if (LandlockSandboxingAddRule(ruleset, directory, _LANDLOCK_ACCESS_FS_READ) == 0) {
         SCLogConfig("Added read permission to '%s'", directory);
     }
+}
+
+static void LandlockGrantNetPort(
+        struct landlock_ruleset *ruleset, uint16_t port, uint64_t access, const char *access_name)
+{
+    if (ruleset == NULL)
+        return;
+    if ((ruleset->attr.handled_access_net & access) == 0) {
+        SCLogInfo("Landlock network access %s not available; skipping port %u", access_name, port);
+        return;
+    }
+    struct landlock_net_port_attr net_port = {
+        .allowed_access = access,
+        .port = port,
+    };
+    if (landlock_add_rule(ruleset->fd, LANDLOCK_RULE_NET_PORT, &net_port, 0)) {
+        SCLogError("Can't add net rule (%s, port %u): %s", access_name, port, strerror(errno));
+        return;
+    }
+    SCLogConfig("Added net %s permission on port %u", access_name, port);
+}
+
+/**
+ * \brief Grant TCP bind permission on the given port
+ *
+ * Silently no-op when running on a kernel where landlock network support is
+ * not available.
+ *
+ * \param vruleset opaque landlock ruleset
+ * \param port TCP port to allow bind() on
+ */
+void SCLandlockGrantNetBindTCP(void *vruleset, uint16_t port)
+{
+#ifdef LANDLOCK_ACCESS_NET_BIND_TCP
+    LandlockGrantNetPort(
+            (struct landlock_ruleset *)vruleset, port, LANDLOCK_ACCESS_NET_BIND_TCP, "bind-tcp");
+#else
+    (void)vruleset;
+    (void)port;
+#endif
+}
+
+/**
+ * \brief Grant TCP connect permission on the given port
+ *
+ * Silently no-op when running on a kernel where landlock network support is
+ * not available.
+ *
+ * \param vruleset opaque landlock ruleset
+ * \param port TCP port to allow connect() on
+ */
+void SCLandlockGrantNetConnectTCP(void *vruleset, uint16_t port)
+{
+#ifdef LANDLOCK_ACCESS_NET_CONNECT_TCP
+    LandlockGrantNetPort((struct landlock_ruleset *)vruleset, port, LANDLOCK_ACCESS_NET_CONNECT_TCP,
+            "connect-tcp");
+#else
+    (void)vruleset;
+    (void)port;
+#endif
 }
 
 void LandlockSandboxing(SCInstance *suri)
