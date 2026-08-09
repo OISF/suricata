@@ -29,6 +29,10 @@
 void SCLandlockGrantReadPath(void *ruleset, const char *path);
 void SCLandlockGrantWritePath(void *ruleset, const char *path);
 
+void SCLandlockGrantNetBindTCP(void *ruleset, uint16_t port);
+
+void SCLandlockGrantNetConnectTCP(void *ruleset, uint16_t port);
+
 void LandlockSandboxing(SCInstance *suri);
 
 #endif /* SURICATA_UTIL_LANDLOCK_H */
