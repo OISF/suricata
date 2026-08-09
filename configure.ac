@@ -416,6 +416,14 @@
                 [Set if struct landlock_ruleset_attr has the handled_access_net field])],
             [],
             [[#include <linux/landlock.h>]])
+        # struct landlock_ruleset_attr gained the scoped field in Linux 6.12
+        # (Landlock ABI 6). As with handled_access_net, a struct member cannot
+        # be defined by hand, so it needs its own check.
+        AC_CHECK_MEMBER([struct landlock_ruleset_attr.scoped],
+            [AC_DEFINE([HAVE_LANDLOCK_RULESET_ATTR_SCOPED], [1],
+                [Set if struct landlock_ruleset_attr has the scoped field])],
+            [],
+            [[#include <linux/landlock.h>]])
     fi
 
     #check for plugin support
