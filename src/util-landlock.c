@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2022,2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -34,6 +34,14 @@
 #ifndef HAVE_LINUX_LANDLOCK_H
 
 void LandlockSandboxing(SCInstance *suri)
+{
+}
+
+void SCLandlockGrantReadPath(void *ruleset, const char *path)
+{
+}
+
+void SCLandlockGrantWritePath(void *ruleset, const char *path)
 {
 }
 
@@ -163,17 +171,21 @@ static int LandlockSandboxingAddRule(
     return 0;
 }
 
-static inline void LandlockSandboxingWritePath(
-        struct landlock_ruleset *ruleset, const char *directory)
+void SCLandlockGrantWritePath(void *vruleset, const char *directory)
 {
+    struct landlock_ruleset *ruleset = vruleset;
+    if (ruleset == NULL || directory == NULL)
+        return;
     if (LandlockSandboxingAddRule(ruleset, directory, _LANDLOCK_SURI_ACCESS_FS_WRITE) == 0) {
         SCLogConfig("Added write permission to '%s'", directory);
     }
 }
 
-static inline void LandlockSandboxingReadPath(
-        struct landlock_ruleset *ruleset, const char *directory)
+void SCLandlockGrantReadPath(void *vruleset, const char *directory)
 {
+    struct landlock_ruleset *ruleset = vruleset;
+    if (ruleset == NULL || directory == NULL)
+        return;
     if (LandlockSandboxingAddRule(ruleset, directory, _LANDLOCK_ACCESS_FS_READ) == 0) {
         SCLogConfig("Added read permission to '%s'", directory);
     }
@@ -196,7 +208,7 @@ void LandlockSandboxing(SCInstance *suri)
         return;
     }
 
-    LandlockSandboxingWritePath(ruleset, SCConfigGetLogDirectory());
+    SCLandlockGrantWritePath(ruleset, SCConfigGetLogDirectory());
     struct stat sb;
     if (stat(ConfigGetDataDirectory(), &sb) == 0) {
         LandlockSandboxingAddRule(ruleset, ConfigGetDataDirectory(),
@@ -214,9 +226,9 @@ void LandlockSandboxing(SCInstance *suri)
                 struct stat statbuf;
                 if (stat(file_name, &statbuf) != -1) {
                     if (S_ISDIR(statbuf.st_mode)) {
-                        LandlockSandboxingReadPath(ruleset, file_name);
+                        SCLandlockGrantReadPath(ruleset, file_name);
                     } else {
-                        LandlockSandboxingReadPath(ruleset, dirname(file_name));
+                        SCLandlockGrantReadPath(ruleset, dirname(file_name));
                     }
                 } else {
                     SCLogError("Can't open pcap file");
@@ -228,14 +240,14 @@ void LandlockSandboxing(SCInstance *suri)
     if (suri->sig_file) {
         char *file_name = SCStrdup(suri->sig_file);
         if (file_name != NULL) {
-            LandlockSandboxingReadPath(ruleset, dirname(file_name));
+            SCLandlockGrantReadPath(ruleset, dirname(file_name));
             SCFree(file_name);
         }
     }
     if (suri->pid_filename) {
         char *file_name = SCStrdup(suri->pid_filename);
         if (file_name != NULL) {
-            LandlockSandboxingWritePath(ruleset, dirname(file_name));
+            SCLandlockGrantWritePath(ruleset, dirname(file_name));
             SCFree(file_name);
         }
     }
@@ -245,20 +257,20 @@ void LandlockSandboxing(SCInstance *suri)
             if (PathIsAbsolute(socketname)) {
                 char *file_name = SCStrdup(socketname);
                 if (file_name != NULL) {
-                    LandlockSandboxingWritePath(ruleset, dirname(file_name));
+                    SCLandlockGrantWritePath(ruleset, dirname(file_name));
                     SCFree(file_name);
                 }
             } else {
-                LandlockSandboxingWritePath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
+                SCLandlockGrantWritePath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
             }
         } else {
-            LandlockSandboxingWritePath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
+            SCLandlockGrantWritePath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
         }
     }
     if (!suri->sig_file_exclusive) {
         const char *rule_path;
         if (SCConfGetNonNull("default-rule-path", &rule_path) == 1 && rule_path) {
-            LandlockSandboxingReadPath(ruleset, rule_path);
+            SCLandlockGrantReadPath(ruleset, rule_path);
         }
     }
 
@@ -270,7 +282,7 @@ void LandlockSandboxing(SCInstance *suri)
         } else {
             SCConfNode *directory;
             TAILQ_FOREACH (directory, &read_dirs->head, next) {
-                LandlockSandboxingReadPath(ruleset, directory->val);
+                SCLandlockGrantReadPath(ruleset, directory->val);
             }
         }
     }
@@ -282,7 +294,7 @@ void LandlockSandboxing(SCInstance *suri)
         } else {
             SCConfNode *directory;
             TAILQ_FOREACH (directory, &write_dirs->head, next) {
-                LandlockSandboxingWritePath(ruleset, directory->val);
+                SCLandlockGrantWritePath(ruleset, directory->val);
             }
         }
     }
