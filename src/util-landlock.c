@@ -29,6 +29,7 @@
 #include "util-landlock.h"
 #include "util-mem.h"
 #include "util-path.h"
+#include "util-plugin.h"
 #include "util-validate.h"
 
 #ifndef HAVE_LINUX_LANDLOCK_H
@@ -402,6 +403,12 @@ void LandlockSandboxing(SCInstance *suri)
             }
         }
     }
+
+    /* Let plugins declare their landlock needs. */
+#ifdef HAVE_PLUGINS
+    SCPluginsLandlockEnable(ruleset);
+#endif
+
     LandlockEnforceRuleset(ruleset);
     SCFree(ruleset);
 }
