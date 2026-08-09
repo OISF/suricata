@@ -61,3 +61,17 @@ Valid firewall rule with bypass:
   :example-rule-emphasis:`accept:flow,alert` http1:request_headers any any -> \
   any any (http.host; content:"suricata.io"; :example-rule-emphasis:`bypass;` \
   sid:10001; rev:1;)
+
+
+Special hooks
+~~~~~~~~~~~~~
+
+``pre_flow`` hook
+^^^^^^^^^^^^^^^^^
+
+If the ``bypass`` is applied locally, ``pre_flow`` rules will still be processed
+and invoked, due to the fact that the engine can't apply nor control a flow
+bypass at a stage where the packet hasn't been tied to its flow yet.
+
+This won't happen in the case of an offloaded bypass, as there won't be
+anything for the engine to inspect against.
