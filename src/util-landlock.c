@@ -90,13 +90,18 @@ static inline int landlock_restrict_self(const int ruleset_fd, const __u32 flags
 #define LANDLOCK_ACCESS_FS_REFER (1ULL << 13)
 #endif
 
+#ifndef LANDLOCK_ACCESS_FS_RESOLVE_UNIX
+#define LANDLOCK_ACCESS_FS_RESOLVE_UNIX (1ULL << 18)
+#endif
+
 #define _LANDLOCK_ACCESS_FS_WRITE                                                                  \
     (LANDLOCK_ACCESS_FS_WRITE_FILE | LANDLOCK_ACCESS_FS_REMOVE_DIR |                               \
             LANDLOCK_ACCESS_FS_REMOVE_FILE | LANDLOCK_ACCESS_FS_MAKE_CHAR |                        \
             LANDLOCK_ACCESS_FS_MAKE_DIR | LANDLOCK_ACCESS_FS_MAKE_REG |                            \
             LANDLOCK_ACCESS_FS_MAKE_SOCK | LANDLOCK_ACCESS_FS_MAKE_FIFO |                          \
             LANDLOCK_ACCESS_FS_MAKE_BLOCK | LANDLOCK_ACCESS_FS_MAKE_SYM |                          \
-            LANDLOCK_ACCESS_FS_REFER)
+            LANDLOCK_ACCESS_FS_REFER | LANDLOCK_ACCESS_FS_TRUNCATE |                               \
+            LANDLOCK_ACCESS_FS_IOCTL_DEV | LANDLOCK_ACCESS_FS_RESOLVE_UNIX)
 
 #define _LANDLOCK_ACCESS_FS_READ (LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR)
 
@@ -146,9 +151,24 @@ static inline struct landlock_ruleset *LandlockCreateRuleset(void)
             }
             __attribute__((fallthrough));
         case 2:
+            /* Truncate is only available from ABI 3 */
+            ruleset->attr.handled_access_fs &= ~LANDLOCK_ACCESS_FS_TRUNCATE;
+            __attribute__((fallthrough));
         case 3:
             /* Network access is only available from ABI 4 */
             ruleset->attr.handled_access_net &= ~_LANDLOCK_ACCESS_NET;
+            __attribute__((fallthrough));
+        case 4:
+            /* Device ioctl is only available from ABI 5 */
+            ruleset->attr.handled_access_fs &= ~LANDLOCK_ACCESS_FS_IOCTL_DEV;
+            __attribute__((fallthrough));
+        case 5:
+            /* Scoping is only available from ABI 6 */
+            ruleset->attr.scoped &= ~(LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET | LANDLOCK_SCOPE_SIGNAL);
+            __attribute__((fallthrough));
+        case 6 ... 8:
+            /* Unix socket resolution is only available from ABI 9 */
+            ruleset->attr.handled_access_fs &= ~LANDLOCK_ACCESS_FS_RESOLVE_UNIX;
     }
 
     ruleset->fd = landlock_create_ruleset(&ruleset->attr, sizeof(ruleset->attr), 0);
