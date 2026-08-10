@@ -785,6 +785,9 @@ static void SetMimeEvents(SMTPState *state, uint32_t events)
     if (events & MIME_ANOM_LONG_FILENAME) {
         SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_FILENAME);
     }
+    if (events & MIME_ANOM_FILE_APPEND_FAILED) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_FILE_APPEND_FAILED);
+    }
 }
 
 static inline void SMTPTransactionComplete(SMTPTransaction *tx)
