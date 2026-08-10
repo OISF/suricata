@@ -181,7 +181,7 @@ static inline void FlowRateStoreUpdateCurrentRing(
 static inline void FlowRateStoreFlushRing(
         FlowRateStore *frs, SCTime_t p_ts, uint32_t pkt_len, int direction)
 {
-    memset(frs->dir[direction].buf, 0, frs->dir[direction].size);
+    memset(frs->dir[direction].buf, 0, frs->dir[direction].size * sizeof(*frs->dir[direction].buf));
     frs->dir[direction].last_idx = 0;
     frs->dir[direction].start_ts = p_ts;
     frs->dir[direction].buf[0] = pkt_len;
@@ -397,7 +397,8 @@ static int FlowRateTest03(void)
     PASS;
 }
 
-/* Test to check update of buffer if new pkt comes out of the window */
+/* Test to check update of buffer if new pkt comes out of the window, and that
+ * flushing clears the whole ring rather than only its first bytes. */
 static int FlowRateTest04(void)
 {
     SC_ATOMIC_SET(flow_config.memcap, 10000);
@@ -418,16 +419,59 @@ static int FlowRateTest04(void)
     FAIL_IF(frs->dir[0].start_ts.secs != p1->ts.secs);
 
     Packet *p2 = UTHBuildPacket((uint8_t *)"DATA", 4, IPPROTO_TCP);
-    p2->ts.secs = p1->ts.secs + 60;
+    p2->ts.secs = p1->ts.secs + 1;
     FlowRateStoreUpdate(frs, p2->ts, GET_PKT_LEN(p2), TOSERVER);
+
     /* Total length of packet is 44 */
-    FAIL_IF(frs->dir[0].sum != 44);
+    FAIL_IF(frs->dir[0].sum != 92);
     FAIL_IF(frs->dir[0].last_ts.secs != p2->ts.secs);
-    FAIL_IF(frs->dir[0].buf[0] != 44);
-    FAIL_IF(frs->dir[0].start_ts.secs != p2->ts.secs);
+    FAIL_IF(frs->dir[0].buf[1] != 44);
+    FAIL_IF(frs->dir[0].start_ts.secs != p1->ts.secs);
+
+    Packet *p3 = UTHBuildPacket((uint8_t *)"ABababa", 7, IPPROTO_TCP);
+    p3->ts.secs = p1->ts.secs + 2;
+    FlowRateStoreUpdate(frs, p3->ts, GET_PKT_LEN(p3), TOSERVER);
+
+    /* Total length of packet is 47 */
+    FAIL_IF(frs->dir[0].sum != 139);
+    FAIL_IF(frs->dir[0].last_ts.secs != p3->ts.secs);
+    FAIL_IF(frs->dir[0].buf[2] != 47);
+    FAIL_IF(frs->dir[0].start_ts.secs != p1->ts.secs);
+
+    /* Silence of a full interval, so this packet is out of the window and
+     * flushes the ring */
+    Packet *p4 = UTHBuildPacket((uint8_t *)"nmn", 3, IPPROTO_TCP);
+    p4->ts.secs = p3->ts.secs + 4;
+    FlowRateStoreUpdate(frs, p4->ts, GET_PKT_LEN(p4), TOSERVER);
+
+    /* Total length of packet is 43 */
+    FAIL_IF(frs->dir[0].sum != 43);
+    FAIL_IF(frs->dir[0].last_ts.secs != p4->ts.secs);
+    FAIL_IF(frs->dir[0].start_ts.secs != p4->ts.secs);
+    FAIL_IF(frs->dir[0].buf[0] != 43);
+
+    /* Every other slot must be cleared too, not just the first bytes */
+    FAIL_IF(frs->dir[0].buf[1] != 0);
+    FAIL_IF(frs->dir[0].buf[2] != 0);
+    FAIL_IF(frs->dir[0].buf[3] != 0);
+
+    Packet *p5 = UTHBuildPacket((uint8_t *)"yoohoo", 6, IPPROTO_TCP);
+    p5->ts.secs = p4->ts.secs + 2;
+    FlowRateStoreUpdate(frs, p5->ts, GET_PKT_LEN(p5), TOSERVER);
+
+    /* Total length of packet is 46 */
+    FAIL_IF(frs->dir[0].sum != 89);
+    FAIL_IF(frs->dir[0].last_ts.secs != p5->ts.secs);
+    FAIL_IF(frs->dir[0].start_ts.secs != p4->ts.secs);
+    FAIL_IF(frs->dir[0].buf[0] != 43);
+    FAIL_IF(frs->dir[0].buf[1] != 0);
+    FAIL_IF(frs->dir[0].buf[2] != 46);
 
     UTHFreePacket(p1);
     UTHFreePacket(p2);
+    UTHFreePacket(p3);
+    UTHFreePacket(p4);
+    UTHFreePacket(p5);
     FlowRateStoreFree(frs);
     PASS;
 }
