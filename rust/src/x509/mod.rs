@@ -27,6 +27,8 @@ use crate::x509::GeneralName;
 mod time;
 mod log;
 
+pub const TLS_MAX_SAN: u16 = 4096;
+
 #[repr(u32)]
 pub enum X509DecodeError {
     _Success = 0,
@@ -104,10 +106,11 @@ pub unsafe extern "C" fn SCX509GetSubjectAltNameLen(ptr: *const X509) -> u16 {
     let x509 = cast_pointer! {ptr, X509};
     let san_list = x509.0.tbs_certificate.subject_alternative_name();
     if let Ok(Some(sans)) = san_list {
-        // SAN length in a certificate is kept u16 following discussions at
+        // SAN length in a certificate is kept 4k following discussions at
         // https://community.letsencrypt.org/t/why-sans-are-limited-to-100-domains-only
-        debug_validate_bug_on!(sans.value.general_names.len() == usize::from(u16::MAX));
-        return sans.value.general_names.len() as u16;
+        // and https://www.f5.com/labs/articles/the-2021-tls-telemetry-report
+        let n = sans.value.general_names.len();
+        return n.min(usize::from(TLS_MAX_SAN)) as u16;
     }
     return 0;
 }
@@ -122,6 +125,7 @@ pub unsafe extern "C" fn SCX509GetSubjectAltNameAt(ptr: *const X509, idx: u16, s
     let x509 = cast_pointer! {ptr, X509};
     let san_list = x509.0.tbs_certificate.subject_alternative_name();
     if let Ok(Some(sans)) = san_list {
+        debug_validate_bug_on!(idx > TLS_MAX_SAN);
         let general_name = &sans.value.general_names[idx as usize];
         let dns_name = SCGeneralName(general_name);
         let dn = dns_name.to_string().into_bytes();
