@@ -1192,3 +1192,49 @@ static void FileEndSha256(File *ff)
         ff->flags |= FILE_SHA256;
     }
 }
+
+#ifdef UNITTESTS
+#include "util-unittest.h"
+
+/**
+ * \test the inspect window guard must not wrap around
+ *
+ * `window * 3` used to be computed in uint32_t arithmetic. The guard is there
+ * to make sure `file->size > window`, so on wrap around `file->size - window`
+ * underflows and content_inspected ends up bogus.
+ */
+static int FilePruneInspectWindowOverflowTest(void)
+{
+    const int detect_disabled = g_detect_disabled;
+    g_detect_disabled = 0;
+
+    StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
+    FileContainer *ffc = FileContainerAlloc();
+    FAIL_IF_NULL(ffc);
+
+    uint8_t data[64];
+    memset(data, 'A', sizeof(data));
+
+    FAIL_IF(FileOpenFileWithId(ffc, &sbcfg, 0, (const uint8_t *)"f", 1, NULL, 0,
+                    FILE_NOMAGIC | FILE_NOMD5 | FILE_NOSHA1 | FILE_NOSHA256) != 0);
+    FAIL_IF_NULL(ffc->tail);
+
+    /* 0xAAAAAAAB * 3 is 1 when truncated to 32 bits */
+    FileSetInspectSizes(ffc->tail, 0xAAAAAAABU, 1);
+    FAIL_IF(FileAppendData(ffc, &sbcfg, data, sizeof(data)) != 0);
+
+    FilePrune(ffc, &sbcfg);
+
+    FAIL_IF_NULL(ffc->head);
+    FAIL_IF(ffc->head->content_inspected != 0);
+
+    FileContainerFree(ffc, &sbcfg);
+    g_detect_disabled = detect_disabled;
+    PASS;
+}
+
+void FileRegisterTests(void)
+{
+    UtRegisterTest("FilePruneInspectWindowOverflowTest", FilePruneInspectWindowOverflowTest);
+}
+#endif /* UNITTESTS */
