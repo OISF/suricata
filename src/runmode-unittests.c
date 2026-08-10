@@ -89,6 +89,7 @@
 #include "util-hashlist.h"
 #include "util-pool.h"
 #include "util-byte.h"
+#include "util-file.h"
 #include "util-proto-name.h"
 #include "util-macset.h"
 #include "util-flow-rate.h"
@@ -217,6 +218,7 @@ static void RegisterUnittests(void)
     SourceWinDivertRegisterTests();
 #endif
     SCProtoNameRegisterTests();
+    FileRegisterTests();
     UtilCIDRTests();
     OutputJsonStatsRegisterTests();
     CoredumpConfigRegisterTests();
