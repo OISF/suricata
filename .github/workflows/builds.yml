@@ -1473,6 +1473,7 @@ jobs:
       - run: CARGO=cargo-1.85 RUSTC=rustc-1.85 RUSTDOC=rustdoc-1.85 ./configure --enable-unittests
       - run: make -j ${{ env.CPUS }}
       - run: make check
+      - run: make dist
       - run: python3 ./suricata-verify/run.py -q --debug-failed
         env:
           CARGO: cargo-1.85
