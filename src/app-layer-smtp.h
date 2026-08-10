@@ -61,6 +61,8 @@ enum {
     SMTP_DECODER_EVENT_UNPARSABLE_CONTENT,
     /* For line >= 4KB */
     SMTP_DECODER_EVENT_TRUNCATED_LINE,
+    /* File data could not be appended, extraction is incomplete */
+    SMTP_DECODER_EVENT_FILE_APPEND_FAILED,
 };
 
 typedef struct SMTPString_ {

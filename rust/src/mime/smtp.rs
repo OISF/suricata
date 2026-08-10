@@ -182,6 +182,7 @@ pub const MIME_ANOM_LONG_HEADER_VALUE: u32 = 0x20;
 //unused pub const MIME_ANOM_MALFORMED_MSG: u32 = 0x40;
 pub const MIME_ANOM_LONG_BOUNDARY: u32 = 0x80;
 pub const MIME_ANOM_LONG_FILENAME: u32 = 0x100;
+pub const MIME_ANOM_FILE_APPEND_FAILED: u32 = 0x200;
 
 fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> (u32, bool) {
     let mut sections_values = Vec::new();
@@ -466,8 +467,11 @@ fn mime_smtp_parse_line(
                                 if base64::decode_rfc2045(decoder, &v, &mut dec, &mut dec_len)
                                     .is_ok()
                                 {
-                                    unsafe {
-                                        FileAppendData(ctx.files, ctx.sbcfg, dec.as_ptr(), dec_len);
+                                    if unsafe {
+                                        FileAppendData(ctx.files, ctx.sbcfg, dec.as_ptr(), dec_len)
+                                    } == -1
+                                    {
+                                        warnings |= MIME_ANOM_FILE_APPEND_FAILED;
                                     }
                                 }
                             }
@@ -479,9 +483,9 @@ fn mime_smtp_parse_line(
                     }
                     ctx.restart();
                     if toclose {
-                        return (MimeSmtpParserResult::MimeSmtpFileClose, 0);
+                        return (MimeSmtpParserResult::MimeSmtpFileClose, warnings);
                     }
-                    return (MimeSmtpParserResult::MimeSmtpNeedsMore, 0);
+                    return (MimeSmtpParserResult::MimeSmtpNeedsMore, warnings);
                 }
             }
             if ctx.filename.is_empty() {
@@ -525,17 +529,22 @@ fn mime_smtp_parse_line(
                 MimeSmtpEncoding::Plain => {
                     mime_smtp_find_url_strings(ctx, full);
                     if ctx.bufeolen > 0 {
-                        unsafe {
+                        if unsafe {
                             FileAppendData(
                                 ctx.files,
                                 ctx.sbcfg,
                                 ctx.bufeol.as_ptr(),
                                 ctx.bufeol.len() as u32,
-                            );
+                            )
+                        } == -1
+                        {
+                            warnings |= MIME_ANOM_FILE_APPEND_FAILED;
                         }
                     }
-                    unsafe {
-                        FileAppendData(ctx.files, ctx.sbcfg, i.as_ptr(), i.len() as u32);
+                    if unsafe { FileAppendData(ctx.files, ctx.sbcfg, i.as_ptr(), i.len() as u32) }
+                        == -1
+                    {
+                        warnings |= MIME_ANOM_FILE_APPEND_FAILED;
                     }
                     ctx.bufeolen = (full.len() - i.len()) as u8;
                     if ctx.bufeolen > 0 {
@@ -555,8 +564,11 @@ fn mime_smtp_parse_line(
                             let mut dec_len = 0;
                             if base64::decode_rfc2045(decoder, i, &mut dec, &mut dec_len).is_ok() {
                                 mime_smtp_find_url_strings(ctx, &dec);
-                                unsafe {
-                                    FileAppendData(ctx.files, ctx.sbcfg, dec.as_ptr(), dec_len);
+                                if unsafe {
+                                    FileAppendData(ctx.files, ctx.sbcfg, dec.as_ptr(), dec_len)
+                                } == -1
+                                {
+                                    warnings |= MIME_ANOM_FILE_APPEND_FAILED;
                                 }
                             } else {
                                 warnings |= MIME_ANOM_INVALID_BASE64;
@@ -639,13 +651,16 @@ fn mime_smtp_parse_line(
                             quoted_buffer.extend_from_slice(&full[i.len()..]);
                         }
                         mime_smtp_find_url_strings(ctx, &quoted_buffer);
-                        unsafe {
+                        if unsafe {
                             FileAppendData(
                                 ctx.files,
                                 ctx.sbcfg,
                                 quoted_buffer.as_ptr(),
                                 quoted_buffer.len() as u32,
-                            );
+                            )
+                        } == -1
+                        {
+                            warnings |= MIME_ANOM_FILE_APPEND_FAILED;
                         }
                     }
                 }

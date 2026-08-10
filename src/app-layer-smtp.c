@@ -150,6 +150,7 @@ SCEnumCharMap smtp_decoder_event_table[] = {
     { "DUPLICATE_FIELDS", SMTP_DECODER_EVENT_DUPLICATE_FIELDS },
     { "UNPARSABLE_CONTENT", SMTP_DECODER_EVENT_UNPARSABLE_CONTENT },
     { "TRUNCATED_LINE", SMTP_DECODER_EVENT_TRUNCATED_LINE },
+    { "FILE_APPEND_FAILED", SMTP_DECODER_EVENT_FILE_APPEND_FAILED },
     { NULL, -1 },
 };
 
@@ -784,6 +785,9 @@ static void SetMimeEvents(SMTPState *state, uint32_t events)
     if (events & MIME_ANOM_LONG_FILENAME) {
         SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_FILENAME);
     }
+    if (events & MIME_ANOM_FILE_APPEND_FAILED) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_FILE_APPEND_FAILED);
+    }
 }
 
 static inline void SMTPTransactionComplete(SMTPTransaction *tx)
@@ -851,7 +855,11 @@ static int SMTPProcessCommandDATA(
     } else if (smtp_config.raw_extraction) {
         // message not over, store the line. This is a substitution of
         // ProcessDataChunk
-        FileAppendData(&tx->files_ts, &smtp_config.sbcfg, line->buf, line->len + line->delim_len);
+        // -2 means the file is not stored, which is not an error
+        if (FileAppendData(&tx->files_ts, &smtp_config.sbcfg, line->buf,
+                    line->len + line->delim_len) == -1) {
+            SMTPSetEvent(state, SMTP_DECODER_EVENT_FILE_APPEND_FAILED);
+        }
     }
 
     /* If DATA, then parse out a MIME message */
