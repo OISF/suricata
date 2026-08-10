@@ -267,6 +267,10 @@ void FilePrintFlags(const File *file);
 
 void FilesPrune(FileContainer *fc, const StreamingBufferConfig *sbcfg, const bool trunc);
 
+#ifdef UNITTESTS
+void FileRegisterTests(void);
+#endif
+
 #endif // SURICATA_BINDGEN_H
 
 #endif /* SURICATA_UTIL_FILE_H */
