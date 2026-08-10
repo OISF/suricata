@@ -161,6 +161,7 @@ SCEnumCharMap tls_decoder_event_table[] = {
     { "CERTIFICATE_INVALID_ISSUER", TLS_DECODER_EVENT_CERTIFICATE_INVALID_ISSUER },
     { "CERTIFICATE_INVALID_VALIDITY", TLS_DECODER_EVENT_CERTIFICATE_INVALID_VALIDITY },
     { "ERROR_MESSAGE_ENCOUNTERED", TLS_DECODER_EVENT_ERROR_MSG_ENCOUNTERED },
+    { "TOO_MANY_SUBJECT_ALTERNATIVE_NAMES", TLS_DECODER_EVENT_TOO_MANY_SUBJECT_ALTERNATIVE_NAMES },
     /* used as a generic error event */
     { "INVALID_SSL_RECORD", TLS_DECODER_EVENT_INVALID_SSL_RECORD },
     { NULL, -1 },
@@ -503,8 +504,12 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
         }
 
         connp->cert0_sans_num = SCX509GetSubjectAltNameLen(x509);
+        if (connp->cert0_sans_num == TLS_MAX_SAN) {
+            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_TOO_MANY_SUBJECT_ALTERNATIVE_NAMES);
+        }
         connp->cert0_sans = SCCalloc(connp->cert0_sans_num, sizeof(SSLSubjectAltName));
         if (connp->cert0_sans == NULL) {
+            connp->cert0_sans_num = 0;
             goto error;
         }
         for (uint16_t i = 0; i < connp->cert0_sans_num; i++) {
