@@ -490,17 +490,21 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
         prev_offset = frag->offset;
     }
 
+    const uint32_t payload_len = (uint32_t)unfragmentable_len + fragmentable_len;
+    if (payload_len > IPV6_MAXPACKET) {
+        ENGINE_SET_EVENT(p, IPV6_FRAG_PKT_TOO_LARGE);
+        goto error_remove_tracker;
+    }
+
     IPV6Hdr *ip6h = (IPV6Hdr *)(GET_PKT_DATA(rp) + tracker->ip_hdr_offset);
-    DEBUG_VALIDATE_BUG_ON(unfragmentable_len > UINT16_MAX - fragmentable_len);
-    ip6h->s_ip6_plen = htons(fragmentable_len + unfragmentable_len);
+    ip6h->s_ip6_plen = htons((uint16_t)payload_len);
     /* if we have no unfragmentable part, so no ext hdrs before the frag
      * header, we need to update the ipv6 headers next header field. This
      * points to the frag header, and we will make it point to the layer
      * directly after the frag header. */
     if (unfragmentable_len == 0)
         ip6h->s_ip6_nxt = next_hdr;
-    SET_PKT_LEN(rp, ip_hdr_offset + sizeof(IPV6Hdr) +
-            unfragmentable_len + fragmentable_len);
+    SET_PKT_LEN(rp, ip_hdr_offset + sizeof(IPV6Hdr) + payload_len);
 
     tracker->remove = 1;
     DefragTrackerFreeFrags(tracker);
