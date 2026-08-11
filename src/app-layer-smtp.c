@@ -568,6 +568,34 @@ static SMTPTransaction *SMTPTransactionCreate(SMTPState *state)
     return tx;
 }
 
+static SMTPTransaction *SMTPStateGetTxById(SMTPState *state, uint64_t tx_id)
+{
+    SMTPTransaction *tx = NULL;
+    TAILQ_FOREACH (tx, &state->tx_list, next) {
+        if (tx->tx_id == tx_id) {
+            return tx;
+        }
+        if (tx->tx_id > tx_id) {
+            break;
+        }
+    }
+    return NULL;
+}
+
+static SMTPTransaction *SMTPGetReplyTx(SMTPState *state)
+{
+    if (state->cmds_idx >= state->cmds_cnt) {
+        return state->curr_tx;
+    }
+
+    /* a command with no owning tx, or whose tx is gone, must not resolve
+     * to another tx */
+    if (state->cmds_tx_ids[state->cmds_idx] == SMTP_NO_TX_ID) {
+        return NULL;
+    }
+    return SMTPStateGetTxById(state, state->cmds_tx_ids[state->cmds_idx]);
+}
+
 static void FlagDetectStateNewFile(SMTPTransaction *tx)
 {
     if (tx && tx->tx_data.de_state) {
@@ -633,8 +661,9 @@ static AppLayerResult SMTPGetLine(Flow *f, StreamSlice *slice, SMTPState *state,
         } else if (direction == 1) {
             frame = AppLayerFrameNewByPointer(
                     f, slice, input->buf + input->consumed, -1, 1, SMTP_FRAME_RESPONSE_LINE);
-            if (frame != NULL && state->curr_tx) {
-                AppLayerFrameSetTxId(frame, state->curr_tx->tx_id);
+            SMTPTransaction *reply_tx = SMTPGetReplyTx(state);
+            if (frame != NULL && reply_tx != NULL) {
+                AppLayerFrameSetTxId(frame, reply_tx->tx_id);
             }
         }
     }
@@ -951,34 +980,6 @@ static int SMTPProcessCommandDATA(
 static inline bool IsReplyToCommand(const SMTPState *state, const uint8_t cmd)
 {
     return (state->cmds_idx < state->cmds_cnt && state->cmds[state->cmds_idx] == cmd);
-}
-
-static SMTPTransaction *SMTPStateGetTxById(SMTPState *state, uint64_t tx_id)
-{
-    SMTPTransaction *tx = NULL;
-    TAILQ_FOREACH (tx, &state->tx_list, next) {
-        if (tx->tx_id == tx_id) {
-            return tx;
-        }
-        if (tx->tx_id > tx_id) {
-            break;
-        }
-    }
-    return NULL;
-}
-
-static SMTPTransaction *SMTPGetReplyTx(SMTPState *state)
-{
-    if (state->cmds_idx >= state->cmds_cnt) {
-        return state->curr_tx;
-    }
-
-    /* a command with no owning tx, or whose tx is gone, must not resolve
-     * to another tx */
-    if (state->cmds_tx_ids[state->cmds_idx] == SMTP_NO_TX_ID) {
-        return NULL;
-    }
-    return SMTPStateGetTxById(state, state->cmds_tx_ids[state->cmds_idx]);
 }
 
 static int SMTPProcessReply(
