@@ -1091,14 +1091,13 @@ Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 
     if (rp != NULL) {
         const uint32_t len = GET_PKT_LEN(rp) - (uint32_t)tracker_ip_hdr_offset;
-        DEBUG_VALIDATE_BUG_ON(len > UINT16_MAX);
         int decode_rc;
         if (tracker_af == AF_INET) {
+            DEBUG_VALIDATE_BUG_ON(len > UINT16_MAX);
             decode_rc = DecodeIPV4(
                     tv, dtv, rp, GET_PKT_DATA(rp) + tracker_ip_hdr_offset, (uint16_t)len);
         } else {
-            decode_rc = DecodeIPV6(
-                    tv, dtv, rp, GET_PKT_DATA(rp) + tracker_ip_hdr_offset, (uint16_t)len);
+            decode_rc = DecodeIPV6(tv, dtv, rp, GET_PKT_DATA(rp) + tracker_ip_hdr_offset, len);
         }
         if (decode_rc != TM_ECODE_OK) {
             rp->root = NULL;
