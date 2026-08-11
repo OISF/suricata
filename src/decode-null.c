@@ -60,9 +60,6 @@ int DecodeNull(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         return TM_ECODE_FAILED;
     }
 
-    if (unlikely(GET_PKT_LEN(p) > HDR_SIZE + USHRT_MAX)) {
-        return TM_ECODE_FAILED;
-    }
 #if __BYTE_ORDER__ == __BIG_ENDIAN
     uint32_t type = pkt[0] | pkt[1] << 8 | pkt[2] << 16 | pkt[3] << 24;
 #else
@@ -84,11 +81,7 @@ int DecodeNull(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         case AF_INET6_SOLARIS:
         case AF_INET6_WINSOCK:
             SCLogDebug("IPV6 Packet");
-            if (GET_PKT_LEN(p) - HDR_SIZE > USHRT_MAX) {
-                return TM_ECODE_FAILED;
-            }
-            DecodeIPV6(
-                    tv, dtv, p, GET_PKT_DATA(p) + HDR_SIZE, (uint16_t)(GET_PKT_LEN(p) - HDR_SIZE));
+            DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p) + HDR_SIZE, GET_PKT_LEN(p) - HDR_SIZE);
             break;
         default:
             SCLogDebug("Unknown Null packet type version %" PRIu32 "", type);

@@ -60,8 +60,7 @@ static int DecodePPPCompressedProto(ThreadVars *tv, DecodeThreadVars *dtv, Packe
                 return TM_ECODE_FAILED;
             }
             DEBUG_VALIDATE_BUG_ON(len < data_offset);
-            uint16_t iplen = (uint16_t)MIN((uint32_t)USHRT_MAX, len - data_offset);
-            return DecodeIPV6(tv, dtv, p, pkt + data_offset, iplen);
+            return DecodeIPV6(tv, dtv, p, pkt + data_offset, len - data_offset);
         }
         case 0x2f: /* PPP_VJ_UCOMP */
             if (unlikely(len < (data_offset + IPV4_HEADER_LEN))) {
@@ -123,11 +122,7 @@ static int DecodePPPUncompressedProto(ThreadVars *tv, DecodeThreadVars *dtv, Pac
                 ENGINE_SET_INVALID_EVENT(p, PPPIPV6_PKT_TOO_SMALL);
                 return TM_ECODE_FAILED;
             }
-            if (unlikely(len > data_offset + USHRT_MAX)) {
-                return TM_ECODE_FAILED;
-            }
-
-            return DecodeIPV6(tv, dtv, p, pkt + data_offset, (uint16_t)(len - data_offset));
+            return DecodeIPV6(tv, dtv, p, pkt + data_offset, len - data_offset);
 
         case PPP_IPCP:
         case PPP_IPV6CP:

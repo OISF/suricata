@@ -235,11 +235,7 @@ int DecodePPPOESession(
                     ENGINE_SET_INVALID_EVENT(p, PPPIPV6_PKT_TOO_SMALL);
                     return TM_ECODE_OK;
                 }
-                if (unlikely(len - pppoesh_len > USHRT_MAX)) {
-                    return TM_ECODE_FAILED;
-                }
-
-                DecodeIPV6(tv, dtv, p, pkt + pppoesh_len, (uint16_t)(len - pppoesh_len));
+                DecodeIPV6(tv, dtv, p, pkt + pppoesh_len, len - pppoesh_len);
                 break;
 
             default:

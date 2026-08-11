@@ -534,7 +534,7 @@ static void DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, 
 }
 
 static const IPV6Hdr *DecodeIPV6Packet(
-        ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint16_t len)
+        ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     if (unlikely(len < IPV6_HEADER_LEN)) {
         return NULL;
@@ -548,7 +548,7 @@ static const IPV6Hdr *DecodeIPV6Packet(
 
     const IPV6Hdr *ip6h = PacketSetIPV6(p, pkt);
 
-    if (unlikely(len < (IPV6_HEADER_LEN + IPV6_GET_RAW_PLEN(ip6h)))) {
+    if (unlikely(len < (uint32_t)(IPV6_HEADER_LEN + IPV6_GET_RAW_PLEN(ip6h)))) {
         ENGINE_SET_INVALID_EVENT(p, IPV6_TRUNC_PKT);
         return NULL;
     }
@@ -559,7 +559,7 @@ static const IPV6Hdr *DecodeIPV6Packet(
     return ip6h;
 }
 
-int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint16_t len)
+int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     StatsIncr(tv, dtv->counter_ipv6);
 

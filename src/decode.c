@@ -196,8 +196,7 @@ static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const 
             return DecodeIPV4(tv, dtv, p, pkt, (uint16_t)len);
         case DECODE_TUNNEL_IPV6:
         case DECODE_TUNNEL_IPV6_TEREDO:
-            DEBUG_VALIDATE_BUG_ON(len > UINT16_MAX);
-            return DecodeIPV6(tv, dtv, p, pkt, (uint16_t)len);
+            return DecodeIPV6(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_VLAN:
             return DecodeVLAN(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ETHERNET:
