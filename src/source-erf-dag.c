@@ -404,8 +404,8 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
         hdr_type = dr->type;
 
         if (rlen < dag_record_size) {
-            SCLogError("Bad ERF record length %d (< dag_record_size) on stream: %d, DAG: %s",
-                    rlen, ewtn->dagstream, ewtn->dagname);
+            SCLogError("Bad ERF record length %d (< dag_record_size) on stream: %d, DAG: %s", rlen,
+                    ewtn->dagstream, ewtn->dagname);
             SCReturnInt(TM_ECODE_FAILED);
         }
 
