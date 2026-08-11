@@ -21,7 +21,7 @@ use crate::dhcp::dhcp::*;
 use nom8::bytes::streaming::take;
 use nom8::combinator::verify;
 use nom8::number::streaming::{be_u16, be_u32, be_u8};
-use nom8::{IResult, Parser};
+use nom8::{Err, IResult, Parser};
 
 pub struct DHCPMessage {
     pub header: DHCPHeader,
@@ -243,7 +243,10 @@ fn parse_overloaded_field(
                     break;
                 }
             }
-            Err(_) => break,
+            Err(_) => {
+                *malformed_options = true;
+                break;
+            }
         }
     }
 }
@@ -266,8 +269,12 @@ pub fn parse_dhcp(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
                             break;
                         }
                     }
-                    Err(_) => {
+                    Err(Err::Incomplete(_)) => {
                         truncated_options = true;
+                        break;
+                    }
+                    Err(Err::Error(_)) | Err(Err::Failure(_)) => {
+                        malformed_options = true;
                         break;
                     }
                 }
@@ -469,8 +476,9 @@ mod tests {
         buf.extend_from_slice(&[0x63, 0x82, 0x53, 0x63]);
         buf.extend_from_slice(&[0x35, 0x01, DHCP_TYPE_ACK, 0x34, 0x01, 0x02, 0xff]);
 
-        let result = parse_dhcp(&buf);
-        assert!(result.is_ok());
+        let (_rem, message) = parse_dhcp(&buf).unwrap();
+        assert!(message.malformed_options);
+        assert!(!message.truncated_options);
     }
 
     #[test]
