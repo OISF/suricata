@@ -345,13 +345,18 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     SCLogDebug("ip_hdr_offset %u, hlen %" PRIu16 ", fragmentable_len %" PRIu16, ip_hdr_offset, hlen,
             fragmentable_len);
 
+    const uint32_t packet_len = (uint32_t)hlen + fragmentable_len;
+    if (packet_len > IPV4_MAXPACKET_LEN) {
+        ENGINE_SET_EVENT(p, IPV4_FRAG_PKT_TOO_LARGE);
+        goto error_remove_tracker;
+    }
+
     IPV4Hdr *ip4h = (IPV4Hdr *)(GET_PKT_DATA(rp) + ip_hdr_offset);
     uint16_t old = ip4h->ip_len + ip4h->ip_off;
-    DEBUG_VALIDATE_BUG_ON(hlen > UINT16_MAX - fragmentable_len);
-    ip4h->ip_len = htons(fragmentable_len + hlen);
+    ip4h->ip_len = htons((uint16_t)packet_len);
     ip4h->ip_off = 0;
     ip4h->ip_csum = FixChecksum(ip4h->ip_csum, old, ip4h->ip_len + ip4h->ip_off);
-    SET_PKT_LEN(rp, ip_hdr_offset + hlen + fragmentable_len);
+    SET_PKT_LEN(rp, ip_hdr_offset + packet_len);
 
     tracker->remove = 1;
     DefragTrackerFreeFrags(tracker);
