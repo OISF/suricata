@@ -21,7 +21,7 @@ use crate::dhcp::dhcp::*;
 use nom7::bytes::streaming::take;
 use nom7::combinator::verify;
 use nom7::number::streaming::{be_u16, be_u32, be_u8};
-use nom7::IResult;
+use nom7::{Err, IResult};
 
 pub struct DHCPMessage {
     pub header: DHCPHeader,
@@ -233,8 +233,12 @@ pub fn parse_dhcp(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
                             break;
                         }
                     }
-                    Err(_) => {
+                    Err(Err::Incomplete(_)) => {
                         truncated_options = true;
+                        break;
+                    }
+                    Err(Err::Error(_)) | Err(Err::Failure(_)) => {
+                        malformed_options = true;
                         break;
                     }
                 }
