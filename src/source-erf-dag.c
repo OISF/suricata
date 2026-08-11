@@ -403,6 +403,12 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
         rlen = SCNtohs(dr->rlen);
         hdr_type = dr->type;
 
+        if (rlen < dag_record_size) {
+            SCLogError("Bad ERF record length %d (< dag_record_size) on stream: %d, DAG: %s", rlen,
+                    ewtn->dagstream, ewtn->dagname);
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+
         /* If we don't have enough data to finish processing this ERF
          * record return and maybe next time we will.
          */
