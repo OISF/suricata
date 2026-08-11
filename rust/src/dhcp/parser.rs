@@ -73,6 +73,7 @@ pub enum DHCPOptionWrapper {
     ClientId(DHCPOptClientId),
     TimeValue(DHCPOptTimeValue),
     Generic(DHCPOptGeneric),
+    Pad,
     End,
 }
 
@@ -171,8 +172,16 @@ pub fn parse_generic_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
 // Parse a single DHCP option. When option 255 (END) is parsed, the remaining
 // data will be consumed.
 pub fn parse_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
-    let (_, opt) = be_u8(i)?;
+    let (rem, opt) = be_u8(i)?;
     match opt {
+        DHCP_OPT_PAD => Ok((
+            rem,
+            DHCPOption {
+                code: opt,
+                data: None,
+                option: DHCPOptionWrapper::Pad,
+            },
+        )),
         DHCP_OPT_END => {
             // End of options case. We consume the rest of the data
             // so the parser is not called again. But is there a
