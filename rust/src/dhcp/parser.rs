@@ -81,6 +81,7 @@ pub struct DHCPOption {
     pub code: u8,
     pub data: Option<Vec<u8>>,
     pub option: DHCPOptionWrapper,
+    pub malformed: bool,
 }
 
 pub fn parse_header(i: &[u8]) -> IResult<&[u8], DHCPHeader> {
@@ -135,13 +136,19 @@ pub fn parse_clientid_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
                 htype: 1,
                 data: data.to_vec(),
             }),
+            malformed: false,
         },
     ))
 }
 
-pub fn parse_address_time_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
-    let (i, code) = be_u8(i)?;
-    let (i, _len) = be_u8(i)?;
+pub fn parse_address_time_option(i0: &[u8]) -> IResult<&[u8], DHCPOption> {
+    let (i, code) = be_u8(i0)?;
+    let (i, len) = be_u8(i)?;
+    if len != 4 {
+        let (i, mut opt) = parse_generic_option(i0)?;
+        opt.malformed = true;
+        return Ok((i, opt));
+    }
     let (i, seconds) = be_u32(i)?;
     Ok((
         i,
@@ -149,6 +156,7 @@ pub fn parse_address_time_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
             code,
             data: None,
             option: DHCPOptionWrapper::TimeValue(DHCPOptTimeValue { seconds }),
+            malformed: false,
         },
     ))
 }
@@ -165,6 +173,7 @@ pub fn parse_generic_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
             option: DHCPOptionWrapper::Generic(DHCPOptGeneric {
                 data: data.to_vec(),
             }),
+            malformed: false,
         },
     ))
 }
@@ -180,6 +189,7 @@ pub fn parse_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
                 code: opt,
                 data: None,
                 option: DHCPOptionWrapper::Pad,
+                malformed: false,
             },
         )),
         DHCP_OPT_END => {
@@ -193,6 +203,7 @@ pub fn parse_option(i: &[u8]) -> IResult<&[u8], DHCPOption> {
                     code,
                     data: Some(data.to_vec()),
                     option: DHCPOptionWrapper::End,
+                    malformed: false,
                 },
             ))
         }
@@ -217,11 +228,14 @@ fn find_overload_value(options: &[DHCPOption]) -> u8 {
     0
 }
 
-fn parse_overloaded_field(field: &[u8], options: &mut Vec<DHCPOption>) {
+fn parse_overloaded_field(
+    field: &[u8], options: &mut Vec<DHCPOption>, malformed_options: &mut bool,
+) {
     let mut next = field;
     while !next.is_empty() {
         match parse_option(next) {
             Ok((rem, option)) => {
+                *malformed_options |= option.malformed;
                 let done = option.code == DHCP_OPT_END;
                 options.push(option);
                 next = rem;
@@ -239,11 +253,12 @@ pub fn parse_dhcp(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
         Ok((rem, header)) => {
             let mut options = Vec::new();
             let mut next = rem;
-            let malformed_options = false;
+            let mut malformed_options = false;
             let mut truncated_options = false;
             loop {
                 match parse_option(next) {
                     Ok((rem, option)) => {
+                        malformed_options |= option.malformed;
                         let done = option.code == DHCP_OPT_END;
                         options.push(option);
                         next = rem;
@@ -259,10 +274,10 @@ pub fn parse_dhcp(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
             }
             let overload = find_overload_value(&options);
             if overload & 0x01 != 0 {
-                parse_overloaded_field(&header.bootfilename, &mut options);
+                parse_overloaded_field(&header.bootfilename, &mut options, &mut malformed_options);
             }
             if overload & 0x02 != 0 {
-                parse_overloaded_field(&header.servername, &mut options);
+                parse_overloaded_field(&header.servername, &mut options, &mut malformed_options);
             }
 
             let message = DHCPMessage {
