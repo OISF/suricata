@@ -85,7 +85,7 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushliteral(luastate, "{{field.name}}");
             lua_pushnumber(luastate, data->{{field.name}});
             lua_settable(luastate, -3);
-{% elif field["type"] == "chararray" %}
+{% elif field["type"] in ["chararray", "dynchararray"] %}
             lua_pushliteral(luastate, "{{field.name}}");
             LuaPushStringBuffer(luastate, (uint8_t *)data->{{field.name}},
                 strlen(data->{{field.name}}));
@@ -169,7 +169,7 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             SCJbSetBase64(js, "data->{{field.name}}", data->{{field.name}}, data->{{field.len_field}});
 {% elif field.type == "vstr4" %}
             SCJbSetString(js, "data->{{field.name}}", data->{{field.name}});
-{% elif field.type == "chararray" %}
+{% elif field.type in ["chararray", "dynchararray"] %}
             if (data->{{field.len_field}} > 0) {
                 SCJbSetStringFromBytes(
                         js, "{{field.name}}", (const uint8_t *)data->{{field.name}}, data->{{field.len_field}});
@@ -199,11 +199,8 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
 """
 
 def has_freeable_types(fields):
-    freeable_types = [
-        "bytearray",
-    ]
     for field in fields:
-        if field["type"] in freeable_types:
+        if field["type"] in ["bytearray", "dynchararray"]:
             return True
     return False
 
@@ -284,6 +281,8 @@ typedef struct DNP3ObjectG{{object.group}}V{{object.variation}}_ {
     uint64_t {{field.name}};
 {% elif field.type == "bytearray" %}
     uint8_t *{{field.name}};
+{% elif field.type == "dynchararray" %}
+    char *{{field.name}};
 {% elif field.type == "vstr4" %}
     char {{field.name}}[5];
 {% elif field.type == "chararray" %}
@@ -507,12 +506,36 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
             *buf += object->{{field.len_field}};
             *len -= object->{{field.len_field}};
         }
+{% elif field.type == "dynchararray" %}
+{% if field.len_from_prefix %}
+        if (prefix - (offset - *len) >= {{field.size}} || prefix < (offset - *len)) {
+            goto error;
+        }
+{% if field.size <= 256 %}
+        object->{{field.len_field}} = (uint8_t)(prefix - (offset - *len));
+{% else %}
+        object->{{field.len_field}} = (uint16_t)(prefix - (offset - *len));
+{% endif %}
+{% endif %}
+        if (*len < object->{{field.len_field}}) {
+            goto error;
+        }
+        object->{{field.name}} = SCMalloc((size_t)object->{{field.len_field}} + 1);
+        if (unlikely(object->{{field.name}} == NULL)) {
+            goto error;
+        }
+        if (object->{{field.len_field}} > 0) {
+            memcpy(object->{{field.name}}, *buf, object->{{field.len_field}});
+        }
+        object->{{field.name}}[object->{{field.len_field}}] = '\\\\0';
+        *buf += object->{{field.len_field}};
+        *len -= object->{{field.len_field}};
 {% elif field.type == "chararray" %}
 {% if field.len_from_prefix %}
         if (prefix - (offset - *len) >= {{field.size}} || prefix < (offset - *len)) {
             goto error;
         }
-{% if field.size == 255 %}
+{% if field.size <= 256 %}
         object->{{field.len_field}} = (uint8_t)(prefix - (offset - *len));
 {% else %}
         object->{{field.len_field}} = (uint16_t)(prefix - (offset - *len));
@@ -568,7 +591,7 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
 error:
     if (object != NULL) {
 {% for field in object.fields %}
-{% if field.type == "bytearray" %}
+{% if field.type in ["bytearray", "dynchararray"] %}
         if (object->{{field.name}} != NULL) {
             SCFree(object->{{field.name}});
         }
@@ -591,7 +614,7 @@ void DNP3FreeObjectPoint(int group, int variation, void *point)
         case DNP3_OBJECT_CODE({{object.group}}, {{object.variation}}): {
             DNP3ObjectG{{object.group}}V{{object.variation}} *object = (DNP3ObjectG{{object.group}}V{{object.variation}} *)point;
 {% for field in object.fields %}
-{% if field.type == "bytearray" %}
+{% if field.type in ["bytearray", "dynchararray"] %}
             if (object->{{field.name}} != NULL) {
                 SCFree(object->{{field.name}});
             }

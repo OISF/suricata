@@ -2341,13 +2341,13 @@ objects:
         name: file_function_code
       - type: uint8
         name: status_code
-      - type: chararray
+      - type: dynchararray
         name: filename
         size: 65536
         len_field: filename_size
       - type: uint16
         name: data_size
-      - type: chararray
+      - type: dynchararray
         name: data
         size: 65536
         len_field: data_size
@@ -2365,11 +2365,11 @@ objects:
         name: password_size
       - type: uint32
         name: authentication_key
-      - type: chararray
+      - type: dynchararray
         name: username
         size: 65536
         len_field: username_size
-      - type: chararray
+      - type: dynchararray
         name: password
         size: 65536
         len_field: password_size
@@ -2396,7 +2396,7 @@ objects:
         name: maximum_block_size
       - type: uint16
         name: request_id
-      - type: chararray
+      - type: dynchararray
         name: filename
         size: 65536
         len_field: filename_size
@@ -2484,7 +2484,7 @@ objects:
         name: permissions
       - type: uint16
         name: request_id
-      - type: chararray
+      - type: dynchararray
         name: filename
         size: 65536
         len_field: filename_size
@@ -2498,7 +2498,7 @@ objects:
       - type: uint16
         name: file_specification_len
     fields:
-      - type: chararray
+      - type: dynchararray
         name: file_specification
         size: 65536
         len_from_prefix: true
@@ -2762,7 +2762,7 @@ objects:
         name: error_code
       - type: dnp3time
         name: time_of_error
-      - type: chararray
+      - type: dynchararray
         name: error_text
         size: 65536
         len_from_prefix: true
@@ -2820,7 +2820,7 @@ objects:
         name: user_public_key_len
       - type: uint16
         name: certification_data_len
-      - type: chararray
+      - type: dynchararray
         name: username
         size: 65536
         len_field: username_len
@@ -2843,7 +2843,7 @@ objects:
         name: username_len
       - type: uint16
         name: master_challenge_data_len
-      - type: chararray
+      - type: dynchararray
         size: 65536
         name: username
         len_field: username_len

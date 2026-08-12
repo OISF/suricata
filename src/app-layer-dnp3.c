@@ -2545,6 +2545,111 @@ static int DNP3ParserTestParsePDU01(void)
 }
 
 /**
+ * \test Ensure variable-length DNP3 objects do not embed maximum-sized buffers.
+ */
+static int DNP3ParserObjectStructSizeTest(void)
+{
+    const size_t max_point_size = 1024;
+
+    FAIL_IF(sizeof(DNP3ObjectG70V1) >= max_point_size);
+    FAIL_IF(sizeof(DNP3ObjectG70V2) >= max_point_size);
+    FAIL_IF(sizeof(DNP3ObjectG70V3) >= max_point_size);
+    FAIL_IF(sizeof(DNP3ObjectG70V7) >= max_point_size);
+    FAIL_IF(sizeof(DNP3ObjectG70V8) >= max_point_size);
+    FAIL_IF(sizeof(DNP3ObjectG120V7) >= max_point_size);
+    FAIL_IF(sizeof(DNP3ObjectG120V10) >= max_point_size);
+    FAIL_IF(sizeof(DNP3ObjectG120V11) >= max_point_size);
+
+    PASS;
+}
+
+/**
+ * \test Decode non-empty dynamically allocated G70V2 strings.
+ */
+static int DNP3ParserDecodeG70V2Test(void)
+{
+    const uint8_t input[] = {
+        0x00,
+        0x00,
+        0x03,
+        0x00,
+        0x00,
+        0x00,
+        0x06,
+        0x00,
+        0x78,
+        0x56,
+        0x34,
+        0x12,
+        'b',
+        'o',
+        'b',
+        's',
+        'e',
+        'c',
+        'r',
+        'e',
+        't',
+    };
+    const uint8_t *buf = input;
+    uint32_t len = sizeof(input);
+    DNP3PointList *points = DNP3PointListAlloc();
+    FAIL_IF_NULL(points);
+
+    int event = DNP3DecodeObject(70, 2, &buf, &len, 0, 0, 1, points);
+    FAIL_IF(event != 0);
+    FAIL_IF(len != 0);
+    DNP3Point *point = TAILQ_FIRST(points);
+    FAIL_IF_NULL(point);
+    DNP3ObjectG70V2 *data = point->data;
+    FAIL_IF_NULL(data);
+    FAIL_IF(strcmp(data->username, "bob") != 0);
+    FAIL_IF(strcmp(data->password, "secret") != 0);
+    FAIL_IF(data->authentication_key != 0x12345678);
+
+    DNP3FreeObjectPointList(70, 2, points);
+    PASS;
+}
+
+/**
+ * \test Clean up an allocated G70V2 username when the password is truncated.
+ */
+static int DNP3ParserDecodeG70V2TruncatedTest(void)
+{
+    const uint8_t input[] = {
+        0x00,
+        0x00,
+        0x03,
+        0x00,
+        0x00,
+        0x00,
+        0x06,
+        0x00,
+        0x78,
+        0x56,
+        0x34,
+        0x12,
+        'b',
+        'o',
+        'b',
+        's',
+        'e',
+        'c',
+    };
+    const uint8_t *buf = input;
+    uint32_t len = sizeof(input);
+    DNP3PointList *points = DNP3PointListAlloc();
+    FAIL_IF_NULL(points);
+
+    int event = DNP3DecodeObject(70, 2, &buf, &len, 0, 0, 1, points);
+    FAIL_IF(event != DNP3_DECODER_EVENT_MALFORMED);
+    FAIL_IF_NOT(TAILQ_EMPTY(points));
+
+    DNP3FreeObjectPointList(70, 2, points);
+    PASS;
+}
+
+/**
  * \test Test the decode of a DNP3 fragment with a single 70:3 object.
  */
 static int DNP3ParserDecodeG70V3Test(void)
@@ -2692,6 +2797,9 @@ void DNP3ParserRegisterTests(void)
     UtRegisterTest("DNP3ParserTestMultiFrame", DNP3ParserTestMultiFrame);
     UtRegisterTest("DNP3ParserTestFlooded", DNP3ParserTestFlooded);
     UtRegisterTest("DNP3ParserTestParsePDU01", DNP3ParserTestParsePDU01);
+    UtRegisterTest("DNP3ParserObjectStructSizeTest", DNP3ParserObjectStructSizeTest);
+    UtRegisterTest("DNP3ParserDecodeG70V2Test", DNP3ParserDecodeG70V2Test);
+    UtRegisterTest("DNP3ParserDecodeG70V2TruncatedTest", DNP3ParserDecodeG70V2TruncatedTest);
     UtRegisterTest("DNP3ParserDecodeG70V3Test", DNP3ParserDecodeG70V3Test);
     UtRegisterTest("DNP3ParserUnknownEventAlertTest",
         DNP3ParserUnknownEventAlertTest);

@@ -6915,29 +6915,35 @@ static int DNP3DecodeObjectG70V1(const uint8_t **buf, uint32_t *len,
         if (!DNP3ReadUint8(buf, len, &object->status_code)) {
             goto error;
         }
+        if (*len < object->filename_size) {
+            goto error;
+        }
+        object->filename = SCMalloc((size_t)object->filename_size + 1);
+        if (unlikely(object->filename == NULL)) {
+            goto error;
+        }
         if (object->filename_size > 0) {
-            if (*len < object->filename_size) {
-                /* Not enough data. */
-                goto error;
-            }
             memcpy(object->filename, *buf, object->filename_size);
-            *buf += object->filename_size;
-            *len -= object->filename_size;
         }
         object->filename[object->filename_size] = '\0';
+        *buf += object->filename_size;
+        *len -= object->filename_size;
         if (!DNP3ReadUint16(buf, len, &object->data_size)) {
             goto error;
         }
+        if (*len < object->data_size) {
+            goto error;
+        }
+        object->data = SCMalloc((size_t)object->data_size + 1);
+        if (unlikely(object->data == NULL)) {
+            goto error;
+        }
         if (object->data_size > 0) {
-            if (*len < object->data_size) {
-                /* Not enough data. */
-                goto error;
-            }
             memcpy(object->data, *buf, object->data_size);
-            *buf += object->data_size;
-            *len -= object->data_size;
         }
         object->data[object->data_size] = '\0';
+        *buf += object->data_size;
+        *len -= object->data_size;
 
         if (!DNP3AddPoint(points, object, point_index, prefix_code, prefix)) {
             goto error;
@@ -6950,6 +6956,12 @@ static int DNP3DecodeObjectG70V1(const uint8_t **buf, uint32_t *len,
     return 1;
 error:
     if (object != NULL) {
+        if (object->filename != NULL) {
+            SCFree(object->filename);
+        }
+        if (object->data != NULL) {
+            SCFree(object->data);
+        }
         SCFree(object);
     }
 
@@ -6993,26 +7005,32 @@ static int DNP3DecodeObjectG70V2(const uint8_t **buf, uint32_t *len,
         if (!DNP3ReadUint32(buf, len, &object->authentication_key)) {
             goto error;
         }
+        if (*len < object->username_size) {
+            goto error;
+        }
+        object->username = SCMalloc((size_t)object->username_size + 1);
+        if (unlikely(object->username == NULL)) {
+            goto error;
+        }
         if (object->username_size > 0) {
-            if (*len < object->username_size) {
-                /* Not enough data. */
-                goto error;
-            }
             memcpy(object->username, *buf, object->username_size);
-            *buf += object->username_size;
-            *len -= object->username_size;
         }
         object->username[object->username_size] = '\0';
+        *buf += object->username_size;
+        *len -= object->username_size;
+        if (*len < object->password_size) {
+            goto error;
+        }
+        object->password = SCMalloc((size_t)object->password_size + 1);
+        if (unlikely(object->password == NULL)) {
+            goto error;
+        }
         if (object->password_size > 0) {
-            if (*len < object->password_size) {
-                /* Not enough data. */
-                goto error;
-            }
             memcpy(object->password, *buf, object->password_size);
-            *buf += object->password_size;
-            *len -= object->password_size;
         }
         object->password[object->password_size] = '\0';
+        *buf += object->password_size;
+        *len -= object->password_size;
 
         if (!DNP3AddPoint(points, object, point_index, prefix_code, prefix)) {
             goto error;
@@ -7025,6 +7043,12 @@ static int DNP3DecodeObjectG70V2(const uint8_t **buf, uint32_t *len,
     return 1;
 error:
     if (object != NULL) {
+        if (object->username != NULL) {
+            SCFree(object->username);
+        }
+        if (object->password != NULL) {
+            SCFree(object->password);
+        }
         SCFree(object);
     }
 
@@ -7080,16 +7104,19 @@ static int DNP3DecodeObjectG70V3(const uint8_t **buf, uint32_t *len,
         if (!DNP3ReadUint16(buf, len, &object->request_id)) {
             goto error;
         }
+        if (*len < object->filename_size) {
+            goto error;
+        }
+        object->filename = SCMalloc((size_t)object->filename_size + 1);
+        if (unlikely(object->filename == NULL)) {
+            goto error;
+        }
         if (object->filename_size > 0) {
-            if (*len < object->filename_size) {
-                /* Not enough data. */
-                goto error;
-            }
             memcpy(object->filename, *buf, object->filename_size);
-            *buf += object->filename_size;
-            *len -= object->filename_size;
         }
         object->filename[object->filename_size] = '\0';
+        *buf += object->filename_size;
+        *len -= object->filename_size;
 
         if (!DNP3AddPoint(points, object, point_index, prefix_code, prefix)) {
             goto error;
@@ -7102,6 +7129,9 @@ static int DNP3DecodeObjectG70V3(const uint8_t **buf, uint32_t *len,
     return 1;
 error:
     if (object != NULL) {
+        if (object->filename != NULL) {
+            SCFree(object->filename);
+        }
         SCFree(object);
     }
 
@@ -7155,7 +7185,7 @@ static int DNP3DecodeObjectG70V4(const uint8_t **buf, uint32_t *len,
         if (prefix - (offset - *len) >= 256 || prefix < (offset - *len)) {
             goto error;
         }
-        object->optional_text_len = (uint16_t)(prefix - (offset - *len));
+        object->optional_text_len = (uint8_t)(prefix - (offset - *len));
         if (object->optional_text_len > 0) {
             if (*len < object->optional_text_len) {
                 /* Not enough data. */
@@ -7222,7 +7252,7 @@ static int DNP3DecodeObjectG70V5(const uint8_t **buf, uint32_t *len,
         if (prefix - (offset - *len) >= 256 || prefix < (offset - *len)) {
             goto error;
         }
-        object->file_data_len = (uint16_t)(prefix - (offset - *len));
+        object->file_data_len = (uint8_t)(prefix - (offset - *len));
         if (object->file_data_len > 0) {
             if (*len < object->file_data_len) {
                 /* Not enough data. */
@@ -7292,7 +7322,7 @@ static int DNP3DecodeObjectG70V6(const uint8_t **buf, uint32_t *len,
         if (prefix - (offset - *len) >= 256 || prefix < (offset - *len)) {
             goto error;
         }
-        object->optional_text_len = (uint16_t)(prefix - (offset - *len));
+        object->optional_text_len = (uint8_t)(prefix - (offset - *len));
         if (object->optional_text_len > 0) {
             if (*len < object->optional_text_len) {
                 /* Not enough data. */
@@ -7364,16 +7394,19 @@ static int DNP3DecodeObjectG70V7(const uint8_t **buf, uint32_t *len,
         if (!DNP3ReadUint16(buf, len, &object->request_id)) {
             goto error;
         }
+        if (*len < object->filename_size) {
+            goto error;
+        }
+        object->filename = SCMalloc((size_t)object->filename_size + 1);
+        if (unlikely(object->filename == NULL)) {
+            goto error;
+        }
         if (object->filename_size > 0) {
-            if (*len < object->filename_size) {
-                /* Not enough data. */
-                goto error;
-            }
             memcpy(object->filename, *buf, object->filename_size);
-            *buf += object->filename_size;
-            *len -= object->filename_size;
         }
         object->filename[object->filename_size] = '\0';
+        *buf += object->filename_size;
+        *len -= object->filename_size;
 
         if (!DNP3AddPoint(points, object, point_index, prefix_code, prefix)) {
             goto error;
@@ -7386,6 +7419,9 @@ static int DNP3DecodeObjectG70V7(const uint8_t **buf, uint32_t *len,
     return 1;
 error:
     if (object != NULL) {
+        if (object->filename != NULL) {
+            SCFree(object->filename);
+        }
         SCFree(object);
     }
 
@@ -7425,16 +7461,19 @@ static int DNP3DecodeObjectG70V8(const uint8_t **buf, uint32_t *len,
             goto error;
         }
         object->file_specification_len = (uint16_t)(prefix - (offset - *len));
+        if (*len < object->file_specification_len) {
+            goto error;
+        }
+        object->file_specification = SCMalloc((size_t)object->file_specification_len + 1);
+        if (unlikely(object->file_specification == NULL)) {
+            goto error;
+        }
         if (object->file_specification_len > 0) {
-            if (*len < object->file_specification_len) {
-                /* Not enough data. */
-                goto error;
-            }
             memcpy(object->file_specification, *buf, object->file_specification_len);
-            *buf += object->file_specification_len;
-            *len -= object->file_specification_len;
         }
         object->file_specification[object->file_specification_len] = '\0';
+        *buf += object->file_specification_len;
+        *len -= object->file_specification_len;
 
         if (!DNP3AddPoint(points, object, point_index, prefix_code, prefix)) {
             goto error;
@@ -7447,6 +7486,9 @@ static int DNP3DecodeObjectG70V8(const uint8_t **buf, uint32_t *len,
     return 1;
 error:
     if (object != NULL) {
+        if (object->file_specification != NULL) {
+            SCFree(object->file_specification);
+        }
         SCFree(object);
     }
 
@@ -8185,16 +8227,19 @@ static int DNP3DecodeObjectG120V7(const uint8_t **buf, uint32_t *len,
             goto error;
         }
         object->error_text_len = (uint16_t)(prefix - (offset - *len));
+        if (*len < object->error_text_len) {
+            goto error;
+        }
+        object->error_text = SCMalloc((size_t)object->error_text_len + 1);
+        if (unlikely(object->error_text == NULL)) {
+            goto error;
+        }
         if (object->error_text_len > 0) {
-            if (*len < object->error_text_len) {
-                /* Not enough data. */
-                goto error;
-            }
             memcpy(object->error_text, *buf, object->error_text_len);
-            *buf += object->error_text_len;
-            *len -= object->error_text_len;
         }
         object->error_text[object->error_text_len] = '\0';
+        *buf += object->error_text_len;
+        *len -= object->error_text_len;
 
         if (!DNP3AddPoint(points, object, point_index, prefix_code, prefix)) {
             goto error;
@@ -8207,6 +8252,9 @@ static int DNP3DecodeObjectG120V7(const uint8_t **buf, uint32_t *len,
     return 1;
 error:
     if (object != NULL) {
+        if (object->error_text != NULL) {
+            SCFree(object->error_text);
+        }
         SCFree(object);
     }
 
@@ -8399,16 +8447,19 @@ static int DNP3DecodeObjectG120V10(const uint8_t **buf, uint32_t *len,
         if (!DNP3ReadUint16(buf, len, &object->certification_data_len)) {
             goto error;
         }
+        if (*len < object->username_len) {
+            goto error;
+        }
+        object->username = SCMalloc((size_t)object->username_len + 1);
+        if (unlikely(object->username == NULL)) {
+            goto error;
+        }
         if (object->username_len > 0) {
-            if (*len < object->username_len) {
-                /* Not enough data. */
-                goto error;
-            }
             memcpy(object->username, *buf, object->username_len);
-            *buf += object->username_len;
-            *len -= object->username_len;
         }
         object->username[object->username_len] = '\0';
+        *buf += object->username_len;
+        *len -= object->username_len;
         if (object->user_public_key_len > 0) {
             if (*len < object->user_public_key_len) {
                 /* Not enough data. */
@@ -8447,6 +8498,9 @@ static int DNP3DecodeObjectG120V10(const uint8_t **buf, uint32_t *len,
     return 1;
 error:
     if (object != NULL) {
+        if (object->username != NULL) {
+            SCFree(object->username);
+        }
         if (object->user_public_key != NULL) {
             SCFree(object->user_public_key);
         }
@@ -8494,16 +8548,19 @@ static int DNP3DecodeObjectG120V11(const uint8_t **buf, uint32_t *len,
         if (!DNP3ReadUint16(buf, len, &object->master_challenge_data_len)) {
             goto error;
         }
+        if (*len < object->username_len) {
+            goto error;
+        }
+        object->username = SCMalloc((size_t)object->username_len + 1);
+        if (unlikely(object->username == NULL)) {
+            goto error;
+        }
         if (object->username_len > 0) {
-            if (*len < object->username_len) {
-                /* Not enough data. */
-                goto error;
-            }
             memcpy(object->username, *buf, object->username_len);
-            *buf += object->username_len;
-            *len -= object->username_len;
         }
         object->username[object->username_len] = '\0';
+        *buf += object->username_len;
+        *len -= object->username_len;
         if (object->master_challenge_data_len > 0) {
             if (*len < object->master_challenge_data_len) {
                 /* Not enough data. */
@@ -8529,6 +8586,9 @@ static int DNP3DecodeObjectG120V11(const uint8_t **buf, uint32_t *len,
     return 1;
 error:
     if (object != NULL) {
+        if (object->username != NULL) {
+            SCFree(object->username);
+        }
         if (object->master_challenge_data != NULL) {
             SCFree(object->master_challenge_data);
         }
@@ -8997,6 +9057,47 @@ error:
 void DNP3FreeObjectPoint(int group, int variation, void *point)
 {
     switch(DNP3_OBJECT_CODE(group, variation)) {
+        case DNP3_OBJECT_CODE(70, 1): {
+            DNP3ObjectG70V1 *object = (DNP3ObjectG70V1 *)point;
+            if (object->filename != NULL) {
+                SCFree(object->filename);
+            }
+            if (object->data != NULL) {
+                SCFree(object->data);
+            }
+            break;
+        }
+        case DNP3_OBJECT_CODE(70, 2): {
+            DNP3ObjectG70V2 *object = (DNP3ObjectG70V2 *)point;
+            if (object->username != NULL) {
+                SCFree(object->username);
+            }
+            if (object->password != NULL) {
+                SCFree(object->password);
+            }
+            break;
+        }
+        case DNP3_OBJECT_CODE(70, 3): {
+            DNP3ObjectG70V3 *object = (DNP3ObjectG70V3 *)point;
+            if (object->filename != NULL) {
+                SCFree(object->filename);
+            }
+            break;
+        }
+        case DNP3_OBJECT_CODE(70, 7): {
+            DNP3ObjectG70V7 *object = (DNP3ObjectG70V7 *)point;
+            if (object->filename != NULL) {
+                SCFree(object->filename);
+            }
+            break;
+        }
+        case DNP3_OBJECT_CODE(70, 8): {
+            DNP3ObjectG70V8 *object = (DNP3ObjectG70V8 *)point;
+            if (object->file_specification != NULL) {
+                SCFree(object->file_specification);
+            }
+            break;
+        }
         case DNP3_OBJECT_CODE(83, 1): {
             DNP3ObjectG83V1 *object = (DNP3ObjectG83V1 *)point;
             if (object->data_objects != NULL) {
@@ -9035,6 +9136,13 @@ void DNP3FreeObjectPoint(int group, int variation, void *point)
             }
             break;
         }
+        case DNP3_OBJECT_CODE(120, 7): {
+            DNP3ObjectG120V7 *object = (DNP3ObjectG120V7 *)point;
+            if (object->error_text != NULL) {
+                SCFree(object->error_text);
+            }
+            break;
+        }
         case DNP3_OBJECT_CODE(120, 8): {
             DNP3ObjectG120V8 *object = (DNP3ObjectG120V8 *)point;
             if (object->certificate != NULL) {
@@ -9051,6 +9159,9 @@ void DNP3FreeObjectPoint(int group, int variation, void *point)
         }
         case DNP3_OBJECT_CODE(120, 10): {
             DNP3ObjectG120V10 *object = (DNP3ObjectG120V10 *)point;
+            if (object->username != NULL) {
+                SCFree(object->username);
+            }
             if (object->user_public_key != NULL) {
                 SCFree(object->user_public_key);
             }
@@ -9061,6 +9172,9 @@ void DNP3FreeObjectPoint(int group, int variation, void *point)
         }
         case DNP3_OBJECT_CODE(120, 11): {
             DNP3ObjectG120V11 *object = (DNP3ObjectG120V11 *)point;
+            if (object->username != NULL) {
+                SCFree(object->username);
+            }
             if (object->master_challenge_data != NULL) {
                 SCFree(object->master_challenge_data);
             }
