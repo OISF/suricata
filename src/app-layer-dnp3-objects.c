@@ -7030,7 +7030,7 @@ static int DNP3DecodeObjectG70V4(const uint8_t **buf, uint16_t *len, uint8_t pre
         if (prefix - (offset - *len) >= 256 || prefix < (offset - *len)) {
             goto error;
         }
-        object->optional_text_len = (uint8_t)(prefix - (offset - *len));
+        object->optional_text_len = (uint16_t)(prefix - (offset - *len));
         if (object->optional_text_len > 0) {
             if (*len < object->optional_text_len) {
                 /* Not enough data. */
@@ -7096,7 +7096,7 @@ static int DNP3DecodeObjectG70V5(const uint8_t **buf, uint16_t *len, uint8_t pre
         if (prefix - (offset - *len) >= 256 || prefix < (offset - *len)) {
             goto error;
         }
-        object->file_data_len = (uint8_t)(prefix - (offset - *len));
+        object->file_data_len = (uint16_t)(prefix - (offset - *len));
         if (object->file_data_len > 0) {
             if (*len < object->file_data_len) {
                 /* Not enough data. */
@@ -7165,7 +7165,7 @@ static int DNP3DecodeObjectG70V6(const uint8_t **buf, uint16_t *len, uint8_t pre
         if (prefix - (offset - *len) >= 256 || prefix < (offset - *len)) {
             goto error;
         }
-        object->optional_text_len = (uint8_t)(prefix - (offset - *len));
+        object->optional_text_len = (uint16_t)(prefix - (offset - *len));
         if (object->optional_text_len > 0) {
             if (*len < object->optional_text_len) {
                 /* Not enough data. */
@@ -8846,28 +8846,28 @@ void DNP3FreeObjectPoint(int group, int variation, void *point)
 {
     switch(DNP3_OBJECT_CODE(group, variation)) {
         case DNP3_OBJECT_CODE(83, 1): {
-            DNP3ObjectG83V1 *object = (DNP3ObjectG83V1 *) point;
+            DNP3ObjectG83V1 *object = (DNP3ObjectG83V1 *)point;
             if (object->data_objects != NULL) {
                 SCFree(object->data_objects);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 1): {
-            DNP3ObjectG120V1 *object = (DNP3ObjectG120V1 *) point;
+            DNP3ObjectG120V1 *object = (DNP3ObjectG120V1 *)point;
             if (object->challenge_data != NULL) {
                 SCFree(object->challenge_data);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 2): {
-            DNP3ObjectG120V2 *object = (DNP3ObjectG120V2 *) point;
+            DNP3ObjectG120V2 *object = (DNP3ObjectG120V2 *)point;
             if (object->mac_value != NULL) {
                 SCFree(object->mac_value);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 5): {
-            DNP3ObjectG120V5 *object = (DNP3ObjectG120V5 *) point;
+            DNP3ObjectG120V5 *object = (DNP3ObjectG120V5 *)point;
             if (object->challenge_data != NULL) {
                 SCFree(object->challenge_data);
             }
@@ -8877,28 +8877,28 @@ void DNP3FreeObjectPoint(int group, int variation, void *point)
             break;
         }
         case DNP3_OBJECT_CODE(120, 6): {
-            DNP3ObjectG120V6 *object = (DNP3ObjectG120V6 *) point;
+            DNP3ObjectG120V6 *object = (DNP3ObjectG120V6 *)point;
             if (object->wrapped_key_data != NULL) {
                 SCFree(object->wrapped_key_data);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 8): {
-            DNP3ObjectG120V8 *object = (DNP3ObjectG120V8 *) point;
+            DNP3ObjectG120V8 *object = (DNP3ObjectG120V8 *)point;
             if (object->certificate != NULL) {
                 SCFree(object->certificate);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 9): {
-            DNP3ObjectG120V9 *object = (DNP3ObjectG120V9 *) point;
+            DNP3ObjectG120V9 *object = (DNP3ObjectG120V9 *)point;
             if (object->mac_value != NULL) {
                 SCFree(object->mac_value);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 10): {
-            DNP3ObjectG120V10 *object = (DNP3ObjectG120V10 *) point;
+            DNP3ObjectG120V10 *object = (DNP3ObjectG120V10 *)point;
             if (object->user_public_key != NULL) {
                 SCFree(object->user_public_key);
             }
@@ -8908,35 +8908,35 @@ void DNP3FreeObjectPoint(int group, int variation, void *point)
             break;
         }
         case DNP3_OBJECT_CODE(120, 11): {
-            DNP3ObjectG120V11 *object = (DNP3ObjectG120V11 *) point;
+            DNP3ObjectG120V11 *object = (DNP3ObjectG120V11 *)point;
             if (object->master_challenge_data != NULL) {
                 SCFree(object->master_challenge_data);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 12): {
-            DNP3ObjectG120V12 *object = (DNP3ObjectG120V12 *) point;
+            DNP3ObjectG120V12 *object = (DNP3ObjectG120V12 *)point;
             if (object->challenge_data != NULL) {
                 SCFree(object->challenge_data);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 13): {
-            DNP3ObjectG120V13 *object = (DNP3ObjectG120V13 *) point;
+            DNP3ObjectG120V13 *object = (DNP3ObjectG120V13 *)point;
             if (object->encrypted_update_key_data != NULL) {
                 SCFree(object->encrypted_update_key_data);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 14): {
-            DNP3ObjectG120V14 *object = (DNP3ObjectG120V14 *) point;
+            DNP3ObjectG120V14 *object = (DNP3ObjectG120V14 *)point;
             if (object->digital_signature != NULL) {
                 SCFree(object->digital_signature);
             }
             break;
         }
         case DNP3_OBJECT_CODE(120, 15): {
-            DNP3ObjectG120V15 *object = (DNP3ObjectG120V15 *) point;
+            DNP3ObjectG120V15 *object = (DNP3ObjectG120V15 *)point;
             if (object->mac != NULL) {
                 SCFree(object->mac);
             }

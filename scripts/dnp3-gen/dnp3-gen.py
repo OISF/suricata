@@ -337,9 +337,8 @@ def gen_object_decoders(context):
 
 {% for object in objects %}
 {% if object.packed %}
-static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t **buf, uint16_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t **buf, uint16_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG{{object.group}}V{{object.variation}} *object = NULL;
     uint32_t bytes = (count / 8) + 1;
@@ -393,9 +392,8 @@ error:
 }
 
 {% else %}
-static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t **buf, uint16_t *len,
-    uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3PointList *points)
+static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t **buf, uint16_t *len, uint8_t prefix_code,
+        uint32_t start, uint32_t count, DNP3PointList *points)
 {
     DNP3ObjectG{{object.group}}V{{object.variation}} *object = NULL;
     uint32_t prefix = 0;
@@ -589,7 +587,7 @@ void DNP3FreeObjectPoint(int group, int variation, void *point)
 {% for object in objects %}
 {% if f_has_freeable_types(object.fields) %}
         case DNP3_OBJECT_CODE({{object.group}}, {{object.variation}}): {
-            DNP3ObjectG{{object.group}}V{{object.variation}} *object = (DNP3ObjectG{{object.group}}V{{object.variation}} *) point;
+            DNP3ObjectG{{object.group}}V{{object.variation}} *object = (DNP3ObjectG{{object.group}}V{{object.variation}} *)point;
 {% for field in object.fields %}
 {% if field.type == "bytearray" %}
             if (object->{{field.name}} != NULL) {
@@ -613,9 +611,8 @@ void DNP3FreeObjectPoint(int group, int variation, void *point)
  * \\\\retval 0 on success. On failure a positive integer corresponding
  *     to a DNP3 application layer event will be returned.
  */
-int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
-    uint16_t *len, uint8_t prefix_code, uint32_t start,
-    uint32_t count, DNP3PointList *points)
+int DNP3DecodeObject(int group, int variation, const uint8_t **buf, uint16_t *len,
+        uint8_t prefix_code, uint32_t start, uint32_t count, DNP3PointList *points)
 {
     int rc = 0;
 
