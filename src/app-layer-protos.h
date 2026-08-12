@@ -178,7 +178,14 @@ static inline AppProto AppProtoCommon(AppProto sigproto, AppProto alproto)
 }
 
 /**
- * \brief Maps the ALPROTO_*, to its string equivalent.
+ * \brief Maps the ALPROTO_*, to its registered string equivalent.
+ * \param alproto App layer protocol id.
+ * \retval String equivalent for the alproto.
+ */
+const char *AppProtoToStringRaw(AppProto alproto);
+
+/**
+ * \brief Maps the ALPROTO_*, to its normalized string equivalent.
  *
  * \param alproto App layer protocol id.
  *

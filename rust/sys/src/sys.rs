@@ -73,7 +73,11 @@ pub enum AppProtoEnum {
 }
 pub type AppProto = u16;
 extern "C" {
-    #[doc = " \\brief Maps the ALPROTO_*, to its string equivalent.\n\n \\param alproto App layer protocol id.\n\n \\retval String equivalent for the alproto."]
+    #[doc = " \\brief Maps the ALPROTO_*, to its registered string equivalent.\n \\param alproto App layer protocol id.\n \\retval String equivalent for the alproto."]
+    pub fn AppProtoToStringRaw(alproto: AppProto) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    #[doc = " \\brief Maps the ALPROTO_*, to its normalized string equivalent.\n\n \\param alproto App layer protocol id.\n\n \\retval String equivalent for the alproto."]
     pub fn AppProtoToString(alproto: AppProto) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
