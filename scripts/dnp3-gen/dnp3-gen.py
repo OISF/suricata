@@ -152,7 +152,7 @@ output_json_dnp3_objects_template = """/* Copyright (C) 2015 Open Information Se
 #include "output-json.h"
 
 // clang-format off
-void OutputJsonDNP3SetItem(JsonBuilder *js, DNP3Object *object,
+void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
     DNP3Point *point)
 {
 
@@ -589,7 +589,7 @@ void DNP3FreeObjectPoint(int group, int variation, void *point)
 {% for object in objects %}
 {% if f_has_freeable_types(object.fields) %}
         case DNP3_OBJECT_CODE({{object.group}}, {{object.variation}}): {
-            DNP3ObjectG{{object.group}}V{{object.variation}} *object = (DNP3ObjectG{{object.group}}V{{object.variation}} *) point;
+            DNP3ObjectG{{object.group}}V{{object.variation}} *object = (DNP3ObjectG{{object.group}}V{{object.variation}} *)point;
 {% for field in object.fields %}
 {% if field.type == "bytearray" %}
             if (object->{{field.name}} != NULL) {
