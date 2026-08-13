@@ -403,6 +403,7 @@ impl PgsqlState {
                     if let Some(state) = new_state {
                         self.state_progress = state;
                     };
+                    let curr_state = self.state_progress;
                     // PostreSQL progress states can be represented as a finite state machine
                     // After the connection phase, the backend/ server will be mostly waiting in a state of `ReadyForQuery`, unless
                     // it's processing some request.
@@ -414,26 +415,30 @@ impl PgsqlState {
                     // https://samadhiweb.com/blog/2013.04.28.graphviz.postgresv3.html
                     if let Some(tx) = self.find_or_create_tx() {
                         tx.tx_data.updated_ts = true;
-                        if let Some(state) = new_state {
-                            if state == PgsqlStateProgress::FirstCopyDataInReceived
-                            || state == PgsqlStateProgress::ConsolidatingCopyDataIn {
-                                // here we're actually only counting how many messages were received.
-                                // frontends are not forced to send one row per message
-                                if let PgsqlFEMessage::ConsolidatedCopyDataIn(ref msg) = request {
-                                    tx.sum_data_size(msg.data_size);
-                                    tx.incr_row_cnt();
-                                }
-                            } else if (state == PgsqlStateProgress::CopyDoneReceived || state == PgsqlStateProgress::CopyFailReceived) && tx.get_row_cnt() > 0 {
-                                let consolidated_copy_data = PgsqlFEMessage::ConsolidatedCopyDataIn(
-                                    ConsolidatedDataRowPacket {
-                                        identifier: b'd',
-                                        row_cnt: tx.get_row_cnt(),
-                                        data_size: tx.data_size, // total byte count of all copy_data messages combined
-                                    },
-                                );
-                                tx.requests.push(consolidated_copy_data);
+                        if curr_state == PgsqlStateProgress::FirstCopyDataInReceived
+                            || curr_state == PgsqlStateProgress::ConsolidatingCopyDataIn
+                        {
+                            // here we're actually only counting how many messages were received.
+                            // frontends are not forced to send one row per message
+                            if let PgsqlFEMessage::ConsolidatedCopyDataIn(ref msg) = request {
+                                tx.sum_data_size(msg.data_size);
+                                tx.incr_row_cnt();
                             }
+                        } else if (matches!(
+                            request,
+                            PgsqlFEMessage::CopyDone(_) | PgsqlFEMessage::CopyFail(_)
+                        )) && tx.get_row_cnt() > 0
+                        {
+                            let consolidated_copy_data =
+                                PgsqlFEMessage::ConsolidatedCopyDataIn(ConsolidatedDataRowPacket {
+                                    identifier: b'd',
+                                    row_cnt: tx.get_row_cnt(),
+                                    data_size: tx.data_size, // total byte count of all copy_data messages combined
+                                });
+                            tx.requests.push(consolidated_copy_data);
+                        }
 
+                        if let Some(state) = new_state {
                             if Self::request_is_complete(state) {
                                 tx.requests.push(request);
                                 // The request is complete at this point
@@ -570,6 +575,7 @@ impl PgsqlState {
             _ => {
                 // We don't always have to change current state when we see a response...
                 // NotificationResponse and NoticeResponse fall here
+                // AuthenticationSSPI also falls here
                 None
             }
         }
@@ -633,45 +639,57 @@ impl PgsqlState {
                         if tx.tx_res_state == PgsqlTxProgress::Init {
                             tx.tx_res_state = PgsqlTxProgress::Received;
                         }
-                        if let Some(state) = new_state {
-                            if state == PgsqlStateProgress::DataRowReceived {
-                                tx.incr_row_cnt();
-                            } else if state == PgsqlStateProgress::CommandCompletedReceived
-                                && tx.get_row_cnt() > 0
-                            {
-                                // let's summarize the info from the data_rows in one response
-                                let consolidated_data_row = PgsqlBEMessage::ConsolidatedDataRow(
-                                    ConsolidatedDataRowPacket {
-                                        identifier: b'D',
-                                        row_cnt: tx.get_row_cnt(),
-                                        data_size: tx.data_size, // total byte count of all data_row messages combined
-                                    },
-                                );
-                                tx.responses.push(consolidated_data_row);
+                        if matches!(response, PgsqlBEMessage::ConsolidatedDataRow(_)) {
+                            tx.incr_row_cnt();
+                        } else if matches!(response, PgsqlBEMessage::CommandComplete(_))
+                            && tx.get_row_cnt() > 0
+                        {
+                            // let's summarize the info from the data_rows in one response
+                            let consolidated_data_row =
+                                PgsqlBEMessage::ConsolidatedDataRow(ConsolidatedDataRowPacket {
+                                    identifier: b'D',
+                                    row_cnt: tx.get_row_cnt(),
+                                    data_size: tx.data_size, // total byte count of all data_row messages combined
+                                });
+                            tx.responses.push(consolidated_data_row);
+                            tx.responses.push(response);
+                            // reset values
+                            tx.data_row_cnt = 0;
+                            tx.data_size = 0;
+                        } else if matches!(response, PgsqlBEMessage::ConsolidatedCopyDataOut(_)) {
+                            tx.incr_row_cnt();
+                        } else if matches!(response, PgsqlBEMessage::CopyDone(_))
+                            && tx.get_row_cnt() > 0
+                        {
+                            // let's summarize the info from the data_rows in one response
+                            let consolidated_copy_data = PgsqlBEMessage::ConsolidatedCopyDataOut(
+                                ConsolidatedDataRowPacket {
+                                    identifier: b'd',
+                                    row_cnt: tx.get_row_cnt(),
+                                    data_size: tx.data_size, // total byte count of all data_row messages combined
+                                },
+                            );
+                            tx.responses.push(consolidated_copy_data);
+                            tx.responses.push(response);
+                            // reset values
+                            tx.data_row_cnt = 0;
+                            tx.data_size = 0;
+                        } else {
+                            if !matches!(
+                                response,
+                                PgsqlBEMessage::UnknownMessageType(_)
+                                    | PgsqlBEMessage::NoticeResponse(_)
+                                    | PgsqlBEMessage::NotificationResponse(_)
+                                    | PgsqlBEMessage::AuthenticationSSPI(_)
+                            ) {
+                                // since we are not logging UnknownMessages right now, let's not push them into the responses
+                                // vector, either
+                                // Don't log NoticeResponse, NotificationResponse, nor AuthenticationSSPI messages,
+                                // either (temporarily)
                                 tx.responses.push(response);
-                                // reset values
-                                tx.data_row_cnt = 0;
-                                tx.data_size = 0;
-                            } else if state == PgsqlStateProgress::CopyDataOutReceived {
-                                tx.incr_row_cnt();
-                            } else if state == PgsqlStateProgress::CopyDoneReceived
-                                && tx.get_row_cnt() > 0
-                            {
-                                // let's summarize the info from the data_rows in one response
-                                let consolidated_copy_data = PgsqlBEMessage::ConsolidatedCopyDataOut(
-                                    ConsolidatedDataRowPacket {
-                                        identifier: b'd',
-                                        row_cnt: tx.get_row_cnt(),
-                                        data_size: tx.data_size, // total byte count of all data_row messages combined
-                                    },
-                                );
-                                tx.responses.push(consolidated_copy_data);
-                                tx.responses.push(response);
-                                // reset values
-                                tx.data_row_cnt = 0;
-                                tx.data_size = 0;
-                            } else {
-                                tx.responses.push(response);
+                            }
+
+                            if let Some(state) = new_state {
                                 if Self::response_is_complete(state) {
                                     tx.tx_req_state = PgsqlTxProgress::Done;
                                     tx.tx_res_state = PgsqlTxProgress::Done;
