@@ -653,6 +653,14 @@ pub(super) fn get_frame_headers_hpack(
         flags & HTTP2_FLAG_HEADER_PRIORITY != 0,
         http2_parse_headers_priority,
     )(i2)?;
+    let i3 = if let Some(pl) = padlength {
+        if (pl as usize) > i3.len() {
+            return Err(Err::Error(make_error(input, ErrorKind::LengthValue)));
+        }
+        &i3[..i3.len() - pl as usize]
+    } else {
+        i3
+    };
     return Ok((
         i3,
         HTTP2FrameHeaders {
@@ -671,6 +679,14 @@ pub fn http2_parse_frame_headers<'a>(
         flags & HTTP2_FLAG_HEADER_PRIORITY != 0,
         http2_parse_headers_priority,
     )(i2)?;
+    let i3 = if let Some(pl) = padlength {
+        if (pl as usize) > i3.len() {
+            return Err(Err::Error(make_error(input, ErrorKind::LengthValue)));
+        }
+        &i3[..i3.len() - pl as usize]
+    } else {
+        i3
+    };
     let (i3, blocks) = http2_parse_headers_blocks(i3, dyn_headers)?;
     return Ok((
         i3,
@@ -695,6 +711,14 @@ pub fn http2_parse_frame_push_promise<'a>(
 ) -> IResult<&'a [u8], HTTP2FramePushPromise> {
     let (i2, padlength) = cond(flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)(input)?;
     let (i3, stream_id) = bits(tuple((take_bits(1u8), take_bits(31u32))))(i2)?;
+    let i3 = if let Some(pl) = padlength {
+        if (pl as usize) > i3.len() {
+            return Err(Err::Error(make_error(input, ErrorKind::LengthValue)));
+        }
+        &i3[..i3.len() - pl as usize]
+    } else {
+        i3
+    };
     let (i3, blocks) = http2_parse_headers_blocks(i3, dyn_headers)?;
     return Ok((
         i3,
