@@ -711,7 +711,7 @@ impl DNSState {
             if is_dns || is_incomplete {
                 self.gap = false;
             } else {
-                AppLayerResult::ok();
+                return AppLayerResult::ok();
             }
         }
 
