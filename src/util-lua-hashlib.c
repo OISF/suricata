@@ -72,6 +72,9 @@ static int LuaHashLibSha256Update(lua_State *L)
     if (hasher == NULL) {
         return luaL_error(L, "null userdata");
     }
+    if (*hasher == NULL) {
+        return luaL_error(L, "sha256 hasher already finalized");
+    }
     size_t data_len;
     const char *data = luaL_checklstring(L, 2, &data_len);
     SCSha256Update(*hasher, (const uint8_t *)data, (uint32_t)data_len);
@@ -83,6 +86,9 @@ static int LuaHashLibSha256Finalize(lua_State *L)
     struct SCSha256 **hasher = luaL_checkudata(L, 1, SHA256_MT);
     if (hasher == NULL) {
         return luaL_error(L, "null userdata");
+    }
+    if (*hasher == NULL) {
+        return luaL_error(L, "sha256 hasher already finalized");
     }
 
     uint8_t hash[SC_SHA256_LEN];
@@ -101,6 +107,9 @@ static int LuaHashLibSha256FinalizeToHex(lua_State *L)
     struct SCSha256 **hasher = luaL_checkudata(L, 1, SHA256_MT);
     if (hasher == NULL) {
         return luaL_error(L, "null userdata");
+    }
+    if (*hasher == NULL) {
+        return luaL_error(L, "sha256 hasher already finalized");
     }
 
     char hash[SC_SHA256_HEX_LEN + 1];
@@ -174,6 +183,9 @@ static int LuaHashLibSha1Update(lua_State *L)
     if (hasher == NULL) {
         return luaL_error(L, "null userdata");
     }
+    if (*hasher == NULL) {
+        return luaL_error(L, "sha1 hasher already finalized");
+    }
 
     size_t data_len;
     const char *data = luaL_checklstring(L, 2, &data_len);
@@ -186,6 +198,9 @@ static int LuaHashLibSha1Finalize(lua_State *L)
     struct SCSha1 **hasher = luaL_checkudata(L, 1, SHA1_MT);
     if (hasher == NULL) {
         return luaL_error(L, "null userdata");
+    }
+    if (*hasher == NULL) {
+        return luaL_error(L, "sha1 hasher already finalized");
     }
 
     uint8_t hash[SC_SHA1_LEN];
@@ -204,6 +219,9 @@ static int LuaHashLibSha1FinalizeToHex(lua_State *L)
     struct SCSha1 **hasher = luaL_checkudata(L, 1, SHA1_MT);
     if (hasher == NULL) {
         return luaL_error(L, "null userdata");
+    }
+    if (*hasher == NULL) {
+        return luaL_error(L, "sha1 hasher already finalized");
     }
 
     char hash[SC_SHA1_HEX_LEN + 1];
@@ -276,6 +294,9 @@ static int LuaHashLibMd5Update(lua_State *L)
     if (hasher == NULL) {
         return luaL_error(L, "null userdata");
     }
+    if (*hasher == NULL) {
+        return luaL_error(L, "md5 hasher already finalized");
+    }
 
     size_t data_len;
     const char *data = luaL_checklstring(L, 2, &data_len);
@@ -288,6 +309,9 @@ static int LuaHashLibMd5Finalize(lua_State *L)
     struct SCMd5 **hasher = luaL_checkudata(L, 1, MD5_MT);
     if (hasher == NULL) {
         return luaL_error(L, "null userdata");
+    }
+    if (*hasher == NULL) {
+        return luaL_error(L, "md5 hasher already finalized");
     }
 
     uint8_t hash[SC_MD5_LEN];
@@ -306,6 +330,9 @@ static int LuaHashLibMd5FinalizeToHex(lua_State *L)
     struct SCMd5 **hasher = luaL_checkudata(L, 1, MD5_MT);
     if (hasher == NULL) {
         return luaL_error(L, "null userdata");
+    }
+    if (*hasher == NULL) {
+        return luaL_error(L, "md5 hasher already finalized");
     }
 
     char hash[SC_MD5_HEX_LEN + 1];
