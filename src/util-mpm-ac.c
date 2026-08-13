@@ -464,8 +464,6 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         if (ctx->state_table_u16 == NULL) {
             FatalError("Error allocating memory");
         }
-        mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size += (ctx->state_count * sizeof(*ctx->state_table_u16));
 
         StateQueue *q = SCACStateQueueAlloc();
 
@@ -503,8 +501,6 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         if (ctx->state_table_u32 == NULL) {
             FatalError("Error allocating memory");
         }
-        mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size += (ctx->state_count * sizeof(*ctx->state_table_u32));
 
         StateQueue *q = SCACStateQueueAlloc();
 
@@ -657,8 +653,6 @@ int SCACPreparePatterns(MpmConfig *mpm_conf, MpmCtx *mpm_ctx)
     ctx->parray = (MpmPattern **)SCCalloc(mpm_ctx->pattern_cnt, sizeof(MpmPattern *));
     if (ctx->parray == NULL)
         goto error;
-    mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += (mpm_ctx->pattern_cnt * sizeof(MpmPattern *));
 
     /* populate it with the patterns in the hash */
     uint32_t i = 0, p = 0;
@@ -720,8 +714,6 @@ int SCACPreparePatterns(MpmConfig *mpm_conf, MpmCtx *mpm_ctx)
     }
     SCFree(ctx->parray);
     ctx->parray = NULL;
-    mpm_ctx->memory_cnt--;
-    mpm_ctx->memory_size -= (mpm_ctx->pattern_cnt * sizeof(MpmPattern *));
 
     ctx->pattern_id_bitarray_size = (mpm_ctx->max_pat_id / 8) + 1;
     SCLogDebug("ctx->pattern_id_bitarray_size %u", ctx->pattern_id_bitarray_size);
@@ -746,9 +738,6 @@ void SCACInitCtx(MpmCtx *mpm_ctx)
     if (mpm_ctx->ctx == NULL) {
         exit(EXIT_FAILURE);
     }
-
-    mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += sizeof(SCACCtx);
 
     /* initialize the hash we use to speed up pattern insertions */
     mpm_ctx->init_hash = SCCalloc(MPM_INIT_HASH_SIZE, sizeof(MpmPattern *));
@@ -777,8 +766,6 @@ void SCACDestroyCtx(MpmCtx *mpm_ctx)
     if (mpm_ctx->init_hash != NULL) {
         SCFree(mpm_ctx->init_hash);
         mpm_ctx->init_hash = NULL;
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (MPM_INIT_HASH_SIZE * sizeof(MpmPattern *));
     }
 
     if (ctx->parray != NULL) {
@@ -791,25 +778,15 @@ void SCACDestroyCtx(MpmCtx *mpm_ctx)
 
         SCFree(ctx->parray);
         ctx->parray = NULL;
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (mpm_ctx->pattern_cnt * sizeof(MpmPattern *));
     }
 
     if (ctx->state_table_u16 != NULL) {
         SCFree(ctx->state_table_u16);
         ctx->state_table_u16 = NULL;
-
-        mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size -= (ctx->state_count *
-                                 sizeof(SC_AC_STATE_TYPE_U16) * 256);
     }
     if (ctx->state_table_u32 != NULL) {
         SCFree(ctx->state_table_u32);
         ctx->state_table_u32 = NULL;
-
-        mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size -= (ctx->state_count *
-                                 sizeof(SC_AC_STATE_TYPE_U32) * 256);
     }
 
     if (ctx->output_table != NULL) {
@@ -835,8 +812,6 @@ void SCACDestroyCtx(MpmCtx *mpm_ctx)
 
     SCFree(mpm_ctx->ctx);
     mpm_ctx->ctx = NULL;
-    mpm_ctx->memory_cnt--;
-    mpm_ctx->memory_size -= sizeof(SCACCtx);
 }
 
 /**
@@ -1014,8 +989,6 @@ void SCACPrintInfo(MpmCtx *mpm_ctx)
     SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
 
     printf("MPM AC Information:\n");
-    printf("Memory allocs:   %" PRIu32 "\n", mpm_ctx->memory_cnt);
-    printf("Memory alloced:  %" PRIu32 "\n", mpm_ctx->memory_size);
     printf(" Sizeof:\n");
     printf("  MpmCtx         %" PRIuMAX "\n", (uintmax_t)sizeof(MpmCtx));
     printf("  SCACCtx:         %" PRIuMAX "\n", (uintmax_t)sizeof(SCACCtx));

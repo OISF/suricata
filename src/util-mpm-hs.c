@@ -185,9 +185,6 @@ static inline SCHSPattern *SCHSAllocPattern(MpmCtx *mpm_ctx)
         exit(EXIT_FAILURE);
     }
 
-    mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += sizeof(SCHSPattern);
-
     return p;
 }
 
@@ -203,8 +200,6 @@ static inline void SCHSFreePattern(MpmCtx *mpm_ctx, SCHSPattern *p)
 {
     if (p != NULL && p->original_pat != NULL) {
         SCFree(p->original_pat);
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= p->len;
     }
 
     if (p != NULL && p->sids != NULL) {
@@ -213,8 +208,6 @@ static inline void SCHSFreePattern(MpmCtx *mpm_ctx, SCHSPattern *p)
 
     if (p != NULL) {
         SCFree(p);
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= sizeof(SCHSPattern);
     }
 }
 
@@ -304,8 +297,6 @@ static int SCHSAddPattern(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, 
         p->original_pat = SCMalloc(patlen);
         if (p->original_pat == NULL)
             goto error;
-        mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size += patlen;
         memcpy(p->original_pat, pat, patlen);
 
         /* put in the pattern hash */
@@ -784,11 +775,6 @@ int SCHSPreparePatterns(MpmConfig *mpm_conf, MpmCtx *mpm_ctx)
             goto error;
         }
 
-        if (pd->ref_cnt == 1) {
-            // freshly allocated
-            mpm_ctx->memory_cnt++;
-            mpm_ctx->memory_size += ctx->hs_db_size;
-        }
         SCMutexUnlock(&g_db_table_mutex);
         return 0;
     }
@@ -806,9 +792,6 @@ int SCHSPreparePatterns(MpmConfig *mpm_conf, MpmCtx *mpm_ctx)
         SCMutexUnlock(&g_db_table_mutex);
         goto error;
     }
-
-    mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += ctx->hs_db_size;
 
     SCMutexUnlock(&g_db_table_mutex);
     CompileDataFree(cd);
@@ -948,9 +931,6 @@ void SCHSInitCtx(MpmCtx *mpm_ctx)
         exit(EXIT_FAILURE);
     }
 
-    mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += sizeof(SCHSCtx);
-
     /* initialize the hash we use to speed up pattern insertions */
     SCHSCtx *ctx = (SCHSCtx *)mpm_ctx->ctx;
     ctx->init_hash = SCCalloc(INIT_HASH_SIZE, sizeof(SCHSPattern *));
@@ -999,8 +979,6 @@ void SCHSDestroyCtx(MpmCtx *mpm_ctx)
     if (ctx->init_hash != NULL) {
         SCFree(ctx->init_hash);
         ctx->init_hash = NULL;
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (INIT_HASH_SIZE * sizeof(SCHSPattern *));
     }
 
     /* Decrement pattern database ref count, and delete it entirely if the
@@ -1019,8 +997,6 @@ void SCHSDestroyCtx(MpmCtx *mpm_ctx)
 
     SCFree(mpm_ctx->ctx);
     mpm_ctx->ctx = NULL;
-    mpm_ctx->memory_cnt--;
-    mpm_ctx->memory_size -= sizeof(SCHSCtx);
 }
 
 typedef struct SCHSCallbackCtx_ {
@@ -1152,8 +1128,6 @@ void SCHSPrintInfo(MpmCtx *mpm_ctx)
     SCHSCtx *ctx = (SCHSCtx *)mpm_ctx->ctx;
 
     printf("MPM HS Information:\n");
-    printf("Memory allocs:   %" PRIu32 "\n", mpm_ctx->memory_cnt);
-    printf("Memory alloced:  %" PRIu32 "\n", mpm_ctx->memory_size);
     printf(" Sizeof:\n");
     printf("  MpmCtx         %" PRIuMAX "\n", (uintmax_t)sizeof(MpmCtx));
     printf("  SCHSCtx:       %" PRIuMAX "\n", (uintmax_t)sizeof(SCHSCtx));
