@@ -22,7 +22,10 @@ use super::dcerpc::{
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{detect_match_uint, detect_parse_uint, DetectUintData};
 use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
-use crate::smb::detect::{smb_tx_get_stub_data, smb_tx_match_dce_iface, smb_tx_match_dce_opnum};
+use crate::smb::detect::{
+    smb_tx_get_stub_data, smb_tx_match_dce_iface, smb_tx_match_dce_is_fragmented,
+    smb_tx_match_dce_opnum,
+};
 use crate::smb::smb::ALPROTO_SMB;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_int, c_void};
@@ -421,10 +424,7 @@ unsafe fn dcerpc_is_fragmented_parse(carg: *const c_char) -> *mut c_void {
     }
 }
 
-unsafe extern "C" fn dcerpc_is_fragmented_match(
-    _de: *mut DetectEngineThreadCtx, _f: *mut crate::flow::Flow, flags: u8, _state: *mut c_void,
-    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
-) -> c_int {
+unsafe fn dcerpc_tx_match_is_fragmented(flags: u8, tx: *mut c_void, ctx: *const SigMatchCtx) -> u8 {
     let tx = cast_pointer!(tx, DCERPCTransaction);
     let ctx = cast_pointer!(ctx, DCERPCIsFragmentedData);
 
@@ -449,6 +449,17 @@ unsafe extern "C" fn dcerpc_is_fragmented_match(
         return 1;
     }
     return 0;
+}
+
+unsafe extern "C" fn dcerpc_is_fragmented_match(
+    _de: *mut DetectEngineThreadCtx, f: *mut crate::flow::Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    if SCFlowGetAppProtocol(f) == ALPROTO_DCERPC {
+        return dcerpc_tx_match_is_fragmented(flags, tx, ctx) as c_int;
+    }
+
+    return smb_tx_match_dce_is_fragmented(flags, tx, ctx) as c_int;
 }
 
 unsafe extern "C" fn dcerpc_is_fragmented_setup(
