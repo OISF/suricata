@@ -128,6 +128,13 @@ pub enum ProtocolOpCode {
     IntermediateResponse = 25,
 }
 
+#[derive(Clone, Debug, EnumStringU8)]
+#[repr(u8)]
+pub enum BindAuthenticationChoice {
+    Simple = 0,
+    Sasl = 1,
+}
+
 pub fn ldap_operation_to_string(op: &Operation) -> String {
     match op.0 {
         0 => "add".to_string(),
