@@ -921,8 +921,9 @@ static int SMTPProcessCommandDATA(
                                 state->file_track_id++, filename, filename_len, NULL, 0,
                                 flags) != 0) {
                         SCLogDebug("FileOpenFile() failed");
+                    } else {
+                        SMTPNewFile(state->curr_tx, tx->files_ts.tail);
                     }
-                    SMTPNewFile(state->curr_tx, tx->files_ts.tail);
                     break;
                 case MimeSmtpFileChunk:
                     // rust already run FileAppendData
