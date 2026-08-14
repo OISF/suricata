@@ -67,6 +67,90 @@ Example of a signatures that would alert if the packet has an LDAP bind request 
 
   alert ldap any any -> any any (msg:"Test LDAP bind request"; :example-rule-emphasis:`ldap.request.operation:bind_request;` sid:1;)
 
+ldap.bind_request.version
+-------------------------
+
+Matches the protocol version in an LDAP BindRequest.
+
+Syntax::
+
+ ldap.bind_request.version: [op]version;
+
+It can be matched exactly, or compared using the ``op`` setting::
+
+ ldap.bind_request.version:3    # exactly version 3
+ ldap.bind_request.version:<3   # less than version 3
+ ldap.bind_request.version:>=2  # version 2 or later
+
+``ldap.bind_request.version`` uses :ref:`unsigned 8-bit integer <rules-integer-keywords>`.
+
+This keyword maps to the EVE field ``ldap.request.bind_request.version``.
+
+Example
+^^^^^^^
+
+Example of a signature that alerts on an LDAP version 3 BindRequest:
+
+.. container:: example-rule
+
+  alert ldap any any -> any any (msg:"LDAP version 3 BindRequest"; :example-rule-emphasis:`ldap.bind_request.version:3;` sid:1;)
+
+ldap.bind_request.authentication
+--------------------------------
+
+Matches the authentication choice in an LDAP BindRequest. The accepted values are
+``simple`` and ``sasl``. This keyword selects an authentication type; it is not a
+sticky buffer.
+
+Syntax::
+
+ ldap.bind_request.authentication:<simple|sasl>;
+
+Example
+^^^^^^^
+
+Example of a signature that alerts on an LDAP BindRequest with SASL authentication:
+
+.. container:: example-rule
+
+ alert ldap any any -> any any (msg:"LDAP SASL bind"; :example-rule-emphasis:`ldap.bind_request.authentication:sasl;` sid:1;)
+
+ldap.bind_request.sasl.mechanism
+--------------------------------
+
+Matches the SASL mechanism in an LDAP BindRequest. This is a sticky buffer and
+can be used as a ``fast_pattern``.
+
+Syntax::
+
+ ldap.bind_request.sasl.mechanism; content:"<mechanism>";
+
+This keyword maps to the EVE field
+``ldap.request.bind_request.sasl.mechanism``.
+
+Example
+^^^^^^^
+
+Example of a signature that alerts on an LDAP BindRequest with SASL mechanism GSS-SPNEGO:
+
+.. container:: example-rule
+
+ alert ldap any any -> any any (msg:"LDAP SASL mechanism GSS-SPNEGO"; :example-rule-emphasis:`ldap.bind_request.sasl.mechanism; content:"GSS-SPNEGO";` sid:1;)
+
+ldap.bind_request.sasl.credentials
+----------------------------------
+
+Matches the raw SASL credentials in an LDAP BindRequest. This is a sticky buffer
+and can be used as a ``fast_pattern``. The buffer is unavailable when the
+optional credentials field is absent.
+
+Syntax::
+
+ ldap.bind_request.sasl.credentials; content:"<credentials>";
+
+This keyword maps to the EVE field
+``ldap.request.bind_request.sasl.credentials``.
+
 ldap.responses.operation
 ------------------------
 
