@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -391,23 +391,25 @@ static void FtpTransferCmdFree(void *data)
 
 static uint32_t CopyCommandLine(uint8_t **dest, FtpLineState *line)
 {
-    if (likely(line->len)) {
-        uint8_t *where = FTPCalloc(line->len + 1, sizeof(char));
-        if (unlikely(where == NULL)) {
-            return 0;
-        }
-        memcpy(where, line->buf, line->len);
-
-        /* Remove trailing newlines/carriage returns */
-        while (line->len && isspace((unsigned char)where[line->len - 1])) {
-            line->len--;
-        }
-
-        where[line->len] = '\0';
-        *dest = where;
+    /* Strip trailing whitespace before allocating, so the length accounted by
+     * FTPCalloc matches the length the caller later hands to FTPFree. */
+    while (line->len && isspace((unsigned char)line->buf[line->len - 1])) {
+        line->len--;
     }
-    /* either 0 or actual */
-    return line->len ? line->len + 1 : 0;
+
+    if (unlikely(line->len == 0)) {
+        return 0;
+    }
+
+    uint8_t *where = FTPCalloc(line->len + 1, sizeof(char));
+    if (unlikely(where == NULL)) {
+        return 0;
+    }
+    memcpy(where, line->buf, line->len);
+    where[line->len] = '\0';
+    *dest = where;
+
+    return line->len + 1;
 }
 
 #include "util-print.h"
@@ -1657,6 +1659,98 @@ static int FTPParserTest12(void)
     StreamTcpFreeConfig(true);
     PASS;
 }
+
+/** \test A command padded with trailing whitespace must leave the memuse
+ *        counter where it found it, and the padding must not be kept. */
+static int FTPParserTest13(void)
+{
+    Flow f;
+    uint8_t ftpbuf[] = "USER anonymous                                        \r\n";
+    const char expected[] = "USER anonymous";
+    TcpSession ssn;
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_FTP;
+
+    StreamTcpInitConfig(true);
+
+    const uint64_t memuse = SC_ATOMIC_GET(ftp_memuse);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER | STREAM_EOF,
+            ftpbuf, sizeof(ftpbuf) - 1);
+    FAIL_IF(r != 0);
+
+    FtpState *ftp_state = f.alstate;
+    FAIL_IF_NULL(ftp_state);
+    FAIL_IF(ftp_state->command != FTP_COMMAND_USER);
+
+    /* the request is what the transaction is freed with, so it has to be the
+     * stripped line: the padding is neither stored nor accounted */
+    FTPTransaction *tx = TAILQ_FIRST(&ftp_state->tx_list);
+    FAIL_IF_NULL(tx);
+    FAIL_IF_NULL(tx->request);
+    FAIL_IF(tx->request_length != sizeof(expected));
+    FAIL_IF(memcmp(tx->request, expected, sizeof(expected)) != 0);
+
+    FLOW_DESTROY(&f);
+    FAIL_IF(SC_ATOMIC_GET(ftp_memuse) != memuse);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/** \test The padding is stripped from the line itself, not just from the copy
+ *        kept on the transaction: what follows the copy has to see the
+ *        shortened line. */
+static int FTPParserTest14(void)
+{
+    Flow f;
+    uint8_t ftpbuf1[] = "PORT 192,168,1,1,0,80          \r\n";
+    uint8_t ftpbuf2[] = "227 OK\r\n";
+    const char expected[] = "PORT 192,168,1,1,0,80";
+    TcpSession ssn;
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_FTP;
+
+    StreamTcpInitConfig(true);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER | STREAM_START,
+            ftpbuf1, sizeof(ftpbuf1) - 1);
+    FAIL_IF(r != 0);
+
+    FtpState *ftp_state = f.alstate;
+    FAIL_IF_NULL(ftp_state);
+    FAIL_IF(ftp_state->command != FTP_COMMAND_PORT);
+
+    /* the port line is taken from the line, so the padding must be gone */
+    FAIL_IF(ftp_state->port_line_len != sizeof(expected) - 1);
+    FAIL_IF(memcmp(ftp_state->port_line, expected, sizeof(expected) - 1) != 0);
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOCLIENT, ftpbuf2, sizeof(ftpbuf2) - 1);
+    FAIL_IF(r != 0);
+
+    FAIL_IF(ftp_state->dyn_port != 80);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
 #endif /* UNITTESTS */
 
 void FTPParserRegisterTests(void)
@@ -1665,5 +1759,7 @@ void FTPParserRegisterTests(void)
     UtRegisterTest("FTPParserTest01", FTPParserTest01);
     UtRegisterTest("FTPParserTest11", FTPParserTest11);
     UtRegisterTest("FTPParserTest12", FTPParserTest12);
+    UtRegisterTest("FTPParserTest13", FTPParserTest13);
+    UtRegisterTest("FTPParserTest14", FTPParserTest14);
 #endif /* UNITTESTS */
 }
