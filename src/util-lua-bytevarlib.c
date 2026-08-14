@@ -38,6 +38,9 @@ static DetectLuaData *GetLuaData(lua_State *luastate)
 
 static int LuaBytevarMap(lua_State *L)
 {
+    if (!lua_islightuserdata(L, -2)) {
+        return luaL_error(L, "bytevar.map: first argument must be the signature passed to init");
+    }
     const Signature *s = lua_touserdata(L, -2);
     const char *name = luaL_checkstring(L, -1);
     DetectLuaData *ld = GetLuaData(L);
