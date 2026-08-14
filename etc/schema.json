@@ -2985,15 +2985,30 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "credentials": {
-                                            "type": "string"
+                                            "type": "string",
+                                            "suricata": {
+                                                "keywords": [
+                                                    "ldap.bind_request.sasl.credentials"
+                                                ]
+                                            }
                                         },
                                         "mechanism": {
-                                            "type": "string"
+                                            "type": "string",
+                                            "suricata": {
+                                                "keywords": [
+                                                    "ldap.bind_request.sasl.mechanism"
+                                                ]
+                                            }
                                         }
                                     }
                                 },
                                 "version": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "ldap.bind_request.version"
+                                        ]
+                                    }
                                 }
                             }
                         },
