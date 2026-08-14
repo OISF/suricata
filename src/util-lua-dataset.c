@@ -41,7 +41,7 @@ struct LuaDataset {
 static int LuaDatasetGC(lua_State *luastate)
 {
     SCLogDebug("gc:start");
-    struct LuaDataset *s = (struct LuaDataset *)lua_touserdata(luastate, 1);
+    struct LuaDataset *s = (struct LuaDataset *)luaL_testudata(luastate, 1, "dataset::metatable");
     if (s != NULL && s->set != NULL) {
         SCLogDebug("deref %s", s->set->name);
         s->set = NULL;
@@ -53,10 +53,7 @@ static int LuaDatasetGC(lua_State *luastate)
 static int LuaDatasetGetRef(lua_State *luastate)
 {
     SCLogDebug("get");
-    struct LuaDataset *s = (struct LuaDataset *)lua_touserdata(luastate, 1);
-    if (s == NULL) {
-        LUA_ERROR("dataset is not initialized");
-    }
+    struct LuaDataset *s = (struct LuaDataset *)luaL_checkudata(luastate, 1, "dataset::metatable");
 
     const char *name = lua_tostring(luastate, 2);
     if (name == NULL) {
@@ -74,10 +71,7 @@ static int LuaDatasetGetRef(lua_State *luastate)
 static int LuaDatasetAdd(lua_State *luastate)
 {
     SCLogDebug("add:start");
-    struct LuaDataset *s = (struct LuaDataset *)lua_touserdata(luastate, 1);
-    if (s == NULL) {
-        LUA_ERROR("dataset is not initialized");
-    }
+    struct LuaDataset *s = (struct LuaDataset *)luaL_checkudata(luastate, 1, "dataset::metatable");
     if (!lua_isstring(luastate, 2)) {
         LUA_ERROR("1st arg is not a string");
     }
