@@ -20,6 +20,7 @@ use crate::core::*;
 use crate::direction::Direction;
 use crate::filetracker::*;
 use crate::filecontainer::*;
+use crate::smb::events::SMBEvent;
 
 use crate::smb::smb::*;
 
@@ -230,6 +231,39 @@ impl SMBState {
 
         return consumed;
     }
+}
+
+/// Event to raise if enqueuing `len` bytes at `offset` would exceed the
+/// configured SMB queue limits. OOO data at a new offset grows the queue;
+/// in-order appends drain it and are never rejected.
+pub(crate) fn smb_queue_limit_event(
+    ft: &FileTransferTracker, offset: u64, len: u64, to_client: bool,
+) -> Option<SMBEvent> {
+    let (max_size, max_cnt, ev_size, ev_cnt) = if to_client {
+        (
+            unsafe { SMB_CFG_MAX_READ_QUEUE_SIZE },
+            unsafe { SMB_CFG_MAX_READ_QUEUE_CNT },
+            SMBEvent::ReadQueueSizeExceeded,
+            SMBEvent::ReadQueueCntExceeded,
+        )
+    } else {
+        (
+            unsafe { SMB_CFG_MAX_WRITE_QUEUE_SIZE },
+            unsafe { SMB_CFG_MAX_WRITE_QUEUE_CNT },
+            SMBEvent::WriteQueueSizeExceeded,
+            SMBEvent::WriteQueueCntExceeded,
+        )
+    };
+    if max_size != 0
+        && ft.is_ooo_offset(offset)
+        && ft.get_inflight_size() + len > u64::from(max_size)
+    {
+        return Some(ev_size);
+    }
+    if max_cnt != 0 && ft.new_chunk_entry(offset) && ft.get_inflight_cnt() + 1 > max_cnt as usize {
+        return Some(ev_cnt);
+    }
+    None
 }
 
 use crate::applayer::AppLayerGetFileState;

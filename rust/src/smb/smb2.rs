@@ -112,11 +112,7 @@ fn smb2_read_response_record_generic(state: &mut SMBState, r: &Smb2Record)
     }
 }
 
-pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_remaining: u32)
-{
-    let max_queue_size = unsafe { SMB_CFG_MAX_READ_QUEUE_SIZE };
-    let max_queue_cnt = unsafe { SMB_CFG_MAX_READ_QUEUE_CNT };
-
+pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_remaining: u32) {
     smb2_read_response_record_generic(state, r);
 
     match parse_smb2_response_read(r.data) {
@@ -169,11 +165,13 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                     if offset < tdf.file_tracker.tracked {
                         set_event_fileoverlap = true;
                     }
-                    if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + rd.len as u64 > u64::from(max_queue_size) {
-                        state.set_event(SMBEvent::ReadQueueSizeExceeded);
-                        state.set_skip(Direction::ToClient, nbss_remaining);
-                    } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
-                        state.set_event(SMBEvent::ReadQueueCntExceeded);
+                    if let Some(ev) =
+                        smb_queue_limit_event(&tdf.file_tracker, offset, rd.len as u64, true)
+                    {
+                        // Attach to the affected file tx, not the newest tx.
+                        tx.set_event(ev);
+                        tx.tx_data.updated_ts = true;
+                        tx.tx_data.updated_tc = true;
                         state.set_skip(Direction::ToClient, nbss_remaining);
                     } else {
                         filetracker_newchunk(&mut tdf.file_tracker,
@@ -245,12 +243,21 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                         if offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
-                        if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + rd.len as u64 > u64::from(max_queue_size) {
-                            state.set_event(SMBEvent::ReadQueueSizeExceeded);
+                        if let Some(ev) =
+                            smb_queue_limit_event(&tdf.file_tracker, offset, rd.len as u64, true)
+                        {
+                            // tx just created: set the event on it directly.
+                            tx.set_event(ev);
+                            tx.tx_data.updated_ts = true;
+                            tx.tx_data.updated_tc = true;
+                            // Chunk rejected before the file was opened: complete + close the
+                            // tx and zero files_opened, else it dangles until teardown.
+                            tx.request_done = true;
+                            tx.response_done = true;
+                            tx.tx_data.files_opened = 0;
                             state.set_skip(Direction::ToClient, nbss_remaining);
-                        } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
-                            state.set_event(SMBEvent::ReadQueueCntExceeded);
-                            state.set_skip(Direction::ToClient, nbss_remaining);
+                            // The trailing set_file_left also claims these bytes: safe -- records
+                            // only reach here with no chunk armed, and handle_skip runs first.
                         } else {
                             filetracker_newchunk(&mut tdf.file_tracker,
                                     &file_name, rd.data, offset,
@@ -272,11 +279,7 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
     }
 }
 
-pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_remaining: u32)
-{
-    let max_queue_size = unsafe { SMB_CFG_MAX_WRITE_QUEUE_SIZE };
-    let max_queue_cnt = unsafe { SMB_CFG_MAX_WRITE_QUEUE_CNT };
-
+pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_remaining: u32) {
     SCLogDebug!("SMBv2/WRITE: request record");
     if smb2_create_new_tx(r.command) {
         let tx_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
@@ -318,11 +321,16 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                     if wr.wr_offset < tdf.file_tracker.tracked {
                         set_event_fileoverlap = true;
                     }
-                    if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + wr.wr_len as u64 > u64::from(max_queue_size) {
-                        state.set_event(SMBEvent::WriteQueueSizeExceeded);
-                        state.set_skip(Direction::ToServer, nbss_remaining);
-                    } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
-                        state.set_event(SMBEvent::WriteQueueCntExceeded);
+                    if let Some(ev) = smb_queue_limit_event(
+                        &tdf.file_tracker,
+                        wr.wr_offset,
+                        wr.wr_len as u64,
+                        false,
+                    ) {
+                        // Attach to the affected file tx, not the newest tx.
+                        tx.set_event(ev);
+                        tx.tx_data.updated_ts = true;
+                        tx.tx_data.updated_tc = true;
                         state.set_skip(Direction::ToServer, nbss_remaining);
                     } else {
                         filetracker_newchunk(&mut tdf.file_tracker,
@@ -389,12 +397,24 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                             set_event_fileoverlap = true;
                         }
 
-                        if max_queue_size != 0 && tdf.file_tracker.get_inflight_size() + wr.wr_len as u64 > u64::from(max_queue_size) {
-                            state.set_event(SMBEvent::WriteQueueSizeExceeded);
+                        if let Some(ev) = smb_queue_limit_event(
+                            &tdf.file_tracker,
+                            wr.wr_offset,
+                            wr.wr_len as u64,
+                            false,
+                        ) {
+                            // tx just created: set the event on it directly.
+                            tx.set_event(ev);
+                            tx.tx_data.updated_ts = true;
+                            tx.tx_data.updated_tc = true;
+                            // Chunk rejected before the file was opened: complete + close the
+                            // tx and zero files_opened, else it dangles until teardown.
+                            tx.request_done = true;
+                            tx.response_done = true;
+                            tx.tx_data.files_opened = 0;
                             state.set_skip(Direction::ToServer, nbss_remaining);
-                        } else if max_queue_cnt != 0 && tdf.file_tracker.get_inflight_cnt() >= max_queue_cnt as usize {
-                            state.set_event(SMBEvent::WriteQueueCntExceeded);
-                            state.set_skip(Direction::ToServer, nbss_remaining);
+                            // The trailing set_file_left also claims these bytes: safe -- records
+                            // only reach here with no chunk armed, and handle_skip runs first.
                         } else {
                             filetracker_newchunk(&mut tdf.file_tracker,
                                     &file_name, wr.data, wr.wr_offset,
