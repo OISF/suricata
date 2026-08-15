@@ -160,6 +160,8 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
             SCLogDebug!("SMBv2 READ: GUID {:?} offset {}", file_guid, offset);
 
             let mut set_event_fileoverlap = false;
+            // set_file_left must not claim bytes a skip already consumed
+            let mut rejected = false;
             // look up existing tracker and if we have it update it
             let found = if let Some(tx) =
                 state.get_file_tx_by_fuid_with_open_file(&file_guid, Direction::ToClient)
@@ -177,6 +179,7 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                         tx.tx_data.0.updated_ts = true;
                         tx.tx_data.0.updated_tc = true;
                         state.set_skip(Direction::ToClient, nbss_remaining);
+                        rejected = true;
                     } else {
                         filetracker_newchunk(
                             &mut tdf.file_tracker,
@@ -237,9 +240,11 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                     let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
                     let vercmd = SMBVerCmdStat::new2_with_ntstatus(SMB2_COMMAND_READ, r.nt_status);
                     smb_read_dcerpc_record(state, vercmd, hdr, &file_guid, rd.data);
+                    rejected = true;
                 } else if is_pipe {
                     SCLogDebug!("non-DCERPC pipe");
                     state.set_skip(Direction::ToClient, nbss_remaining);
+                    rejected = true;
                 } else {
                     let file_name = match state.guid2name_cache.get(&file_guid) {
                         Some(n) => n.to_vec(),
@@ -271,8 +276,7 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                             tx.response_done = true;
                             tx.tx_data.0.files_opened = 0;
                             state.set_skip(Direction::ToClient, nbss_remaining);
-                            // The trailing set_file_left also claims these bytes: safe -- records
-                            // only reach here with no chunk armed, and handle_skip runs first.
+                            rejected = true;
                         } else {
                             filetracker_newchunk(
                                 &mut tdf.file_tracker,
@@ -291,12 +295,14 @@ pub fn smb2_read_response_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
             if set_event_fileoverlap {
                 state.set_event(SMBEvent::FileOverlap);
             }
-            state.set_file_left(
-                Direction::ToClient,
-                rd.len,
-                rd.data.len() as u32,
-                file_guid.to_vec(),
-            );
+            if !rejected {
+                state.set_file_left(
+                    Direction::ToClient,
+                    rd.len,
+                    rd.data.len() as u32,
+                    file_guid.to_vec(),
+                );
+            }
         }
         _ => {
             SCLogDebug!("SMBv2: failed to parse read response");
@@ -342,6 +348,8 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
             };
 
             let mut set_event_fileoverlap = false;
+            // set_file_left must not claim bytes a skip already consumed
+            let mut rejected = false;
             let found = if let Some(tx) =
                 state.get_file_tx_by_fuid_with_open_file(&file_guid, Direction::ToServer)
             {
@@ -361,6 +369,7 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                         tx.tx_data.0.updated_ts = true;
                         tx.tx_data.0.updated_tc = true;
                         state.set_skip(Direction::ToServer, nbss_remaining);
+                        rejected = true;
                     } else {
                         filetracker_newchunk(
                             &mut tdf.file_tracker,
@@ -422,9 +431,11 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                     let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_HEADER);
                     let vercmd = SMBVerCmdStat::new2(SMB2_COMMAND_WRITE);
                     smb_write_dcerpc_record(state, vercmd, hdr, wr.data);
+                    rejected = true;
                 } else if is_pipe {
                     SCLogDebug!("non-DCERPC pipe: skip rest of the record");
                     state.set_skip(Direction::ToServer, nbss_remaining);
+                    rejected = true;
                 } else {
                     let Some(tx) = state.new_file_tx(&file_guid, &file_name, Direction::ToServer)
                     else {
@@ -454,8 +465,7 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
                             tx.response_done = true;
                             tx.tx_data.0.files_opened = 0;
                             state.set_skip(Direction::ToServer, nbss_remaining);
-                            // The trailing set_file_left also claims these bytes: safe -- records
-                            // only reach here with no chunk armed, and handle_skip runs first.
+                            rejected = true;
                         } else {
                             filetracker_newchunk(
                                 &mut tdf.file_tracker,
@@ -474,12 +484,14 @@ pub fn smb2_write_request_record(state: &mut SMBState, r: &Smb2Record, nbss_rema
             if set_event_fileoverlap {
                 state.set_event(SMBEvent::FileOverlap);
             }
-            state.set_file_left(
-                Direction::ToServer,
-                wr.wr_len,
-                wr.data.len() as u32,
-                file_guid.to_vec(),
-            );
+            if !rejected {
+                state.set_file_left(
+                    Direction::ToServer,
+                    wr.wr_len,
+                    wr.data.len() as u32,
+                    file_guid.to_vec(),
+                );
+            }
         }
         _ => {
             state.set_event(SMBEvent::MalformedData);
@@ -984,5 +996,120 @@ pub fn smb2_response_record(state: &mut SMBState, r: &Smb2Record) {
                 false
             }
         };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // link stub: the C file-flags helper has no Rust definition; the tests
+    // never rely on its value
+    #[no_mangle]
+    pub extern "C" fn SCFileFlowFlagsToFlags(_f: u16, _d: u8) -> u16 {
+        0
+    }
+
+    // the FFI file ops are no-ops under cfg(test), so a default context is
+    // safe (the filetracker needs it set to track chunks)
+    static TEST_SBCFG: StreamingBufferConfig = StreamingBufferConfig {
+        buf_size: 2048,
+        max_regions: 8,
+        region_gap: 0,
+        Calloc: None,
+        Realloc: None,
+        Free: None,
+    };
+    static TEST_FC: SuricataFileContext = SuricataFileContext {
+        files_sbcfg: &TEST_SBCFG,
+    };
+
+    // SMB2 write body (parse_smb2_request_write layout): skip4, len, offset,
+    // guid, channel, remaining, write_flags, skip4, data.
+    use crate::core::{StreamingBufferConfig, SuricataFileContext};
+
+    fn write_body(offset: u64, guid: &[u8], data: &[u8], declared: u32) -> Vec<u8> {
+        let mut b = vec![0u8; 4];
+        b.extend(declared.to_le_bytes());
+        b.extend(offset.to_le_bytes());
+        b.extend(guid);
+        b.extend([0u8; 16]); // channel + remaining + write_flags + skip
+        b.extend(data);
+        b
+    }
+
+    fn write_rec(data: &[u8], mid: u64) -> Smb2Record<'_> {
+        Smb2Record {
+            direction: 0,
+            header_len: 64,
+            nt_status: 0,
+            command: SMB2_COMMAND_WRITE,
+            message_id: mid,
+            tree_id: 1,
+            async_id: 0,
+            session_id: 1,
+            data,
+        }
+    }
+
+    // A queue-limit-rejected record must not arm the trailing file-data
+    // promise: its remainder is consumed by the skip, so the promise would
+    // otherwise claim the following record's bytes.
+    #[test]
+    fn test_smb2_write_rejected_partial_arms_no_promise() {
+        let _lock = crate::smb::files::SMB_CFG_TEST_LOCK.lock().unwrap();
+        // restores the cfg statics this test mutates; leaking them made later
+        // write-queue-dependent tests order-dependent
+        struct CfgGuard;
+        impl Drop for CfgGuard {
+            fn drop(&mut self) {
+                unsafe {
+                    SURICATA_SMB_FILE_CONFIG = None;
+                }
+                unsafe {
+                    SMB_CFG_MAX_WRITE_QUEUE_CNT = 64;
+                }
+                unsafe {
+                    SMB_CFG_MAX_WRITE_QUEUE_SIZE = 67108864;
+                }
+            }
+        }
+        let _cfg_guard = CfgGuard;
+        unsafe {
+            SURICATA_SMB_FILE_CONFIG = Some(&TEST_FC);
+        }
+        let mut state = SMBState::new();
+        let guid: Vec<u8> = [0xAAu8, 0xBB, 0xCC, 0xDD]
+            .into_iter()
+            .chain(std::iter::repeat_n(0, 12))
+            .collect();
+        // w1 (200 declared, 100 carried, nbss 0): rejected by the NBSS guard
+        // (200 - 100 > 0) before the tracker is fed, so it queues nothing.
+        let d1: Vec<u8> = vec![b'A'; 100];
+        let b1 = write_body(0, &guid, &d1, 200);
+        smb2_write_request_record(&mut state, &write_rec(&b1, 1), 0);
+        // w2 (100 declared, 100 carried at offset 300): creates the file tx
+        // and queues one OOO chunk (inflight count 1).
+        let d2: Vec<u8> = vec![b'B'; 100];
+        let b2 = write_body(300, &guid, &d2, 100);
+        smb2_write_request_record(&mut state, &write_rec(&b2, 2), 0);
+        // w3 (700 declared, 444 carried, 256 nbss, OOO at 600): a new OOO
+        // entry would make the inflight count 1 + 1 > 1, so the queue count
+        // limit rejects it on the partial path.
+        unsafe {
+            SMB_CFG_MAX_WRITE_QUEUE_CNT = 1;
+        }
+        unsafe {
+            SMB_CFG_MAX_WRITE_QUEUE_SIZE = 0;
+        }
+        let d3: Vec<u8> = vec![b'X'; 444];
+        let b3 = write_body(600, &guid, &d3, 700);
+        // sentinel: a regressed guard would overwrite it with the armed 256
+        state.file_ts_left = 0x1234;
+        smb2_write_request_record(&mut state, &write_rec(&b3, 3), 256);
+        assert_eq!(
+            state.file_ts_left, 0x1234,
+            "rejected record must not arm the file-data promise"
+        );
     }
 }
