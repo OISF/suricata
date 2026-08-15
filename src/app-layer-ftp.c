@@ -611,10 +611,6 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
             default:
                 break;
         }
-        if (line.len >= ftp_max_line_len) {
-            ftpi.consumed = ftpi.len + 1;
-            break;
-        }
     }
 
     SCReturnStruct(APP_LAYER_OK);
@@ -715,6 +711,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
         }
 
         state->curr_tx = tx;
+
         uint16_t dyn_port;
         switch (state->command) {
             case FTP_COMMAND_AUTH_TLS:
@@ -787,11 +784,6 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
         }
     tx_complete:
         tx->done = true;
-
-        if (line.len >= ftp_max_line_len) {
-            ftpi.consumed = ftpi.len + 1;
-            break;
-        }
     }
 
     SCReturnStruct(APP_LAYER_OK);
