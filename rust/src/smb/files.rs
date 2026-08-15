@@ -338,6 +338,10 @@ pub(super) unsafe extern "C" fn smb_gettxfiles(tx: *mut std::ffi::c_void, direct
     AppLayerGetFileState::err()
 }
 
+// Serializes the cfg-static-mutating SMB tests (cargo runs them in parallel).
+#[cfg(test)]
+pub static SMB_CFG_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[cfg(test)]
 mod tests {
     use super::*;
