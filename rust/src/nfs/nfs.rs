@@ -103,6 +103,15 @@ static mut ALPROTO_NFS: AppProto = ALPROTO_UNKNOWN;
 pub static mut NFS_CFG_MAX_REQ: usize = 512;
 pub static mut NFS_CFG_MAX_NAMES: usize = 512;
 
+/// Max queued (out-of-order) read file data (bytes). 0 = no limit.
+pub static mut NFS_CFG_MAX_READ_QUEUE_SIZE: u32 = 67108864;
+/// Max queued (out-of-order) read chunks. 0 = no limit.
+pub static mut NFS_CFG_MAX_READ_QUEUE_CNT: u32 = 64;
+/// Max queued (out-of-order) write file data (bytes). 0 = no limit.
+pub static mut NFS_CFG_MAX_WRITE_QUEUE_SIZE: u32 = 67108864;
+/// Max queued (out-of-order) write chunks. 0 = no limit.
+pub static mut NFS_CFG_MAX_WRITE_QUEUE_CNT: u32 = 64;
+
 #[derive(AppLayerFrameType)]
 pub enum NFSFrameType {
     RPCPdu,
@@ -125,6 +134,14 @@ pub enum NFSEvent {
     NonExistingVersion = 1,
     UnsupportedVersion = 2,
     TooManyTransactions = 3,
+    /// Queued (out-of-order) read file data exceeds `max-read-queue-size`
+    ReadQueueSizeExceeded = 4,
+    /// Number of queued (out-of-order) read chunks exceeds `max-read-queue-cnt`
+    ReadQueueCntExceeded = 5,
+    /// Queued (out-of-order) write file data exceeds `max-write-queue-size`
+    WriteQueueSizeExceeded = 6,
+    /// Number of queued (out-of-order) write chunks exceeds `max-write-queue-cnt`
+    WriteQueueCntExceeded = 7,
 }
 
 #[derive(Debug)]
@@ -356,6 +373,34 @@ fn filetracker_update(ft: &mut FileTransferTracker, data: &[u8], gap_size: u32) 
     }
 }
 
+/// Returns the event to raise if enqueuing `len` bytes of queued file data
+/// in the read direction would exceed the configured limits.
+pub(crate) fn read_queue_limit_event(ft: &FileTransferTracker, len: u64) -> Option<NFSEvent> {
+    let max_size = unsafe { NFS_CFG_MAX_READ_QUEUE_SIZE };
+    if max_size != 0 && ft.get_inflight_size() + len > u64::from(max_size) {
+        return Some(NFSEvent::ReadQueueSizeExceeded);
+    }
+    let max_cnt = unsafe { NFS_CFG_MAX_READ_QUEUE_CNT };
+    if max_cnt != 0 && ft.get_inflight_cnt() >= max_cnt as usize {
+        return Some(NFSEvent::ReadQueueCntExceeded);
+    }
+    None
+}
+
+/// Returns the event to raise if enqueuing `len` bytes of queued file data
+/// in the write direction would exceed the configured limits.
+pub(crate) fn write_queue_limit_event(ft: &FileTransferTracker, len: u64) -> Option<NFSEvent> {
+    let max_size = unsafe { NFS_CFG_MAX_WRITE_QUEUE_SIZE };
+    if max_size != 0 && ft.get_inflight_size() + len > u64::from(max_size) {
+        return Some(NFSEvent::WriteQueueSizeExceeded);
+    }
+    let max_cnt = unsafe { NFS_CFG_MAX_WRITE_QUEUE_CNT };
+    if max_cnt != 0 && ft.get_inflight_cnt() >= max_cnt as usize {
+        return Some(NFSEvent::WriteQueueCntExceeded);
+    }
+    None
+}
+
 #[derive(Debug)]
 pub struct NFSState {
     state_data: AppLayerStateData,
@@ -377,6 +422,10 @@ pub struct NFSState {
     pub tc_chunk_left: u32,
     /// file handle of in progress toserver WRITE file chunk
     ts_chunk_fh: Vec<u8>,
+
+    /// number of stream bytes to skip (queued file data over the queue limit)
+    skip_ts: u32,
+    skip_tc: u32,
 
     ts_ssn_gap: bool,
     tc_ssn_gap: bool,
@@ -427,6 +476,8 @@ impl NFSState {
             transactions: Vec::new(),
             ts_chunk_xid: 0,
             tc_chunk_xid: 0,
+            skip_ts: 0,
+            skip_tc: 0,
             ts_chunk_left: 0,
             tc_chunk_left: 0,
             ts_chunk_fh: Vec::new(),
@@ -512,6 +563,44 @@ impl NFSState {
 
         let tx = &mut self.transactions[len - 1];
         tx.tx_data.set_event(event as u8);
+    }
+
+    /// Set how many stream bytes to skip (queued file data over the
+    /// queue limit, not buffered).
+    pub fn set_skip(&mut self, direction: Direction, skip: u32) {
+        if direction == Direction::ToServer {
+            self.skip_ts = self.skip_ts.saturating_add(skip);
+        } else {
+            self.skip_tc = self.skip_tc.saturating_add(skip);
+        }
+    }
+
+    /// Consume up to `input_size` bytes of pending skip. Returns how
+    /// much we consumed.
+    fn handle_skip(&mut self, direction: Direction, input_size: u32) -> u32 {
+        let skip_left = if direction == Direction::ToServer {
+            self.skip_ts
+        } else {
+            self.skip_tc
+        };
+        if skip_left == 0 {
+            return 0;
+        }
+        SCLogDebug!("skip_left {} input_size {}", skip_left, input_size);
+
+        let consumed = if skip_left >= input_size {
+            input_size
+        } else {
+            skip_left
+        };
+
+        let remaining = skip_left.saturating_sub(input_size);
+        if direction == Direction::ToServer {
+            self.skip_ts = remaining;
+        } else {
+            self.skip_tc = remaining;
+        }
+        return consumed;
     }
 
     // TODO maybe not enough users to justify a func
@@ -994,29 +1083,39 @@ impl NFSState {
             Vec::new()
         };
 
+        let mut queue_event: Option<NFSEvent> = None;
+        let mut queue_exceeded = false;
+
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             Some(tx) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                    filetracker_newchunk(
-                        &mut tdf.file_tracker,
-                        &file_name,
-                        w.file_data,
-                        w.offset,
-                        w.file_len,
-                        fill_bytes as u8,
-                        is_last,
-                        &r.hdr.xid,
-                    );
-                    tdf.chunk_count += 1;
-                    if is_last {
-                        tdf.file_last_xid = r.hdr.xid;
-                        tx.is_last = true;
-                        tx.response_done = true;
-                        tx.is_file_closed = true;
-                        sc_app_layer_parser_trigger_raw_stream_inspection(
-                            flow,
-                            Direction::ToClient as i32,
+                    if let Some(event) =
+                        write_queue_limit_event(&tdf.file_tracker, w.file_data.len() as u64)
+                    {
+                        queue_event = Some(event);
+                        queue_exceeded = true;
+                    } else {
+                        filetracker_newchunk(
+                            &mut tdf.file_tracker,
+                            &file_name,
+                            w.file_data,
+                            w.offset,
+                            w.file_len,
+                            fill_bytes as u8,
+                            is_last,
+                            &r.hdr.xid,
                         );
+                        tdf.chunk_count += 1;
+                        if is_last {
+                            tdf.file_last_xid = r.hdr.xid;
+                            tx.is_last = true;
+                            tx.response_done = true;
+                            tx.is_file_closed = true;
+                            sc_app_layer_parser_trigger_raw_stream_inspection(
+                                flow,
+                                Direction::ToClient as i32,
+                            );
+                        }
                     }
                     true
                 } else {
@@ -1028,21 +1127,24 @@ impl NFSState {
         if !found {
             let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
             if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                filetracker_newchunk(
-                    &mut tdf.file_tracker,
-                    &file_name,
-                    w.file_data,
-                    w.offset,
-                    w.file_len,
-                    fill_bytes as u8,
-                    is_last,
-                    &r.hdr.xid,
-                );
-                tx.procedure = NFSPROC3_WRITE;
-                tx.xid = r.hdr.xid;
-                tx.is_first = true;
-                tx.nfs_version = r.progver as u16;
-                if is_last {
+                if let Some(event) =
+                    write_queue_limit_event(&tdf.file_tracker, w.file_data.len() as u64)
+                {
+                    queue_event = Some(event);
+                    queue_exceeded = true;
+                } else {
+                    filetracker_newchunk(
+                        &mut tdf.file_tracker,
+                        &file_name,
+                        w.file_data,
+                        w.offset,
+                        w.file_len,
+                        fill_bytes as u8,
+                        is_last,
+                        &r.hdr.xid,
+                    );
+                }
+                if is_last && !queue_exceeded {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.is_last = true;
                     tx.request_done = true;
@@ -1053,17 +1155,35 @@ impl NFSState {
                     );
                 }
             }
+            tx.procedure = NFSPROC3_WRITE;
+            tx.xid = r.hdr.xid;
+            tx.is_first = true;
+            tx.nfs_version = r.progver as u16;
+        }
+        if let Some(event) = queue_event {
+            self.set_event(event);
         }
         if !self.is_udp {
-            self.ts_chunk_xid = r.hdr.xid;
-            debug_validate_bug_on!(w.file_data.len() as u32 > w.count);
-            self.ts_chunk_left = w.count - w.file_data.len() as u32;
-            self.ts_chunk_fh = file_handle;
-            SCLogDebug!(
-                "REQUEST chunk_xid {:04X} chunk_left {}",
-                self.ts_chunk_xid,
-                self.ts_chunk_left
-            );
+            if queue_exceeded {
+                // don't buffer the remainder of this record; skip it from
+                // the stream instead of adding it to the file tracker
+                let pending = w.count.saturating_sub(w.file_data.len() as u32);
+                self.set_skip(Direction::ToServer, pending);
+                self.ts_chunk_xid = 0;
+                self.ts_chunk_left = 0;
+                self.ts_chunk_fh.clear();
+                SCLogDebug!("WRITE queue exceeded: skipping {} stream bytes", pending);
+            } else {
+                self.ts_chunk_xid = r.hdr.xid;
+                debug_validate_bug_on!(w.file_data.len() as u32 > w.count);
+                self.ts_chunk_left = w.count - w.file_data.len() as u32;
+                self.ts_chunk_fh = file_handle;
+                SCLogDebug!(
+                    "REQUEST chunk_xid {:04X} chunk_left {}",
+                    self.ts_chunk_xid,
+                    self.ts_chunk_left
+                );
+            }
         }
         0
     }
@@ -1353,41 +1473,51 @@ impl NFSState {
         let is_partial = reply.data.len() < reply.count as usize;
         SCLogDebug!("partial data? {}", is_partial);
 
+        let mut queue_event: Option<NFSEvent> = None;
+        let mut queue_exceeded = false;
+
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToClient) {
             Some(tx) => {
                 SCLogDebug!("updated TX {:?}", tx);
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                    filetracker_newchunk(
-                        &mut tdf.file_tracker,
-                        &file_name,
-                        reply.data,
-                        chunk_offset,
-                        reply.count,
-                        fill_bytes as u8,
-                        is_last,
-                        &r.hdr.xid,
-                    );
-                    tdf.chunk_count += 1;
-                    if is_last {
-                        tdf.file_last_xid = r.hdr.xid;
-                        tx.rpc_response_status = r.reply_state;
-                        tx.nfs_response_status = reply.status;
-                        tx.is_last = true;
-                        tx.request_done = true;
-                        sc_app_layer_parser_trigger_raw_stream_inspection(
-                            flow,
-                            Direction::ToServer as i32,
+                    if let Some(event) =
+                        read_queue_limit_event(&tdf.file_tracker, reply.data.len() as u64)
+                    {
+                        queue_event = Some(event);
+                        queue_exceeded = true;
+                    } else {
+                        filetracker_newchunk(
+                            &mut tdf.file_tracker,
+                            &file_name,
+                            reply.data,
+                            chunk_offset,
+                            reply.count,
+                            fill_bytes as u8,
+                            is_last,
+                            &r.hdr.xid,
                         );
-
-                        /* if this is a partial record we will close the tx
-                         * when we've received the final data */
-                        if !is_partial {
-                            tx.response_done = true;
-                            SCLogDebug!("TX {} is DONE", tx.id);
+                        tdf.chunk_count += 1;
+                        if is_last {
+                            tdf.file_last_xid = r.hdr.xid;
+                            tx.rpc_response_status = r.reply_state;
+                            tx.nfs_response_status = reply.status;
+                            tx.is_last = true;
+                            tx.request_done = true;
                             sc_app_layer_parser_trigger_raw_stream_inspection(
                                 flow,
-                                Direction::ToClient as i32,
+                                Direction::ToServer as i32,
                             );
+
+                            /* if this is a partial record we will close the tx
+                             * when we've received the final data */
+                            if !is_partial {
+                                tx.response_done = true;
+                                SCLogDebug!("TX {} is DONE", tx.id);
+                                sc_app_layer_parser_trigger_raw_stream_inspection(
+                                    flow,
+                                    Direction::ToClient as i32,
+                                );
+                            }
                         }
                     }
                     true
@@ -1400,24 +1530,24 @@ impl NFSState {
         if !found {
             let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToClient);
             if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                filetracker_newchunk(
-                    &mut tdf.file_tracker,
-                    &file_name,
-                    reply.data,
-                    chunk_offset,
-                    reply.count,
-                    fill_bytes as u8,
-                    is_last,
-                    &r.hdr.xid,
-                );
-                tx.procedure = if nfs_version < 4 {
-                    NFSPROC3_READ
+                if let Some(event) =
+                    read_queue_limit_event(&tdf.file_tracker, reply.data.len() as u64)
+                {
+                    queue_event = Some(event);
+                    queue_exceeded = true;
                 } else {
-                    NFSPROC4_READ
-                };
-                tx.xid = r.hdr.xid;
-                tx.is_first = true;
-                if is_last {
+                    filetracker_newchunk(
+                        &mut tdf.file_tracker,
+                        &file_name,
+                        reply.data,
+                        chunk_offset,
+                        reply.count,
+                        fill_bytes as u8,
+                        is_last,
+                        &r.hdr.xid,
+                    );
+                }
+                if is_last && !queue_exceeded {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.rpc_response_status = r.reply_state;
                     tx.nfs_response_status = reply.status;
@@ -1440,12 +1570,32 @@ impl NFSState {
                     }
                 }
             }
+            tx.procedure = if nfs_version < 4 {
+                NFSPROC3_READ
+            } else {
+                NFSPROC4_READ
+            };
+            tx.xid = r.hdr.xid;
+            tx.is_first = true;
+        }
+        if let Some(event) = queue_event {
+            self.set_event(event);
         }
 
         if !self.is_udp {
-            self.tc_chunk_xid = r.hdr.xid;
-            debug_validate_bug_on!(reply.data.len() as u32 > reply.count);
-            self.tc_chunk_left = reply.count - reply.data.len() as u32;
+            if queue_exceeded {
+                // don't buffer the remainder of this record; skip it from
+                // the stream instead of adding it to the file tracker
+                let pending = reply.count.saturating_sub(reply.data.len() as u32);
+                self.set_skip(Direction::ToClient, pending);
+                self.tc_chunk_xid = 0;
+                self.tc_chunk_left = 0;
+                SCLogDebug!("READ queue exceeded: skipping {} stream bytes", pending);
+            } else {
+                self.tc_chunk_xid = r.hdr.xid;
+                debug_validate_bug_on!(reply.data.len() as u32 > reply.count);
+                self.tc_chunk_left = reply.count - reply.data.len() as u32;
+            }
         }
 
         SCLogDebug!(
@@ -1484,12 +1634,24 @@ impl NFSState {
 
     pub fn parse_tcp_data_ts_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_ts_gap ({})", gap_size);
-        let gap = vec![0; gap_size as usize];
-        let consumed =
-            self.filetracker_update(std::ptr::null_mut(), Direction::ToServer, &gap, gap_size);
-        if consumed > gap_size {
-            SCLogDebug!("consumed more than GAP size: {} > {}", consumed, gap_size);
+        let consumed = self.handle_skip(Direction::ToServer, gap_size);
+        if consumed == gap_size {
+            /* gap was part of skipped file data: nothing else to do */
             return AppLayerResult::ok();
+        }
+        if consumed < gap_size {
+            let new_gap_size = gap_size - consumed;
+            let gap = vec![0; new_gap_size as usize];
+            let consumed2 = self.filetracker_update(
+                std::ptr::null_mut(),
+                Direction::ToServer,
+                &gap,
+                new_gap_size,
+            );
+            if consumed2 == new_gap_size {
+                /* fully consumed by the file tracker, no need to tag as gap */
+                return AppLayerResult::ok();
+            }
         }
         self.ts_ssn_gap = true;
         self.ts_gap = true;
@@ -1499,12 +1661,24 @@ impl NFSState {
 
     pub fn parse_tcp_data_tc_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_tc_gap ({})", gap_size);
-        let gap = vec![0; gap_size as usize];
-        let consumed =
-            self.filetracker_update(std::ptr::null_mut(), Direction::ToClient, &gap, gap_size);
-        if consumed > gap_size {
-            SCLogDebug!("consumed more than GAP size: {} > {}", consumed, gap_size);
+        let consumed = self.handle_skip(Direction::ToClient, gap_size);
+        if consumed == gap_size {
+            /* gap was part of skipped file data: nothing else to do */
             return AppLayerResult::ok();
+        }
+        if consumed < gap_size {
+            let new_gap_size = gap_size - consumed;
+            let gap = vec![0; new_gap_size as usize];
+            let consumed2 = self.filetracker_update(
+                std::ptr::null_mut(),
+                Direction::ToClient,
+                &gap,
+                new_gap_size,
+            );
+            if consumed2 == new_gap_size {
+                /* fully consumed by the file tracker, no need to tag as gap */
+                return AppLayerResult::ok();
+            }
         }
         self.tc_ssn_gap = true;
         self.tc_gap = true;
@@ -1578,6 +1752,13 @@ impl NFSState {
         &mut self, flow: *mut Flow, stream_slice: &StreamSlice,
     ) -> AppLayerResult {
         let mut cur_i = stream_slice.as_slice();
+        let consumed = self.handle_skip(Direction::ToServer, cur_i.len() as u32);
+        if consumed > 0 {
+            if consumed as usize > cur_i.len() {
+                return AppLayerResult::err();
+            }
+            cur_i = &cur_i[consumed as usize..];
+        }
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
         let consumed = self.filetracker_update(flow, Direction::ToServer, cur_i, 0);
@@ -1769,6 +1950,13 @@ impl NFSState {
         &mut self, flow: *mut Flow, stream_slice: &StreamSlice,
     ) -> AppLayerResult {
         let mut cur_i = stream_slice.as_slice();
+        let consumed = self.handle_skip(Direction::ToClient, cur_i.len() as u32);
+        if consumed > 0 {
+            if consumed as usize > cur_i.len() {
+                return AppLayerResult::err();
+            }
+            cur_i = &cur_i[consumed as usize..];
+        }
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
         let consumed = self.filetracker_update(flow, Direction::ToClient, cur_i, 0);
@@ -2316,6 +2504,62 @@ unsafe extern "C" fn nfs_probe_udp_tc(
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"nfs\0";
 
+/// Load the NFS queue limits from the config.
+///
+/// Called from both the TCP and the UDP parser registration so that
+/// single-transport configurations (e.g. UDP only) also load the
+/// configured limits instead of silently keeping the defaults.
+unsafe fn load_nfs_limit_config() {
+    let retval = conf_get("app-layer.protocols.nfs.max-read-queue-size");
+    if let Some(val) = retval {
+        match get_memval(val) {
+            Ok(v) => match u32::try_from(v) {
+                Ok(v32) => {
+                    NFS_CFG_MAX_READ_QUEUE_SIZE = v32;
+                }
+                Err(_) => {
+                    SCLogError!("Invalid max-read-queue-size value (too large)");
+                }
+            },
+            Err(_) => {
+                SCLogError!("Invalid max-read-queue-size value");
+            }
+        }
+    }
+    let retval = conf_get("app-layer.protocols.nfs.max-read-queue-cnt");
+    if let Some(val) = retval {
+        if let Ok(v) = val.parse::<u32>() {
+            NFS_CFG_MAX_READ_QUEUE_CNT = v;
+        } else {
+            SCLogError!("Invalid max-read-queue-cnt value");
+        }
+    }
+    let retval = conf_get("app-layer.protocols.nfs.max-write-queue-size");
+    if let Some(val) = retval {
+        match get_memval(val) {
+            Ok(v) => match u32::try_from(v) {
+                Ok(v32) => {
+                    NFS_CFG_MAX_WRITE_QUEUE_SIZE = v32;
+                }
+                Err(_) => {
+                    SCLogError!("Invalid max-write-queue-size value (too large)");
+                }
+            },
+            Err(_) => {
+                SCLogError!("Invalid max-write-queue-size value");
+            }
+        }
+    }
+    let retval = conf_get("app-layer.protocols.nfs.max-write-queue-cnt");
+    if let Some(val) = retval {
+        if let Ok(v) = val.parse::<u32>() {
+            NFS_CFG_MAX_WRITE_QUEUE_CNT = v;
+        } else {
+            SCLogError!("Invalid max-write-queue-cnt value");
+        }
+    }
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCRegisterNfsParser() {
     let default_port = CString::new("[2049]").unwrap();
@@ -2426,6 +2670,7 @@ pub unsafe extern "C" fn SCRegisterNfsParser() {
                 SCLogError!("Invalid max-names value");
             }
         }
+        load_nfs_limit_config();
     } else {
         SCLogDebug!("Protocol detector and parser disabled for nfs.");
     }
@@ -2508,6 +2753,7 @@ pub unsafe extern "C" fn SCRegisterNfsUdpParser() {
                 SCLogError!("Invalid value for nfs.max-tx");
             }
         }
+        load_nfs_limit_config();
         SCLogDebug!("Rust nfs parser registered.");
     } else {
         SCLogDebug!("Protocol detector and parser disabled for nfs.");
