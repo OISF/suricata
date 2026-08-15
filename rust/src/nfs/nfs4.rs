@@ -66,9 +66,48 @@ impl NFSState {
             Vec::new()
         };
 
+        let mut queue_event: Option<NFSEvent> = None;
+        let mut queue_exceeded = false;
+
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             Some(tx) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                    if let Some(event) =
+                        write_queue_limit_event(&tdf.file_tracker, w.data.len() as u64)
+                    {
+                        queue_event = Some(event);
+                        queue_exceeded = true;
+                    } else {
+                        filetracker_newchunk(
+                            &mut tdf.file_tracker,
+                            &file_name,
+                            w.data,
+                            w.offset,
+                            w.write_len,
+                            fill_bytes as u8,
+                            is_last,
+                            &r.hdr.xid,
+                        );
+                        tdf.chunk_count += 1;
+                        if is_last {
+                            tdf.file_last_xid = r.hdr.xid;
+                            tx.is_last = true;
+                            tx.response_done = true;
+                        }
+                    }
+                }
+                true
+            }
+            None => false,
+        };
+        if !found {
+            let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
+            if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                if let Some(event) = write_queue_limit_event(&tdf.file_tracker, w.data.len() as u64)
+                {
+                    queue_event = Some(event);
+                    queue_exceeded = true;
+                } else {
                     filetracker_newchunk(
                         &mut tdf.file_tracker,
                         &file_name,
@@ -79,45 +118,35 @@ impl NFSState {
                         is_last,
                         &r.hdr.xid,
                     );
-                    tdf.chunk_count += 1;
-                    if is_last {
-                        tdf.file_last_xid = r.hdr.xid;
-                        tx.is_last = true;
-                        tx.response_done = true;
-                    }
                 }
-                true
-            }
-            None => false,
-        };
-        if !found {
-            let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
-            if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                filetracker_newchunk(
-                    &mut tdf.file_tracker,
-                    &file_name,
-                    w.data,
-                    w.offset,
-                    w.write_len,
-                    fill_bytes as u8,
-                    is_last,
-                    &r.hdr.xid,
-                );
-                tx.procedure = NFSPROC4_WRITE;
-                tx.xid = r.hdr.xid;
-                tx.is_first = true;
-                tx.nfs_version = r.progver as u16;
-                if is_last {
+                if is_last && !queue_exceeded {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.is_last = true;
                     tx.request_done = true;
                     tx.is_file_closed = true;
                 }
             }
+            tx.procedure = NFSPROC4_WRITE;
+            tx.xid = r.hdr.xid;
+            tx.is_first = true;
+            tx.nfs_version = r.progver as u16;
         }
-        self.ts_chunk_xid = r.hdr.xid;
-        debug_validate_bug_on!(w.data.len() as u32 > w.write_len);
-        self.ts_chunk_left = w.write_len - w.data.len() as u32;
+        if let Some(event) = queue_event {
+            self.set_event(event);
+        }
+        if queue_exceeded {
+            // don't buffer the remainder of this record; skip it from the
+            // stream instead of adding it to the file tracker
+            let pending = w.write_len.saturating_sub(w.data.len() as u32);
+            self.set_skip(Direction::ToServer, pending);
+            self.ts_chunk_xid = 0;
+            self.ts_chunk_left = 0;
+            SCLogDebug!("WRITE queue exceeded: skipping {} stream bytes", pending);
+        } else {
+            self.ts_chunk_xid = r.hdr.xid;
+            debug_validate_bug_on!(w.data.len() as u32 > w.write_len);
+            self.ts_chunk_left = w.write_len - w.data.len() as u32;
+        }
     }
 
     fn close_v4<'b>(&mut self, r: &RpcPacket<'b>, fh: &'b [u8]) {

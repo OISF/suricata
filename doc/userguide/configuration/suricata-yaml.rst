@@ -1913,6 +1913,60 @@ The `max-session-cache-size` setting controls the size of a generic hash table t
 SMB session to filenames, GUIDs and share names.
 
 
+Configure NFS
+~~~~~~~~~~~~~
+
+Resource limits
+^^^^^^^^^^^^^^^
+
+Several options are available for limiting record sizes and queued out of
+order file data.
+
+::
+
+    nfs:
+      enabled: yes
+      max-read-size: 16mb
+      max-write-size: 16mb
+
+      max-read-queue-size: 64mb
+      max-read-queue-cnt: 64
+
+      max-write-queue-size: 64mb
+      max-write-queue-cnt: 64
+
+The `max-read-size` option can be set to control the max size of accepted
+READ responses. Events will be raised if READ responses claim or carry too
+much data. A value of 0 disables the checks.
+
+The `max-write-size` option can be set to control the max size of accepted
+WRITE request records. Events will be raised if a WRITE request claims too
+much data. A value of 0 disables the checks.
+
+For file tracking the parser queues up out of order file data per file
+transaction. To avoid using too much memory the parser allows for limiting
+both the size in bytes and the number of queued chunks.
+
+::
+
+    nfs:
+      enabled: yes
+
+      max-read-queue-size: 64mb
+      max-read-queue-cnt: 64
+
+      max-write-queue-size: 64mb
+      max-write-queue-cnt: 64
+
+`max-read-queue-size` controls how many bytes can be queued per file for
+out of order READ data. `max-read-queue-cnt` controls how many chunks can
+be queued per file. When a limit is exceeded the data is discarded and an
+event is raised.
+
+`max-write-queue-size` and `max-write-queue-cnt` are as the READ variants,
+but then for WRITEs.
+
+
 Configure DCERPC
 ~~~~~~~~~~~~~~~~
 
