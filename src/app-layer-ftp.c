@@ -280,12 +280,16 @@ static AppLayerResult FTPGetLineForDirection(
 {
     SCEnter();
 
+    /* the caller reuses one FtpLineState for every line in a slice */
+    line->truncated = false;
+
     while (input->len > 0) {
         const uint8_t *lf_idx = memchr(input->buf + input->consumed, 0x0a, input->len);
 
         if (lf_idx == NULL) {
             if (!(*current_line_truncated) && (uint32_t)input->len >= ftp_max_line_len) {
                 *current_line_truncated = true;
+                line->truncated = true;
                 line->buf = input->buf + input->consumed;
                 line->len = ftp_max_line_len;
                 line->delim_len = 0;
@@ -312,7 +316,6 @@ static AppLayerResult FTPGetLineForDirection(
             continue;
         }
 
-        line->lf_found = true;
         line->buf = input->buf + o_consumed;
         line->len = line_len;
         // There could be one chunk of command data that has LF but post the line limit
@@ -320,7 +323,9 @@ static AppLayerResult FTPGetLineForDirection(
         //      lf_idx = 5010
         //      max_line_len = 4096
         if (line->len >= ftp_max_line_len) {
-            *current_line_truncated = true;
+            /* This LF ends the line, so nothing carries into the next slice;
+             * the line is simply reported clipped to the limit. */
+            line->truncated = true;
             line->len = ftp_max_line_len;
             SCReturnStruct(APP_LAYER_OK);
         }
@@ -448,7 +453,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
     }
 
     FtpInput ftpi = { .buf = input, .len = input_len, .orig_len = input_len, .consumed = 0 };
-    FtpLineState line = { .buf = NULL, .len = 0, .delim_len = 0, .lf_found = false };
+    FtpLineState line = { .buf = NULL, .len = 0, .delim_len = 0, .truncated = false };
 
     uint8_t direction = STREAM_TOSERVER;
     AppLayerResult res;
@@ -475,11 +480,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
 
         tx->command_descriptor = cmd_descriptor;
         tx->request_length = CopyCommandLine(&tx->request, &line);
-        tx->request_truncated = state->current_line_truncated_ts;
-
-        if (line.lf_found) {
-            state->current_line_truncated_ts = false;
-        }
+        tx->request_truncated = line.truncated;
         if (tx->request_truncated) {
             AppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, FtpEventRequestCommandTooLong);
         }
@@ -684,7 +685,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
         SCReturnStruct(APP_LAYER_OK);
     }
     FtpInput ftpi = { .buf = input, .len = input_len, .orig_len = input_len, .consumed = 0 };
-    FtpLineState line = { .buf = NULL, .len = 0, .delim_len = 0, .lf_found = false };
+    FtpLineState line = { .buf = NULL, .len = 0, .delim_len = 0, .truncated = false };
 
     FTPTransaction *lasttx = TAILQ_FIRST(&state->tx_list);
     AppLayerResult res;
@@ -766,13 +767,10 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
             if (likely(response)) {
                 FTPResponseWrapper *wrapper = FTPResponseWrapperAlloc(response);
                 if (likely(wrapper)) {
-                    response->truncated = state->current_line_truncated_tc;
+                    response->truncated = line.truncated;
                     if (response->truncated) {
                         AppLayerDecoderEventsSetEventRaw(
                                 &tx->tx_data.events, FtpEventResponseCommandTooLong);
-                    }
-                    if (line.lf_found) {
-                        state->current_line_truncated_tc = false;
                     }
                     TAILQ_INSERT_TAIL(&tx->response_list, wrapper, next);
                 } else {

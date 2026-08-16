@@ -38,7 +38,9 @@ typedef struct FtpLineState_ {
     const uint8_t *buf;
     uint32_t len;
     uint8_t delim_len;
-    bool lf_found;
+    /** the line was longer than the configured maximum and buf holds only
+     *  what fit; set by the line getter for the line it hands back */
+    bool truncated;
 } FtpLineState;
 
 typedef struct FTPResponseWrapper_ {
