@@ -1032,6 +1032,11 @@ With that syntax, the result of the extraction will appear like ::
 
 A combination of the extraction scopes can be combined.
 
+.. note:: A ``flow:`` capture needs a flow to store into. Some packets are
+   inspected without one -- ICMPv4 error messages, for example, or a packet
+   that could not be given a flow because the flow memcap was reached. Those
+   packets can still alert, but their ``flow:`` captures are dropped.
+
 It is also possible to extract key/value pair in the ``pkt`` scope.
 One capture would be the key, the second the value. The notation is similar to the last ::
 
