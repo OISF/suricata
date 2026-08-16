@@ -281,44 +281,45 @@ static AppLayerResult FTPGetLineForDirection(
 {
     SCEnter();
 
-    /* we have run out of input */
-    if (input->len <= 0)
-        return APP_LAYER_ERROR;
+    while (input->len > 0) {
+        const uint8_t *lf_idx = memchr(input->buf + input->consumed, 0x0a, input->len);
 
-    const uint8_t *lf_idx = memchr(input->buf + input->consumed, 0x0a, input->len);
-
-    if (lf_idx == NULL) {
-        if (!(*current_line_truncated) && (uint32_t)input->len >= ftp_max_line_len) {
-            *current_line_truncated = true;
-            line->buf = input->buf + input->consumed;
-            line->len = ftp_max_line_len;
-            line->delim_len = 0;
-            /* No caller reads consumed after this; advance it so the cursor
-             * still describes the slice it was handed. */
-            input->consumed += input->len;
-            input->len = 0;
-            SCReturnStruct(APP_LAYER_OK);
+        if (lf_idx == NULL) {
+            if (!(*current_line_truncated) && (uint32_t)input->len >= ftp_max_line_len) {
+                *current_line_truncated = true;
+                line->buf = input->buf + input->consumed;
+                line->len = ftp_max_line_len;
+                line->delim_len = 0;
+                /* No caller reads consumed after this; advance it so the cursor
+                 * still describes the slice it was handed. */
+                input->consumed += input->len;
+                input->len = 0;
+                SCReturnStruct(APP_LAYER_OK);
+            }
+            SCReturnStruct(APP_LAYER_INCOMPLETE(input->consumed, input->len + 1));
         }
-        SCReturnStruct(APP_LAYER_INCOMPLETE(input->consumed, input->len + 1));
-    } else if (*current_line_truncated) {
-        // Whatever came in with first LF should also get discarded
-        *current_line_truncated = false;
-        line->len = 0;
-        line->delim_len = 0;
-        input->len = 0;
-        SCReturnStruct(APP_LAYER_ERROR);
-    } else {
+
+        const uint32_t o_consumed = input->consumed;
+        input->consumed = (uint32_t)(lf_idx - input->buf + 1);
+        const uint32_t line_len = (uint32_t)(input->consumed - o_consumed);
+        input->len -= (int32_t)line_len;
+        DEBUG_VALIDATE_BUG_ON((input->consumed + input->len) != input->orig_len);
+
+        if (*current_line_truncated) {
+            /* The tail of an over-long line ends at this LF. Discard just that
+             * tail -- anything after the LF is a line of its own and still has
+             * to be parsed. */
+            *current_line_truncated = false;
+            continue;
+        }
+
+        line->lf_found = true;
+        line->buf = input->buf + o_consumed;
+        line->len = line_len;
         // There could be one chunk of command data that has LF but post the line limit
         // e.g. input_len = 5077
         //      lf_idx = 5010
         //      max_line_len = 4096
-        uint32_t o_consumed = input->consumed;
-        input->consumed = (uint32_t)(lf_idx - input->buf + 1);
-        line->len = input->consumed - o_consumed;
-        input->len -= line->len;
-        line->lf_found = true;
-        DEBUG_VALIDATE_BUG_ON((input->consumed + input->len) != input->orig_len);
-        line->buf = input->buf + o_consumed;
         if (line->len >= ftp_max_line_len) {
             *current_line_truncated = true;
             line->len = ftp_max_line_len;
@@ -333,6 +334,9 @@ static AppLayerResult FTPGetLineForDirection(
         }
         SCReturnStruct(APP_LAYER_OK);
     }
+
+    /* we have run out of input */
+    return APP_LAYER_ERROR;
 }
 
 /**
