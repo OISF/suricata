@@ -289,9 +289,12 @@ static AppLayerResult FTPGetLineForDirection(
     if (lf_idx == NULL) {
         if (!(*current_line_truncated) && (uint32_t)input->len >= ftp_max_line_len) {
             *current_line_truncated = true;
-            line->buf = input->buf;
+            line->buf = input->buf + input->consumed;
             line->len = ftp_max_line_len;
             line->delim_len = 0;
+            /* No caller reads consumed after this; advance it so the cursor
+             * still describes the slice it was handed. */
+            input->consumed += input->len;
             input->len = 0;
             SCReturnStruct(APP_LAYER_OK);
         }
