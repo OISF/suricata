@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -276,6 +276,10 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                 uint8_t x;
                 for (x = 0; x < pe->idx; x++) {
                     SCLogDebug("capturing %u", x);
+                    if (pe->captypes[x] == VAR_TYPE_FLOW_VAR && f == NULL) {
+                        /* no flow to store the capture in, so don't extract it. */
+                        continue;
+                    }
                     const char *pcre2_str_ptr = NULL;
                     ret = pcre2_substring_get_bynumber(
                             match, x + 1, (PCRE2_UCHAR8 **)&pcre2_str_ptr, &capture_len);
@@ -327,7 +331,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                         (void)DetectVarStoreMatch(det_ctx, pe->capids[x], (uint8_t *)str_ptr,
                                 (uint16_t)capture_len, DETECT_VAR_TYPE_PKT_POSTMATCH);
 
-                    } else if (pe->captypes[x] == VAR_TYPE_FLOW_VAR && f != NULL) {
+                    } else if (pe->captypes[x] == VAR_TYPE_FLOW_VAR) {
                         (void)DetectVarStoreMatch(det_ctx, pe->capids[x], (uint8_t *)str_ptr,
                                 (uint16_t)capture_len, DETECT_VAR_TYPE_FLOW_POSTMATCH);
 
@@ -336,7 +340,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                                 (uint16_t)capture_len);
 
                     } else {
-                        BUG_ON(1); // Impossible captype
+                        DEBUG_VALIDATE_BUG_ON(1); // Impossible captype
                         SCFree(str_ptr);
                     }
                 }
