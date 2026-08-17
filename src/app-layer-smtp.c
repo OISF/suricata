@@ -1352,7 +1352,13 @@ static int SMTPProcessRequest(
         int r = 0;
         SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
 
-        if (line->len >= 8 && SCMemcmpLowercase("starttls", line->buf, 8) == 0) {
+        if (tx == NULL) {
+            DEBUG_VALIDATE_BUG_ON(!no_new_tx);
+            const bool is_rset = SCMemcmpLowercase("rset", line->buf, 4) == 0;
+            if (is_rset)
+                state->bdat_chunk_idx = 0;
+            state->current_command = is_rset ? SMTP_COMMAND_RSET : SMTP_COMMAND_QUIT;
+        } else if (line->len >= 8 && SCMemcmpLowercase("starttls", line->buf, 8) == 0) {
             state->current_command = SMTP_COMMAND_STARTTLS;
         } else if (line->len >= 4 && SCMemcmpLowercase("data", line->buf, 4) == 0) {
             state->current_command = SMTP_COMMAND_DATA;
