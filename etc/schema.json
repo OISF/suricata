@@ -5068,7 +5068,8 @@
                                     "Indicates if a password message was received but not logged due to Suricata settings"
                         },
                         "process_id": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "The process id of the target backend, as seen in CancelRequests messages"
                         },
                         "protocol_version": {
                             "type": "string"
@@ -5207,7 +5208,8 @@
                             "type": "string"
                         },
                         "message": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "The PostgreSQL message type seen on the wire. Or the primary human-readable error/notice PostgreSQL message present in an ErrorResponse message"
                         },
                         "parameter_status": {
                             "type": "array",
@@ -5252,8 +5254,13 @@
                                 }
                             }
                         },
+                        "position": {
+                            "type": "string",
+                            "description": "String, representing a decimal ASCII integer, related to an error cursor position as an index to original PostgreSQL query string, as seen in an ErrorResponse message"
+                        },
                         "process_id": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "The process id of the backend process, as seen in BackendKeyData messages"
                         },
                         "routine": {
                             "type": "string"
@@ -5269,6 +5276,10 @@
                         },
                         "ssl_accepted": {
                             "type": "boolean"
+                        },
+                        "where": {
+                            "type": "string",
+                            "description": "'where' field in an ErrorResponse PostgreSQL message, indicating the context in which the error occurred"
                         }
                     }
                 },
