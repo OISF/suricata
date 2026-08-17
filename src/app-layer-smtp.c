@@ -1232,6 +1232,8 @@ static int SMTPParseCommandHELO(SMTPState *state, const SMTPLine *line)
 
 static int SMTPParseCommandMAILFROM(SMTPState *state, const SMTPLine *line)
 {
+    if (state->curr_tx == NULL)
+        return -1;
     if (state->curr_tx->mail_from) {
         SMTPSetEvent(state, SMTP_DECODER_EVENT_DUPLICATE_FIELDS);
         return 0;
@@ -1356,6 +1358,9 @@ static int SMTPProcessRequest(
             state->current_command = SMTP_COMMAND_STARTTLS;
         } else if (line->len >= 4 && SCMemcmpLowercase("data", line->buf, 4) == 0) {
             state->current_command = SMTP_COMMAND_DATA;
+            if (state->curr_tx == NULL) {
+                SCReturnInt(-1);
+            }
             SMTPSetProgressTS(tx, SMTP_REQUEST_DATA);
             if (state->curr_tx->is_data) {
                 // We did not receive a confirmation from server
@@ -1413,6 +1418,9 @@ static int SMTPProcessRequest(
                                              SCMemcmpLowercase("ehlo", line->buf, 4) == 0)) {
             r = SMTPParseCommandHELO(state, line);
             if (r == -1) {
+                SCReturnInt(-1);
+            }
+            if (state->curr_tx == NULL) {
                 SCReturnInt(-1);
             }
             if (state->curr_tx->mail_from != NULL || !TAILQ_EMPTY(&state->curr_tx->rcpt_to_list) ||
