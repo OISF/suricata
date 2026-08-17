@@ -202,10 +202,14 @@ pub extern "C" fn SCDnsLuaGetAnswerTable(clua: &mut CLuaState, tx: &mut DNSTrans
                 DNSRData::OPT(ref opt) => {
                     if !opt.is_empty() {
                         lua.pushstring("addr");
-                        for option in opt.iter() {
-                            lua.pushstring(&String::from_utf8_lossy(&option.code.to_be_bytes()));
-                            lua.pushstring(&String::from_utf8_lossy(&option.data));
-                        }
+                        let combined = opt
+                            .iter()
+                            .map(|option| {
+                                format!("{}:{}", option.code, String::from_utf8_lossy(&option.data))
+                            })
+                            .collect::<Vec<_>>()
+                            .join(" ");
+                        lua.pushstring(&combined);
                         lua.settable(-3);
                     }
                 }
