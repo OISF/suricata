@@ -297,6 +297,31 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (data == NULL)
         goto error;
 
+    /* A shift of 64 or more clears the 64 bit value being shifted, so the
+     * result is 0 for every packet. Only a literal rvalue can be checked
+     * here; a variable one is read from the payload at match time. */
+    if ((data->oper == LeftShift || data->oper == RightShift) &&
+            !(data->flags & DETECT_BYTEMATH_FLAG_RVALUE_VAR) && data->rvalue >= 64) {
+        if (SigMatchStrictEnabled(DETECT_BYTEMATH)) {
+            SCLogError("byte_math rvalue %u is 64 or more, so \"%s\" always gives 0", data->rvalue,
+                    data->oper == LeftShift ? "<<" : ">>");
+            goto error;
+        }
+        if (s->id > 0) {
+            SCLogWarning("signature sid:%u: byte_math rvalue %u is 64 or more, so \"%s\" "
+                         "always gives 0",
+                    s->id, data->rvalue, data->oper == LeftShift ? "<<" : ">>");
+        } else if (de_ctx->rule_file != NULL) {
+            SCLogWarning("signature at %s:%u: byte_math rvalue %u is 64 or more, so \"%s\" "
+                         "always gives 0",
+                    de_ctx->rule_file, de_ctx->rule_line, data->rvalue,
+                    data->oper == LeftShift ? "<<" : ">>");
+        } else {
+            SCLogWarning("byte_math rvalue %u is 64 or more, so \"%s\" always gives 0",
+                    data->rvalue, data->oper == LeftShift ? "<<" : ">>");
+        }
+    }
+
     int sm_list;
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
         if (DetectBufferGetActiveList(de_ctx, s) == -1)
@@ -380,6 +405,8 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
             SCLogError("unknown byte_ keyword var seen in byte_math - %s", rvalue);
             goto error;
         }
+        /* rvalue becomes a byte_values[] index here, so a check on the
+         * literal count has to run above this point. */
         data->rvalue = index;
         data->flags |= DETECT_BYTEMATH_FLAG_RVALUE_VAR;
         SCFree(rvalue);
@@ -1030,6 +1057,34 @@ static int DetectByteMathPacket03(void)
     PASS;
 }
 
+/**
+ * \test A literal shift count of 64 or more parses and keeps its value, so
+ *       DetectByteMathSetup() can warn about it.
+ */
+static int DetectByteMathParseTest17(void)
+{
+    DetectByteMathData *bmd = DetectByteMathParse(
+            NULL, "bytes 4, offset 2, oper >>, rvalue 64, result foo", NULL, NULL);
+    FAIL_IF_NULL(bmd);
+    FAIL_IF_NOT(bmd->oper == RightShift);
+    FAIL_IF_NOT(bmd->rvalue == 64);
+    DetectByteMathFree(NULL, bmd);
+
+    bmd = DetectByteMathParse(
+            NULL, "bytes 4, offset 2, oper <<, rvalue 100, result foo", NULL, NULL);
+    FAIL_IF_NULL(bmd);
+    FAIL_IF_NOT(bmd->oper == LeftShift);
+    FAIL_IF_NOT(bmd->rvalue == 100);
+    DetectByteMathFree(NULL, bmd);
+
+    bmd = DetectByteMathParse(
+            NULL, "bytes 4, offset 2, oper >>, rvalue 63, result foo", NULL, NULL);
+    FAIL_IF_NULL(bmd);
+    DetectByteMathFree(NULL, bmd);
+
+    PASS;
+}
+
 static int DetectByteMathContext01(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -1100,6 +1155,7 @@ static void DetectByteMathRegisterTests(void)
     UtRegisterTest("DetectByteMathParseTest14", DetectByteMathParseTest14);
     UtRegisterTest("DetectByteMathParseTest15", DetectByteMathParseTest15);
     UtRegisterTest("DetectByteMathParseTest16", DetectByteMathParseTest16);
+    UtRegisterTest("DetectByteMathParseTest17", DetectByteMathParseTest17);
     UtRegisterTest("DetectByteMathPacket01", DetectByteMathPacket01);
     UtRegisterTest("DetectByteMathPacket02", DetectByteMathPacket02);
     UtRegisterTest("DetectByteMathPacket03", DetectByteMathPacket03);

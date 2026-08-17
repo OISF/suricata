@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2022-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -614,6 +614,21 @@ mod tests {
         );
         assert!(
             parse_bytemath("bytes 5, offset 3933, oper <<, rvalue myrvalue, result foo").is_err()
+        );
+    }
+
+    #[test]
+    // a shift count of 64 or more parses; the rule loads with a warning from
+    // DetectByteMathSetup() and the shift yields 0 at match time
+    fn test_parser_shift_rvalue() {
+        assert!(parse_bytemath("bytes 4, offset 3933, oper >>, rvalue 63, result foo").is_ok());
+        assert!(parse_bytemath("bytes 4, offset 3933, oper <<, rvalue 63, result foo").is_ok());
+        assert!(parse_bytemath("bytes 4, offset 3933, oper >>, rvalue 64, result foo").is_ok());
+        assert!(parse_bytemath("bytes 4, offset 3933, oper <<, rvalue 64, result foo").is_ok());
+        assert!(parse_bytemath("bytes 4, offset 3933, oper >>, rvalue 100, result foo").is_ok());
+        assert!(parse_bytemath("bytes 4, offset 3933, oper +, rvalue 100, result foo").is_ok());
+        assert!(
+            parse_bytemath("bytes 4, offset 3933, oper >>, rvalue myrvalue, result foo").is_ok()
         );
     }
 
