@@ -1175,6 +1175,7 @@ EXTRA_DIST = \
 	tests/detect-template.c \
 	tests/detect-transform-pcrexform.c \
 	tests/detect-ttl.c \
+	tests/source-netmap.c \
 	tests/source-pcap.c \
 	tests/app-layer-htp-file.c \
 	tests/detect-engine-alert.c \
