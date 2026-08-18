@@ -1120,7 +1120,7 @@ static int SigParseAddress(DetectEngineCtx *de_ctx,
             s->flags |= SIG_FLAG_SRC_ANY;
 
         s->init_data->src = DetectParseAddress(de_ctx, addrstr,
-                &s->init_data->src_contains_negation);
+                &s->init_data->src_contains_negation, &s->init_data->src_contains_range);
         if (s->init_data->src == NULL)
             goto error;
     } else {
@@ -1128,7 +1128,7 @@ static int SigParseAddress(DetectEngineCtx *de_ctx,
             s->flags |= SIG_FLAG_DST_ANY;
 
         s->init_data->dst = DetectParseAddress(de_ctx, addrstr,
-                &s->init_data->dst_contains_negation);
+                &s->init_data->dst_contains_negation, &s->init_data->dst_contains_range);
         if (s->init_data->dst == NULL)
             goto error;
     }
