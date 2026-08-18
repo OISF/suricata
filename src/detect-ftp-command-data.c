@@ -1,4 +1,4 @@
-/* Copyright (C) 2025 Open Information Security Foundation
+/* Copyright (C) 2025-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -72,7 +72,9 @@ static bool DetectFTPCommandDataGetData(
     const char *b;
     uint8_t b_len;
     if (SCGetFtpCommandInfo(tx->command_descriptor.command_index, &b, NULL, &b_len)) {
-        if ((tx->request_length - b_len - 1) > 0) {
+        /* Compare rather than subtract: request_length is unsigned, so an
+         * empty request would wrap and yield a bogus length. */
+        if (tx->request != NULL && tx->request_length > (uint32_t)b_len + 1) {
             // command data starts here: advance past command + 1 space
             *buffer = tx->request + b_len + 1;
             *buffer_len = tx->request_length - b_len - 1;
