@@ -116,7 +116,9 @@ fn parse_properties(input: &[u8], precond: bool) -> IResult<&[u8], Option<Vec<MQ
             while !newrem.is_empty() {
                 match parse_property(newrem) {
                     Ok((rem2, val)) => {
-                        props.push(val);
+                        if val != MQTTProperty::UNKNOWN {
+                            props.push(val);
+                        }
                         newrem = rem2;
                     }
                     Err(e) => return Err(e),
