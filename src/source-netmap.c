@@ -705,6 +705,44 @@ static void NetmapProcessPacket(NetmapThreadVars *ntv, const struct nm_pkthdr *p
     (void)TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p);
 }
 
+/* read the packet at ring->cur into hdr and move the ring past the slots it
+ * used. a packet can be split over several slots, so walk on until the slot
+ * that has NS_MOREFRAG cleared. */
+static void NetmapReadOnePacket(struct netmap_ring *ring, struct nm_pkthdr *hdr)
+{
+    u_int i = ring->cur;
+    struct netmap_slot *slot = &ring->slot[i];
+    u_char *oldbuf;
+
+    hdr->slot = slot;
+    oldbuf = hdr->buf = (u_char *)NETMAP_BUF(ring, slot->buf_idx);
+    hdr->len = hdr->caplen = slot->len;
+
+    /* loop through the ring slots to get packet data */
+    while (slot->flags & NS_MOREFRAG) {
+        /* packet can be fragmented across multiple slots, */
+        /* so loop until we find the slot with the flag    */
+        /* cleared, signalling the end of the packet data. */
+        u_char *nbuf;
+        u_int oldlen = slot->len;
+        i = nm_ring_next(ring, i);
+        slot = &ring->slot[i];
+        hdr->len += slot->len;
+        nbuf = (u_char *)NETMAP_BUF(ring, slot->buf_idx);
+
+        if (oldbuf != NULL && nbuf - oldbuf == ring->nr_buf_size &&
+                oldlen == ring->nr_buf_size) {
+            hdr->caplen += slot->len;
+            oldbuf = nbuf;
+        } else {
+            oldbuf = NULL;
+        }
+    }
+
+    hdr->ts = ring->ts;
+    ring->head = ring->cur = nm_ring_next(ring, i);
+}
+
 /**
  * \brief Copy netmap rings data into Packet structures.
  * \param *d nmport_d (or nm_desc) netmap if structure.
@@ -733,45 +771,12 @@ static TmEcode NetmapReadPackets(struct nmport_d *d, int cnt, NetmapThreadVars *
 
         /* cycle through the non-empty ring slots to fetch their data */
         for (; !nm_ring_empty(ring) && cnt != got; got++) {
-            u_int idx, i;
-            u_char *oldbuf;
-            struct netmap_slot *slot;
-
             if (hdr.buf) { /* from previous round */
                 NetmapProcessPacket(ntv, &hdr);
             }
 
-            i = ring->cur;
-            slot = &ring->slot[i];
-            idx = slot->buf_idx;
             d->cur_rx_ring = cur_rx_ring;
-            hdr.slot = slot;
-            oldbuf = hdr.buf = (u_char *)NETMAP_BUF(ring, idx);
-            hdr.len = hdr.caplen = slot->len;
-
-            /* loop through the ring slots to get packet data */
-            while (slot->flags & NS_MOREFRAG) {
-                /* packet can be fragmented across multiple slots, */
-                /* so loop until we find the slot with the flag    */
-                /* cleared, signalling the end of the packet data. */
-                u_char *nbuf;
-                u_int oldlen = slot->len;
-                i = nm_ring_next(ring, i);
-                slot = &ring->slot[i];
-                hdr.len += slot->len;
-                nbuf = (u_char *)NETMAP_BUF(ring, slot->buf_idx);
-
-                if (oldbuf != NULL && nbuf - oldbuf == ring->nr_buf_size &&
-                        oldlen == ring->nr_buf_size) {
-                    hdr.caplen += slot->len;
-                    oldbuf = nbuf;
-                } else {
-                    oldbuf = NULL;
-                }
-            }
-
-            hdr.ts = ring->ts;
-            ring->head = ring->cur = nm_ring_next(ring, i);
+            NetmapReadOnePacket(ring, &hdr);
         }
     }
 
