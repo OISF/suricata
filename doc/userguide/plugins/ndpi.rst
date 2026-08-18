@@ -6,6 +6,8 @@ nDPI
 Installation
 ************
 
+The nDPI plugin requires nDPI 5.0 or later.
+
 Before using nDPI, Suricata must be built with nDPI support, for
 example:
 
