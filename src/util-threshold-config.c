@@ -245,8 +245,8 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
         orig_de->seconds = parsed_seconds;
         orig_de->new_action = parsed_new_action;
         orig_de->timeout = parsed_timeout;
-        if (DetectAddressParse((const DetectEngineCtx *)de_ctx, &orig_de->addrs, (char *)th_ip) <
-                0) {
+        if (DetectAddressParse(
+                    (const DetectEngineCtx *)de_ctx, &orig_de->addrs, (char *)th_ip, NULL) < 0) {
             SCLogError("failed to parse %s", th_ip);
             goto error;
         }

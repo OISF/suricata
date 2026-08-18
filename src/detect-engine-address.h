@@ -27,7 +27,7 @@
 DetectAddress *DetectAddressInit(void);
 void DetectAddressFree(DetectAddress *);
 DetectAddress *DetectAddressCopy(DetectAddress *);
-int DetectAddressParse(const DetectEngineCtx *, DetectAddressHead *, const char *);
+int DetectAddressParse(const DetectEngineCtx *, DetectAddressHead *, const char *, bool *);
 void DetectAddressHeadCleanup(DetectAddressHead *);
 void DetectAddressCleanupList(DetectAddress *head);
 
@@ -46,7 +46,7 @@ void DetectAddressTests(void);
 
 int DetectAddressMapInit(DetectEngineCtx *de_ctx);
 void DetectAddressMapFree(DetectEngineCtx *de_ctx);
-const DetectAddressHead *DetectParseAddress(DetectEngineCtx *de_ctx,
-        const char *string, bool *contains_negation);
+const DetectAddressHead *DetectParseAddress(
+        DetectEngineCtx *de_ctx, const char *string, bool *contains_negation, bool *contains_range);
 
 #endif /* SURICATA_DETECT_ADDRESS_H */
