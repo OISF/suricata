@@ -90,17 +90,20 @@ def iter_rst_files(path: Path) -> Iterable[Path]:
 
 
 def resolve_suricata_bin(repo_root: Path, configured: Optional[str]) -> Path:
+    candidates = [repo_root / "src" / "suricata", repo_root / "suricata"]
+
+    # First check for local repo, as there may be patches to test.
+    # Then look for the Path option.
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
     if configured:
         return Path(configured)
 
     in_path = shutil.which("suricata")
     if in_path:
         return Path(in_path)
-
-    candidates = [repo_root / "src" / "suricata", repo_root / "suricata"]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
 
     raise SystemExit(
         "Unable to find Suricata binary. Use --suricata-bin to provide it."
