@@ -34,6 +34,7 @@
 #include "util-file-swf-decompression.h"
 #include "util-misc.h"
 #include "util-print.h"
+#include "util-validate.h"
 
 #define SWF_ZLIB_MIN_VERSION    0x06
 #define SWF_LZMA_MIN_VERSION    0x0D
@@ -59,8 +60,7 @@ int FileIsSwfFile(const uint8_t *buffer, uint32_t buffer_len)
  *
  * \param buffer compressed buffer
  * \param buffer_len compressed buffer length
- * \param decompressed_buffer buffer that store decompressed data
- * \param decompressed_buffer_len decompressed data length
+ * \param out_buffer inspection buffer that stores decompressed data
  * \param swf_type decompression algorithm to use
  * \param decompress_depth how much decompressed data we want to store
  * \param compress_depth how much compressed data we want to decompress
@@ -124,23 +124,16 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
         decompressed_swf_len = MIN_SWF_LEN;
     }
 
-    /* if decompress_depth is 0, keep the flash file length */
-    uint32_t decompressed_data_len = decompressed_swf_len;
-    // only restrict the decompressed_data_len, a too big decompress_depth does not make us more
-    // than we need
-    if (decompress_depth > 0 && decompress_depth < decompressed_data_len)
-        decompressed_data_len = decompress_depth;
+    uint32_t decompressed_data_limit = decompressed_swf_len;
+    if (decompress_depth > 0 && decompress_depth < decompressed_data_limit)
+        decompressed_data_limit = decompress_depth;
 
-    // cannot overflow as decompressed_swf_len maxed out at MAX_SWF_DECOMPRESSED_LEN 50000000
-    decompressed_data_len += 8;
-
-    /* make sure the inspection buffer has enough space */
-    SCInspectionBufferCheckAndExpand(out_buffer, decompressed_data_len);
-    if (out_buffer->size < decompressed_data_len) {
+    uint32_t initial_buffer_len =
+            MIN(SWF_DECOMPRESS_INITIAL_BUFFER_LEN, decompressed_data_limit + SWF_HEADER_LEN);
+    if (SCInspectionBufferCheckAndExpand(out_buffer, initial_buffer_len) == NULL) {
         DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_NO_MEM);
         return 0;
     }
-    out_buffer->len = decompressed_data_len;
 
     /*
      * FWS format
@@ -152,7 +145,8 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
     out_buffer->buf[2] = 'S';
     out_buffer->buf[3] = swf_version;
     memcpy(out_buffer->buf + 4, &decompressed_swf_len, 4);
-    memset(out_buffer->buf + 8, 0, decompressed_data_len - 8);
+
+    uint32_t decompressed_data_produced = 0;
 
     if ((swf_type == HTTP_SWF_COMPRESSION_ZLIB || swf_type == HTTP_SWF_COMPRESSION_BOTH) &&
             compression_type == FILE_SWF_ZLIB_COMPRESSION)
@@ -160,9 +154,8 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
         /* the first 8 bytes represents the fws header, see 'FWS format' above.
          * data will start from 8th bytes
          */
-        r = FileSwfZlibDecompression(det_ctx,
-                                     (uint8_t *)buffer + offset, compressed_data_len,
-                                     out_buffer->buf + 8, out_buffer->len - 8);
+        r = FileSwfZlibDecompression(det_ctx, buffer + offset, compressed_data_len, out_buffer,
+                decompressed_data_limit, &decompressed_data_produced);
         if (r == 0)
             goto error;
 
@@ -177,6 +170,7 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
         compressed_data_len += 13;
         uint8_t *compressed_data = SCCalloc(1, compressed_data_len);
         if (compressed_data == NULL) {
+            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_NO_MEM);
             goto error;
         }
         /* put lzma properties */
@@ -189,15 +183,17 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
         /* the first 8 bytes represents the fws header, see 'FWS format' above.
          * data will start from 8th bytes
          */
-        r = FileSwfLzmaDecompression(det_ctx,
-                                     compressed_data, compressed_data_len,
-                                     out_buffer->buf + 8, out_buffer->len - 8);
+        r = FileSwfLzmaDecompression(det_ctx, compressed_data, compressed_data_len, out_buffer,
+                decompressed_data_limit, &decompressed_data_produced);
         SCFree(compressed_data);
         if (r == 0)
             goto error;
     } else {
         goto error;
     }
+
+    DEBUG_VALIDATE_BUG_ON(decompressed_data_produced > decompressed_data_limit);
+    out_buffer->len = SWF_HEADER_LEN + decompressed_data_produced;
 
     /* all went well so switch the buffer's inspect pointer/size
      * to use the new data. */
