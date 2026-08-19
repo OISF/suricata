@@ -19,12 +19,13 @@
 
 use lzma_rs::decompress::{Options, Stream};
 use lzma_rs::error::Error;
-use std::io::{Cursor, Write};
+use std::io::{Cursor, ErrorKind, Write};
 
 /// Propagate lzma crate errors
 #[repr(C)]
 pub enum LzmaStatus {
     LzmaOk,
+    LzmaOutputFull,
     LzmaIoError,
     LzmaHeaderTooShortError,
     LzmaError,
@@ -35,6 +36,7 @@ pub enum LzmaStatus {
 impl From<Error> for LzmaStatus {
     fn from(e: Error) -> LzmaStatus {
         match e {
+            Error::IoError(e) if e.kind() == ErrorKind::WriteZero => LzmaStatus::LzmaOutputFull,
             Error::IoError(_) => LzmaStatus::LzmaIoError,
             Error::HeaderTooShort(_) => LzmaStatus::LzmaHeaderTooShortError,
             Error::LzmaError(e) => {
@@ -50,8 +52,12 @@ impl From<Error> for LzmaStatus {
 }
 
 impl From<std::io::Error> for LzmaStatus {
-    fn from(_e: std::io::Error) -> LzmaStatus {
-        LzmaStatus::LzmaIoError
+    fn from(e: std::io::Error) -> LzmaStatus {
+        if e.kind() == ErrorKind::WriteZero {
+            LzmaStatus::LzmaOutputFull
+        } else {
+            LzmaStatus::LzmaIoError
+        }
     }
 }
 
@@ -85,3 +91,4 @@ pub unsafe extern "C" fn lzma_decompress(
         Err(e) => e.into(),
     }
 }
+
