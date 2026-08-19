@@ -8276,6 +8276,10 @@
             "type": "object",
             "additionalProperties": true
         },
+        "sub_state": {
+            "type": "string",
+            "description": "Transaction type or sub state."
+        },
         "suricata_version": {
             "type": "string"
         },

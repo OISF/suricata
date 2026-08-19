@@ -23,14 +23,16 @@ use crate::detect::uint::{
 };
 use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use crate::direction::Direction;
+use crate::http2::http2::{HTTP2TxProgress, HTTP2TxType};
 use std::ffi::CStr;
 use std::os::raw::{c_int, c_void};
 use suricata_sys::sys::{
-    DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
-    SCDetectHelperBufferRegister, SCDetectHelperKeywordAliasRegister,
-    SCDetectHelperKeywordRegister, SCDetectHelperMultiBufferProgressMpmRegister,
-    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
-    Signature,
+    AppProtoEnum, DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
+    SCDetectHelperBufferRegister, SCDetectHelperBufferProgressRegisterSubState,
+    SCDetectHelperKeywordAliasRegister, SCDetectHelperKeywordRegister,
+    SCDetectHelperMultiBufferProgressMpmRegister,
+    SCDetectHelperMultiBufferProgressMpmRegisterSubState, SCDetectSignatureSetAppProto,
+    SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 /// Perform the DNS opcode match.
@@ -365,6 +367,18 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         Some(dns_tx_get_answer_name),
         1, // response complete
     );
+    _ = SCDetectHelperMultiBufferProgressMpmRegisterSubState(
+        b"dns.answer.name\0".as_ptr() as *const libc::c_char,
+        b"dns answer name\0".as_ptr() as *const libc::c_char,
+        AppProtoEnum::ALPROTO_DOH2 as u16,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        /* Register also in the TO_SERVER direction, even though this is not
+        normal, it could be provided as part of a request. */
+        Some(dns_tx_get_answer_name),
+        HTTP2TxType::HTTP2TxTypeStream as u8,
+        HTTP2TxProgress::HTTP2ProgClosed as u8,
+    );
+
     let kw = SCSigTableAppLiteElmt {
         name: b"dns.opcode\0".as_ptr() as *const libc::c_char,
         desc: b"Match the DNS header opcode flag.\0".as_ptr() as *const libc::c_char,
@@ -380,6 +394,14 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         ALPROTO_DNS,
         STREAM_TOSERVER | STREAM_TOCLIENT,
     );
+    _ = SCDetectHelperBufferProgressRegisterSubState(
+        b"dns.opcode\0".as_ptr() as *const libc::c_char,
+        AppProtoEnum::ALPROTO_DOH2 as u16,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        HTTP2TxType::HTTP2TxTypeStream as u8,
+        HTTP2TxProgress::HTTP2ProgClosed as u8,
+    );
+
     let kw = SigTableElmtStickyBuffer {
         name: String::from("dns.query.name"),
         desc: String::from("DNS query name sticky buffer"),
@@ -397,6 +419,18 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         Some(dns_tx_get_query_name),
         1, // request or response complete
     );
+    _ = SCDetectHelperMultiBufferProgressMpmRegisterSubState(
+        b"dns.query.name\0".as_ptr() as *const libc::c_char,
+        b"dns query name\0".as_ptr() as *const libc::c_char,
+        AppProtoEnum::ALPROTO_DOH2 as u16,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        /* Register in both directions as the query is usually echoed back
+        in the response. */
+        Some(dns_tx_get_query_name),
+        HTTP2TxType::HTTP2TxTypeStream as u8,
+        HTTP2TxProgress::HTTP2ProgClosed as u8,
+    );
+
     let kw = SCSigTableAppLiteElmt {
         name: b"dns.rcode\0".as_ptr() as *const libc::c_char,
         desc: b"Match the DNS header rcode flag.\0".as_ptr() as *const libc::c_char,
@@ -412,6 +446,14 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         ALPROTO_DNS,
         STREAM_TOSERVER | STREAM_TOCLIENT,
     );
+    _ = SCDetectHelperBufferProgressRegisterSubState(
+        b"dns.rcode\0".as_ptr() as *const libc::c_char,
+        AppProtoEnum::ALPROTO_DOH2 as u16,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        HTTP2TxType::HTTP2TxTypeStream as u8,
+        HTTP2TxProgress::HTTP2ProgClosed as u8,
+    );
+
     let kw = SCSigTableAppLiteElmt {
         name: b"dns.rrtype\0".as_ptr() as *const libc::c_char,
         desc: b"Match the DNS rrtype in message body.\0".as_ptr() as *const libc::c_char,
@@ -427,6 +469,14 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         ALPROTO_DNS,
         STREAM_TOSERVER | STREAM_TOCLIENT,
     );
+    _ = SCDetectHelperBufferProgressRegisterSubState(
+        b"dns.rrtype\0".as_ptr() as *const libc::c_char,
+        AppProtoEnum::ALPROTO_DOH2 as u16,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        HTTP2TxType::HTTP2TxTypeStream as u8,
+        HTTP2TxProgress::HTTP2ProgClosed as u8,
+    );
+
     let kw = SigTableElmtStickyBuffer {
         name: String::from("dns.query"),
         desc: String::from("sticky buffer to match DNS query-buffer"),
@@ -445,6 +495,15 @@ pub unsafe extern "C" fn SCDetectDNSRegister() {
         STREAM_TOSERVER,
         Some(dns_tx_get_query), // reuse, will be called only toserver
         1,                      // request complete
+    );
+    _ = SCDetectHelperMultiBufferProgressMpmRegisterSubState(
+        b"dns_query\0".as_ptr() as *const libc::c_char,
+        b"dns request query\0".as_ptr() as *const libc::c_char,
+        AppProtoEnum::ALPROTO_DOH2 as u16,
+        STREAM_TOSERVER,
+        Some(dns_tx_get_query),
+        HTTP2TxType::HTTP2TxTypeStream as u8,
+        HTTP2TxProgress::HTTP2ProgClosed as u8,
     );
 }
 

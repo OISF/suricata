@@ -107,11 +107,12 @@ void DetectHttpStatCodeRegister (void)
     DetectAppLayerMpmRegister("http_stat_code", SIG_FLAG_TOCLIENT, 4, PrefilterGenericMpmRegister,
             GetData, ALPROTO_HTTP1, HTP_RESPONSE_PROGRESS_LINE);
 
-    DetectAppLayerInspectEngineRegister("http_stat_code", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
-            HTTP2StateDataServer, DetectEngineInspectBufferGeneric, GetData2);
+    DetectAppLayerInspectEngineRegisterSubState("http_stat_code", ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetData2);
 
-    DetectAppLayerMpmRegister("http_stat_code", SIG_FLAG_TOCLIENT, 4, PrefilterGenericMpmRegister,
-            GetData2, ALPROTO_HTTP2, HTTP2StateDataServer);
+    DetectAppLayerMpmRegisterSubState("http_stat_code", SIG_FLAG_TOCLIENT, 4,
+            PrefilterGenericMpmRegister, GetData2, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgHeaders);
 
     DetectBufferTypeSetDescriptionByName("http_stat_code",
             "http response status code");

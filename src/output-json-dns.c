@@ -266,9 +266,9 @@ bool AlertJsonDoh2(void *txptr, SCJsonBuilder *js)
         SCJbRestoreMark(js, &mark);
     }
     // then log one DNS tx if any, preferring the answer
-    void *tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOCLIENT);
+    void *tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DOH2, STREAM_TOCLIENT);
     if (tx_dns == NULL) {
-        tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOSERVER);
+        tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DOH2, STREAM_TOSERVER);
     }
     bool r2 = false;
     if (tx_dns) {
@@ -287,9 +287,9 @@ static int JsonDoh2Logger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
 
-    void *tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOCLIENT);
+    void *tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DOH2, STREAM_TOCLIENT);
     if (tx_dns == NULL) {
-        tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOSERVER);
+        tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DOH2, STREAM_TOSERVER);
     }
 
     /* DOH2 is always logged in flow direction, as its driven by the scope of an
@@ -694,7 +694,11 @@ void JsonDnsLogRegister (void)
 
 void JsonDoh2LogRegister(void)
 {
-    OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonDoH2Log", "eve-log.doh2",
-            JsonDnsLogInitCtxSub, ALPROTO_DOH2, JsonDoh2Logger, LogDnsLogThreadInit,
+    OutputRegisterTxSubModuleWithProgressSubState(LOGGER_JSON_TX, "eve-log", "JsonDoH2Log::stream",
+            "eve-log.doh2", JsonDnsLogInitCtxSub, ALPROTO_DOH2, HTTP2TxTypeStream, JsonDoh2Logger,
+            HTTP2ProgData, HTTP2ProgData, LogDnsLogThreadInit, LogDnsLogThreadDeinit);
+    OutputRegisterTxSubModuleWithProgressSubState(LOGGER_JSON_TX, "eve-log", "LogDoh2Log::global",
+            "eve-log.doh2", JsonDnsLogInitCtxSub, ALPROTO_DOH2, HTTP2TxTypeGlobal, JsonDoh2Logger,
+            HTTP2ProgGlobalComplete, HTTP2ProgGlobalComplete, LogDnsLogThreadInit,
             LogDnsLogThreadDeinit);
 }

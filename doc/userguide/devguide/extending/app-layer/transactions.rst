@@ -73,7 +73,7 @@ Rule Matching
 Transaction progress is also used for certain keywords to know what is the minimum state before we can expect a match: until that, Suricata won't even try to look for the patterns.
 
 As seen in ``DetectAppLayerMpmRegister`` that has ``int progress`` as parameter, and ``DetectAppLayerInspectEngineRegister``, which expects ``int tx_min_progress``, for instance. In the code snippet,
-``HTTP2StateDataClient``, ``HTTP2StateDataServer`` and ``0`` are the values passed to the functions - in the last
+``HTTP2ProgData``, ``HTTP2ProgData`` and ``0`` are the values passed to the functions - in the last
 example, for ``FTPDATA``,
 the existence of a transaction implies that a file is being transferred. Hence the ``0`` value.
 
@@ -86,14 +86,14 @@ the existence of a transaction implies that a file is being transferred. Hence t
         .
         DetectAppLayerMpmRegister("file_data", SIG_FLAG_TOSERVER, 2,
                 PrefilterMpmFiledataRegister, NULL,
-                ALPROTO_HTTP2, HTTP2StateDataClient);
+                ALPROTO_HTTP2, HTTP2ProgData);
         DetectAppLayerMpmRegister("file_data", SIG_FLAG_TOCLIENT, 2,
                 PrefilterMpmFiledataRegister, NULL,
-                ALPROTO_HTTP2, HTTP2StateDataServer);
+                ALPROTO_HTTP2, HTTP2ProgData);
         .
         .
         DetectAppLayerInspectEngineRegister("file_data",
-            ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, HTTP2StateDataServer,
+            ALPROTO_HTTP2, SIG_FLAG_TOCLIENT, HTTP2ProgData,
             DetectEngineInspectFiledata, NULL);
         DetectAppLayerInspectEngineRegister(
                 "file_data", ALPROTO_FTPDATA, SIG_FLAG_TOSERVER, 0, DetectEngineInspectFiledata, NULL);

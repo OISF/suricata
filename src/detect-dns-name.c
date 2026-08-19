@@ -136,21 +136,39 @@ static int Register(const char *keyword, const char *desc, const char *doc,
     return DetectBufferTypeGetByName(keyword);
 }
 
+/* helper to register the same buffer for DOH2 as we had for DNS, with their
+ * own alproto, substate and progress. But don't reregister the keyword itself. */
+static void RegisterDoh2(const char *keyword, InspectionMultiBufferGetDataPtr GetBufferFn)
+{
+    const AppProto alproto = ALPROTO_DOH2;
+    DetectAppLayerMultiRegisterSubState(keyword, alproto, SIG_FLAG_TOSERVER, HTTP2TxTypeStream,
+            HTTP2ProgClosed, GetBufferFn, 2);
+    DetectAppLayerMultiRegisterSubState(keyword, alproto, SIG_FLAG_TOCLIENT, HTTP2TxTypeStream,
+            HTTP2ProgClosed, GetBufferFn, 2);
+}
+
 void DetectDnsNameRegister(void)
 {
     query_buffer_id = Register("dns.queries.rrname", "DNS query rrname sticky buffer",
             "/rules/dns-keywords.html#dns.queries.rrname", SetupQueryBuffer, SCDnsTxGetQueryName,
             ALPROTO_DNS);
+    RegisterDoh2("dns.queries.rrname", SCDnsTxGetQueryName);
+
     answer_buffer_id = Register("dns.answers.rrname", "DNS answer rrname sticky buffer",
             "/rules/dns-keywords.html#dns.answers.rrname", SetupAnswerBuffer, SCDnsTxGetAnswerName,
             ALPROTO_DNS);
+    RegisterDoh2("dns.answers.rrname", SCDnsTxGetAnswerName);
+
     additional_buffer_id =
             Register("dns.additionals.rrname", "DNS additionals rrname sticky buffer",
                     "/rules/dns-keywords.html#dns-additionals-rrname", SetupAdditionalsBuffer,
                     SCDnsTxGetAdditionalName, ALPROTO_DNS);
+    RegisterDoh2("dns.additionals.rrname", SCDnsTxGetAdditionalName);
+
     authority_buffer_id = Register("dns.authorities.rrname", "DNS authorities rrname sticky buffer",
             "/rules/dns-keywords.html#dns-authorities-rrname", SetupAuthoritiesBuffer,
             SCDnsTxGetAuthorityName, ALPROTO_DNS);
+    RegisterDoh2("dns.authorities.rrname", SCDnsTxGetAuthorityName);
 
     mdns_query_buffer_id = Register("mdns.queries.rrname", "mDNS query rrname sticky buffer",
             "/rules/mdns-keywords.html#mdns.queries.rrname", SetupQueryBufferMdns,

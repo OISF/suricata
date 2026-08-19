@@ -34,22 +34,11 @@ typedef struct DetectFileHandlerTableElmt_ {
     int priority;
     PrefilterRegisterFunc PrefilterFn;
     InspectEngineFuncPtr Callback;
-    InspectionBufferGetDataPtr GetData;
-    int al_protocols[MAX_DETECT_ALPROTO_CNT];
-    int tx_progress;
-    int progress;
 } DetectFileHandlerTableElmt;
 void DetectFileRegisterFileProtocols(DetectFileHandlerTableElmt *entry);
 
 /* File registration table */
 extern DetectFileHandlerTableElmt filehandler_table[DETECT_TBLSIZE_STATIC];
-
-typedef struct PrefilterMpmFiledata {
-    int list_id;
-    int base_list_id;
-    const MpmCtx *mpm_ctx;
-    const DetectEngineTransforms *transforms;
-} PrefilterMpmFiledata;
 
 uint8_t DetectEngineInspectFiledata(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const DetectEngineAppInspectionEngine *engine, const Signature *s, Flow *f, uint8_t flags,

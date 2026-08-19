@@ -26,8 +26,9 @@
 #ifndef SURICATA_BINDGEN_H
 #define SURICATA_BINDGEN_H
 
-#include "stdint.h"
-#include "stdbool.h"
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
 
 #define WARN_UNUSED
 

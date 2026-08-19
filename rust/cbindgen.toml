@@ -88,7 +88,9 @@ include = [
     "FtpRequestCommand",
     "FtpStateValues",
     "FtpDataStateValues",
-    "HTTP2TransactionState",
+    "HTTP2TxProgress",
+    "HTTP2TxGlobalProgress",
+    "HTTP2TxType",
     "DataRepType",
 ]
 

@@ -74,6 +74,7 @@ typedef struct OutputModule_ {
     SCStreamingLogger StreamingLogFunc;
     StatsLogger StatsLogFunc;
     AppProto alproto;
+    uint8_t sub_state;
     enum SCOutputStreamingType stream_type;
     int tc_log_progress;
     int ts_log_progress;
@@ -121,6 +122,10 @@ void OutputRegisterTxSubModuleWithProgress(LoggerId id, const char *parent_name,
         const char *conf_name, OutputInitSubFunc InitFunc, AppProto alproto, TxLogger TxLogFunc,
         int tc_log_progress, int ts_log_progress, ThreadInitFunc ThreadInit,
         ThreadDeinitFunc ThreadDeinit);
+void OutputRegisterTxSubModuleWithProgressSubState(LoggerId id, const char *parent_name,
+        const char *name, const char *conf_name, OutputInitSubFunc InitFunc, AppProto alproto,
+        const uint8_t sub_state, TxLogger TxLogFunc, uint8_t tc_log_progress,
+        uint8_t ts_log_progress, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit);
 
 void OutputRegisterFileSubModule(LoggerId id, const char *parent_name, const char *name,
         const char *conf_name, OutputInitSubFunc InitFunc, SCFileLogger FileLogFunc,

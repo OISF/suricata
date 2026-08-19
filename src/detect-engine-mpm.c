@@ -28,6 +28,7 @@
 #include "suricata-common.h"
 
 #include "app-layer-protos.h"
+#include "app-layer-parser.h"
 
 #include "decode.h"
 #include "detect.h"
@@ -89,12 +90,21 @@ static int g_mpm_list_cnt[DETECT_BUFFER_MPM_TYPE_SIZE] = { 0, 0, 0 };
 static void RegisterInternal(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionBufferGetDataPtr GetData,
         InspectionSingleBufferGetDataPtr GetDataSingle,
-        InspectionMultiBufferGetDataPtr GetMultiData, AppProto alproto, int tx_min_progress)
+        InspectionMultiBufferGetDataPtr GetMultiData, AppProto alproto, uint8_t sub_state,
+        uint8_t tx_min_progress)
 {
     SCLogDebug("registering %s/%d/%d/%p/%p/%u/%d", name, direction, priority,
             PrefilterRegister, GetData, alproto, tx_min_progress);
 
-    BUG_ON(tx_min_progress >= 48);
+    if (!AppLayerParserIsEnabled(alproto)) {
+        SCLogDebug("%s is disabled", AppProtoToString(alproto));
+        return;
+    }
+    SCLogDebug("%s is enabled", AppProtoToString(alproto));
+    DEBUG_VALIDATE_BUG_ON(AppLayerParserSupportsSubStates(alproto) && sub_state == 0);
+    DEBUG_VALIDATE_BUG_ON(!AppLayerParserSupportsSubStates(alproto) && sub_state != 0);
+
+    BUG_ON(tx_min_progress >= APP_LAYER_MAX_PROGRESS);
 
     // must register GetData with PrefilterGenericMpmRegister
     BUG_ON(PrefilterRegister == PrefilterGenericMpmRegister && GetData == NULL);
@@ -106,11 +116,6 @@ static void RegisterInternal(const char *name, int direction, int priority,
         FatalError("MPM engine registration for %s failed", name);
     }
 
-    // every HTTP2 can be accessed from DOH2
-    if (alproto == ALPROTO_HTTP2 || alproto == ALPROTO_DNS) {
-        RegisterInternal(name, direction, priority, PrefilterRegister, GetData, GetDataSingle,
-                GetMultiData, ALPROTO_DOH2, tx_min_progress);
-    }
     DetectBufferMpmRegistry *am = SCCalloc(1, sizeof(*am));
     BUG_ON(am == NULL);
     am->name = name;
@@ -132,6 +137,7 @@ static void RegisterInternal(const char *name, int direction, int priority,
     }
     am->app_v2.alproto = alproto;
     am->app_v2.tx_min_progress = tx_min_progress;
+    am->app_v2.sub_state = sub_state;
 
     if (g_mpm_list[DETECT_BUFFER_MPM_TYPE_APP] == NULL) {
         g_mpm_list[DETECT_BUFFER_MPM_TYPE_APP] = am;
@@ -147,30 +153,48 @@ static void RegisterInternal(const char *name, int direction, int priority,
     g_mpm_list_cnt[DETECT_BUFFER_MPM_TYPE_APP]++;
 
     SupportFastPatternForSigMatchList(sm_list, priority);
+    SCLogDebug("%s: sub_state %u", name, am->app_v2.sub_state);
 }
 
 void DetectAppLayerMpmRegister(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionBufferGetDataPtr GetData,
-        AppProto alproto, int tx_min_progress)
+        AppProto alproto, uint8_t tx_min_progress)
 {
-    RegisterInternal(name, direction, priority, PrefilterRegister, GetData, NULL, NULL, alproto,
+    RegisterInternal(name, direction, priority, PrefilterRegister, GetData, NULL, NULL, alproto, 0,
             tx_min_progress);
+}
+
+void DetectAppLayerMpmRegisterSubState(const char *name, int direction, int priority,
+        PrefilterRegisterFunc PrefilterRegister, InspectionBufferGetDataPtr GetData,
+        AppProto alproto, uint8_t sub_state, uint8_t tx_min_progress)
+{
+    SCLogDebug("%s: sub_state %u", name, sub_state);
+    RegisterInternal(name, direction, priority, PrefilterRegister, GetData, NULL, NULL, alproto,
+            sub_state, tx_min_progress);
 }
 
 void DetectAppLayerMpmRegisterSingle(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionSingleBufferGetDataPtr GetData,
         AppProto alproto, int tx_min_progress)
 {
-    RegisterInternal(name, direction, priority, PrefilterRegister, NULL, GetData, NULL, alproto,
+    RegisterInternal(name, direction, priority, PrefilterRegister, NULL, GetData, NULL, alproto, 0,
             tx_min_progress);
 }
 
 void DetectAppLayerMpmMultiRegister(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionMultiBufferGetDataPtr GetData,
-        AppProto alproto, int tx_min_progress)
+        AppProto alproto, uint8_t tx_min_progress)
+{
+    RegisterInternal(name, direction, priority, PrefilterRegister, NULL, NULL, GetData, alproto, 0,
+            tx_min_progress);
+}
+
+void DetectAppLayerMpmMultiRegisterSubState(const char *name, int direction, int priority,
+        PrefilterRegisterFunc PrefilterRegister, InspectionMultiBufferGetDataPtr GetData,
+        AppProto alproto, uint8_t sub_state, uint8_t tx_min_progress)
 {
     RegisterInternal(name, direction, priority, PrefilterRegister, NULL, NULL, GetData, alproto,
-            tx_min_progress);
+            sub_state, tx_min_progress);
 }
 
 /** \internal
@@ -260,6 +284,7 @@ void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
             am->app_v2.GetData = t->app_v2.GetData;
             am->app_v2.alproto = t->app_v2.alproto;
             am->app_v2.tx_min_progress = t->app_v2.tx_min_progress;
+            am->app_v2.sub_state = t->app_v2.sub_state;
             am->priority = t->priority;
             am->sgh_mpm_context = t->sgh_mpm_context;
             am->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(
@@ -2147,8 +2172,16 @@ static void PrepareMpms(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             case DETECT_BUFFER_MPM_TYPE_APP: {
                 for (int e = 0; e < engines_idx[list]; e++) {
                     const AppProto alproto = engines[list][e];
-                    if (!(AppProtoEquals(s->alproto, alproto) || s->alproto == 0))
-                        continue;
+                    if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+                        /* SIGNATURE_HOOK_TYPE_APP rules are exact about their protocol */
+                        if (!(AppProtoEqualsStrict(s->alproto, alproto))) {
+                            continue;
+                        }
+                    } else {
+                        /* other rules use the more relax AppProtoEquals logic */
+                        if (!(AppProtoEquals(s->alproto, alproto) || s->alproto == 0))
+                            continue;
+                    }
 
                     DetectBufferInstance lookup = { .list = list, .alproto = alproto };
                     DetectBufferInstance *instance = HashListTableLookup(bufs, &lookup, 0);

@@ -46,6 +46,14 @@ Deprecations
 Upgrading to 8.0.5
 ------------------
 
+Keyword Changes
+~~~~~~~~~~~~~~~
+
+- HTTP2 keywords have now better progress defined, with the http2 transaction progress
+  being split per direction. This means that some rules should match sooner,
+  some rules will have less false negatives, and some rules will trigger once per transaction
+  instead of twice (one time for each direction)
+
 Other Changes
 ~~~~~~~~~~~~~
 

@@ -249,6 +249,7 @@ typedef struct PacketAlert_ {
     SigIntId iid;   /* Internal ID, used for sorting */
     uint8_t action; /* Rule or threshold action to be applied to packet */
     uint8_t flags;
+    uint8_t sub_state; /**< tx sub state. 0 if not used. */
     const struct Signature_ *s;
     uint64_t tx_id; /* Used for sorting */
     int64_t frame_id;

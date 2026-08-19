@@ -234,6 +234,11 @@ pub struct DetectEngineThreadCtx_ {
     _unused: [u8; 0],
 }
 pub type DetectEngineThreadCtx = DetectEngineThreadCtx_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DetectEngineTransforms {
+    _unused: [u8; 0],
+}
 extern "C" {
     pub fn SCInspectionBufferCheckAndExpand(
         buffer: *mut InspectionBuffer, min_size: u32,
@@ -257,6 +262,16 @@ pub struct SigMatchCtx_ {
     _unused: [u8; 0],
 }
 pub type SigMatchCtx = SigMatchCtx_;
+pub type InspectionBufferGetDataPtr = ::std::option::Option<
+    unsafe extern "C" fn(
+        det_ctx: *mut DetectEngineThreadCtx_,
+        transforms: *const DetectEngineTransforms,
+        f: *mut Flow,
+        flow_flags: u8,
+        txv: *mut ::std::os::raw::c_void,
+        list_id: ::std::os::raw::c_int,
+    ) -> *mut InspectionBuffer,
+>;
 pub type InspectionMultiBufferGetDataPtr = ::std::option::Option<
     unsafe extern "C" fn(
         det_ctx: *mut DetectEngineThreadCtx_,
@@ -378,6 +393,18 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCDetectHelperBufferProgressRegisterSubState(
+        name: *const ::std::os::raw::c_char, alproto: AppProto, direction: u8, sub_state: u8,
+        progress: u8,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCDetectRegisterMpmGeneric(
+        name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
+        alproto: AppProto, direction: u8, GetData: InspectionBufferGetDataPtr, progress: u8,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn SCDetectHelperBufferProgressMpmRegister(
         name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
         alproto: AppProto, direction: u8, GetData: InspectionSingleBufferGetDataPtr,
@@ -393,8 +420,14 @@ extern "C" {
 extern "C" {
     pub fn SCDetectHelperMultiBufferProgressMpmRegister(
         name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
-        alproto: AppProto, direction: u8, GetData: InspectionMultiBufferGetDataPtr,
-        progress: ::std::os::raw::c_int,
+        alproto: AppProto, direction: u8, GetData: InspectionMultiBufferGetDataPtr, progress: u8,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCDetectHelperMultiBufferProgressMpmRegisterSubState(
+        name: *const ::std::os::raw::c_char, desc: *const ::std::os::raw::c_char,
+        alproto: AppProto, direction: u8, GetData: InspectionMultiBufferGetDataPtr, sub_state: u8,
+        progress: u8,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
@@ -721,12 +754,31 @@ pub struct AppLayerParserState_ {
     _unused: [u8; 0],
 }
 pub type AppLayerParserState = AppLayerParserState_;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct AppLayerTxData {
+    _unused: [u8; 0],
+}
 extern "C" {
     #[doc = " \\brief Given a protocol name, checks if the parser is enabled in\n        the conf file.\n\n \\param alproto_name Name of the app layer protocol.\n\n \\retval 1 If enabled.\n \\retval 0 If disabled."]
     pub fn SCAppLayerParserConfParserEnabled(
         ipproto: *const ::std::os::raw::c_char, alproto_name: *const ::std::os::raw::c_char,
     ) -> ::std::os::raw::c_int;
 }
+extern "C" {
+    pub fn SCAppLayerTxDataCleanup(txd: *mut AppLayerTxData);
+}
+#[doc = "  \\param name progress name to get the id for\n  \\param direction STREAM_TOSERVER/STREAM_TOCLIENT"]
+pub type AppLayerParserGetStateIdByNameFn = ::std::option::Option<
+    unsafe extern "C" fn(
+        name: *const ::std::os::raw::c_char,
+        direction: u8,
+    ) -> ::std::os::raw::c_int,
+>;
+#[doc = "  \\param id progress value id to get the name for\n  \\param direction STREAM_TOSERVER/STREAM_TOCLIENT"]
+pub type AppLayerParserGetStateNameByIdFn = ::std::option::Option<
+    unsafe extern "C" fn(id: ::std::os::raw::c_int, direction: u8) -> *const ::std::os::raw::c_char,
+>;
 extern "C" {
     pub fn SCAppLayerParserReallocCtx(alproto: AppProto) -> ::std::os::raw::c_int;
 }
@@ -737,6 +789,13 @@ extern "C" {
 }
 extern "C" {
     pub fn SCAppLayerParserRegisterLogger(ipproto: u8, alproto: AppProto);
+}
+extern "C" {
+    #[doc = " \\brief register state<>name funcs for a substate"]
+    pub fn SCAppLayerParserRegisterGetTxSubStateFuncs(
+        alproto: AppProto, sub_state: u8, GetIdByNameFunc: AppLayerParserGetStateIdByNameFn,
+        GetNameByIdFunc: AppLayerParserGetStateNameByIdFn,
+    );
 }
 extern "C" {
     pub fn SCAppLayerParserSetStreamDepth(ipproto: u8, alproto: AppProto, stream_depth: u32);
