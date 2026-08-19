@@ -37,35 +37,6 @@
 
 #include <zlib.h>
 
-/*
- * Return uncompressed file length
- * in little-endian order
- */
-uint32_t FileGetSwfDecompressedLen(const uint8_t *buffer,
-                                   const uint32_t buffer_len)
-{
-    if (buffer_len < 8) {
-        return 0;
-    }
-
-    uint32_t a = buffer[4];
-    uint32_t b = buffer[5];
-    uint32_t c = buffer[6];
-    uint32_t d = buffer[7];
-
-    uint32_t value = (((a & 0xff) << 24UL) |
-                      ((b & 0xff) << 16UL) |
-                      ((c & 0xff) << 8UL) |
-                       (d & 0xff));
-
-    uint32_t len = (((value >> 24) & 0x000000FFUL) |
-                    ((value >> 8)  & 0x0000FF00UL) |
-                    ((value << 8)  & 0x00FF0000UL) |
-                    ((value << 24) & 0xFF000000UL));
-
-    return MIN(MAX_SWF_DECOMPRESSED_LEN, len);
-}
-
 uint8_t FileGetSwfVersion(const uint8_t *buffer, const uint32_t buffer_len)
 {
     if (buffer_len > 3)

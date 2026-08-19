@@ -36,7 +36,6 @@
 #define SWF_DECOMPRESS_INITIAL_BUFFER_LEN 4096
 
 uint8_t FileGetSwfVersion(const uint8_t *buffer, const uint32_t buffer_len);
-uint32_t FileGetSwfDecompressedLen(const uint8_t *buffer, uint32_t buffer_len);
 int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx, const uint8_t *compressed_data,
         uint32_t compressed_data_len, InspectionBuffer *out_buffer,
         uint32_t decompressed_data_limit, uint32_t *decompressed_data_produced);

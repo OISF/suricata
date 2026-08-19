@@ -62,6 +62,18 @@ static uint8_t *DetectFiledataSwfCreateCws(const uint8_t *plain, uint32_t plain_
     return cws;
 }
 
+// clang-format off
+static const uint8_t swf_lzma_fixture[] = {
+    0x5a, 0x57, 0x53, 0x17, 0x5c, 0x24, 0x00, 0x00, 0xb7, 0x21, 0x00, 0x00, 0x5d, 0x00, 0x00, 0x20,
+    0x00, 0x00, 0x3b, 0xff, 0xfc, 0x8e, 0x19, 0xfa, 0xdf, 0xe7, 0x66, 0x08, 0xa0, 0x3d, 0x3e, 0x85,
+    0xf5, 0x75, 0x6f, 0xd0, 0x7e, 0x61, 0x35, 0x1b, 0x1a, 0x8b, 0x16, 0x4d, 0xdf, 0x05, 0x32, 0xfe,
+    0xa4, 0x4c, 0x46, 0x49, 0xb7, 0x7b, 0x6b, 0x75, 0xf9, 0x2b, 0x5c, 0x37, 0x29, 0x0b, 0x91, 0x37,
+    0x01, 0x37, 0x0e, 0xe9, 0xf2, 0xe1, 0xfc, 0x9e, 0x64, 0xda, 0x6c, 0x11, 0x21, 0x33, 0xed, 0xa0,
+    0x0e, 0x76, 0x70, 0xa0, 0xcd, 0x98, 0x2e, 0x76, 0x80, 0xf0, 0xe0, 0x59, 0x56, 0x06, 0x08, 0xe9,
+    0xca, 0xeb, 0xa2, 0xc6, 0xdb, 0x5a, 0x86,
+};
+// clang-format on
+
 /**
  * \test A malicious SWF whose header claims a huge decompressed size but
  *       carries only a few bytes of body must not drive a large allocation
@@ -185,6 +197,158 @@ static int DetectFiledataSwfDecompressAllocTest04(void)
     PASS;
 }
 
+/**
+ * \test A CWS FileLength value of one must not truncate decompression or
+ *       discard content beyond the first output byte.
+ */
+static int DetectFiledataSwfDecompressFileLengthTest01(void)
+{
+    const uint32_t plain_len = 16 * 1024;
+    uint8_t *plain = SCMalloc(plain_len);
+    FAIL_IF_NULL(plain);
+    memset(plain, 'A', plain_len);
+    plain[plain_len - 1] = 'B';
+
+    uint32_t cws_len = 0;
+    uint8_t *cws = DetectFiledataSwfCreateCws(plain, plain_len, 1, Z_BEST_COMPRESSION, &cws_len);
+    FAIL_IF_NULL(cws);
+
+    DetectEngineThreadCtx *det_ctx = SCCalloc(1, sizeof(*det_ctx));
+    FAIL_IF_NULL(det_ctx);
+    InspectionBuffer out_buffer = { 0 };
+
+    int r = FileSwfDecompression(
+            cws, cws_len, det_ctx, &out_buffer, HTTP_SWF_COMPRESSION_ZLIB, 0, 0);
+
+    FAIL_IF(r != 1);
+    FAIL_IF(out_buffer.len != SWF_HEADER_LEN + plain_len);
+    FAIL_IF(out_buffer.buf[out_buffer.len - 1] != 'B');
+    FAIL_IF(memcmp(out_buffer.buf + 4, cws + 4, 4) != 0);
+
+    InspectionBufferFree(&out_buffer);
+    AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
+    SCFree(det_ctx);
+    SCFree(cws);
+    SCFree(plain);
+    PASS;
+}
+
+/**
+ * \test A ZWS FileLength value of one must not truncate decompression.
+ */
+static int DetectFiledataSwfDecompressFileLengthTest02(void)
+{
+    uint8_t zws[sizeof(swf_lzma_fixture)];
+    memcpy(zws, swf_lzma_fixture, sizeof(zws));
+    zws[4] = 1;
+    zws[5] = 0;
+    zws[6] = 0;
+    zws[7] = 0;
+
+    DetectEngineThreadCtx *det_ctx = SCCalloc(1, sizeof(*det_ctx));
+    FAIL_IF_NULL(det_ctx);
+    InspectionBuffer out_buffer = { 0 };
+
+    int r = FileSwfDecompression(
+            zws, (uint32_t)sizeof(zws), det_ctx, &out_buffer, HTTP_SWF_COMPRESSION_LZMA, 0, 0);
+
+    FAIL_IF(r != 1);
+    FAIL_IF(out_buffer.len <= SWF_HEADER_LEN + 1);
+    FAIL_IF(memcmp(out_buffer.buf + 4, zws + 4, 4) != 0);
+
+    InspectionBufferFree(&out_buffer);
+    AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
+    SCFree(det_ctx);
+    PASS;
+}
+
+/**
+ * \test A valid small FileLength is preserved in the synthesized FWS header.
+ */
+static int DetectFiledataSwfDecompressHeaderTest01(void)
+{
+    const uint8_t plain[] = "small body";
+    const uint32_t file_len = SWF_HEADER_LEN + sizeof(plain);
+    uint32_t cws_len = 0;
+    uint8_t *cws = DetectFiledataSwfCreateCws(
+            plain, sizeof(plain), file_len, Z_BEST_COMPRESSION, &cws_len);
+    FAIL_IF_NULL(cws);
+
+    DetectEngineThreadCtx *det_ctx = SCCalloc(1, sizeof(*det_ctx));
+    FAIL_IF_NULL(det_ctx);
+    InspectionBuffer out_buffer = { 0 };
+
+    int r = FileSwfDecompression(
+            cws, cws_len, det_ctx, &out_buffer, HTTP_SWF_COMPRESSION_ZLIB, 0, 0);
+
+    FAIL_IF(r != 1);
+    FAIL_IF(memcmp(out_buffer.buf + 4, cws + 4, 4) != 0);
+
+    InspectionBufferFree(&out_buffer);
+    AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
+    SCFree(det_ctx);
+    SCFree(cws);
+    PASS;
+}
+
+/**
+ * \test The configured decompression depth remains the CWS output limit.
+ */
+static int DetectFiledataSwfDecompressDepthTest01(void)
+{
+    const uint32_t plain_len = 16 * 1024;
+    const uint32_t decompress_depth = 5000;
+    uint8_t *plain = SCMalloc(plain_len);
+    FAIL_IF_NULL(plain);
+    memset(plain, 'A', plain_len);
+    plain[plain_len - 1] = 'B';
+
+    uint32_t cws_len = 0;
+    uint8_t *cws = DetectFiledataSwfCreateCws(
+            plain, plain_len, plain_len + SWF_HEADER_LEN, Z_BEST_COMPRESSION, &cws_len);
+    FAIL_IF_NULL(cws);
+
+    DetectEngineThreadCtx *det_ctx = SCCalloc(1, sizeof(*det_ctx));
+    FAIL_IF_NULL(det_ctx);
+    InspectionBuffer out_buffer = { 0 };
+
+    int r = FileSwfDecompression(
+            cws, cws_len, det_ctx, &out_buffer, HTTP_SWF_COMPRESSION_ZLIB, decompress_depth, 0);
+
+    FAIL_IF(r != 1);
+    FAIL_IF(out_buffer.len != SWF_HEADER_LEN + decompress_depth);
+    FAIL_IF(memcmp(out_buffer.buf + SWF_HEADER_LEN, plain, decompress_depth) != 0);
+
+    InspectionBufferFree(&out_buffer);
+    AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
+    SCFree(det_ctx);
+    SCFree(cws);
+    SCFree(plain);
+    PASS;
+}
+
+/**
+ * \test The configured decompression depth remains the ZWS output limit.
+ */
+static int DetectFiledataSwfDecompressDepthTest02(void)
+{
+    const uint32_t decompress_depth = 1;
+    DetectEngineThreadCtx *det_ctx = SCCalloc(1, sizeof(*det_ctx));
+    FAIL_IF_NULL(det_ctx);
+    InspectionBuffer out_buffer = { 0 };
+
+    int r = FileSwfDecompression(swf_lzma_fixture, (uint32_t)sizeof(swf_lzma_fixture), det_ctx,
+            &out_buffer, HTTP_SWF_COMPRESSION_LZMA, decompress_depth, 0);
+
+    FAIL_IF(r != 1);
+    FAIL_IF(out_buffer.len != SWF_HEADER_LEN + decompress_depth);
+
+    InspectionBufferFree(&out_buffer);
+    AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
+    SCFree(det_ctx);
+    PASS;
+}
+
 static int DetectEngineSMTPFiledataTest02(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -227,6 +391,16 @@ void DetectFiledataRegisterTests(void)
             "DetectFiledataSwfDecompressAllocTest03", DetectFiledataSwfDecompressAllocTest03);
     UtRegisterTest(
             "DetectFiledataSwfDecompressAllocTest04", DetectFiledataSwfDecompressAllocTest04);
+    UtRegisterTest("DetectFiledataSwfDecompressFileLengthTest01",
+            DetectFiledataSwfDecompressFileLengthTest01);
+    UtRegisterTest("DetectFiledataSwfDecompressFileLengthTest02",
+            DetectFiledataSwfDecompressFileLengthTest02);
+    UtRegisterTest(
+            "DetectFiledataSwfDecompressHeaderTest01", DetectFiledataSwfDecompressHeaderTest01);
+    UtRegisterTest(
+            "DetectFiledataSwfDecompressDepthTest01", DetectFiledataSwfDecompressDepthTest01);
+    UtRegisterTest(
+            "DetectFiledataSwfDecompressDepthTest02", DetectFiledataSwfDecompressDepthTest02);
     UtRegisterTest("DetectEngineSMTPFiledataTest02", DetectEngineSMTPFiledataTest02);
     UtRegisterTest("DetectFiledataParseTest04", DetectFiledataParseTest04);
 }

@@ -118,15 +118,8 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
         return 0;
     }
 
-    /* get flash decompressed file length */
-    uint32_t decompressed_swf_len = FileGetSwfDecompressedLen(buffer, buffer_len);
-    if (decompressed_swf_len == 0) {
-        decompressed_swf_len = MIN_SWF_LEN;
-    }
-
-    uint32_t decompressed_data_limit = decompressed_swf_len;
-    if (decompress_depth > 0 && decompress_depth < decompressed_data_limit)
-        decompressed_data_limit = decompress_depth;
+    uint32_t decompressed_data_limit =
+            (decompress_depth == 0) ? MAX_SWF_DECOMPRESSED_LEN : decompress_depth;
 
     uint32_t initial_buffer_len =
             MIN(SWF_DECOMPRESS_INITIAL_BUFFER_LEN, decompressed_data_limit + SWF_HEADER_LEN);
@@ -144,7 +137,7 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
     out_buffer->buf[1] = 'W';
     out_buffer->buf[2] = 'S';
     out_buffer->buf[3] = swf_version;
-    memcpy(out_buffer->buf + 4, &decompressed_swf_len, 4);
+    memcpy(out_buffer->buf + 4, buffer + 4, 4);
 
     uint32_t decompressed_data_produced = 0;
 
