@@ -1145,6 +1145,20 @@ static bool IsBuiltIn(const char *n)
            strcmp(n, "request_complete") == 0 || strcmp(n, "response_complete") == 0;
 }
 
+/**
+ * \brief Generic start/complete hook alias for an app progress state, in config
+ *        form (hyphens), or NULL for intermediate states.
+ */
+const char *DetectFirewallAppGenericHookName(
+        const uint8_t state, const uint8_t complete_state, const int direction)
+{
+    if (state == 0)
+        return (direction == STREAM_TOSERVER) ? "request-started" : "response-started";
+    if (state == complete_state)
+        return (direction == STREAM_TOSERVER) ? "request-complete" : "response-complete";
+    return NULL;
+}
+
 /** \brief register app hooks as generic lists
  *
  *  Register each hook in each app protocol as:
