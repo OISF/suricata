@@ -119,24 +119,38 @@ def check_rule_with_suricata(
         shutil.copytree(data_dir, tmpdir, dirs_exist_ok=True)
         rule_file.write_text(rule + "\n", encoding="utf-8")
 
-        cmd = [
-            str(suricata_bin),
-            "-T",
-            "-c", str(suricata_yaml),
-            "--data-dir="+tmpdir,
-            "-S", str(rule_file),
-            '--strict-rule-keywords=all',
-            "-l", tmpdir,
-        ]
-        proc = subprocess.run(
-            cmd,
-            check=False,
-            capture_output=True,
-            text=True,
+        load_modes = (
+            ("detection", ["-S", str(rule_file)]),
+            ("firewall", ["--firewall-rules-exclusive=" + str(rule_file)]),
         )
 
-        combined = proc.stderr.strip()
-        return proc.returncode == 0, combined
+        """ Check against both Threat Detection and Firewall rule parsers before failing the example rules"""
+        failures: List[str] = []
+        for label, load_args in load_modes:
+            cmd = [
+                str(suricata_bin),
+                "-T",
+                "-c", str(suricata_yaml),
+                "--data-dir="+tmpdir,
+                *load_args,
+                '--strict-rule-keywords=all',
+                "-l", tmpdir,
+            ]
+            proc = subprocess.run(
+                cmd,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            if proc.returncode == 0:
+                return True, ""
+
+            failures.append(
+                f"--- rejected as {label} rule ---\n{proc.stderr.strip()}"
+                )
+
+        return False, "\n\n".join(failures)
 
 
 def main() -> int:
