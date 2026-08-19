@@ -69,6 +69,7 @@
 #include "detect-http-host.h"
 
 #include "detect-mark.h"
+#include "detect-nfs-version.h"
 
 #include "detect-engine-event.h"
 #include "decode.h"
@@ -119,6 +120,7 @@
 #include "detect-requires.h"
 #include "detect-tcp-window.h"
 #include "detect-tcp-wscale.h"
+#include "detect-tcp-session.h"
 #include "detect-ftpbounce.h"
 #include "detect-ftp-dynamic-port.h"
 #include "detect-isdataat.h"
@@ -227,6 +229,7 @@
 #include "detect-http-stat-code.h"
 #include "detect-ssl-version.h"
 #include "detect-ssl-state.h"
+#include "detect-modbus.h"
 #include "detect-dnp3.h"
 #include "detect-vlan.h"
 #include "detect-email.h"
@@ -588,6 +591,7 @@ void SigTableSetup(void)
 
     DetectDnsNameRegister();
     DetectDnsResponseRegister();
+    DetectModbusRegister();
     DetectDNP3Register();
 
     DetectTlsSniRegister();
@@ -629,6 +633,7 @@ void SigTableSetup(void)
     DetectOffsetRegister();
     DetectReplaceRegister();
     DetectFlowRegister();
+    DetectTcpSessionRegister();
     DetectFlowAgeRegister();
     DetectFlowPktsRegister();
     DetectFlowPktsToServerRegister();
@@ -682,6 +687,8 @@ void SigTableSetup(void)
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();
+    SCDetectNfsProcedureRegister();
+    DetectNfsVersionRegister();
     DetectUrilenRegister();
     DetectBsizeRegister();
     DetectDetectionFilterRegister();
@@ -766,8 +773,6 @@ void SigTableSetup(void)
     SCDetectIkeRegister();
     SCDetectDcerpcRegister();
     SCDetectKrb5Register();
-    SCDetectNfsRegister();
-    SCDetectModbusRegister();
 
     for (size_t i = 0; i < preregistered_callbacks_nb; i++) {
         PreregisteredCallbacks[i]();

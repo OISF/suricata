@@ -17,7 +17,7 @@ jobs:
   check-commits:
     name: Commit Check
     runs-on: ubuntu-latest
-    container: ubuntu:24.04
+    container: ubuntu:20.04
     steps:
       - name: Caching ~/.cargo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
@@ -32,7 +32,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo-1.89 \
+                cargo \
                 curl \
                 git \
                 jq \
@@ -52,16 +52,17 @@ jobs:
                 libjansson-dev \
                 libevent-dev \
                 libevent-pthreads-2.1-7 \
+                libpython2.7 \
                 libssl-dev \
                 make \
                 parallel \
                 pkg-config \
                 python3-yaml \
+                rustc \
                 software-properties-common \
                 zlib1g \
                 zlib1g-dev
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      - run: echo "/usr/lib/rust-1.89/bin" >> $GITHUB_PATH
       - name: Installing sccache
         run: |
           (cd /tmp && curl -OL https://github.com/mozilla/sccache/releases/download/0.2.13/sccache-0.2.13-x86_64-unknown-linux-musl.tar.gz)
@@ -73,7 +74,7 @@ jobs:
           cd $HOME/.cargo/bin
           curl -OL https://github.com/eqrion/cbindgen/releases/download/v0.24.3/cbindgen
           chmod 755 cbindgen
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           fetch-depth: 0
       # The action above is supposed to do this for us, but it doesn't appear to stick.

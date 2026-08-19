@@ -104,8 +104,8 @@ typedef struct ErfDagThreadVars_ {
     LiveDevice *livedev;
 
     uint64_t bytes;
-    StatsCounterId packets;
-    StatsCounterId drops;
+    uint16_t packets;
+    uint16_t drops;
 
     /* Current location in the DAG stream input buffer.
      */
@@ -283,8 +283,8 @@ TmEcode ReceiveErfDagThreadInit(ThreadVars *tv, const void *initdata, void **dat
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    ewtn->packets = StatsRegisterCounter("capture.dag_packets", &tv->stats);
-    ewtn->drops = StatsRegisterCounter("capture.dag_drops", &tv->stats);
+    ewtn->packets = StatsRegisterCounter("capture.dag_packets", tv);
+    ewtn->drops = StatsRegisterCounter("capture.dag_drops", tv);
 
     ewtn->tv = tv;
     *data = (void *)ewtn;
@@ -402,12 +402,6 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
         dr = (dag_record_t*)prec;
         rlen = SCNtohs(dr->rlen);
         hdr_type = dr->type;
-
-        if (rlen < dag_record_size) {
-            SCLogError("Bad ERF record length %d (< dag_record_size) on stream: %d, DAG: %s", rlen,
-                    ewtn->dagstream, ewtn->dagname);
-            SCReturnInt(TM_ECODE_FAILED);
-        }
 
         /* If we don't have enough data to finish processing this ERF
          * record return and maybe next time we will.

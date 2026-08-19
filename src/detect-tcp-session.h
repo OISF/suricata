@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,10 +15,25 @@
  * 02110-1301, USA.
  */
 
-//! DCE/RPC protocol parser, logger and detection module.
+/**
+ * \file
+ *
+ * \brief tcp.session: keyword (Redmine #7704).
+ */
 
-pub mod dcerpc;
-pub mod dcerpc_udp;
-pub mod detect;
-pub mod log;
-pub mod parser;
+#ifndef SURICATA_DETECT_TCP_SESSION_H
+#define SURICATA_DETECT_TCP_SESSION_H
+
+#include "suricata-common.h"
+
+#define DETECT_TCP_SESSION_PHASE_SETUP       BIT_U8(0)
+#define DETECT_TCP_SESSION_PHASE_ESTABLISHED BIT_U8(1)
+#define DETECT_TCP_SESSION_PHASE_CLOSING     BIT_U8(2)
+
+typedef struct DetectTcpSessionData_ {
+    uint8_t phase_flags; /**< OR of DETECT_TCP_SESSION_PHASE_* */
+} DetectTcpSessionData;
+
+void DetectTcpSessionRegister(void);
+
+#endif /* SURICATA_DETECT_TCP_SESSION_H */

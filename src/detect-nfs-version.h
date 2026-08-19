@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,10 +15,16 @@
  * 02110-1301, USA.
  */
 
-//! DCE/RPC protocol parser, logger and detection module.
+/**
+ * \file
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ */
 
-pub mod dcerpc;
-pub mod dcerpc_udp;
-pub mod detect;
-pub mod log;
-pub mod parser;
+#ifndef SURICATA_DETECT_NFS_VERSION_H
+#define SURICATA_DETECT_NFS_VERSION_H
+
+/* prototypes */
+void DetectNfsVersionRegister (void);
+
+#endif /* SURICATA_DETECT_NFS_VERSION_H */

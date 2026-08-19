@@ -410,25 +410,6 @@
                             "ack_result": {
                                 "type": "integer"
                             },
-                            "procedure": {
-                                "description": "DCERPC Procedure name corresponding to the interface UUID and Opnum",
-                                "type": "string",
-                                "suricata": {
-                                    "keywords": [
-                                        "dcerpc.iface",
-                                        "dcerpc.opnum"
-                                    ]
-                                }
-                            },
-                            "service": {
-                                "description": "DCERPC Service name corresponding to the interface UUID",
-                                "type": "string",
-                                "suricata": {
-                                    "keywords": [
-                                        "dcerpc.iface"
-                                    ]
-                                }
-                            },
                             "uuid": {
                                 "type": "string",
                                 "suricata": {
@@ -5613,10 +5594,6 @@
                             "type": "string"
                         }
                     }
-                },
-                "server_security_failure_reason": {
-                    "description": "The string describing the reason why the server failed the security Handshake, see rfc 6143 section 7.1",
-                    "type": "string"
                 }
             }
         },
@@ -5926,25 +5903,6 @@
                                     },
                                     "ack_result": {
                                         "type": "integer"
-                                    },
-                                    "procedure": {
-                                        "description": "DCERPC Procedure name corresponding to the interface UUID and Opnum",
-                                        "type": "string",
-                                        "suricata": {
-                                            "keywords": [
-                                                "dcerpc.iface",
-                                                "dcerpc.opnum"
-                                            ]
-                                        }
-                                    },
-                                    "service": {
-                                        "description": "DCERPC Service name corresponding to the interface UUID",
-                                        "type": "string",
-                                        "suricata": {
-                                            "keywords": [
-                                                "dcerpc.iface"
-                                            ]
-                                        }
                                     },
                                     "uuid": {
                                         "type": "string"

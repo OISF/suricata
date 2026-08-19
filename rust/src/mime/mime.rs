@@ -117,11 +117,13 @@ pub fn mime_find_header_token<'a>(
                     // check for initial section of a parameter
                     current_section_slice.extend_from_slice(token);
                     current_section_slice.extend_from_slice(b"*0");
-                    {
-                        let value = t.tokens.get(&current_section_slice[..])?;
-                        sections_values.extend_from_slice(value);
-                        let l = current_section_slice.len();
-                        current_section_slice[l - 1] = b'1';
+                    match t.tokens.get(&current_section_slice[..]) {
+                        Some(value) => {
+                            sections_values.extend_from_slice(value);
+                            let l = current_section_slice.len();
+                            current_section_slice[l - 1] = b'1';
+                        }
+                        None => return None,
                     }
                 }
             }

@@ -31,8 +31,6 @@ jobs:
     runs-on: ubuntu-latest
     container: ubuntu:24.04
     continue-on-error: false
-    env:
-      RV: "1.89"
     steps:
 
       # Cache Rust stuff.
@@ -50,7 +48,7 @@ jobs:
                 build-essential \
                 autoconf \
                 automake \
-                cargo-${RV} \
+                cargo \
                 cbindgen \
                 clang-format-17 \
                 git \
@@ -93,7 +91,7 @@ jobs:
       # My patience simply ran too short to keep on looking. See follow-on
       # action to manually fix this up.
       - name: Checkout - might be merge commit!
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           fetch-depth: 0
         # Use last commit of branch, not potential merge commit!
@@ -133,7 +131,7 @@ jobs:
           fi
         shell: bash {0}
       - run: ./autogen.sh
-      - run: PATH="/usr/lib/rust-${RV}/bin:$PATH" ./configure --enable-warnings --enable-unittests
+      - run: ./configure --enable-warnings --enable-unittests
       - name: Check formatting
         run: |
           ./scripts/clang-format.sh check-branch --diffstat --show-commits  >> check_formatting_log.txt 2>&1

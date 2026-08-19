@@ -20,9 +20,8 @@
 use suricata_sys::sys::AppProtoEnum::ALPROTO_NFS;
 use suricata_sys::sys::{
     AppProto, DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordAliasRegister, SCDetectHelperKeywordRegister,
-    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
-    Signature,
+    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
+    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 use super::nfs::{NFSTransaction, NFSTransactionTypeData};
@@ -30,7 +29,6 @@ use super::types::{NfsProc2, NfsProc3, NfsProc4};
 use crate::core::STREAM_TOSERVER;
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, detect_parse_uint_inclusive, DetectUintData,
-    SCDetectU32Free, SCDetectU32ParseInclusive,
 };
 use crate::detect::{SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT32};
 
@@ -39,8 +37,6 @@ use std::os::raw::c_void;
 
 static mut G_NFS_PROCEDURE_KW_ID: u16 = 0;
 static mut G_NFS_PROCEDURE_BUFFER_ID: c_int = 0;
-static mut G_NFS_VERSION_KW_ID: u16 = 0;
-static mut G_NFS_VERSION_BUFFER_ID: c_int = 0;
 
 struct DetectNfsProcedureDataVersion {
     v2: Option<DetectUintData<u32>>,
@@ -163,47 +159,8 @@ unsafe extern "C" fn nfs_procedure_free(_de: *mut DetectEngineCtx, ctx: *mut c_v
     std::mem::drop(Box::from_raw(ctx));
 }
 
-unsafe extern "C" fn nfs_version_setup(
-    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
-) -> c_int {
-    if SCDetectSignatureSetAppProto(s, ALPROTO_NFS as AppProto) != 0 {
-        return -1;
-    }
-    let ctx = SCDetectU32ParseInclusive(raw) as *mut c_void;
-    if ctx.is_null() {
-        return -1;
-    }
-    if SCSigMatchAppendSMToList(
-        de,
-        s,
-        G_NFS_VERSION_KW_ID,
-        ctx as *mut SigMatchCtx,
-        G_NFS_VERSION_BUFFER_ID,
-    )
-    .is_null()
-    {
-        nfs_version_free(std::ptr::null_mut(), ctx);
-        return -1;
-    }
-    return 0;
-}
-
-unsafe extern "C" fn nfs_version_match(
-    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
-    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
-) -> c_int {
-    let tx = cast_pointer!(tx, NFSTransaction);
-    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    return detect_match_uint(ctx, tx.nfs_version as u32) as c_int;
-}
-
-unsafe extern "C" fn nfs_version_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
-    let ctx = cast_pointer!(ctx, DetectUintData<u32>);
-    SCDetectU32Free(ctx);
-}
-
 #[no_mangle]
-pub unsafe extern "C" fn SCDetectNfsRegister() {
+pub unsafe extern "C" fn SCDetectNfsProcedureRegister() {
     let kw = SCSigTableAppLiteElmt {
         name: b"nfs_procedure\0".as_ptr() as *const libc::c_char,
         desc: b"match NFS procedure\0".as_ptr() as *const libc::c_char,
@@ -219,28 +176,6 @@ pub unsafe extern "C" fn SCDetectNfsRegister() {
         ALPROTO_NFS as AppProto,
         STREAM_TOSERVER,
         0,
-    );
-
-    let kw = SCSigTableAppLiteElmt {
-        name: b"nfs.version\0".as_ptr() as *const libc::c_char,
-        desc: b"match NFS version\0".as_ptr() as *const libc::c_char,
-        // TODO write doc /rules/nfs-keywords.html#nfs-version\0
-        url: std::ptr::null(),
-        AppLayerTxMatch: Some(nfs_version_match),
-        Setup: Some(nfs_version_setup),
-        Free: Some(nfs_version_free),
-        flags: SIGMATCH_INFO_UINT32,
-    };
-    G_NFS_VERSION_KW_ID = SCDetectHelperKeywordRegister(&kw);
-    G_NFS_VERSION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
-        b"nfs.version\0".as_ptr() as *const libc::c_char,
-        ALPROTO_NFS as AppProto,
-        STREAM_TOSERVER,
-        0,
-    );
-    SCDetectHelperKeywordAliasRegister(
-        G_NFS_VERSION_KW_ID,
-        b"nfs_version\0".as_ptr() as *const libc::c_char,
     );
 }
 

@@ -247,7 +247,9 @@ noinst_HEADERS = \
 	detect-lua.h \
 	detect-mark.h \
 	detect-metadata.h \
+	detect-modbus.h \
 	detect-msg.h \
+	detect-nfs-version.h \
 	detect-noalert.h \
 	detect-nocase.h \
 	detect-offset.h \
@@ -276,6 +278,7 @@ noinst_HEADERS = \
 	detect-tcp-ack.h \
 	detect-tcp-flags.h \
 	detect-tcp-seq.h \
+	detect-tcp-session.h \
 	detect-tcp-window.h \
 	detect-tcp-wscale.h \
 	detect-tcphdr.h \
@@ -822,7 +825,9 @@ libsuricata_c_a_SOURCES = \
 	detect-lua.c \
 	detect-mark.c \
 	detect-metadata.c \
+	detect-modbus.c \
 	detect-msg.c \
+	detect-nfs-version.c \
 	detect-noalert.c \
 	detect-nocase.c \
 	detect-offset.c \
@@ -851,6 +856,7 @@ libsuricata_c_a_SOURCES = \
 	detect-tcp-ack.c \
 	detect-tcp-flags.c \
 	detect-tcp-seq.c \
+	detect-tcp-session.c \
 	detect-tcp-window.c \
 	detect-tcp-wscale.c \
 	detect-tcphdr.c \
