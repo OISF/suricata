@@ -874,8 +874,9 @@ setting.
     # Specifies the maximum amount of data to decompress,
     # set 0 for unlimited.
     # decompress-depth:
-    # Specifies the maximum amount of decompressed data to obtain,
-    # set 0 for unlimited.
+    # Specifies the maximum amount of decompressed data to obtain. The
+    # output buffer grows on demand up to this limit. Set 0 to use the
+    # default limit of 50 MB.
     swf-decompression:
       enabled: yes
       type: both
