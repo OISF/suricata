@@ -2349,11 +2349,8 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
             const char *name =
                     AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOSERVER);
             if (name == NULL) {
-                if (state == 0)
-                    name = "request-started";
-                else if (state == complete_state_ts)
-                    name = "request-complete";
-                else
+                name = DetectFirewallAppGenericHookName(state, complete_state_ts, STREAM_TOSERVER);
+                if (name == NULL)
                     name = "unknown";
             }
 
@@ -2375,11 +2372,8 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
             const char *name =
                     AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOCLIENT);
             if (name == NULL) {
-                if (state == 0)
-                    name = "response-started";
-                else if (state == complete_state_tc)
-                    name = "response-complete";
-                else
+                name = DetectFirewallAppGenericHookName(state, complete_state_tc, STREAM_TOCLIENT);
+                if (name == NULL)
                     name = "unknown";
             }
             char table_name[128];
