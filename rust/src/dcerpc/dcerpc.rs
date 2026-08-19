@@ -539,9 +539,11 @@ impl DCERPCState {
                 uuidentry.version = ctxitem.version;
                 uuidentry.versionminor = ctxitem.versionminor;
                 let pfcflags = hdr.pfc_flags;
-                // Store the first frag flag in the uuid as pfc_flags will
-                // be overwritten by new packets
-                if pfcflags & PFC_FIRST_FRAG > 0 {
+                // Store whether this is the first fragment, as pfc_flags will
+                // be overwritten by new packets. Minor version 0 runtimes assume
+                // BIND PDUs are not fragmented, so treat a BIND with no flags as
+                // its first fragment.
+                if pfcflags & PFC_FIRST_FRAG > 0 || (hdr.rpc_vers_minor == 0 && pfcflags == 0) {
                     uuidentry.flags |= DCERPC_UUID_ENTRY_FLAG_FF;
                 }
                 for uuid in self.interface_uuids.iter_mut() {
