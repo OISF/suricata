@@ -15,6 +15,19 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file
+ *
+ * \author Jason Ish <jason.ish@oisf.net>
+ *
+ * Implementation of the "base64_data" rule keyword.
+ *
+ * The keyword itself carries no options; it is a sticky buffer
+ * switch. It redirects subsequent content matches in the rule to
+ * DETECT_SM_LIST_BASE64_DATA, so they inspect the decoded output
+ * produced by a preceding "base64_decode".
+ */
+
 #include "suricata-common.h"
 #include "detect.h"
 #include "detect-engine.h"
@@ -45,6 +58,12 @@ void DetectBase64DataRegister(void)
     sigmatch_table[DETECT_BASE64_DATA].flags |= SIGMATCH_NOOPT;
 }
 
+/**
+ * \brief Switch the current sig-match list to DETECT_SM_LIST_BASE64_DATA.
+ *
+ * Rejects rules that use "base64_data" without a preceding
+ * "base64_decode": there would be no decoded buffer to inspect.
+ */
 static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
     const char *str)
 {
@@ -65,6 +84,7 @@ static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
 
 static int g_file_data_buffer_id = 0;
 
+/** \test base64_data after base64_decode switches the active list. */
 static int DetectBase64DataSetupTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -85,10 +105,7 @@ static int DetectBase64DataSetupTest01(void)
     PASS;
 }
 
-/**
- * \test Test that the list can be changed to post-detection lists
- *     after the base64 keyword.
- */
+/** \test post-detection keywords (tag) may follow base64_data. */
 static int DetectBase64DataSetupTest04(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
