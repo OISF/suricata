@@ -58,6 +58,7 @@
 #include "app-layer-events.h"
 
 #include "util-debug.h"
+#include "util-file-decompression.h"
 #include "util-misc.h"
 
 #include "util-unittest.h"
@@ -2336,17 +2337,19 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct 
                         exit(EXIT_FAILURE);
                     }
                 } else if (strcasecmp("compress-depth", pval->name) == 0) {
-                    if (ParseSizeStringU32(pval->val, &cfg_prec->swf_compress_depth) < 0) {
-                        SCLogError("Error parsing swf-decompression.compression-depth "
-                                   "from conf file - %s. Killing engine",
-                                p->val);
+                    if (ParseSizeStringU32(pval->val, &cfg_prec->swf_compress_depth) < 0 ||
+                            cfg_prec->swf_compress_depth > MAX_SWF_COMPRESS_DEPTH) {
+                        SCLogError("Invalid swf-decompression.compress-depth value %s: the "
+                                   "maximum is %u bytes. Killing engine",
+                                pval->val, MAX_SWF_COMPRESS_DEPTH);
                         exit(EXIT_FAILURE);
                     }
                 } else if (strcasecmp("decompress-depth", pval->name) == 0) {
-                    if (ParseSizeStringU32(pval->val, &cfg_prec->swf_decompress_depth) < 0) {
-                        SCLogError("Error parsing swf-decompression.decompression-depth "
-                                   "from conf file - %s. Killing engine",
-                                p->val);
+                    if (ParseSizeStringU32(pval->val, &cfg_prec->swf_decompress_depth) < 0 ||
+                            cfg_prec->swf_decompress_depth > MAX_SWF_DECOMPRESS_DEPTH) {
+                        SCLogError("Invalid swf-decompression.decompress-depth value %s: the "
+                                   "maximum is %u bytes. Killing engine",
+                                pval->val, MAX_SWF_DECOMPRESS_DEPTH);
                         exit(EXIT_FAILURE);
                     }
                 } else {

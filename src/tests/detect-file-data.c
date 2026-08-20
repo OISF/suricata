@@ -349,6 +349,30 @@ static int DetectFiledataSwfDecompressDepthTest02(void)
     PASS;
 }
 
+/**
+ * \test SWF decompression rejects depth values above the supported limits.
+ */
+static int DetectFiledataSwfDecompressDepthTest03(void)
+{
+    DetectEngineThreadCtx *det_ctx = SCCalloc(1, sizeof(*det_ctx));
+    FAIL_IF_NULL(det_ctx);
+    InspectionBuffer out_buffer = { 0 };
+
+    int r = FileSwfDecompression(swf_lzma_fixture, (uint32_t)sizeof(swf_lzma_fixture), det_ctx,
+            &out_buffer, HTTP_SWF_COMPRESSION_LZMA, MAX_SWF_DECOMPRESS_DEPTH + 1, 0);
+    FAIL_IF(r != 0);
+    FAIL_IF_NOT_NULL(out_buffer.buf);
+
+    r = FileSwfDecompression(swf_lzma_fixture, (uint32_t)sizeof(swf_lzma_fixture), det_ctx,
+            &out_buffer, HTTP_SWF_COMPRESSION_LZMA, 0, MAX_SWF_COMPRESS_DEPTH + 1);
+    FAIL_IF(r != 0);
+    FAIL_IF_NOT_NULL(out_buffer.buf);
+
+    SCAppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
+    SCFree(det_ctx);
+    PASS;
+}
+
 static int DetectEngineSMTPFiledataTest02(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -401,6 +425,8 @@ void DetectFiledataRegisterTests(void)
             "DetectFiledataSwfDecompressDepthTest01", DetectFiledataSwfDecompressDepthTest01);
     UtRegisterTest(
             "DetectFiledataSwfDecompressDepthTest02", DetectFiledataSwfDecompressDepthTest02);
+    UtRegisterTest(
+            "DetectFiledataSwfDecompressDepthTest03", DetectFiledataSwfDecompressDepthTest03);
     UtRegisterTest("DetectEngineSMTPFiledataTest02", DetectEngineSMTPFiledataTest02);
     UtRegisterTest("DetectFiledataParseTest04", DetectFiledataParseTest04);
 }
