@@ -18,6 +18,7 @@
 // written by Sascha Steinbiss <sascha@steinbiss.name>
 
 use crate::common::nom7::bits;
+use crate::mqtt::mqtt::MQTT_MAX_PROPERTIES;
 use crate::mqtt::mqtt_message::*;
 use crate::mqtt::mqtt_property::*;
 use nom7::bits::streaming::take as take_bits;
@@ -99,33 +100,40 @@ fn parse_property(i: &[u8]) -> IResult<&[u8], MQTTProperty> {
 }
 
 #[inline]
-fn parse_properties(input: &[u8], precond: bool) -> IResult<&[u8], Option<Vec<MQTTProperty>>> {
+fn parse_properties(
+    input: &[u8], precond: bool,
+) -> IResult<&[u8], (Option<Vec<MQTTProperty>>, bool)> {
     // do not try to parse anything when precondition is not met
     if !precond {
-        return Ok((input, None));
+        return Ok((input, (None, false)));
     }
     // parse properties length
     match parse_mqtt_variable_integer(input) {
         Ok((rem, proplen)) => {
             if proplen == 0 {
                 // no properties
-                return Ok((rem, None));
+                return Ok((rem, (None, false)));
             }
-            // parse properties
+            // Parse properties, keeping at most MQTT_MAX_PROPERTIES of them
             let mut props = Vec::<MQTTProperty>::new();
+            let mut truncated = false;
             let (rem, mut newrem) = take(proplen as usize)(rem)?;
             while !newrem.is_empty() {
                 match parse_property(newrem) {
                     Ok((rem2, val)) => {
                         if val != MQTTProperty::UNKNOWN {
-                            props.push(val);
+                            if props.len() < MQTT_MAX_PROPERTIES {
+                                props.push(val);
+                            } else {
+                                truncated = true;
+                            }
                         }
                         newrem = rem2;
                     }
                     Err(e) => return Err(e),
                 }
             }
-            return Ok((rem, Some(props)));
+            return Ok((rem, (Some(props), truncated)));
         }
         Err(e) => return Err(e),
     }
@@ -181,9 +189,10 @@ fn parse_connect(i: &[u8]) -> IResult<&[u8], MQTTConnectData> {
     let (i, protocol_version) = be_u8(i)?;
     let (i, rawflags) = be_u8(i)?;
     let (i, keepalive) = be_u16(i)?;
-    let (i, properties) = parse_properties(i, protocol_version == 5)?;
+    let (i, (properties, properties_truncated)) = parse_properties(i, protocol_version == 5)?;
     let (i, client_id) = parse_mqtt_string(i)?;
-    let (i, will_properties) = parse_properties(i, protocol_version == 5 && rawflags & 0x4 != 0)?;
+    let (i, (will_properties, will_properties_truncated)) =
+        parse_properties(i, protocol_version == 5 && rawflags & 0x4 != 0)?;
     let (i, will_topic) = cond(rawflags & 0x4 != 0, parse_mqtt_string)(i)?;
     let (i, will_message) = cond(rawflags & 0x4 != 0, parse_mqtt_binary_data)(i)?;
     let (i, username) = cond(rawflags & 0x80 != 0, parse_mqtt_string)(i)?;
@@ -208,6 +217,7 @@ fn parse_connect(i: &[u8]) -> IResult<&[u8], MQTTConnectData> {
             password,
             properties,
             will_properties,
+            properties_truncated: properties_truncated || will_properties_truncated,
         },
     ))
 }
@@ -217,13 +227,14 @@ fn parse_connack(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTC
     move |i: &[u8]| {
         let (i, topic_name_compression_response) = be_u8(i)?;
         let (i, return_code) = be_u8(i)?;
-        let (i, properties) = parse_properties(i, protocol_version == 5)?;
+        let (i, (properties, properties_truncated)) = parse_properties(i, protocol_version == 5)?;
         Ok((
             i,
             MQTTConnackData {
                 session_present: (topic_name_compression_response & 1) != 0,
                 return_code,
                 properties,
+                properties_truncated,
             },
         ))
     }
@@ -236,7 +247,8 @@ fn parse_publish(
     move |i: &[u8]| {
         let (i, topic) = parse_mqtt_string(i)?;
         let (i, message_id) = cond(has_id, be_u16)(i)?;
-        let (message, properties) = parse_properties(i, protocol_version == 5)?;
+        let (message, (properties, properties_truncated)) =
+            parse_properties(i, protocol_version == 5)?;
         Ok((
             i,
             MQTTPublishData {
@@ -244,6 +256,7 @@ fn parse_publish(
                 message_id,
                 message: message.to_vec(),
                 properties,
+                properties_truncated,
             },
         ))
     }
@@ -271,6 +284,7 @@ fn parse_msgidonly(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQT
                             message_id,
                             reason_code: Some(0),
                             properties: None,
+                            properties_truncated: false,
                         },
                     ));
                 }
@@ -286,17 +300,19 @@ fn parse_msgidonly(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQT
                                     message_id,
                                     reason_code: Some(reason_code),
                                     properties: None,
+                                    properties_truncated: false,
                                 },
                             ));
                         }
                         match parse_properties(rem, true) {
-                            Ok((rem, properties)) => {
+                            Ok((rem, (properties, properties_truncated))) => {
                                 return Ok((
                                     rem,
                                     MQTTMessageIdOnly {
                                         message_id,
                                         reason_code: Some(reason_code),
                                         properties,
+                                        properties_truncated,
                                     },
                                 ));
                             }
@@ -320,6 +336,7 @@ fn parse_msgidonly_v3(i: &[u8]) -> IResult<&[u8], MQTTMessageIdOnly> {
             message_id,
             reason_code: None,
             properties: None,
+            properties_truncated: false,
         },
     ))
 }
@@ -335,7 +352,7 @@ fn parse_subscribe_topic(i: &[u8]) -> IResult<&[u8], MQTTSubscribeTopicData> {
 fn parse_subscribe(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTSubscribeData> {
     move |i: &[u8]| {
         let (i, message_id) = be_u16(i)?;
-        let (i, properties) = parse_properties(i, protocol_version == 5)?;
+        let (i, (properties, properties_truncated)) = parse_properties(i, protocol_version == 5)?;
         let (i, topics) = many1(complete(parse_subscribe_topic))(i)?;
         Ok((
             i,
@@ -343,6 +360,7 @@ fn parse_subscribe(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQT
                 message_id,
                 topics,
                 properties,
+                properties_truncated,
             },
         ))
     }
@@ -352,13 +370,15 @@ fn parse_subscribe(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQT
 fn parse_suback(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTSubackData> {
     move |i: &[u8]| {
         let (i, message_id) = be_u16(i)?;
-        let (qoss, properties) = parse_properties(i, protocol_version == 5)?;
+        let (qoss, (properties, properties_truncated)) =
+            parse_properties(i, protocol_version == 5)?;
         Ok((
             i,
             MQTTSubackData {
                 message_id,
                 qoss: qoss.to_vec(),
                 properties,
+                properties_truncated,
             },
         ))
     }
@@ -370,7 +390,7 @@ fn parse_unsubscribe(
 ) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTUnsubscribeData> {
     move |i: &[u8]| {
         let (i, message_id) = be_u16(i)?;
-        let (i, properties) = parse_properties(i, protocol_version == 5)?;
+        let (i, (properties, properties_truncated)) = parse_properties(i, protocol_version == 5)?;
         let (i, topics) = many0(complete(parse_mqtt_string))(i)?;
         Ok((
             i,
@@ -378,6 +398,7 @@ fn parse_unsubscribe(
                 message_id,
                 topics,
                 properties,
+                properties_truncated,
             },
         ))
     }
@@ -387,7 +408,7 @@ fn parse_unsubscribe(
 fn parse_unsuback(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTTUnsubackData> {
     move |i: &[u8]| {
         let (i, message_id) = be_u16(i)?;
-        let (i, properties) = parse_properties(i, protocol_version == 5)?;
+        let (i, (properties, properties_truncated)) = parse_properties(i, protocol_version == 5)?;
         let (i, reason_codes) = many0(complete(be_u8))(i)?;
         Ok((
             i,
@@ -395,6 +416,7 @@ fn parse_unsuback(protocol_version: u8) -> impl Fn(&[u8]) -> IResult<&[u8], MQTT
                 message_id,
                 properties,
                 reason_codes: Some(reason_codes),
+                properties_truncated,
             },
         ))
     }
@@ -411,6 +433,7 @@ fn parse_disconnect(
                 MQTTDisconnectData {
                     reason_code: None,
                     properties: None,
+                    properties_truncated: false,
                 },
             ));
         }
@@ -423,6 +446,7 @@ fn parse_disconnect(
                 MQTTDisconnectData {
                     reason_code: Some(0),
                     properties: None,
+                    properties_truncated: false,
                 },
             ));
         }
@@ -437,16 +461,18 @@ fn parse_disconnect(
                         MQTTDisconnectData {
                             reason_code: Some(0),
                             properties: None,
+                            properties_truncated: false,
                         },
                     ));
                 }
                 match parse_properties(rem, true) {
-                    Ok((rem, properties)) => {
+                    Ok((rem, (properties, properties_truncated))) => {
                         return Ok((
                             rem,
                             MQTTDisconnectData {
                                 reason_code: Some(reason_code),
                                 properties,
+                                properties_truncated,
                             },
                         ));
                     }
@@ -461,12 +487,13 @@ fn parse_disconnect(
 #[inline]
 fn parse_auth(i: &[u8]) -> IResult<&[u8], MQTTAuthData> {
     let (i, reason_code) = be_u8(i)?;
-    let (i, properties) = parse_properties(i, true)?;
+    let (i, (properties, properties_truncated)) = parse_properties(i, true)?;
     Ok((
         i,
         MQTTAuthData {
             reason_code,
             properties,
+            properties_truncated,
         },
     ))
 }
@@ -770,7 +797,7 @@ mod tests {
 
         let result = parse_properties(&buf, true);
         match result {
-            Ok((remainder, message)) => {
+            Ok((remainder, (message, _truncated))) => {
                 let res = message.unwrap();
                 assert_eq!(res[0], MQTTProperty::RECEIVE_MAXIMUM(20));
                 assert_eq!(remainder.len(), 17);
@@ -783,6 +810,7 @@ mod tests {
             }
         }
     }
+
     #[test]
     fn test_parse_connect() {
         let buf = [

@@ -48,6 +48,30 @@ static mut MQTT_MAX_TX: usize = 1024;
 
 static mut MQTT_MAX_MSGS: usize = 1024;
 
+pub(super) const MQTT_MAX_PROPERTIES: usize = 256;
+
+fn msg_has_too_many_properties(op: &MQTTOperation) -> bool {
+    match op {
+        MQTTOperation::CONNECT(c) => c.properties_truncated,
+        MQTTOperation::CONNACK(c) => c.properties_truncated,
+        MQTTOperation::PUBLISH(c) => c.properties_truncated,
+        MQTTOperation::PUBACK(c)
+        | MQTTOperation::PUBREC(c)
+        | MQTTOperation::PUBREL(c)
+        | MQTTOperation::PUBCOMP(c) => c.properties_truncated,
+        MQTTOperation::SUBSCRIBE(c) => c.properties_truncated,
+        MQTTOperation::SUBACK(c) => c.properties_truncated,
+        MQTTOperation::UNSUBSCRIBE(c) => c.properties_truncated,
+        MQTTOperation::UNSUBACK(c) => c.properties_truncated,
+        MQTTOperation::AUTH(c) => c.properties_truncated,
+        MQTTOperation::DISCONNECT(c) => c.properties_truncated,
+        MQTTOperation::UNASSIGNED
+        | MQTTOperation::PINGREQ
+        | MQTTOperation::PINGRESP
+        | MQTTOperation::TRUNCATED(_) => false,
+    }
+}
+
 pub(super) static mut ALPROTO_MQTT: AppProto = ALPROTO_UNKNOWN;
 
 #[derive(AppLayerFrameType)]
@@ -71,6 +95,7 @@ pub enum MQTTEvent {
     TooManyTransactions,
     MalformedTraffic,
     TooManyMessages,
+    TooManyProperties,
 }
 
 #[derive(Debug)]
@@ -88,8 +113,15 @@ pub struct MQTTTransaction {
 impl MQTTTransaction {
     pub fn new(msg: MQTTMessage, direction: Direction) -> MQTTTransaction {
         let mut m = MQTTTransaction::new_empty(direction);
-        m.msg.push(msg);
+        m.push_msg(msg);
         return m;
+    }
+
+    fn push_msg(&mut self, msg: MQTTMessage) {
+        if msg_has_too_many_properties(&msg.op) {
+            self.tx_data.set_event(MQTTEvent::TooManyProperties as u8);
+        }
+        self.msg.push(msg);
     }
 
     pub fn new_empty(direction: Direction) -> MQTTTransaction {
@@ -308,7 +340,7 @@ impl MQTTState {
             }
             MQTTOperation::CONNACK(ref _connack) => {
                 if let Some(tx) = self.get_tx_by_pkt_id(MQTT_CONNECT_PKT_ID) {
-                    tx.msg.push(msg);
+                    tx.push_msg(msg);
                     tx.complete = true;
                     tx.pkt_id = None;
                     self.connected = true;
@@ -324,7 +356,7 @@ impl MQTTState {
                     if tx.msg.len() >= unsafe { MQTT_MAX_MSGS } {
                         tx.tx_data.set_event(MQTTEvent::TooManyMessages as u8);
                     } else {
-                        tx.msg.push(msg);
+                        tx.push_msg(msg);
                     }
                 } else {
                     let mut tx = self.new_tx(msg, toclient);
@@ -338,7 +370,7 @@ impl MQTTState {
             }
             MQTTOperation::PUBACK(ref v) | MQTTOperation::PUBCOMP(ref v) => {
                 if let Some(tx) = self.get_tx_by_pkt_id(v.message_id as u32) {
-                    tx.msg.push(msg);
+                    tx.push_msg(msg);
                     tx.complete = true;
                     tx.pkt_id = None;
                 } else {
@@ -353,7 +385,7 @@ impl MQTTState {
             }
             MQTTOperation::SUBACK(ref suback) => {
                 if let Some(tx) = self.get_tx_by_pkt_id(suback.message_id as u32) {
-                    tx.msg.push(msg);
+                    tx.push_msg(msg);
                     tx.complete = true;
                     tx.pkt_id = None;
                 } else {
@@ -368,7 +400,7 @@ impl MQTTState {
             }
             MQTTOperation::UNSUBACK(ref unsuback) => {
                 if let Some(tx) = self.get_tx_by_pkt_id(unsuback.message_id as u32) {
-                    tx.msg.push(msg);
+                    tx.push_msg(msg);
                     tx.complete = true;
                     tx.pkt_id = None;
                 } else {
