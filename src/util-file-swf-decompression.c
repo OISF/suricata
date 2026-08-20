@@ -145,16 +145,18 @@ int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx, const uint8_t *comp
         if (result == Z_STREAM_END || *decompressed_data_produced == decompressed_data_limit)
             break;
 
-        if (result == Z_OK && infstream.avail_in == 0)
-            break;
-
-	if (result == Z_OK && infstream.avail_out == 0) {
+        /* More output can be pending even after all input has been consumed. */
+        if (result == Z_OK && infstream.avail_out == 0) {
             if (!FileSwfDecompressionBufferGrow(det_ctx, out_buffer, decompressed_data_limit)) {
                 ret = 0;
                 break;
             }
             continue;
         }
+
+        /* A retry with no input returns Z_BUF_ERROR when no output was pending. */
+        if ((result == Z_OK || result == Z_BUF_ERROR) && infstream.avail_in == 0)
+            break;
 
         if (result == Z_DATA_ERROR) {
             DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_Z_DATA_ERROR);
@@ -178,57 +180,46 @@ int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx, const uint8_t *comp
  * | 4 bytes         | 4 bytes    | 4 bytes        | 5 bytes    | n bytes   | 6 bytes         |
  * | 'ZWS' + version | script len | compressed len | LZMA props | LZMA data | LZMA end marker |
  */
+static uint8_t *FileSwfLzmaOutputGrow(void *output, uint32_t min_size)
+{
+    return SCInspectionBufferCheckAndExpand(output, min_size);
+}
+
 int FileSwfLzmaDecompression(DetectEngineThreadCtx *det_ctx, const uint8_t *compressed_data,
         uint32_t compressed_data_len, InspectionBuffer *out_buffer,
         uint32_t decompressed_data_limit, uint32_t *decompressed_data_produced)
 {
-    int ret = 0;
     *decompressed_data_produced = 0;
 
-    while (true) {
-        size_t inprocessed = compressed_data_len;
-        size_t outprocessed =
-                FileSwfDecompressionOutputCapacity(out_buffer, decompressed_data_limit);
+    size_t inprocessed = compressed_data_len;
+    size_t outprocessed = 0;
+    int ret = lzma_decompress(compressed_data, &inprocessed, out_buffer, SWF_HEADER_LEN,
+            decompressed_data_limit, &outprocessed, FileSwfLzmaOutputGrow,
+            MAX_SWF_DECOMPRESSED_LEN);
+    *decompressed_data_produced = (uint32_t)outprocessed;
 
-        ret = lzma_decompress(compressed_data, &inprocessed, out_buffer->buf + SWF_HEADER_LEN,
-                &outprocessed, MAX_SWF_DECOMPRESSED_LEN);
-
-        if (ret == LzmaOk) {
-            *decompressed_data_produced = (uint32_t)outprocessed;
-            ret = 1;
-            break;
-        }
-        if (ret == LzmaOutputFull) {
-            *decompressed_data_produced = (uint32_t)outprocessed;
-            if (*decompressed_data_produced == decompressed_data_limit) {
-                ret = 1;
-                break;
-            }
-            if (!FileSwfDecompressionBufferGrow(det_ctx, out_buffer, decompressed_data_limit)) {
-                ret = 0;
-                break;
-            }
-            continue;
-        }
-
-        if (ret == LzmaIoError) {
-            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_IO_ERROR);
-        } else if (ret == LzmaHeaderTooShortError) {
-            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_HEADER_TOO_SHORT_ERROR);
-        } else if (ret == LzmaError) {
-            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_DECODER_ERROR);
-        } else if (ret == LzmaMemoryError) {
-            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR);
-        } else if (ret == LzmaXzError) {
-            /* We should not see XZ compressed SWF files */
-            DEBUG_VALIDATE_BUG_ON(ret == LzmaXzError);
-            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_XZ_ERROR);
-        } else {
-            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR);
-        }
-        ret = 0;
-        break;
+    if (ret == LzmaOk || ret == LzmaOutputFull) {
+        DEBUG_VALIDATE_BUG_ON(
+                ret == LzmaOutputFull && *decompressed_data_produced != decompressed_data_limit);
+        return 1;
     }
 
-    return ret;
+    if (ret == LzmaOutputAllocError) {
+        DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_NO_MEM);
+    } else if (ret == LzmaIoError) {
+        DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_IO_ERROR);
+    } else if (ret == LzmaHeaderTooShortError) {
+        DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_HEADER_TOO_SHORT_ERROR);
+    } else if (ret == LzmaError) {
+        DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_DECODER_ERROR);
+    } else if (ret == LzmaMemoryError) {
+        DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR);
+    } else if (ret == LzmaXzError) {
+        /* We should not see XZ compressed SWF files */
+        DEBUG_VALIDATE_BUG_ON(ret == LzmaXzError);
+        DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_XZ_ERROR);
+    } else {
+        DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR);
+    }
+    return 0;
 }
