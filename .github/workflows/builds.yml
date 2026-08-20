@@ -1120,6 +1120,38 @@ jobs:
       - run: suricata-update -V
       - run: suricatasc -h
 
+  # Build both C and Rust with AddressSanitizer, then run Suricata-Verify.
+  fedora-44-rust-asan:
+    name: Fedora 44 (rust-asan, sv)
+    runs-on: ubuntu-latest
+    container: fedora:44
+    needs: [prepare-deps]
+    steps:
+      - name: Cache cargo registry
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/.cargo/registry
+          key: ${{ github.job }}-cargo-registry
+      - run: dnf -y install git
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/suricata-update.tar.gz
+      - run: tar xf prep/suricata-verify.tar.gz
+      - name: Build and test with Rust ASAN
+        run: ./qa/ci/rust-asan.sh
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: rust-asan-logs
+          if-no-files-found: ignore
+          path: |
+            *.log
+            suricata-verify/tests/**/output/
+
   # This job builds and tests Suricata as a non-root user as some
   # issues only show up when not running as root, and by default all
   # jobs in GitHub actions are run as root inside the container.
