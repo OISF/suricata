@@ -77,6 +77,10 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
 {
     int r = 0;
 
+    if (decompress_depth > MAX_SWF_DECOMPRESS_DEPTH || compress_depth > MAX_SWF_COMPRESS_DEPTH) {
+        return 0;
+    }
+
     int compression_type = FileIsSwfFile(buffer, buffer_len);
     if (compression_type == FILE_SWF_NO_COMPRESSION) {
         return 0;
@@ -160,7 +164,7 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
          * | 5 bytes         | 8 bytes             | n bytes         |
          * | LZMA properties | Uncompressed length | Compressed data |
          */
-        compressed_data_len += 13;
+        compressed_data_len += SWF_LZMA_HEADER_LEN;
         uint8_t *compressed_data = SCCalloc(1, compressed_data_len);
         if (compressed_data == NULL) {
             DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_NO_MEM);
@@ -171,7 +175,8 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
         /* put lzma end marker */
         memset(compressed_data + 5, 0xFF, 8);
         /* put compressed data */
-        memcpy(compressed_data + 13, buffer + offset, compressed_data_len - 13);
+        memcpy(compressed_data + SWF_LZMA_HEADER_LEN, buffer + offset,
+                compressed_data_len - SWF_LZMA_HEADER_LEN);
 
         /* the first 8 bytes represents the fws header, see 'FWS format' above.
          * data will start from 8th bytes

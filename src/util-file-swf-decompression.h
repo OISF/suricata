@@ -32,7 +32,6 @@
 
 #define MAX_SWF_DECOMPRESSED_LEN 50000000
 
-#define SWF_HEADER_LEN                    8
 #define SWF_DECOMPRESS_INITIAL_BUFFER_LEN 4096
 
 uint8_t FileGetSwfVersion(const uint8_t *buffer, const uint32_t buffer_len);
