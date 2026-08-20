@@ -83,9 +83,7 @@ int ListAppLayerHooks(const char *conf_filename)
         if (alprotos[a] != 1)
             continue;
 
-        const char *alproto_name = AppProtoToString(a);
-        if (strcmp(alproto_name, "http") == 0)
-            alproto_name = "http1";
+        const char *alproto_name = AppProtoToStringRaw(a);
         SCLogDebug("alproto %u/%s", a, alproto_name);
 
         const int max_progress_ts =
@@ -133,9 +131,7 @@ int ListAppLayerFrames(const char *conf_filename)
         if (alprotos[a] != 1)
             continue;
 
-        const char *alproto_name = AppProtoToString(a);
-        if (strcmp(alproto_name, "http") == 0)
-            alproto_name = "http1";
+        const char *alproto_name = AppProtoToStringRaw(a);
         SCLogDebug("alproto %u/%s", a, alproto_name);
 
         bool tcp_stream_once = false;

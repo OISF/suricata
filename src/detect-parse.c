@@ -1152,9 +1152,7 @@ static bool IsBuiltIn(const char *n)
 void DetectRegisterAppLayerHookLists(void)
 {
     for (AppProto a = ALPROTO_FAILED + 1; a < g_alproto_max; a++) {
-        const char *alproto_name = AppProtoToString(a);
-        if (strcmp(alproto_name, "http") == 0)
-            alproto_name = "http1";
+        const char *alproto_name = AppProtoToStringRaw(a);
         SCLogDebug("alproto %u/%s", a, alproto_name);
 
         const int max_progress_ts =

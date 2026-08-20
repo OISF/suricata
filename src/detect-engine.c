@@ -841,13 +841,11 @@ const char *DetectEngineAppHookToName(
 /** \brief get the sm_list for a app hook */
 int DetectEngineAppHookToSmlist(const AppProto p, const uint8_t state, const int direction)
 {
-    const char *app_proto = AppProtoToString(p);
+    const char *app_proto = AppProtoToStringRaw(p);
     if (app_proto == NULL) {
         SCLogError("unknown app_proto %u", p);
         return -1;
     }
-    if (strcmp(app_proto, "http") == 0)
-        app_proto = "http1";
 
     const char *name =
             DetectEngineAppHookToName(p, state, direction & (STREAM_TOSERVER | STREAM_TOCLIENT));
