@@ -1293,6 +1293,7 @@ mod test {
                     message_id: 1,
                     topics: vec!["foo".to_string(), "baar".to_string()],
                     properties: None,
+                    properties_truncated: false,
                 }),
             },
             Direction::ToServer,
@@ -1309,6 +1310,7 @@ mod test {
                 message_id: 1,
                 topics: vec!["fieee".to_string(), "baaaaz".to_string()],
                 properties: None,
+                properties_truncated: false,
             }),
         });
         let mut s: *const u8 = std::ptr::null_mut();
@@ -1359,6 +1361,7 @@ mod test {
                         },
                     ],
                     properties: None,
+                    properties_truncated: false,
                 }),
             },
             Direction::ToServer,
@@ -1384,6 +1387,7 @@ mod test {
                     },
                 ],
                 properties: None,
+                properties_truncated: false,
             }),
         });
         let mut s: *const u8 = std::ptr::null_mut();

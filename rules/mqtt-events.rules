@@ -14,3 +14,4 @@ alert mqtt any any -> any any (msg:"SURICATA MQTT unassigned message type (0 or 
 alert mqtt any any -> any any (msg:"SURICATA MQTT too many transactions"; app-layer-event:mqtt.too_many_transactions; classtype:protocol-command-decode; sid:2229009; rev:1;)
 alert mqtt any any -> any any (msg:"SURICATA MQTT malformed traffic"; app-layer-event:mqtt.malformed_traffic; classtype:protocol-command-decode; sid:2229010; rev:1;)
 alert mqtt any any -> any any (msg:"SURICATA MQTT too many messages"; app-layer-event:mqtt.too_many_messages; classtype:protocol-command-decode; sid:2229011; rev:1;)
+alert mqtt any any -> any any (msg:"SURICATA MQTT too many properties"; app-layer-event:mqtt.too_many_properties; classtype:protocol-command-decode; sid:2229012; rev:1;)
