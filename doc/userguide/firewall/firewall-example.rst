@@ -62,7 +62,7 @@ HTTP example with partially using default policies
 
     firewall:
       policies:
-        http:
+        http1:
           request-started:
             - "accept:hook"
           request-line:

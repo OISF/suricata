@@ -3929,7 +3929,7 @@ static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const 
             nname[i] = '-';
     }
 
-    const char *app_name = AppProtoToString(app_proto);
+    const char *app_name = AppProtoToStringRaw(app_proto);
     int r = snprintf(policy_name, sizeof(policy_name), "%s.%s.%s", prefix, app_name, nname);
     SCFree(nname);
     if (r < 0 || (size_t)r >= sizeof(policy_name)) {
