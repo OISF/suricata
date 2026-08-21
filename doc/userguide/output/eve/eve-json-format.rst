@@ -3363,11 +3363,15 @@ Fields
 ~~~~~~
 
 * "age": duration of the flow (measured from timestamp of last packet and first packet)
-* "bytes": total number of bytes to client
+* "bytes": total number of bytes in the direction of the record, including bypassed bytes
+* "bypassed.bytes": bypassed bytes count in the direction of the record (only present if the
+  flow has been bypassed)
+* "bypassed.pkts": number of bypassed packets in the direction of the record (only present if
+  the flow has been bypassed)
 * "end": date of the end of the flow
 * "max_ttl": maximum observed Time-To-Live (TTL) value
 * "min_ttl": minimum observed TTL value
-* "pkts": total number of packets to client
+* "pkts": total number of packets in the direction of the record, including bypassed packets
 * "start": date of start of the flow
 * "tx_cnt": number of transactions seen in the flow (only present if flow has an application layer)
 

@@ -4835,9 +4835,25 @@
                         ]
                     }
                 },
+                "bypassed": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "description": "Bypassed packets and bytes counted by the capture bypass method",
+                    "properties": {
+                        "bytes": {
+                            "type": "integer",
+                            "description": "Number of bypassed bytes"
+                        },
+                        "pkts": {
+                            "type": "integer",
+                            "description": "Number of bypassed packets"
+                        }
+                    }
+                },
                 "bytes": {
                     "type": "integer",
-                    "description": "Total number of bytes transferred to server/client",
+                    "description":
+                            "Total number of bytes transferred to server/client, including bytes counted by the capture bypass method",
                     "suricata": {
                         "keywords": [
                             "flow.bytes",
@@ -4860,7 +4876,8 @@
                 },
                 "pkts": {
                     "type": "integer",
-                    "description": "Total number of packets transferred to server,client",
+                    "description":
+                            "Total number of packets transferred to server/client, including packets counted by the capture bypass method",
                     "suricata": {
                         "keywords": [
                             "flow.pkts",
