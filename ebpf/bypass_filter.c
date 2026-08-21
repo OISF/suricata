@@ -60,6 +60,7 @@ struct flowv6_keys {
 struct pair {
     __u64 packets;
     __u64 bytes;
+    __u64 time;
 };
 
 struct {
@@ -143,6 +144,7 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb, __u16 vlan0, __u16
 #endif
         value->packets++;
         value->bytes += skb->len;
+        value->time = bpf_ktime_get_ns();
         return 0;
     }
     return -1;
@@ -205,6 +207,7 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb, __u16 vlan0, __u16
         //bpf_trace_printk(fmt, sizeof(fmt), tuple.port16[0], tuple.port16[1]);
         value->packets++;
         value->bytes += skb->len;
+        value->time = bpf_ktime_get_ns();
         return 0;
     }
     return -1;
