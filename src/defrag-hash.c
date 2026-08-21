@@ -15,6 +15,15 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file
+ *
+ * DefragTracker hash table: lookup, allocation, memcap, eviction.
+ * Locking order: row lock, then tracker mutex. use_cnt keeps a
+ * tracker alive across lock drops; the pruner won't touch it while
+ * it's non-zero.
+ */
+
 #include "suricata-common.h"
 #include "conf.h"
 #include "defrag-hash.h"
@@ -27,24 +36,29 @@
 #include "util-hash-lookup3.h"
 #include "util-validate.h"
 
-/** defrag tracker hash table */
+/** Bucket array, sized by defrag.hash-size. */
 DefragTrackerHashRow *defragtracker_hash;
+
+/** Global defrag config. */
 DefragConfig defrag_config;
+
+/** Bytes charged against defrag.memcap. */
 SC_ATOMIC_DECLARE(uint64_t,defrag_memuse);
+
+/** Trackers currently attached to a bucket. */
 SC_ATOMIC_DECLARE(unsigned int,defragtracker_counter);
+
+/** Rolling start point for the eviction sweep. */
 SC_ATOMIC_DECLARE(unsigned int,defragtracker_prune_idx);
 
 static DefragTracker *DefragTrackerGetUsedDefragTracker(
         ThreadVars *tv, const DecodeThreadVars *dtv);
 
-/** queue with spare tracker */
+/** Free list of trackers, LIFO. */
 static DefragTrackerStack defragtracker_spare_q;
 
-/**
- *  \brief Update memcap value
- *
- *  \param size new memcap value
- */
+/** \brief Set memcap. Refuses values below current memuse.
+ *  \retval 1 applied, 0 rejected */
 int DefragTrackerSetMemcap(uint64_t size)
 {
     if ((uint64_t)SC_ATOMIC_GET(defrag_memuse) < size) {
@@ -55,39 +69,37 @@ int DefragTrackerSetMemcap(uint64_t size)
     return 0;
 }
 
-/**
- *  \brief Return memcap value
- *
- *  \retval memcap value
- */
+/** \brief Return the current memcap. */
 uint64_t DefragTrackerGetMemcap(void)
 {
     uint64_t memcapcopy = SC_ATOMIC_GET(defrag_config.memcap);
     return memcapcopy;
 }
 
-/**
- *  \brief Return memuse value
- *
- *  \retval memuse value
- */
+/** \brief Return the current memory usage. */
 uint64_t DefragTrackerGetMemuse(void)
 {
     uint64_t memusecopy = (uint64_t)SC_ATOMIC_GET(defrag_memuse);
     return memusecopy;
 }
 
+/** \brief Configured memcap exception policy. */
 enum ExceptionPolicy DefragGetMemcapExceptionPolicy(void)
 {
     return defrag_config.memcap_policy;
 }
 
+/** \brief Return a tracker to the spare stack. Memory stays
+ *         allocated. */
 void DefragTrackerMoveToSpare(DefragTracker *h)
 {
     DefragTrackerEnqueue(&defragtracker_spare_q, h);
     (void) SC_ATOMIC_SUB(defragtracker_counter, 1);
 }
 
+/** \internal
+ *  \brief Allocate a new tracker. Charges memcap before calloc so
+ *         a racing allocator can't push us over. Returned unlocked. */
 static DefragTracker *DefragTrackerAlloc(void)
 {
     if (!(DEFRAG_CHECK_MEMCAP(sizeof(DefragTracker)))) {
@@ -106,6 +118,9 @@ static DefragTracker *DefragTrackerAlloc(void)
     return dt;
 }
 
+/** \internal
+ *  \brief Fully free a tracker. Shutdown path only; runtime uses
+ *         the spare stack. */
 static void DefragTrackerFree(DefragTracker *dt)
 {
     if (dt != NULL) {
@@ -117,14 +132,18 @@ static void DefragTrackerFree(DefragTracker *dt)
     }
 }
 
+/* Refcount. Incremented on lookup, dropped on release. Stops the pruner
+ * from freeing a tracker while another thread still holds it. */
 #define DefragTrackerIncrUsecnt(dt) \
     SC_ATOMIC_ADD((dt)->use_cnt, 1)
 #define DefragTrackerDecrUsecnt(dt) \
     SC_ATOMIC_SUB((dt)->use_cnt, 1)
 
+/** \internal
+ *  \brief Fill a new tracker from its first packet. Both addresses
+ *         copied; direction is handled at compare time. */
 static void DefragTrackerInit(DefragTracker *dt, Packet *p)
 {
-    /* copy address */
     COPY_ADDRESS(&p->src, &dt->src_addr);
     COPY_ADDRESS(&p->dst, &dt->dst_addr);
 
@@ -147,12 +166,16 @@ static void DefragTrackerInit(DefragTracker *dt, Packet *p)
     (void) DefragTrackerIncrUsecnt(dt);
 }
 
+
+/** \brief Drop the caller's ref and unlock. Decrement must happen
+ *         while the tracker is still known valid. */
 void DefragTrackerRelease(DefragTracker *t)
 {
     (void) DefragTrackerDecrUsecnt(t);
     SCMutexUnlock(&t->lock);
 }
 
+/** \brief Free attached fragments; the tracker itself stays. */
 void DefragTrackerClearMemory(DefragTracker *dt)
 {
     DefragTrackerFreeFrags(dt);
@@ -163,7 +186,9 @@ void DefragTrackerClearMemory(DefragTracker *dt)
 #define DEFRAG_DEFAULT_PREALLOC 1000
 
 /** \brief initialize the configuration
- *  \warning Not thread safe */
+ * Build the hash table, read config, optionally prealloc.
+ * Aborts if the bucket array alone exceeds memcap.
+ *  \warning Startup only, not thread-safe. */
 void DefragInitConfig(bool quiet)
 {
     SCLogDebug("initializing defrag engine...");
@@ -175,19 +200,19 @@ void DefragInitConfig(bool quiet)
     SC_ATOMIC_INIT(defrag_config.memcap);
     DefragTrackerStackInit(&defragtracker_spare_q);
 
-    /* set defaults */
+    /* defaults; reseed hash_rand per run */
     defrag_config.hash_rand   = (uint32_t)RandomGet();
     defrag_config.hash_size   = DEFRAG_DEFAULT_HASHSIZE;
     defrag_config.prealloc    = DEFRAG_DEFAULT_PREALLOC;
     SC_ATOMIC_SET(defrag_config.memcap, DEFRAG_DEFAULT_MEMCAP);
     defrag_config.memcap_policy = ExceptionPolicyParse("defrag.memcap-policy", false);
 
-    /* Check if we have memcap and hash_size defined at config */
+    /* overrides from suricata.yaml */
     const char *conf_val;
     uint32_t configval = 0;
 
     uint64_t defrag_memcap;
-    /** set config values for memcap, prealloc and hash_size */
+        /** set config values for memcap, prealloc and hash_size */
     if ((SCConfGetNonNull("defrag.memcap", &conf_val)) == 1) {
         if (ParseSizeStringU64(conf_val, &defrag_memcap) < 0) {
             SCLogError("Error parsing defrag.memcap "
@@ -219,7 +244,7 @@ void DefragInitConfig(bool quiet)
                "%"PRIu32", prealloc: %"PRIu32, SC_ATOMIC_GET(defrag_config.memcap),
                defrag_config.hash_size, defrag_config.prealloc);
 
-    /* alloc hash memory */
+    /* bucket array must fit in memcap on its own */
     uint64_t hash_size = defrag_config.hash_size * sizeof(DefragTrackerHashRow);
     if (!(DEFRAG_CHECK_MEMCAP(hash_size))) {
         SCLogError("allocating defrag hash failed: "
@@ -250,9 +275,9 @@ void DefragInitConfig(bool quiet)
                   (uintmax_t)sizeof(DefragTrackerHashRow));
     }
 
+    /* prealloc surfaces RAM shortages at boot rather than under traffic */
     if ((SCConfGetNonNull("defrag.prealloc", &conf_val)) == 1) {
         if (SCConfValIsTrue(conf_val)) {
-            /* pre allocate defrag trackers */
             for (i = 0; i < defrag_config.prealloc; i++) {
                 if (!(DEFRAG_CHECK_MEMCAP(sizeof(DefragTracker)))) {
                     SCLogError("preallocating defrag trackers failed: "
@@ -285,8 +310,9 @@ void DefragInitConfig(bool quiet)
     }
 }
 
-/** \brief shutdown the flow engine
- *  \warning Not thread safe */
+/** \brief Tear down what DefragInitConfig built. Any surviving
+ *         use_cnt > 0 is a bug.
+ *  \warning Shutdown only, after workers have joined. */
 void DefragHashShutdown(void)
 {
     DefragTracker *dt;
@@ -339,6 +365,8 @@ static inline int DefragHashRawAddressIPv6GtU32(const uint32_t *a, const uint32_
     return 0;
 }
 
+/* Hash key structs, consumed by hashword() via the u32[] union.
+ * pad[1] rounds the size and makes zero-init obvious.*/
 typedef struct DefragHashKey4_ {
     union {
         struct {
@@ -363,7 +391,7 @@ typedef struct DefragHashKey6_ {
     };
 } DefragHashKey6;
 
-/* calculate the hash key for this packet
+/** \brief calculate the hash key for this packet
  *
  * we're using:
  *  hash_rand -- set at init time
@@ -434,6 +462,8 @@ static inline uint32_t DefragHashGetKey(Packet *p)
             (d1)->vlan_id[0] == (d2)->vlan_id[0] && (d1)->vlan_id[1] == (d2)->vlan_id[1] &&        \
             (d1)->vlan_id[2] == (d2)->vlan_id[2])
 
+/** \internal
+ *  \brief AF check, then full tuple compare. */
 static inline int DefragTrackerCompare(DefragTracker *t, Packet *p)
 {
     uint32_t id;
@@ -451,6 +481,9 @@ static inline int DefragTrackerCompare(DefragTracker *t, Packet *p)
     return CMP_DEFRAGTRACKER(t, p, id);
 }
 
+/** \internal
+ *  \brief Bump the memcap-hit counter for the current policy.
+ *         Counter ids are cached on dtv. */
 static void DefragExceptionPolicyStatsIncr(
         ThreadVars *tv, DecodeThreadVars *dtv, enum ExceptionPolicy policy)
 {
@@ -460,14 +493,12 @@ static void DefragExceptionPolicyStatsIncr(
     }
 }
 
-/**
- *  \brief Get a new defrag tracker
+/** \internal
+ *  \brief Get a locked tracker when the bucket had no match.
  *
- *  Get a new defrag tracker. We're checking memcap first and will try to make room
- *  if the memcap is reached.
- *
- *  \retval dt *LOCKED* tracker on success, NULL on error.
- */
+ * Tries the spare stack, then alloc, then eviction.
+ * On total failure applies the exception policy.
+ *  \retval dt locked tracker, NULL on failure */
 static DefragTracker *DefragTrackerGetNew(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
 #ifdef QA_SIMULATION
@@ -481,34 +512,26 @@ static DefragTracker *DefragTrackerGetNew(ThreadVars *tv, DecodeThreadVars *dtv,
 
     DefragTracker *dt = NULL;
 
-    /* get a tracker from the spare queue */
+    /* try spare stack first */
     dt = DefragTrackerDequeue(&defragtracker_spare_q);
     if (dt == NULL) {
-        /* If we reached the max memcap, we get a used tracker */
         if (!(DEFRAG_CHECK_MEMCAP(sizeof(DefragTracker)))) {
+            /* memcap full: steal one */
             dt = DefragTrackerGetUsedDefragTracker(tv, dtv);
             if (dt == NULL) {
                 ExceptionPolicyApply(p, defrag_config.memcap_policy, PKT_DROP_REASON_DEFRAG_MEMCAP);
                 DefragExceptionPolicyStatsIncr(tv, dtv, defrag_config.memcap_policy);
                 return NULL;
             }
-
-            /* freed a tracker, but it's unlocked */
         } else {
-            /* now see if we can alloc a new tracker */
+            /* room left: allocate */
             dt = DefragTrackerAlloc();
             if (dt == NULL) {
                 ExceptionPolicyApply(p, defrag_config.memcap_policy, PKT_DROP_REASON_DEFRAG_MEMCAP);
                 DefragExceptionPolicyStatsIncr(tv, dtv, defrag_config.memcap_policy);
                 return NULL;
             }
-
-            /* tracker is initialized but *unlocked* */
         }
-    } else {
-        /* tracker has been recycled before it went into the spare queue */
-
-        /* tracker is initialized (recycled) but *unlocked* */
     }
 
     (void) SC_ATOMIC_ADD(defragtracker_counter, 1);
@@ -516,25 +539,29 @@ static DefragTracker *DefragTrackerGetNew(ThreadVars *tv, DecodeThreadVars *dtv,
     return dt;
 }
 
-/* DefragGetTrackerFromHash
+/** \brief Find or create the tracker for a packet. Entry point
+ *         called by Defrag().
  *
- * Hash retrieval function for trackers. Looks up the hash bucket containing the
- * tracker pointer. Then compares the packet with the found tracker to see if it is
- * the tracker we need. If it isn't, walk the list until the right tracker is found.
+ *  Walks the bucket chain, reaping timed-out entries as it goes.
+ *  New trackers go in at the head (fresh ones tend to see more
+ *  fragments soon). Returns with the tracker locked but the row
+ *  lock released; caller must go through DefragTrackerRelease.
  *
- * returns a *LOCKED* tracker or NULL
- */
+ *  Locking order: row lock outer, tracker lock inner. The
+ *  `goto tracker_removed` keeps prev_dt correct when an entry is
+ *  spliced out mid-walk.
+ *
+ *  \retval dt   locked tracker, caller MUST release
+ *  \retval NULL memcap exhausted, nothing evictable */
 DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
     DefragTracker *dt = NULL;
 
-    /* get the key to our bucket */
     uint32_t key = DefragHashGetKey(p);
-    /* get our hash bucket and lock it */
     DefragTrackerHashRow *hb = &defragtracker_hash[key];
     DRLOCK_LOCK(hb);
 
-    /* see if the bucket already has a tracker */
+    /* empty bucket, drop a new tracker in */
     if (hb->head == NULL) {
         dt = DefragTrackerGetNew(tv, dtv, p);
         if (dt == NULL) {
@@ -542,17 +569,14 @@ DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, P
             return NULL;
         }
 
-        /* tracker is locked */
         hb->head = dt;
-
-        /* got one, now lock, initialize and return */
         DefragTrackerInit(dt,p);
 
         DRLOCK_UNLOCK(hb);
         return dt;
     }
 
-    /* ok, we have a tracker in the bucket. Let's find out if it is our tracker */
+    /* walk the chain */
     DefragTracker *prev_dt = NULL;
     dt = hb->head;
 
@@ -561,6 +585,7 @@ DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, P
 
         SCMutexLock(&dt->lock);
         if (DefragTrackerTimedOut(dt, p->ts)) {
+            /* reap while we're here */
             next_dt = dt->hnext;
             dt->hnext = NULL;
             if (prev_dt) {
@@ -575,19 +600,18 @@ DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, P
             StatsCounterIncr(&tv->stats, dtv->counter_defrag_tracker_timeout);
             goto tracker_removed;
         } else if (!dt->remove && DefragTrackerCompare(dt, p)) {
-            /* found our tracker, keep locked & return */
+            /* match, keep locked and return */
             (void)DefragTrackerIncrUsecnt(dt);
             DRLOCK_UNLOCK(hb);
             return dt;
         }
         SCMutexUnlock(&dt->lock);
-        /* unless we removed 'dt', prev_dt needs to point to
-         * current 'dt' when adding a new tracker below. */
         prev_dt = dt;
         next_dt = dt->hnext;
 
     tracker_removed:
         if (next_dt == NULL) {
+            /* end of chain, insert at head */
             dt = DefragTrackerGetNew(tv, dtv, p);
             if (dt == NULL) {
                 DRLOCK_UNLOCK(hb);
@@ -596,29 +620,23 @@ DefragTracker *DefragGetTrackerFromHash(ThreadVars *tv, DecodeThreadVars *dtv, P
             dt->hnext = hb->head;
             hb->head = dt;
 
-            /* tracker is locked */
-
-            /* initialize and return */
             DefragTrackerInit(dt, p);
 
             DRLOCK_UNLOCK(hb);
             return dt;
         }
-
         dt = next_dt;
     } while (dt != NULL);
 
-    /* should be unreachable */
+    /* unreachable */
     BUG_ON(1);
     return NULL;
 }
 
-/** \brief look up a tracker in the hash
- *
- *  \param a address to look up
- *
- *  \retval h *LOCKED* tracker or NULL
- */
+/** \brief Read-only lookup. Never allocates, evicts, or runs
+ *         timeout logic. Used by tests and inspection paths.
+ *  \retval dt   locked tracker
+ *  \retval NULL no match */
 DefragTracker *DefragLookupTrackerFromHash (Packet *p)
 {
     DefragTracker *dt = NULL;
@@ -654,22 +672,26 @@ DefragTracker *DefragLookupTrackerFromHash (Packet *p)
         dt = dt->hnext;
     } while (dt != NULL);
 
-    /* should be unreachable */
+    /* unreachable */
     BUG_ON(1);
     return NULL;
 }
 
 /** \internal
- *  \brief Get a tracker from the hash directly.
+ *  \brief Steal an idle tracker from the hash so its slot can be
+ *         reused. The pressure-relief path.
  *
- *  Called in conditions where the spare queue is empty and memcap is reached.
+ *  Sweeps from a rolling cursor (defragtracker_prune_idx) so we
+ *  don't keep hitting the same low-index buckets. All lock
+ *  acquisitions are trylocks; this runs on the packet hot path and
+ *  can't afford to block. Trackers with use_cnt > 0 are skipped.
  *
- *  Walks the hash until a tracker can be freed. "defragtracker_prune_idx" atomic int makes
- *  sure we don't start at the top each time since that would clear the top of
- *  the hash leading to longer and longer search times under high pressure (observed).
+ *  Hard reuse (stealing a live tracker) and soft reuse (already
+ *  flagged remove) are counted separately. Sustained hard reuse
+ *  means memcap or prealloc should go up.
  *
- *  \retval dt tracker or NULL
- */
+ *  \retval dt   unlocked, cleared tracker
+ *  \retval NULL full sweep, nothing evictable */
 static DefragTracker *DefragTrackerGetUsedDefragTracker(ThreadVars *tv, const DecodeThreadVars *dtv)
 {
     uint32_t idx = SC_ATOMIC_GET(defragtracker_prune_idx) % defrag_config.hash_size;
@@ -695,18 +717,17 @@ static DefragTracker *DefragTrackerGetUsedDefragTracker(ThreadVars *tv, const De
             continue;
         }
 
-        /** never prune a tracker that is used by a packets
-         *  we are currently processing in one of the threads */
+        /* in-flight, skip */
         if (SC_ATOMIC_GET(dt->use_cnt) > 0) {
             DRLOCK_UNLOCK(hb);
             SCMutexUnlock(&dt->lock);
             continue;
         }
 
-        /* only count "forced" reuse */
+        /* forced reuse only counted when the tracker was still live */
         bool incr_reuse_cnt = !dt->remove;
 
-        /* remove from the hash */
+        /* unlink */
         hb->head = dt->hnext;
 
         dt->hnext = NULL;

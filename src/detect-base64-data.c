@@ -15,6 +15,16 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file
+ *
+ * "base64_data" rule keyword.
+ *
+ * Takes no options. Acts as a sticky buffer switch: any content
+ * matches after it are routed to DETECT_SM_LIST_BASE64_DATA so
+ * they run against the output of a preceding base64_decode.
+ */
+
 #include "suricata-common.h"
 #include "detect.h"
 #include "detect-engine.h"
@@ -45,12 +55,14 @@ void DetectBase64DataRegister(void)
     sigmatch_table[DETECT_BASE64_DATA].flags |= SIGMATCH_NOOPT;
 }
 
+/** \brief Switch the active list to DETECT_SM_LIST_BASE64_DATA.
+ *         Fails if no base64_decode came first, since there'd be
+ *         nothing to match against. */
 static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
     const char *str)
 {
     SigMatch *pm = NULL;
-
-    /* Check for a preceding base64_decode. */
+    /* need a preceding base64_decode */
     pm = SCDetectGetLastSMFromLists(s, DETECT_BASE64_DECODE, -1);
     if (pm == NULL) {
         SCLogError("\"base64_data\" keyword seen without preceding base64_decode.");
@@ -64,51 +76,40 @@ static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
 #ifdef UNITTESTS
 
 static int g_file_data_buffer_id = 0;
-
+/** \test base64_data flips the active list after base64_decode. */
 static int DetectBase64DataSetupTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
-
     de_ctx->flags |= DE_QUIET;
     Signature *s = DetectEngineAppendSig(de_ctx,
             "alert smtp any any -> any any (msg:\"DetectBase64DataSetupTest\"; "
             "base64_decode; base64_data; content:\"content\"; sid:1; rev:1;)");
     FAIL_IF_NULL(s);
-
     SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     FAIL_IF_NULL(sm);
     FAIL_IF_NOT(sm->type == DETECT_BASE64_DECODE);
     FAIL_IF_NULL(s->init_data->smlists[DETECT_SM_LIST_BASE64_DATA]);
-
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
-
-/**
- * \test Test that the list can be changed to post-detection lists
- *     after the base64 keyword.
- */
+/** \test post-detection keywords like tag are allowed after base64_data. */
 static int DetectBase64DataSetupTest04(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
-
     de_ctx->flags |= DE_QUIET;
     Signature *s = DetectEngineAppendSig(de_ctx,
             "alert tcp any any -> any any (msg:\"some b64thing\"; flow:established,from_server; "
             "file_data; content:\"sometext\"; fast_pattern; base64_decode:relative; base64_data; "
             "content:\"foobar\"; nocase; tag:session,120,seconds; sid:1111111; rev:1;)");
     FAIL_IF_NULL(s);
-
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
-
 static void DetectBase64DataRegisterTests(void)
 {
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
-
     UtRegisterTest("DetectBase64DataSetupTest01", DetectBase64DataSetupTest01);
     UtRegisterTest("DetectBase64DataSetupTest04", DetectBase64DataSetupTest04);
 }

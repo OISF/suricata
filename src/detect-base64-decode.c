@@ -14,6 +14,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA.
  */
+/**
+ * \file
+ *
+ * "base64_decode" rule keyword.
+ *
+ * Syntax:  base64_decode[: [bytes N,] [offset N,] [relative]]
+ *
+ * At setup we pick the sig-match list to attach to (an active
+ * sticky buffer, otherwise the list of the nearest preceding
+ * payload keyword, otherwise pmatch) and bump
+ * de_ctx->base64_decode_max_len so the per-thread decode buffer
+ * ends up big enough for the largest request in the ruleset.
+ *
+ * At match time we decode up to `bytes` from payload+offset
+ * (optionally relative to the last match) into
+ * det_ctx->base64_decoded.
+ */
 
 #include "suricata-common.h"
 #include "detect.h"
@@ -24,7 +41,7 @@
 #include "detect-engine-build.h"
 #include "rust.h"
 
-/* Arbitrary maximum buffer size for decoded base64 data. */
+/** Cap on bytes decoded per match; also the default when "bytes" is omitted. */
 #define BASE64_DECODE_MAX 65535
 
 typedef struct DetectBase64Decode_ {
@@ -110,6 +127,9 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
     return det_ctx->base64_decoded_len > 0;
 }
 
+/** \brief Parse the argument string into (bytes, offset, relative).
+ *         All three are optional and may appear in any order.
+ *         Missing options stay at 0; unknown tokens fail. */
 static int DetectBase64DecodeParse(
         const char *str, uint16_t *bytes, uint32_t *offset, uint8_t *relative)
 {
@@ -182,6 +202,13 @@ error:
     return retval;
 }
 
+/** \brief Attach a base64_decode match to the signature.
+ *
+ *  List selection: active sticky buffer wins, otherwise anchor to
+ *  the list of the nearest preceding payload keyword (content,
+ *  pcre, byte_test/jump/extract, isdataat), otherwise pmatch.
+ *  Also raises de_ctx->base64_decode_max_len so the per-thread
+ *  decode buffer fits this rule. */
 static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
     const char *str)
 {
@@ -248,7 +275,6 @@ static void DetectBase64DecodeFree(DetectEngineCtx *de_ctx, void *ptr)
     SCFree(data);
 }
 
-
 #ifdef UNITTESTS
 #include "detect-engine.h"
 #include "util-unittest.h"
@@ -258,7 +284,7 @@ static void DetectBase64DecodeFree(DetectEngineCtx *de_ctx, void *ptr)
 #include "stream-tcp.h"
 
 static int g_http_header_buffer_id = 0;
-
+/** \test Parser accepts every valid combo and rejects typos. */
 static int DetectBase64TestDecodeParse(void)
 {
     int retval = 0;
@@ -338,10 +364,7 @@ static int DetectBase64TestDecodeParse(void)
 end:
     return retval;
 }
-
-/**
- * Test keyword setup on basic content.
- */
+/** \test Setup falls back to pmatch when no sticky buffer is active. */
 static int DetectBase64DecodeTestSetup(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -356,7 +379,7 @@ static int DetectBase64DecodeTestSetup(void)
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
-
+/** \test End-to-end decode of a full payload, no options. */
 static int DetectBase64DecodeTestDecode(void)
 {
     ThreadVars tv;
@@ -412,6 +435,7 @@ end:
     return retval;
 }
 
+/** \test "offset N" skips leading bytes before decoding. */
 static int DetectBase64DecodeTestDecodeWithOffset(void)
 {
     ThreadVars tv;
@@ -474,6 +498,7 @@ end:
     return retval;
 }
 
+/** \test Offset past end of payload is a no-op, not an error. */
 static int DetectBase64DecodeTestDecodeLargeOffset(void)
 {
     ThreadVars tv;
@@ -530,6 +555,7 @@ end:
     return retval;
 }
 
+/** \test "relative" starts decoding after the previous match. */
 static int DetectBase64DecodeTestDecodeRelative(void)
 {
     ThreadVars tv;
