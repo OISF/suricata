@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -51,6 +51,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-inspect-trace.h"
 #include "detect-engine-address.h"
 #include "detect-engine-alert.h"
 #include "detect-engine-port.h"
@@ -2810,6 +2811,10 @@ static void SetupUserMode(SCInstance *suri)
  */
 int PostConfLoadedSetup(SCInstance *suri)
 {
+    /* pick up the detection-engine inspection trace toggle (no-op unless built
+     * with --enable-detect-trace) */
+    DetectTraceInit();
+
     int cnf_firewall_enabled = 0;
     if (SCConfGetBool("firewall.enabled", &cnf_firewall_enabled) == 1) {
         if (cnf_firewall_enabled == 1) {
