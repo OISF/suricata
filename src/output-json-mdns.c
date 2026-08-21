@@ -28,6 +28,10 @@
 #include "output-json-mdns.h"
 #include "rust.h"
 
+#define MDNS_LOG_REQUESTS  BIT_U64(0)
+#define MDNS_LOG_RESPONSES BIT_U64(1)
+#define MDNS_LOG_DEFAULT   (MDNS_LOG_REQUESTS | MDNS_LOG_RESPONSES)
+
 typedef struct SCDnsLogFileCtx_ {
     uint64_t flags; /** Store mode */
     OutputJsonCtx *eve_ctx;
@@ -49,6 +53,17 @@ static int JsonMdnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 {
     SCDnsLogThread *td = (SCDnsLogThread *)thread_data;
     SCDnsLogFileCtx *dnslog_ctx = td->dnslog_ctx;
+
+    /* Filter based on the configured requests/responses flags. */
+    if (SCDnsTxIsRequest(txptr)) {
+        if (unlikely(dnslog_ctx->flags & MDNS_LOG_REQUESTS) == 0) {
+            return TM_ECODE_OK;
+        }
+    } else if (SCDnsTxIsResponse(txptr)) {
+        if (unlikely(dnslog_ctx->flags & MDNS_LOG_RESPONSES) == 0) {
+            return TM_ECODE_OK;
+        }
+    }
 
     SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "mdns", NULL, dnslog_ctx->eve_ctx);
     if (unlikely(jb == NULL)) {
@@ -130,11 +145,19 @@ static OutputInitResult DnsLogInitCtxSub(SCConfNode *conf, OutputCtx *parent_ctx
     dnslog_ctx->eve_ctx = ojc;
     dnslog_ctx->version = DNS_LOG_VERSION_3;
 
-    /* For mDNS, log everything.
-     *
-     * TODO: Maybe add flags for request and/or response only.
-     */
-    dnslog_ctx->flags = ~0ULL;
+    /* By default both requests and responses are logged. The "requests"
+     * and "responses" config keys allow disabling either independently. */
+    dnslog_ctx->flags = MDNS_LOG_DEFAULT;
+
+    const char *requests = SCConfNodeLookupChildValue(conf, "requests");
+    if (requests != NULL && !SCConfValIsTrue(requests)) {
+        dnslog_ctx->flags &= ~MDNS_LOG_REQUESTS;
+    }
+
+    const char *responses = SCConfNodeLookupChildValue(conf, "responses");
+    if (responses != NULL && !SCConfValIsTrue(responses)) {
+        dnslog_ctx->flags &= ~MDNS_LOG_RESPONSES;
+    }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
