@@ -343,6 +343,48 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         printf("banned from firewall mode");
         prev = 1;
     }
+    if (flags & SIGMATCH_BAN_TD_FIREWALL_MODE) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("banned from threat detection rules in firewall mode");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_BAN_FIREWALL_SCOPE_TX) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("banned from firewall rules with \'tx\' scope");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_BAN_FIREWALL_SCOPE_HOOK) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("banned from firewall rules with \'hook\' scope");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_BAN_ACTION_CONFIG) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("banned from firewall rules with \'config\' action");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_BAN_ACTION_DROP) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("banned from firewall rules with \'drop\' action");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_BAN_ACTION_REJECT) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("banned from firewall rules with \'reject\' action");
+        prev = 1;
+    }
+    if (flags & SIGMATCH_BAN_FIREWALL_SCOPE_PACKET) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("banned from firewall rules with \'packet\' scope");
+        prev = 1;
+    }
     if (e->Transform) {
         if (prev == 1)
             printf("%c", sep);
