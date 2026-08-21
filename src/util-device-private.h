@@ -34,6 +34,7 @@ typedef struct LiveDevice_ {
     char dev_short[MAX_DEVNAME + 1];
     int mtu; /* MTU of the device */
     bool tenant_id_set;
+    bool skip_non_tunnel;
 
     uint16_t id;
 

@@ -118,6 +118,7 @@ void PacketReinit(Packet *p)
     p->flags = 0;
     p->flowflags = 0;
     p->pkt_src = 0;
+    p->tunnel_id = 0;
     p->vlan_id[0] = 0;
     p->vlan_id[1] = 0;
     p->vlan_idx = 0;
