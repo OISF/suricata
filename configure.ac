@@ -207,7 +207,7 @@
     AC_FUNC_MMAP
     AC_FUNC_STRTOD
 
-    AC_CHECK_FUNCS([memmem memset memchr memrchr memmove])
+    AC_CHECK_FUNCS([memmem memset memchr memmove])
     AC_CHECK_FUNCS([strcasecmp strchr strrchr strdup strndup strncasecmp strtol strstr strpbrk strtoull strtoumax])
     AC_CHECK_FUNCS([strerror])
     AC_CHECK_FUNCS([gethostname inet_ntoa uname])
