@@ -26,6 +26,37 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-imap.h"
 
+static AppProto ImapClientProbingParser(
+        const Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)
+{
+    // This is called after " CAPABILITY" pattern has been found
+    if (f->alproto_tc == ALPROTO_IMAP) {
+        // server was already recognised as IMAP, so ok
+        return ALPROTO_IMAP;
+    }
+    for (size_t i = 0; i < len; i++) {
+        if (input[i] >= '0' && input[i] <= '9') {
+            // We check if the tag at the beginning of the input contains a number
+            return ALPROTO_IMAP;
+        }
+        if (input[i] == ' ') {
+            break;
+        }
+    }
+
+    TcpSession *ssn = (TcpSession *)f->protoctx;
+    if (ssn == NULL) {
+        return ALPROTO_FAILED;
+    }
+    const uint32_t size_tc = StreamDataAvailableForProtoDetect(&ssn->server);
+
+    if (size_tc < 8 && f->alproto_tc == ALPROTO_UNKNOWN) {
+        // wait for another packet from server
+        return ALPROTO_UNKNOWN;
+    }
+    return ALPROTO_FAILED;
+}
+
 static int IMAPRegisterPatternsForProtocolDetection(void)
 {
     if (SCAppLayerProtoDetectPMRegisterPatternCI(
@@ -73,8 +104,9 @@ static int IMAPRegisterPatternsForProtocolDetection(void)
      * AppLayerTest10 fails because it expects protocol detection to be completed with only 17 bytes
      * as input, and with this new pattern, we would need more bytes to finish protocol detection.
      */
-    if (SCAppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_IMAP, " CAPABILITY",
-                17 /*6 for max tag len + space + len(CAPABILITY)*/, 0, STREAM_TOSERVER) < 0) {
+    if (SCAppLayerProtoDetectPMRegisterPatternCIwPP(IPPROTO_TCP, ALPROTO_IMAP, " CAPABILITY",
+                17 /*6 for max tag len + space + len(CAPABILITY)*/, 0, STREAM_TOSERVER,
+                ImapClientProbingParser, 12, 17) < 0) {
         return -1;
     }
 
