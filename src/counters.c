@@ -792,7 +792,7 @@ static int StatsOutput(ThreadVars *tv)
             switch (pc->type) {
                 case STATS_TYPE_FUNC:
                     if (pc->Func != NULL)
-                        thread_table[pc->gid].value = pc->Func();
+                        thread_table[pc->gid].value = (int64_t)pc->Func();
                     break;
                 case STATS_TYPE_AVERAGE:
                     DEBUG_VALIDATE_BUG_ON(i + 1 >= max_id); // help scan-build
