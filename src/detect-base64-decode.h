@@ -15,10 +15,33 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file
+ *
+ * \author Jason Ish <jason.ish@oisf.net>
+ *
+ * Public interface for the "base64_decode" rule keyword.
+ *
+ * Decodes a slice of the inspection buffer as base64 into
+ * det_ctx->base64_decoded, sized by de_ctx->base64_decode_max_len.
+ * A following "base64_data" keyword redirects subsequent content
+ * matches onto that decoded buffer.
+ */
+
 #ifndef SURICATA_DETECT_BASE64_DECODE_H
 #define SURICATA_DETECT_BASE64_DECODE_H
 
+/** \brief Register the "base64_decode" keyword with the detect engine. */
 void DetectBase64DecodeRegister(void);
+
+/**
+ * \brief Run the decode step at match time.
+ *
+ * Honours the keyword's bytes/offset/relative options; on success
+ * populates det_ctx->base64_decoded and base64_decoded_len.
+ *
+ * \retval 1 if any bytes were decoded, 0 otherwise
+ */
 int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *, const Signature *,
     const SigMatchData *, const uint8_t *, uint32_t);
 
