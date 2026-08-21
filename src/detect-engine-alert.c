@@ -589,7 +589,7 @@ static struct DetectFirewallPolicy HandleFirewallRule(
             }
         }
         /* add the alert for logging if required. */
-        if (s->action & ACTION_ALERT) {
+        if ((s->action & ACTION_ALERT) && res != 2) {
             if (p->alerts.cnt < packet_alert_max) {
                 p->alerts.alerts[p->alerts.cnt++] = *pa;
             } else {
