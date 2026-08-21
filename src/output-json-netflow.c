@@ -29,6 +29,8 @@
 #include "pkt-var.h"
 #include "conf.h"
 
+#include "flow.h"
+#include "flow-storage.h"
 #include "threads.h"
 #include "threadvars.h"
 #include "tm-threads.h"
@@ -187,9 +189,19 @@ static void NetFlowLogEveToServer(SCJsonBuilder *js, Flow *f)
     SCJbSetString(js, "app_proto", AppProtoToString(f->alproto_ts ? f->alproto_ts : f->alproto));
 
     SCJbOpenObject(js, "netflow");
+    FlowBypassInfo *fc = SCFlowGetStorageById(f, GetFlowBypassInfoID());
+    if (fc) {
+        SCJbSetUint(js, "pkts", f->todstpktcnt + fc->todstpktcnt);
+        SCJbSetUint(js, "bytes", f->todstbytecnt + fc->todstbytecnt);
 
-    SCJbSetUint(js, "pkts", f->todstpktcnt);
-    SCJbSetUint(js, "bytes", f->todstbytecnt);
+        SCJbOpenObject(js, "bypassed");
+        SCJbSetUint(js, "pkts", fc->todstpktcnt);
+        SCJbSetUint(js, "bytes", fc->todstbytecnt);
+        SCJbClose(js);
+    } else {
+        SCJbSetUint(js, "pkts", f->todstpktcnt);
+        SCJbSetUint(js, "bytes", f->todstbytecnt);
+    }
 
     char timebuf1[64], timebuf2[64];
 
@@ -237,9 +249,19 @@ static void NetFlowLogEveToClient(SCJsonBuilder *js, Flow *f)
     SCJbSetString(js, "app_proto", AppProtoToString(f->alproto_tc ? f->alproto_tc : f->alproto));
 
     SCJbOpenObject(js, "netflow");
+    FlowBypassInfo *fc = SCFlowGetStorageById(f, GetFlowBypassInfoID());
+    if (fc) {
+        SCJbSetUint(js, "pkts", f->tosrcpktcnt + fc->tosrcpktcnt);
+        SCJbSetUint(js, "bytes", f->tosrcbytecnt + fc->tosrcbytecnt);
 
-    SCJbSetUint(js, "pkts", f->tosrcpktcnt);
-    SCJbSetUint(js, "bytes", f->tosrcbytecnt);
+        SCJbOpenObject(js, "bypassed");
+        SCJbSetUint(js, "pkts", fc->tosrcpktcnt);
+        SCJbSetUint(js, "bytes", fc->tosrcbytecnt);
+        SCJbClose(js);
+    } else {
+        SCJbSetUint(js, "pkts", f->tosrcpktcnt);
+        SCJbSetUint(js, "bytes", f->tosrcbytecnt);
+    }
 
     char timebuf1[64], timebuf2[64];
 
