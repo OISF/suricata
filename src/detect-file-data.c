@@ -285,9 +285,9 @@ static inline InspectionBuffer *FiledataWithXformsGetDataCallback(DetectEngineTh
         return buffer;
     }
 
+    buffer->inspect_offset = base_buffer->inspect_offset;
     InspectionBufferSetupMulti(
             det_ctx, buffer, transforms, base_buffer->inspect, base_buffer->inspect_len);
-    buffer->inspect_offset = base_buffer->inspect_offset;
     SCLogDebug("xformed buffer %p size %u", buffer, buffer->inspect_len);
     SCReturnPtr(buffer, "InspectionBuffer");
 }
