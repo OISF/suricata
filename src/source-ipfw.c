@@ -99,6 +99,8 @@ TmEcode NoIPFWSupportExit(ThreadVars *tv, const void *initdata, void **data)
 
 #define IPFW_SOCKET_POLL_MSEC 300
 
+#define IPFW_VERDICT_RETRY_COUNT 3
+
 extern uint32_t max_pending_packets;
 
 /**
@@ -561,7 +563,14 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
 #endif
 
         IPFWMutexLock(nq);
-        if (sendto(nq->fd, GET_PKT_DATA(p), GET_PKT_LEN(p), 0,(struct sockaddr *)&nq->ipfw_sin, nq->ipfw_sinlen) == -1) {
+        ssize_t ret;
+        int iter = 0;
+        do {
+            ret = sendto(nq->fd, GET_PKT_DATA(p), GET_PKT_LEN(p), 0,
+                    (struct sockaddr *)&nq->ipfw_sin, nq->ipfw_sinlen);
+        } while (ret == -1 && (iter++ < IPFW_VERDICT_RETRY_COUNT));
+
+        if (ret == -1) {
             int r = errno;
             switch (r) {
                 default:
