@@ -55,6 +55,12 @@
 #include "util-hash.h"
 #include "util-thash.h"
 #include "util-hash-lookup3.h"
+#include "counters.h"
+#include "util-random.h"
+
+#include "thread-storage.h"
+
+static void ThresholdCacheInit(void);
 
 struct Thresholds {
     THashTableContext *thash;
@@ -66,6 +72,7 @@ static void ThresholdsDestroy(struct Thresholds *t);
 void ThresholdInit(void)
 {
     ThresholdsInit(&ctx);
+    ThresholdCacheInit();
 }
 
 void ThresholdDestroy(void)
@@ -114,14 +121,14 @@ static void ThresholdEntryFree(void *ptr)
     // nothing to free, base data is part of hash
 }
 
-static inline uint32_t HashAddress(const Address *a)
+static inline uint32_t HashAddress(const Address *a, const uint32_t seed)
 {
     uint32_t key;
 
     if (a->family == AF_INET) {
-        key = a->addr_data32[0];
+        key = hashword(a->addr_data32, 1, seed);
     } else if (a->family == AF_INET6) {
-        key = hashword(a->addr_data32, 4, 0);
+        key = hashword(a->addr_data32, 4, seed);
     } else
         key = 0;
 
@@ -141,17 +148,17 @@ static inline int CompareAddress(const Address *a, const Address *b)
     return 0;
 }
 
-static uint32_t ThresholdEntryHash(uint32_t seed, void *ptr)
+static uint32_t ThresholdEntryHash(const uint32_t seed, void *ptr)
 {
     const ThresholdEntry *e = ptr;
     uint32_t hash = hashword(e->key, sizeof(e->key) / sizeof(uint32_t), seed);
     switch (e->key[TRACK]) {
         case TRACK_BOTH:
-            hash += HashAddress(&e->addr2);
+            hash += HashAddress(&e->addr2, seed);
             /* fallthrough */
         case TRACK_SRC:
         case TRACK_DST:
-            hash += HashAddress(&e->addr);
+            hash += HashAddress(&e->addr, seed);
             break;
     }
     return hash;
@@ -250,27 +257,6 @@ typedef struct ThresholdCacheItem {
     RB_ENTRY(ThresholdCacheItem) rb;
 } ThresholdCacheItem;
 
-static thread_local HashTable *threshold_cache_ht = NULL;
-
-thread_local uint64_t cache_lookup_cnt = 0;
-thread_local uint64_t cache_lookup_notinit = 0;
-thread_local uint64_t cache_lookup_nosupport = 0;
-thread_local uint64_t cache_lookup_miss_expired = 0;
-thread_local uint64_t cache_lookup_miss = 0;
-thread_local uint64_t cache_lookup_hit = 0;
-thread_local uint64_t cache_housekeeping_check = 0;
-thread_local uint64_t cache_housekeeping_expired = 0;
-
-static void DumpCacheStats(void)
-{
-    SCLogPerf("threshold thread cache stats: cnt:%" PRIu64 " notinit:%" PRIu64 " nosupport:%" PRIu64
-              " miss_expired:%" PRIu64 " miss:%" PRIu64 " hit:%" PRIu64
-              ", housekeeping: checks:%" PRIu64 ", expired:%" PRIu64,
-            cache_lookup_cnt, cache_lookup_notinit, cache_lookup_nosupport,
-            cache_lookup_miss_expired, cache_lookup_miss, cache_lookup_hit,
-            cache_housekeeping_check, cache_housekeeping_expired);
-}
-
 /* rbtree for expiry handling */
 
 static int ThresholdCacheTreeCompareFunc(ThresholdCacheItem *a, ThresholdCacheItem *b)
@@ -285,23 +271,57 @@ static int ThresholdCacheTreeCompareFunc(ThresholdCacheItem *a, ThresholdCacheIt
 RB_HEAD(THRESHOLD_CACHE, ThresholdCacheItem);
 RB_PROTOTYPE(THRESHOLD_CACHE, ThresholdCacheItem, rb, ThresholdCacheTreeCompareFunc);
 RB_GENERATE(THRESHOLD_CACHE, ThresholdCacheItem, rb, ThresholdCacheTreeCompareFunc);
-thread_local struct THRESHOLD_CACHE threshold_cache_tree;
-thread_local uint64_t threshold_cache_housekeeping_ts = 0;
 
-static void ThresholdCacheExpire(SCTime_t now)
+struct ThresholdCacheThreadCtx {
+    HashTable *ht;
+    struct THRESHOLD_CACHE tree;
+    uint64_t housekeeping_ts;
+
+    uint64_t lookup_cnt;
+    uint64_t lookup_nosupport;
+    uint64_t lookup_miss_expired;
+    uint64_t lookup_miss;
+    uint64_t lookup_hit;
+    uint64_t housekeeping_check;
+    uint64_t housekeeping_expired;
+};
+
+static ThreadStorageId thread_storage_id = { .id = -1 };
+
+static void DumpCacheStats(struct ThresholdCacheThreadCtx *tctx)
 {
+    SCLogPerf("threshold thread cache stats: cnt:%" PRIu64 " nosupport:%" PRIu64
+              " miss_expired:%" PRIu64 " miss:%" PRIu64 " hit:%" PRIu64
+              ", housekeeping: checks:%" PRIu64 ", expired:%" PRIu64,
+            tctx->lookup_cnt, tctx->lookup_nosupport, tctx->lookup_miss_expired, tctx->lookup_miss,
+            tctx->lookup_hit, tctx->housekeeping_check, tctx->housekeeping_expired);
+}
+
+static inline struct ThresholdCacheThreadCtx *GetThreadCtx(DetectEngineThreadCtx *det_ctx)
+{
+    if (unlikely(det_ctx->tv == NULL || thread_storage_id.id < 0)) {
+        return NULL;
+    }
+    return ThreadGetStorageById(det_ctx->tv, thread_storage_id);
+}
+
+static void ThresholdCacheExpire(DetectEngineThreadCtx *det_ctx, SCTime_t now)
+{
+    struct ThresholdCacheThreadCtx *tctx = GetThreadCtx(det_ctx);
+    if (tctx == NULL)
+        return;
+    tctx->housekeeping_ts = SCTIME_SECS(now);
+
     ThresholdCacheItem *iter, *safe = NULL;
     int cnt = 0;
-    threshold_cache_housekeeping_ts = SCTIME_SECS(now);
-
-    RB_FOREACH_SAFE (iter, THRESHOLD_CACHE, &threshold_cache_tree, safe) {
-        cache_housekeeping_check++;
+    RB_FOREACH_SAFE (iter, THRESHOLD_CACHE, &tctx->tree, safe) {
+        tctx->housekeeping_check++;
 
         if (SCTIME_CMP_LT(iter->expires_at, now)) {
-            THRESHOLD_CACHE_RB_REMOVE(&threshold_cache_tree, iter);
-            HashTableRemove(threshold_cache_ht, iter, 0);
+            THRESHOLD_CACHE_RB_REMOVE(&tctx->tree, iter);
+            HashTableRemove(tctx->ht, iter, 0);
             SCLogDebug("iter %p expired", iter);
-            cache_housekeeping_expired++;
+            tctx->housekeeping_expired++;
         }
 
         if (++cnt > 1)
@@ -314,7 +334,8 @@ static void ThresholdCacheExpire(SCTime_t now)
 static uint32_t ThresholdCacheHashFunc(HashTable *ht, void *data, uint16_t datalen)
 {
     ThresholdCacheItem *e = data;
-    uint32_t hash = hashword(e->key, sizeof(e->key) / sizeof(uint32_t), 0) * (e->ipv + e->track);
+    uint32_t hash =
+            hashword(e->key, sizeof(e->key) / sizeof(uint32_t), ht->seed) * (e->ipv + e->track);
     hash = hash % ht->array_size;
     return hash;
 }
@@ -334,12 +355,13 @@ static void ThresholdCacheHashFreeFunc(void *data)
 }
 
 /// \brief Thread local cache
-static int SetupCache(const Packet *p, const int8_t track, const int8_t retval, const uint32_t sid,
-        const uint32_t gid, const uint32_t rev, SCTime_t expires)
+static int SetupCache(DetectEngineThreadCtx *det_ctx, const Packet *p, const int8_t track,
+        const int8_t retval, const uint32_t sid, const uint32_t gid, const uint32_t rev,
+        SCTime_t expires)
 {
-    if (!threshold_cache_ht) {
-        threshold_cache_ht = HashTableInit(256, ThresholdCacheHashFunc,
-                ThresholdCacheHashCompareFunc, ThresholdCacheHashFreeFunc);
+    struct ThresholdCacheThreadCtx *tctx = GetThreadCtx(det_ctx);
+    if (!tctx) {
+        return -1;
     }
 
     uint32_t addr;
@@ -362,7 +384,7 @@ static int SetupCache(const Packet *p, const int8_t track, const int8_t retval, 
         .key[TC_TENANT] = p->tenant_id,
         .expires_at = expires,
     };
-    ThresholdCacheItem *found = HashTableLookup(threshold_cache_ht, &lookup, 0);
+    ThresholdCacheItem *found = HashTableLookup(tctx->ht, &lookup, 0);
     if (!found) {
         ThresholdCacheItem *n = SCCalloc(1, sizeof(*n));
         if (n) {
@@ -376,8 +398,8 @@ static int SetupCache(const Packet *p, const int8_t track, const int8_t retval, 
             n->key[TC_TENANT] = p->tenant_id;
             n->expires_at = expires;
 
-            if (HashTableAdd(threshold_cache_ht, n, 0) == 0) {
-                ThresholdCacheItem *r = THRESHOLD_CACHE_RB_INSERT(&threshold_cache_tree, n);
+            if (HashTableAdd(tctx->ht, n, 0) == 0) {
+                ThresholdCacheItem *r = THRESHOLD_CACHE_RB_INSERT(&tctx->tree, n);
                 DEBUG_VALIDATE_BUG_ON(r != NULL); // duplicate; should be impossible
                 (void)r;                          // only used by DEBUG_VALIDATE_BUG_ON
                 return 1;
@@ -389,8 +411,8 @@ static int SetupCache(const Packet *p, const int8_t track, const int8_t retval, 
         found->expires_at = expires;
         found->retval = retval;
 
-        THRESHOLD_CACHE_RB_REMOVE(&threshold_cache_tree, found);
-        THRESHOLD_CACHE_RB_INSERT(&threshold_cache_tree, found);
+        THRESHOLD_CACHE_RB_REMOVE(&tctx->tree, found);
+        THRESHOLD_CACHE_RB_INSERT(&tctx->tree, found);
         return 1;
     }
 }
@@ -403,15 +425,15 @@ static int SetupCache(const Packet *p, const int8_t track, const int8_t retval, 
  *  \retval -4 error - unsupported tracker
  *  \retval ret cached return code
  */
-static int CheckCache(const Packet *p, const int8_t track, const uint32_t sid, const uint32_t gid,
-        const uint32_t rev)
+static int CheckCache(DetectEngineThreadCtx *det_ctx, const Packet *p, const int8_t track,
+        const uint32_t sid, const uint32_t gid, const uint32_t rev)
 {
-    cache_lookup_cnt++;
-
-    if (!threshold_cache_ht) {
-        cache_lookup_notinit++;
-        return -3; // error cache initialized
+    struct ThresholdCacheThreadCtx *tctx = GetThreadCtx(det_ctx);
+    if (!tctx) {
+        return -3;
     }
+
+    tctx->lookup_cnt++;
 
     uint32_t addr;
     if (track == TRACK_SRC) {
@@ -419,12 +441,12 @@ static int CheckCache(const Packet *p, const int8_t track, const uint32_t sid, c
     } else if (track == TRACK_DST) {
         addr = p->dst.addr_data32[0];
     } else {
-        cache_lookup_nosupport++;
+        tctx->lookup_nosupport++;
         return -4; // error tracker not unsupported
     }
 
-    if (SCTIME_SECS(p->ts) > threshold_cache_housekeeping_ts) {
-        ThresholdCacheExpire(p->ts);
+    if (SCTIME_SECS(p->ts) > tctx->housekeeping_ts) {
+        ThresholdCacheExpire(det_ctx, p->ts);
     }
 
     ThresholdCacheItem lookup = {
@@ -436,29 +458,72 @@ static int CheckCache(const Packet *p, const int8_t track, const uint32_t sid, c
         .key[TC_REV] = rev,
         .key[TC_TENANT] = p->tenant_id,
     };
-    ThresholdCacheItem *found = HashTableLookup(threshold_cache_ht, &lookup, 0);
+    ThresholdCacheItem *found = HashTableLookup(tctx->ht, &lookup, 0);
     if (found) {
         if (SCTIME_CMP_GT(p->ts, found->expires_at)) {
-            THRESHOLD_CACHE_RB_REMOVE(&threshold_cache_tree, found);
-            HashTableRemove(threshold_cache_ht, found, 0);
-            cache_lookup_miss_expired++;
+            THRESHOLD_CACHE_RB_REMOVE(&tctx->tree, found);
+            HashTableRemove(tctx->ht, found, 0);
+            tctx->lookup_miss_expired++;
             return -2; // cache miss - found but expired
         }
-        cache_lookup_hit++;
+        tctx->lookup_hit++;
         return found->retval;
     }
-    cache_lookup_miss++;
+    tctx->lookup_miss++;
     return -1; // cache miss - not found
 }
 
-void ThresholdCacheThreadFree(void)
+static void ThresholdCacheThreadFree(void *ptr)
 {
-    if (threshold_cache_ht) {
-        HashTableFree(threshold_cache_ht);
-        threshold_cache_ht = NULL;
+    if (ptr != NULL) {
+        struct ThresholdCacheThreadCtx *tctx = ptr;
+        DumpCacheStats(tctx);
+        HashTableFree(tctx->ht);
+        SCFree(tctx);
     }
-    RB_INIT(&threshold_cache_tree);
-    DumpCacheStats();
+}
+
+static void ThresholdCacheInit(void)
+{
+#ifdef UNITTESTS
+    /* many tests don't manage the thread storage correctly, so skip the cache in unittests */
+    if (!(RunmodeIsUnittests())) {
+#endif
+        /* Register thread storage. */
+        thread_storage_id = ThreadStorageRegister(
+                "threshold_cache", sizeof(void *), NULL, ThresholdCacheThreadFree);
+        if (thread_storage_id.id < 0) {
+            FatalError("Failed to register threshold_cache thread storage");
+        }
+#ifdef UNITTESTS
+    }
+#endif
+}
+
+int ThresholdCacheThreadInit(DetectEngineThreadCtx *det_ctx)
+{
+    if (thread_storage_id.id < 0)
+        return 0;
+    /* we can get called more than once per thread for MT */
+    if (ThreadGetStorageById(det_ctx->tv, thread_storage_id) != NULL)
+        return 0;
+
+    struct ThresholdCacheThreadCtx *tctx = SCCalloc(1, sizeof(*tctx));
+    if (tctx == NULL)
+        return -1;
+
+    uint32_t seed = (uint32_t)RandomGet();
+
+    tctx->ht = HashTableInitWithSeed(256, ThresholdCacheHashFunc, ThresholdCacheHashCompareFunc,
+            ThresholdCacheHashFreeFunc, seed);
+    if (tctx->ht == NULL) {
+        SCFree(tctx);
+        return -1;
+    }
+
+    RB_INIT(&tctx->tree);
+    ThreadSetStorageById(det_ctx->tv, thread_storage_id, tctx);
+    return 0;
 }
 
 /**
@@ -709,8 +774,8 @@ static int ThresholdSetup(const DetectThresholdData *td, ThresholdEntry *te,
     return 0;
 }
 
-static int ThresholdCheckUpdate(const DetectEngineCtx *de_ctx, const DetectThresholdData *td,
-        ThresholdEntry *te,
+static int ThresholdCheckUpdate(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectThresholdData *td, ThresholdEntry *te,
         const Packet *p, // ts only? - cache too
         const uint32_t sid, const uint32_t gid, const uint32_t rev, PacketAlert *pa)
 {
@@ -730,7 +795,7 @@ static int ThresholdCheckUpdate(const DetectEngineCtx *de_ctx, const DetectThres
                     ret = 2;
 
                     if (PacketIsIPv4(p)) {
-                        SetupCache(p, td->track, (int8_t)ret, sid, gid, rev, entry);
+                        SetupCache(det_ctx, p, td->track, (int8_t)ret, sid, gid, rev, entry);
                     }
                 }
             } else {
@@ -765,7 +830,7 @@ static int ThresholdCheckUpdate(const DetectEngineCtx *de_ctx, const DetectThres
                     ret = 2;
 
                     if (PacketIsIPv4(p)) {
-                        SetupCache(p, td->track, (int8_t)ret, sid, gid, rev, entry);
+                        SetupCache(det_ctx, p, td->track, (int8_t)ret, sid, gid, rev, entry);
                     }
                 }
             } else {
@@ -855,8 +920,9 @@ static int ThresholdCheckUpdate(const DetectEngineCtx *de_ctx, const DetectThres
     return ret;
 }
 
-static int ThresholdGetFromHash(const DetectEngineCtx *de_ctx, struct Thresholds *tctx,
-        const Packet *p, const Signature *s, const DetectThresholdData *td, PacketAlert *pa)
+static int ThresholdGetFromHash(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        struct Thresholds *tctx, const Packet *p, const Signature *s, const DetectThresholdData *td,
+        PacketAlert *pa)
 {
     /* fast track for count 1 threshold */
     if (td->count == 1 && td->type == TYPE_THRESHOLD) {
@@ -905,7 +971,7 @@ static int ThresholdGetFromHash(const DetectEngineCtx *de_ctx, struct Thresholds
             r = ThresholdSetup(td, te, p->ts, s->id, s->gid, s->rev, p->tenant_id);
         } else {
             // existing, check/update
-            r = ThresholdCheckUpdate(de_ctx, td, te, p, s->id, s->gid, s->rev, pa);
+            r = ThresholdCheckUpdate(de_ctx, det_ctx, td, te, p, s->id, s->gid, s->rev, pa);
         }
 
         (void)THashDecrUsecnt(res.data);
@@ -920,8 +986,9 @@ static int ThresholdGetFromHash(const DetectEngineCtx *de_ctx, struct Thresholds
  *  \retval 1 normal match
  *  \retval 0 no match
  */
-static int ThresholdHandlePacketFlow(const DetectEngineCtx *de_ctx, Flow *f, Packet *p,
-        const DetectThresholdData *td, uint32_t sid, uint32_t gid, uint32_t rev, PacketAlert *pa)
+static int ThresholdHandlePacketFlow(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Flow *f, Packet *p, const DetectThresholdData *td, uint32_t sid, uint32_t gid, uint32_t rev,
+        PacketAlert *pa)
 {
     int ret = 0;
     ThresholdEntry *found = ThresholdFlowLookupEntry(f, sid, gid, rev, p->tenant_id);
@@ -941,7 +1008,7 @@ static int ThresholdHandlePacketFlow(const DetectEngineCtx *de_ctx, Flow *f, Pac
         }
     } else {
         // existing, check/update
-        ret = ThresholdCheckUpdate(de_ctx, td, found, p, sid, gid, rev, pa);
+        ret = ThresholdCheckUpdate(de_ctx, det_ctx, td, found, p, sid, gid, rev, pa);
     }
     return ret;
 }
@@ -972,29 +1039,30 @@ int PacketAlertThreshold(const DetectEngineCtx *de_ctx, DetectEngineThreadCtx *d
         ret = ThresholdHandlePacketSuppress(p,td,s->id,s->gid);
     } else if (td->track == TRACK_SRC) {
         if (PacketIsIPv4(p) && (td->type == TYPE_LIMIT || td->type == TYPE_BOTH)) {
-            int cache_ret = CheckCache(p, td->track, s->id, s->gid, s->rev);
+            int cache_ret = CheckCache(det_ctx, p, td->track, s->id, s->gid, s->rev);
             if (cache_ret >= 0) {
                 SCReturnInt(cache_ret);
             }
         }
 
-        ret = ThresholdGetFromHash(de_ctx, &ctx, p, s, td, pa);
+        ret = ThresholdGetFromHash(de_ctx, det_ctx, &ctx, p, s, td, pa);
     } else if (td->track == TRACK_DST) {
         if (PacketIsIPv4(p) && (td->type == TYPE_LIMIT || td->type == TYPE_BOTH)) {
-            int cache_ret = CheckCache(p, td->track, s->id, s->gid, s->rev);
+            int cache_ret = CheckCache(det_ctx, p, td->track, s->id, s->gid, s->rev);
             if (cache_ret >= 0) {
                 SCReturnInt(cache_ret);
             }
         }
 
-        ret = ThresholdGetFromHash(de_ctx, &ctx, p, s, td, pa);
+        ret = ThresholdGetFromHash(de_ctx, det_ctx, &ctx, p, s, td, pa);
     } else if (td->track == TRACK_BOTH) {
-        ret = ThresholdGetFromHash(de_ctx, &ctx, p, s, td, pa);
+        ret = ThresholdGetFromHash(de_ctx, det_ctx, &ctx, p, s, td, pa);
     } else if (td->track == TRACK_RULE) {
-        ret = ThresholdGetFromHash(de_ctx, &ctx, p, s, td, pa);
+        ret = ThresholdGetFromHash(de_ctx, det_ctx, &ctx, p, s, td, pa);
     } else if (td->track == TRACK_FLOW) {
         if (p->flow) {
-            ret = ThresholdHandlePacketFlow(de_ctx, p->flow, p, td, s->id, s->gid, s->rev, pa);
+            ret = ThresholdHandlePacketFlow(
+                    de_ctx, det_ctx, p->flow, p, td, s->id, s->gid, s->rev, pa);
         }
     }
 
