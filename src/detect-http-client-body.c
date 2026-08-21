@@ -316,7 +316,11 @@ static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
             (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
     const InspectionBuffer *buffer = HttpRequestBodyGetDataCallback(
             det_ctx, engine->v2.transforms, f, flags, txv, engine->sm_list, engine->sm_list_base);
-    if (buffer == NULL || buffer->inspect == NULL) {
+
+    // Return early if buffer is NULL or empty without error flag
+    if (buffer == NULL || (!(buffer->flags & DETECT_CI_FLAGS_ERROR) && buffer->inspect == NULL)) {
+        SCLogDebug("DetectEngineInspectBufferHttpBody: buffer %s",
+                buffer == NULL ? "NULL" : "empty and no error flag");
         if (eof && engine->match_on_null) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }
