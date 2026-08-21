@@ -193,13 +193,15 @@ static void NetFlowLogEveToServer(SCJsonBuilder *js, Flow *f)
 
     char timebuf1[64], timebuf2[64];
 
+    const SCTime_t lastts = (fc && SCTIME_SECS(fc->lastpktts)) ? fc->lastpktts : f->lastts;
+
     CreateIsoTimeString(f->startts, timebuf1, sizeof(timebuf1));
-    CreateIsoTimeString(f->lastts, timebuf2, sizeof(timebuf2));
+    CreateIsoTimeString(lastts, timebuf2, sizeof(timebuf2));
 
     SCJbSetString(js, "start", timebuf1);
     SCJbSetString(js, "end", timebuf2);
 
-    uint64_t age = (SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts));
+    uint64_t age = (SCTIME_SECS(lastts) - SCTIME_SECS(f->startts));
     SCJbSetUint(js, "age", age);
 
     SCJbSetUint(js, "min_ttl", f->min_ttl_toserver);
@@ -243,13 +245,15 @@ static void NetFlowLogEveToClient(SCJsonBuilder *js, Flow *f)
 
     char timebuf1[64], timebuf2[64];
 
+    const SCTime_t lastts = (fc && SCTIME_SECS(fc->lastpktts)) ? fc->lastpktts : f->lastts;
+
     CreateIsoTimeString(f->startts, timebuf1, sizeof(timebuf1));
-    CreateIsoTimeString(f->lastts, timebuf2, sizeof(timebuf2));
+    CreateIsoTimeString(lastts, timebuf2, sizeof(timebuf2));
 
     SCJbSetString(js, "start", timebuf1);
     SCJbSetString(js, "end", timebuf2);
 
-    uint64_t age = (SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts));
+    uint64_t age = (SCTIME_SECS(lastts) - SCTIME_SECS(f->startts));
     SCJbSetUint(js, "age", age);
 
     /* To client is zero if we did not see any packet */
