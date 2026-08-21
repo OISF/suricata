@@ -1028,7 +1028,17 @@ void OutputJsonBuilderBuffer(
     }
 
     if (file_ctx->is_pcap_offline) {
-        SCJbSetString(js, "pcap_filename", PcapFileGetFilename());
+        /* prefer the packet's/flow's own file; the global is updated by the RX
+         * thread as it advances through files and would race for events logged
+         * from earlier packets */
+        const char *filename;
+        if (p != NULL && p->pcap_v.pfv != NULL) {
+            filename = p->pcap_v.pfv->filename;
+        } else {
+            PcapFileFileVars *pfv = (f != NULL) ? FlowGetPcapFileVars(f) : NULL;
+            filename = (pfv != NULL) ? pfv->filename : PcapFileGetFilename();
+        }
+        SCJbSetString(js, "pcap_filename", filename);
     }
 
     SCEveRunCallbacks(tv, p, f, js);

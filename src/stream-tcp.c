@@ -52,6 +52,7 @@
 
 #include "stream-tcp-private.h"
 #include "stream-tcp.h"
+#include "source-pcap-file-helper.h"
 #include "stream-tcp-cache.h"
 #include "stream-tcp-inline.h"
 #include "stream-tcp-reassemble.h"
@@ -6931,6 +6932,8 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
     memcpy(&np->vlan_id[0], &f->vlan_id[0], sizeof(np->vlan_id));
     np->vlan_idx = f->vlan_idx;
     np->livedev_id = f->livedev_id;
+    /* no extra ref: the flow's reference outlives this pseudo packet */
+    np->pcap_v.pfv = FlowGetPcapFileVars(f);
 
     if (parent->flags & PKT_NOPACKET_INSPECTION) {
         DecodeSetNoPacketInspectionFlag(np);
