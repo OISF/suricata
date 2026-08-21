@@ -68,7 +68,8 @@ int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         PrefilterPktFn PrefilterFunc, void *pectx, void (*FreeFunc)(void *pectx), const char *name);
 int PrefilterAppendTxEngineSubState(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         PrefilterTxFn PrefilterTxFunc, AppProto alproto, uint8_t sub_state,
-        const int8_t tx_min_progress, void *pectx, void (*FreeFunc)(void *pectx), const char *name);
+        const int8_t tx_min_progress, const int8_t tx_max_progress, void *pectx,
+        void (*FreeFunc)(void *pectx), const char *name);
 int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         PrefilterTxFn PrefilterTxFunc, const AppProto alproto, const int8_t tx_min_progress,
         void *pectx, void (*FreeFunc)(void *pectx), const char *name);

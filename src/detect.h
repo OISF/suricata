@@ -426,8 +426,13 @@ typedef struct DetectEngineAppInspectionEngine_ {
     bool match_on_null;
     uint16_t sm_list;
     uint16_t sm_list_base; /**< base buffer being transformed */
-    uint8_t progress;
     uint8_t sub_state; /**< matches tx type */
+    // An app-layer inspection engine may run at different progresses.
+    // Even if most engines run at only one progress (min_progress=max_progress)
+    // http_header keyword may run for headers and trailers progress for example
+    uint8_t min_progress;
+    // max_progress allows us to not give up on matching too soon
+    uint8_t max_progress;
 
     struct {
         union {
@@ -1599,6 +1604,7 @@ typedef struct PrefilterEngineList_ {
     /** Minimal Tx progress we need before running the engine. Only used
      *  with Tx Engine. Set to -1 for all states. */
     int8_t tx_min_progress;
+    int8_t tx_max_progress;
 
     uint8_t frame_type;
 
@@ -1643,6 +1649,7 @@ typedef struct PrefilterEngine_ {
             /** Minimal Tx progress we need before running the engine. Only used
              *  with Tx Engine. Set to -1 for all states. */
             int8_t tx_min_progress;
+            int8_t tx_max_progress;
             uint8_t sub_state;
         } app;
         uint8_t frame_type;
