@@ -528,13 +528,15 @@ typedef struct FlowProtoFreeFunc_ {
 } FlowProtoFreeFunc;
 
 typedef struct FlowBypassInfo_ {
-    bool (* BypassUpdate)(Flow *f, void *data, time_t tsec);
+    bool (*BypassUpdate)(Flow *f, void *data);
     void (* BypassFree)(void *data);
     void *bypass_data;
     uint64_t tosrcpktcnt;
     uint64_t tosrcbytecnt;
     uint64_t todstpktcnt;
     uint64_t todstbytecnt;
+    /** time of the last packet seen by the capture bypass method */
+    SCTime_t lastpktts;
 } FlowBypassInfo;
 
 #include "flow-queue.h"
