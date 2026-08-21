@@ -26,12 +26,14 @@
 #include "flow.h"
 #include "flow-bypass.h"
 #include "flow-private.h"
+#include "util-byte.h"
 #include "util-ebpf.h"
 #include "runmodes.h"
 
 #ifdef CAPTURE_OFFLOAD_MANAGER
 
-#define FLOW_BYPASS_DELAY       10
+#define FLOW_BYPASS_DELAY 100000
+#define FLOW_BYPASS_SLEEP 0.1
 
 #ifndef TIMEVAL_TO_TIMESPEC
 #define TIMEVAL_TO_TIMESPEC(tv, ts) {                               \
@@ -44,6 +46,7 @@ typedef struct BypassedFlowManagerThreadData_ {
     StatsCounterId flow_bypassed_cnt_clo;
     StatsCounterId flow_bypassed_pkts;
     StatsCounterId flow_bypassed_bytes;
+    int flow_bypass_delay;
 } BypassedFlowManagerThreadData;
 
 #define BYPASSFUNCMAX   4
@@ -64,6 +67,39 @@ typedef struct BypassedUpdateFuncItem_ {
 
 int g_bypassed_update_max_index = 0;
 BypassedUpdateFuncItem updatefunclist[BYPASSFUNCMAX];
+
+/**
+ * \brief Get configuration for the BypassedFlowManager.
+ *
+ * \param root_node 'flow.bypass' node in suricata.yaml
+ * \param str 'delay' or 'sleep'
+ * \param def default value for the configuration
+ * \param[out] cfg_ret value as found in suricata.yaml or default value if not found
+ * \return int 0 if config found, negative value on error
+ */
+static int BypassedFlowManagerGetConf(
+        SCConfNode *root_node, const char *cfg_str, int def, int *cfg_ret)
+{
+    SCEnter();
+
+    int cfg = 0;
+    const char *entry_str = NULL;
+    int ret = SCConfGetChildValue(root_node, cfg_str, &entry_str);
+    /* Set to default if value is "auto" or missing */
+    if (ret != 1 || strcmp(entry_str, "auto") == 0) {
+        cfg = def;
+    } else {
+        if (StringParseInt32(&cfg, 10, 0, entry_str) < 0) {
+            SCLogError("flow.bypass.%s is not set to 'auto' and contains non-numerical characters "
+                       "- \"%s\"",
+                    cfg_str, entry_str);
+            SCReturnInt(-EINVAL);
+        }
+    }
+    SCLogConfig("FlowBypassedManager %s set to %d", cfg_str, cfg);
+    *cfg_ret = cfg;
+    SCReturnInt(0);
+}
 
 static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
 {
@@ -119,13 +155,13 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
             StatsSyncCounters(&th_v->stats);
             return TM_ECODE_OK;
         }
-        for (i = 0; i < FLOW_BYPASS_DELAY * 100; i++) {
+        for (i = 0; i < ftd->flow_bypass_delay; i++) {
             if (TmThreadsCheckFlag(th_v, THV_KILL)) {
                 StatsSyncCounters(&th_v->stats);
                 return TM_ECODE_OK;
             }
             StatsSyncCountersIfSignalled(&th_v->stats);
-            SleepMsec(10);
+            SleepMsec(FLOW_BYPASS_SLEEP);
         }
     }
     return TM_ECODE_OK;
@@ -142,6 +178,8 @@ static TmEcode BypassedFlowManagerThreadInit(ThreadVars *t, const void *initdata
     ftd->flow_bypassed_cnt_clo = StatsRegisterCounter("flow_bypassed.closed", &t->stats);
     ftd->flow_bypassed_pkts = StatsRegisterCounter("flow_bypassed.pkts", &t->stats);
     ftd->flow_bypassed_bytes = StatsRegisterCounter("flow_bypassed.bytes", &t->stats);
+    SCConfNode *root_node = SCConfGetNode("flow.bypass");
+    BypassedFlowManagerGetConf(root_node, "delay", FLOW_BYPASS_DELAY, &ftd->flow_bypass_delay);
 
     return TM_ECODE_OK;
 }
