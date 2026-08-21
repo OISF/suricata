@@ -1,4 +1,4 @@
-/* Copyright (C) 2020-2022 Open Information Security Foundation
+/* Copyright (C) 2020-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -189,7 +189,11 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const DetectByteMathDa
             }
             break;
         case RightShift:
-            val >>= rvalue;
+            if (rvalue < 64) {
+                val >>= rvalue;
+            } else {
+                val = 0;
+            }
             break;
     }
 
@@ -999,6 +1003,52 @@ static int DetectByteMathPacket02(void)
     PASS;
 }
 
+/**
+ * \test A payload-supplied shift count of 64 or more yields 0 instead of
+ *       shifting a uint64_t by its own width.
+ */
+static int DetectByteMathPacket03(void)
+{
+    /* byte 0 is the shift count (64), byte 1 the value shifted, byte 2 the
+     * expected result */
+    uint8_t buf[] = { 0x40, 0xff, 0x00 };
+
+    Packet *p = UTHBuildPacket(buf, sizeof(buf), IPPROTO_UDP);
+    FAIL_IF_NULL(p);
+
+    /* 0xff >> 64 is 0 */
+    FAIL_IF_NOT(UTHPacketMatchSig(p, "alert udp any any -> any any "
+                                     "(byte_extract: 1, 0, shift;"
+                                     "byte_math: bytes 1, offset 1, oper >>, rvalue shift, result "
+                                     "var;"
+                                     "byte_test: 1, =, var, 2;"
+                                     "sid:1;)"));
+    UTHFreePacket(p);
+
+    PASS;
+}
+
+/**
+ * \test A literal shift count of 64 or more is rejected at parse time.
+ */
+static int DetectByteMathParseTest17(void)
+{
+    DetectByteMathData *bmd = DetectByteMathParse(
+            NULL, "bytes 4, offset 2, oper >>, rvalue 64, result foo", NULL, NULL);
+    FAIL_IF_NOT_NULL(bmd);
+
+    bmd = DetectByteMathParse(
+            NULL, "bytes 4, offset 2, oper <<, rvalue 64, result foo", NULL, NULL);
+    FAIL_IF_NOT_NULL(bmd);
+
+    bmd = DetectByteMathParse(
+            NULL, "bytes 4, offset 2, oper >>, rvalue 63, result foo", NULL, NULL);
+    FAIL_IF_NULL(bmd);
+    DetectByteMathFree(NULL, bmd);
+
+    PASS;
+}
+
 static int DetectByteMathContext01(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -1069,8 +1119,10 @@ static void DetectByteMathRegisterTests(void)
     UtRegisterTest("DetectByteMathParseTest14", DetectByteMathParseTest14);
     UtRegisterTest("DetectByteMathParseTest15", DetectByteMathParseTest15);
     UtRegisterTest("DetectByteMathParseTest16", DetectByteMathParseTest16);
+    UtRegisterTest("DetectByteMathParseTest17", DetectByteMathParseTest17);
     UtRegisterTest("DetectByteMathPacket01", DetectByteMathPacket01);
     UtRegisterTest("DetectByteMathPacket02", DetectByteMathPacket02);
+    UtRegisterTest("DetectByteMathPacket03", DetectByteMathPacket03);
     UtRegisterTest("DetectByteMathContext01", DetectByteMathContext01);
 }
 #endif /* UNITTESTS */
