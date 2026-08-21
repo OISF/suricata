@@ -120,7 +120,7 @@ void
 DefragTrackerFreeFrags(DefragTracker *tracker)
 {
     Frag *frag, *tmp;
-
+    uint64_t frag_count = 0;
     /* Lock the frag pool as we'll be return items to it. */
     SCMutexLock(&defrag_context->frag_pool_lock);
 
@@ -128,6 +128,11 @@ DefragTrackerFreeFrags(DefragTracker *tracker)
         RB_REMOVE(IP_FRAGMENTS, &tracker->fragment_tree, frag);
         DefragFragReset(frag);
         PoolReturn(defrag_context->frag_pool, frag);
+        frag_count++;
+    }
+
+    if (frag_count > (uint64_t)SC_ATOMIC_GET(defrag_max_fragments)) {
+        SC_ATOMIC_SET(defrag_max_fragments, frag_count);
     }
 
     SCMutexUnlock(&defrag_context->frag_pool_lock);
