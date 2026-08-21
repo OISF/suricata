@@ -355,7 +355,13 @@ typedef struct AFPThreadVars_
     int ebpf_filter_fd;
     struct ebpf_timeout_config ebpf_t_config;
 #endif
-
+#ifdef AFPACKET_TEST_REPLAY
+    // Number of packets to read on afpacket interface before stopping Suricata
+    // This is meant for test purposes, especially to run suricata-verify against tcpreplay
+    // to test features that are not available when reading from a pcap (such as ebpf)
+    // Value 0 means no packet (and should thus not be used).
+    uint32_t max_packets;
+#endif
 } AFPThreadVars;
 
 static TmEcode ReceiveAFPThreadInit(ThreadVars *, const void *, void **);
@@ -1430,6 +1436,15 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
         } else if (r > 0) {
             StatsCounterIncr(&ptv->tv->stats, ptv->capture_afp_poll_data);
             r = AFPReadFunc(ptv);
+#ifdef AFPACKET_TEST_REPLAY
+            // When we reached the configured maximum number of packets
+            // we tell Suricata to stop.
+            // This is useful for test purposes when tcpreplaying a pcap
+            // so we know we do not expect anymore packets.
+            if (ptv->max_packets > 0 && ptv->pkts >= ptv->max_packets) {
+                suricata_ctl_flags |= SURICATA_STOP;
+            }
+#endif
             switch (r) {
                 case AFP_READ_OK:
                     /* Trigger one dump of stats every second */
@@ -2568,6 +2583,9 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     ptv->promisc = afpconfig->promisc;
     ptv->checksum_mode = afpconfig->checksum_mode;
     ptv->bpf_filter = NULL;
+#ifdef AFPACKET_TEST_REPLAY
+    ptv->max_packets = afpconfig->max_packets;
+#endif
 
     ptv->threads = 1;
 #ifdef HAVE_PACKET_FANOUT
