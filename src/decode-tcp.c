@@ -250,7 +250,9 @@ static int DecodeTCPPacket(
         return -1;
     }
 
-    uint8_t tcp_opt_len = hlen - TCP_HEADER_LEN;
+    /* hlen can be less than TCP_HEADER_LEN for a malformed header: the
+     * wrapped value is over TCP_OPTLENMAX and rejected below */
+    uint8_t tcp_opt_len = (uint8_t)(hlen - TCP_HEADER_LEN);
     if (unlikely(tcp_opt_len > TCP_OPTLENMAX)) {
         ENGINE_SET_INVALID_EVENT(p, TCP_INVALID_OPTLEN);
         return -1;

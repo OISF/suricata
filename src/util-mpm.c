@@ -337,9 +337,6 @@ static inline MpmPattern *MpmAllocPattern(MpmCtx *mpm_ctx)
         exit(EXIT_FAILURE);
     }
 
-    mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += sizeof(MpmPattern);
-
     return p;
 }
 
@@ -357,20 +354,14 @@ void MpmFreePattern(MpmCtx *mpm_ctx, MpmPattern *p)
 
     if (p->cs != NULL && p->cs != p->ci) {
         SCFree(p->cs);
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= p->len;
     }
 
     if (p->ci != NULL) {
         SCFree(p->ci);
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= p->len;
     }
 
     if (p->original_pat != NULL) {
         SCFree(p->original_pat);
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= p->len;
     }
 
     if (p->sids != NULL) {
@@ -378,8 +369,6 @@ void MpmFreePattern(MpmCtx *mpm_ctx, MpmPattern *p)
     }
 
     SCFree(p);
-    mpm_ctx->memory_cnt--;
-    mpm_ctx->memory_size -= sizeof(MpmPattern);
 }
 
 static inline uint32_t MpmInitHash(MpmPattern *p)
@@ -467,15 +456,11 @@ int MpmAddPattern(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, uint16_t
         p->original_pat = SCMalloc(patlen);
         if (p->original_pat == NULL)
             goto error;
-        mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size += patlen;
         memcpy(p->original_pat, pat, patlen);
 
         p->ci = SCMalloc(patlen);
         if (p->ci == NULL)
             goto error;
-        mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size += patlen;
         MemcpyToLower(p->ci, pat, patlen);
 
         /* setup the case sensitive part of the pattern */
@@ -490,8 +475,6 @@ int MpmAddPattern(MpmCtx *mpm_ctx, const uint8_t *pat, uint16_t patlen, uint16_t
                 p->cs = SCMalloc(patlen);
                 if (p->cs == NULL)
                     goto error;
-                mpm_ctx->memory_cnt++;
-                mpm_ctx->memory_size += patlen;
                 memcpy(p->cs, pat, patlen);
             }
         }

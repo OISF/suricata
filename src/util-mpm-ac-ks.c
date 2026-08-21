@@ -664,9 +664,6 @@ static void SCACTileClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
     }
     ctx->state_table = state_table;
 
-    mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += size;
-
     SCLogDebug("Delta Table size %d,  alphabet: %d, %d-byte states: %d",
               size, ctx->alphabet_size, ctx->bytes_per_state, ctx->state_count);
 
@@ -866,8 +863,6 @@ int SCACTilePreparePatterns(MpmConfig *mpm_conf, MpmCtx *mpm_ctx)
     if (mem_block == NULL) {
         FatalError("Error allocating memory");
     }
-    mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += mem_size;
     /* Split the allocated block into pattern list array and string space. */
     ctx->pattern_list = mem_block;
     uint8_t *string_space = mem_block + pattern_list_size;
@@ -921,9 +916,6 @@ void SCACTileInitCtx(MpmCtx *mpm_ctx)
         exit(EXIT_FAILURE);
     }
 
-    mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += sizeof(SCACTileSearchCtx);
-
     SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
 
     /* MPM Creation context */
@@ -931,9 +923,6 @@ void SCACTileInitCtx(MpmCtx *mpm_ctx)
     if (search_ctx->init_ctx == NULL) {
         exit(EXIT_FAILURE);
     }
-
-    mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += sizeof(SCACTileCtx);
 
     /* initialize the hash we use to speed up pattern insertions */
     mpm_ctx->init_hash = SCCalloc(MPM_INIT_HASH_SIZE, sizeof(MpmPattern *));
@@ -973,10 +962,6 @@ static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx)
 
     if (ctx->state_table != NULL) {
         SCFree(ctx->state_table);
-
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (ctx->state_count *
-                                 ctx->bytes_per_state * ctx->alphabet_storage);
     }
 
     if (ctx->output_table != NULL) {
@@ -1002,8 +987,6 @@ static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx)
 
     SCFree(ctx);
     search_ctx->init_ctx = NULL;
-    mpm_ctx->memory_cnt--;
-    mpm_ctx->memory_size -= sizeof(SCACTileCtx);
 }
 
 /**
@@ -1044,9 +1027,6 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
 
     SCFree(search_ctx);
     mpm_ctx->ctx = NULL;
-
-    mpm_ctx->memory_cnt--;
-    mpm_ctx->memory_size -= sizeof(SCACTileSearchCtx);
 }
 
 /*
@@ -1323,8 +1303,6 @@ void SCACTilePrintInfo(MpmCtx *mpm_ctx)
     SCACTileCtx *ctx = search_ctx->init_ctx;
 
     printf("MPM AC Information:\n");
-    printf("Memory allocs:   %" PRIu32 "\n", mpm_ctx->memory_cnt);
-    printf("Memory alloced:  %" PRIu32 "\n", mpm_ctx->memory_size);
     printf(" Sizeof:\n");
     printf("  MpmCtx         %" PRIuMAX "\n", (uintmax_t)sizeof(MpmCtx));
     printf("  SCACTileCtx:         %" PRIuMAX "\n", (uintmax_t)sizeof(SCACTileCtx));
