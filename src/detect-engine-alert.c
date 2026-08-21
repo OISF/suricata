@@ -597,6 +597,11 @@ static struct DetectFirewallPolicy HandleFirewallRule(
             }
         }
     }
+
+    /* threshold removed the alert; account for it as the TD path does */
+    if ((res == 0 || res == 2) && (s->action & ACTION_ALERT)) {
+        p->alerts.suppressed++;
+    }
     return pol;
 }
 
