@@ -144,22 +144,23 @@ int DecodePPPOESession(
         /* decode contained PPP packet */
 
         uint8_t pppoesh_len;
-        uint16_t ppp_protocol = SCNtohs(pppoesh->protocol);
-
-        /* According to RFC1661-2, if the least significant bit of the most significant octet is
-         * set, we're dealing with a single-octet protocol field */
-        if (ppp_protocol & 0x0100) {
+        uint16_t ppp_protocol;
+        /* RFC1661: if LSB of the first protocol octet is set, it is a single-octet field.
+         * Inspect only pkt[6] (guaranteed in-bounds by the MIN_LEN check above). */
+        const uint8_t proto_hi = pkt[PPPOE_SESSION_HEADER_MIN_LEN - 1];
+        if (proto_hi & 0x01) {
             /* Single-octet variant */
-            ppp_protocol >>= 8;
+            ppp_protocol = proto_hi;
             pppoesh_len = PPPOE_SESSION_HEADER_MIN_LEN;
         } else {
-            /* Double-octet variant; increase the length of the session header accordingly */
+            /* Double-octet variant; need one more byte */
             pppoesh_len = PPPOE_SESSION_HEADER_MIN_LEN + 1;
-
             if (len < pppoesh_len) {
                 ENGINE_SET_INVALID_EVENT(p, PPPOE_PKT_TOO_SMALL);
                 return TM_ECODE_FAILED;
             }
+            ppp_protocol =
+                    (uint16_t)(((uint16_t)proto_hi << 8) | pkt[PPPOE_SESSION_HEADER_MIN_LEN]);
         }
 
         SCLogDebug("Protocol %" PRIu16 " len %" PRIu8 "", ppp_protocol, pppoesh_len);
