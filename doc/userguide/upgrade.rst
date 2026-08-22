@@ -34,6 +34,17 @@ also check all the new features that have been added but are not covered by
 this guide. Those features are either not enabled by default or require
 dedicated new configuration.
 
+Upgrading to 8.0.7
+------------------
+
+Logging Changes
+~~~~~~~~~~~~~~~
+
+- MQTT user properties are now logged as a new object called ``user_properties``
+  as an array of key-value pairs like ``[{"key":"mykey", "value":"myvalue"}]``
+  under ``properties`` object, instead of as ``{key: value}`` pairs as a part
+  of the ``properties`` object itself.
+
 Upgrading to 8.0.6
 ------------------
 
