@@ -34,6 +34,7 @@ float MemcapsGetPressure(void);
 
 #ifdef BUILD_UNIX_SOCKET
 TmEcode UnixSocketDatasetAdd(json_t *cmd, json_t* answer, void *data);
+TmEcode UnixSocketDatasetAddBatch(json_t *cmd, json_t *answer, void *data);
 TmEcode UnixSocketDatasetRemove(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketDatasetDump(json_t *cmd, json_t *answer, void *data);
 TmEcode UnixSocketDatasetClear(json_t *cmd, json_t *answer, void *data);

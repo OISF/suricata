@@ -491,3 +491,143 @@ int DatasetLookupCIDRString(Dataset *set, const char *ip_str)
     SCLogDebug("invalid IP address format: %s", ip_str);
     return -1;
 }
+
+/* Per-entry parsed buckets used only inside DatasetAddCIDRBatch. */
+typedef struct {
+    uint8_t addr[4];
+    uint8_t prefix;
+} CIDRBatchV4;
+
+typedef struct {
+    uint8_t addr[16];
+    uint8_t prefix;
+} CIDRBatchV6;
+
+int DatasetAddCIDRBatch(Dataset *set, const char **cidr_strs, size_t n, CIDRBatchResult *out)
+{
+    if (out == NULL)
+        return -1;
+    memset(out, 0, sizeof(*out));
+
+    CIDRType *cidr = CIDRFromDataset(set);
+    if (cidr == NULL)
+        return -1;
+    if (n == 0)
+        return 0;
+
+    /* Two-pass parse. Pass 1 classifies each input to size the per-family
+     * buckets exactly; homogeneous v4-only or v6-only batches then use
+     * O(n * sizeof one-struct) memory instead of O(n * sum-of-both).
+     * Cost: each valid string is parsed twice. Bulk import isn't parse-
+     * bound (the wrlock hold dominates), so trading CPU for peak memory
+     * is the right call here. */
+    size_t n4 = 0, n6 = 0;
+    for (size_t i = 0; i < n; i++) {
+        if (cidr_strs[i] == NULL)
+            continue;
+        struct in_addr in4;
+        struct in6_addr in6;
+        int mask;
+        if (ParseCIDRString(cidr_strs[i], AF_INET, &in4, &mask, 32) == 0)
+            n4++;
+        else if (ParseCIDRString(cidr_strs[i], AF_INET6, &in6, &mask, 128) == 0)
+            n6++;
+    }
+
+    CIDRBatchV4 *v4 = (n4 > 0) ? SCCalloc(n4, sizeof(*v4)) : NULL;
+    CIDRBatchV6 *v6 = (n6 > 0) ? SCCalloc(n6, sizeof(*v6)) : NULL;
+    if ((n4 > 0 && v4 == NULL) || (n6 > 0 && v6 == NULL)) {
+        SCFree(v4);
+        SCFree(v6);
+        return -1;
+    }
+
+    /* Pass 2: re-parse and fill. Anything that failed pass 1 fails again
+     * here and increments out->failed. */
+    size_t j4 = 0, j6 = 0;
+    for (size_t i = 0; i < n; i++) {
+        if (cidr_strs[i] == NULL) {
+            out->failed++;
+            continue;
+        }
+        struct in_addr in4;
+        struct in6_addr in6;
+        int mask;
+        if (ParseCIDRString(cidr_strs[i], AF_INET, &in4, &mask, 32) == 0) {
+            if (j4 >= n4) {
+                out->failed++;
+                continue;
+            }
+            memcpy(v4[j4].addr, &in4.s_addr, 4);
+            v4[j4].prefix = (uint8_t)mask;
+            if (v4[j4].prefix < 32)
+                MaskIPNetblock(v4[j4].addr, v4[j4].prefix, 32);
+            j4++;
+        } else if (ParseCIDRString(cidr_strs[i], AF_INET6, &in6, &mask, 128) == 0) {
+            if (j6 >= n6) {
+                out->failed++;
+                continue;
+            }
+            memcpy(v6[j6].addr, &in6.s6_addr, 16);
+            v6[j6].prefix = (uint8_t)mask;
+            if (v6[j6].prefix < 128)
+                MaskIPNetblock(v6[j6].addr, v6[j6].prefix, 128);
+            j6++;
+        } else {
+            out->failed++;
+        }
+    }
+
+    /* Phase 2: one wrlock per non-empty family for the whole batch. */
+    if (n4 > 0) {
+        SCRWLockWRLock(&cidr->ipv4.lock);
+        for (size_t i = 0; i < n4; i++) {
+            void *ud = NULL;
+            if (SCRadix4TreeFindNetblock(&cidr->ipv4.tree, v4[i].addr, v4[i].prefix, &ud) != NULL) {
+                out->existed++;
+                continue;
+            }
+            if (cidr_reserve_entry(&cidr->ipv4.bytes_sc_atomic__, &cidr->ipv4.rejected_sc_atomic__,
+                        cidr->ipv4.memcap, CIDR_IPV4_ENTRY_BYTES, set->name, "IPv4") != 0) {
+                out->rejected_memcap++;
+                continue;
+            }
+            if (SCRadix4AddKeyIPV4Netblock(
+                        &cidr->ipv4.tree, &radix4_cfg, v4[i].addr, v4[i].prefix, NULL) == NULL) {
+                cidr_release_entry(&cidr->ipv4.bytes_sc_atomic__, CIDR_IPV4_ENTRY_BYTES);
+                out->failed++;
+            } else {
+                out->added++;
+            }
+        }
+        SCRWLockUnlock(&cidr->ipv4.lock);
+    }
+
+    if (n6 > 0) {
+        SCRWLockWRLock(&cidr->ipv6.lock);
+        for (size_t i = 0; i < n6; i++) {
+            void *ud = NULL;
+            if (SCRadix6TreeFindNetblock(&cidr->ipv6.tree, v6[i].addr, v6[i].prefix, &ud) != NULL) {
+                out->existed++;
+                continue;
+            }
+            if (cidr_reserve_entry(&cidr->ipv6.bytes_sc_atomic__, &cidr->ipv6.rejected_sc_atomic__,
+                        cidr->ipv6.memcap, CIDR_IPV6_ENTRY_BYTES, set->name, "IPv6") != 0) {
+                out->rejected_memcap++;
+                continue;
+            }
+            if (SCRadix6AddKeyIPV6Netblock(
+                        &cidr->ipv6.tree, &radix6_cfg, v6[i].addr, v6[i].prefix, NULL) == NULL) {
+                cidr_release_entry(&cidr->ipv6.bytes_sc_atomic__, CIDR_IPV6_ENTRY_BYTES);
+                out->failed++;
+            } else {
+                out->added++;
+            }
+        }
+        SCRWLockUnlock(&cidr->ipv6.lock);
+    }
+
+    SCFree(v4);
+    SCFree(v6);
+    return 0;
+}
