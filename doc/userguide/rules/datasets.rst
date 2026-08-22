@@ -262,6 +262,30 @@ radix tree already handles the host-to-prefix matching.
    on ``ip.src`` or ``ip.dst`` grow the tree in response to network
    traffic, so keep ``memcap`` tight when the source is untrusted.
 
+.. note::
+
+   A ``dataset:set`` rule on ``ip.src`` or ``ip.dst`` exposed to
+   attacker-controlled unique sources at multi-Gbps rates can also
+   saturate the per-family write lock across worker threads. Narrow
+   the rule with specific ports, protocols, or flow states so the
+   write path only runs on packets that need to update the set.
+
+.. note::
+
+   For deployments that treat the CIDR set as an admin-managed
+   allow/deny list, use ``dataset:isset`` or ``dataset:isnotset`` in
+   rules and update the set at runtime through the unix socket
+   (``dataset-add`` / ``dataset-remove`` for single entries, or
+   ``dataset-add-batch`` for bulk imports). The packet path takes
+   only the read lock; admin writes take the write lock for the
+   length of one tree walk per update, blocking concurrent readers
+   during that window. Trickle updates are invisible; bulk imports
+   of thousands of entries can block the packet path for the
+   duration of the import. Prefer ``dataset-add-batch`` for bulk
+   loads -- it takes one write lock per address family for the
+   whole batch instead of one per entry -- and schedule such
+   imports during quiet windows.
+
 datarep
 ~~~~~~~
 
@@ -360,6 +384,53 @@ data
 Example adding 'google.com' to set 'myset'::
 
     dataset-add myset string Z29vZ2xlLmNvbQ==
+
+dataset-add-batch
+~~~~~~~~~~~~~~~~~
+
+Unix Socket command to add many values to a set in one call. The command
+takes a JSON array of values instead of a single ``data`` argument.
+
+For CIDR datasets, the whole batch is inserted under one write lock per
+address family instead of one lock per entry, which is much cheaper when
+loading thousands of prefixes at once. For hash-based dataset types the
+per-entry lock is already fine-grained; batching only saves the
+per-entry unix-socket round trip.
+
+Arguments (JSON)::
+
+    {
+      "command": "dataset-add-batch",
+      "arguments": {
+        "setname":  "<set name>",
+        "settype":  "string|md5|sha256|ipv4|ip|cidr",
+        "values":   ["value1", "value2", ...]
+      }
+    }
+
+The reply reports how each value was handled::
+
+    {
+      "return":  "OK",
+      "message": {
+        "added":            <int>,   /* new entries inserted */
+        "existed":          <int>,   /* value already present, skipped */
+        "failed":           <int>,   /* malformed or insert failure */
+        "rejected_memcap":  <int>    /* CIDR only: skipped by memcap */
+      }
+    }
+
+The batch is not atomic: a malformed or memcap-rejected value is
+counted in its own bucket while the rest of the batch proceeds. For
+CIDR sets, the write lock is held for the whole batch, so a bulk
+import of thousands of entries can briefly block the packet path.
+Schedule bulk imports during quiet windows.
+
+Example adding three CIDR blocks to set 'blocklist'::
+
+    {"command": "dataset-add-batch",
+     "arguments": {"setname": "blocklist", "settype": "cidr",
+                   "values": ["10.0.0.0/8", "192.168.0.0/16", "fc00::/7"]}}
 
 dataset-remove
 ~~~~~~~~~~~~~~

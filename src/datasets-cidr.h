@@ -83,4 +83,17 @@ int DatasetAddCIDRString(Dataset *set, const char *cidr_str);
 int DatasetRemoveCIDRString(Dataset *set, const char *cidr_str);
 int DatasetLookupCIDRString(Dataset *set, const char *cidr_str);
 
+typedef struct CIDRBatchResult_ {
+    uint32_t added;           /* new entries inserted */
+    uint32_t existed;         /* already present, skipped */
+    uint32_t rejected_memcap; /* skipped because family memcap exhausted */
+    uint32_t failed;          /* malformed CIDR or radix insert failure */
+} CIDRBatchResult;
+
+/* Add a batch of CIDR strings under one write lock per address family.
+ * cidr_strs may contain NULLs; those count as failed. Returns 0 on success
+ * (out is populated), -1 on setup error (wrong set type or allocation). */
+int DatasetAddCIDRBatch(
+        Dataset *set, const char **cidr_strs, size_t n, CIDRBatchResult *out);
+
 #endif /* SURICATA_DATASETS_CIDR_H */

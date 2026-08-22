@@ -55,6 +55,7 @@
 #include "conf-yaml-loader.h"
 
 #include "datasets.h"
+#include "datasets-cidr.h"
 #include "datasets-context-json.h"
 #include "runmode-unix-socket.h"
 
@@ -658,6 +659,120 @@ TmEcode UnixSocketDatasetAdd(json_t *cmd, json_t* answer, void *data)
         json_object_set_new(answer, "message", json_string("failed to add data"));
         return TM_ECODE_FAILED;
     }
+}
+
+/**
+ * Add many values to a dataset in one call.
+ *
+ * Arguments: setname (string), settype (string), values (array of strings).
+ *
+ * CIDR datasets take a batch fast path that holds the per-family write
+ * lock once for the whole batch instead of once per entry. Other types
+ * loop through DatasetAddSerialized; the win there is fewer unix-socket
+ * round trips, not lock consolidation.
+ */
+TmEcode UnixSocketDatasetAddBatch(json_t *cmd, json_t *answer, void *data)
+{
+    json_t *narg = json_object_get(cmd, "setname");
+    if (!json_is_string(narg)) {
+        json_object_set_new(answer, "message", json_string("setname is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *set_name = json_string_value(narg);
+
+    json_t *targ = json_object_get(cmd, "settype");
+    if (!json_is_string(targ)) {
+        json_object_set_new(answer, "message", json_string("settype is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *type = json_string_value(targ);
+
+    json_t *values = json_object_get(cmd, "values");
+    if (!json_is_array(values)) {
+        json_object_set_new(
+                answer, "message", json_string("values must be a JSON array of strings"));
+        return TM_ECODE_FAILED;
+    }
+    size_t n = json_array_size(values);
+
+    /* Cap batch size so a malformed control-plane request cannot request
+     * an arbitrarily large transient allocation or wrap the size_t product
+     * used by SCCalloc below. Admin socket only, but 1M entries is well
+     * beyond any legitimate bulk import. */
+#define DATASET_BATCH_MAX 1000000
+    if (n > DATASET_BATCH_MAX) {
+        json_object_set_new(answer, "message",
+                json_string("values array exceeds per-call limit of 1000000 entries"));
+        return TM_ECODE_FAILED;
+    }
+
+    enum DatasetTypes t = DatasetGetTypeFromString(type);
+    if (t == DATASET_TYPE_NOTSET) {
+        json_object_set_new(answer, "message", json_string("unknown settype"));
+        return TM_ECODE_FAILED;
+    }
+
+    Dataset *set = DatasetFind(set_name, t);
+    if (set == NULL) {
+        json_object_set_new(answer, "message", json_string("set not found or wrong type"));
+        return TM_ECODE_FAILED;
+    }
+
+    uint32_t added = 0, existed = 0, failed = 0, rejected_memcap = 0;
+
+    /* Empty array is not an error; just return zeroed counters. */
+    if (n == 0)
+        goto reply;
+
+    if (set->type == DATASET_TYPE_CIDR) {
+        /* SCCalloc's checked multiplication guards against a size_t
+         * overflow on 32-bit builds. */
+        const char **strs = SCCalloc(n, sizeof(*strs));
+        if (strs == NULL) {
+            json_object_set_new(answer, "message", json_string("allocation failed"));
+            return TM_ECODE_FAILED;
+        }
+        for (size_t i = 0; i < n; i++) {
+            json_t *v = json_array_get(values, i);
+            strs[i] = json_is_string(v) ? json_string_value(v) : NULL;
+        }
+        CIDRBatchResult r;
+        int rc = DatasetAddCIDRBatch(set, strs, n, &r);
+        SCFree(strs);
+        if (rc < 0) {
+            json_object_set_new(answer, "message", json_string("batch add failed"));
+            return TM_ECODE_FAILED;
+        }
+        added = r.added;
+        existed = r.existed;
+        rejected_memcap = r.rejected_memcap;
+        failed = r.failed;
+    } else {
+        for (size_t i = 0; i < n; i++) {
+            json_t *v = json_array_get(values, i);
+            if (!json_is_string(v)) {
+                failed++;
+                continue;
+            }
+            int rc = DatasetAddSerialized(set, json_string_value(v));
+            if (rc == 1)
+                added++;
+            else if (rc == 0)
+                existed++;
+            else
+                failed++;
+        }
+    }
+
+reply:;
+    json_t *msg = json_object();
+    json_object_set_new(msg, "added", json_integer(added));
+    json_object_set_new(msg, "existed", json_integer(existed));
+    json_object_set_new(msg, "failed", json_integer(failed));
+    if (set->type == DATASET_TYPE_CIDR)
+        json_object_set_new(msg, "rejected_memcap", json_integer(rejected_memcap));
+    json_object_set_new(answer, "message", msg);
+    return TM_ECODE_OK;
 }
 
 TmEcode UnixSocketDatasetRemove(json_t *cmd, json_t* answer, void *data)
