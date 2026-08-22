@@ -63,6 +63,11 @@ Logging Changes
   ``stats.app_layer.*.ftp-data`` becomes ``stats.app_layer.*.ftp_data``,
   and same for bittorrent_dht
 
+- MQTT user properties are now logged as a new object called ``user_properties``
+  as an array of key-value pairs like ``[{"key":"mykey", "value":"myvalue"}]``
+  under ``properties`` object, instead of as ``{key: value}`` pairs as a part
+  of the ``properties`` object itself.
+
 Removals
 ~~~~~~~~
 

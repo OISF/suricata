@@ -20,6 +20,7 @@
 use super::mqtt::MQTTTransaction;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::mqtt::mqtt_message::{MQTTOperation, MQTTSubscribeTopicData};
+use crate::mqtt::mqtt_property::MQTTProperty;
 use crate::mqtt::parser::FixedHeader;
 use std;
 
@@ -41,6 +42,44 @@ fn log_mqtt_header(js: &mut JsonBuilder, hdr: &FixedHeader) -> Result<(), JsonEr
     js.set_uint("qos", hdr.qos_level as u64)?;
     js.set_bool("retain", hdr.retain)?;
     js.set_bool("dup", hdr.dup_flag)?;
+    return Ok(());
+}
+
+fn log_mqtt_user_properties(
+    js: &mut JsonBuilder, props: &[MQTTProperty], max_log_len: usize,
+) -> Result<(), JsonError> {
+    let mut open = false;
+    for prop in props {
+        if let MQTTProperty::USER_PROPERTY((k, v)) = prop {
+            if !open {
+                js.open_array("user_properties")?;
+                open = true;
+            }
+            js.start_object()?;
+            js.set_string_limited("key", k, max_log_len)?;
+            js.set_string_limited("value", v, max_log_len)?;
+            js.close()?;
+        }
+    }
+    if open {
+        js.close()?; // user_properties
+    }
+    return Ok(());
+}
+
+// Logs a list of properties as a "properties" object. User properties are
+// logged separately, as an array of [key, value] pairs, since their keys are
+// peer-controlled and can occur more than once.
+#[inline]
+fn log_mqtt_properties(
+    js: &mut JsonBuilder, props: &[MQTTProperty], max_log_len: usize,
+) -> Result<(), JsonError> {
+    js.open_object("properties")?;
+    for prop in props {
+        prop.set_json(js, max_log_len)?;
+    }
+    log_mqtt_user_properties(js, props, max_log_len)?;
+    js.close()?; // properties
     return Ok(());
 }
 
@@ -80,20 +119,12 @@ fn log_mqtt(
                         js.set_string_from_bytes_limited("message", will_message, max_log_len)?;
                     }
                     if let Some(will_properties) = &conn.will_properties {
-                        js.open_object("properties")?;
-                        for prop in will_properties {
-                            prop.set_json(js, max_log_len)?;
-                        }
-                        js.close()?; // properties
+                        log_mqtt_properties(js, will_properties, max_log_len)?;
                     }
                     js.close()?; // will
                 }
                 if let Some(properties) = &conn.properties {
-                    js.open_object("properties")?;
-                    for prop in properties {
-                        prop.set_json(js, max_log_len)?;
-                    }
-                    js.close()?; // properties
+                    log_mqtt_properties(js, properties, max_log_len)?;
                 }
                 js.close()?; // connect
             }
@@ -103,11 +134,7 @@ fn log_mqtt(
                 js.set_bool("session_present", connack.session_present)?;
                 js.set_uint("return_code", connack.return_code as u64)?;
                 if let Some(properties) = &connack.properties {
-                    js.open_object("properties")?;
-                    for prop in properties {
-                        prop.set_json(js, max_log_len)?;
-                    }
-                    js.close()?; // properties
+                    log_mqtt_properties(js, properties, max_log_len)?;
                 }
                 js.close()?; // connack
             }
@@ -120,11 +147,7 @@ fn log_mqtt(
                 }
                 js.set_string_from_bytes_limited("message", &publish.message, max_log_len)?;
                 if let Some(properties) = &publish.properties {
-                    js.open_object("properties")?;
-                    for prop in properties {
-                        prop.set_json(js, max_log_len)?;
-                    }
-                    js.close()?; // properties
+                    log_mqtt_properties(js, properties, max_log_len)?;
                 }
                 js.close()?; // publish
             }
@@ -136,11 +159,7 @@ fn log_mqtt(
                     js.set_uint("reason_code", *reason_code as u64)?;
                 }
                 if let Some(properties) = &msgidonly.properties {
-                    js.open_object("properties")?;
-                    for prop in properties {
-                        prop.set_json(js, max_log_len)?;
-                    }
-                    js.close()?; // properties
+                    log_mqtt_properties(js, properties, max_log_len)?;
                 }
                 js.close()?; // puback
             }
@@ -152,11 +171,7 @@ fn log_mqtt(
                     js.set_uint("reason_code", *reason_code as u64)?;
                 }
                 if let Some(properties) = &msgidonly.properties {
-                    js.open_object("properties")?;
-                    for prop in properties {
-                        prop.set_json(js, max_log_len)?;
-                    }
-                    js.close()?; // properties
+                    log_mqtt_properties(js, properties, max_log_len)?;
                 }
                 js.close()?; // pubrec
             }
@@ -168,11 +183,7 @@ fn log_mqtt(
                     js.set_uint("reason_code", *reason_code as u64)?;
                 }
                 if let Some(properties) = &msgidonly.properties {
-                    js.open_object("properties")?;
-                    for prop in properties {
-                        prop.set_json(js, max_log_len)?;
-                    }
-                    js.close()?; // properties
+                    log_mqtt_properties(js, properties, max_log_len)?;
                 }
                 js.close()?; // pubrel
             }
@@ -184,11 +195,7 @@ fn log_mqtt(
                     js.set_uint("reason_code", *reason_code as u64)?;
                 }
                 if let Some(properties) = &msgidonly.properties {
-                    js.open_object("properties")?;
-                    for prop in properties {
-                        prop.set_json(js, max_log_len)?;
-                    }
-                    js.close()?; // properties
+                    log_mqtt_properties(js, properties, max_log_len)?;
                 }
                 js.close()?; // pubcomp
             }
@@ -210,11 +217,7 @@ fn log_mqtt(
                 }
                 js.close()?; //topics
                 if let Some(properties) = &subs.properties {
-                    js.open_object("properties")?;
-                    for prop in properties {
-                        prop.set_json(js, max_log_len)?;
-                    }
-                    js.close()?; // properties
+                    log_mqtt_properties(js, properties, max_log_len)?;
                 }
                 js.close()?; // subscribe
             }
@@ -270,11 +273,7 @@ fn log_mqtt(
                 log_mqtt_header(js, &msg.header)?;
                 js.set_uint("reason_code", auth.reason_code as u64)?;
                 if let Some(properties) = &auth.properties {
-                    js.open_object("properties")?;
-                    for prop in properties {
-                        prop.set_json(js, max_log_len)?;
-                    }
-                    js.close()?; // properties
+                    log_mqtt_properties(js, properties, max_log_len)?;
                 }
                 js.close()?; // auth
             }
@@ -285,11 +284,7 @@ fn log_mqtt(
                     js.set_uint("reason_code", *reason_code as u64)?;
                 }
                 if let Some(properties) = &disco.properties {
-                    js.open_object("properties")?;
-                    for prop in properties {
-                        prop.set_json(js, max_log_len)?;
-                    }
-                    js.close()?; // properties
+                    log_mqtt_properties(js, properties, max_log_len)?;
                 }
                 js.close()?; // disconnect
             }
