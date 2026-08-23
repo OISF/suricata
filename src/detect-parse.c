@@ -4091,6 +4091,21 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
         }
     }
 
+    /* parse firewall.policies.accept-arp config option */
+    char accept_arp_key[128];
+    int accept_arp = 0;
+    if (strlen(de_ctx->config_prefix) > 0) {
+        snprintf(accept_arp_key, sizeof(accept_arp_key), "%s.firewall.policies.accept-arp",
+                de_ctx->config_prefix);
+    } else {
+        snprintf(accept_arp_key, sizeof(accept_arp_key), "firewall.policies.accept-arp");
+    }
+    if (SCConfGetBool(accept_arp_key, &accept_arp) == 1) {
+        de_ctx->fw_accept_arp = accept_arp ? true : false;
+    } else {
+        de_ctx->fw_accept_arp = false;
+    }
+
     return 0;
 }
 
