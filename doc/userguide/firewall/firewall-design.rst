@@ -356,3 +356,25 @@ Example for DNS::
             # Accept all responses.
             response-started: ["accept:tx"]
 
+
+ARP handling in bridge mode
+---------------------------
+
+When running Suricata in bridge mode with a default deny policy, ARP packets are dropped by the
+default ``packet.filter`` policy. In Suricata 8.0.x ARP detection is not available, so ARP
+rules cannot be created. A global option can be used to automatically accept ARP packets
+without requiring an explicit firewall rule for ARP.
+
+The option is::
+
+    firewall:
+      policies:
+        accept-arp: yes
+
+When ``accept-arp`` is enabled, ARP packets are accepted regardless of the default packet
+filter policy. The default is ``no`` to preserve the existing deny-by-default behaviour.
+
+This is a minimal, non-intrusive backport for the 8.0.x stable branch. In the main branch ARP
+detection is available and ARP can be accepted via explicit rules, e.g.:
+
+    accept:packet arp:all any any -> any any (sid:1;)

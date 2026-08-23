@@ -1015,6 +1015,9 @@ typedef struct DetectEngineCtx_ {
     /* force app-layer tx finding for alerts with signatures not having app-layer keywords */
     bool guess_applayer;
 
+    /** accept ARP packets in firewall mode when default policy would drop */
+    bool fw_accept_arp;
+
     /* registration id for per thread ctx for the filemagic/file.magic keywords */
     int filemagic_thread_ctx_id;
 

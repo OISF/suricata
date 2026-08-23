@@ -685,6 +685,12 @@ static uint8_t DetectRunApplyPacketPolicy(const DetectEngineCtx *de_ctx,
         const bool final)
 {
     DEBUG_VALIDATE_BUG_ON(de_ctx->fw_policies == NULL);
+    /* Accept ARP packets if configured, overriding default drop policy */
+    if (de_ctx->fw_accept_arp && PacketIsARP(p)) {
+        SCLogDebug("packet %" PRIu64 ": accept ARP per config fw_accept_arp", p->pcap_cnt);
+        p->action |= ACTION_ACCEPT;
+        return p->action;
+    }
     const struct DetectFirewallPolicy *pol = &de_ctx->fw_policies->pkt[policy];
     if (pol->action & ACTION_DROP) {
         SCLogDebug(
