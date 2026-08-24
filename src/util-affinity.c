@@ -291,6 +291,9 @@ static int BuildCpuset(const char *name, SCConfNode *node, cpu_set_t *cpu)
  */
 static const char *GetAffinitySetName(const char *val)
 {
+    if (val == NULL) {
+        return NULL;
+    }
     if (strcmp(val, "decode-cpu-set") == 0 || strcmp(val, "stream-cpu-set") == 0 ||
             strcmp(val, "reject-cpu-set") == 0 || strcmp(val, "output-cpu-set") == 0) {
         return NULL;
