@@ -256,8 +256,16 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
             SCLogWarning("suppressing all rules");
         }
 
+        uint32_t fw_rules_count = 0;
         /* update each sig with our suppress info */
         for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+            /* threshold is not supported for firewall rules, for now. Cf #8943 */
+            if (s->flags & SIG_FLAG_FIREWALL) {
+                SCLogDebug("Ignoring rule sid %" PRIu32 ": firewall rules can't be thresholded",
+                        s->id);
+                fw_rules_count++;
+                continue;
+            }
             /* tag the rule as noalert */
             if (parsed_track == TRACK_RULE) {
                 s->action &= ~ACTION_ALERT;
@@ -273,15 +281,29 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
                 goto error;
             }
         }
+        if (fw_rules_count > 0) {
+            SCLogWarning("Ignoring %u firewall rules: firewall rules can't be thresholded",
+                    fw_rules_count);
+        }
+
     } else if (id == 0 && gid > 0)    {
         if (parsed_track == TRACK_RULE) {
             SCLogWarning("suppressing all rules with gid %" PRIu32, gid);
         }
+
+        uint32_t fw_rules_count = 0;
         /* set up suppression for each signature with a matching gid */
         for (s = de_ctx->sig_list; s != NULL; s = s->next) {
             if (s->gid != gid)
                 continue;
 
+            /* threshold is not supported for firewall rules, for now. Cf #8943 */
+            if (s->flags & SIG_FLAG_FIREWALL) {
+                SCLogDebug("Ignoring rule sid %" PRIu32 ": firewall rules can't be thresholded",
+                        s->id);
+                fw_rules_count++;
+                continue;
+            }
             /* tag the rule as noalert */
             if (parsed_track == TRACK_RULE) {
                 s->action &= ~ACTION_ALERT;
@@ -297,6 +319,11 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
                 goto error;
             }
         }
+        if (fw_rules_count > 0) {
+            SCLogWarning("Ignoring %u firewall rules: firewall rules can't be thresholded",
+                    fw_rules_count);
+        }
+
     } else if (id > 0 && gid == 0) {
         SCLogError("Can't use a event config that has "
                    "sid > 0 and gid == 0. Please fix this "
@@ -309,6 +336,13 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
                          "%" PRIu32 ", gid %" PRIu32 ": unknown rule",
                     id, gid);
         } else {
+            /* threshold is not supported for firewall rules, for now. Cf #8943 */
+            if (s->flags & SIG_FLAG_FIREWALL) {
+                FatalErrorOnInit("can't suppress sid "
+                                 "%" PRIu32 ", gid %" PRIu32 ": firewall rule",
+                        s->id, gid);
+                goto error;
+            }
             if (parsed_track == TRACK_RULE) {
                 s->action &= ~ACTION_ALERT;
                 goto end;
@@ -360,7 +394,16 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
 
     /* Install it */
     if (id == 0 && gid == 0) {
+        uint32_t fw_rules_count = 0;
         for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+            /* threshold is not supported for firewall rules, for now. Cf #8943 */
+            if (s->flags & SIG_FLAG_FIREWALL) {
+                SCLogDebug("Ignoring rule sid %" PRIu32 ": firewall rules can't be thresholded",
+                        s->id);
+                fw_rules_count++;
+                continue;
+            }
+
             sm = DetectGetLastSMByListId(s, DETECT_SM_LIST_THRESHOLD, DETECT_THRESHOLD, -1);
             if (sm != NULL) {
                 SCLogWarning("signature sid:%" PRIu32 " has "
@@ -402,10 +445,21 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 goto error;
             }
         }
-
+        if (fw_rules_count > 0) {
+            SCLogWarning("Ignoring %u firewall rules: firewall rules can't be thresholded",
+                    fw_rules_count);
+        }
     } else if (id == 0 && gid > 0) {
+        uint32_t fw_rules_count = 0;
         for (s = de_ctx->sig_list; s != NULL; s = s->next) {
             if (s->gid == gid) {
+                /* threshold is not supported for firewall rules, for now. Cf #8943 */
+                if (s->flags & SIG_FLAG_FIREWALL) {
+                    SCLogDebug("Ignoring rule sid %" PRIu32 ": firewall rules can't be thresholded",
+                            s->id);
+                    fw_rules_count++;
+                    continue;
+                }
                 sm = DetectGetLastSMByListId(s, DETECT_SM_LIST_THRESHOLD,
                         DETECT_THRESHOLD, DETECT_DETECTION_FILTER, -1);
                 if (sm != NULL) {
@@ -438,6 +492,10 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 }
             }
         }
+        if (fw_rules_count > 0) {
+            SCLogWarning("Ignoring %u firewall rules: firewall rules can't be thresholded",
+                    fw_rules_count);
+        }
     } else if (id > 0 && gid == 0) {
         SCLogError("Can't use a event config that has "
                    "sid > 0 and gid == 0. Please fix this "
@@ -449,6 +507,13 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                          "%" PRIu32 ", gid %" PRIu32 ": unknown rule",
                     id, gid);
         } else {
+            /* threshold is not supported for firewall rules, for now. Cf #8943 */
+            if (s->flags & SIG_FLAG_FIREWALL) {
+                FatalErrorOnInit("can't threshold sid "
+                                 "%" PRIu32 ", gid %" PRIu32 ": firewall rule",
+                        s->id, gid);
+                goto error;
+            }
             if (parsed_type != TYPE_SUPPRESS && parsed_type != TYPE_THRESHOLD &&
                 parsed_type != TYPE_BOTH && parsed_type != TYPE_LIMIT)
             {
