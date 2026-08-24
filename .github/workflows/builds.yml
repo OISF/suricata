@@ -1816,6 +1816,9 @@ jobs:
                 wget \
                 dpdk-dev \
                 podman \
+                hping3 \
+                tcpdump \
+                tcpreplay \
                 ethtool \
                 iproute2 \
                 iptables
@@ -2069,6 +2072,8 @@ jobs:
                 ethtool \
                 iproute2 \
                 iptables \
+                tcpdump \
+                tcpreplay \
                 tshark
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
@@ -2197,6 +2202,9 @@ jobs:
                 clang-18 \
                 ethtool \
                 podman \
+                hping3 \
+                tcpdump \
+                tcpreplay \
                 git \
                 hwloc \
                 libhwloc-dev \
@@ -2894,6 +2902,9 @@ jobs:
                 cargo-${RV} \
                 ethtool \
                 git \
+                hping3 \
+                tcpdump \
+                tcpreplay \
                 hwloc \
                 inetutils-ping \
                 iproute2 \
