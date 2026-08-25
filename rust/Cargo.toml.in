@@ -73,7 +73,7 @@ sha2 = "~0.10.9"
 digest = "~0.10.7"
 sha1 = "~0.10.6"
 md-5 = "~0.10.6"
-regex = "~1.5.6"
+regex = "~1.13.1"
 lazy_static = "~1.5.0"
 base64 = "~0.22.1"
 bendy = { version = "~0.3.3", default-features = false }
