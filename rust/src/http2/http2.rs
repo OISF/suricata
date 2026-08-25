@@ -1295,14 +1295,20 @@ impl HTTP2State {
                         &mut self.c2s_buf
                     };
                     buf.data.clear();
-                    buf.data.extend(input);
-                    buf.stream_id = head.stream_id;
-                    let hs = parser::HTTP2FrameHeaders {
-                        padlength: None,
-                        priority: None,
-                        blocks: Vec::new(),
-                    };
-                    return (HTTP2FrameTypeData::HEADERS(hs), events);
+                    if let Ok((rem_hpack, hs)) = parser::get_frame_headers_hpack(input, hflags) {
+                        // store only the HPACK fragment: skip Pad Length, Priority, and trailing padding
+                        buf.data.extend(rem_hpack);
+                        buf.stream_id = head.stream_id;
+                        return (HTTP2FrameTypeData::HEADERS(hs), events);
+                    } else {
+                        events.push(HTTP2Event::InvalidFrameData);
+                        return (
+                            HTTP2FrameTypeData::UNHANDLED(HTTP2FrameUnhandled {
+                                reason: HTTP2FrameUnhandledReason::ParsingError,
+                            }),
+                            events,
+                        );
+                    }
                 }
                 let dyn_headers = if dir == Direction::ToClient {
                     &mut self.dynamic_headers_tc
