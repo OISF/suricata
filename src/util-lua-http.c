@@ -35,16 +35,8 @@ struct LuaTx {
     AppProto alproto;
 };
 
-static int LuaHttpGetTx(lua_State *luastate)
+static int LuaHttpGetTxProtoChecked(Flow *flow, lua_State *luastate)
 {
-    Flow *flow = LuaStateGetFlow(luastate);
-    if (flow == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    if (flow->alproto != ALPROTO_HTTP1 && flow->alproto != ALPROTO_HTTP2) {
-        return LuaCallbackError(luastate, "error: protocol not http");
-    }
-
     void *tx = LuaStateGetTX(luastate);
     if (tx == NULL) {
         return LuaCallbackError(luastate, "error: no tx available");
@@ -61,6 +53,45 @@ static int LuaHttpGetTx(lua_State *luastate)
     lua_setmetatable(luastate, -2);
 
     return 1;
+}
+
+static int LuaHttpGetTx(lua_State *luastate)
+{
+    Flow *flow = LuaStateGetFlow(luastate);
+    if (flow == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    if (flow->alproto != ALPROTO_HTTP1 && flow->alproto != ALPROTO_HTTP2) {
+        return LuaCallbackError(luastate, "error: protocol not http");
+    }
+
+    return LuaHttpGetTxProtoChecked(flow, luastate);
+}
+
+static int LuaHttpGetH1Tx(lua_State *luastate)
+{
+    Flow *flow = LuaStateGetFlow(luastate);
+    if (flow == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    if (flow->alproto != ALPROTO_HTTP1) {
+        return LuaCallbackError(luastate, "error: protocol not http");
+    }
+
+    return LuaHttpGetTxProtoChecked(flow, luastate);
+}
+
+static int LuaHttpGetH2Tx(lua_State *luastate)
+{
+    Flow *flow = LuaStateGetFlow(luastate);
+    if (flow == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    if (flow->alproto != ALPROTO_HTTP2) {
+        return LuaCallbackError(luastate, "error: protocol not http");
+    }
+
+    return LuaHttpGetTxProtoChecked(flow, luastate);
 }
 
 static int LuaHttpGetRequestHost(lua_State *luastate)
@@ -371,6 +402,8 @@ static const struct luaL_Reg txlib[] = {
 static const struct luaL_Reg htplib[] = {
     // clang-format off
     {"get_tx", LuaHttpGetTx },
+    {"get_h1_tx", LuaHttpGetH1Tx },
+    {"get_h2_tx", LuaHttpGetH2Tx },
     {NULL, NULL,},
     // clang-format on
 };
