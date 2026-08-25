@@ -2084,6 +2084,16 @@ uint8_t DetectEngineInspectGenericList(DetectEngineCtx *de_ctx, DetectEngineThre
     return DETECT_ENGINE_INSPECT_SIG_MATCH;
 }
 
+static bool DetectTxCompleted(
+        Flow *f, void *txv, uint8_t flags, const DetectEngineAppInspectionEngine *engine)
+{
+    if (f->alproto == ALPROTO_DOH2 && engine->alproto == ALPROTO_DOH2) {
+        // the DNS tx from DetectGetInnerTx is always complete
+        return true;
+    } // else
+    return AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress;
+}
+
 /**
  * \brief Do the content inspection & validation for a signature
  *
@@ -2105,8 +2115,7 @@ uint8_t DetectEngineInspectBufferSingle(DetectEngineCtx *de_ctx, DetectEngineThr
     const int list_id = engine->sm_list;
     SCLogDebug("running inspect on %d", list_id);
 
-    const bool eof =
-            (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
+    const bool eof = DetectTxCompleted(f, txv, flags, engine);
 
     SCLogDebug("list %d mpm? %s transforms %p", engine->sm_list, engine->mpm ? "true" : "false",
             engine->v2.transforms);
@@ -2166,7 +2175,7 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
     const int list_id = engine->sm_list;
     SCLogDebug("running inspect on %d", list_id);
 
-    const bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress);
+    const bool eof = DetectTxCompleted(f, txv, flags, engine);
 
     SCLogDebug("list %d mpm? %s transforms %p",
             engine->sm_list, engine->mpm ? "true" : "false", engine->v2.transforms);
@@ -2287,8 +2296,7 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
     } while (1);
     if (local_id == 0) {
         // That means we did not get even one buffer value from the multi-buffer
-        const bool eof = (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) >
-                          engine->progress);
+        const bool eof = DetectTxCompleted(f, txv, flags, engine);
         if (eof && engine->match_on_null) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }
