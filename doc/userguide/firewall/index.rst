@@ -8,3 +8,4 @@ Firewall Mode
    firewall-stats
    tls-state-migration
    ssh-state-migration
+   firewall-unsupported-keywords
