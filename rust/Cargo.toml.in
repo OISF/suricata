@@ -50,7 +50,7 @@ num = "~0.2.1"
 num-derive = "~0.4.2"
 num-traits = "~0.2.19"
 widestring = "~0.4.3"
-flate2 = { version = "~1.0.35", features = ["zlib"] }
+flate2 = { version = "~1.1.9", features = ["zlib"] }
 brotli = "~8.0.1"
 hkdf = "~0.12.4"
 aes = "~0.8.4"
