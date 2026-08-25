@@ -478,18 +478,22 @@ impl GzipBufWriter {
     }
 }
 
+fn take_with_finalzero(parse: &[u8]) -> nom::IResult<&[u8], &[u8]> {
+    use nom::bytes::streaming::{tag, take_until};
+    let (parse, _) = take_until::<&[u8], &[u8], nom::error::Error<&[u8]>>(b"\0" as &[u8])(parse)?;
+    tag(&b"\0"[..])(parse)
+}
+
 impl Write for GzipBufWriter {
     fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
-        use nom::bytes::streaming::{tag, take_until};
         use nom::number::streaming::le_u16;
-        use nom::sequence::tuple;
 
         const FHCRC: u8 = 1 << 1;
         const FEXTRA: u8 = 1 << 2;
         const FNAME: u8 = 1 << 3;
         const FCOMMENT: u8 = 1 << 4;
 
-        let (mut parse, direct) = if !self.buffer.is_empty() && self.state == GzState::Start {
+        let (mut parse, direct) = if !self.buffer.is_empty() && self.state != GzState::AfterHeader {
             self.buffer.extend_from_slice(data);
             (self.buffer.as_ref(), false)
         } else {
@@ -525,7 +529,12 @@ impl Write for GzipBufWriter {
                                 self.xlen = xlen;
                             }
                             Err(nom::Err::Incomplete(_)) => {
-                                return Ok(data.len() - parse.len());
+                                let pending = parse.to_vec();
+                                self.buffer.clear();
+                                self.buffer.extend_from_slice(&pending);
+                                // need to consume all bytes and not return Ok(0)
+                                // so we buffer the one byte already there
+                                return Ok(data.len());
                             }
                             Err(_) => {
                                 return Err(std::io::Error::new(
@@ -541,6 +550,7 @@ impl Write for GzipBufWriter {
                     if self.xlen > 0 {
                         if parse.len() < self.xlen as usize {
                             self.xlen -= parse.len() as u16;
+                            self.buffer.clear();
                             return Ok(data.len());
                         }
                         parse = &parse[self.xlen as usize..];
@@ -549,15 +559,12 @@ impl Write for GzipBufWriter {
                 }
                 GzState::Filename => {
                     if self.flags & FNAME != 0 {
-                        match tuple((
-                            take_until::<&[u8], &[u8], nom::error::Error<&[u8]>>(b"\0" as &[u8]),
-                            tag(b"\0"),
-                        ))(parse)
-                        {
+                        match take_with_finalzero(parse) {
                             Ok((rest, _)) => {
                                 parse = rest;
                             }
                             Err(nom::Err::Incomplete(_)) => {
+                                self.buffer.clear();
                                 return Ok(data.len());
                             }
                             Err(_) => {
@@ -572,15 +579,12 @@ impl Write for GzipBufWriter {
                 }
                 GzState::Comment => {
                     if self.flags & FCOMMENT != 0 {
-                        match tuple((
-                            take_until::<&[u8], &[u8], nom::error::Error<&[u8]>>(b"\0" as &[u8]),
-                            tag(b"\0"),
-                        ))(parse)
-                        {
+                        match take_with_finalzero(parse) {
                             Ok((rest, _)) => {
                                 parse = rest;
                             }
                             Err(nom::Err::Incomplete(_)) => {
+                                self.buffer.clear();
                                 return Ok(data.len());
                             }
                             Err(_) => {
@@ -600,7 +604,12 @@ impl Write for GzipBufWriter {
                                 parse = rest;
                             }
                             Err(nom::Err::Incomplete(_)) => {
-                                return Ok(data.len() - parse.len());
+                                let pending = parse.to_vec();
+                                self.buffer.clear();
+                                self.buffer.extend_from_slice(&pending);
+                                // need to consume all bytes and not return Ok(0)
+                                // so we buffer the one byte already there
+                                return Ok(data.len());
                             }
                             Err(_) => {
                                 return Err(std::io::Error::new(
@@ -1124,11 +1133,11 @@ fn test_gz_header() {
     let input = b"\x1f\x8b\x08\x1e\x00\x00\x00\x00\x00\x00\x05\x00extrafilename\x00comment\x00\x34";
     let buf = BlockingCursor::new();
     let mut gzw = GzipBufWriter::new(buf);
-    assert_eq!(gzw.write(input).unwrap(), input.len() - 1);
+    assert_eq!(gzw.write(input).unwrap(), input.len());
     assert_eq!(gzw.state, GzState::Crc);
     // final missing CRC in header
     let input = b"\x34\xee";
-    assert_eq!(gzw.write(input).unwrap(), input.len());
+    assert_eq!(gzw.write(input).unwrap(), input.len() - 1);
     assert_eq!(gzw.state, GzState::AfterHeader);
     let input = b"\x1f\x8b\x08\x01\x00\x00\x00\x00\x00";
     let buf = BlockingCursor::new();
