@@ -187,12 +187,10 @@ pub extern "C" fn SCIkeStateGetSaAttribute(
                             break;
                         }
                     }
-                    IkeV2Transform::DH(ref e) => {
-                        if sa == "alg_dh" {
-                            ret_val = e.0 as u32;
-                            ret_code = 1;
-                            break;
-                        }
+                    IkeV2Transform::DH(ref e) if sa == "alg_dh" => {
+                        ret_val = e.0 as u32;
+                        ret_code = 1;
+                        break;
                     }
                     _ => (),
                 }

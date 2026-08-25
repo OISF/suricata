@@ -79,10 +79,8 @@ fn http2_tx_has_errorcode(
                         return 1;
                     }
                 }
-                HTTP2FrameTypeData::RSTSTREAM(rst) => {
-                    if rst.errorcode == code {
-                        return 1;
-                    }
+                HTTP2FrameTypeData::RSTSTREAM(rst) if rst.errorcode == code => {
+                    return 1;
                 }
                 _ => {}
             }
@@ -95,10 +93,8 @@ fn http2_tx_has_errorcode(
                         return 1;
                     }
                 }
-                HTTP2FrameTypeData::RSTSTREAM(rst) => {
-                    if rst.errorcode == code {
-                        return 1;
-                    }
+                HTTP2FrameTypeData::RSTSTREAM(rst) if rst.errorcode == code => {
+                    return 1;
                 }
                 _ => {}
             }
@@ -806,7 +802,7 @@ struct Http2ThreadBuf {
 
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2ThreadBufDataInit(_cfg: *mut c_void) -> *mut c_void {
-    let boxed = Box::new(Http2ThreadBuf::default());
+    let boxed = Box::<Http2ThreadBuf>::default();
     return Box::into_raw(boxed) as *mut c_void;
 }
 
@@ -951,7 +947,7 @@ struct Http2ThreadMultiBuf {
 
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2ThreadMultiBufDataInit(_cfg: *mut c_void) -> *mut c_void {
-    let boxed = Box::new(Http2ThreadMultiBuf::default());
+    let boxed = Box::<Http2ThreadMultiBuf>::default();
     return Box::into_raw(boxed) as *mut c_void;
 }
 
