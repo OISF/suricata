@@ -380,11 +380,11 @@ impl NFSState {
                             .put(rd.value.to_vec(), xidmap.file_name.to_vec());
                     }
                 }
-                Nfs4ResponseContent::PutRootFH(s) => {
-                    if s == NFS4_OK && xidmap.file_name.is_empty() {
-                        xidmap.file_name = b"<mount_root>".to_vec();
-                        SCLogDebug!("filename {:?}", xidmap.file_name);
-                    }
+                Nfs4ResponseContent::PutRootFH(s)
+                    if s == NFS4_OK && xidmap.file_name.is_empty() =>
+                {
+                    xidmap.file_name = b"<mount_root>".to_vec();
+                    SCLogDebug!("filename {:?}", xidmap.file_name);
                 }
                 _ => {}
             }

@@ -46,10 +46,8 @@ impl DHCPLogger {
                 {
                     #[allow(clippy::single_match)]
                     match code {
-                        DHCP_OPT_TYPE => {
-                            if !option.data.is_empty() {
-                                return Some(option.data[0]);
-                            }
+                        DHCP_OPT_TYPE if !option.data.is_empty() => {
+                            return Some(option.data[0]);
                         }
                         _ => {}
                     }
@@ -156,10 +154,8 @@ impl DHCPLogger {
                             self.log_opt_routers(js, option)?;
                         }
                     }
-                    DHCP_OPT_VENDOR_CLASS_ID => {
-                        if self.extended && !option.data.is_empty() {
-                            js.set_string_from_bytes("vendor_class_identifier", &option.data)?;
-                        }
+                    DHCP_OPT_VENDOR_CLASS_ID if self.extended && !option.data.is_empty() => {
+                        js.set_string_from_bytes("vendor_class_identifier", &option.data)?;
                     }
                     _ => {}
                 },

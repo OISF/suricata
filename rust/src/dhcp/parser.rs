@@ -234,7 +234,6 @@ pub fn parse_dhcp(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
 
 #[cfg(test)]
 mod tests {
-    use crate::dhcp::dhcp::*;
     use crate::dhcp::parser::*;
 
     #[test]
