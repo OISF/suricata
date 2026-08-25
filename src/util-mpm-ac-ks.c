@@ -648,6 +648,21 @@ static inline void SCACTileCreateDeltaTable(MpmCtx *mpm_ctx)
     SCACStateQueueFree(q);
 }
 
+/**
+ * \internal
+ * \brief Compute the size in bytes of the delta table.
+ * \retval size table size in bytes, or 0 if the multiplication overflows
+ */
+static inline size_t SCACTileStateTableSize(
+        uint32_t state_count, uint8_t bytes_per_state, uint16_t alphabet_storage)
+{
+    size_t size = MpmCheckSafeSizetMult((size_t)state_count, (size_t)bytes_per_state);
+    if (size == 0) {
+        return 0;
+    }
+    return MpmCheckSafeSizetMult(size, (size_t)alphabet_storage);
+}
+
 static void SCACTileClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
 {
     SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
@@ -657,7 +672,11 @@ static void SCACTileClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
     uint32_t state = 0;
 
     /* Allocate next-state table. */
-    int size = ctx->state_count * ctx->bytes_per_state * ctx->alphabet_storage;
+    size_t size =
+            SCACTileStateTableSize(ctx->state_count, ctx->bytes_per_state, ctx->alphabet_storage);
+    if (unlikely(size == 0)) {
+        FatalError("ac-ks state table size overflow");
+    }
     void *state_table = SCCalloc(1, size);
     if (unlikely(state_table == NULL)) {
         FatalError("Error allocating memory");
@@ -667,8 +686,8 @@ static void SCACTileClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += size;
 
-    SCLogDebug("Delta Table size %d,  alphabet: %d, %d-byte states: %d",
-              size, ctx->alphabet_size, ctx->bytes_per_state, ctx->state_count);
+    SCLogDebug("Delta Table size %" PRIuMAX ",  alphabet: %d, %d-byte states: %d", (uintmax_t)size,
+            ctx->alphabet_size, ctx->bytes_per_state, ctx->state_count);
 
     /* Copy next state from Goto table, which is 32 bits and encode it into the next
      * state table, which can be 1, 2 or 4 bytes each and include if there is an
@@ -975,8 +994,8 @@ static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx)
         SCFree(ctx->state_table);
 
         mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (ctx->state_count *
-                                 ctx->bytes_per_state * ctx->alphabet_storage);
+        mpm_ctx->memory_size -= SCACTileStateTableSize(
+                ctx->state_count, ctx->bytes_per_state, ctx->alphabet_storage);
     }
 
     if (ctx->output_table != NULL) {
