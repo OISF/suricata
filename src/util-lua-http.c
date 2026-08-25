@@ -35,16 +35,8 @@ struct LuaTx {
     AppProto alproto;
 };
 
-static int LuaHttpGetTx(lua_State *luastate)
+static int LuaHttpGetTxProtoChecked(Flow *flow, lua_State *luastate)
 {
-    Flow *flow = LuaStateGetFlow(luastate);
-    if (flow == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
-
-    if (flow->alproto != ALPROTO_HTTP1 && flow->alproto != ALPROTO_HTTP2 && flow->alproto != ALPROTO_DOH2) {
-        return LuaCallbackError(luastate, "error: protocol not http");
-    }
-
     void *tx = LuaStateGetTX(luastate);
     if (tx == NULL) {
         return LuaCallbackError(luastate, "error: no tx available");
@@ -61,6 +53,46 @@ static int LuaHttpGetTx(lua_State *luastate)
     lua_setmetatable(luastate, -2);
 
     return 1;
+}
+
+static int LuaHttpGetTx(lua_State *luastate)
+{
+    Flow *flow = LuaStateGetFlow(luastate);
+    if (flow == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    if (flow->alproto != ALPROTO_HTTP1 && flow->alproto != ALPROTO_HTTP2 &&
+            flow->alproto != ALPROTO_DOH2) {
+        return LuaCallbackError(luastate, "error: protocol not http");
+    }
+
+    return LuaHttpGetTxProtoChecked(flow, luastate);
+}
+
+static int LuaHttpGetHttp1Tx(lua_State *luastate)
+{
+    Flow *flow = LuaStateGetFlow(luastate);
+    if (flow == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    if (flow->alproto != ALPROTO_HTTP1) {
+        return LuaCallbackError(luastate, "error: protocol not http");
+    }
+
+    return LuaHttpGetTxProtoChecked(flow, luastate);
+}
+
+static int LuaHttpGetHttp2Tx(lua_State *luastate)
+{
+    Flow *flow = LuaStateGetFlow(luastate);
+    if (flow == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    if (flow->alproto != ALPROTO_HTTP2 && flow->alproto != ALPROTO_DOH2) {
+        return LuaCallbackError(luastate, "error: protocol not http");
+    }
+
+    return LuaHttpGetTxProtoChecked(flow, luastate);
 }
 
 static int LuaHttpGetRequestHost(lua_State *luastate)
@@ -371,6 +403,8 @@ static const struct luaL_Reg txlib[] = {
 static const struct luaL_Reg htplib[] = {
     // clang-format off
     {"get_tx", LuaHttpGetTx },
+    {"get_http1_tx", LuaHttpGetHttp1Tx },
+    {"get_http2_tx", LuaHttpGetHttp2Tx },
     {NULL, NULL,},
     // clang-format on
 };
