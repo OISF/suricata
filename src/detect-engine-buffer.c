@@ -134,10 +134,22 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
         s->init_data->transforms.cnt = 0;
 
         if (s->init_data->curbuf && s->init_data->curbuf->head != NULL) {
+            const SigMatch *sm = s->init_data->curbuf->head;
+            if (sm != NULL && sm->next == NULL &&
+                    (sm->type == DETECT_MULTI_ALL || sm->type == DETECT_MULTI_ALL_OR_ABSENT ||
+                            sm->type == DETECT_MULTI_NB || sm->type == DETECT_MULTI_INDEX ||
+                            sm->type == DETECT_ABSENT)) {
+                // just keep the same curbuf in case sticky_multi: all; transform; content: "abc";
+                // but update its id to the transfomed id
+                s->init_data->curbuf->id = new_list;
+                SCReturnInt(0);
+            }
+
             if (SignatureInitDataBufferCheckExpand(s) < 0) {
                 SCLogError("failed to expand rule buffer array");
                 return -1;
             }
+
             s->init_data->curbuf = &s->init_data->buffers[s->init_data->buffer_index++];
             s->init_data->curbuf->multi_capable =
                     DetectEngineBufferTypeSupportsMultiInstanceGetById(de_ctx, base_list);
