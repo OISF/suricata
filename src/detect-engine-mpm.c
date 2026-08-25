@@ -1241,7 +1241,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
                 // Multi-buffers mode matches with "matches: 0" can succeed
                 // if there are no content that matches, so it cannot be used as fast pattern
                 const DetectU32Data *du32 = (DetectU32Data *)sm->ctx;
-                if (du32->mode == DETECT_UINT_EQ && du32->arg1 == 0) {
+                if (DetectU32Match(0, du32)) {
                     break;
                 }
             }
