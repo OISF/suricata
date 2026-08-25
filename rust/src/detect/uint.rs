@@ -99,9 +99,15 @@ fn parse_uint_index_nb(s: &str) -> IResult<&str, DetectUintIndex> {
 }
 
 fn parse_uint_index_val(s: &str) -> Option<DetectUintIndex> {
-    let (_s, arg1) = alt((parse_uint_index_precise, parse_uint_index_nb))
+    let (s, arg1) = alt((parse_uint_index_precise, parse_uint_index_nb))
         .parse(s)
         .ok()?;
+    if let Ok((s, _)) = opt(is_a::<&str, &str, nom8::error::Error<_>>(" ")).parse(s) {
+        if !s.is_empty() {
+            SCLogError!("Invalid trailing data for index : {s}");
+            return None;
+        }
+    }
     Some(arg1)
 }
 
