@@ -19,7 +19,6 @@ use super::mime;
 use crate::core::StreamingBufferConfig;
 use crate::utils::base64;
 use digest::Digest;
-use digest::Update;
 use md5::Md5;
 use std::ffi::CStr;
 use suricata_sys::sys::{FileAppendData, FileContainer, SCBasicSearchNocaseIndex};
@@ -373,7 +372,7 @@ fn mime_smtp_parse_line(
     ctx: &mut MimeStateSMTP, i: &[u8], full: &[u8],
 ) -> (MimeSmtpParserResult, u32) {
     if ctx.md5_state == MimeSmtpMd5State::MimeSmtpMd5Started {
-        Update::update(&mut ctx.md5, full);
+        ctx.md5.update(full);
     }
     let mut warnings = 0;
     match ctx.state_flag {
@@ -443,7 +442,7 @@ fn mime_smtp_parse_line(
         MimeSmtpParserState::MimeSmtpBody => {
             if ctx.md5_state == MimeSmtpMd5State::MimeSmtpMd5Inited {
                 ctx.md5_state = MimeSmtpMd5State::MimeSmtpMd5Started;
-                Update::update(&mut ctx.md5, full);
+                ctx.md5.update(full);
             }
             let boundary = ctx.boundaries.last();
             if let Some(b) = boundary {
@@ -675,7 +674,7 @@ fn mime_smtp_complete(ctx: &mut MimeStateSMTP) {
     if ctx.md5_state == MimeSmtpMd5State::MimeSmtpMd5Started {
         ctx.md5_state = MimeSmtpMd5State::MimeSmtpMd5Completed;
         let hash = ctx.md5.finalize_reset();
-        ctx.md5_result = format!("{:x}", hash);
+        ctx.md5_result = hex::encode(hash);
     }
     // look for url in the last unfinished line
     mime_smtp_find_url_strings(ctx, b"\n");

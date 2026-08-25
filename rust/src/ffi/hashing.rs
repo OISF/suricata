@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use digest::{Digest, Update};
+use digest::Digest;
 use md5::Md5;
 use sha1::Sha1;
 use sha2::Sha256;
@@ -66,8 +66,8 @@ pub unsafe extern "C" fn SCSha256FinalizeToHex(
 ) -> bool {
     let hasher: Box<SCSha256> = Box::from_raw(hasher);
     let result = hasher.0.finalize();
-    let hex = format!("{:x}", &result);
-    crate::ffi::strings::copy_to_c_char(hex, out, len as usize)
+    let hexstr = hex::encode(&result);
+    crate::ffi::strings::copy_to_c_char(hexstr, out, len as usize)
 }
 
 /// Free an unfinalized Sha256 context.
@@ -86,7 +86,7 @@ pub unsafe extern "C" fn SCSha256HashBuffer(
     }
     let data = std::slice::from_raw_parts(buf, buf_len as usize);
     let output = std::slice::from_raw_parts_mut(out, len as usize);
-    let hash = Sha256::new().chain(data).finalize();
+    let hash = Sha256::new().chain_update(data).finalize();
     output.copy_from_slice(&hash);
     return true;
 }
@@ -96,9 +96,9 @@ pub unsafe extern "C" fn SCSha256HashBufferToHex(
     buf: *const u8, buf_len: u32, out: *mut c_char, len: u32,
 ) -> bool {
     let data = std::slice::from_raw_parts(buf, buf_len as usize);
-    let hash = Sha256::new().chain(data).finalize();
-    let hex = format!("{:x}", &hash);
-    crate::ffi::strings::copy_to_c_char(hex, out, len as usize)
+    let hash = Sha256::new().chain_update(data).finalize();
+    let hexstr = hex::encode(&hash);
+    crate::ffi::strings::copy_to_c_char(hexstr, out, len as usize)
 }
 
 // Start of SHA1 C bindings.
@@ -128,8 +128,8 @@ pub unsafe extern "C" fn SCSha1FinalizeToHex(
 ) -> bool {
     let hasher: Box<SCSha1> = Box::from_raw(hasher);
     let result = hasher.0.finalize();
-    let hex = format!("{:x}", &result);
-    crate::ffi::strings::copy_to_c_char(hex, out, len as usize)
+    let hexstr = hex::encode(&result);
+    crate::ffi::strings::copy_to_c_char(hexstr, out, len as usize)
 }
 
 /// Free an unfinalized Sha1 context.
@@ -148,7 +148,7 @@ pub unsafe extern "C" fn SCSha1HashBuffer(
     }
     let data = std::slice::from_raw_parts(buf, buf_len as usize);
     let output = std::slice::from_raw_parts_mut(out, len as usize);
-    let hash = Sha1::new().chain(data).finalize();
+    let hash = Sha1::new().chain_update(data).finalize();
     output.copy_from_slice(&hash);
     return true;
 }
@@ -158,9 +158,9 @@ pub unsafe extern "C" fn SCSha1HashBufferToHex(
     buf: *const u8, buf_len: u32, out: *mut c_char, len: u32,
 ) -> bool {
     let data = std::slice::from_raw_parts(buf, buf_len as usize);
-    let hash = Sha1::new().chain(data).finalize();
-    let hex = format!("{:x}", &hash);
-    crate::ffi::strings::copy_to_c_char(hex, out, len as usize)
+    let hash = Sha1::new().chain_update(data).finalize();
+    let hexstr = hex::encode(&hash);
+    crate::ffi::strings::copy_to_c_char(hexstr, out, len as usize)
 }
 
 // Start of MD5 C bindings.
@@ -196,8 +196,8 @@ pub unsafe extern "C" fn SCMd5FinalizeToHex(
 ) -> bool {
     let hasher: Box<SCMd5> = Box::from_raw(hasher);
     let result = hasher.0.finalize();
-    let hex = format!("{:x}", &result);
-    crate::ffi::strings::copy_to_c_char(hex, out, len as usize)
+    let hexstr = hex::encode(&result);
+    crate::ffi::strings::copy_to_c_char(hexstr, out, len as usize)
 }
 
 /// Free an unfinalized Sha1 context.
@@ -216,7 +216,7 @@ pub unsafe extern "C" fn SCMd5HashBuffer(
     }
     let data = std::slice::from_raw_parts(buf, buf_len as usize);
     let output = std::slice::from_raw_parts_mut(out, len as usize);
-    let hash = Md5::new().chain(data).finalize();
+    let hash = Md5::new().chain_update(data).finalize();
     output.copy_from_slice(&hash);
     true
 }
@@ -227,9 +227,9 @@ pub unsafe extern "C" fn SCMd5HashBufferToHex(
     buf: *const u8, buf_len: u32, out: *mut c_char, len: u32,
 ) -> bool {
     let data = std::slice::from_raw_parts(buf, buf_len as usize);
-    let hash = Md5::new().chain(data).finalize();
-    let hex = format!("{:x}", &hash);
-    crate::ffi::strings::copy_to_c_char(hex, out, len as usize)
+    let hash = Md5::new().chain_update(data).finalize();
+    let hexstr = hex::encode(&hash);
+    crate::ffi::strings::copy_to_c_char(hexstr, out, len as usize)
 }
 
 // Functions that are generic over Digest. For the most part the C bindings are

@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
-use aes::cipher::{BlockEncrypt, KeyInit};
+use aes::cipher::{BlockCipherEncrypt, KeyInit};
 use aes::Aes128;
-use aes_gcm::aead::AeadInPlace;
+use aes_gcm::aead::{AeadInOut, array::Array};
 use aes_gcm::Aes128Gcm;
 use hkdf::Hkdf;
 use sha2::Sha256;
@@ -111,8 +111,9 @@ impl PacketKey {
         }
         let tag_pos = payload.len() - AES128_TAG_LEN;
         let (buffer, tag) = payload.split_at_mut(tag_pos);
+        let tag_arr: &mut Array<u8, _> = tag.try_into().unwrap();
         self.key
-            .decrypt_in_place_detached((&nonce).into(), header, buffer, (&*tag).into())
+            .decrypt_inout_detached((&nonce).into(), header, buffer.into(), tag_arr)
             .map_err(|_| ())?;
         Ok(&payload[..tag_pos])
     }

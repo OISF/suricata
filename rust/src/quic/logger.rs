@@ -19,7 +19,6 @@ use super::parser::QuicType;
 use super::quic::QuicTransaction;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use digest::Digest;
-use digest::Update;
 use md5::Md5;
 
 fn quic_tls_extension_name(e: u16) -> Option<String> {
@@ -117,7 +116,7 @@ fn log_quic(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
         } else {
             js.open_object("ja3s")?;
         }
-        let hash = format!("{:x}", Md5::new().chain(ja3).finalize());
+        let hash = hex::encode(Md5::new().chain_update(ja3).finalize());
         js.set_string("hash", &hash)?;
         js.set_string("string", ja3)?;
         js.close()?;

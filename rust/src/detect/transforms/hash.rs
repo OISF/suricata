@@ -23,7 +23,7 @@ use suricata_sys::sys::{
 };
 
 use crate::ffi::hashing::{G_DISABLE_HASHING, SC_SHA1_LEN, SC_SHA256_LEN};
-use digest::{Digest, Update};
+use digest::{Digest, array::Array};
 use md5::Md5;
 use sha1::Sha1;
 use sha2::Sha256;
@@ -48,7 +48,8 @@ unsafe extern "C" fn md5_setup(
 }
 
 fn md5_transform_do(input: &[u8], output: &mut [u8]) {
-    Md5::new().chain(input).finalize_into(output.into());
+    let out: &mut Array<u8, _> = output.try_into().unwrap();
+    Md5::new().chain_update(input).finalize_into(out);
 }
 
 unsafe extern "C" fn md5_transform(
@@ -103,7 +104,8 @@ unsafe extern "C" fn sha1_setup(
 }
 
 fn sha1_transform_do(input: &[u8], output: &mut [u8]) {
-    Sha1::new().chain(input).finalize_into(output.into());
+    let out: &mut Array<u8, _> = output.try_into().unwrap();
+    Sha1::new().chain_update(input).finalize_into(out);
 }
 
 unsafe extern "C" fn sha1_transform(
@@ -158,7 +160,8 @@ unsafe extern "C" fn sha256_setup(
 }
 
 fn sha256_transform_do(input: &[u8], output: &mut [u8]) {
-    Sha256::new().chain(input).finalize_into(output.into());
+    let out: &mut Array<u8, _> = output.try_into().unwrap();
+    Sha256::new().chain_update(input).finalize_into(out);
 }
 
 unsafe extern "C" fn sha256_transform(
