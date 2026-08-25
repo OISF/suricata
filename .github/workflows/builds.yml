@@ -517,7 +517,7 @@ jobs:
       matrix:
         container:
           - almalinux:9
-          - fedora:42
+          - fedora:44
     env:
       skip: true
     steps:
@@ -568,11 +568,11 @@ jobs:
       # We need a step for each RPM upload as we can't use the
       # container name directly in an artifact, as artifacts can't
       # have ':' in the name.
-      - if: ${{ matrix.container == 'fedora:42' &&  env.skip != 'true' }}
+      - if: ${{ matrix.container == 'fedora:44' &&  env.skip != 'true' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         name: Uploading RPMs
         with:
-          name: rpms-fedora-40
+          name: rpms-fedora-44
           path: suricata-rpms/devel/rpms
       - if: ${{ matrix.container == 'almalinux:9' && env.skip != 'true' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -769,10 +769,10 @@ jobs:
       - run: make clean
       - run: make -j ${{ env.CPUS }}
 
-  fedora-42-sv-codecov:
-    name: Fedora 42 (Suricata Verify codecov)
+  fedora-44-sv-codecov:
+    name: Fedora 44 (Suricata Verify codecov)
     runs-on: ubuntu-latest
-    container: fedora:42
+    container: fedora:44
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -865,10 +865,10 @@ jobs:
           flags: suricata-verify
 
   # Fedora build using Clang.
-  fedora-42-clang:
-    name: Fedora 42 (clang, debug, asan, wshadow, rust-strict, systemd)
+  fedora-44-clang:
+    name: Fedora 44 (clang, debug, asan, wshadow, rust-strict, systemd)
     runs-on: ubuntu-latest
-    container: fedora:42
+    container: fedora:44
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -966,10 +966,10 @@ jobs:
       - run: src/suricata --build-info | grep -E "Systemd support:\s+yes" &> /dev/null
 
   # Fedora build using GCC.
-  fedora-42-gcc:
-    name: Fedora 42 (gcc, debug, flto, asan, wshadow, rust-strict)
+  fedora-44-gcc:
+    name: Fedora 44 (gcc, debug, flto, asan, wshadow, rust-strict)
     runs-on: ubuntu-latest
-    container: fedora:42
+    container: fedora:44
     needs: [prepare-deps, prepare-cbindgen]
     steps:
 
@@ -1066,7 +1066,7 @@ jobs:
   fedora-non-root:
     name: Fedora (non-root, debug, clang, asan, wshadow, rust-strict, no-ja)
     runs-on: ubuntu-latest
-    container: fedora:42
+    container: fedora:44
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Determine number of CPUs
