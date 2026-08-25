@@ -640,8 +640,7 @@ static uint32_t AppLayerHtpComputeChunkLength(uint64_t content_len_so_far, uint3
  */
 static void HTPHandleError(HtpState *s, const uint8_t dir)
 {
-    if (s == NULL || s->conn == NULL || s->htp_messages_count >= HTP_MAX_MESSAGES) {
-        // ignore further messages
+    if (s == NULL || s->conn == NULL) {
         return;
     }
 
@@ -663,12 +662,9 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
         htp_free_cstring(msg);
         htp_log_free(log);
         s->htp_messages_count++;
-        if (s->htp_messages_count >= HTP_MAX_MESSAGES) {
+        if (s->htp_messages_count == HTP_MAX_MESSAGES) {
             // only once per HtpState
             HTPSetEvent(s, NULL, dir, HTTP_DECODER_EVENT_TOO_MANY_WARNINGS);
-            // too noisy in fuzzing
-            // DEBUG_VALIDATE_BUG_ON("Too many libhtp messages");
-            break;
         }
         log = htp_conn_next_log(s->conn);
     }
