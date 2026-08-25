@@ -743,8 +743,16 @@ static inline void PacketAlertFinalizeProcessQueue(
         /* if a firewall rule told us to skip, we don't count the skipped
          * alerts. */
         if (have_fw_rules && skip_td) {
+            /* a bypass means this packet should never have reached TD, so its
+             * post-match state must not stand. Other skips (pass rules) only
+             * withhold the alert. */
+            if (!(p->flags & PKT_FW_BYPASSED))
+                DetectRunPostMatchDeferred(det_ctx, p, s);
             continue;
         }
+
+        /* run state-changing post-match for remaining TD rules */
+        DetectRunPostMatchDeferred(det_ctx, p, s);
 
         int res = PacketAlertHandle(de_ctx, det_ctx, s, p, pa);
         SCLogDebug("sid %u: res %d", pa->s->id, res);
