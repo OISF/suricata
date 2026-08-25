@@ -3927,6 +3927,8 @@ Signature *DetectFirewallRuleAppendNew(DetectEngineCtx *de_ctx, const char *sigs
     if (sig == NULL) {
         return NULL;
     }
+    if (sig->flags & SIG_FLAG_BYPASS)
+        de_ctx->fw_bypass = true;
 
     /* checking for the status of duplicate signature */
     int dup_sig = DetectEngineSignatureIsDuplicate(de_ctx, sig);

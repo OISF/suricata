@@ -260,9 +260,8 @@ end:
     SCReturn;
 }
 
-static void DetectRunPostMatch(ThreadVars *tv,
-                               DetectEngineThreadCtx *det_ctx, Packet *p,
-                               const Signature *s)
+void DetectRunPostMatch(
+        ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s)
 {
     /* run the packet match functions */
     const SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
@@ -272,13 +271,40 @@ static void DetectRunPostMatch(ThreadVars *tv,
         SCLogDebug("running match functions, sm %p", smd);
 
         while (1) {
-            KEYWORD_PROFILING_START;
-            (void)sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx);
-            KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+            if (smd->fw_postmatch != DETECT_POSTMATCH_FW_DEFER) {
+                KEYWORD_PROFILING_START;
+                (void)sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx);
+                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+            }
             if (smd->is_last)
                 break;
             smd++;
         }
+    }
+}
+
+/**
+ * \brief Run the post-match entries held back for the firewall verdict
+ *
+ * Counterpart to the entries DetectRunPostMatch skips. Called from alert queue
+ * finalization, once we know whether the packet was bypassed.
+ */
+void DetectRunPostMatchDeferred(DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s)
+{
+    const SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
+    if (smd == NULL)
+        return;
+
+    KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_POSTMATCH);
+    while (1) {
+        if (smd->fw_postmatch == DETECT_POSTMATCH_FW_DEFER) {
+            KEYWORD_PROFILING_START;
+            (void)sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx);
+            KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+        }
+        if (smd->is_last)
+            break;
+        smd++;
     }
 }
 

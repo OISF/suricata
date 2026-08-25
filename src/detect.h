@@ -365,10 +365,19 @@ typedef struct SigMatch_ {
     struct SigMatch_ *prev;
 } SigMatch;
 
+/** \brief how a TD post-match entry is handled when a firewall rule may bypass
+ *  the packet. Only ever set for TD rules in FW mode with fw bypass rules. */
+enum DetectPostMatchFw {
+    DETECT_POSTMATCH_FW_NONE = 0,
+    /** withheld until the firewall verdict is known */
+    DETECT_POSTMATCH_FW_DEFER,
+};
+
 /** \brief Data needed for Match() */
 typedef struct SigMatchData_ {
     uint16_t type;   /**< match type */
     bool is_last;    /**< Last element of the list */
+    uint8_t fw_postmatch; /**< enum DetectPostMatchFw */
     SigMatchCtx *ctx; /**< plugin specific data */
 } SigMatchData;
 
@@ -1213,6 +1222,9 @@ typedef struct DetectEngineCtx_ {
 
     const char *firewall_rule_file_exclusive;
 
+    /* a firewall rule uses bypass. */
+    bool fw_bypass;
+
     /* user provided rate filter callbacks. */
     SCDetectRateFilterFunc RateFilterCallback;
 
@@ -1837,6 +1849,9 @@ extern SigTableElmt *sigmatch_table;
 TmEcode Detect(ThreadVars *tv, Packet *p, void *data);
 uint8_t DetectPreFlow(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p);
 uint8_t DetectPreStream(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p);
+void DetectRunPostMatch(
+        ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s);
+void DetectRunPostMatchDeferred(DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s);
 
 SigMatch *SigMatchAlloc(void);
 Signature *SigFindSignatureBySidGid(DetectEngineCtx *, uint32_t, uint32_t);
