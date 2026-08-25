@@ -112,14 +112,14 @@ static void SCACGetConfig(void)
  */
 static inline size_t SCACCheckSafeSizetMult(size_t a, size_t b)
 {
-    /* check for safety of multiplication operation */
-    if (b > 0 && a > SIZE_MAX / b) {
+    size_t size = MpmCheckSafeSizetMult(a, b);
+    if (size == 0 && a != 0 && b != 0) {
         SCLogError("%" PRIuMAX " * %" PRIuMAX " > %" PRIuMAX
                    " would overflow size_t calculating buffer size",
                 (uintmax_t)a, (uintmax_t)b, (uintmax_t)SIZE_MAX);
         exit(EXIT_FAILURE);
     }
-    return a * b;
+    return size;
 }
 
 /**
