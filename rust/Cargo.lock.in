@@ -1638,7 +1638,6 @@ dependencies = [
 name = "suricata-derive"
 version = "9.0.0-dev"
 dependencies = [
- "proc-macro-crate",
  "proc-macro2",
  "quote",
  "syn 1.0.109",
