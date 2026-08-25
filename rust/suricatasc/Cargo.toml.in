@@ -24,7 +24,7 @@ serde = { version = "1.0.219", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0.140", default-features = false, features = ["preserve_order"] }
 
 # Not used directly by us, but by rustyline.
-home = { version = "=0.5.9" }
+home = { version = "=0.5.11" }
 unicode-segmentation = { version = "=1.13.3" }
 
 # Not used directly by us, but by serde_json.
