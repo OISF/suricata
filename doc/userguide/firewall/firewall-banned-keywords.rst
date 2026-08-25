@@ -23,6 +23,20 @@ Firewall Mode
 
 * Replace
 
+Firewall Rules
+~~~~~~~~~~~~~~
+
+* Threshold
+
+``threshold`` is not currently supported for firewall rules: some of its types
+withhold a rule's alert while still applying its actions, which would leave the
+firewall verdict and the logged record disagreeing. The restriction also covers
+the ``threshold.config`` file, whose entries may not name a firewall rule.
+
+``detection_filter`` is not restricted. It either applies a rule or it does not,
+so below its rate a firewall rule simply does not take effect and evaluation
+continues with the next rule. See :doc:`../rules/thresholding`.
+
 Threat Detection Rules
 ~~~~~~~~~~~~~~~~~~~~~~
 

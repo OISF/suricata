@@ -77,6 +77,11 @@ Keyword Changes
   being split per direction. This means that some rules should match sooner,
   some rules will have less false negatives, and some rules will trigger once per transaction
   instead of twice (one time for each direction)
+- Thresholding is restricted in firewall mode. The ``threshold`` keyword is
+  rejected in firewall rules, and ``threshold.config`` entries (``threshold``,
+  ``event_filter``, ``suppress``, ``rate_filter``) may no longer name a firewall
+  rule's signature id. Wildcard ``threshold.config`` entries skip firewall
+  rules. ``detection_filter`` and Threat Detection rules are unaffected.
 
 Other Changes
 ~~~~~~~~~~~~~
