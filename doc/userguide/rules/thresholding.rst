@@ -55,6 +55,19 @@ Thresholds are tracked in a hash table that is sized according to configuration,
     - lua scripts setting flowvars and flowints
 
 
+.. note::
+
+   In firewall mode, the ``threshold`` keyword is not supported in firewall
+   rules, and ``threshold.config`` entries may not name a firewall rule's
+   signature id.
+   An offending rule leads to a fatal error on engine initialization or rule
+   reload (as with any failing rule in Firewall Mode), rather than silently
+   ignoring the entry.
+   A ``threshold.config`` entry naming a firewall rule is a fatal error on
+   startup when ``--init-errors-fatal`` is set; otherwise, and on rule reload,
+   the entry is skipped with a warning summarizing how many rules were skipped.
+   Similarly, ``detection_filter`` is not supported in firewall rules.
+
 threshold
 ---------
 
