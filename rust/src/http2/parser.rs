@@ -645,6 +645,24 @@ fn http2_parse_headers_blocks<'a>(
     return Ok((i3, blocks));
 }
 
+pub(super) fn get_frame_headers_hpack(
+    input: &[u8], flags: u8,
+) -> IResult<&[u8], HTTP2FrameHeaders> {
+    let (i2, padlength) = cond(flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)(input)?;
+    let (i3, priority) = cond(
+        flags & HTTP2_FLAG_HEADER_PRIORITY != 0,
+        http2_parse_headers_priority,
+    )(i2)?;
+    return Ok((
+        i3,
+        HTTP2FrameHeaders {
+            padlength,
+            priority,
+            blocks: Vec::new(),
+        },
+    ));
+}
+
 pub fn http2_parse_frame_headers<'a>(
     input: &'a [u8], flags: u8, dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaders> {
