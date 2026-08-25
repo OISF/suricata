@@ -141,6 +141,8 @@ impl HtpFlags {
     pub const RESPONSE_MISSING_BYTES: u64 = (0x0020_0000_0000 | Self::MISSING_BYTES);
     /// Too many headers, log only once.
     pub const HEADERS_TOO_MANY: u64 = 0x0040_0000_0000;
+    /// 100-Continue already seen.
+    pub const FIELD_100_CONTINUE: u64 = 0x0080_0000_0000;
 }
 
 #[allow(clippy::upper_case_acronyms)]
