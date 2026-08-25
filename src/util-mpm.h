@@ -31,6 +31,20 @@ typedef struct PrefilterRuleStore_ PrefilterRuleStore;
 
 #define MPM_INIT_HASH_SIZE 65536
 
+/**
+ * \brief Multiply two size_t values with overflow detection.
+ * \param a First factor.
+ * \param b Second factor.
+ * \retval The product a * b, or 0 if the multiplication overflows.
+ */
+static inline size_t MpmCheckSafeSizetMult(size_t a, size_t b)
+{
+    if (b > 0 && a > SIZE_MAX / b) {
+        return 0;
+    }
+    return a * b;
+}
+
 enum {
     MPM_NOTSET = 0,
 
