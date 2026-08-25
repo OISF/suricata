@@ -45,7 +45,7 @@ byteorder = "~1.5.0"
 uuid = { version = "~0.8.2", features = ["serde"] }
 crc = "~1.8.1"
 lzma-rs = { version = "~0.2.0", features = ["stream"] }
-memchr = "~2.7.4"
+memchr = "~2.8.3"
 num = "~0.2.1"
 num-derive = "~0.4.2"
 num-traits = "~0.2.19"
