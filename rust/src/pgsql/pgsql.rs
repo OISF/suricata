@@ -1,4 +1,4 @@
-/* Copyright (C) 2022-2025 Open Information Security Foundation
+/* Copyright (C) 2022-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -675,6 +675,9 @@ impl PgsqlState {
                             tx.data_row_cnt = 0;
                             tx.data_size = 0;
                         } else {
+                            if response.is_malformed() {
+                                tx.tx_data.set_event(PgsqlEvent::MalformedResponse as u8);
+                            }
                             if !matches!(
                                 response,
                                 PgsqlBEMessage::UnknownMessageType(_)

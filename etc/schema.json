@@ -5166,6 +5166,10 @@
                             "additionalProperties": false,
                             "description": "Backend/server response accepting CopyIn mode",
                             "properties": {
+                                "malformed": {
+                                    "type": "boolean",
+                                    "description": "True in case the massage body format on the wire disagreed with specifications"
+                                },
                                 "columns": {
                                     "type": "integer",
                                     "description": "Number of columns that will be copied in the CopyData message"
@@ -5177,6 +5181,10 @@
                             "additionalProperties": false,
                             "description": "Backend/server response accepting CopyOut mode",
                             "properties": {
+                                "malformed": {
+                                    "type": "boolean",
+                                    "description": "True in case the massage body format on the wire disagreed with specifications"
+                                },
                                 "columns": {
                                     "type": "integer",
                                     "description": "Number of columns that will be copied in the CopyData message"
