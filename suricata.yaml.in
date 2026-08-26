@@ -2410,6 +2410,7 @@ firewall:
   #  default-policy: ["drop:flow"]
   #  packet:
   #    filter: ["drop:packet"]
+  #    pre-flow: ["accept:hook"]
   #  app:
   #    dns:
   #      request-started: ["accept:hook"]
