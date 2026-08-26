@@ -980,6 +980,10 @@ app-layer:
       stream-depth: 0
       # Maximum number of live PostgreSQL transactions per flow
       # max-tx: 1024
+      # Maximum number of responses per PGSQL transaction
+      # Accepted values: 21-64, (min 21 to accommodate a full Startup sequence
+      # of responses)
+      # max-responses: 64
     dcerpc:
       enabled: yes
       # Maximum number of live DCERPC transactions per flow

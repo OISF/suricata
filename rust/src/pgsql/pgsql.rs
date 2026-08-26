@@ -37,10 +37,15 @@ use suricata_sys::sys::{
 };
 
 const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
+// Min: 21 for the longest set of responses in one tx, for this parser:
+// AuthOk + ParameterStatus (var, max 17-18) + BackendKeyData + ReadyForQuery
+const PGSQL_CONFIG_DEFAULT_MIN_RESPONSES: usize = 21;
+const PGSQL_CONFIG_DEFAULT_MAX_RESPONSES: usize = 64;
 
 pub(crate) static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 
 static mut PGSQL_MAX_TX: usize = 1024;
+static mut PGSQL_MAX_RESPONSES: usize = PGSQL_CONFIG_DEFAULT_MAX_RESPONSES;
 
 #[derive(AppLayerEvent, Debug, PartialEq, Eq)]
 enum PgsqlEvent {
@@ -48,6 +53,7 @@ enum PgsqlEvent {
     MalformedRequest,  // Enough data, but unexpected request format
     MalformedResponse, // Enough data, but unexpected response format
     TooManyTransactions,
+    TooManyResponses,
 }
 
 #[repr(u8)]
@@ -70,6 +76,7 @@ pub(crate) struct PgsqlTransaction {
     pub data_row_cnt: u64,
     pub data_size: u64,
 
+    is_max_responses_set: bool,
     tx_data: AppLayerTxData,
 }
 
@@ -95,6 +102,7 @@ impl PgsqlTransaction {
             responses: Vec::<PgsqlBEMessage>::new(),
             data_row_cnt: 0,
             data_size: 0,
+            is_max_responses_set: false,
             tx_data: AppLayerTxData::new(),
         }
     }
@@ -656,11 +664,17 @@ impl PgsqlState {
                                     row_cnt: tx.get_row_cnt(),
                                     data_size: tx.data_size, // total byte count of all data_row messages combined
                                 });
-                            tx.responses.push(consolidated_data_row);
-                            tx.responses.push(response);
-                            // reset values
-                            tx.data_row_cnt = 0;
-                            tx.data_size = 0;
+                            if tx.responses.len() + 2 <= unsafe { PGSQL_MAX_RESPONSES } {
+                                // we need two vacant places here
+                                tx.responses.push(consolidated_data_row);
+                                tx.responses.push(response);
+                                // reset values
+                                tx.data_row_cnt = 0;
+                                tx.data_size = 0;
+                            } else if !tx.is_max_responses_set {
+                                tx.tx_data.set_event(PgsqlEvent::TooManyResponses as u8);
+                                tx.is_max_responses_set = true;
+                            }
                         } else if matches!(response, PgsqlBEMessage::ConsolidatedCopyDataOut(_)) {
                             tx.incr_row_cnt();
                         } else if matches!(response, PgsqlBEMessage::CopyDone(_))
@@ -675,11 +689,17 @@ impl PgsqlState {
                                     data_size: tx.data_size, // total byte count of all data_row messages combined
                                 },
                             );
-                            tx.responses.push(consolidated_copy_data);
-                            tx.responses.push(response);
-                            // reset values
-                            tx.data_row_cnt = 0;
-                            tx.data_size = 0;
+                            if tx.responses.len() + 2 <= unsafe { PGSQL_MAX_RESPONSES } {
+                                // we need two vacant spaces, here
+                                tx.responses.push(consolidated_copy_data);
+                                tx.responses.push(response);
+                                // reset values
+                                tx.data_row_cnt = 0;
+                                tx.data_size = 0;
+                            } else if !tx.is_max_responses_set {
+                                tx.tx_data.set_event(PgsqlEvent::TooManyResponses as u8);
+                                tx.is_max_responses_set = true;
+                            }
                         } else {
                             if response.is_malformed() {
                                 tx.tx_data.set_event(PgsqlEvent::MalformedResponse as u8);
@@ -695,7 +715,12 @@ impl PgsqlState {
                                 // vector, either
                                 // Don't log NoticeResponse, NotificationResponse, nor AuthenticationSSPI messages,
                                 // either (temporarily)
-                                tx.responses.push(response);
+                                if tx.responses.len() < unsafe { PGSQL_MAX_RESPONSES } {
+                                    tx.responses.push(response);
+                                } else if !tx.is_max_responses_set {
+                                    tx.tx_data.set_event(PgsqlEvent::TooManyResponses as u8);
+                                    tx.is_max_responses_set = true;
+                                }
                             }
 
                             if let Some(state) = new_state {
@@ -1010,6 +1035,26 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
                 PGSQL_MAX_TX = v;
             } else {
                 SCLogError!("Invalid value for pgsql.max-tx");
+            }
+        }
+        if let Some(val) = conf_get("app-layer.protocols.pgsql.max-responses") {
+            if let Ok(v) = val.parse::<usize>() {
+                if (PGSQL_CONFIG_DEFAULT_MIN_RESPONSES..=PGSQL_CONFIG_DEFAULT_MAX_RESPONSES)
+                    .contains(&v)
+                {
+                    PGSQL_MAX_RESPONSES = v;
+                } else {
+                    SCLogWarning!(
+                        "Invalid value of {} for pgsql.max-responses, keeping default of {}",
+                        v,
+                        PGSQL_CONFIG_DEFAULT_MAX_RESPONSES
+                    );
+                }
+            } else {
+                SCLogWarning!(
+                    "Invalid value for pgsql.max-responses, keeping default of {}",
+                    PGSQL_CONFIG_DEFAULT_MAX_RESPONSES
+                );
             }
         }
     } else {
