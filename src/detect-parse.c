@@ -1873,6 +1873,14 @@ static int SigParseActionDo(const char *action_in, const int idx, const bool fw_
             return -1;
         }
         *scope_out = scope_flags;
+    } else if (*scope_out != 0 && (flags & ACTION_PASS)) {
+        /* No scope given, this action inherits the scope set by the preceding
+         * actions of a multi-action rule. */
+        if (*scope_out != ACTION_SCOPE_PACKET && *scope_out != ACTION_SCOPE_FLOW) {
+            SCLogError("invalid action scope '%s' in action '%s': only 'packet' and 'flow' allowed",
+                    ActionScopeToString((enum ActionScope) * scope_out), action_in);
+            return -1;
+        }
     }
 
     /* require explicit action scope for fw rules */
