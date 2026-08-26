@@ -112,6 +112,7 @@ typedef struct SignatureParser_ {
 /** Valid action scopes per firewall hook class. */
 enum DetectFirewallPolicyClass {
     DETECT_FIREWALL_POLICY_CLASS_PACKET,
+    DETECT_FIREWALL_POLICY_CLASS_PACKET_PRE_FLOW,
     DETECT_FIREWALL_POLICY_CLASS_APP
 };
 
@@ -119,6 +120,10 @@ static const uint8_t fw_packet_hook_scopes[] = {
     ACTION_SCOPE_PACKET,
     ACTION_SCOPE_HOOK,
     ACTION_SCOPE_FLOW,
+};
+static const uint8_t fw_packet_pre_flow_hook_scopes[] = {
+    ACTION_SCOPE_PACKET,
+    ACTION_SCOPE_HOOK,
 };
 static const uint8_t fw_app_hook_scopes[] = {
     ACTION_SCOPE_FLOW,
@@ -2427,6 +2432,67 @@ void SigFree(DetectEngineCtx *de_ctx, Signature *s)
     SCFree(s);
 }
 
+static bool FirewallScopeValidForClass(uint8_t scope, enum DetectFirewallPolicyClass pol_class)
+{
+    const uint8_t *set = NULL;
+    size_t n = 0;
+    switch (pol_class) {
+        case DETECT_FIREWALL_POLICY_CLASS_PACKET:
+            set = fw_packet_hook_scopes;
+            n = ARRAY_SIZE(fw_packet_hook_scopes);
+            break;
+        case DETECT_FIREWALL_POLICY_CLASS_PACKET_PRE_FLOW:
+            set = fw_packet_pre_flow_hook_scopes;
+            n = ARRAY_SIZE(fw_packet_pre_flow_hook_scopes);
+            break;
+        case DETECT_FIREWALL_POLICY_CLASS_APP:
+            set = fw_app_hook_scopes;
+            n = ARRAY_SIZE(fw_app_hook_scopes);
+            break;
+        default:
+            FatalError("Invalid firewall policy class %u", (unsigned)pol_class);
+    }
+    for (size_t i = 0; i < n; i++) {
+        if (set[i] == scope) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * \brief Render the valid scopes for a hook class to a string.
+ */
+static void FirewallScopeHintForClass(
+        enum DetectFirewallPolicyClass pol_class, char *out, size_t out_size)
+{
+    const uint8_t *set = NULL;
+    size_t n = 0;
+    switch (pol_class) {
+        case DETECT_FIREWALL_POLICY_CLASS_PACKET:
+            set = fw_packet_hook_scopes;
+            n = ARRAY_SIZE(fw_packet_hook_scopes);
+            break;
+        case DETECT_FIREWALL_POLICY_CLASS_PACKET_PRE_FLOW:
+            set = fw_packet_pre_flow_hook_scopes;
+            n = ARRAY_SIZE(fw_packet_pre_flow_hook_scopes);
+            break;
+        case DETECT_FIREWALL_POLICY_CLASS_APP:
+            set = fw_app_hook_scopes;
+            n = ARRAY_SIZE(fw_app_hook_scopes);
+            break;
+        default:
+            FatalError("Invalid firewall policy class %u", (unsigned)pol_class);
+    }
+    out[0] = '\0';
+    for (size_t i = 0; i < n; i++) {
+        if ((i > 0 && strlcat(out, "/", out_size) >= out_size) ||
+                strlcat(out, ActionScopeToString((enum ActionScope)set[i]), out_size) >= out_size) {
+            FatalError("firewall policy scope hint too long");
+        }
+    }
+}
+
 /**
  * \brief this function is used to set multiple possible app-layer protos
  * \brief into the current signature (for example ja4 for both tls and quic)
@@ -2776,6 +2842,17 @@ static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Sign
         SCLogError("rule %u is loaded as a firewall rule, but does not specify an "
                    "explicit hook",
                 s->id);
+        return false;
+    }
+    if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_PKT &&
+            s->init_data->hook.t.pkt.ph == SIGNATURE_HOOK_PKT_PRE_FLOW &&
+            !FirewallScopeValidForClass(
+                    s->action_scope, DETECT_FIREWALL_POLICY_CLASS_PACKET_PRE_FLOW)) {
+        char hint[32]; // space to combine ActionScopeToString results
+        FirewallScopeHintForClass(DETECT_FIREWALL_POLICY_CLASS_PACKET_PRE_FLOW, hint, sizeof(hint));
+        SCLogError("rule %u: action scope (\"%s\") is not valid for the \"pre_flow\" hook. Valid "
+                   "scopes: %s",
+                s->id, ActionScopeToString((enum ActionScope)s->action_scope), hint);
         return false;
     }
     if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
@@ -4223,59 +4300,6 @@ static int DoParsePolicy(const char *policy_name, struct DetectFirewallPolicy *p
     return 1;
 }
 
-static bool FirewallScopeValidForClass(uint8_t scope, enum DetectFirewallPolicyClass pol_class)
-{
-    const uint8_t *set = NULL;
-    size_t n = 0;
-    switch (pol_class) {
-        case DETECT_FIREWALL_POLICY_CLASS_PACKET:
-            set = fw_packet_hook_scopes;
-            n = ARRAY_SIZE(fw_packet_hook_scopes);
-            break;
-        case DETECT_FIREWALL_POLICY_CLASS_APP:
-            set = fw_app_hook_scopes;
-            n = ARRAY_SIZE(fw_app_hook_scopes);
-            break;
-        default:
-            FatalError("Invalid firewall policy class %u", (unsigned)pol_class);
-    }
-    for (size_t i = 0; i < n; i++) {
-        if (set[i] == scope) {
-            return true;
-        }
-    }
-    return false;
-}
-
-/**
- * \brief Render the valid scopes for a hook class to a string.
- */
-static void FirewallScopeHintForClass(
-        enum DetectFirewallPolicyClass pol_class, char *out, size_t out_size)
-{
-    const uint8_t *set = NULL;
-    size_t n = 0;
-    switch (pol_class) {
-        case DETECT_FIREWALL_POLICY_CLASS_PACKET:
-            set = fw_packet_hook_scopes;
-            n = ARRAY_SIZE(fw_packet_hook_scopes);
-            break;
-        case DETECT_FIREWALL_POLICY_CLASS_APP:
-            set = fw_app_hook_scopes;
-            n = ARRAY_SIZE(fw_app_hook_scopes);
-            break;
-        default:
-            FatalError("Invalid firewall policy class %u", (unsigned)pol_class);
-    }
-    out[0] = '\0';
-    for (size_t i = 0; i < n; i++) {
-        if ((i > 0 && strlcat(out, "/", out_size) >= out_size) ||
-                strlcat(out, ActionScopeToString((enum ActionScope)set[i]), out_size) >= out_size) {
-            FatalError("firewall policy scope hint too long");
-        }
-    }
-}
-
 /**
  * \brief Append a unique inheritance tier to the chain of firewall policies to query.
  */
@@ -4477,8 +4501,11 @@ static int DetectFirewallLoadPacketPolicy(struct DetectFirewallPolicies *fw_poli
     /* <prefix>.default-policy */
     FirewallPolicyChainAdd(&chain, "%s.default-policy", prefix);
 
+    const enum DetectFirewallPolicyClass pol_class =
+            (id == DETECT_FIREWALL_POLICY_PRE_FLOW) ? DETECT_FIREWALL_POLICY_CLASS_PACKET_PRE_FLOW
+                                                    : DETECT_FIREWALL_POLICY_CLASS_PACKET;
     struct DetectFirewallPolicy *pol = &fw_policies->pkt[id]; // built-in default
-    int r = ResolveFirewallPolicy(pol, DETECT_FIREWALL_POLICY_CLASS_PACKET, &chain);
+    int r = ResolveFirewallPolicy(pol, pol_class, &chain);
     if (r < 0) {
         return -1;
     }
