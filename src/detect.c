@@ -696,6 +696,11 @@ static uint8_t DetectRunApplyPacketPolicy(const DetectEngineCtx *de_ctx,
         SCLogDebug(
                 "packet %" PRIu64 ": drop PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY", p->pcap_cnt);
         PacketDrop(p, pol->action, PKT_DROP_REASON_FW_DEFAULT_PACKET_POLICY);
+        if (p->flow && pol->action_scope == ACTION_SCOPE_FLOW) {
+            p->flow->flags |= FLOW_ACTION_DROP;
+            p->flow->aux_flags |= FLOW_AUX_ACTION_BY_FIREWALL;
+            SCLogDebug("packet %" PRIu64 ": drop scope flow", p->pcap_cnt);
+        }
     } else if (pol->action & ACTION_ACCEPT) {
         SCLogDebug("packet %" PRIu64 ": accept", p->pcap_cnt);
         if (pol->action_scope == ACTION_SCOPE_PACKET) {
