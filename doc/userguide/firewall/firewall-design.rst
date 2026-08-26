@@ -420,8 +420,17 @@ Precedence:
 An action scope must be valid for the hook it is applied to. For example,
 defining ``accept:tx`` as a global default policy will fail to start Suricata,
 because ``packet`` policies do not accept ``tx``.
+Similarly, ``packet.pre-flow`` only accepts the ``packet`` and ``hook`` scopes,
+so a ``drop:flow`` set in ``policies.default-policy`` or
+``packet.default-policy`` will fail to start Suricata.
 Cover such hooks with a more specific setting so the incompatible default never
-reaches them.
+reaches them::
+
+    firewall:
+      policies:
+        default-policy: ["drop:flow"]
+        packet:
+          pre-flow: ["accept:hook"]
 
 A ``<`` hook rule at the protocol's first state (progress 0) is accepted and is
 equivalent to the plain hook form, as there are no prior states to auto-accept.
