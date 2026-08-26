@@ -108,9 +108,6 @@ typedef struct MpmCtx_ {
     uint16_t minlen;
     uint16_t maxlen;
 
-    uint32_t memory_cnt;
-    uint32_t memory_size;
-
     uint32_t max_pat_id;
 
     /* hash used during ctx initialization */

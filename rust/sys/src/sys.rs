@@ -1226,8 +1226,6 @@ pub struct MpmCtx_ {
     pub pattern_cnt: u32,
     pub minlen: u16,
     pub maxlen: u16,
-    pub memory_cnt: u32,
-    pub memory_size: u32,
     pub max_pat_id: u32,
     pub init_hash: *mut *mut MpmPattern,
 }

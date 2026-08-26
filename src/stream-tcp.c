@@ -467,10 +467,10 @@ static int RandomGetWrap(void)
     unsigned long r;
 
     do {
-        r = RandomGet();
+        r = (unsigned long)RandomGet();
     } while(r >= ULONG_MAX - (ULONG_MAX % RAND_MAX));
 
-    return r % RAND_MAX;
+    return (int)(r % RAND_MAX);
 }
 
 static const char *UrgentPolicyToString(enum TcpStreamUrgentHandling pol)
@@ -1076,7 +1076,7 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
                         (stream)->last_ack, (stream)->next_seq);                                   \
             } else {                                                                               \
                 SCLogDebug("next_seq (%u) <> last_ack now %d", (stream)->next_seq,                 \
-                        (int)(stream)->next_seq - (ack));                                          \
+                        (int)((stream)->next_seq - (ack)));                                        \
             }                                                                                      \
             (stream)->last_ack = (ack);                                                            \
             StreamTcpSackPruneList((stream));                                                      \

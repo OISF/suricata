@@ -130,11 +130,11 @@ static void DefragTrackerInit(DefragTracker *dt, Packet *p)
 
     if (PacketIsIPv4(p)) {
         const IPV4Hdr *ip4h = PacketGetIPv4(p);
-        dt->id = (int32_t)IPV4_GET_RAW_IPID(ip4h);
+        dt->id = IPV4_GET_RAW_IPID(ip4h);
         dt->af = AF_INET;
     } else {
         DEBUG_VALIDATE_BUG_ON(!PacketIsIPv6(p));
-        dt->id = (int32_t)IPV6_EXTHDR_GET_FH_ID(p);
+        dt->id = IPV6_EXTHDR_GET_FH_ID(p);
         dt->af = AF_INET6;
     }
     dt->proto = PacketGetIPProto(p);
