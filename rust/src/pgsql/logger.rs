@@ -246,13 +246,16 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             identifier: _,
             length: _,
             column_cnt,
+            ..
         })
         | PgsqlBEMessage::CopyInResponse(CopyResponse {
             identifier: _,
             length: _,
             column_cnt,
+            ..
         }) => {
             jb.open_object(res.to_str())?;
+            jb.set_bool("malformed", res.is_malformed())?;
             jb.set_uint("columns", *column_cnt)?;
             jb.close()?;
         }
