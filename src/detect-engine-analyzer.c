@@ -2146,6 +2146,56 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
 
 #include "app-layer-parser.h"
 
+/**
+ * \brief Render a resolved firewall default policy as "<action>:<scope>".
+ *
+ * \retval true \p out holds the rendered policy
+ * \retval false the policy could not be rendered
+ */
+static bool FirewallPolicyToString(
+        const struct DetectFirewallPolicy *p, char *out, const size_t out_size)
+{
+    const char *as = ActionScopeToString(p->action_scope);
+    DEBUG_VALIDATE_BUG_ON(as == NULL);
+    if (as == NULL)
+        return false;
+    if (p->action & ACTION_REJECT_ANY) {
+        if (p->action & ACTION_REJECT_DST) {
+            snprintf(out, out_size, "rejectdst:%s", as);
+        } else if (p->action & ACTION_REJECT_BOTH) {
+            snprintf(out, out_size, "rejectboth:%s", as);
+        } else {
+            snprintf(out, out_size, "rejectsrc:%s", as);
+        }
+    } else if (p->action & ACTION_DROP) {
+        snprintf(out, out_size, "drop:%s", as);
+    } else if (p->action & ACTION_ACCEPT) {
+        snprintf(out, out_size, "accept:%s", as);
+    } else {
+        DEBUG_VALIDATE_BUG_ON(1);
+        return false;
+    }
+    if (p->action & ACTION_PASS) {
+        if (p->action_scope == ACTION_SCOPE_FLOW || p->action_scope == ACTION_SCOPE_PACKET) {
+            if (strlcat(out, ",pass:", out_size) >= out_size ||
+                    strlcat(out, as, out_size) >= out_size) {
+                DEBUG_VALIDATE_BUG_ON(1);
+                return false;
+            }
+        } else {
+            DEBUG_VALIDATE_BUG_ON(1);
+            return false;
+        }
+    }
+    if (p->action & ACTION_ALERT) {
+        if (strlcat(out, ",alert", out_size) >= out_size) {
+            DEBUG_VALIDATE_BUG_ON(1);
+            return false;
+        }
+    }
+    return true;
+}
+
 static void AddPolicy(const DetectEngineCtx *de_ctx, RuleAnalyzer *ctx, const AppProto a,
         const uint8_t sub_state, const uint8_t state, const uint8_t direction)
 {
@@ -2158,34 +2208,8 @@ static void AddPolicy(const DetectEngineCtx *de_ctx, RuleAnalyzer *ctx, const Ap
             HashTableLookup(fw_policies->app_policies, (void *)&lookup, 0);
     if (ap == NULL)
         return;
-    const struct DetectFirewallPolicy *p = &ap->policy;
-
-    const char *as = ActionScopeToString(p->action_scope);
-    DEBUG_VALIDATE_BUG_ON(as == NULL);
-    if (as == NULL)
+    if (!FirewallPolicyToString(&ap->policy, policy_string, sizeof(policy_string)))
         return;
-    if (p->action & ACTION_REJECT_ANY) {
-        if (p->action & ACTION_REJECT_DST) {
-            snprintf(policy_string, sizeof(policy_string), "rejectdst:%s", as);
-        } else if (p->action & ACTION_REJECT_BOTH) {
-            snprintf(policy_string, sizeof(policy_string), "rejectboth:%s", as);
-        } else {
-            snprintf(policy_string, sizeof(policy_string), "rejectsrc:%s", as);
-        }
-    } else if (p->action & ACTION_DROP) {
-        snprintf(policy_string, sizeof(policy_string), "drop:%s", as);
-    } else if (p->action & ACTION_ACCEPT) {
-        snprintf(policy_string, sizeof(policy_string), "accept:%s", as);
-    } else {
-        DEBUG_VALIDATE_BUG_ON(1);
-    }
-    if (p->action & ACTION_PASS) {
-        if (p->action_scope == ACTION_SCOPE_FLOW) {
-            strlcat(policy_string, ",pass:flow", sizeof(policy_string));
-        } else {
-            DEBUG_VALIDATE_BUG_ON(1);
-        }
-    }
     SCJbSetString(ctx->js, "policy", policy_string);
 }
 
@@ -2258,7 +2282,11 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
 
     SCJbOpenObject(ctx.js, "tables");
     SCJbOpenObject(ctx.js, "packet:filter");
-    SCJbSetString(ctx.js, "policy", "drop:packet");
+    char pkt_policy[64] = "";
+    if (FirewallPolicyToString(&de_ctx->fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER],
+                pkt_policy, sizeof(pkt_policy))) {
+        SCJbSetString(ctx.js, "policy", pkt_policy);
+    }
     SCJbOpenArray(ctx.js, "rules");
     uint32_t accept_rules = 0;
     uint32_t last_sid = 0;
