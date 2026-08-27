@@ -854,8 +854,6 @@ static int StatsOutput(ThreadVars *tv)
 
     /* max_id > 0 is guaranteed at this point. */
     const uint16_t max_id = counters_global_id;
-    if (max_id == 0)
-        return -1;
 
     /** temporary local table to merge the per thread counters,
      *  especially needed for the average counters */
@@ -1162,6 +1160,9 @@ void StatsInit(void)
     }
 
     StatsPublicThreadContextInit(&stats_ctx->global_counter_ctx);
+
+    StatsRegisterRateCounter("stats.pps", "decoder.pkts");
+    StatsRegisterRateCounter("stats.bps", "decoder.bytes");
 }
 
 void StatsSetupPostConfigPreOutput(void)
