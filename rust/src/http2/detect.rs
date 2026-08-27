@@ -623,8 +623,18 @@ fn http2_normalize_host(ve: Http2Header) -> Http2Header {
         Some(i) => i + 1,
         None => 0,
     };
-    let end = match &vs[start..].iter().position(|&x| x == b':') {
-        Some(j) => start + j,
+    let end = match &vs[start..]
+        .iter()
+        .rev()
+        .position(|&x| x == b':' || x == b']')
+    {
+        Some(j) => {
+            if vs[vs.len() - 1 - j] == b']' {
+                vs.len()
+            } else {
+                vs.len() - 1 - j
+            }
+        }
         None => vs.len(),
     };
     return match ve {
@@ -1134,6 +1144,16 @@ mod tests {
         let buf4 = "user:pass@localhost:123".as_bytes();
         let r4 = http2_normalize_host(Http2Header::Single(buf4));
         assert_eq!(r4, Http2Header::Single("localhost".as_bytes()));
+
+        let buf5 = "[2001:db8::5]:443".as_bytes();
+        let r5 = http2_normalize_host(Http2Header::Single(buf5));
+        assert_eq!(r5, Http2Header::Single("[2001:db8::5]".as_bytes()));
+        let buf6 = "[2001:db8::5]".as_bytes();
+        let r6 = http2_normalize_host(Http2Header::Single(buf6));
+        assert_eq!(r6, Http2Header::Single("[2001:db8::5]".as_bytes()));
+        let buf7 = "user@[2001:db8::5]".as_bytes();
+        let r7 = http2_normalize_host(Http2Header::Single(buf7));
+        assert_eq!(r7, Http2Header::Single("[2001:db8::5]".as_bytes()));
     }
 
     #[test]
