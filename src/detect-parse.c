@@ -1822,6 +1822,10 @@ static int SigParseActionDo(const char *action_in, const int idx, const bool fw_
                        "rules");
             return -1;
         }
+        if (idx > 0 && (flags & ACTION_PASS) && !(*action_out & ACTION_ACCEPT)) {
+            SCLogError("'pass' is only supported as a secondary action for 'accept'");
+            return -1;
+        }
     }
 
     /* parse scope, if any */
