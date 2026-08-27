@@ -581,15 +581,13 @@ fn http2_normalize_host(ve: Http2Header) -> Http2Header {
         Http2Header::Single(v) => v,
         Http2Header::Multiple(v) => v.as_slice(),
     };
-    let (start, end) = match vs.iter().position(|&x| x == b'@') {
-        Some(i) => match &vs[i + 1..].iter().position(|&x| x == b':') {
-            Some(j) => (i + 1, i + 1 + j),
-            None => (i + 1, vs.len()),
-        },
-        None => match vs.iter().position(|&x| x == b':') {
-            Some(i) => (0, i),
-            None => (0, vs.len()),
-        },
+    let start = match vs.iter().position(|&x| x == b'@') {
+        Some(i) => i + 1,
+        None => 0,
+    };
+    let end = match &vs[start..].iter().position(|&x| x == b':') {
+        Some(j) => start + j,
+        None => vs.len(),
     };
     return match ve {
         Http2Header::Single(v) => {
