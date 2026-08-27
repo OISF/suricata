@@ -67,6 +67,9 @@ fn log_http2_headers<'a>(
                         "user-agent" => {
                             common.insert(HeaderName::UserAgent, &block.value);
                         }
+                        ":authority" => {
+                            common.insert(HeaderName::Host, &block.value);
+                        }
                         "host" => {
                             common.insert(HeaderName::Host, &block.value);
                         }
