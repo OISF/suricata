@@ -26,6 +26,7 @@
 #define SURICATA_COUNTERS_H
 
 #include "threads.h"
+#include <time.h>
 
 typedef struct StatsCounterId {
     uint16_t id;
@@ -49,6 +50,19 @@ typedef struct StatsCounterDeriveId {
     uint16_t id;
 } StatsCounterDeriveId;
 
+/* rate counters are counters that compute value from a
+ * source counter and a time delta at output time.*/
+typedef struct StatsCounterRateId {
+    uint16_t id;
+} StatsCounterRateId;
+
+/* rate counter need to keep track of the prev value of the source
+ * counter, and the prev timespec. */
+typedef struct StatsRateState_ {
+    uint64_t prev_value;
+    struct timespec prev_ts;/**< CLOCK_MONOTONIC */
+} StatsRateState;
+
 /**
  * \brief Container to hold the counter variable
  */
@@ -69,6 +83,13 @@ typedef struct StatsCounter_ {
     /* when using type STATS_TYPE_FUNC this function is called once
      * to get the counter value, regardless of how many threads there are. */
     uint64_t (*Func)(void);
+
+    /* global id for the source counter */
+    uint16_t source_gid;
+
+    /* for STATS_TYPE_RATE this struct stores both prev counter
+     * value and prev timestamp. */
+    StatsRateState *rate_state;
 
     /* name of the counter */
     const char *name;

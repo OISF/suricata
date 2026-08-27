@@ -57,6 +57,7 @@ enum StatsType {
     STATS_TYPE_MAXIMUM = 3,
     STATS_TYPE_FUNC = 4,
     STATS_TYPE_DERIVE_DIV = 5,
+    STATS_TYPE_RATE = 6,
 };
 
 /**
@@ -590,6 +591,9 @@ static void *StatsWakeupThread(void *arg)
 static void StatsReleaseCounter(StatsCounter *pc)
 {
     if (pc != NULL) {
+        if (pc->type == STATS_TYPE_RATE && pc->rate_state != NULL) {
+            SCFree(pc->rate_state);
+        }
         SCFree(pc);
     }
 }
@@ -683,6 +687,15 @@ static uint16_t StatsRegisterQualifiedCounter(const char *name, StatsPublicThrea
     pc->Func = Func;
     pc->did1 = did1;
     pc->did2 = did2;
+
+    if (type_q == STATS_TYPE_RATE) {
+        pc->rate_state = SCCalloc(1, sizeof(StatsRateState));
+        if (pc->rate_state == NULL) {
+            SCFree(pc);
+            return 0;
+        }
+    /* prev_ts.tv_sec == 0 signals "first tick, no baseline yet" */
+    }
 
     /* we now add the counter to the list */
     if (prev == NULL)
@@ -807,6 +820,9 @@ static int StatsOutput(ThreadVars *tv)
                     thread_table[pc->gid].value = thread_table_from_private[pc->did1].v;
                     thread_table[pc->gid].updates = thread_table_from_private[pc->did2].v;
                     break;
+                case STATS_TYPE_RATE:
+                    /* Value computed in phase 4 from aggregated stats_table.stats[]. */
+                    break;
                 default:
                     SCLogDebug("Counter %s (%u:%u) value %" PRIu64, pc->name, pc->id, pc->gid,
                             thread_table_from_private[i].v);
@@ -822,6 +838,9 @@ static int StatsOutput(ThreadVars *tv)
             /* thread only sets type if it has a counter
              * of this type. */
             if (e->type == 0)
+                continue;
+
+            if (e->type == STATS_TYPE_RATE)
                 continue;
 
             switch (e->type) {
@@ -847,6 +866,9 @@ static int StatsOutput(ThreadVars *tv)
             /* thread only sets type if it has a counter
              * of this type. */
             if (e->type == 0)
+                continue;
+
+            if (e->type == STATS_TYPE_RATE)
                 continue;
 
             uint32_t offset = (thread * stats_table.nstats) + c;
@@ -899,6 +921,67 @@ static int StatsOutput(ThreadVars *tv)
                 table[x].value += m->value;
                 break;
         }
+    }
+
+    /* Sample once per tick; used for all rate counters. */
+    struct timespec now_ts;
+    clock_gettime(CLOCK_MONOTONIC, &now_ts);
+
+    /* Phase 4: compute rate counters from the fully aggregated stats_table.
+    * Rate counters live on global_counter_ctx and read the aggregated
+    * source value from stats_table.stats[source_gid]. */
+    for (StatsCounter *pc = stats_ctx->global_counter_ctx.head;
+            pc != NULL; pc = pc->next) {
+        if (pc->type != STATS_TYPE_RATE)
+            continue;
+
+        StatsRateState *st = pc->rate_state;
+        if (st == NULL) {
+            /* should not happen; allocated at registration */
+            continue;
+        }
+
+        uint64_t current_value = table[pc->source_gid].value;
+
+        table[pc->gid].tm_name = "Total";
+
+        /* First tick: seed baseline and output 0. tv_sec == 0 is a safe
+        * sentinel because CLOCK_MONOTONIC counts from boot; by the time
+        * stats output runs, many seconds have passed. */
+        if (st->prev_ts.tv_sec == 0) {
+            st->prev_value = current_value;
+            st->prev_ts = now_ts;
+            table[pc->gid].value = 0;
+            continue;
+        }
+
+        /* Elapsed time in nanoseconds. */
+        int64_t elapsed_ns =
+                (int64_t)(now_ts.tv_sec  - st->prev_ts.tv_sec)  * 1000000000LL +
+                (int64_t)(now_ts.tv_nsec - st->prev_ts.tv_nsec);
+        if (elapsed_ns <= 0) {
+            /* Clock anomaly; skip this tick, keep baseline. */
+            table[pc->gid].value = 0;
+            continue;
+        }
+
+        /* Defensive: if source counter decreased (reset), don't underflow.
+        * Re-baseline and output 0 this tick. */
+        if (current_value < st->prev_value) {
+            st->prev_value = current_value;
+            st->prev_ts = now_ts;
+            table[pc->gid].value = 0;
+            continue;
+        }
+
+        uint64_t delta = current_value - st->prev_value;
+        /* Multiply before divide to preserve integer precision. */
+        uint64_t rate = (delta * 1000000000ULL) / (uint64_t)elapsed_ns;
+
+        table[pc->gid].value = rate;
+
+        st->prev_value = current_value;
+        st->prev_ts = now_ts;
     }
 
     /* invoke logger(s) */
