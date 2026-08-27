@@ -38,6 +38,7 @@ fn log_http2_headers<'a>(
     common: &mut HashMap<HeaderName, &'a Vec<u8>>,
 ) -> Result<(), JsonError> {
     let mut logged_headers = HashSet::new();
+    let mut has_auth = false;
     for block in blocks {
         // delay js.start_object() because we skip suplicate headers
         match block.error {
@@ -67,7 +68,11 @@ fn log_http2_headers<'a>(
                         "user-agent" => {
                             common.insert(HeaderName::UserAgent, &block.value);
                         }
-                        "host" => {
+                        ":authority" => {
+                            has_auth = true;
+                            common.insert(HeaderName::Host, &block.value);
+                        }
+                        "host" if !has_auth => {
                             common.insert(HeaderName::Host, &block.value);
                         }
                         "content-length" => {
