@@ -625,12 +625,23 @@ fn http2_normalize_host(ve: Http2Header) -> Http2Header {
     };
 }
 
+fn http2_get_host(tx: &HTTP2Transaction) -> Option<Http2Header<'_>> {
+    // RFC 9113 states
+    // The recipient of an HTTP/2 request MUST NOT use the Host header field to determine the target URI if ":authority" is present.
+    let r = http2_frames_get_header_value(tx, Direction::ToServer, ":authority");
+    if r.is_none() {
+        http2_frames_get_header_value(tx, Direction::ToServer, "host")
+    } else {
+        r
+    }
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2TxGetHostNorm(
     tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32, tbuf: *mut c_void,
 ) -> u8 {
     let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
-    if let Some(value) = http2_frames_get_header_value(tx, Direction::ToServer, ":authority") {
+    if let Some(value) = http2_get_host(tx) {
         match http2_normalize_host(value) {
             Http2Header::Single(v) => {
                 *buffer = v.as_ptr(); //unsafe
