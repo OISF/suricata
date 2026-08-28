@@ -4213,6 +4213,11 @@ static int DoParsePolicy(const char *policy_name, struct DetectFirewallPolicy *p
             return -1;
         idx++;
     }
+
+    if (action & ACTION_CONFIG) {
+        SCLogError("%s: 'config' is not a valid default policy action", policy_name);
+        return -1;
+    }
     pol->action = action;
     pol->action_scope = action_scope;
     return 1;
