@@ -15,9 +15,16 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file
+ *
+ * Public interface for the "base64_data" rule keyword.
+ */
+
 #ifndef SURICATA_DETECT_BASE64_DATA_H
 #define SURICATA_DETECT_BASE64_DATA_H
 
+/** \brief Register the "base64_data" keyword with the detect engine. */
 void DetectBase64DataRegister(void);
 
 #endif /* SURICATA_DETECT_BASE64_DATA_H */

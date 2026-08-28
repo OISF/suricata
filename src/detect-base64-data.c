@@ -15,6 +15,16 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file
+ *
+ * "base64_data" rule keyword.
+ *
+ * Takes no options. Acts as a sticky-buffer switch: subsequent
+ * content matches in the rule are added to DETECT_SM_LIST_BASE64_DATA
+ * and run against the buffer produced by a preceding base64_decode.
+ */
+
 #include "suricata-common.h"
 #include "detect.h"
 #include "detect-engine.h"
@@ -45,12 +55,19 @@ void DetectBase64DataRegister(void)
     sigmatch_table[DETECT_BASE64_DATA].flags |= SIGMATCH_NOOPT;
 }
 
+/** \brief Redirect subsequent content matches to the base64 buffer.
+ *
+ *  A base64_decode earlier in the rule is required; without it there
+ *  is no decoded buffer to match against and the rule is rejected.
+ *
+ *  \retval  0 setup ok
+ *  \retval -1 no preceding base64_decode */
 static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
     const char *str)
 {
     SigMatch *pm = NULL;
 
-    /* Check for a preceding base64_decode. */
+    /* base64_decode must come first in the rule */
     pm = SCDetectGetLastSMFromLists(s, DETECT_BASE64_DECODE, -1);
     if (pm == NULL) {
         SCLogError("\"base64_data\" keyword seen without preceding base64_decode.");
@@ -65,6 +82,8 @@ static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
 
 static int g_file_data_buffer_id = 0;
 
+/** \test base64_data flips the active list, so the following content
+ *        lands on DETECT_SM_LIST_BASE64_DATA and not on PMATCH. */
 static int DetectBase64DataSetupTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -85,10 +104,9 @@ static int DetectBase64DataSetupTest01(void)
     PASS;
 }
 
-/**
- * \test Test that the list can be changed to post-detection lists
- *     after the base64 keyword.
- */
+/** \test post-detection keywords such as `tag` are still accepted
+ *        after base64_data; the sticky-buffer switch must not reject
+ *        them. */
 static int DetectBase64DataSetupTest04(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();

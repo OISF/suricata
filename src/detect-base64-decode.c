@@ -15,6 +15,27 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file
+ *
+ * "base64_decode" rule keyword.
+ *
+ * Syntax:  base64_decode[: [bytes N,] [offset N,] [relative]]
+ *
+ * Setup picks which sig-match list the keyword attaches to:
+ *   1. an active sticky buffer, if one is set
+ *   2. otherwise the list of the nearest preceding payload keyword
+ *      (content, pcre, byte_test/jump/extract, isdataat)
+ *   3. otherwise pmatch.
+ * It also bumps de_ctx->base64_decode_max_len so the per-thread
+ * decode buffer is large enough for the biggest request in the
+ * ruleset.
+ *
+ * At match time up to `bytes` are decoded from payload+offset
+ * (optionally relative to the last match) into
+ * det_ctx->base64_decoded.
+ */
+
 #include "suricata-common.h"
 #include "detect.h"
 #include "detect-parse.h"
@@ -24,7 +45,7 @@
 #include "detect-engine-build.h"
 #include "rust.h"
 
-/* Arbitrary maximum buffer size for decoded base64 data. */
+/** Hard cap on bytes decoded per match, and the default when `bytes` is omitted. */
 #define BASE64_DECODE_MAX 65535
 
 typedef struct DetectBase64Decode_ {
@@ -73,12 +94,14 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
     PrintRawDataFp(stdout, payload, payload_len);
 #endif
 
+    /* relative: start after the previous match */
     if (data->relative) {
         payload += det_ctx->buffer_offset;
         DEBUG_VALIDATE_BUG_ON(det_ctx->buffer_offset > payload_len);
         payload_len -= det_ctx->buffer_offset;
     }
 
+    /* offset past the end is a silent no-op, not an error */
     if (data->offset) {
         if (data->offset >= payload_len) {
             return 0;
@@ -110,6 +133,14 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
     return det_ctx->base64_decoded_len > 0;
 }
 
+/** \internal
+ *  \brief Parse the argument string into (bytes, offset, relative).
+ *
+ *  All three options are optional and may appear in any order.
+ *  Missing options stay at 0; unknown tokens (typos) are rejected.
+ *
+ *  \retval 1 parse ok
+ *  \retval 0 parse error */
 static int DetectBase64DecodeParse(
         const char *str, uint16_t *bytes, uint32_t *offset, uint8_t *relative)
 {
@@ -182,6 +213,20 @@ error:
     return retval;
 }
 
+/** \internal
+ *  \brief Attach a base64_decode match to the signature.
+ *
+ *  List selection (in order): active sticky buffer, else the list of
+ *  the nearest preceding payload keyword (content, pcre,
+ *  byte_test/jump/extract, isdataat), else pmatch.
+ *
+ *  Also raises de_ctx->base64_decode_max_len so the per-thread
+ *  decode buffer will fit this rule's request. If `bytes` was left
+ *  unset it defaults to BASE64_DECODE_MAX here — after list
+ *  attachment, so the parsed value is what's stored on the SigMatch.
+ *
+ *  \retval  0 setup ok
+ *  \retval -1 parse or attach failure */
 static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
     const char *str)
 {
@@ -205,6 +250,7 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
     data->offset = offset;
     data->relative = relative;
 
+    /* pick the list to attach to */
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
         sm_list = s->init_data->list;
     }
@@ -227,6 +273,7 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
         goto error;
     }
 
+    /* default `bytes` and grow the shared decode buffer if needed */
     if (!data->bytes) {
         data->bytes = BASE64_DECODE_MAX;
     }
@@ -259,6 +306,8 @@ static void DetectBase64DecodeFree(DetectEngineCtx *de_ctx, void *ptr)
 
 static int g_http_header_buffer_id = 0;
 
+/** \test Parser accepts every valid option combo and rejects typos
+ *        in each of bytes/offset/relative, plus the empty string. */
 static int DetectBase64TestDecodeParse(void)
 {
     int retval = 0;
@@ -329,7 +378,7 @@ static int DetectBase64TestDecodeParse(void)
         goto end;
     }
 
-    /* Misspelled empty string. */
+    /* Empty string is not a valid arg list. */
     if (DetectBase64DecodeParse("", &bytes, &offset, &relative)) {
         goto end;
     }
@@ -339,9 +388,8 @@ end:
     return retval;
 }
 
-/**
- * Test keyword setup on basic content.
- */
+/** \test With no sticky buffer active and no preceding payload
+ *        keyword, setup must fall back to pmatch. */
 static int DetectBase64DecodeTestSetup(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -357,6 +405,8 @@ static int DetectBase64DecodeTestSetup(void)
     PASS;
 }
 
+/** \test End-to-end decode of a full payload with no options set;
+ *        just checks that something was decoded. */
 static int DetectBase64DecodeTestDecode(void)
 {
     ThreadVars tv;
@@ -412,6 +462,8 @@ end:
     return retval;
 }
 
+/** \test `offset N` skips N leading bytes, and the remainder decodes
+ *        to the expected plaintext. */
 static int DetectBase64DecodeTestDecodeWithOffset(void)
 {
     ThreadVars tv;
@@ -474,6 +526,8 @@ end:
     return retval;
 }
 
+/** \test An offset past the end of the payload must be a silent
+ *        no-op (decoded_len == 0), not an error. */
 static int DetectBase64DecodeTestDecodeLargeOffset(void)
 {
     ThreadVars tv;
@@ -530,6 +584,9 @@ end:
     return retval;
 }
 
+/** \test `relative` starts decoding right after the previous content
+ *        match, so the leading padding is skipped even without an
+ *        explicit offset. */
 static int DetectBase64DecodeTestDecodeRelative(void)
 {
     ThreadVars tv;
