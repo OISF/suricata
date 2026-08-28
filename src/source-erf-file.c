@@ -61,6 +61,8 @@ typedef struct ErfFileThreadVars_ {
 
     uint32_t pkts;
     uint64_t bytes;
+
+    uint8_t buffer[MAX_PAYLOAD_SIZE];
 } ErfFileThreadVars;
 
 static inline TmEcode ReadErfRecord(ThreadVars *, Packet *, void *);
@@ -169,13 +171,27 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
         SCReturnInt(TM_ECODE_FAILED);
     }
     uint16_t rlen = SCNtohs(dr.rlen);
-    uint16_t wlen = SCNtohs(dr.wlen);
     if (rlen < sizeof(DagRecord)) {
         SCLogError("Bad ERF record, "
                    "record length less than size of header");
         SCReturnInt(TM_ECODE_FAILED);
     }
-    r = fread(GET_PKT_DATA(p), rlen - sizeof(DagRecord), 1, etv->erf);
+
+    uint32_t caplen = rlen - sizeof(DagRecord);
+    if (caplen > MAX_PACKET_SIZE) {
+        SCLogError("Bad ERF record, capture length %u exceeds max %d", caplen, MAX_PACKET_SIZE);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    r = fread(etv->buffer, caplen, 1, etv->erf);
+    if (r < 1) {
+        if (feof(etv->erf)) {
+            SCLogInfo("End of ERF file reached");
+        } else {
+            SCLogInfo("Error reading ERF record");
+        }
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    r = fread(etv->buffer, caplen, 1, etv->erf);
     if (r < 1) {
         if (feof(etv->erf)) {
             SCLogInfo("End of ERF file reached");
@@ -192,7 +208,10 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    GET_PKT_LEN(p) = wlen;
+    if (PacketCopyData(p, etv->buffer, caplen) != 0) {
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
     p->datalink = LINKTYPE_ETHERNET;
 
     /* Convert ERF time to SCTime_t */
@@ -204,7 +223,7 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
     p->ts = SCTIME_ADD_USECS(p->ts, usecs);
 
     etv->pkts++;
-    etv->bytes += wlen;
+    etv->bytes += caplen;
 
     SCReturnInt(TM_ECODE_OK);
 }
