@@ -172,6 +172,10 @@ fn log_response_object(tx: &PgsqlTransaction) -> Result<JsonBuilder, JsonError> 
             log_response(response, &mut jb)?;
         }
     }
+    if array_open {
+        // the last stored response was a ParameterStatus so we still have an array open
+        jb.close()?;
+    }
     jb.close()?;
     Ok(jb)
 }
@@ -341,7 +345,6 @@ fn log_startup_parameters(params: &PgsqlStartupParameters) -> Result<JsonBuilder
         }
         jb.close()?;
     }
-
     jb.close()?;
     Ok(jb)
 }
