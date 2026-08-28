@@ -122,6 +122,14 @@ alert
 action in firewall rules. The effect will be the creation of an alert event when the
 firewall rule matches.
 
+config
+~~~~~~
+
+``config`` is a primary firewall action used to apply the setting of the ``config``
+rule keyword when the rule matches, see :doc:`../rules/config`.
+The ``config`` action does not issue a verdict for the packet or the flow, so the
+other tables are still evaluated. It is not available as a secondary action.
+
 Multi action rules
 ~~~~~~~~~~~~~~~~~~
 
