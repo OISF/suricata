@@ -2050,7 +2050,7 @@ incompatible with ``decode-mime``. If both are enabled,
 Maximum transactions
 ~~~~~~~~~~~~~~~~~~~~
 
-SMTP, MQTT, FTP, PostgreSQL, SMB, DCERPC, HTTP1, ENIP and NFS have each a `max-tx`
+SMTP, MQTT, FTP, PGSQL, SMB, DCERPC, HTTP1, ENIP and NFS have each a `max-tx`
 parameter that can be customized.
 `max-tx` refers to the maximum number of live transactions for each flow.
 An app-layer event `protocol.too_many_transactions` is triggered when this value is reached.
@@ -2065,6 +2065,17 @@ For HTTP2, this parameter is named `max-streams` as an HTTP2 stream will get tra
 into one Suricata transaction. This configuration parameter is used whatever the
 value of `SETTINGS_MAX_CONCURRENT_STREAMS` negotiated between a client and a server
 in a specific flow is.
+
+Maximum Responses
+~~~~~~~~~~~~~~~~~
+
+LDAP and PGSQL each have a `max-responses` parameter that can be customized.
+`max-responses` refers to the maximum number of responses a single protocol
+transaction can hold. An app-layer event `protocol.too_many_responses` is triggered when this value is reached.
+As with `max-transactions` the point of this setting is to find a balance between visibility and resource consumption.
+When this cap is reached, new responses to the same transaction will not be pushed nor logged, but the parser will keep inspecting further transactions normally.
+
+.. note:: For PGSQL, the `too_many_responses` event is issued only once per transaction.
 
 Engine Logging
 --------------
