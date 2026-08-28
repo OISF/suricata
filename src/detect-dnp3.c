@@ -15,6 +15,28 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file
+ *
+ * DNP3 rule keywords. All four are scoped to ALPROTO_DNP3 and are
+ * evaluated per transaction:
+ *
+ *   dnp3_func  match on the application function code (u8)
+ *   dnp3_ind   match on the response internal indicator flags
+ *              (u16 bitfield, IIN1 << 8 | IIN2)
+ *   dnp3_obj   match if a given (group, variation) object appears
+ *              in the transaction
+ *   dnp3.data  sticky buffer over the reassembled application-layer
+ *              payload
+ *
+ * func, ind and obj each live on their own inspection list; there
+ * is no shared payload buffer between them. dnp3.data registers an
+ * inspect engine and an MPM engine for both directions and exposes
+ * the transaction buffer through GetDNP3Data. Direction filtering
+ * (request goes toserver, response goes toclient) happens at match
+ * time from tx->is_request.
+ */
+
 #include "suricata-common.h"
 
 #include "stream.h"
@@ -30,17 +52,15 @@
 #include "detect-engine-uint.h"
 
 #include "app-layer-dnp3.h"
+
 #include "util-byte.h"
 
 static int g_dnp3_match_buffer_id = 0;
 static int g_dnp3_data_buffer_id = 0;
 static int g_dnp3_ind_buffer_id = 0;
 
-/**
- * The detection struct.
- */
+/** dnp3_obj context: the (group, variation) pair to look for. */
 typedef struct DetectDNP3_ {
-    /* Object info for object detection. */
     uint8_t obj_group;
     uint8_t obj_variation;
 } DetectDNP3;
@@ -50,6 +70,14 @@ static void DetectDNP3FuncRegisterTests(void);
 static void DetectDNP3ObjRegisterTests(void);
 #endif
 
+/** \brief Inspection-buffer accessor for dnp3.data.
+ *
+ *  Returns NULL when the traffic direction doesn't match the
+ *  transaction side (a request travelling toclient, or a response
+ *  travelling toserver). That's what keeps a request's payload from
+ *  being matched against a response rule and vice versa. Also
+ *  returns NULL if the transaction hasn't produced any buffered
+ *  bytes yet. */
 static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t flow_flags,
@@ -61,6 +89,7 @@ static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
         DNP3Transaction *tx = (DNP3Transaction *)txv;
         SCLogDebug("tx %p", tx);
 
+        /* direction must line up with the transaction side */
         if ((flow_flags & STREAM_TOSERVER && !tx->is_request) ||
                 (flow_flags & STREAM_TOCLIENT && tx->is_request)) {
             return NULL;
@@ -140,13 +169,18 @@ error:
 }
 
 /**
- * \brief Parse the value of string of the dnp3_obj keyword.
+ * \internal
+ * \brief Parse a "group,variation" argument for dnp3_obj.
  *
- * \param str the input string
- * \param gout pointer to variable to store the parsed group integer
- * \param vout pointer to variable to store the parsed variation integer
+ * Splits on the first comma and reads both halves as u8. Both must
+ * be present and in range; anything else fails.
  *
- * \retval 1 if parsing successful otherwise 0.
+ * \param str the input string, e.g. "12,3"
+ * \param group  out: parsed group
+ * \param var    out: parsed variation
+ *
+ * \retval 1 parse ok
+ * \retval 0 parse error
  */
 static int DetectDNP3ObjParse(const char *str, uint8_t *group, uint8_t *var)
 {
@@ -215,6 +249,11 @@ static void DetectDNP3Free(DetectEngineCtx *de_ctx, void *ptr)
     SCReturn;
 }
 
+/** \brief dnp3_func matcher.
+ *
+ *  Requests only match on toserver traffic, responses only on
+ *  toclient. Anything else is a non-match, even if the function
+ *  code would have matched. */
 static int DetectDNP3FuncMatch(DetectEngineThreadCtx *det_ctx,
     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
     const SigMatchCtx *ctx)
@@ -231,6 +270,12 @@ static int DetectDNP3FuncMatch(DetectEngineThreadCtx *det_ctx,
     return 0;
 }
 
+/** \brief dnp3_obj matcher.
+ *
+ *  Matches if any object in the transaction has the configured
+ *  (group, variation) pair. Uses a plain linear scan; DNP3 object
+ *  lists are usually short enough that indexing isn't worth it.
+ *  Same direction gating as dnp3_func. */
 static int DetectDNP3ObjMatch(DetectEngineThreadCtx *det_ctx,
     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
     const SigMatchCtx *ctx)
@@ -258,6 +303,12 @@ static int DetectDNP3ObjMatch(DetectEngineThreadCtx *det_ctx,
     return 0;
 }
 
+/** \brief dnp3_ind matcher.
+ *
+ *  Packs the two indicator bytes from the response header into one
+ *  u16 (IIN1 in the high byte, IIN2 in the low byte) and hands it
+ *  to the shared u16 matcher. Response-only; there's no request-side
+ *  equivalent to match on. */
 static int DetectDNP3IndMatch(DetectEngineThreadCtx *det_ctx,
     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
     const SigMatchCtx *ctx)
@@ -335,6 +386,12 @@ static int DetectDNP3DataSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     SCReturnInt(0);
 }
 
+/** \brief Register the dnp3.data sticky buffer.
+ *
+ *  An inspect engine and an MPM engine are registered for each
+ *  direction, but they share one accessor (GetDNP3Data). The
+ *  accessor is what enforces that a request-side rule doesn't fire
+ *  on a response and vice versa. */
 static void DetectDNP3DataRegister(void)
 {
     SCEnter();
@@ -361,6 +418,12 @@ static void DetectDNP3DataRegister(void)
     SCReturn;
 }
 
+/** \brief Register all four DNP3 keywords and their inspect engines.
+ *
+ *  Wiring recap:
+ *   - "dnp3" is a shared list for dnp3_func and dnp3_obj, both directions.
+ *   - "dnp3_ind" has its own list, response direction only.
+ *   - "dnp3_data" is a sticky buffer, registered separately above. */
 void DetectDNP3Register(void)
 {
     DetectDNP3DataRegister();
@@ -369,7 +432,7 @@ void DetectDNP3Register(void)
     DetectDNP3IndRegister();
     DetectDNP3ObjRegister();
 
-    /* Register the list of func, ind and obj. */
+    /* shared "dnp3" list carries func + obj matches, both directions */
     DetectAppLayerInspectEngineRegister(
             "dnp3", ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
     DetectAppLayerInspectEngineRegister(
@@ -377,6 +440,7 @@ void DetectDNP3Register(void)
 
     g_dnp3_match_buffer_id = DetectBufferTypeRegister("dnp3");
 
+    /* dnp3_ind is response-only, so only the toclient engine is registered */
     DetectAppLayerInspectEngineRegister(
             "dnp3_ind", ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
     g_dnp3_ind_buffer_id = DetectBufferTypeRegister("dnp3_ind");
@@ -390,6 +454,8 @@ void DetectDNP3Register(void)
 #include "flow-util.h"
 #include "stream-tcp.h"
 
+/** \test dnp3_func:2 is accepted and the parsed value (2) ends up
+ *        stored on a SigMatch in the shared dnp3 match list. */
 static int DetectDNP3FuncTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -411,6 +477,8 @@ static int DetectDNP3FuncTest01(void)
     PASS;
 }
 
+/** \test dnp3_obj:99,99 sets both fields on the DetectDNP3 ctx and
+ *        attaches to the shared dnp3 match list. */
 static int DetectDNP3ObjSetupTest(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -433,6 +501,9 @@ static int DetectDNP3ObjSetupTest(void)
     PASS;
 }
 
+/** \test dnp3_obj argument parser: valid u8 pairs pass at both
+ *        boundaries (0,0 and 255,255); negative, overflow and
+ *        non-numeric inputs are rejected. */
 static int DetectDNP3ObjParseTest(void)
 {
     uint8_t group, var;
