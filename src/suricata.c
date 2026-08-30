@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -346,29 +346,38 @@ static void SignalHandlerUnexpected(int sig_num, siginfo_t *info, void *context)
         goto terminate;
     }
 
-    char *temp = msg;
-    int cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), "stacktrace:sig %d:", sig_num);
-    temp += cw;
+    int cw = snprintf(msg, sizeof(msg), "stacktrace:sig %d:", sig_num);
+    if (cw < 0)
+        goto terminate;
+    size_t offset = MIN((size_t)cw, sizeof(msg) - 1);
+
     r = 1;
-    while (r > 0) {
+    while (r > 0 && offset < sizeof(msg) - 1) {
         if (unw_is_signal_frame(&cursor) == 0) {
             unw_word_t off;
-            char name[256];
-            if (unw_get_proc_name(&cursor, name, sizeof(name), &off) == UNW_ENOMEM) {
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), "[unknown]:");
+            char name[256] = "?";
+            int ret = unw_get_proc_name(&cursor, name, sizeof(name), &off);
+            /* -UNW_ENOMEM means the name was truncated to fit; it is still usable. */
+            if (ret != 0 && ret != -UNW_ENOMEM) {
+                cw = snprintf(msg + offset, sizeof(msg) - offset, "[unknown]:");
             } else {
-                cw = snprintf(
-                        temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), "%s+0x%08" PRIx64, name, off);
+                cw = snprintf(msg + offset, sizeof(msg) - offset, "%s+0x%08" PRIx64, name, off);
             }
-            temp += cw;
+            if (cw < 0)
+                break;
+            offset += MIN((size_t)cw, sizeof(msg) - offset - 1);
         }
 
         r = unw_step(&cursor);
-        if (r > 0) {
-            cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - msg), ";");
-            temp += cw;
+        if (r > 0 && offset < sizeof(msg) - 1) {
+            msg[offset++] = ';';
+            msg[offset] = '\0';
         }
     }
+    /* Mark a trace that ran out of room so a clipped tail is not read as a
+     * complete stack. */
+    if (offset >= sizeof(msg) - 1)
+        memcpy(msg + sizeof(msg) - 4, "...", 4);
     SCLogError("%s", msg);
 
 terminate:
