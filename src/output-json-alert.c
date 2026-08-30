@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2024 Open Information Security Foundation
+/* Copyright (C) 2013-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -187,8 +187,14 @@ static void AlertJsonReference(const PacketAlert *pa, SCJsonBuilder *jb)
          */
         const size_t size_needed = kv->key_len + kv->reference_len + 3;
         DEBUG_VALIDATE_BUG_ON(size_needed > DETECT_MAX_RULE_SIZE);
+        /* DetectReferenceParse() is the only producer and sets both alongside
+         * their lengths. Trip a debug build if a future one does not, and keep
+         * a release build off the undefined behavior of "%s" with NULL. */
+        DEBUG_VALIDATE_BUG_ON(kv->key == NULL || kv->reference == NULL);
+        const char *key = kv->key ? kv->key : "";
+        const char *reference = kv->reference ? kv->reference : "";
         char kv_store[size_needed];
-        snprintf(kv_store, size_needed, "%s%s", kv->key, kv->reference);
+        snprintf(kv_store, size_needed, "%s%s", key, reference);
         SCJbAppendString(jb, kv_store);
         kv = kv->next;
     }
