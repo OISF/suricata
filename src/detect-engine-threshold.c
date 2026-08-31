@@ -62,6 +62,7 @@
 
 static SC_ATOMIC_DECLARE(uint64_t, threshold_bitmap_alloc_fail);
 static SC_ATOMIC_DECLARE(uint64_t, threshold_bitmap_memuse);
+static SC_ATOMIC_DECLARE(uint64_t, threshold_cache_memuse);
 
 static void ThresholdCacheInit(void);
 
@@ -111,6 +112,11 @@ static uint64_t ThresholdBitmapMemuseCounter(void)
     return SC_ATOMIC_GET(threshold_bitmap_memuse);
 }
 
+static uint64_t ThresholdCacheMemuseCounter(void)
+{
+    return SC_ATOMIC_GET(threshold_cache_memuse);
+}
+
 static uint64_t ThresholdMemuseCounter(void)
 {
     if (ctx.thash == NULL)
@@ -129,7 +135,11 @@ void ThresholdInit(void)
 {
     SC_ATOMIC_INIT(threshold_bitmap_alloc_fail);
     SC_ATOMIC_INIT(threshold_bitmap_memuse);
-    ThresholdsInit(&ctx);
+    SC_ATOMIC_INIT(threshold_cache_memuse);
+
+    if (ThresholdsInit(&ctx) < 0) {
+        FatalError("Failed to initialize threshold table");
+    }
     ThresholdCacheInit();
 }
 
@@ -137,6 +147,7 @@ void ThresholdRegisterGlobalCounters(void)
 {
     StatsRegisterGlobalCounter("detect.thresholds.memuse", ThresholdMemuseCounter);
     StatsRegisterGlobalCounter("detect.thresholds.memcap", ThresholdMemcapCounter);
+    StatsRegisterGlobalCounter("detect.thresholds.cache.memuse", ThresholdCacheMemuseCounter);
     StatsRegisterGlobalCounter("detect.thresholds.bitmap_memuse", ThresholdBitmapMemuseCounter);
     StatsRegisterGlobalCounter(
             "detect.thresholds.bitmap_alloc_fail", ThresholdBitmapAllocFailCounter);
@@ -416,6 +427,8 @@ struct ThresholdCacheThreadCtx {
     HashTable *ht;
     struct THRESHOLD_CACHE tree;
     uint64_t housekeeping_ts;
+    uint32_t entries;  /* number of entries in ht/tree, <= cache_max_entries */
+    uint64_t init_mem; /* charged fixed per-thread memory (see ThresholdCacheThreadInit) */
 
     uint64_t lookup_cnt;
     uint64_t lookup_nosupport;
@@ -426,15 +439,26 @@ struct ThresholdCacheThreadCtx {
     uint64_t housekeeping_expired;
 };
 
+/* per-thread cap on the number of decision cache entries, configured via
+ * detect.thresholds.cache.max-entries */
+#define THRESHOLD_CACHE_MAX_ENTRIES_DEFAULT 256
+#define THRESHOLD_CACHE_MAX_ENTRIES_MIN     256
+#define THRESHOLD_CACHE_MAX_ENTRIES_MAX     1048576
+static uint32_t cache_max_entries = THRESHOLD_CACHE_MAX_ENTRIES_DEFAULT;
+
+/* bytes charged to the cache memory counter per entry: the item plus the
+ * hash-table bucket allocated for it */
+#define THRESHOLD_CACHE_ENTRY_MEM (sizeof(ThresholdCacheItem) + sizeof(HashTableBucket))
+
 static SCThreadStorageId thread_storage_id = { .id = -1 };
 
 static void DumpCacheStats(struct ThresholdCacheThreadCtx *tctx)
 {
     SCLogPerf("threshold thread cache stats: cnt:%" PRIu64 " nosupport:%" PRIu64
-              " miss_expired:%" PRIu64 " miss:%" PRIu64 " hit:%" PRIu64
+              " miss_expired:%" PRIu64 " miss:%" PRIu64 " hit:%" PRIu64 ", entries:%" PRIu32
               ", housekeeping: checks:%" PRIu64 ", expired:%" PRIu64,
             tctx->lookup_cnt, tctx->lookup_nosupport, tctx->lookup_miss_expired, tctx->lookup_miss,
-            tctx->lookup_hit, tctx->housekeeping_check, tctx->housekeeping_expired);
+            tctx->lookup_hit, tctx->entries, tctx->housekeeping_check, tctx->housekeeping_expired);
 }
 
 static inline struct ThresholdCacheThreadCtx *GetThreadCtx(DetectEngineThreadCtx *det_ctx)
@@ -462,6 +486,8 @@ static void ThresholdCacheExpire(DetectEngineThreadCtx *det_ctx, SCTime_t now)
             HashTableRemove(tctx->ht, iter, 0);
             SCLogDebug("iter %p expired", iter);
             tctx->housekeeping_expired++;
+            tctx->entries--;
+            (void)SC_ATOMIC_SUB(threshold_cache_memuse, THRESHOLD_CACHE_ENTRY_MEM);
         }
 
         if (++cnt > 1)
@@ -526,6 +552,22 @@ static int SetupCache(DetectEngineThreadCtx *det_ctx, const Packet *p, const int
     };
     ThresholdCacheItem *found = HashTableLookup(tctx->ht, &lookup, 0);
     if (!found) {
+        /* the cache is bounded by cache_max_entries entries: evict the
+         * entry with the earliest expiry (head of the tree) to make room
+         * for the new one. */
+        if (tctx->entries >= cache_max_entries) {
+            ThresholdCacheItem *victim = THRESHOLD_CACHE_RB_MINMAX(&tctx->tree, RB_NEGINF);
+            if (victim == NULL) {
+                /* defensive: cannot happen while entries > 0 */
+                DEBUG_VALIDATE_BUG_ON(1);
+                return -1;
+            }
+            THRESHOLD_CACHE_RB_REMOVE(&tctx->tree, victim);
+            HashTableRemove(tctx->ht, victim, 0);
+            tctx->entries--;
+            (void)SC_ATOMIC_SUB(threshold_cache_memuse, THRESHOLD_CACHE_ENTRY_MEM);
+        }
+
         ThresholdCacheItem *n = SCCalloc(1, sizeof(*n));
         if (n) {
             n->track = track;
@@ -542,6 +584,8 @@ static int SetupCache(DetectEngineThreadCtx *det_ctx, const Packet *p, const int
                 ThresholdCacheItem *r = THRESHOLD_CACHE_RB_INSERT(&tctx->tree, n);
                 DEBUG_VALIDATE_BUG_ON(r != NULL); // duplicate; should be impossible
                 (void)r;                          // only used by DEBUG_VALIDATE_BUG_ON
+                tctx->entries++;
+                (void)SC_ATOMIC_ADD(threshold_cache_memuse, THRESHOLD_CACHE_ENTRY_MEM);
                 return 1;
             }
             SCFree(n);
@@ -604,6 +648,8 @@ static int CheckCache(DetectEngineThreadCtx *det_ctx, const Packet *p, const int
             THRESHOLD_CACHE_RB_REMOVE(&tctx->tree, found);
             HashTableRemove(tctx->ht, found, 0);
             tctx->lookup_miss_expired++;
+            tctx->entries--;
+            (void)SC_ATOMIC_SUB(threshold_cache_memuse, THRESHOLD_CACHE_ENTRY_MEM);
             return -2; // cache miss - found but expired
         }
         tctx->lookup_hit++;
@@ -618,6 +664,8 @@ static void ThresholdCacheThreadFree(void *ptr)
     if (ptr != NULL) {
         struct ThresholdCacheThreadCtx *tctx = ptr;
         DumpCacheStats(tctx);
+        (void)SC_ATOMIC_SUB(threshold_cache_memuse,
+                (uint64_t)tctx->entries * THRESHOLD_CACHE_ENTRY_MEM + tctx->init_mem);
         HashTableFree(tctx->ht);
         SCFree(tctx);
     }
@@ -629,6 +677,18 @@ static void ThresholdCacheInit(void)
     /* many tests don't manage the thread storage correctly, so skip the cache in unittests */
     if (!(RunmodeIsUnittests())) {
 #endif
+        intmax_t value = 0;
+        if (SCConfGetInt("detect.thresholds.cache.max-entries", &value) == 1) {
+            if (value < THRESHOLD_CACHE_MAX_ENTRIES_MIN ||
+                    value > THRESHOLD_CACHE_MAX_ENTRIES_MAX) {
+                SCLogError("'detect.thresholds.cache.max-entries' value %" PRIdMAX
+                           " out of range. Valid range %d-%d.",
+                        value, THRESHOLD_CACHE_MAX_ENTRIES_MIN, THRESHOLD_CACHE_MAX_ENTRIES_MAX);
+                FatalError("Invalid value for detect.thresholds.cache.max-entries");
+            }
+            cache_max_entries = (uint32_t)value;
+        }
+
         /* Register thread storage. */
         thread_storage_id = SCThreadStorageRegister("threshold_cache", ThresholdCacheThreadFree);
         if (thread_storage_id.id < 0) {
@@ -653,7 +713,13 @@ int ThresholdCacheThreadInit(DetectEngineThreadCtx *det_ctx)
 
     uint32_t seed = (uint32_t)RandomGet();
 
-    tctx->ht = HashTableInitWithSeed(256, ThresholdCacheHashFunc, ThresholdCacheHashCompareFunc,
+    uint32_t hashsize = cache_max_entries;
+    DEBUG_VALIDATE_BUG_ON(hashsize < 256);
+    uint32_t hashpow = 1;
+    while (hashpow < hashsize)
+        hashpow <<= 1;
+
+    tctx->ht = HashTableInitWithSeed(hashpow, ThresholdCacheHashFunc, ThresholdCacheHashCompareFunc,
             ThresholdCacheHashFreeFunc, seed);
     if (tctx->ht == NULL) {
         SCFree(tctx);
@@ -661,6 +727,14 @@ int ThresholdCacheThreadInit(DetectEngineThreadCtx *det_ctx)
     }
 
     RB_INIT(&tctx->tree);
+    /* charge the fixed per-thread baseline (thread context, hash table
+     * struct and the eagerly allocated bucket pointer array) so the memuse
+     * gauge reflects all cache memory in use from the moment the cache is
+     * set up, not just the entries; released symmetrically in
+     * ThresholdCacheThreadFree */
+    tctx->init_mem =
+            sizeof(*tctx) + sizeof(*tctx->ht) + (uint64_t)hashpow * sizeof(HashTableBucket *);
+    (void)SC_ATOMIC_ADD(threshold_cache_memuse, tctx->init_mem);
     SCThreadSetStorageById(det_ctx->tv, thread_storage_id, tctx);
     return 0;
 }

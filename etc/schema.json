@@ -8050,6 +8050,16 @@
                                     "type": "integer",
                                     "description": "Memory usage by detection_filter bitmaps"
                                 },
+                                "cache": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "memuse": {
+                                            "type": "integer",
+                                            "description": "Memory usage by the per-thread threshold decision cache"
+                                        }
+                                    }
+                                },
                                 "memcap": {
                                     "type": "integer",
                                     "description": "Memory cap for threshold hash table"

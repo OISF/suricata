@@ -1884,6 +1884,9 @@ detect:
   thresholds:
     hash-size: 16384
     memcap: 16 MiB
+    # Settings for per thread threshold cache.
+    cache:
+      #max-entries: 256
 
   profiling:
     # Log the rules that made it past the prefilter stage, per packet
