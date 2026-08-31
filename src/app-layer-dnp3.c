@@ -151,12 +151,13 @@ static const uint16_t crc_table[256] = {
     0x91af, 0xa7f1, 0xfd13, 0xcb4d, 0x48d7, 0x7e89, 0x246b, 0x1235
 };
 
+static DNP3Transaction *DNP3TxAlloc(DNP3State *dnp3, bool request);
+
 /**
  * \brief Compute the CRC for a buffer.
  *
  * \param buf Buffer to create CRC from.
  * \param len Length of buffer (number of bytes to use for CRC).
-
  */
 static uint16_t DNP3ComputeCRC(const uint8_t *buf, uint32_t len)
 {
@@ -469,28 +470,34 @@ static void *DNP3StateAlloc(void *orig_state, AppProto proto_orig)
 }
 
 /**
- * \brief Set a DNP3 application layer event.
- *
- * Sets an event on the current transaction object.
- */
-static void DNP3SetEvent(DNP3State *dnp3, uint8_t event)
-{
-    if (dnp3 && dnp3->curr) {
-        SCAppLayerDecoderEventsSetEventRaw(&dnp3->curr->tx_data.events, event);
-        dnp3->events++;
-    }
-    else {
-        SCLogWarning("Failed to set event, state or tx pointer was NULL.");
-    }
-}
-
-/**
  * \brief Set a DNP3 application layer event on a transaction.
  */
 static void DNP3SetEventTx(DNP3Transaction *tx, uint8_t event)
 {
     SCAppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, event);
     tx->dnp3->events++;
+}
+
+/**
+ * \brief Set a DNP3 application layer event.
+ *
+ * Sets an event on the current transaction object, allocating an event carrier
+ * transaction if necessary.
+ */
+static void DNP3SetEvent(DNP3State *dnp3, bool request, uint8_t event)
+{
+    if (dnp3 != NULL && dnp3->curr == NULL) {
+        DNP3Transaction *tx = DNP3TxAlloc(dnp3, request);
+        if (tx != NULL) {
+            tx->done = 1;
+        }
+    }
+    if (dnp3 && dnp3->curr) {
+        DNP3SetEventTx(dnp3->curr, event);
+    }
+    else {
+        SCLogWarning("Failed to set event, state or tx pointer was NULL.");
+    }
 }
 
 /**
@@ -518,7 +525,7 @@ static DNP3Transaction *DNP3TxAlloc(DNP3State *dnp3, bool request)
 
     /* Check for flood state. */
     if (dnp3->unreplied > dnp3_max_tx && !dnp3->flooded) {
-        DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_FLOODED);
+        DNP3SetEvent(dnp3, request, DNP3_DECODER_EVENT_FLOODED);
         dnp3->flooded = 1;
     }
 
@@ -962,14 +969,14 @@ static void DNP3HandleUserDataRequest(
                 input_len - sizeof(DNP3LinkHeader), &tx->buffer, &tx->buffer_len)) {
 
         /* Malformed, set event and mark as done. */
-        DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_MALFORMED);
+        DNP3SetEvent(dnp3, true, DNP3_DECODER_EVENT_MALFORMED);
         tx->done = 1;
         return;
     }
     // a data link frame has its size on one byte,
     // and transport layer has sequence in 0-63
     if (tx->buffer_len > 63 * 0xff) {
-        DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_TOO_LONG_REASS);
+        DNP3SetEvent(dnp3, true, DNP3_DECODER_EVENT_TOO_LONG_REASS);
         tx->done = 1;
         return;
     }
@@ -1047,13 +1054,13 @@ static void DNP3HandleUserDataResponse(
 
     if (!DNP3ReassembleApplicationLayer(input + sizeof(DNP3LinkHeader),
                 input_len - sizeof(DNP3LinkHeader), &tx->buffer, &tx->buffer_len)) {
-        DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_MALFORMED);
+        DNP3SetEvent(dnp3, false, DNP3_DECODER_EVENT_MALFORMED);
         return;
     }
     // a data link frame has its size on one byte,
     // and transport layer has sequence in 0-63
     if (tx->buffer_len > 63 * 0xff) {
-        DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_TOO_LONG_REASS);
+        DNP3SetEvent(dnp3, false, DNP3_DECODER_EVENT_TOO_LONG_REASS);
         tx->done = 1;
         return;
     }
@@ -1101,14 +1108,14 @@ static int DNP3HandleRequestLinkLayer(
         }
 
         if (!DNP3CheckLinkHeaderCRC(header)) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_BAD_LINK_CRC);
+            DNP3SetEvent(dnp3, true, DNP3_DECODER_EVENT_BAD_LINK_CRC);
             DNP3Resync(&input, &input_len, &processed);
             continue;
         }
 
         uint16_t frame_len = DNP3CalculateLinkLength(header->len);
         if (frame_len == 0) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
+            DNP3SetEvent(dnp3, true, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             DNP3Resync(&input, &input_len, &processed);
             continue;
         }
@@ -1125,13 +1132,13 @@ static int DNP3HandleRequestLinkLayer(
         /* Make sure the header length is large enough for transport and
          * application headers. */
         if (!DNP3HasUserData(header, STREAM_TOSERVER)) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
+            DNP3SetEvent(dnp3, true, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             goto next;
         }
 
         if (!DNP3CheckUserDataCRCs(input + sizeof(DNP3LinkHeader),
                 frame_len - sizeof(DNP3LinkHeader))) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_BAD_TRANSPORT_CRC);
+            DNP3SetEvent(dnp3, true, DNP3_DECODER_EVENT_BAD_TRANSPORT_CRC);
             goto next;
         }
 
@@ -1235,7 +1242,7 @@ static int DNP3HandleResponseLinkLayer(
         }
 
         if (!DNP3CheckLinkHeaderCRC(header)) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_BAD_LINK_CRC);
+            DNP3SetEvent(dnp3, false, DNP3_DECODER_EVENT_BAD_LINK_CRC);
             DNP3Resync(&input, &input_len, &processed);
             continue;
         }
@@ -1243,7 +1250,7 @@ static int DNP3HandleResponseLinkLayer(
         /* Calculate the number of bytes needed to for this frame. */
         uint16_t frame_len = DNP3CalculateLinkLength(header->len);
         if (frame_len == 0) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
+            DNP3SetEvent(dnp3, false, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             DNP3Resync(&input, &input_len, &processed);
             continue;
         }
@@ -1260,13 +1267,13 @@ static int DNP3HandleResponseLinkLayer(
         /* Make sure the header length is large enough for transport and
          * application headers. */
         if (!DNP3HasUserData(header, STREAM_TOCLIENT)) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
+            DNP3SetEvent(dnp3, false, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             goto next;
         }
 
         if (!DNP3CheckUserDataCRCs(input + sizeof(DNP3LinkHeader),
                 frame_len - sizeof(DNP3LinkHeader))) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_BAD_TRANSPORT_CRC);
+            DNP3SetEvent(dnp3, false, DNP3_DECODER_EVENT_BAD_TRANSPORT_CRC);
             goto next;
         }
 
