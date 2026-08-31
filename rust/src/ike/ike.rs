@@ -211,6 +211,10 @@ impl IKEState {
             Ok((rem, isakmp_header)) => {
                 current = rem;
 
+                if isakmp_header.length as usize != input.len() {
+                    return AppLayerResult::err();
+                }
+
                 if isakmp_header.maj_ver != 1 && isakmp_header.maj_ver != 2 {
                     SCLogDebug!("Unsupported ISAKMP major_version");
                     return AppLayerResult::err();
