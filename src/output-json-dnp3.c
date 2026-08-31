@@ -197,6 +197,9 @@ static void JsonDNP3LogResponse(SCJsonBuilder *js, DNP3Transaction *dnp3tx)
 bool AlertJsonDnp3(void *vtx, SCJsonBuilder *js)
 {
     DNP3Transaction *tx = (DNP3Transaction *)vtx;
+    if (tx->done && tx->buffer == NULL) {
+        return false;
+    }
     bool logged = false;
     SCJbOpenObject(js, "dnp3");
     if (tx->is_request && tx->done) {
@@ -264,6 +267,9 @@ static int JsonDNP3Logger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 {
     SCEnter();
     DNP3Transaction *tx = vtx;
+    if (tx->done && tx->buffer == NULL) {
+        SCReturnInt(TM_ECODE_OK);
+    }
     if (tx->is_request && tx->done) {
         JsonDNP3LoggerToServer(tv, thread_data, p, f, state, vtx, tx_id);
     } else if (!tx->is_request && tx->done) {

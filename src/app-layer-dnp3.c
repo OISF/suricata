@@ -526,6 +526,20 @@ static DNP3Transaction *DNP3TxAlloc(DNP3State *dnp3, bool request)
 }
 
 /**
+ * \brief Set a directional event, allocating a transaction if necessary.
+ */
+static void DNP3SetEventDirection(DNP3State *dnp3, bool request, uint8_t event)
+{
+    if (dnp3 != NULL && dnp3->curr == NULL) {
+        DNP3Transaction *tx = DNP3TxAlloc(dnp3, request);
+        if (tx != NULL) {
+            tx->done = 1;
+        }
+    }
+    DNP3SetEvent(dnp3, event);
+}
+
+/**
  * \brief Calculate the length of a link frame with CRCs.
  *
  * This is required as the length parameter in the DNP3 header does not
@@ -1101,14 +1115,14 @@ static int DNP3HandleRequestLinkLayer(
         }
 
         if (!DNP3CheckLinkHeaderCRC(header)) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_BAD_LINK_CRC);
+            DNP3SetEventDirection(dnp3, true, DNP3_DECODER_EVENT_BAD_LINK_CRC);
             DNP3Resync(&input, &input_len, &processed);
             continue;
         }
 
         uint16_t frame_len = DNP3CalculateLinkLength(header->len);
         if (frame_len == 0) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
+            DNP3SetEventDirection(dnp3, true, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             DNP3Resync(&input, &input_len, &processed);
             continue;
         }
@@ -1125,13 +1139,13 @@ static int DNP3HandleRequestLinkLayer(
         /* Make sure the header length is large enough for transport and
          * application headers. */
         if (!DNP3HasUserData(header, STREAM_TOSERVER)) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
+            DNP3SetEventDirection(dnp3, true, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             goto next;
         }
 
         if (!DNP3CheckUserDataCRCs(input + sizeof(DNP3LinkHeader),
                 frame_len - sizeof(DNP3LinkHeader))) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_BAD_TRANSPORT_CRC);
+            DNP3SetEventDirection(dnp3, true, DNP3_DECODER_EVENT_BAD_TRANSPORT_CRC);
             goto next;
         }
 
@@ -1235,7 +1249,7 @@ static int DNP3HandleResponseLinkLayer(
         }
 
         if (!DNP3CheckLinkHeaderCRC(header)) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_BAD_LINK_CRC);
+            DNP3SetEventDirection(dnp3, false, DNP3_DECODER_EVENT_BAD_LINK_CRC);
             DNP3Resync(&input, &input_len, &processed);
             continue;
         }
@@ -1243,7 +1257,7 @@ static int DNP3HandleResponseLinkLayer(
         /* Calculate the number of bytes needed to for this frame. */
         uint16_t frame_len = DNP3CalculateLinkLength(header->len);
         if (frame_len == 0) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
+            DNP3SetEventDirection(dnp3, false, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             DNP3Resync(&input, &input_len, &processed);
             continue;
         }
@@ -1260,13 +1274,13 @@ static int DNP3HandleResponseLinkLayer(
         /* Make sure the header length is large enough for transport and
          * application headers. */
         if (!DNP3HasUserData(header, STREAM_TOCLIENT)) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
+            DNP3SetEventDirection(dnp3, false, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
             goto next;
         }
 
         if (!DNP3CheckUserDataCRCs(input + sizeof(DNP3LinkHeader),
                 frame_len - sizeof(DNP3LinkHeader))) {
-            DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_BAD_TRANSPORT_CRC);
+            DNP3SetEventDirection(dnp3, false, DNP3_DECODER_EVENT_BAD_TRANSPORT_CRC);
             goto next;
         }
 
