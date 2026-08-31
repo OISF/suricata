@@ -7330,6 +7330,22 @@
                         "mpm_list": {
                             "type": "integer",
                             "description": "If profiling is enabled, average count of signatures in the mpm prefilter list"
+                        },
+                        "thresholds": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "cache": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "memuse": {
+                                            "type": "integer",
+                                            "description": "Memory usage by the per-thread threshold decision cache"
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 },

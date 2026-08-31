@@ -30,6 +30,7 @@
 
 void ThresholdInit(void);
 void ThresholdDestroy(void);
+void ThresholdRegisterGlobalCounters(void);
 
 uint32_t ThresholdsExpire(const SCTime_t ts);
 

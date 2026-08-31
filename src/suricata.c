@@ -2332,6 +2332,7 @@ void PreRunInit(const int runmode)
     AppLayerParserPostStreamSetup();
     AppLayerRegisterGlobalCounters();
     OutputFilestoreRegisterGlobalCounters();
+    ThresholdRegisterGlobalCounters();
     HttpRangeContainersInit();
 }
 
