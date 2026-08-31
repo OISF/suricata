@@ -831,11 +831,8 @@ impl SMBState {
 
     pub fn new_tx(&mut self) -> Option<SMBTransaction> {
         if self.transactions.len() >= unsafe { SMB_MAX_TX } {
-            // Refuse to create a transaction once the list is at the limit. This
-            // bounds the number of transactions a single input can create, no
-            // matter the path (compound records, dcerpc, ...). Callers stop
-            // using the transaction and the parser puts the flow into an error
-            // state (see issue 8629).
+            // Refuse to create a tx once the list is at the limit: bounds the
+            // transactions a single input can create (any path); flow errors out.
             self.set_event(SMBEvent::TooManyTransactions);
             return None;
         }
@@ -1537,9 +1534,8 @@ impl SMBState {
     pub fn parse_tcp_data_ts(
         &mut self, flow: *mut Flow, stream_slice: &StreamSlice,
     ) -> AppLayerResult {
-        // The transaction list is full: new_tx() is refusing to create more, so
-        // put the flow into an error state and stop processing it (see issue
-        // 8629).
+        // The transaction list is full: new_tx() refuses, so error the flow and stop
+        // processing it (see issue 8629).
         if self.transactions.len() >= unsafe { SMB_MAX_TX } {
             self.set_event(SMBEvent::TooManyTransactions);
             return AppLayerResult::err();
@@ -2098,9 +2094,8 @@ impl SMBState {
     pub fn parse_tcp_data_tc(
         &mut self, flow: *mut Flow, stream_slice: &StreamSlice,
     ) -> AppLayerResult {
-        // The transaction list is full: new_tx() is refusing to create more, so
-        // put the flow into an error state and stop processing it (see issue
-        // 8629).
+        // The transaction list is full: new_tx() refuses, so error the flow and stop
+        // processing it (see issue 8629).
         if self.transactions.len() >= unsafe { SMB_MAX_TX } {
             self.set_event(SMBEvent::TooManyTransactions);
             return AppLayerResult::err();
@@ -2367,11 +2362,6 @@ impl SMBState {
             let gap = vec![0; new_gap_size as usize];
 
             let consumed2 = self.filetracker_update(Direction::ToServer, &gap, new_gap_size);
-            if consumed2 == new_gap_size {
-                /* no need to tag ssn as gap'd as we got it in our file logic. */
-                return AppLayerResult::ok();
-            }
-
             if consumed2 > new_gap_size {
                 SCLogDebug!(
                     "consumed more than GAP size: {} > {}",
@@ -2383,6 +2373,8 @@ impl SMBState {
             }
         }
 
+        // A gap reaching the file tracker grew OOO state (even if fully consumed):
+        // tag the session gapped -- the backstop is gated on this flag.
         self.ts_ssn_gap = true;
         self.ts_gap = true;
         return AppLayerResult::ok();
@@ -2403,11 +2395,6 @@ impl SMBState {
             let gap = vec![0; new_gap_size as usize];
 
             let consumed2 = self.filetracker_update(Direction::ToClient, &gap, new_gap_size);
-            if consumed2 == new_gap_size {
-                /* no need to tag ssn as gap'd as we got it in our file logic. */
-                return AppLayerResult::ok();
-            }
-
             if consumed2 > new_gap_size {
                 SCLogDebug!(
                     "consumed more than GAP size: {} > {}",
@@ -2419,6 +2406,8 @@ impl SMBState {
             }
         }
 
+        // A gap reaching the file tracker grew OOO state (even if fully consumed):
+        // tag the session gapped -- the backstop is gated on this flag.
         self.tc_ssn_gap = true;
         self.tc_gap = true;
         return AppLayerResult::ok();

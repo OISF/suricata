@@ -20,6 +20,7 @@ use crate::core::*;
 use crate::direction::Direction;
 use crate::filetracker::*;
 use crate::smb::events::SMBEvent;
+use crate::smb::smb::{SMB_CFG_MAX_READ_QUEUE_SIZE, SMB_CFG_MAX_WRITE_QUEUE_SIZE};
 use std;
 
 use crate::smb::smb::*;
@@ -173,6 +174,21 @@ impl SMBState {
         return None;
     }
 
+    /// OOO-queue backstop (bytes): configured queue size, or a 1 GiB hard
+    /// cap (16x the 64 MiB default) when limits are disabled.
+    pub fn ooo_queue_backstop(direction: Direction) -> u64 {
+        let queue_size = if direction == Direction::ToClient {
+            unsafe { SMB_CFG_MAX_READ_QUEUE_SIZE }
+        } else {
+            unsafe { SMB_CFG_MAX_WRITE_QUEUE_SIZE }
+        };
+        if queue_size != 0 {
+            u64::from(queue_size)
+        } else {
+            1 << 30 // 1 GiB hard backstop when the limits are disabled
+        }
+    }
+
     // update in progress chunks for file transfers
     // return how much data we consumed
     pub fn filetracker_update(&mut self, direction: Direction, data: &[u8], gap_size: u32) -> u32 {
@@ -181,15 +197,44 @@ impl SMBState {
         } else {
             self.file_tc_left
         };
-        if chunk_left == 0 {
-            return 0;
-        }
-        SCLogDebug!("chunk_left {} data {}", chunk_left, data.len());
         let file_handle = if direction == Direction::ToServer {
             self.file_ts_guid.to_vec()
         } else {
             self.file_tc_guid.to_vec()
         };
+
+        let ssn_gap = self.ts_ssn_gap | self.tc_ssn_gap;
+        // Backstop truncated the file on this call? The check runs even
+        // with chunk_left == 0: after a gap, whole records arrive at once
+        // and the queue can grow via new_chunk.
+        let mut truncated = false;
+        if ssn_gap {
+            if let Some(tx) = self.get_file_tx_by_fuid(&file_handle, direction) {
+                if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                    // Last-resort cap for OOO data in gapped streams: configured
+                    // size/count (1 GiB / 1024 when limits are off).
+                    let backstop = Self::ooo_queue_backstop(direction);
+                    let queued_data = tdf.file_tracker.get_queued_size();
+                    if queued_data > backstop {
+                        SCLogDebug!(
+                            "QUEUED size {} > backstop {} while we've seen GAPs. Truncating file.",
+                            queued_data,
+                            backstop
+                        );
+                        filetracker_trunc(&mut tdf.file_tracker);
+                        truncated = true;
+                    }
+                }
+            }
+        }
+        if truncated {
+            self.set_event(SMBEvent::TruncatedFileData);
+        }
+
+        if chunk_left == 0 {
+            return 0;
+        }
+        SCLogDebug!("chunk_left {} data {}", chunk_left, data.len());
 
         let data_to_handle_len = if chunk_left as usize >= data.len() {
             data.len()
@@ -209,23 +254,10 @@ impl SMBState {
             self.file_tc_left = chunk_left;
         }
 
-        let ssn_gap = self.ts_ssn_gap | self.tc_ssn_gap;
         // get the tx and update it
         let consumed = match self.get_file_tx_by_fuid(&file_handle, direction) {
             Some(tx) => {
                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                    if ssn_gap {
-                        let queued_data = tdf.file_tracker.get_queued_size();
-                        if queued_data > 2000000 {
-                            // TODO should probably be configurable
-                            SCLogDebug!(
-                                "QUEUED size {} while we've seen GAPs. Truncating file.",
-                                queued_data
-                            );
-                            filetracker_trunc(&mut tdf.file_tracker);
-                        }
-                    }
-
                     // reset timestamp if we get called after a gap
                     if tdf.post_gap_ts > 0 {
                         tdf.post_gap_ts = 0;
@@ -298,4 +330,44 @@ pub(super) unsafe extern "C" fn smb_gettxfiles(
         }
     }
     AppLayerGetFileState::err()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ooo_queue_backstop_thresholds() {
+        // defaults: 64 MiB queue caps in both directions
+        assert_eq!(SMBState::ooo_queue_backstop(Direction::ToClient), 67108864);
+        assert_eq!(SMBState::ooo_queue_backstop(Direction::ToServer), 67108864);
+
+        // enabled (non-zero) queue size: the backstop follows it
+        unsafe {
+            SMB_CFG_MAX_READ_QUEUE_SIZE = 4096;
+        }
+        unsafe {
+            SMB_CFG_MAX_WRITE_QUEUE_SIZE = 8192;
+        }
+        assert_eq!(SMBState::ooo_queue_backstop(Direction::ToClient), 4096);
+        assert_eq!(SMBState::ooo_queue_backstop(Direction::ToServer), 8192);
+
+        // disabled (0) queue size: the 1 GiB hard cap applies
+        unsafe {
+            SMB_CFG_MAX_READ_QUEUE_SIZE = 0;
+        }
+        unsafe {
+            SMB_CFG_MAX_WRITE_QUEUE_SIZE = 0;
+        }
+        assert_eq!(SMBState::ooo_queue_backstop(Direction::ToClient), 1 << 30);
+        assert_eq!(SMBState::ooo_queue_backstop(Direction::ToServer), 1 << 30);
+
+        // restore defaults
+        unsafe {
+            SMB_CFG_MAX_READ_QUEUE_SIZE = 67108864;
+        }
+        unsafe {
+            SMB_CFG_MAX_WRITE_QUEUE_SIZE = 67108864;
+        }
+    }
 }
