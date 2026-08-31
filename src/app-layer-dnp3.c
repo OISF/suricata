@@ -598,6 +598,30 @@ static int DNP3HasUserData(const DNP3LinkHeader *header, uint8_t direction)
 }
 
 /**
+ * \brief Advance past invalid input to the next possible DNP3 frame.
+ */
+static void DNP3Resync(const uint8_t **input, uint32_t *input_len, uint32_t *processed)
+{
+    uint32_t skip = 1;
+
+    while (skip + 1 < *input_len) {
+        if ((*input)[skip] == DNP3_START_BYTE0 && (*input)[skip + 1] == DNP3_START_BYTE1) {
+            break;
+        }
+        skip++;
+    }
+
+    /* Consume the final byte unless the next TCP slice could complete its start marker. */
+    if (skip < *input_len && (*input)[skip] != DNP3_START_BYTE0) {
+        skip++;
+    }
+
+    *input += skip;
+    *input_len -= skip;
+    *processed += skip;
+}
+
+/**
  * \brief Reset a DNP3Buffer.
  */
 static void DNP3BufferReset(DNP3Buffer *buffer)
@@ -1072,18 +1096,21 @@ static int DNP3HandleRequestLinkLayer(
         DNP3LinkHeader *header = (DNP3LinkHeader *)input;
 
         if (!DNP3CheckStartBytes(header)) {
-            goto error;
+            /* Terminal error condition. */
+            SCReturnInt(-1);
         }
 
         if (!DNP3CheckLinkHeaderCRC(header)) {
             DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_BAD_LINK_CRC);
-            goto error;
+            DNP3Resync(&input, &input_len, &processed);
+            continue;
         }
 
         uint16_t frame_len = DNP3CalculateLinkLength(header->len);
         if (frame_len == 0) {
             DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
-            goto error;
+            DNP3Resync(&input, &input_len, &processed);
+            continue;
         }
         if (input_len < frame_len) {
             /* Insufficient data, just break - will wait for more data. */
@@ -1118,10 +1145,6 @@ static int DNP3HandleRequestLinkLayer(
     }
 
     SCReturnInt(processed);
-error:
-    /* Error out. Should only happen if this doesn't look like a DNP3
-     * frame. */
-    SCReturnInt(-1);
 }
 
 /**
@@ -1207,19 +1230,22 @@ static int DNP3HandleResponseLinkLayer(
         DNP3LinkHeader *header = (DNP3LinkHeader *)input;
 
         if (!DNP3CheckStartBytes(header)) {
-            goto error;
+            /* Terminal error condition. */
+            SCReturnInt(-1);
         }
 
         if (!DNP3CheckLinkHeaderCRC(header)) {
             DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_BAD_LINK_CRC);
-            goto error;
+            DNP3Resync(&input, &input_len, &processed);
+            continue;
         }
 
         /* Calculate the number of bytes needed to for this frame. */
         uint16_t frame_len = DNP3CalculateLinkLength(header->len);
         if (frame_len == 0) {
             DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
-            goto error;
+            DNP3Resync(&input, &input_len, &processed);
+            continue;
         }
         if (input_len < frame_len) {
             /* Insufficient data, just break - will wait for more data. */
@@ -1235,7 +1261,7 @@ static int DNP3HandleResponseLinkLayer(
          * application headers. */
         if (!DNP3HasUserData(header, STREAM_TOCLIENT)) {
             DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
-            goto error;
+            goto next;
         }
 
         if (!DNP3CheckUserDataCRCs(input + sizeof(DNP3LinkHeader),
@@ -1254,10 +1280,6 @@ static int DNP3HandleResponseLinkLayer(
     }
 
     SCReturnInt(processed);
-error:
-    /* Error out. Should only happen if the data stream no longer
-     * looks like DNP3. */
-    SCReturnInt(-1);
 }
 
 /**
@@ -2663,7 +2685,7 @@ static int DNP3ParserIncorrectUserData(void)
     int r = AppLayerParserParse(NULL, alp_tctx, &flow, ALPROTO_DNP3,
                                 STREAM_TOCLIENT, packet_bytes, sizeof(packet_bytes));
 
-    FAIL_IF(r == 0);
+    FAIL_IF(r != 0);
 
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
