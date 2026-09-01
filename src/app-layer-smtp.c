@@ -1078,8 +1078,20 @@ static int SMTPProcessReply(
             SMTPSetEvent(state, SMTP_DECODER_EVENT_DATA_COMMAND_REJECTED);
         }
     } else if (IsReplyToCommand(state, SMTP_COMMAND_BDAT)) {
+        if ((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) &&
+                state->current_command == SMTP_COMMAND_BDAT &&
+                state->cmds_idx + 1 == state->cmds_cnt) {
+            // The server replied before receiving the entire chunk.
+            state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
+        }
         SMTPSetProgressTC(reply_tx, SMTP_RESPONSE_DATA);
     } else if (IsReplyToCommand(state, SMTP_COMMAND_BDAT_LAST)) {
+        if ((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) &&
+                state->current_command == SMTP_COMMAND_BDAT_LAST &&
+                state->cmds_idx + 1 == state->cmds_cnt) {
+            // The server replied before receiving the entire chunk.
+            state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
+        }
         if (reply_tx && !(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
             SMTPTransactionCompleteTC(reply_tx);
         }
