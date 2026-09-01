@@ -357,7 +357,11 @@ inline int PacketCopyDataOffset(Packet *p, uint32_t offset, const uint8_t *data,
             memcpy(GET_PKT_DIRECT_DATA(p) + offset, data, datalen);
         } else {
             /* here we need a dynamic allocation */
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+            p->ext_pkt = SCMalloc(offset + datalen);
+#else
             p->ext_pkt = SCMalloc(MAX_PAYLOAD_SIZE);
+#endif
             if (unlikely(p->ext_pkt == NULL)) {
                 SET_PKT_LEN(p, 0);
                 return -1;
@@ -497,6 +501,14 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
     /* tell new packet it's part of a tunnel */
     p->ttype = PacketTunnelChild;
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    if (!p->ext_pkt) {
+        p->ext_pkt = SCMalloc(MAX_PAYLOAD_SIZE);
+        if (unlikely(p->ext_pkt == NULL)) {
+            FatalError("Failed to allocate fuzzing ext_pkt");
+        }
+    }
+#endif
     /* copy packet and set length, proto */
     if (pkt && len) {
         PacketCopyData(p, pkt, len);
