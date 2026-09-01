@@ -28,6 +28,7 @@ const char configNoChecksum[] = "\
 pcap-file:\n\
 \n\
   checksum-checks: no\n\
+default-packet-size: 0\n\
 ";
 
 ThreadVars *tv;
