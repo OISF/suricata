@@ -189,6 +189,22 @@ impl SMBState {
         }
     }
 
+    /// OOO-queue backstop (chunk count): configured count, or a 1024 hard
+    /// cap (16x the default 64) when limits are off; chunks carry per-entry
+    /// overhead independent of size.
+    pub fn ooo_queue_backstop_cnt(direction: Direction) -> u64 {
+        let queue_cnt = if direction == Direction::ToClient {
+            unsafe { SMB_CFG_MAX_READ_QUEUE_CNT }
+        } else {
+            unsafe { SMB_CFG_MAX_WRITE_QUEUE_CNT }
+        };
+        if queue_cnt != 0 {
+            u64::from(queue_cnt)
+        } else {
+            1024 // hard chunk-count backstop when the limits are disabled
+        }
+    }
+
     // update in progress chunks for file transfers
     // return how much data we consumed
     pub fn filetracker_update(&mut self, direction: Direction, data: &[u8], gap_size: u32) -> u32 {
@@ -204,31 +220,36 @@ impl SMBState {
         };
 
         let ssn_gap = self.ts_ssn_gap | self.tc_ssn_gap;
-        // Backstop truncated the file on this call? The check runs even
-        // with chunk_left == 0: after a gap, whole records arrive at once
-        // and the queue can grow via new_chunk.
-        let mut truncated = false;
+        // Backstop: cap the OOO queue on every open file tx (an interleaved
+        // handle can hide a first file's queue), running even with chunk_left == 0.
         if ssn_gap {
-            if let Some(tx) = self.get_file_tx_by_fuid(&file_handle, direction) {
+            // Last-resort cap for OOO data in gapped streams: configured
+            // size/count (1 GiB / 1024 when limits are off).
+            let backstop = Self::ooo_queue_backstop(direction);
+            let cnt_backstop = Self::ooo_queue_backstop_cnt(direction);
+            for tx in &mut self.transactions {
                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                    // Last-resort cap for OOO data in gapped streams: configured
-                    // size/count (1 GiB / 1024 when limits are off).
-                    let backstop = Self::ooo_queue_backstop(direction);
-                    let queued_data = tdf.file_tracker.get_queued_size();
-                    if queued_data > backstop {
-                        SCLogDebug!(
-                            "QUEUED size {} > backstop {} while we've seen GAPs. Truncating file.",
-                            queued_data,
-                            backstop
-                        );
-                        filetracker_trunc(&mut tdf.file_tracker);
-                        truncated = true;
+                    if tdf.direction == direction && !tdf.file_tracker.is_done() {
+                        let queued_data = tdf.file_tracker.get_queued_size();
+                        let queued_cnt = tdf.file_tracker.get_inflight_cnt() as u64;
+                        if queued_data > backstop || queued_cnt > cnt_backstop {
+                            SCLogDebug!(
+                                "QUEUED size {} / count {} > backstop {} / {} while we've seen GAPs. Truncating file.",
+                                queued_data,
+                                queued_cnt,
+                                backstop,
+                                cnt_backstop
+                            );
+                            filetracker_trunc(&mut tdf.file_tracker);
+                            // Attribute the truncation to the file tx
+                            // actually truncated (not the newest tx).
+                            tx.set_event(SMBEvent::TruncatedFileData);
+                            tx.tx_data.0.updated_ts = true;
+                            tx.tx_data.0.updated_tc = true;
+                        }
                     }
                 }
             }
-        }
-        if truncated {
-            self.set_event(SMBEvent::TruncatedFileData);
         }
 
         if chunk_left == 0 {
@@ -368,6 +389,41 @@ mod tests {
         }
         unsafe {
             SMB_CFG_MAX_WRITE_QUEUE_SIZE = 67108864;
+        }
+    }
+
+    #[test]
+    fn test_ooo_queue_backstop_cnt_thresholds() {
+        // defaults: 64 chunks in both directions
+        assert_eq!(SMBState::ooo_queue_backstop_cnt(Direction::ToClient), 64);
+        assert_eq!(SMBState::ooo_queue_backstop_cnt(Direction::ToServer), 64);
+
+        // enabled (non-zero) queue count: the backstop follows it
+        unsafe {
+            SMB_CFG_MAX_READ_QUEUE_CNT = 16;
+        }
+        unsafe {
+            SMB_CFG_MAX_WRITE_QUEUE_CNT = 32;
+        }
+        assert_eq!(SMBState::ooo_queue_backstop_cnt(Direction::ToClient), 16);
+        assert_eq!(SMBState::ooo_queue_backstop_cnt(Direction::ToServer), 32);
+
+        // disabled (0) queue count: the 1024 hard cap applies
+        unsafe {
+            SMB_CFG_MAX_READ_QUEUE_CNT = 0;
+        }
+        unsafe {
+            SMB_CFG_MAX_WRITE_QUEUE_CNT = 0;
+        }
+        assert_eq!(SMBState::ooo_queue_backstop_cnt(Direction::ToClient), 1024);
+        assert_eq!(SMBState::ooo_queue_backstop_cnt(Direction::ToServer), 1024);
+
+        // restore defaults
+        unsafe {
+            SMB_CFG_MAX_READ_QUEUE_CNT = 64;
+        }
+        unsafe {
+            SMB_CFG_MAX_WRITE_QUEUE_CNT = 64;
         }
     }
 }
