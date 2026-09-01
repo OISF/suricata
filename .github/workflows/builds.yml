@@ -3443,7 +3443,7 @@ jobs:
         with:
           name: prep
           path: prep
-      - uses: vmactions/freebsd-vm@77ed28d336d03fe19a3f4f7266c1d2c4714dd79d
+      - uses: vmactions/freebsd-vm@f0552d3b69211736abd97f02ff3d4674c56b73b1
         with:
           release: "15.0"
           arch: x86_64
