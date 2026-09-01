@@ -514,6 +514,7 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
         PacketCopyData(p, pkt, len);
     }
     p->recursion_level = parent->recursion_level; /* NOT incremented */
+    p->nb_decoded_layers = parent->nb_decoded_layers;
     p->ts = parent->ts;
     p->tenant_id = parent->tenant_id;
     memcpy(&p->vlan_id[0], &parent->vlan_id[0], sizeof(p->vlan_id));
