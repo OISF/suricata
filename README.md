@@ -128,7 +128,7 @@ warnings can be disabled. In some exceptional cases the only
 'solution' is to refactor the code to work around a static code
 checker limitation false positive. While frustrating, we prefer this
 over leaving warnings in the output. Warnings tend to get ignored and
-then increase risk of hiding other warnings.
+then increase the risk of hiding other warnings.
 
 __Q: I think your QA test is wrong__
 
