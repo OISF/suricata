@@ -377,9 +377,9 @@ impl PgsqlState {
 
         // If there was gap, check we can sync up again.
         if self.request_gap {
-            if parser::parse_request(input).is_ok() {
-                // The parser now needs to decide what to do as we are not in sync.
-                // For now, we'll just try again next time.
+            if parser::parse_request(input).is_err() {
+                // We are not yet in sync with a frontend message header;
+                // try again on the next chunk
                 SCLogDebug!("Suricata interprets there's a gap in the request");
                 return AppLayerResult::ok();
             }
@@ -1056,6 +1056,63 @@ mod test {
         assert_eq!(state.state_progress, ok_state);
 
         // TODO add test for startup request
+    }
+
+    #[test]
+    fn test_request_gap_resync() {
+        let mut state = PgsqlState::new();
+        // an SSL Request
+        let buf: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0x04, 0xd2, 0x16, 0x2f];
+
+        state.on_request_gap(42);
+        state.parse_request(std::ptr::null_mut(), buf);
+        assert!(!state.request_gap);
+        assert_eq!(state.state_progress, PgsqlStateProgress::SSLRequestReceived);
+    }
+
+    #[test]
+    fn test_request_gap_no_resync() {
+        // a truncated SSL Request: the chunk starts on a valid message header,
+        // but the message runs past the end of the chunk
+        let buf: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0x04, 0xd2, 0x16, 0x2f];
+
+        let mut state = PgsqlState::new();
+        state.on_request_gap(42);
+        let r = state.parse_request(std::ptr::null_mut(), &buf[0..3]);
+
+        // still out of sync: the chunk is consumed and dropped, and we wait
+        // for the next one
+        assert_eq!(
+            r,
+            AppLayerResult {
+                status: 0,
+                consumed: 0,
+                needed: 0
+            }
+        );
+        assert!(state.request_gap);
+        assert_eq!(state.state_progress, PgsqlStateProgress::IdleState);
+        assert!(state.transactions.is_empty());
+
+        // the same bytes, with no gap to recover from, are kept for reassembly
+        let mut state = PgsqlState::new();
+        let r = state.parse_request(std::ptr::null_mut(), &buf[0..3]);
+        assert_eq!(
+            r,
+            AppLayerResult {
+                status: 1,
+                consumed: 0,
+                needed: 4
+            }
+        );
+
+        // bytes from the middle of a message don't sync up either
+        let mid_message: &[u8] = b"ECT * FROM secrets;";
+        let mut state = PgsqlState::new();
+        state.on_request_gap(42);
+        state.parse_request(std::ptr::null_mut(), mid_message);
+        assert!(state.request_gap);
+        assert!(state.transactions.is_empty());
     }
 
     #[test]
