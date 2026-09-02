@@ -565,7 +565,8 @@ pub unsafe extern "C" fn SCHttp2TxGetHost(
                 *buffer_len = v.len() as u32;
             }
             Http2Header::Multiple(v) => {
-                tbuf.data = v;
+                tbuf.data.clear();
+                tbuf.data.extend_from_slice(&v);
                 *buffer = tbuf.data.as_ptr(); //unsafe
                 *buffer_len = tbuf.data.len() as u32;
             }
@@ -656,7 +657,8 @@ pub unsafe extern "C" fn SCHttp2TxGetHostNorm(
                 *buffer_len = v.len() as u32;
             }
             Http2Header::Multiple(v) => {
-                tbuf.data = v;
+                tbuf.data.clear();
+                tbuf.data.extend_from_slice(&v);
                 *buffer = tbuf.data.as_ptr(); //unsafe
                 *buffer_len = tbuf.data.len() as u32;
             }
@@ -678,7 +680,8 @@ pub unsafe extern "C" fn SCHttp2TxGetUserAgent(
                 *buffer_len = v.len() as u32;
             }
             Http2Header::Multiple(v) => {
-                tbuf.data = v;
+                tbuf.data.clear();
+                tbuf.data.extend_from_slice(&v);
                 *buffer = tbuf.data.as_ptr(); //unsafe
                 *buffer_len = tbuf.data.len() as u32;
             }
@@ -714,7 +717,8 @@ pub unsafe extern "C" fn SCHttp2TxGetCookie(
                     *buffer_len = v.len() as u32;
                 }
                 Http2Header::Multiple(v) => {
-                    tbuf.data = v;
+                    tbuf.data.clear();
+                    tbuf.data.extend_from_slice(&v);
                     *buffer = tbuf.data.as_ptr(); //unsafe
                     *buffer_len = tbuf.data.len() as u32;
                 }
@@ -729,7 +733,8 @@ pub unsafe extern "C" fn SCHttp2TxGetCookie(
                 *buffer_len = v.len() as u32;
             }
             Http2Header::Multiple(v) => {
-                tbuf.data = v;
+                tbuf.data.clear();
+                tbuf.data.extend_from_slice(&v);
                 *buffer = tbuf.data.as_ptr(); //unsafe
                 *buffer_len = tbuf.data.len() as u32;
             }
@@ -755,7 +760,8 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaderValue(
                     *buffer_len = v.len() as u32;
                 }
                 Http2Header::Multiple(v) => {
-                    tbuf.data = v;
+                    tbuf.data.clear();
+                    tbuf.data.extend_from_slice(&v);
                     *buffer = tbuf.data.as_ptr(); //unsafe
                     *buffer_len = tbuf.data.len() as u32;
                 }
@@ -766,14 +772,14 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaderValue(
     return 0;
 }
 
-fn http2_escape_header(blocks: &[parser::HTTP2FrameHeaderBlock], i: u32) -> Vec<u8> {
+fn http2_escape_header(blocks: &[parser::HTTP2FrameHeaderBlock], i: u32, vec: &mut Vec<u8>) {
     //minimum size + 2 for escapes
     let normalsize = blocks[i as usize].value.len() + 2 + blocks[i as usize].name.len();
-    let mut vec = Vec::with_capacity(normalsize);
+    vec.clear();
+    vec.reserve(normalsize);
     vec.extend_from_slice(&blocks[i as usize].name);
     vec.extend_from_slice(b": ");
     vec.extend_from_slice(&blocks[i as usize].value);
-    return vec;
 }
 
 #[no_mangle]
@@ -929,18 +935,16 @@ pub unsafe extern "C" fn SCHttp2TxGetHeader(
     let tbuf = cast_pointer!(tbuf, Http2ThreadMultiBuf);
     let tx = cast_pointer!(tx, HTTP2Transaction);
     let mut pos = 0_u32;
-    if nb == 0 {
-        tbuf.data.clear();
-    }
     match direction.into() {
         Direction::ToServer => {
             for i in 0..tx.frames_ts.len() {
                 if let Some(blocks) = http2_header_blocks(&tx.frames_ts[i]) {
                     if nb < pos + blocks.len() as u32 {
-                        let ehdr = http2_escape_header(blocks, nb - pos);
-                        tbuf.data.push(ehdr);
-                        let idx = tbuf.data.len() - 1;
-                        let value = &tbuf.data[idx];
+                        if nb as usize == tbuf.data.len() {
+                            tbuf.data.push(Vec::new());
+                        }
+                        let value = &mut tbuf.data[nb as usize];
+                        http2_escape_header(blocks, nb - pos, value);
                         *buffer = value.as_ptr(); //unsafe
                         *buffer_len = value.len() as u32;
                         return true;
@@ -954,10 +958,11 @@ pub unsafe extern "C" fn SCHttp2TxGetHeader(
             for i in 0..tx.frames_tc.len() {
                 if let Some(blocks) = http2_header_blocks(&tx.frames_tc[i]) {
                     if nb < pos + blocks.len() as u32 {
-                        let ehdr = http2_escape_header(blocks, nb - pos);
-                        tbuf.data.push(ehdr);
-                        let idx = tbuf.data.len() - 1;
-                        let value = &tbuf.data[idx];
+                        if nb as usize == tbuf.data.len() {
+                            tbuf.data.push(Vec::new());
+                        }
+                        let value = &mut tbuf.data[nb as usize];
+                        http2_escape_header(blocks, nb - pos, value);
                         *buffer = value.as_ptr(); //unsafe
                         *buffer_len = value.len() as u32;
                         return true;
