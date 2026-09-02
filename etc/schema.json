@@ -4263,8 +4263,7 @@
                             }
                         },
                         "properties": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/$defs/mqtt.properties"
                         },
                         "qos": {
                             "type": "integer"
@@ -4330,8 +4329,7 @@
                             "type": "string"
                         },
                         "properties": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/$defs/mqtt.properties"
                         },
                         "protocol_string": {
                             "type": "string"
@@ -4366,8 +4364,7 @@
                                     "type": "string"
                                 },
                                 "properties": {
-                                    "type": "object",
-                                    "additionalProperties": true
+                                    "$ref": "#/$defs/mqtt.properties"
                                 },
                                 "topic": {
                                     "type": "string"
@@ -4389,8 +4386,7 @@
                             }
                         },
                         "properties": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/$defs/mqtt.properties"
                         },
                         "qos": {
                             "type": "integer"
@@ -4478,6 +4474,9 @@
                         "message_id": {
                             "type": "integer"
                         },
+                        "properties": {
+                            "$ref": "#/$defs/mqtt.properties"
+                        },
                         "qos": {
                             "type": "integer"
                         },
@@ -4513,6 +4512,9 @@
                         },
                         "message_id": {
                             "type": "integer"
+                        },
+                        "properties": {
+                            "$ref": "#/$defs/mqtt.properties"
                         },
                         "qos": {
                             "type": "integer"
@@ -4554,8 +4556,7 @@
                             "type": "integer"
                         },
                         "properties": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/$defs/mqtt.properties"
                         },
                         "qos": {
                             "type": "integer"
@@ -4594,6 +4595,9 @@
                         "message_id": {
                             "type": "integer"
                         },
+                        "properties": {
+                            "$ref": "#/$defs/mqtt.properties"
+                        },
                         "qos": {
                             "type": "integer"
                         },
@@ -4629,6 +4633,9 @@
                         },
                         "message_id": {
                             "type": "integer"
+                        },
+                        "properties": {
+                            "$ref": "#/$defs/mqtt.properties"
                         },
                         "qos": {
                             "type": "integer"
@@ -4700,6 +4707,9 @@
                         },
                         "message_id": {
                             "type": "integer"
+                        },
+                        "properties": {
+                            "$ref": "#/$defs/mqtt.properties"
                         },
                         "qos": {
                             "type": "integer"
@@ -9853,6 +9863,110 @@
                 "reject_both": {
                     "type": "integer",
                     "minimum": 0
+                }
+            }
+        },
+        "mqtt.properties": {
+            "type": "object",
+            "additionalProperties": false,
+            "$comment": "MQTT 5.0 properties, see MQTTProperty in rust/src/mqtt/mqtt_property.rs",
+            "properties": {
+                "assigned_client_identifier": {
+                    "type": "string"
+                },
+                "authentication_data": {
+                    "type": "string"
+                },
+                "authentication_method": {
+                    "type": "string"
+                },
+                "content_type": {
+                    "type": "string"
+                },
+                "correlation_data": {
+                    "type": "string"
+                },
+                "maximum_packet_size": {
+                    "type": "integer"
+                },
+                "maximum_qos": {
+                    "type": "integer"
+                },
+                "message_expiry_interval": {
+                    "type": "integer"
+                },
+                "payload_format_indicator": {
+                    "type": "integer"
+                },
+                "reason_string": {
+                    "type": "string"
+                },
+                "receive_maximum": {
+                    "type": "integer"
+                },
+                "request_problem_information": {
+                    "type": "integer"
+                },
+                "request_response_information": {
+                    "type": "integer"
+                },
+                "response_information": {
+                    "type": "string"
+                },
+                "response_topic": {
+                    "type": "string"
+                },
+                "retain_available": {
+                    "type": "integer"
+                },
+                "server_keep_alive": {
+                    "type": "integer"
+                },
+                "server_reference": {
+                    "type": "string"
+                },
+                "session_expiry_interval": {
+                    "type": "integer"
+                },
+                "shared_subscription_available": {
+                    "type": "integer"
+                },
+                "subscription_identifier": {
+                    "type": "integer"
+                },
+                "subscription_identifier_available": {
+                    "type": "integer"
+                },
+                "topic_alias": {
+                    "type": "integer"
+                },
+                "topic_alias_maximum": {
+                    "type": "integer"
+                },
+                "user_properties": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                            "key",
+                            "value"
+                        ],
+                        "properties": {
+                            "key": {
+                                "type": "string"
+                            },
+                            "value": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "wildcard_subscription_available": {
+                    "type": "integer"
+                },
+                "will_delay_interval": {
+                    "type": "integer"
                 }
             }
         }
