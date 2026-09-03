@@ -34,6 +34,14 @@ also check all the new features that have been added but are not covered by
 this guide. Those features are either not enabled by default or require
 dedicated new configuration.
 
+Upgrading to 8.0.8
+------------------
+
+- ``pgsql`` is no longer enabled by default. Previously, if the
+  ``app-layer.protocols.pgsql`` section was absent from suricata.yaml, the
+  parser would be enabled. It's now disabled by default. Simply enabling its EVE
+  output will no longer suffice, either.
+
 Upgrading to 8.0.7
 ------------------
 
