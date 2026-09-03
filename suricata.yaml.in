@@ -989,11 +989,11 @@ app-layer:
       #encryption-handling: track-only
 
     pgsql:
-      enabled: no
+      #enabled: no
       # Stream reassembly size for PostgreSQL. By default, track it completely.
-      stream-depth: 0
-      # Maximum number of live PostgreSQL transactions per flow
-      # max-tx: 1024
+       # stream-depth: 0
+       # Maximum number of live PostgreSQL transactions per flow
+       # max-tx: 1024
     dcerpc:
       enabled: yes
       # Maximum number of live DCERPC transactions per flow
