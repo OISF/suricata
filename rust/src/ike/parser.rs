@@ -515,10 +515,7 @@ pub fn parse_payload(
                 data,
                 data_length,
                 domain_of_interpretation,
-                key_exchange,
-                nonce,
                 transforms,
-                vendor_ids,
                 payload_types,
             )
             .is_err()
@@ -529,18 +526,7 @@ pub fn parse_payload(
             Ok(())
         }
         Some(IsakmpPayloadType::Proposal) => {
-            if parse_proposal_payload(
-                data,
-                data_length,
-                domain_of_interpretation,
-                key_exchange,
-                nonce,
-                transforms,
-                vendor_ids,
-                payload_types,
-            )
-            .is_err()
-            {
+            if parse_proposal_payload(data, data_length, transforms, payload_types).is_err() {
                 SCLogDebug!("Error parsing Proposal");
                 return Err(());
             }
@@ -580,33 +566,32 @@ pub fn parse_payload(
 }
 
 fn parse_proposal_payload(
-    data: &[u8], data_length: u16, domain_of_interpretation: &mut Option<u32>,
-    key_exchange: &mut Vec<u8>, nonce: &mut Vec<u8>, transforms: &mut Vec<Vec<SaAttribute>>,
-    vendor_ids: &mut Vec<String>, payload_types: &mut HashSet<u8>,
+    data: &[u8], data_length: u16, transforms: &mut Vec<Vec<SaAttribute>>,
+    payload_types: &mut HashSet<u8>,
 ) -> Result<(), ()> {
     match parse_proposal(&data[0..data_length as usize]) {
         Ok((_rem, payload)) => {
-            let mut cur_payload_type = IsakmpPayloadType::Transform as u8;
             match parse_ikev1_payload_list(payload.data) {
                 Ok((_, payload_list)) => {
                     for isakmp_payload in payload_list {
-                        if parse_payload(
-                            cur_payload_type,
-                            isakmp_payload.data,
-                            isakmp_payload.data.len() as u16,
-                            domain_of_interpretation,
-                            key_exchange,
-                            nonce,
-                            transforms,
-                            vendor_ids,
-                            payload_types,
-                        )
-                        .is_err()
+                        payload_types.insert(IsakmpPayloadType::Transform as u8);
+                        if let Ok((_rem, payload)) =
+                            parse_transform(isakmp_payload.data, isakmp_payload.data.len() as u16)
                         {
-                            SCLogDebug!("Error parsing transform payload");
-                            return Err(());
+                            if let Ok((_, attribute_list)) =
+                                parse_sa_attribute(payload.sa_attributes)
+                            {
+                                transforms.push(attribute_list);
+                            }
                         }
-                        cur_payload_type = isakmp_payload.payload_header.next_payload;
+                        if isakmp_payload.payload_header.next_payload
+                            != IsakmpPayloadType::Transform as u8
+                        {
+                            // RFC 2408: section 3.6
+                            // This field MUST only contain the value "3" or "0".
+                            // do not try to parse other values as it would lead to recursion
+                            return Ok(());
+                        }
                     }
                     Ok(())
                 }
@@ -630,28 +615,22 @@ fn parse_proposal_payload(
 
 fn parse_security_association_payload(
     data: &[u8], data_length: u16, domain_of_interpretation: &mut Option<u32>,
-    key_exchange: &mut Vec<u8>, nonce: &mut Vec<u8>, transforms: &mut Vec<Vec<SaAttribute>>,
-    vendor_ids: &mut Vec<String>, payload_types: &mut HashSet<u8>,
+    transforms: &mut Vec<Vec<SaAttribute>>, payload_types: &mut HashSet<u8>,
 ) -> Result<(), ()> {
     match parse_security_association(&data[0..data_length as usize]) {
         Ok((_rem, payload)) => {
             *domain_of_interpretation = Some(payload.domain_of_interpretation);
             if payload.domain_of_interpretation == 1 {
                 // 1 is assigned to IPsec DOI
-                let mut cur_payload_type = IsakmpPayloadType::Proposal as u8;
                 if let Some(p_data) = payload.data {
                     match parse_ikev1_payload_list(p_data) {
                         Ok((_, payload_list)) => {
                             for isakmp_payload in payload_list {
-                                if parse_payload(
-                                    cur_payload_type,
+                                payload_types.insert(IsakmpPayloadType::Proposal as u8);
+                                if parse_proposal_payload(
                                     isakmp_payload.data,
                                     isakmp_payload.data.len() as u16,
-                                    domain_of_interpretation,
-                                    key_exchange,
-                                    nonce,
                                     transforms,
-                                    vendor_ids,
                                     payload_types,
                                 )
                                 .is_err()
@@ -659,7 +638,14 @@ fn parse_security_association_payload(
                                     SCLogDebug!("Error parsing proposal payload");
                                     return Err(());
                                 }
-                                cur_payload_type = isakmp_payload.payload_header.next_payload;
+                                if isakmp_payload.payload_header.next_payload
+                                    != IsakmpPayloadType::Proposal as u8
+                                {
+                                    // RFC 2408: section 3.5
+                                    // This field MUST only contain the value "2" or "0".
+                                    // do not try to parse other values as it would lead to recursion
+                                    return Ok(());
+                                }
                             }
                         }
                         Err(Err::Incomplete(_)) => {
