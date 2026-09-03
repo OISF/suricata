@@ -784,7 +784,7 @@ static int CreateGraphFromFlowbitAnalyzer(
  * \return SCSigSignatureWrapper list post dependency resolution
  */
 static SCSigSignatureWrapper *SCSigResolveFlowbitDependencies(
-        SCSigSignatureWrapper *head, uint32_t max_fb_id)
+        SCSigSignatureWrapper *head, uint32_t max_fb_id, uint8_t max_cycle_resolution)
 {
     uint32_t sig_cnt = 0;
     uint32_t *sorted_iids = NULL;
@@ -827,7 +827,7 @@ static SCSigSignatureWrapper *SCSigResolveFlowbitDependencies(
     if (rule_engine_analysis_set) {
         SCLogFlowbitsGraph(graph);
     }
-    int ret = SCResolveFlowbitDependencies(graph, sorted_iids, sig_cnt);
+    int ret = SCResolveFlowbitDependencies(graph, sorted_iids, sig_cnt, max_cycle_resolution);
     if (ret < 0) {
         goto error;
     }
@@ -1128,8 +1128,8 @@ int SCSigOrderSignatures(DetectEngineCtx *de_ctx)
     }
     if (fb_sigw_list_start) {
         /* Resolve any complex dependencies, if possible, or roll back to the original ruleset */
-        SCSigSignatureWrapper *tmp =
-                SCSigResolveFlowbitDependencies(fb_sigw_list_start, de_ctx->max_fb_id);
+        SCSigSignatureWrapper *tmp = SCSigResolveFlowbitDependencies(
+                fb_sigw_list_start, de_ctx->max_fb_id, de_ctx->max_flowbits_cycle_resolution);
         if (tmp == NULL) {
             SC_ATOMIC_EXTERN(unsigned int, engine_stage);
             if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {

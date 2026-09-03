@@ -1052,6 +1052,8 @@ typedef struct DetectEngineCtx_ {
     /* max flowbit id that is used */
     uint32_t max_fb_id;
 
+    uint8_t max_flowbits_cycle_resolution;
+
     MpmCtxFactoryContainer *mpm_ctx_factory_container;
 
     /* array containing all sgh's in use so we can loop

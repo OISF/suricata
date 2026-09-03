@@ -95,6 +95,7 @@
 
 #define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000
 
+#define DEFAULT_MAX_FLOWBITS_CYCLE_RESOLUTION_ATTEMPTS 100
 #define DEFAULT_MAX_FLOWBITS_PER_SIGNATURE 8
 
 static int DetectEngineCtxLoadConf(DetectEngineCtx *);
@@ -2477,6 +2478,27 @@ static void DetectEngineLoadFlowbitSettings(DetectEngineCtx *de_ctx)
         }
     }
     SCLogConfig("Setting flowbits.max-per-signature to %d", de_ctx->max_flowbits);
+
+    de_ctx->max_flowbits_cycle_resolution = DEFAULT_MAX_FLOWBITS_CYCLE_RESOLUTION_ATTEMPTS;
+    char cycle_varname[128] = "detect.flowbits.max-cycle-resolution";
+    if (strlen(de_ctx->config_prefix) > 0) {
+        snprintf(cycle_varname, sizeof(cycle_varname), "%s.detect.flowbits.max-cycle-resolution",
+                de_ctx->config_prefix);
+    }
+    if (SCConfGet(cycle_varname, &str) == 1) {
+        uint8_t val = 0;
+        int ret = StringParseUint8(&val, 10, 0, str);
+        if (ret > 0) {
+            /* 0 is a valid setting: cycles are reported without any attempt to
+             * break them */
+            de_ctx->max_flowbits_cycle_resolution = val;
+        } else {
+            SCLogWarning(
+                    "Invalid setting for flowbits.max-cycle-resolution, resetting to the default");
+        }
+    }
+    SCLogConfig(
+            "Setting flowbits.max-cycle-resolution to %d", de_ctx->max_flowbits_cycle_resolution);
 }
 
 /** \internal

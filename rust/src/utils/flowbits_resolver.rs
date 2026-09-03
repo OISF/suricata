@@ -17,7 +17,6 @@
 
 // Author: Shivani Bhardwaj <shivani@oisf.net>
 
-use crate::conf::*;
 use crate::jsonbuilder::*;
 use petgraph::algo::{is_cyclic_directed, tarjan_scc, toposort};
 use petgraph::graph::{GraphError, NodeIndex};
@@ -174,19 +173,10 @@ pub unsafe extern "C" fn SCDebugLogFlowbitGraph(
     log_graph(jsb, &mut fss.graph).is_ok()
 }
 
-fn check_cycle_update_graph(graph: &mut StableDiGraph<SCGNode, SCGEdge>) -> i8 {
-    let mut max_stack_size: usize = 100;
-    if let Some(val) = conf_get("detect.flowbits.max-cycle-resolution") {
-        if let Ok(v) = val.parse::<usize>() {
-            if v > u8::MAX as usize {
-                SCLogError!("Invalid value for max-cycle-resolution");
-            } else {
-                max_stack_size = v;
-            }
-        } else {
-            SCLogError!("Invalid value for max-cycle-resolution");
-        }
-    }
+fn check_cycle_update_graph(
+    graph: &mut StableDiGraph<SCGNode, SCGEdge>, max_cycle_resolution: u8,
+) -> i8 {
+    let max_stack_size = max_cycle_resolution as usize;
 
     for i in 0..=max_stack_size {
         /* Check graph for any cycles */
@@ -286,10 +276,11 @@ fn try_resolve_one_cycle(graph: &mut StableDiGraph<SCGNode, SCGEdge>) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn SCResolveFlowbitDependencies(
     fss_void: *mut c_void, sorted_iid_list: *mut u32, sorted_iid_list_len: u32,
+    max_cycle_resolution: u8,
 ) -> i8 {
     SCLogDebug!("Attempting to resolve flowbit dependencies");
     let fss = &mut *(fss_void as *mut FlowbitSidStore);
-    let r = check_cycle_update_graph(&mut fss.graph);
+    let r = check_cycle_update_graph(&mut fss.graph, max_cycle_resolution);
     if r == -1 {
         SCLogError!("Couldn't do anything to fix the graph. Retreating..");
         return -1;
