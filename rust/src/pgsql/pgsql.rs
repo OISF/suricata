@@ -33,7 +33,7 @@ use std::ffi::CString;
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
     SCAppLayerParserSetStreamDepth, SCAppLayerParserStateIssetFlag,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRequestProtocolTLSUpgrade,
+    SCAppLayerProtoDetectConfProtoDetectionEnabledDefault, SCAppLayerRequestProtocolTLSUpgrade,
 };
 
 const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
@@ -1011,7 +1011,12 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabledDefault(
+        ip_proto_str.as_ptr(),
+        parser.name,
+        false,
+    ) != 0
+    {
         let alproto = applayer_register_protocol_detection(&parser, 1);
         ALPROTO_PGSQL = alproto;
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
@@ -1028,8 +1033,8 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
                     SCLogError!("Invalid depth value");
                 }
             }
-            SCAppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_PGSQL, stream_depth)
         }
+        SCAppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_PGSQL, stream_depth);
         if let Some(val) = conf_get("app-layer.protocols.pgsql.max-tx") {
             if let Ok(v) = val.parse::<usize>() {
                 PGSQL_MAX_TX = v;
