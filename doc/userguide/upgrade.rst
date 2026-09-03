@@ -46,6 +46,10 @@ Major Changes
 - Default value for ``stream.reassembly.depth`` when the value is not specified in
   suricata.yaml is now 1 MiB instead of 0/unlimited.
 - LLMNR protocol parser, logger and sticky buffers are implemented.
+- ``pgsql`` is no longer enabled by default. Previously, if the
+  ``app-layer.protocols.pgsql`` section was absent from suricata.yaml, the
+  parser would be enabled. It's now disabled by default. Simply enabling its EVE
+  output will no longer suffice, either.
 
 Logging Changes
 ~~~~~~~~~~~~~~~
