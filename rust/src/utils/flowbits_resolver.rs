@@ -46,6 +46,7 @@ struct SCGEdge {
 struct FlowbitSidStore {
     graph: StableDiGraph<SCGNode, SCGEdge>,
     iid_map: HashMap<u32, NodeIndex>,
+    edge_set: HashSet<(u32, u32, u8, u32)>,
 }
 
 /// Function to create an empty directed Graph
@@ -57,6 +58,7 @@ pub unsafe extern "C" fn SCCreateDirectedGraph() -> *mut c_void {
     let fb_sid_store = FlowbitSidStore {
         graph: StableDiGraph::new(),
         iid_map: HashMap::new(),
+        edge_set: HashSet::new(),
     };
 
     /* Make an opaque pointer for C as nothing is changed there */
@@ -92,9 +94,20 @@ pub unsafe extern "C" fn SCCreateNodeEdgeDirectedGraph(
     let from_idx = NodeIndex::from(from);
     let to_idx = NodeIndex::from(to);
 
+    if !fss.edge_set.insert((from, to, cmd, fb_id)) {
+        SCLogDebug!(
+            "Skipped duplicate edge from {:?} -> {:?} for flowbit {:?} with command: {:?}",
+            from,
+            to,
+            fb_id,
+            cmd
+        );
+        return 0;
+    }
+
     match fss
         .graph
-        .try_update_edge(from_idx, to_idx, SCGEdge { cmd, fb_id })
+        .try_add_edge(from_idx, to_idx, SCGEdge { cmd, fb_id })
     {
         /* edge from a flowbit setter to a flowbit reader */
         Ok(_) => {
