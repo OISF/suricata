@@ -17,7 +17,7 @@
 
 use super::http2::HTTP2_COMPRESSION_BOMB_LIMIT;
 use crate::direction::Direction;
-use brotli;
+use brotli::{BrotliDecompressStream, BrotliResult, BrotliState, HeapAlloc, HuffmanCode};
 use flate2::read::{DeflateDecoder, GzDecoder};
 use std;
 use std::io;
@@ -82,12 +82,69 @@ impl Read for HTTP2cursor {
     }
 }
 
+pub(super) struct BrotliDecompressor {
+    state: BrotliState<HeapAlloc<u8>, HeapAlloc<u32>, HeapAlloc<HuffmanCode>>,
+    cursor: HTTP2cursor,
+}
+
+impl BrotliDecompressor {
+    pub fn new(cursor: HTTP2cursor) -> BrotliDecompressor {
+        BrotliDecompressor {
+            state: BrotliState::new(
+                HeapAlloc::<u8>::new(0),
+                HeapAlloc::<u32>::new(0),
+                HeapAlloc::<HuffmanCode>::new(HuffmanCode { bits: 0, value: 0 }),
+            ),
+            cursor,
+        }
+    }
+}
+
+// we need to implement this as flate2 and brotli crates
+// will read from this object
+impl Read for BrotliDecompressor {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let start_offset = 0;
+        let mut output_offset = 0;
+        let mut available_out = buf.len() - output_offset;
+        let mut input_offset = self.cursor.cursor.position() as usize;
+        let mut available_in = self.cursor.cursor.get_ref().len() - input_offset;
+        let mut written = 0;
+        match BrotliDecompressStream(
+            &mut available_in,
+            &mut input_offset,
+            self.cursor.cursor.get_mut(),
+            &mut available_out,
+            &mut output_offset,
+            buf,
+            &mut written,
+            &mut self.state,
+        ) {
+            BrotliResult::ResultSuccess => {
+                self.cursor.cursor.set_position(input_offset as u64);
+                return Ok(output_offset - start_offset);
+            }
+            BrotliResult::NeedsMoreInput => {
+                self.cursor.cursor.set_position(input_offset as u64);
+                return Ok(output_offset - start_offset);
+            }
+            BrotliResult::NeedsMoreOutput => {
+                self.cursor.cursor.set_position(input_offset as u64);
+                return Ok(output_offset - start_offset);
+            }
+            BrotliResult::ResultFailure => {
+                return Err(io::Error::other("Brotli decompression failed"));
+            }
+        }
+    }
+}
+
 pub enum HTTP2Decompresser {
     Unassigned,
     // Box because large.
     Gzip(Box<GzDecoder<HTTP2cursor>>),
     // Box because large.
-    Brotli(Box<brotli::Decompressor<HTTP2cursor>>),
+    Brotli(Box<BrotliDecompressor>),
     // This one is not so large, at 88 bytes as of doing this, but box
     // for consistency.
     Deflate(Box<DeflateDecoder<HTTP2cursor>>),
@@ -128,9 +185,9 @@ impl GetMutCursor for DeflateDecoder<HTTP2cursor> {
     }
 }
 
-impl GetMutCursor for brotli::Decompressor<HTTP2cursor> {
+impl GetMutCursor for BrotliDecompressor {
     fn get_mut(&mut self) -> &mut HTTP2cursor {
-        return self.get_mut();
+        return &mut self.cursor;
     }
 }
 
@@ -199,9 +256,8 @@ impl HTTP2DecoderHalf {
                     HTTP2Decompresser::Deflate(Box::new(DeflateDecoder::new(HTTP2cursor::new())));
             } else if input.eq_ignore_ascii_case(b"br") {
                 self.encoding = HTTP2ContentEncoding::Br;
-                self.decoder = HTTP2Decompresser::Brotli(Box::new(brotli::Decompressor::new(
+                self.decoder = HTTP2Decompresser::Brotli(Box::new(BrotliDecompressor::new(
                     HTTP2cursor::new(),
-                    HTTP2_DECOMPRESSION_CHUNK_SIZE,
                 )));
             } else {
                 self.encoding = HTTP2ContentEncoding::Unrecognized;
