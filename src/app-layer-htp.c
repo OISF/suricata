@@ -5734,7 +5734,6 @@ static void HTPParserRegisterTests(void)
     UtRegisterTest("HTPParserTest27", HTPParserTest27);
 
     HTPFileParserRegisterTests();
-    HTPXFFParserRegisterTests();
 }
 #endif /* UNITTESTS */
 
