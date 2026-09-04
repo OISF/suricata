@@ -68,6 +68,11 @@ Deprecations
 Upgrading to 8.0.5
 ------------------
 
+Default Changes
+~~~~~~~~~~~~~~~
+- An absent configuration value for ``stream.reassembly.urgent.policy`` is now treated as ``oob`` instead of ``inline``.
+- An absent configuration value for ``stream.reassembly.urgent.oob-limit-policy`` is now treated as ``drop`` instead of ``inline``.
+
 Other Changes
 ~~~~~~~~~~~~~
 
