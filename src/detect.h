@@ -985,93 +985,35 @@ typedef uint8_t (*SCDetectRateFilterFunc)(const Packet *p, uint32_t sid, uint32_
 
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
-    bool failure_fatal;
-    uint8_t flags;       /**< only DE_QUIET */
-    uint8_t mpm_matcher; /**< mpm matcher this ctx uses */
-    uint8_t max_flowbits; /**< maximum number of flowbits per signature */
-    uint32_t tenant_id;
-
     MpmConfig *mpm_cfg;
-    uint8_t spm_matcher; /**< spm matcher this ctx uses */
-
     Signature *sig_list;
-    uint32_t sig_cnt;
-
-    /* version of the srep data */
-    uint32_t srep_version;
 
     /* reputation for netblocks */
     SRepCIDRTree *srepCIDR_ctx;
-
     Signature **sig_array;
-    uint32_t sig_array_len;  /* size in array members */
-
-    uint32_t signum;
 
     /* used by the signature ordering module */
     struct SCSigOrderFunc_ *sc_sig_order_funcs;
-
-    /* main sigs */
-    DetectEngineLookupFlow flow_gh[FLOW_STATES];
 
     /** firewall policy table entry point */
     struct DetectFirewallPolicies *fw_policies;
 
     /* init phase vars */
     HashListTable *sgh_hash_table;
-
     HashListTable *mpm_hash_table;
     HashListTable *pattern_hash_table;
 
     /* hash table used to cull out duplicate sigs */
     HashListTable *dup_sig_hash_table;
 
-    DetectEngineIPOnlyCtx io_ctx;
-
-    /* maximum recursion depth for content inspection */
-    int inspection_recursion_limit;
-
-    /* maximum number of times a tx will get logged for rules not using app-layer keywords */
-    uint8_t guess_applayer_log_limit;
-
-    /* force app-layer tx finding for alerts with signatures not having app-layer keywords */
-    bool guess_applayer;
-
-    /* registration id for per thread ctx for the filemagic/file.magic keywords */
-    int filemagic_thread_ctx_id;
-
     /* spm thread context prototype, built as spm matchers are constructed and
      * later used to construct thread context for each thread. */
     SpmGlobalThreadCtx *spm_global_thread_ctx;
-
-    /* Config options */
-
-    uint16_t max_uniq_toclient_groups;
-    uint16_t max_uniq_toserver_groups;
-
-    /* max flowbit id that is used */
-    uint32_t max_fb_id;
-
-    uint8_t max_flowbits_cycle_resolution;
-
     MpmCtxFactoryContainer *mpm_ctx_factory_container;
 
     /* array containing all sgh's in use so we can loop
      * through it in Stage4. */
     struct SigGroupHead_ **sgh_array;
-    uint32_t sgh_array_cnt;
-    uint32_t sgh_array_size;
-
-    int32_t sgh_mpm_context_proto_tcp_packet;
-    int32_t sgh_mpm_context_proto_udp_packet;
-    int32_t sgh_mpm_context_proto_other_packet;
-    int32_t sgh_mpm_context_stream;
-
-    /* the max local id used amongst all sigs */
-    int32_t byte_extract_max_local_id;
-
-    /** version of the detect engine. The version is incremented on reloads */
-    uint32_t version;
 
     /** sgh for signatures that match against invalid packets. In those cases
      *  we can't lookup by proto, address, port as we don't have these */
@@ -1079,29 +1021,12 @@ typedef struct DetectEngineCtx_ {
 
     /** sgh for `alert ether` / `alert arp` etc. */
     struct SigGroupHead_ *eth_non_ip_sgh;
-
-    /* Maximum size of the buffer for decoded base64 data. */
-    uint16_t base64_decode_max_len;
-
-    /** Store rule file and line so that parsers can use them in errors. */
-    int rule_line;
     const char *rule_file;
     const char *sigerror;
-    bool sigerror_silent;
-    bool sigerror_ok;
 
-    /** The rule errored out due to missing requirements. */
-    bool sigerror_requires;
-
-    /* specify the configuration for mpm context factory */
-    uint8_t sgh_mpm_ctx_cnf;
-
-    int keyword_id;
     /** hash list of keywords that need thread local ctxs */
     HashListTable *keyword_hash;
-
     DetectFileDataCfg *filedata_config;
-
 #ifdef PROFILE_RULES
     struct SCProfileDetectCtx_ *profile_ctx;
 #endif
@@ -1112,23 +1037,10 @@ typedef struct DetectEngineCtx_ {
     struct SCProfileSghDetectCtx_ *profile_sgh_ctx;
     uint32_t profile_match_logging_threshold;
 #endif
-    char config_prefix[64];
 
-    enum DetectEngineType type;
-
-    /** how many de_ctx' are referencing this */
-    uint32_t ref_cnt;
     /** list in master: either active or freelist */
     struct DetectEngineCtx_ *next;
-
-    /** id of loader thread 'owning' this de_ctx */
-    int loader_id;
-
-    /** are we using just mpm or also other prefilters */
-    enum DetectEnginePrefilterSetting prefilter_setting;
-
     HashListTable *dport_hash_table;
-
     DetectPort *tcp_priorityports;
     DetectPort *udp_priorityports;
 
@@ -1142,28 +1054,16 @@ typedef struct DetectEngineCtx_ {
      * is in detect-engine.c::g_buffer_type_hash */
     HashListTable *buffer_type_hash_name;
     HashListTable *buffer_type_hash_id;
-    uint32_t buffer_type_id;
-
-    uint32_t app_mpms_list_cnt;
     DetectBufferMpmRegistry *app_mpms_list;
+
     /* list with app inspect engines. Both the start-time registered ones and
      * the rule-time registered ones. */
     DetectEngineAppInspectionEngine *app_inspect_engines;
     DetectEnginePktInspectionEngine *pkt_inspect_engines;
     DetectBufferMpmRegistry *pkt_mpms_list;
-    uint32_t pkt_mpms_list_cnt;
     DetectEngineFrameInspectionEngine *frame_inspect_engines;
     DetectBufferMpmRegistry *frame_mpms_list;
-    uint32_t frame_mpms_list_cnt;
-
-    uint32_t prefilter_id;
     HashListTable *prefilter_hash_table;
-
-    /** time of last ruleset reload */
-    struct timeval last_reload;
-
-    /** signatures stats */
-    SigFileLoaderStat sig_stat;
 
     /* list of Fast Pattern registrations. Initially filled using a copy of
      * `g_fp_support_smlist_list`, then extended at rule loading time if needed */
@@ -1198,13 +1098,9 @@ typedef struct DetectEngineCtx_ {
     /* Track rule requirements for reporting after loading rules. */
     SCDetectRequiresStatus *requirements;
 
-    /* number of signatures using filestore, limited as u16 */
-    uint16_t filestore_cnt;
-
     /* name store for non-prefilter engines. Used in profiling but
      * part of the API, so hash is always used. */
     HashTable *non_pf_engine_names;
-
     const char *firewall_rule_file_exclusive;
 
     /* user provided rate filter callbacks. */
@@ -1215,13 +1111,103 @@ typedef struct DetectEngineCtx_ {
 
     /* Hook for pre_stream engine if it is used. */
     DetectPacketHookFunc PreStreamHook;
-    /** TCP pre_stream hook rule groups. One per direction. */
-    struct SigGroupHead_ *pre_stream_sgh[2];
 
     /* Hook for pre_flow engine if it is used. */
     DetectPacketHookFunc PreFlowHook;
+
     /** pre_flow hook rule groups. Before flow we don't know a direction yet. */
     struct SigGroupHead_ *pre_flow_sgh;
+
+    /** time of last ruleset reload */
+    struct timeval last_reload;
+
+    /** TCP pre_stream hook rule groups. One per direction. */
+    struct SigGroupHead_ *pre_stream_sgh[2];
+
+    /** signatures stats */
+    SigFileLoaderStat sig_stat;
+    DetectEngineIPOnlyCtx io_ctx;
+
+    /* main sigs */
+    DetectEngineLookupFlow flow_gh[FLOW_STATES];
+    uint32_t tenant_id;
+    uint32_t sig_cnt;
+
+    /* version of the srep data */
+    uint32_t srep_version;
+    uint32_t sig_array_len; /* size in array members */
+    uint32_t signum;
+
+    /* maximum recursion depth for content inspection */
+    int inspection_recursion_limit;
+
+    /* registration id for per thread ctx for the filemagic/file.magic keywords */
+    int filemagic_thread_ctx_id;
+
+    /* max flowbit id that is used */
+    uint32_t max_fb_id;
+    uint32_t sgh_array_cnt;
+    uint32_t sgh_array_size;
+    int32_t sgh_mpm_context_proto_tcp_packet;
+    int32_t sgh_mpm_context_proto_udp_packet;
+    int32_t sgh_mpm_context_proto_other_packet;
+    int32_t sgh_mpm_context_stream;
+
+    /* the max local id used amongst all sigs */
+    int32_t byte_extract_max_local_id;
+
+    /** version of the detect engine. The version is incremented on reloads */
+    uint32_t version;
+
+    /** Store rule file and line so that parsers can use them in errors. */
+    int rule_line;
+    int keyword_id;
+    enum DetectEngineType type;
+
+    /** how many de_ctx' are referencing this */
+    uint32_t ref_cnt;
+
+    /** id of loader thread 'owning' this de_ctx */
+    int loader_id;
+
+    /** are we using just mpm or also other prefilters */
+    enum DetectEnginePrefilterSetting prefilter_setting;
+    uint32_t buffer_type_id;
+    uint32_t app_mpms_list_cnt;
+    uint32_t pkt_mpms_list_cnt;
+    uint32_t frame_mpms_list_cnt;
+    uint32_t prefilter_id;
+
+    /* Config options */
+    uint16_t max_uniq_toclient_groups;
+    uint16_t max_uniq_toserver_groups;
+
+    /* Maximum size of the buffer for decoded base64 data. */
+    uint16_t base64_decode_max_len;
+
+    /* number of signatures using filestore, limited as u16 */
+    uint16_t filestore_cnt;
+    bool failure_fatal;
+    uint8_t flags;        /**< only DE_QUIET */
+    uint8_t mpm_matcher;  /**< mpm matcher this ctx uses */
+    uint8_t max_flowbits; /**< maximum number of flowbits per signature */
+    uint8_t spm_matcher;  /**< spm matcher this ctx uses */
+
+    /* maximum number of times a tx will get logged for rules not using app-layer keywords */
+    uint8_t guess_applayer_log_limit;
+
+    /* force app-layer tx finding for alerts with signatures not having app-layer keywords */
+    bool guess_applayer;
+    uint8_t max_flowbits_cycle_resolution;
+    bool sigerror_silent;
+    bool sigerror_ok;
+
+    /** The rule errored out due to missing requirements. */
+    bool sigerror_requires;
+
+    /* specify the configuration for mpm context factory */
+    uint8_t sgh_mpm_ctx_cnf;
+    char config_prefix[64];
 } DetectEngineCtx;
 
 /**
