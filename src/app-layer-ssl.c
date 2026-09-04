@@ -348,24 +348,30 @@ static uint64_t SSLGetTxCnt(void *state)
 
 static void UpdateClientState(SSLState *ssl_state, enum TlsStateClient s)
 {
+    /* monotonic: a late app-data write must not move the state back */
+    if (s > ssl_state->client_state) {
 #ifdef DEBUG
-    enum TlsStateClient old = ssl_state->client_state;
+        enum TlsStateClient old = ssl_state->client_state;
 #endif
-    ssl_state->client_state = s;
+        ssl_state->client_state = s;
 #ifdef DEBUG
-    SCLogDebug("toserver: state updated to %u from %u", s, old);
+        SCLogDebug("toserver: state updated to %u from %u", s, old);
 #endif
+    }
 }
 
 static void UpdateServerState(SSLState *ssl_state, enum TlsStateServer s)
 {
+    /* monotonic: a late app-data write must not move the state back */
+    if (s > ssl_state->server_state) {
 #ifdef DEBUG
-    enum TlsStateServer old = ssl_state->server_state;
+        enum TlsStateServer old = ssl_state->server_state;
 #endif
-    ssl_state->server_state = s;
+        ssl_state->server_state = s;
 #ifdef DEBUG
-    SCLogDebug("toclient: state updated to %u from %u", s, old);
+        SCLogDebug("toclient: state updated to %u from %u", s, old);
 #endif
+    }
 }
 
 static int SSLGetAlstateProgress(void *tx, uint8_t direction)
