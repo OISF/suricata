@@ -69,8 +69,8 @@ static int LuaHashLibSha256New(lua_State *L)
 static int LuaHashLibSha256Update(lua_State *L)
 {
     struct SCSha256 **hasher = luaL_checkudata(L, 1, SHA256_MT);
-    if (hasher == NULL) {
-        return luaL_error(L, "null userdata");
+    if (hasher == NULL || *hasher == NULL) {
+        return luaL_error(L, "invalid sha256 hash context");
     }
     if (*hasher == NULL) {
         return luaL_error(L, "sha256 hasher already finalized");
@@ -84,20 +84,18 @@ static int LuaHashLibSha256Update(lua_State *L)
 static int LuaHashLibSha256Finalize(lua_State *L)
 {
     struct SCSha256 **hasher = luaL_checkudata(L, 1, SHA256_MT);
-    if (hasher == NULL) {
-        return luaL_error(L, "null userdata");
+    if (hasher == NULL || *hasher == NULL) {
+        return luaL_error(L, "invalid sha256 hash context");
     }
     if (*hasher == NULL) {
         return luaL_error(L, "sha256 hasher already finalized");
     }
 
     uint8_t hash[SC_SHA256_LEN];
-    SCSha256Finalize(*hasher, hash, sizeof(hash));
-    lua_pushlstring(L, (const char *)hash, sizeof(hash));
-
-    // Finalize consumes the hasher, so set to NULL so its not free'd
-    // during garbage collection.
+    struct SCSha256 *ctx = *hasher;
     *hasher = NULL;
+    SCSha256Finalize(ctx, hash, sizeof(hash));
+    lua_pushlstring(L, (const char *)hash, sizeof(hash));
 
     return 1;
 }
@@ -105,24 +103,21 @@ static int LuaHashLibSha256Finalize(lua_State *L)
 static int LuaHashLibSha256FinalizeToHex(lua_State *L)
 {
     struct SCSha256 **hasher = luaL_checkudata(L, 1, SHA256_MT);
-    if (hasher == NULL) {
-        return luaL_error(L, "null userdata");
+    if (hasher == NULL || *hasher == NULL) {
+        return luaL_error(L, "invalid sha256 hash context");
     }
     if (*hasher == NULL) {
         return luaL_error(L, "sha256 hasher already finalized");
     }
 
     char hash[SC_SHA256_HEX_LEN + 1];
-    if (!SCSha256FinalizeToHex(*hasher, hash, sizeof(hash))) {
-        *hasher = NULL;
+    struct SCSha256 *ctx = *hasher;
+    *hasher = NULL;
+    if (!SCSha256FinalizeToHex(ctx, hash, sizeof(hash))) {
         return luaL_error(L, "sha256 hashing failed");
     }
 
     lua_pushstring(L, (const char *)hash);
-
-    // Finalize consumes the hasher, so set to NULL so its not free'd
-    // during garbage collection.
-    *hasher = NULL;
 
     return 1;
 }
@@ -160,7 +155,9 @@ static int LuaHashLibSha256Gc(lua_State *L)
 {
     struct SCSha256 **hasher = luaL_checkudata(L, 1, SHA256_MT);
     if (hasher && *hasher) {
-        SCSha256Free(*hasher);
+        struct SCSha256 *ctx = *hasher;
+        *hasher = NULL;
+        SCSha256Free(ctx);
     }
     return 0;
 }
@@ -180,8 +177,8 @@ static int LuaHashLibSha1New(lua_State *L)
 static int LuaHashLibSha1Update(lua_State *L)
 {
     struct SCSha1 **hasher = luaL_checkudata(L, 1, SHA1_MT);
-    if (hasher == NULL) {
-        return luaL_error(L, "null userdata");
+    if (hasher == NULL || *hasher == NULL) {
+        return luaL_error(L, "invalid sha1 hash context");
     }
     if (*hasher == NULL) {
         return luaL_error(L, "sha1 hasher already finalized");
@@ -196,20 +193,18 @@ static int LuaHashLibSha1Update(lua_State *L)
 static int LuaHashLibSha1Finalize(lua_State *L)
 {
     struct SCSha1 **hasher = luaL_checkudata(L, 1, SHA1_MT);
-    if (hasher == NULL) {
-        return luaL_error(L, "null userdata");
+    if (hasher == NULL || *hasher == NULL) {
+        return luaL_error(L, "invalid sha1 hash context");
     }
     if (*hasher == NULL) {
         return luaL_error(L, "sha1 hasher already finalized");
     }
 
     uint8_t hash[SC_SHA1_LEN];
-    SCSha1Finalize(*hasher, hash, sizeof(hash));
-    lua_pushlstring(L, (const char *)hash, sizeof(hash));
-
-    // Finalize consumes the hasher, so set to NULL so its not free'd
-    // during garbage collection.
+    struct SCSha1 *ctx = *hasher;
     *hasher = NULL;
+    SCSha1Finalize(ctx, hash, sizeof(hash));
+    lua_pushlstring(L, (const char *)hash, sizeof(hash));
 
     return 1;
 }
@@ -217,24 +212,21 @@ static int LuaHashLibSha1Finalize(lua_State *L)
 static int LuaHashLibSha1FinalizeToHex(lua_State *L)
 {
     struct SCSha1 **hasher = luaL_checkudata(L, 1, SHA1_MT);
-    if (hasher == NULL) {
-        return luaL_error(L, "null userdata");
+    if (hasher == NULL || *hasher == NULL) {
+        return luaL_error(L, "invalid sha1 hash context");
     }
     if (*hasher == NULL) {
         return luaL_error(L, "sha1 hasher already finalized");
     }
 
     char hash[SC_SHA1_HEX_LEN + 1];
-    if (!SCSha1FinalizeToHex(*hasher, hash, sizeof(hash))) {
-        *hasher = NULL;
+    struct SCSha1 *ctx = *hasher;
+    *hasher = NULL;
+    if (!SCSha1FinalizeToHex(ctx, hash, sizeof(hash))) {
         return luaL_error(L, "sha1 hashing failed");
     }
 
     lua_pushstring(L, (const char *)hash);
-
-    // Finalize consumes the hasher, so set to NULL so its not free'd
-    // during garbage collection.
-    *hasher = NULL;
 
     return 1;
 }
@@ -271,7 +263,9 @@ static int LuaHashLibSha1Gc(lua_State *L)
 {
     struct SCSha1 **hasher = luaL_checkudata(L, 1, SHA1_MT);
     if (hasher && *hasher) {
-        SCSha1Free(*hasher);
+        struct SCSha1 *ctx = *hasher;
+        *hasher = NULL;
+        SCSha1Free(ctx);
     }
     return 0;
 }
@@ -291,8 +285,8 @@ static int LuaHashLibMd5New(lua_State *L)
 static int LuaHashLibMd5Update(lua_State *L)
 {
     struct SCMd5 **hasher = luaL_checkudata(L, 1, MD5_MT);
-    if (hasher == NULL) {
-        return luaL_error(L, "null userdata");
+    if (hasher == NULL || *hasher == NULL) {
+        return luaL_error(L, "invalid md5 hash context");
     }
     if (*hasher == NULL) {
         return luaL_error(L, "md5 hasher already finalized");
@@ -307,20 +301,18 @@ static int LuaHashLibMd5Update(lua_State *L)
 static int LuaHashLibMd5Finalize(lua_State *L)
 {
     struct SCMd5 **hasher = luaL_checkudata(L, 1, MD5_MT);
-    if (hasher == NULL) {
-        return luaL_error(L, "null userdata");
+    if (hasher == NULL || *hasher == NULL) {
+        return luaL_error(L, "invalid md5 hash context");
     }
     if (*hasher == NULL) {
         return luaL_error(L, "md5 hasher already finalized");
     }
 
     uint8_t hash[SC_MD5_LEN];
-    SCMd5Finalize(*hasher, hash, sizeof(hash));
-    lua_pushlstring(L, (const char *)hash, sizeof(hash));
-
-    // Finalize consumes the hasher, so set to NULL so its not free'd
-    // during garbage collection.
+    struct SCMd5 *ctx = *hasher;
     *hasher = NULL;
+    SCMd5Finalize(ctx, hash, sizeof(hash));
+    lua_pushlstring(L, (const char *)hash, sizeof(hash));
 
     return 1;
 }
@@ -328,24 +320,21 @@ static int LuaHashLibMd5Finalize(lua_State *L)
 static int LuaHashLibMd5FinalizeToHex(lua_State *L)
 {
     struct SCMd5 **hasher = luaL_checkudata(L, 1, MD5_MT);
-    if (hasher == NULL) {
-        return luaL_error(L, "null userdata");
+    if (hasher == NULL || *hasher == NULL) {
+        return luaL_error(L, "invalid md5 hash context");
     }
     if (*hasher == NULL) {
         return luaL_error(L, "md5 hasher already finalized");
     }
 
     char hash[SC_MD5_HEX_LEN + 1];
-    if (!SCMd5FinalizeToHex(*hasher, hash, sizeof(hash))) {
-        *hasher = NULL;
+    struct SCMd5 *ctx = *hasher;
+    *hasher = NULL;
+    if (!SCMd5FinalizeToHex(ctx, hash, sizeof(hash))) {
         return luaL_error(L, "md5 hashing failed");
     }
 
     lua_pushstring(L, (const char *)hash);
-
-    // Finalize consumes the hasher, so set to NULL so its not free'd
-    // during garbage collection.
-    *hasher = NULL;
 
     return 1;
 }
@@ -382,7 +371,9 @@ static int LuaHashLibMd5Gc(lua_State *L)
 {
     struct SCMd5 **hasher = luaL_checkudata(L, 1, MD5_MT);
     if (hasher && *hasher) {
-        SCMd5Free(*hasher);
+        struct SCMd5 *ctx = *hasher;
+        *hasher = NULL;
+        SCMd5Free(ctx);
     }
     return 0;
 }
@@ -402,32 +393,29 @@ static const struct luaL_Reg hashlib[] = {
     // clang-format on
 };
 
-static const struct luaL_Reg sha256_meta[] = {
+static const struct luaL_Reg sha256_methods[] = {
     // clang-format off
     { "update", LuaHashLibSha256Update },
     { "finalize", LuaHashLibSha256Finalize },
     { "finalize_to_hex", LuaHashLibSha256FinalizeToHex },
-    { "__gc", LuaHashLibSha256Gc },
     { NULL, NULL },
     // clang-format on
 };
 
-static const struct luaL_Reg sha1_meta[] = {
+static const struct luaL_Reg sha1_methods[] = {
     // clang-format off
     { "update", LuaHashLibSha1Update },
     { "finalize", LuaHashLibSha1Finalize },
     { "finalize_to_hex", LuaHashLibSha1FinalizeToHex },
-    { "__gc", LuaHashLibSha1Gc },
     { NULL, NULL },
     // clang-format on
 };
 
-static const struct luaL_Reg md5_meta[] = {
+static const struct luaL_Reg md5_methods[] = {
     // clang-format off
     { "update", LuaHashLibMd5Update },
     { "finalize", LuaHashLibMd5Finalize },
     { "finalize_to_hex", LuaHashLibMd5FinalizeToHex },
-    { "__gc", LuaHashLibMd5Gc },
     { NULL, NULL },
     // clang-format on
 };
@@ -435,19 +423,22 @@ static const struct luaL_Reg md5_meta[] = {
 int SCLuaLoadHashlib(lua_State *L)
 {
     luaL_newmetatable(L, SHA256_MT);
-    lua_pushvalue(L, -1);
+    lua_pushcfunction(L, LuaHashLibSha256Gc);
+    lua_setfield(L, -2, "__gc");
+    luaL_newlib(L, sha256_methods);
     lua_setfield(L, -2, "__index");
-    luaL_setfuncs(L, sha256_meta, 0);
 
     luaL_newmetatable(L, SHA1_MT);
-    lua_pushvalue(L, -1);
+    lua_pushcfunction(L, LuaHashLibSha1Gc);
+    lua_setfield(L, -2, "__gc");
+    luaL_newlib(L, sha1_methods);
     lua_setfield(L, -2, "__index");
-    luaL_setfuncs(L, sha1_meta, 0);
 
     luaL_newmetatable(L, MD5_MT);
-    lua_pushvalue(L, -1);
+    lua_pushcfunction(L, LuaHashLibMd5Gc);
+    lua_setfield(L, -2, "__gc");
+    luaL_newlib(L, md5_methods);
     lua_setfield(L, -2, "__index");
-    luaL_setfuncs(L, md5_meta, 0);
 
     luaL_newlib(L, hashlib);
 
