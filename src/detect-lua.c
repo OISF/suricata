@@ -313,6 +313,13 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
     else if (p->flowflags & FLOW_PKT_TOCLIENT)
         flags = STREAM_TOCLIENT;
 
+    /* bail early if we're not going to run inspection, avoid running the
+     * reset/restore logic at all. */
+    if ((tlua->flags & FLAG_DATATYPE_PAYLOAD) && p->payload_len == 0)
+        SCReturnInt(0);
+    if ((tlua->flags & FLAG_DATATYPE_PACKET) && GET_PKT_LEN(p) == 0)
+        SCReturnInt(0);
+
     /* disable bytes limit temporarily to allow the setup of buffer and other data the script will
      * use. */
     const uint64_t cfg_limit = SCLuaSbResetBytesLimit(tlua->luastate);
@@ -320,11 +327,6 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
     LuaStateSetThreadVars(tlua->luastate, det_ctx->tv);
 
     LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx, p->flow, p, s, flags);
-
-    if ((tlua->flags & FLAG_DATATYPE_PAYLOAD) && p->payload_len == 0)
-        SCReturnInt(0);
-    if ((tlua->flags & FLAG_DATATYPE_PACKET) && GET_PKT_LEN(p) == 0)
-        SCReturnInt(0);
 
     lua_getglobal(tlua->luastate, "match");
     lua_newtable(tlua->luastate); /* stack at -1 */
