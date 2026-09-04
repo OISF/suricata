@@ -105,6 +105,7 @@ static int LuaDatasetNew(lua_State *luastate)
     if (s == NULL) {
         LUA_ERROR("failed to get userdata");
     }
+    memset(s, 0, sizeof(*s));
     luaL_getmetatable(luastate, "dataset::metatable");
     lua_setmetatable(luastate, -2);
     SCLogDebug("new:done");
