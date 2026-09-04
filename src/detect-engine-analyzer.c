@@ -193,7 +193,7 @@ void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, const c
         }
     }
 
-    FILE *fp = de_ctx->ea->rule_engine_analysis_fp;
+    FILE *fp = de_ctx->ea->fp_engine_analysis_fp;
     fprintf(fp, "== Sid: %u ==\n", s->id);
     fprintf(fp, "%s\n", line);
 
@@ -446,7 +446,10 @@ static int SetupRuleAnalyzer(DetectEngineCtx *de_ctx)
 
 static void CleanupFPAnalyzer(DetectEngineCtx *de_ctx)
 {
-    FILE *fp = de_ctx->ea->rule_engine_analysis_fp;
+    FILE *fp = de_ctx->ea->fp_engine_analysis_fp;
+    if (fp == NULL) {
+        return;
+    }
     fprintf(fp, "============\n"
                 "Summary:\n============\n");
 
@@ -462,15 +465,15 @@ static void CleanupFPAnalyzer(DetectEngineCtx *de_ctx)
                 (float)((double)f->tot / (float)f->cnt));
     }
 
-    fclose(de_ctx->ea->rule_engine_analysis_fp);
-    de_ctx->ea->rule_engine_analysis_fp = NULL;
+    fclose(de_ctx->ea->fp_engine_analysis_fp);
+    de_ctx->ea->fp_engine_analysis_fp = NULL;
 }
 
 static void CleanupRuleAnalyzer(DetectEngineCtx *de_ctx)
 {
-    if (de_ctx->ea->fp_engine_analysis_fp != NULL) {
-        fclose(de_ctx->ea->fp_engine_analysis_fp);
-        de_ctx->ea->fp_engine_analysis_fp = NULL;
+    if (de_ctx->ea->rule_engine_analysis_fp != NULL) {
+        fclose(de_ctx->ea->rule_engine_analysis_fp);
+        de_ctx->ea->rule_engine_analysis_fp = NULL;
     }
     if (de_ctx->ea->percent_re != NULL) {
         pcre2_code_free(de_ctx->ea->percent_re);
