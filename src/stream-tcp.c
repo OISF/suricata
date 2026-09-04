@@ -650,7 +650,7 @@ void StreamTcpInitConfig(bool quiet)
             FatalError("stream.reassembly.urgent.policy: invalid value '%s'", temp_urgpol);
         }
     } else {
-        stream_config.urgent_policy = TCP_STREAM_URGENT_DEFAULT;
+        stream_config.urgent_policy = TCP_STREAM_URGENT_OOB;
     }
     if (!quiet) {
         SCLogConfig("stream.reassembly.urgent.policy\": %s", UrgentPolicyToString(stream_config.urgent_policy));
@@ -669,7 +669,7 @@ void StreamTcpInitConfig(bool quiet)
                 FatalError("stream.reassembly.urgent.oob-limit-policy: invalid value '%s'", temp_urgoobpol);
             }
         } else {
-            stream_config.urgent_oob_limit_policy = TCP_STREAM_URGENT_DEFAULT;
+            stream_config.urgent_oob_limit_policy = TCP_STREAM_URGENT_DROP;
         }
         if (!quiet) {
             SCLogConfig("stream.reassembly.urgent.oob-limit-policy\": %s", UrgentPolicyToString(stream_config.urgent_oob_limit_policy));

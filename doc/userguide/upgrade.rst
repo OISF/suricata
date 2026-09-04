@@ -161,6 +161,11 @@ Keyword Changes
   See :doc:`rules/ssh-keywords` for the full state and failure
   semantics.
 
+Default Changes
+~~~~~~~~~~~~~~~
+- An absent configuration value for ``stream.reassembly.urgent.policy`` is now treated as ``oob`` instead of ``inline``.
+- An absent configuration value for ``stream.reassembly.urgent.oob-limit-policy`` is now treated as ``drop`` instead of ``inline``.
+
 Other Changes
 ~~~~~~~~~~~~~
 - ``engine-analysis`` output has been changed for keywords that now use the generic integers framework

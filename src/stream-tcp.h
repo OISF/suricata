@@ -44,10 +44,9 @@
 
 enum TcpStreamUrgentHandling {
     TCP_STREAM_URGENT_INLINE, /**< treat as inline data */
-#define TCP_STREAM_URGENT_DEFAULT TCP_STREAM_URGENT_INLINE
-    TCP_STREAM_URGENT_DROP, /**< drop TCP packet with URG flag */
-    TCP_STREAM_URGENT_OOB,  /**< treat 1 byte of URG data as OOB */
-    TCP_STREAM_URGENT_GAP,  /**< treat 1 byte of URG data as GAP */
+    TCP_STREAM_URGENT_DROP,   /**< drop TCP packet with URG flag */
+    TCP_STREAM_URGENT_OOB,    /**< treat 1 byte of URG data as OOB */
+    TCP_STREAM_URGENT_GAP,    /**< treat 1 byte of URG data as GAP */
 };
 
 /*global flow data*/
