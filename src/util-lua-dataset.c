@@ -71,12 +71,9 @@ static int LuaDatasetGetRef(lua_State *luastate)
 static int LuaDatasetAdd(lua_State *luastate)
 {
     SCLogDebug("add:start");
-    struct LuaDataset *s = (struct LuaDataset *)luaL_checkudata(luastate, 1, "dataset::metatable");
-    if (!lua_isstring(luastate, 2)) {
-        LUA_ERROR("1st arg is not a string");
-    }
-    if (!lua_isnumber(luastate, 3)) {
-        LUA_ERROR("2nd arg is not a number");
+    struct LuaDataset *s = luaL_checkudata(luastate, 1, "dataset::metatable");
+    if (s->set == NULL) {
+        LUA_ERROR("dataset is not initialized (call :get first)");
     }
 
     const uint8_t *str = (const uint8_t *)lua_tostring(luastate, 2);
