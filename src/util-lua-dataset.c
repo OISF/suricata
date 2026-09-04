@@ -76,14 +76,22 @@ static int LuaDatasetAdd(lua_State *luastate)
         LUA_ERROR("dataset is not initialized (call :get first)");
     }
 
-    const uint8_t *str = (const uint8_t *)lua_tostring(luastate, 2);
+    size_t real_len = 0;
+    const uint8_t *str = (const uint8_t *)lua_tolstring(luastate, 2, &real_len);
     if (str == NULL) {
-        LUA_ERROR("1st arg is not null string");
+        LUA_ERROR("1st arg is not a string");
     }
 
-    uint32_t str_len = lua_tonumber(luastate, 3);
+    if (!lua_isinteger(luastate, 3)) {
+        LUA_ERROR("2nd arg is not a string");
+    }
+    lua_Integer n = lua_tointeger(luastate, 3);
+    if (n < 0 || (size_t)n > real_len) {
+        LUA_ERROR("length out of range for supplied string");
+    }
+    uint32_t str_len = (uint32_t)n;
 
-    int r = DatasetAdd(s->set, (const uint8_t *)str, str_len);
+    int r = DatasetAdd(s->set, str, str_len);
     /* return value through luastate, as a luanumber */
     lua_pushnumber(luastate, (lua_Number)r);
     SCLogDebug("add:end");
