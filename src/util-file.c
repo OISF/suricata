@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -330,6 +330,97 @@ uint64_t FileTrackedSize(const File *file)
     return 0;
 }
 
+bool FilePeMetaGet(const File *file, SCFilePeMeta *meta)
+{
+    if (file == NULL || meta == NULL) {
+        return false;
+    }
+    if (file->pe_meta == NULL) {
+        return false;
+    }
+    if (!(file->pe_meta->flags & SC_FILE_PE_META_F_PARSED)) {
+        return false;
+    }
+    *meta = *file->pe_meta;
+    return true;
+}
+
+void FilePeMetaSet(File *file, const SCFilePeMeta *meta)
+{
+    if (file == NULL || meta == NULL) {
+        return;
+    }
+
+    if (file->pe_meta == NULL) {
+        file->pe_meta = SCCalloc(1, sizeof(SCFilePeMeta));
+        if (unlikely(file->pe_meta == NULL)) {
+            return;
+        }
+    }
+    *file->pe_meta = *meta;
+    file->pe_meta->flags |= SC_FILE_PE_META_F_PARSED;
+}
+
+const void *FilePeImportsGet(const File *file)
+{
+    if (file == NULL) {
+        return NULL;
+    }
+    return file->pe_imports;
+}
+
+void FilePeImportsSet(File *file, void *imports)
+{
+    if (file == NULL) {
+        return;
+    }
+    /* Free any previous cached imports. */
+    if (file->pe_imports != NULL) {
+        SCFilePeImportsFree(file->pe_imports);
+    }
+    file->pe_imports = imports;
+}
+
+const void *FilePeSignatureGet(const File *file)
+{
+    if (file == NULL) {
+        return NULL;
+    }
+    return file->pe_signature;
+}
+
+void FilePeSignatureSet(File *file, void *sig)
+{
+    if (file == NULL) {
+        return;
+    }
+    /* Free any previous cached signature. */
+    if (file->pe_signature != NULL) {
+        SCFilePeSignatureFree(file->pe_signature);
+    }
+    file->pe_signature = sig;
+}
+
+const void *FilePeVersionInfoGet(const File *file)
+{
+    if (file == NULL) {
+        return NULL;
+    }
+    return file->pe_version_info;
+}
+
+void FilePeVersionInfoSet(File *file, void *vi)
+{
+    if (file == NULL) {
+        return;
+    }
+    /* Free any previous cached version info. */
+    if (file->pe_version_info != NULL) {
+        SCFilePeVersionInfoFree(file->pe_version_info);
+    }
+    file->pe_version_info = vi;
+}
+
 /** \brief test if file is ready to be pruned
  *
  *  If a file is in the 'CLOSED' state, it means it has been processed
@@ -588,6 +679,14 @@ static void FileFree(File *ff, const StreamingBufferConfig *sbcfg)
         SCSha1Free(ff->sha1_ctx);
     if (ff->sha256_ctx)
         SCSha256Free(ff->sha256_ctx);
+    if (ff->pe_imports != NULL)
+        SCFilePeImportsFree(ff->pe_imports);
+    if (ff->pe_signature != NULL)
+        SCFilePeSignatureFree(ff->pe_signature);
+    if (ff->pe_version_info != NULL)
+        SCFilePeVersionInfoFree(ff->pe_version_info);
+    if (ff->pe_meta != NULL)
+        SCFree(ff->pe_meta);
     SCFree(ff);
 }
 
