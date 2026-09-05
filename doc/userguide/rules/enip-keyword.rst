@@ -6,6 +6,8 @@ enip_command
 
 For the ENIP command, we are matching against the command field found in the ENIP encapsulation.
 
+See ``suricata --list-keywords=json | jq '."enip_command".enum_values'``
+
 Examples::
 
   enip_command:99;
@@ -41,6 +43,8 @@ It uses a 32-bit unsigned integer as value.
 
 enip.status uses an :ref:`unsigned 32-bits integer <rules-integer-keywords>`.
 It can also be specified by text from the enumeration.
+
+See ``suricata --list-keywords=json | jq '."enip.status".enum_values'``
 
 Examples::
 

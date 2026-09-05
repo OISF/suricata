@@ -268,6 +268,11 @@ static int DetectDNP3IndMatch(DetectEngineThreadCtx *det_ctx,
     return DetectU16Match((uint16_t)((tx->iin.iin1 << 8) | tx->iin.iin2), detect);
 }
 
+static void DetectDNP3FuncListValues(SCJsonBuilder *jsb)
+{
+    SCDnp3DetectFuncListValues(jsb);
+}
+
 static void DetectDNP3FuncRegister(void)
 {
     SCEnter();
@@ -282,6 +287,7 @@ static void DetectDNP3FuncRegister(void)
     sigmatch_table[DETECT_DNP3FUNC].Setup = DetectDNP3FuncSetup;
     sigmatch_table[DETECT_DNP3FUNC].Free = DetectDNP3FuncFree;
     sigmatch_table[DETECT_DNP3FUNC].flags = SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT;
+    sigmatch_table[DETECT_DNP3FUNC].JsonAdditionalInfo = DetectDNP3FuncListValues;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_DNP3FUNC].RegisterTests = DetectDNP3FuncRegisterTests;
 #endif

@@ -44,6 +44,9 @@ Valid values are :
 * ``AUTH``
 * ``UNASSIGNED``
 
+See ``suricata --list-keywords=json | jq '."mqtt.type".enum_values'``
+
+
 where ``UNASSIGNED`` refers to message type code 0.
 
 mqtt.type uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>`.
