@@ -83,6 +83,9 @@ void RunModeIdsAFXDPRegister(void)
 #define DEFAULT_BUSY_POLL_BUDGET  64
 #define DEFAULT_GRO_FLUSH_TIMEOUT 2000000
 #define DEFAULT_NAPI_HARD_IRQS    2
+#define DEFAULT_RX_RING_SIZE      XSK_RING_CONS__DEFAULT_NUM_DESCS
+#define DEFAULT_UMEM_FRAMES       (XSK_RING_PROD__DEFAULT_NUM_DESCS * 2)
+#define DEFAULT_FRAME_SIZE        XSK_UMEM__DEFAULT_FRAME_SIZE
 
 static void AFXDPDerefConfig(void *conf)
 {
@@ -178,6 +181,9 @@ static void *ParseAFXDPConfig(const char *iface)
     aconf->gro_flush_timeout = DEFAULT_GRO_FLUSH_TIMEOUT;
     aconf->napi_defer_hard_irqs = DEFAULT_NAPI_HARD_IRQS;
     aconf->mem_alignment = XSK_UMEM__DEFAULT_FLAGS;
+    aconf->rx_ring_size = DEFAULT_RX_RING_SIZE;
+    aconf->umem_frames = DEFAULT_UMEM_FRAMES;
+    aconf->frame_size = DEFAULT_FRAME_SIZE;
 
     /* Find initial node */
     af_xdp_node = SCConfGetNode("af-xdp");
@@ -251,6 +257,30 @@ static void *ParseAFXDPConfig(const char *iface)
             aconf->mem_alignment = XDP_UMEM_UNALIGNED_CHUNK_FLAG;
         }
     }
+
+    /* UMEM count of frames */
+    if (SCConfGetChildValueIntWithDefault(if_root, if_default, "umem-frames", &conf_val_int) == 1) {
+        if (conf_val_int > 0) {
+            aconf->umem_frames = (uint32_t)conf_val_int;
+        }
+    }
+    aconf->rx_ring_size = aconf->umem_frames / 2;
+
+    /* Size of one UMEM frame in bytes. Must be a power of two. */
+    if (SCConfGetChildValueIntWithDefault(if_root, if_default, "frame-size", &conf_val_int) == 1) {
+        if (conf_val_int > 0) {
+            aconf->frame_size = (uint32_t)conf_val_int;
+        }
+    }
+
+    SCLogConfig("%s: af-xdp: rx-ring-size %u, umem %u frames of %u bytes: %" PRIu64
+                " bytes (%.1f MiB) per thread, %" PRIu64 " bytes (%.1f MiB) over %d threads",
+            aconf->iface, aconf->rx_ring_size, aconf->umem_frames, aconf->frame_size,
+            (uint64_t)aconf->umem_frames * aconf->frame_size,
+            (double)aconf->umem_frames * aconf->frame_size / (1024 * 1024),
+            (uint64_t)aconf->umem_frames * aconf->frame_size * aconf->threads,
+            (double)aconf->umem_frames * aconf->frame_size * aconf->threads / (1024 * 1024),
+            aconf->threads);
 
     /* Busy polling options */
     if (SCConfGetChildValueBoolWithDefault(if_root, if_default, "enable-busy-poll", &conf_val) ==
