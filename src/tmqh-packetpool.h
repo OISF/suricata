@@ -72,7 +72,6 @@ typedef struct PktPool_ {
     PktPoolLockedStack return_stack;
 } PktPool;
 
-Packet *TmqhInputPacketpool(ThreadVars *);
 void TmqhOutputPacketpool(ThreadVars *, Packet *);
 void TmqhReleasePacketsToPacketPool(PacketQueue *);
 void TmqhPacketpoolRegister(void);
