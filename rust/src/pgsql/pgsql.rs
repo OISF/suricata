@@ -32,8 +32,8 @@ use std::collections::VecDeque;
 use std::ffi::CString;
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
-    SCAppLayerParserSetStreamDepth, SCAppLayerParserStateIssetFlag,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRequestProtocolTLSUpgrade,
+    SCAppLayerParserRegisterLogger, SCAppLayerParserSetStreamDepth, SCAppLayerParserStateIssetFlag,
+    SCAppLayerProtoDetectConfProtoDetectionEnabledDefault, SCAppLayerRequestProtocolTLSUpgrade,
 };
 
 const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
@@ -964,12 +964,18 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabledDefault(
+        ip_proto_str.as_ptr(),
+        parser.name,
+        false,
+    ) != 0
+    {
         let alproto = applayer_register_protocol_detection(&parser, 1);
         ALPROTO_PGSQL = alproto;
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
+        SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_PGSQL);
         SCLogDebug!("Rust pgsql parser registered.");
         let retval = conf_get("app-layer.protocols.pgsql.stream-depth");
         if let Some(val) = retval {
@@ -991,7 +997,7 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
             }
         }
     } else {
-        SCLogDebug!("Protocol detector and parser disabled for PGSQL.");
+        SCLogDebug!("Protocol detection and parser disabled for PGSQL.");
     }
 }
 
