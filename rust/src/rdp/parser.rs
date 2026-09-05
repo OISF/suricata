@@ -32,7 +32,7 @@ use crate::rdp::util::{le_slice_to_string, parse_per_length_determinant, utf7_sl
 use crate::rdp::windows;
 use nom7::bits::streaming::take as take_bits;
 use nom7::bytes::streaming::{tag, take};
-use nom7::combinator::{map, map_opt, map_res, opt, verify};
+use nom7::combinator::{complete, map, map_opt, map_res, opt, verify};
 use nom7::error::{make_error, ErrorKind};
 use nom7::multi::length_data;
 use nom7::number::streaming::{be_u16, be_u8, le_u16, le_u32, le_u8};
@@ -446,7 +446,7 @@ pub fn parse_t123_tpkt(input: &[u8]) -> IResult<&[u8], T123Tpkt, RdpError> {
     let (i4, data) = take(sz)(i3)?;
 
     let opt1: Option<T123TpktChild> = {
-        match opt(parse_x224_connection_request_class_0)(data) {
+        match opt(complete(parse_x224_connection_request_class_0))(data) {
             Ok((_remainder, opt)) => opt.map(T123TpktChild::X224ConnectionRequest),
             Err(e) => return Err(e),
         }
@@ -454,7 +454,7 @@ pub fn parse_t123_tpkt(input: &[u8]) -> IResult<&[u8], T123Tpkt, RdpError> {
 
     let opt2: Option<T123TpktChild> = match opt1 {
         Some(x) => Some(x),
-        None => match opt(parse_x224_connection_confirm_class_0)(data) {
+        None => match opt(complete(parse_x224_connection_confirm_class_0))(data) {
             Ok((_remainder, opt)) => opt.map(T123TpktChild::X224ConnectionConfirm),
             Err(e) => return Err(e),
         },
@@ -462,7 +462,7 @@ pub fn parse_t123_tpkt(input: &[u8]) -> IResult<&[u8], T123Tpkt, RdpError> {
 
     let opt3: Option<T123TpktChild> = match opt2 {
         Some(x) => Some(x),
-        None => match opt(parse_x223_data_class_0)(data) {
+        None => match opt(complete(parse_x223_data_class_0))(data) {
             Ok((_remainder, opt)) => opt.map(T123TpktChild::Data),
             Err(e) => return Err(e),
         },
@@ -1423,5 +1423,60 @@ mod tests_core_incomplete_49350 {
             Err(Err::Incomplete(Needed::new(1))),
             parse_mcs_connect(connect_bytes)
         )
+    }
+}
+
+#[cfg(test)]
+mod tests_tpkt_overrun_8838 {
+    use crate::rdp::parser::*;
+
+    /// mcs connect request whose CS_CORE block claims 0xff bytes, but the
+    /// tpkt payload ends right after the CS_CORE header
+    static CS_CORE_OVERRUN: [u8; 18] = [
+        0x03, 0x00, 0x00, 0x12, 0x02, 0xf0, 0x80, 0x7f, 0x65, 0x44, 0x75, 0x63, 0x61, 0x04, 0x01,
+        0xc0, 0xff, 0x00,
+    ];
+
+    #[test]
+    fn test_t123_x223_cs_core_overrun() {
+        let bytes = &CS_CORE_OVERRUN[..];
+        let expected = T123Tpkt {
+            child: T123TpktChild::Raw(bytes[4..].to_vec()),
+        };
+        assert_eq!(Ok((&[][..], expected)), parse_t123_tpkt(bytes));
+    }
+
+    #[test]
+    fn test_t123_x224_negotiate_overrun() {
+        // x.224 connection request whose single payload byte is the start of
+        // a negotiation request
+        let bytes: &[u8] = &[
+            0x03, 0x00, 0x00, 0x0c, 0x07, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+        ];
+        let expected = T123Tpkt {
+            child: T123TpktChild::Raw(bytes[4..].to_vec()),
+        };
+        assert_eq!(Ok((&[][..], expected)), parse_t123_tpkt(bytes));
+    }
+
+    #[test]
+    fn test_t123_x224_confirm_overrun() {
+        // x.224 connection confirm whose single payload byte is the start of
+        // a negotiation response
+        let bytes: &[u8] = &[
+            0x03, 0x00, 0x00, 0x0c, 0x07, 0xd0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
+        ];
+        let expected = T123Tpkt {
+            child: T123TpktChild::Raw(bytes[4..].to_vec()),
+        };
+        assert_eq!(Ok((&[][..], expected)), parse_t123_tpkt(bytes));
+    }
+
+    #[test]
+    fn test_t123_overrun_keeps_remainder() {
+        let mut bytes = CS_CORE_OVERRUN.to_vec();
+        bytes.extend_from_slice(&[0x03, 0x00]);
+        let (remainder, _tpkt) = parse_t123_tpkt(&bytes).expect("tpkt is complete");
+        assert_eq!(&[0x03, 0x00][..], remainder);
     }
 }

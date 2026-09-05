@@ -623,6 +623,38 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_ts_overrun_then_rdp() {
+        // a tpkt whose inner CS_CORE length overruns the tpkt payload is
+        // complete as far as the stream is concerned: it must be skipped, not
+        // reported as incomplete, so the tpkt following it is still parsed
+        let buf: &[u8] = &[
+            0x03, 0x00, 0x00, 0x12, 0x02, 0xf0, 0x80, 0x7f, 0x65, 0x44, 0x75, 0x63, 0x61, 0x04,
+            0x01, 0xc0, 0xff, 0x00, 0x03, 0x00, 0x00, 0x25, 0x20, 0xe0, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x43, 0x6f, 0x6f, 0x6b, 0x69, 0x65, 0x3a, 0x20, 0x6d, 0x73, 0x74, 0x73, 0x68,
+            0x61, 0x73, 0x68, 0x3d, 0x75, 0x73, 0x65, 0x72, 0x31, 0x32, 0x33, 0x0d, 0x0a,
+        ];
+        let mut state = RdpState::new();
+        assert_eq!(
+            AppLayerResult::ok(),
+            state.parse_ts(std::ptr::null_mut(), buf)
+        );
+        assert_eq!(1, state.transactions.len());
+        let item = RdpTransactionItem::X224ConnectionRequest(X224ConnectionRequest {
+            cdt: 0,
+            dst_ref: 0,
+            src_ref: 0,
+            class: 0,
+            options: 0,
+            cookie: Some(RdpCookie {
+                mstshash: String::from("user123"),
+            }),
+            negotiation_request: None,
+            data: Vec::new(),
+        });
+        assert_eq!(item, state.transactions[0].item);
+    }
+
+    #[test]
     fn test_parse_tc_rdp() {
         let buf_1: &[u8] = &[0x03, 0x00, 0x00, 0x09, 0x02];
         let buf_2: &[u8] = &[0x03, 0x00, 0x00, 0x09, 0x02, 0xf0, 0x80, 0x7f, 0x66];
