@@ -1324,28 +1324,904 @@ Event type: SMB
 SMB Fields
 ~~~~~~~~~~
 
-* "id" (integer): internal transaction id
-* "dialect" (string): the negotiated protocol dialect, or "unknown" if missing
-* "command" (string): command name. E.g. SMB2_COMMAND_CREATE or SMB1_COMMAND_WRITE_ANDX
-* "status" (string): status string. Can be both NT_STATUS or DOS_ERR and other variants
-* "status_code" (string): status code as hex string
-* "session_id" (integer): SMB2+ session_id. SMB1 user id.
-* "tree_id" (integer): Tree ID
-* "filename" (string): filename for CREATE and other commands.
-* "disposition" (string): requested disposition. E.g. FILE_OPEN, FILE_CREATE and FILE_OVERWRITE. See https://msdn.microsoft.com/en-us/library/ee442175.aspx#Appendix_A_Target_119
-* "access" (string): indication of how the file was opened. "normal" or "delete on close" (field is subject to change)
-* "created", "accessed", "modified", "changed" (integer): timestamps in seconds since unix epoch
-* "size" (integer): size of the requested file
-* "fuid" (string): SMB2+ file GUID. SMB1 FID as hex.
-* "share" (string): share name.
-* "share_type" (string): FILE, PIPE, PRINT or unknown.
-* "client_dialects" (array of strings): list of SMB dialects the client speaks.
-* "client_guid" (string): client GUID
-* "server_guid" (string): server GUID
-* "request.native_os" (string): SMB1 native OS string
-* "request.native_lm" (string): SMB1 native Lan Manager string
-* "response.native_os" (string): SMB1 native OS string
-* "response.native_lm" (string): SMB1 native Lan Manager string
+smb.access
+^^^^^^^^^^
+
+**Field:** The access mask or permission type (e.g., read, write, execute) requested for the file or directory in the SMB operation.
+
+**Reference:** `MS-SMB2 §2.2.13 — SMB2 CREATE Request (DesiredAccess) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/e8fb45c1-a03d-44ca-b7ae-47385cfd7997>`_
+
+**Network Monitoring:**
+Track access permission types requested on SMB shares to build access pattern baselines and detect shifts in how users interact with file resources over time.
+
+**Threat Hunting:**
+Hunt for SMB sessions where write or execute access is requested on shares that should be read-only, which may indicate ransomware staging, malware deployment, or unauthorized file modification.
+
+smb.accessed
+^^^^^^^^^^^^
+
+**Field:** The timestamp recording when the file or directory was last accessed, as reported in the SMB response.
+
+**Reference:** `MS-FSCC §2.4.7 — FileBasicInformation (LastAccessTime) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/16023025-8a78-492f-8b96-c873b042ac50>`_
+
+**Network Monitoring:**
+Monitor file last-accessed timestamps to detect stale files being read after long periods of inactivity, which may indicate scheduled data collection or unauthorized archival processes.
+
+**Threat Hunting:**
+Look for bulk access to files where ``smb.accessed`` timestamps cluster tightly in time across many files, a pattern consistent with automated crawling or data staging prior to exfiltration.
+
+smb.changed
+^^^^^^^^^^^
+
+**Field:** The timestamp recording when the file's metadata (e.g., attributes, permissions) was last changed, as reported in the SMB response.
+
+**Reference:** `MS-FSCC §2.4.7 — FileBasicInformation (ChangeTime) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/16023025-8a78-492f-8b96-c873b042ac50>`_
+
+**Network Monitoring:**
+Track file change timestamps on critical directories to detect unexpected modification activity outside of authorized maintenance windows, supporting change management compliance.
+
+**Threat Hunting:**
+Identify files where ``smb.changed`` timestamps do not align with known deployment or patch cycles, which may reveal unauthorized file replacement, backdoor installation, or log tampering via SMB.
+
+smb.client_dialects
+^^^^^^^^^^^^^^^^^^^
+
+**Field:** The array of SMB protocol dialects offered by the client during the NEGOTIATE request.
+
+**Reference:** `MS-SMB2 §2.2.3 — SMB2 NEGOTIATE Request (Dialects) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/e14db7ff-763a-4263-b004-1a2cebaa3425>`_
+
+**Keyword Reference:** :ref:`smb.version <smb-keyword-version>`
+
+**Network Monitoring:**
+Inventory the full set of SMB dialects advertised by clients to identify legacy systems still offering SMBv1, supporting deprecation and vulnerability remediation programs.
+
+**Threat Hunting:**
+Detect clients that advertise an unusually narrow or spoofed dialect list, which may indicate a non-standard SMB implementation such as a toolset (e.g., Impacket) used for exploitation or lateral movement.
+
+smb.client_dialects.0
+^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The first (highest-priority) SMB dialect offered by the client in the NEGOTIATE request.
+
+**Reference:** `MS-SMB2 §2.2.3 — SMB2 NEGOTIATE Request (Dialects) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/e14db7ff-763a-4263-b004-1a2cebaa3425>`_
+
+**Network Monitoring:**
+Identify the highest-priority dialect offered by SMB clients to assess whether modern dialect negotiation is occurring and flag clients stuck on older protocol versions.
+
+**Threat Hunting:**
+Hunt for clients whose leading dialect is SMBv1 (``NT LM 0.12``) in environments where SMBv1 is disabled, as this may indicate EternalBlue-style exploit attempts or non-compliant attacker tooling.
+
+smb.client_guid
+^^^^^^^^^^^^^^^
+
+**Field:** The globally unique identifier sent by the client during SMB2 session negotiation to identify itself to the server.
+
+**Reference:** `MS-SMB2 §2.2.3 — SMB2 NEGOTIATE Request (ClientGuid) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/e14db7ff-763a-4263-b004-1a2cebaa3425>`_
+
+**Network Monitoring:**
+Track unique client GUIDs over time to maintain an inventory of SMB clients connecting to each server, enabling rapid detection of new or unrecognized endpoints joining the environment.
+
+**Threat Hunting:**
+Identify client GUIDs that appear on multiple source IPs within a short window, which may indicate GUID spoofing or a single attacker tool rotating source addresses while reusing the same client identity.
+
+smb.command
+^^^^^^^^^^^
+
+**Field:** The SMB command or operation type (e.g., SMB2_CREATE, SMB2_READ) being executed in the transaction.
+
+**Reference:** `MS-SMB2 §2.2.1.2 — SMB2 Packet Header (Command) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/fb188936-5050-48d3-b350-dc43059638a4>`_
+
+**Network Monitoring:**
+Aggregate SMB command frequencies to establish normal workload profiles for file servers and detect sudden changes in command mix that may indicate application issues.
+
+**Threat Hunting:**
+Search for rare or dangerous SMB commands such as NT_CREATE targeting sensitive paths, or SESSION_SETUP anomalies, which are often part of exploitation frameworks performing reconnaissance or persistence.
+
+smb.created
+^^^^^^^^^^^
+
+**Field:** The timestamp recording when the file or directory was originally created, as reported in the SMB response.
+
+**Reference:** `MS-FSCC §2.4.7 — FileBasicInformation (CreationTime) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/16023025-8a78-492f-8b96-c873b042ac50>`_
+
+**Network Monitoring:**
+Monitor file creation timestamps on shared directories to audit new file additions, supporting data lifecycle management and storage capacity tracking.
+
+**Threat Hunting:**
+Identify files created via SMB with timestamps that predate the session (timestamp manipulation), or new executables and scripts created in unusual paths, which may indicate malware dropping or webshell placement.
+
+smb.dcerpc
+^^^^^^^^^^
+
+**Field:** The container object holding all DCE/RPC-over-SMB named pipe transaction details for the session.
+
+**Reference:** `MS-RPCE — Remote Procedure Call Protocol Extensions <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Detect DCE/RPC-over-SMB activity to ensure only authorized remote procedure call traffic is flowing on the network, supporting audits of administrative tool usage such as PsExec and WMI.
+
+**Threat Hunting:**
+Hunt for SMB sessions containing DCE/RPC sub-events, particularly from workstations to workstations rather than to domain controllers, which is a strong indicator of lateral movement via remote service execution.
+
+smb.dcerpc.call_id
+^^^^^^^^^^^^^^^^^^
+
+**Field:** The numeric identifier used to match a DCE/RPC request with its corresponding response within a session.
+
+**Reference:** `MS-RPCE §2.2.2.4 — rpcconn_request_hdr_t (call_id) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Use ``call_id`` to correlate multi-fragment DCE/RPC requests and responses within an SMB session, enabling accurate reconstruction of RPC call sequences for protocol analysis and troubleshooting.
+
+**Threat Hunting:**
+Track ``call_id`` sequences for anomalies such as out-of-order or duplicate IDs, which may indicate fragmentation-based evasion techniques used by exploit payloads to bypass RPC inspection.
+
+smb.dcerpc.interfaces
+^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The array of DCE/RPC interface bindings negotiated at the start of the RPC session over SMB.
+
+**Reference:** `MS-RPCE §2.2.2.3 — rpcconn_bind_hdr_t (p_context_elem) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Inventory all DCE/RPC interfaces negotiated over SMB to document which remote management interfaces are actively in use, supporting attack surface reduction efforts.
+
+**Threat Hunting:**
+Detect negotiation of high-risk DCE/RPC interfaces such as IRemoteActivation (DCOM) or SVCCTL (Service Control Manager) over SMB, which are commonly abused for remote code execution and lateral movement.
+
+smb.dcerpc.interfaces.0
+^^^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The first DCE/RPC interface entry in the interfaces array, representing the primary binding negotiated.
+
+**Reference:** `MS-RPCE §2.2.2.3 — rpcconn_bind_hdr_t (p_context_elem) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Track the primary DCE/RPC interface established per SMB session to classify sessions by their administrative function (file sharing, print, registry, etc.) and measure usage trends.
+
+**Threat Hunting:**
+Alert on sessions where the leading DCE/RPC interface is associated with known exploitation targets such as MS-RPRN (Print Spooler) or MS-EFSR (Encrypting File System), which are linked to PrintNightmare and PetitPotam.
+
+smb.dcerpc.interfaces.0.ack_reason
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The reason code returned by the server explaining why a DCE/RPC bind request was accepted or rejected.
+
+**Reference:** `MS-RPCE §2.2.2.4 — rpcconn_bind_ack_hdr_t (p_reason_t) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Monitor DCE/RPC bind acknowledgment reasons to detect interface negotiation failures that may indicate misconfigured services or incompatible client and server versions.
+
+**Threat Hunting:**
+Identify sessions where ``ack_reason`` indicates rejection of a bind attempt followed by immediate retry on a different interface UUID, a pattern consistent with automated tools probing for exploitable RPC interfaces.
+
+smb.dcerpc.interfaces.0.ack_result
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The numeric result code indicating whether the DCE/RPC interface bind was accepted (0) or rejected (non-zero).
+
+**Reference:** `MS-RPCE §2.2.2.4 — rpcconn_bind_ack_hdr_t (p_result_t) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Baseline the ratio of accepted versus rejected DCE/RPC interface binds to detect service degradation or configuration drift across the server infrastructure.
+
+**Threat Hunting:**
+Hunt for high volumes of failed ``ack_result`` (non-zero) values from a single source, which indicates systematic enumeration or brute-force probing of DCE/RPC interfaces, a common pre-exploitation reconnaissance step.
+
+smb.dcerpc.interfaces.0.uuid
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The universally unique identifier (UUID) that identifies the specific DCE/RPC interface being bound in the session.
+
+**Reference:** `MS-RPCE §2.2.2.3 — p_syntax_id_t (if_uuid) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Maintain a whitelist of approved DCE/RPC interface UUIDs and alert when sessions negotiate interfaces outside that list, supporting change control for remote management capabilities.
+
+**Threat Hunting:**
+Match negotiated UUIDs against threat intelligence databases of known exploitable RPC interfaces (e.g., ``12345778-1234-abcd-ef00-0123456789ab`` for LSA) to identify exploitation attempts targeting authentication services.
+
+smb.dcerpc.interfaces.0.version
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The major/minor version number of the DCE/RPC interface being negotiated in the bind request.
+
+**Reference:** `MS-RPCE §2.2.2.3 — p_syntax_id_t (if_version) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Track DCE/RPC interface version numbers to identify outdated interface versions in use that may correspond to unpatched or legacy protocol implementations.
+
+**Threat Hunting:**
+Detect requests for unusually old interface versions that correspond to known vulnerable implementations, which may indicate an attacker deliberately downgrading the interface version to trigger a specific vulnerability.
+
+smb.dcerpc.opnum
+^^^^^^^^^^^^^^^^
+
+**Field:** The operation number identifying which specific procedure or method is being called on the bound DCE/RPC interface.
+
+**Reference:** `MS-RPCE §2.2.2.7 — rpcconn_request_hdr_t (opnum) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Profile the distribution of DCE/RPC operation numbers per interface to understand which remote operations are routinely invoked, establishing a baseline for operational anomaly detection.
+
+**Threat Hunting:**
+Alert on DCE/RPC opnum values mapped to dangerous operations such as CreateService (opnum 12 on SVCCTL) or DRSGetNCChanges (opnum 3 on DRSUAPI), which are used in PsExec-style attacks and DCSync credential theft.
+
+smb.dcerpc.req
+^^^^^^^^^^^^^^
+
+**Field:** The sub-object containing metadata about the DCE/RPC request, including fragment count and stub data size.
+
+**Reference:** `MS-RPCE §2.2.2.7 — rpcconn_request_hdr_t <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Inspect DCE/RPC request metadata to measure payload sizes and fragment counts for capacity planning and to detect excessively large RPC requests that may cause performance issues.
+
+**Threat Hunting:**
+Identify DCE/RPC requests with abnormally large stub data that may carry shellcode or exploit payloads, especially when sent to sensitive interfaces like NETLOGON or SAMR.
+
+smb.dcerpc.req.frag_cnt
+^^^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The number of PDU fragments used to transmit the DCE/RPC request payload.
+
+**Reference:** `MS-RPCE §2.2.2.1 — Common Header Fields (PFC_LAST_FRAG / frag_length) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Monitor fragment counts for DCE/RPC requests to detect fragmentation patterns that deviate from normal application behavior, which may affect reassembly performance on the server.
+
+**Threat Hunting:**
+Detect unusually high fragment counts for DCE/RPC requests, a technique used to split malicious payloads across many fragments to evade IDS signatures that inspect individual fragments.
+
+smb.dcerpc.req.stub_data_size
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The size in bytes of the stub data (serialized call parameters) carried in the DCE/RPC request.
+
+**Reference:** `MS-RPCE §2.2.2.7 — rpcconn_request_hdr_t (stub data) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Track stub data sizes for common RPC operations to establish size norms and quickly flag sessions where request payloads are anomalously large or small compared to historical data.
+
+**Threat Hunting:**
+Hunt for ``stub_data_size`` values that far exceed the norm for a given opnum, as oversized stubs may contain exploit code, encoded payloads, or data being staged for exfiltration via RPC.
+
+smb.dcerpc.request
+^^^^^^^^^^^^^^^^^^
+
+**Field:** The human-readable name of the DCE/RPC operation being requested, derived from the interface UUID and opnum.
+
+**Reference:** `MS-RPCE — Remote Procedure Call Protocol Extensions <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Log the human-readable DCE/RPC request name alongside the opnum to simplify audits of remote administrative operations and produce compliance-friendly reports of who called what RPC method.
+
+**Threat Hunting:**
+Search for DCE/RPC request names associated with credential access such as ``SamrGetGroupsForUser`` or ``LsarEnumeratePrivileges``, which indicate an attacker performing Active Directory reconnaissance via SMB.
+
+smb.dcerpc.res
+^^^^^^^^^^^^^^
+
+**Field:** The sub-object containing metadata about the DCE/RPC response, including fragment count and stub data size.
+
+**Reference:** `MS-RPCE §2.2.2.8 — rpcconn_response_hdr_t <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Examine DCE/RPC response metadata to correlate request and response sizes, helping to identify chatty applications or misbehaving services that generate excessive RPC traffic.
+
+**Threat Hunting:**
+Flag sessions where the DCE/RPC response stub data is unexpectedly large for operations that should return minimal data (e.g., a service start confirmation), which may indicate data injection or response manipulation.
+
+smb.dcerpc.res.frag_cnt
+^^^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The number of PDU fragments used to transmit the DCE/RPC response payload from the server.
+
+**Reference:** `MS-RPCE §2.2.2.1 — Common Header Fields (PFC_LAST_FRAG / frag_length) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Measure server-side response fragmentation to identify network conditions or MTU settings that cause excessive fragmentation, impacting SMB/RPC performance.
+
+**Threat Hunting:**
+Detect high response fragment counts from servers as a potential indicator of large data responses being streamed back to a client, which could represent bulk credential or data harvesting via RPC.
+
+smb.dcerpc.res.stub_data_size
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The size in bytes of the stub data (return values) carried in the DCE/RPC response.
+
+**Reference:** `MS-RPCE §2.2.2.8 — rpcconn_response_hdr_t (stub data) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Monitor response stub data sizes to detect unusually large return payloads from RPC servers, which could indicate application errors or unexpected data being returned.
+
+**Threat Hunting:**
+Hunt for large response stubs from LSASS-targeting RPC operations, as oversized responses to credential-related calls may indicate successful credential enumeration or pass-the-hash preparation.
+
+smb.dcerpc.response
+^^^^^^^^^^^^^^^^^^^
+
+**Field:** The human-readable name of the DCE/RPC response, corresponding to the operation that was called.
+
+**Reference:** `MS-RPCE — Remote Procedure Call Protocol Extensions <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/b6090550-aa3f-4fa2-a729-45b9d38c0552>`_
+
+**Network Monitoring:**
+Capture DCE/RPC response names to audit successful completions of remote operations and build an activity log of administrative actions performed over SMB.
+
+**Threat Hunting:**
+Correlate DCE/RPC response names with threat intelligence to identify successful execution of dangerous operations (e.g., a successful ``DRSGetNCChanges`` response confirming a DCSync attack completed).
+
+smb.dialect
+^^^^^^^^^^^
+
+**Field:** The SMB protocol dialect mutually agreed upon by client and server after the NEGOTIATE exchange completes (e.g., SMB 2.1, SMB 3.1.1).
+
+**Reference:** `MS-SMB2 §2.2.4 — SMB2 NEGOTIATE Response (DialectRevision) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/63abf97c-0d09-47e2-88d6-6bfa552949a5>`_
+
+**Keyword Reference:** :ref:`smb.version <smb-keyword-version>`
+
+**Network Monitoring:**
+Inventory the negotiated SMB dialects across all sessions to identify the prevalence of SMBv1, SMBv2, and SMBv3 in the environment, guiding protocol hardening and deprecation timelines.
+
+**Threat Hunting:**
+Detect sessions where SMBv1 (dialect ``NT LM 0.12``) is negotiated in environments where it is supposed to be disabled, as this may indicate EternalBlue exploitation attempts or deliberate downgrade attacks.
+
+smb.directory
+^^^^^^^^^^^^^
+
+**Field:** The name of the directory being accessed or created in the SMB file operation.
+
+**Reference:** `MS-SMB2 §2.2.13 — SMB2 CREATE Request (FileName) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/e8fb45c1-a03d-44ca-b7ae-47385cfd7997>`_
+
+**Network Monitoring:**
+Track which directories are accessed most frequently over SMB to identify hot paths for storage optimization and to ensure critical directories have appropriate access controls in place.
+
+**Threat Hunting:**
+Hunt for SMB access to sensitive directories such as ``SYSVOL``, ``NETLOGON``, or ``C$\Windows\System32``, which are commonly targeted during group policy tampering, credential harvesting, and lateral movement.
+
+smb.disposition
+^^^^^^^^^^^^^^^
+
+**Field:** The file disposition flag indicating how the server should handle the file if it already exists (e.g., create, open, overwrite, supersede).
+
+**Reference:** `MS-SMB2 §2.2.13 — SMB2 CREATE Request (CreateDisposition) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/e8fb45c1-a03d-44ca-b7ae-47385cfd7997>`_
+
+**Network Monitoring:**
+Monitor file disposition flags to track file lifecycle events on shares and generate accurate file audit logs for compliance reporting.
+
+**Threat Hunting:**
+Identify sessions where file disposition indicates overwrite or supersede on executable or configuration files, which may indicate malware replacement of legitimate binaries or DLL hijacking via SMB.
+
+smb.filename
+^^^^^^^^^^^^
+
+**Field:** The name of the file being accessed, created, read, written, or deleted in the SMB transaction.
+
+**Reference:** `MS-SMB2 §2.2.13 — SMB2 CREATE Request (FileName) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/e8fb45c1-a03d-44ca-b7ae-47385cfd7997>`_
+
+**Keyword Reference:** :ref:`file.name <smb-keyword-file-name>`
+
+**Network Monitoring:**
+Audit filenames accessed over SMB to enforce data governance policies, identify access to restricted file types, and generate file access reports for compliance audits.
+
+**Threat Hunting:**
+Search for SMB access to filenames matching known malware artifacts or credential files (e.g., ``ntds.dit``, ``SAM``, ``SYSTEM``) or reconnaissance tools (e.g., ``mimikatz.exe``, ``psexesvc.exe``) being transferred or executed remotely.
+
+smb.fuid
+^^^^^^^^
+
+**Field:** An internal Suricata-assigned unique identifier for the file handle within an SMB session, used to correlate file-related events.
+
+**Reference:** `OISF/suricata — SMB parser source <https://github.com/OISF/suricata/tree/master/rust/src/smb>`_
+
+**Network Monitoring:**
+Use file unique IDs to track a single file across multiple SMB operations within a session, enabling accurate per-file access counting and duration measurement for file server analytics.
+
+**Threat Hunting:**
+Correlate ``fuid`` values across read, write, and close events to reconstruct the full access history of a suspicious file, particularly when the filename is obfuscated or accessed through multiple handles.
+
+smb.function
+^^^^^^^^^^^^
+
+**Field:** The high-level SMB function name (e.g., SMB2_NEGOTIATE, SMB2_SESSION_SETUP) describing the type of operation being performed.
+
+**Reference:** `OISF/suricata — SMB parser source <https://github.com/OISF/suricata/tree/master/rust/src/smb>`_
+
+**Network Monitoring:**
+Profile the distribution of SMB functions invoked per session to compare against application-specific baselines and detect shifts caused by software updates or configuration changes.
+
+**Threat Hunting:**
+Detect unusual SMB function sequences such as NEGOTIATE followed immediately by NT_CREATE on admin shares without any prior authentication event, which is indicative of pass-the-hash or token impersonation attacks.
+
+smb.id
+^^^^^^
+
+**Field:** The SMB message ID (MID) that uniquely identifies a request/response pair within a multiplexed SMB session.
+
+**Reference:** `MS-SMB2 §2.2.1.2 — SMB2 Packet Header (MessageId) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/fb188936-5050-48d3-b350-dc43059638a4>`_
+
+**Network Monitoring:**
+Use SMB transaction IDs to correlate multi-part SMB exchanges within a session, enabling accurate reassembly of compound requests for protocol analysis and performance troubleshooting.
+
+**Threat Hunting:**
+Detect anomalous transaction ID patterns (e.g., sequential IDs resetting unexpectedly) that may indicate session hijacking or injection of forged SMB packets into an existing session.
+
+smb.kerberos
+^^^^^^^^^^^^
+
+**Field:** The container object holding Kerberos authentication details extracted from the SMB session setup exchange.
+
+**Reference:** `MS-KILE — Kerberos Protocol Extensions <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-kile/2a32282e-dd48-4ad9-a542-609804b02cc9>`_
+
+**Network Monitoring:**
+Monitor the presence of Kerberos authentication in SMB sessions to ensure that domain-joined clients are authenticating correctly and that NTLM fallback is not occurring unexpectedly across the environment.
+
+**Threat Hunting:**
+Identify SMB sessions using Kerberos with unusual ticket attributes (e.g., forged PAC, unexpected realm) that may indicate Golden Ticket or Silver Ticket attacks being used to authenticate via SMB.
+
+smb.kerberos.realm
+^^^^^^^^^^^^^^^^^^
+
+**Field:** The Kerberos realm (domain) name presented in the service ticket during SMB Kerberos authentication.
+
+**Reference:** `RFC 4120 §6.1 — The Kerberos Version 5 Protocol (Realm) <https://www.rfc-editor.org/rfc/rfc4120#section-6.1>`_
+
+**Network Monitoring:**
+Track Kerberos realm values in SMB sessions to ensure all authentication is occurring within expected domains and to detect cross-realm ticket usage that may indicate multi-domain deployments or misconfigurations.
+
+**Threat Hunting:**
+Hunt for SMB sessions where the Kerberos realm does not match the organization's known domains, which may indicate forged tickets using a fabricated realm or cross-forest pass-the-ticket attacks.
+
+smb.kerberos.snames
+^^^^^^^^^^^^^^^^^^^
+
+**Field:** The array of service principal name (SPN) components from the Kerberos ticket used during SMB authentication.
+
+**Reference:** `RFC 4120 §6.2 — The Kerberos Version 5 Protocol (PrincipalName / sname) <https://www.rfc-editor.org/rfc/rfc4120#section-6.2>`_
+
+**Network Monitoring:**
+Inventory Kerberos service names (SPNs) requested during SMB sessions to maintain an accurate SPN inventory and detect orphaned or unauthorized service accounts being used for file access.
+
+**Threat Hunting:**
+Search for SMB sessions requesting Kerberos tickets for SPNs associated with high-value targets (e.g., ``krbtgt``, ``MSSQL``, ``HTTP``) over SMB, which may indicate Kerberoasting or SPN abuse for lateral movement.
+
+smb.kerberos.snames.0
+^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The first component of the Kerberos service principal name, typically the service class (e.g., ``cifs``, ``host``).
+
+**Reference:** `RFC 4120 §6.2 — The Kerberos Version 5 Protocol (PrincipalName / sname) <https://www.rfc-editor.org/rfc/rfc4120#section-6.2>`_
+
+**Network Monitoring:**
+Extract the primary service name from each SMB Kerberos exchange to classify sessions by target service, simplifying capacity and access reporting per service type.
+
+**Threat Hunting:**
+Alert on the primary SPN targeting administrative services (e.g., ``cifs/DC01``) from non-administrative workstations, which may indicate unauthorized privilege escalation or lateral movement toward domain controllers.
+
+smb.max_read_size
+^^^^^^^^^^^^^^^^^
+
+**Field:** The maximum number of bytes the client is willing to receive in a single SMB READ response, negotiated during session setup.
+
+**Reference:** `MS-SMB2 §2.2.4 — SMB2 NEGOTIATE Response (MaxReadSize) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/63abf97c-0d09-47e2-88d6-6bfa552949a5>`_
+
+**Network Monitoring:**
+Track negotiated maximum read sizes to understand the data transfer capabilities of clients and servers, and to identify clients requesting non-standard buffer sizes that may indicate compatibility issues.
+
+**Threat Hunting:**
+Detect clients negotiating unusually large maximum read sizes that deviate significantly from the environment norm, which may indicate a custom SMB implementation (e.g., Impacket) configured for high-speed data exfiltration.
+
+smb.max_write_size
+^^^^^^^^^^^^^^^^^^
+
+**Field:** The maximum number of bytes the client is willing to send in a single SMB WRITE request, negotiated during session setup.
+
+**Reference:** `MS-SMB2 §2.2.4 — SMB2 NEGOTIATE Response (MaxWriteSize) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/63abf97c-0d09-47e2-88d6-6bfa552949a5>`_
+
+**Network Monitoring:**
+Monitor negotiated maximum write sizes to baseline SMB upload capacity across client types and detect clients with degraded write buffer sizes that may experience performance issues.
+
+**Threat Hunting:**
+Identify clients negotiating very large write buffer sizes to file servers that do not normally receive large uploads, which could indicate bulk data staging or ransomware encrypting files across a network share.
+
+smb.modified
+^^^^^^^^^^^^
+
+**Field:** The timestamp recording when the file's content was last modified, as reported in the SMB response.
+
+**Reference:** `MS-FSCC §2.4.7 — FileBasicInformation (LastWriteTime) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/16023025-8a78-492f-8b96-c873b042ac50>`_
+
+**Network Monitoring:**
+Track file modification timestamps on monitored shares to support integrity monitoring workflows and detect unauthorized changes to critical configuration or executable files.
+
+**Threat Hunting:**
+Hunt for files where ``smb.modified`` is set to a date far in the past or future compared to the actual transaction time, which is a classic timestamp manipulation technique used by attackers to hide malware implants.
+
+smb.named_pipe
+^^^^^^^^^^^^^^
+
+**Field:** The name of the named pipe being accessed over SMB, used as the transport layer for DCE/RPC communications.
+
+**Reference:** `MS-SMB2 §2.2.13 — SMB2 CREATE Request (Named Pipe) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/e8fb45c1-a03d-44ca-b7ae-47385cfd7997>`_
+
+**Keyword Reference:** :ref:`smb.named_pipe <smb-keyword-named-pipe>`
+
+**Network Monitoring:**
+Inventory named pipes used in SMB sessions to document legitimate inter-process communication channels and detect deviations from the expected set of named pipes in use.
+
+**Threat Hunting:**
+Detect SMB connections to named pipes associated with known attack frameworks, such as ``\PIPE\svcctl`` (PsExec), ``\PIPE\atsvc`` (at.exe scheduler), or randomly named pipes used by Cobalt Strike and Metasploit.
+
+smb.ntlmssp
+^^^^^^^^^^^
+
+**Field:** The container object holding NTLM Security Support Provider (NTLMSSP) authentication details extracted from the SMB session.
+
+**Reference:** `MS-NLMP — NT LAN Manager Authentication Protocol <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-nlmp/b38c36ed-2804-4868-a9ff-8dd3182128e4>`_
+
+**Network Monitoring:**
+Monitor NTLM SSP authentication events in SMB sessions to track the prevalence of NTLM usage versus Kerberos, supporting efforts to reduce NTLM exposure and enforce modern authentication.
+
+**Threat Hunting:**
+Detect SMB sessions using NTLM authentication where Kerberos should be used, particularly targeting domain controllers, which may indicate NTLM relay attacks (e.g., Responder, ntlmrelayx) in progress.
+
+smb.ntlmssp.domain
+^^^^^^^^^^^^^^^^^^
+
+**Field:** The Windows domain name provided by the client in the NTLMSSP authentication exchange.
+
+**Reference:** `MS-NLMP §2.2.1.3 — AUTHENTICATE_MESSAGE (DomainName) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-nlmp/033d87b8-3b8b-4d76-bbc8-f1b91971bfd7>`_
+
+**Keyword Reference:** :ref:`smb.ntlmssp_domain <smb-keyword-ntlmssp-domain>`
+
+**Network Monitoring:**
+Track NTLM domain names in SMB authentications to inventory which domains are actively authenticating to file servers and detect accounts from unexpected domains accessing internal resources.
+
+**Threat Hunting:**
+Hunt for NTLM authentications with domain names that do not match the organization's Active Directory domains, which may indicate forged NTLM challenges, captured hashes being replayed, or rogue domain injection.
+
+smb.ntlmssp.host
+^^^^^^^^^^^^^^^^
+
+**Field:** The hostname of the client machine as declared in the NTLMSSP authentication exchange.
+
+**Reference:** `MS-NLMP §2.2.1.3 — AUTHENTICATE_MESSAGE (Workstation) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-nlmp/033d87b8-3b8b-4d76-bbc8-f1b91971bfd7>`_
+
+**Network Monitoring:**
+Collect NTLM host identifiers from SMB sessions to maintain an inventory of systems authenticating via NTLM and correlate with known asset lists to detect unmanaged or shadow IT devices.
+
+**Threat Hunting:**
+Identify NTLM host values that do not correspond to any known hostname in the environment, which may indicate hash relay attacks where the attacker's machine is masquerading as a legitimate host.
+
+smb.ntlmssp.user
+^^^^^^^^^^^^^^^^
+
+**Field:** The username of the account being authenticated via NTLMSSP in the SMB session.
+
+**Reference:** `MS-NLMP §2.2.1.3 — AUTHENTICATE_MESSAGE (UserName) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-nlmp/033d87b8-3b8b-4d76-bbc8-f1b91971bfd7>`_
+
+**Keyword Reference:** :ref:`smb.ntlmssp_user <smb-keyword-ntlmssp-user>`
+
+**Network Monitoring:**
+Audit the list of users authenticating over SMB via NTLM to enforce account usage policies and detect service accounts or administrator accounts being used for interactive file access.
+
+**Threat Hunting:**
+Detect privileged accounts (domain admins, service accounts) authenticating via NTLM over SMB from unusual source hosts, which may indicate credential theft and reuse through pass-the-hash attacks.
+
+smb.ntlmssp.version
+^^^^^^^^^^^^^^^^^^^
+
+**Field:** The Windows OS version information embedded in the NTLMSSP negotiate or authenticate message, indicating the client's platform.
+
+**Reference:** `MS-NLMP §2.2.2.10 — VERSION (ProductMajorVersion / ProductMinorVersion) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-nlmp/b38c36ed-2804-4868-a9ff-8dd3182128e4>`_
+
+**Network Monitoring:**
+Track NTLM protocol version usage (NTLMv1 vs NTLMv2) across the environment to identify systems still using the weak NTLMv1 protocol that must be upgraded or reconfigured for security compliance.
+
+**Threat Hunting:**
+Alert on SMB sessions using NTLMv1, which is trivially crackable and indicates either a misconfigured system or an attacker deliberately triggering a downgrade to capture easily crackable challenge-response hashes.
+
+smb.rename
+^^^^^^^^^^
+
+**Field:** The container object holding the source and destination filenames for an SMB file rename operation.
+
+**Reference:** `MS-FSCC §2.4.34 — FileRenameInformation <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/1d2673a8-8fb9-4868-920a-775ccaa30cf8>`_
+
+**Network Monitoring:**
+Track file rename operations on SMB shares to audit file lifecycle events, support change management compliance, and detect unexpected renaming of application or system files.
+
+**Threat Hunting:**
+Detect executables or scripts being renamed to benign-looking filenames (e.g., ``.exe`` renamed to ``.txt``) immediately after transfer, a common technique to evade file-type-based endpoint controls after staging malware over SMB.
+
+smb.rename.from
+^^^^^^^^^^^^^^^
+
+**Field:** The original filename or path of the file before it was renamed in the SMB operation.
+
+**Reference:** `MS-FSCC §2.4.34 — FileRenameInformation (FileName — source) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/1d2673a8-8fb9-4868-920a-775ccaa30cf8>`_
+
+**Network Monitoring:**
+Log the original filename in rename operations to maintain a complete file audit trail on shares, enabling reconstruction of file history for compliance or incident investigations.
+
+**Threat Hunting:**
+Identify renames originating from known malware filenames or suspicious paths, which may indicate an attacker renaming a dropped payload to disguise it as a legitimate file before execution.
+
+smb.rename.to
+^^^^^^^^^^^^^
+
+**Field:** The new filename or path assigned to the file as a result of the SMB rename operation.
+
+**Reference:** `MS-FSCC §2.4.34 — FileRenameInformation (FileName — destination) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/1d2673a8-8fb9-4868-920a-775ccaa30cf8>`_
+
+**Network Monitoring:**
+Record the destination filename in rename operations to ensure renamed files remain within naming policy and to detect unexpected changes to protected filenames in critical directories.
+
+**Threat Hunting:**
+Hunt for renames where the destination filename matches a legitimate system binary (e.g., ``svchost.exe``, ``lsass.exe``), which may indicate DLL hijacking, binary masquerading, or persistence via filename spoofing.
+
+smb.request
+^^^^^^^^^^^
+
+**Field:** The container object holding request-specific fields from the SMB session setup, such as native OS and LanManager strings sent by the client.
+
+**Reference:** `MS-CIFS §2.2.4.52 — SMB_COM_NEGOTIATE Request (NativeOS / NativeLanMan) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/c2158eb6-303a-4519-8c0e-8bece5bb9896>`_
+
+**Network Monitoring:**
+Log SMB request metadata to support full session reconstruction, enabling detailed protocol auditing and troubleshooting of failed file operations by replaying the exact request context.
+
+**Threat Hunting:**
+Analyze SMB request fields for anomalies such as unusually large security blobs, malformed headers, or out-of-spec values that may indicate exploit attempts targeting SMB parsing vulnerabilities.
+
+smb.request.native_lm
+^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The LanManager software string self-reported by the client in the SMB session setup request.
+
+**Reference:** `MS-CIFS §2.2.4.52 — SMB_COM_NEGOTIATE Request (NativeLanMan) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/c2158eb6-303a-4519-8c0e-8bece5bb9896>`_
+
+**Network Monitoring:**
+Collect the native LanManager string from SMB requests to inventory client software versions connecting to file servers and identify outdated or unsupported LanManager implementations.
+
+**Threat Hunting:**
+Detect SMB clients claiming LanManager strings inconsistent with their stated OS (``smb.request.native_os``), or claiming generic strings like ``"Samba"`` or empty values, which is common with Impacket-based tools used in attacks.
+
+smb.request.native_os
+^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The operating system string self-reported by the client in the SMB session setup request.
+
+**Reference:** `MS-CIFS §2.2.4.52 — SMB_COM_NEGOTIATE Request (NativeOS) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/c2158eb6-303a-4519-8c0e-8bece5bb9896>`_
+
+**Network Monitoring:**
+Aggregate native OS strings from SMB requests to maintain a software inventory of file server clients and flag systems reporting outdated operating system versions requiring upgrade or decommission.
+
+**Threat Hunting:**
+Identify SMB clients reporting OS strings inconsistent with the environment (e.g., ``"Unix"`` or ``"Windows 6.1"`` in a Windows 11 fleet), as attack tools like Impacket use non-standard OS strings that stand out from legitimate clients.
+
+smb.response
+^^^^^^^^^^^^
+
+**Field:** The container object holding response-specific fields from the SMB session setup, such as native OS and LanManager strings sent by the server.
+
+**Reference:** `MS-CIFS §2.2.4.52 — SMB_COM_NEGOTIATE Response (NativeOS / NativeLanMan) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/c2158eb6-303a-4519-8c0e-8bece5bb9896>`_
+
+**Network Monitoring:**
+Capture SMB response metadata to monitor server-side behavior, detect error rates, and validate that servers are responding correctly to client requests across the file serving infrastructure.
+
+**Threat Hunting:**
+Correlate SMB error responses (e.g., ``STATUS_ACCESS_DENIED``) with preceding requests to identify systematic access probing, where an attacker tests permissions across multiple shares or paths before finding a writable target.
+
+smb.response.native_lm
+^^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The LanManager software string self-reported by the server in the SMB session setup response.
+
+**Reference:** `MS-CIFS §2.2.4.52 — SMB_COM_NEGOTIATE Response (NativeLanMan) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/c2158eb6-303a-4519-8c0e-8bece5bb9896>`_
+
+**Network Monitoring:**
+Inventory LanManager versions reported by SMB servers to ensure servers are running current software versions and to detect legacy servers that may lack modern security features.
+
+**Threat Hunting:**
+Detect servers reporting LanManager strings that suggest rogue or unauthorized SMB servers in the environment, such as Samba on unexpected hosts, which may be used for NTLM relay or credential capture.
+
+smb.response.native_os
+^^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The operating system string self-reported by the server in the SMB session setup response.
+
+**Reference:** `MS-CIFS §2.2.4.52 — SMB_COM_NEGOTIATE Response (NativeOS) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/c2158eb6-303a-4519-8c0e-8bece5bb9896>`_
+
+**Network Monitoring:**
+Track server OS strings in SMB responses to validate that all file servers are running approved operating system versions and to trigger alerts when new server OS versions appear without change management records.
+
+**Threat Hunting:**
+Identify SMB responses from servers claiming OS versions inconsistent with deployed infrastructure, as rogue SMB servers used in relay or man-in-the-middle attacks often reveal themselves through mismatched OS strings.
+
+smb.server_guid
+^^^^^^^^^^^^^^^
+
+**Field:** The globally unique identifier assigned to the SMB server, returned during the NEGOTIATE response to uniquely identify the server instance.
+
+**Reference:** `MS-SMB2 §2.2.4 — SMB2 NEGOTIATE Response (ServerGuid) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/63abf97c-0d09-47e2-88d6-6bfa552949a5>`_
+
+**Network Monitoring:**
+Use server GUIDs to uniquely identify SMB servers across sessions and correlate traffic to specific server instances, even when IP addresses change due to load balancing or failover.
+
+**Threat Hunting:**
+Detect changes in ``server_guid`` for a known IP address, which may indicate a rogue SMB server has replaced or is impersonating a legitimate server, a technique used in SMB relay and man-in-the-middle attacks.
+
+smb.service
+^^^^^^^^^^^
+
+**Field:** The SMB service type being connected to, such as a disk share, named pipe (IPC$), or printer share.
+
+**Reference:** `MS-SMB2 §2.2.9 — SMB2 TREE_CONNECT Request (Path / ShareType) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/652e0c14-5014-4470-999d-b175a9e028bb>`_
+
+**Network Monitoring:**
+Track SMB service types accessed per session to understand whether connections are for file sharing, printing, or inter-process communication, enabling service-level capacity and usage reporting.
+
+**Threat Hunting:**
+Identify SMB sessions connecting to ``IPC$`` or ``ADMIN$`` services from unexpected clients, as these administrative shares are commonly used as footholds for lateral movement and remote execution.
+
+smb.service.request
+^^^^^^^^^^^^^^^^^^^
+
+**Field:** The service type string sent by the client when requesting a tree connection (e.g., ``"IPC"``, ``"?????"``, ``"A:"``).
+
+**Reference:** `MS-CIFS §2.2.4.7 — SMB_COM_TREE_CONNECT_ANDX Request (Service) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/c2158eb6-303a-4519-8c0e-8bece5bb9896>`_
+
+**Network Monitoring:**
+Log the service requested by SMB clients to audit access patterns and ensure that only authorized service types are being requested from each server segment.
+
+**Threat Hunting:**
+Alert on SMB service requests for ``IPC$`` immediately following failed authentication attempts, as this pattern is consistent with pass-the-hash tooling that probes ``IPC$`` after obtaining a valid hash.
+
+smb.service.response
+^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The service type string returned by the server confirming the type of resource granted in the tree connection response.
+
+**Reference:** `MS-CIFS §2.2.4.7 — SMB_COM_TREE_CONNECT_ANDX Response (Service) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/c2158eb6-303a-4519-8c0e-8bece5bb9896>`_
+
+**Network Monitoring:**
+Monitor service response confirmations to detect cases where service access is unexpectedly granted or denied, supporting access control validation and audit compliance.
+
+**Threat Hunting:**
+Correlate service responses granting access to ``ADMIN$`` or ``C$`` with the source accounts and IPs involved, flagging cases where non-administrative users gain access to administrative shares, indicating privilege escalation.
+
+smb.session_id
+^^^^^^^^^^^^^^
+
+**Field:** The numeric identifier assigned by the server to uniquely identify an authenticated SMB user session.
+
+**Reference:** `MS-SMB2 §2.2.1.2 — SMB2 Packet Header (SessionId) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/fb188936-5050-48d3-b350-dc43059638a4>`_
+
+**Network Monitoring:**
+Use session IDs to group all SMB transactions belonging to a single authenticated session, enabling per-user activity reporting and accurate session duration and volume metrics.
+
+**Threat Hunting:**
+Track session IDs across events to detect session ID reuse or unexpected session ID changes mid-flow, which may indicate session hijacking or forged session tokens in SMB attacks.
+
+smb.set_info
+^^^^^^^^^^^^
+
+**Field:** The container object holding details of an SMB SET_INFO operation used to modify file or directory metadata.
+
+**Reference:** `MS-SMB2 §2.2.39 — SMB2 SET_INFO Request <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/ee9614c4-be54-4a3c-98f1-769a7032a0e4>`_
+
+**Network Monitoring:**
+Monitor SMB SET_INFO operations to track file and directory attribute changes on shares, providing visibility into metadata modifications that complement file content change auditing.
+
+**Threat Hunting:**
+Detect SET_INFO operations targeting file timestamps, permissions, or security descriptors on sensitive files, which attackers use to cover tracks after modifying or planting files on a share.
+
+smb.set_info.class
+^^^^^^^^^^^^^^^^^^
+
+**Field:** The information class category specified in the SET_INFO request, defining the type of metadata being set (e.g., FileBasicInfo, FileSecurityInfo).
+
+**Reference:** `MS-SMB2 §2.2.39 — SMB2 SET_INFO Request (InfoType / FileInformationClass) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/ee9614c4-be54-4a3c-98f1-769a7032a0e4>`_
+
+**Network Monitoring:**
+Log the information class of SET_INFO requests to categorize the type of metadata being changed and build per-class baselines for normal administrative activity.
+
+**Threat Hunting:**
+Alert on SET_INFO requests using ``FileBasicInfo`` to overwrite timestamps on recently written files, a classic anti-forensics technique used after malware is dropped to make it appear older than the compromise.
+
+smb.set_info.info_level
+^^^^^^^^^^^^^^^^^^^^^^^
+
+**Field:** The specific information level within the SET_INFO class, further defining which file or directory attributes are being written.
+
+**Reference:** `MS-FSCC §2.4 — File Information Classes <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/4718fc6a-9c4d-47e0-acfb-b1594c4f8d3f>`_
+
+**Network Monitoring:**
+Track the specific info level within each SET_INFO class to produce granular audit logs of attribute changes, supporting compliance requirements for file integrity monitoring on regulated shares.
+
+**Threat Hunting:**
+Hunt for info levels associated with security descriptor or ACL modification (e.g., ``FileSecurityInfo``), which may indicate an attacker weakening file permissions to enable persistent access or privilege escalation via a shared resource.
+
+smb.share
+^^^^^^^^^
+
+**Field:** The name of the SMB network share being accessed (e.g., ``\\server\share``, ``C$``, ``IPC$``).
+
+**Reference:** `MS-SMB2 §2.2.9 — SMB2 TREE_CONNECT Request (Path) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/652e0c14-5014-4470-999d-b175a9e028bb>`_
+
+**Keyword Reference:** :ref:`smb.share <smb-keyword-share>`
+
+**Network Monitoring:**
+Monitor which shares are being accessed and by whom to enforce data access policies, generate compliance access reports, and identify under-used or over-accessed shares that need reconfiguration.
+
+**Threat Hunting:**
+Hunt for access to sensitive administrative shares (``C$``, ``ADMIN$``, ``IPC$``) from non-administrative workstations, which is a primary indicator of lateral movement and remote execution attempts across the network.
+
+smb.share_type
+^^^^^^^^^^^^^^
+
+**Field:** The type of the SMB share being connected to: disk (file storage), pipe (named pipe/IPC), or print (printer).
+
+**Reference:** `MS-SMB2 §2.2.10 — SMB2 TREE_CONNECT Response (ShareType) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/dd34e26c-a75e-47fa-aab2-6efc27502e96>`_
+
+**Network Monitoring:**
+Classify SMB sessions by share type to generate accurate breakdowns of file sharing versus administrative versus printing traffic volumes for network planning.
+
+**Threat Hunting:**
+Detect unexpected pipe-type share connections from non-server hosts, as named pipe connections are the primary transport for DCE/RPC-based attack techniques including remote service installation and LSASS access.
+
+smb.size
+^^^^^^^^
+
+**Field:** The size in bytes of the file being accessed or the data being transferred in the SMB operation.
+
+**Reference:** `MS-FSCC §2.4.41 — FileStandardInformation (EndOfFile) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/5afa7f66-619c-48f3-955f-68d4b6f9d34b>`_
+
+**Network Monitoring:**
+Track file sizes transferred over SMB to identify large file movements that may impact network performance and to enforce data transfer limits defined by data governance policies.
+
+**Threat Hunting:**
+Identify unusually large file writes or reads to shares that do not normally handle large files, which may indicate bulk data exfiltration, ransomware encryption activity, or large malware payload staging.
+
+smb.status
+^^^^^^^^^^
+
+**Field:** The human-readable NTSTATUS string describing the outcome of the SMB operation (e.g., ``STATUS_SUCCESS``, ``STATUS_ACCESS_DENIED``).
+
+**Reference:** `MS-ERREF §2.3.1 — NTSTATUS Values <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55>`_
+
+**Network Monitoring:**
+Monitor SMB status messages to detect elevated error rates on file servers that indicate service degradation, misconfiguration, or exhausted resources.
+
+**Threat Hunting:**
+Analyze patterns of ``STATUS_LOGON_FAILURE`` and ``STATUS_ACCESS_DENIED`` errors from a single source, as repeated failures followed by success are characteristic of brute-force or credential-stuffing attacks against SMB.
+
+smb.status_code
+^^^^^^^^^^^^^^^
+
+**Field:** The raw numeric NTSTATUS code returned by the server indicating the result of the SMB operation.
+
+**Reference:** `MS-ERREF §2.3.1 — NTSTATUS Values <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55>`_
+
+**Network Monitoring:**
+Track numeric SMB status codes to build error rate dashboards, correlate error spikes with change events, and feed alerting pipelines with structured, machine-readable status information.
+
+**Threat Hunting:**
+Hunt for specific status codes associated with known attack behaviors, such as ``0xC000006D`` (STATUS_LOGON_FAILURE) in bulk, or ``0x00000000`` following a series of failures, indicating a successful brute-force completion.
+
+smb.tree_id
+^^^^^^^^^^^
+
+**Field:** The numeric identifier assigned by the server to a specific share connection (tree connect) within an SMB session.
+
+**Reference:** `MS-SMB2 §2.2.1.2 — SMB2 Packet Header (TreeId) <https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/fb188936-5050-48d3-b350-dc43059638a4>`_
+
+**Network Monitoring:**
+Use tree IDs to track individual share connections within a multiplexed SMB session, allowing per-share activity attribution even when a single session accesses multiple shares simultaneously.
+
+**Threat Hunting:**
+Detect sessions that open an unusually high number of tree connections within a short time, which may indicate automated share enumeration tools scanning for accessible resources across a server.
+
 
 One can restrict which transactions are logged by using the "types" field in the
 suricata.yaml file. If this field is not specified, all transactions types are logged.
