@@ -6931,6 +6931,7 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
     memcpy(&np->vlan_id[0], &f->vlan_id[0], sizeof(np->vlan_id));
     np->vlan_idx = f->vlan_idx;
     np->livedev_id = f->livedev_id;
+    np->tunnel_id = f->tunnel_id;
 
     if (parent->flags & PKT_NOPACKET_INSPECTION) {
         DecodeSetNoPacketInspectionFlag(np);
