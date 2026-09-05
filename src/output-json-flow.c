@@ -202,6 +202,7 @@ void EveAddAppProto(Flow *f, SCJsonBuilder *js)
 
 void EveAddFlow(Flow *f, SCJsonBuilder *js)
 {
+    SCTime_t lastts = f->lastts;
     FlowBypassInfo *fc = SCFlowGetStorageById(f, GetFlowBypassInfoID());
     if (fc) {
         SCJbSetUint(js, "pkts_toserver", f->todstpktcnt + fc->todstpktcnt);
@@ -215,6 +216,10 @@ void EveAddFlow(Flow *f, SCJsonBuilder *js)
         SCJbSetUint(js, "bytes_toserver", fc->todstbytecnt);
         SCJbSetUint(js, "bytes_toclient", fc->tosrcbytecnt);
         SCJbClose(js);
+
+        if (SCTIME_SECS(fc->lastpktts)) {
+            lastts = fc->lastpktts;
+        }
     } else {
         SCJbSetUint(js, "pkts_toserver", f->todstpktcnt);
         SCJbSetUint(js, "pkts_toclient", f->tosrcpktcnt);
@@ -222,9 +227,12 @@ void EveAddFlow(Flow *f, SCJsonBuilder *js)
         SCJbSetUint(js, "bytes_toclient", f->tosrcbytecnt);
     }
 
-    char timebuf1[64];
+    char timebuf1[64], timebuf2[64];
     CreateIsoTimeString(f->startts, timebuf1, sizeof(timebuf1));
+    CreateIsoTimeString(lastts, timebuf2, sizeof(timebuf2));
     SCJbSetString(js, "start", timebuf1);
+    SCJbSetString(js, "end", timebuf2);
+    SCJbSetUint(js, "age", SCTIME_SECS(lastts) - SCTIME_SECS(f->startts));
 }
 
 static void EveExceptionPolicyLog(SCJsonBuilder *js, uint16_t flag)
@@ -292,13 +300,6 @@ static void EveFlowLogJSON(OutputJsonThreadCtx *aft, SCJsonBuilder *jb, Flow *f)
     EveAddAppProto(f, jb);
     SCJbOpenObject(jb, "flow");
     EveAddFlow(f, jb);
-
-    char timebuf2[64];
-    CreateIsoTimeString(f->lastts, timebuf2, sizeof(timebuf2));
-    SCJbSetString(jb, "end", timebuf2);
-
-    uint64_t age = (SCTIME_SECS(f->lastts) - SCTIME_SECS(f->startts));
-    SCJbSetUint(jb, "age", age);
 
     if (f->flow_end_flags & FLOW_END_FLAG_EMERGENCY)
         JB_SET_TRUE(jb, "emergency");

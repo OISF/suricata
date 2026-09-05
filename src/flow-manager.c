@@ -226,13 +226,12 @@ static bool FlowManagerFlowTimeout(Flow *f, SCTime_t ts, uint32_t *next_ts, cons
  *  \brief check timeout of captured bypassed flow by querying capture method
  *
  *  \param f Flow
- *  \param ts timestamp
  *  \param counters Flow timeout counters
  *
  *  \retval false not timeout
  *  \retval true timeout (or not capture bypassed)
  */
-static inline bool FlowBypassedTimeout(Flow *f, SCTime_t ts, FlowTimeoutCounters *counters)
+static inline bool FlowBypassedTimeout(Flow *f, FlowTimeoutCounters *counters)
 {
     if (f->flow_state != FLOW_STATE_CAPTURE_BYPASSED) {
         return true;
@@ -246,7 +245,7 @@ static inline bool FlowBypassedTimeout(Flow *f, SCTime_t ts, FlowTimeoutCounters
         uint64_t bytes_tosrc = fc->tosrcbytecnt;
         uint64_t pkts_todst = fc->todstpktcnt;
         uint64_t bytes_todst = fc->todstbytecnt;
-        bool update = fc->BypassUpdate(f, fc->bypass_data, SCTIME_SECS(ts));
+        bool update = fc->BypassUpdate(f, fc->bypass_data);
         if (update) {
             SCLogDebug("Updated flow: %" PRIu64 "", FlowGetId(f));
             pkts_tosrc = fc->tosrcpktcnt - pkts_tosrc;
@@ -371,7 +370,7 @@ static void FlowManagerHashRowTimeout(FlowManagerTimeoutThread *td, Flow *f, SCT
 #ifdef CAPTURE_OFFLOAD
         /* never prune a flow that is used by a packet we
          * are currently processing in one of the threads */
-        if (!FlowBypassedTimeout(f, ts, counters)) {
+        if (!FlowBypassedTimeout(f, counters)) {
             FLOWLOCK_UNLOCK(f);
             prev_f = f;
             f = f->next;

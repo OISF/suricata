@@ -62,6 +62,7 @@ struct flowv6_keys {
 struct pair {
     uint64_t packets;
     uint64_t bytes;
+    uint64_t time;
 };
 
 typedef struct EBPFBypassData_ {
@@ -89,7 +90,7 @@ void EBPFBuildCPUSet(SCConfNode *node, char *iface);
 int EBPFSetPeerIface(const char *iface, const char *out_iface);
 
 int EBPFUpdateFlow(Flow *f, Packet *p, void *data);
-bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec);
+bool EBPFBypassUpdate(Flow *f, void *data);
 void EBPFBypassFree(void *data);
 
 void EBPFDeleteKey(int fd, void *key);

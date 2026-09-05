@@ -603,6 +603,41 @@ void EBPFBypassFree(void *data)
 }
 
 /**
+ * Store the time of the last packet of a half flow in the bypass info.
+ *
+ * The eBPF programs stamp the entries with bpf_ktime_get_ns() which is a
+ * monotonic clock, so get the age of the stamp and remove it from the current
+ * wall clock time.
+ */
+static void EBPFSetLastPktTs(FlowBypassInfo *fc, uint64_t last_pkt_mono_ns)
+{
+    struct timespec now_monotonic_clock;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &now_monotonic_clock) != 0)
+        return;
+
+    /* SCTime_t is a microsecond precision timestamp, the eBPF one a nanosecond one */
+    uint64_t last_pkt_mono_us = last_pkt_mono_ns / 1000;
+
+    /* age of the stamp, both times are on the monotonic clock */
+    SCTime_t now_monotonic = SCTIME_FROM_TIMESPEC(&now_monotonic_clock);
+    uint64_t now_monotonic_us =
+            SCTIME_SECS(now_monotonic) * 1000000ULL + SCTIME_USECS(now_monotonic);
+    /* num us before now when pkt was last seen */
+    uint64_t age_pkt_us = now_monotonic_us - last_pkt_mono_us;
+
+    /* remove the age of the stamp from the current wall clock time */
+    SCTime_t now_wall_clock = TimeGet();
+    uint64_t last_pkt_us =
+            SCTIME_SECS(now_wall_clock) * 1000000ULL + SCTIME_USECS(now_wall_clock) - age_pkt_us;
+
+    SCTime_t last_pkt_ts = { .secs = last_pkt_us / 1000000, .usecs = last_pkt_us % 1000000 };
+    if (SCTIME_CMP_GT(last_pkt_ts, fc->lastpktts)) {
+        fc->lastpktts = last_pkt_ts;
+    }
+}
+
+/**
  *
  * Compare eBPF half flow to Flow
  *
@@ -616,6 +651,7 @@ static bool EBPFBypassCheckHalfFlow(Flow *f, FlowBypassInfo *fc,
     int i;
     uint64_t pkts_cnt = 0;
     uint64_t bytes_cnt = 0;
+    uint64_t last_pkt_ns = 0;
     /* We use a per CPU structure so we will get a array of values. But if nr_cpus
      * is 1 then we have a global hash. */
     BPF_DECLARE_PERCPU(struct pair, values_array, eb->cpus_count);
@@ -632,17 +668,23 @@ static bool EBPFBypassCheckHalfFlow(Flow *f, FlowBypassInfo *fc,
                 BPF_PERCPU(values_array, i).bytes);
         pkts_cnt += BPF_PERCPU(values_array, i).packets;
         bytes_cnt += BPF_PERCPU(values_array, i).bytes;
+        // Keeping info on CPU who last seen pkt
+        if (BPF_PERCPU(values_array, i).time > last_pkt_ns) {
+            last_pkt_ns = BPF_PERCPU(values_array, i).time;
+        }
     }
     if (index == 0) {
         if (pkts_cnt != fc->todstpktcnt) {
             fc->todstpktcnt = pkts_cnt;
             fc->todstbytecnt = bytes_cnt;
+            EBPFSetLastPktTs(fc, last_pkt_ns);
             return true;
         }
     } else {
         if (pkts_cnt != fc->tosrcpktcnt) {
             fc->tosrcpktcnt = pkts_cnt;
             fc->tosrcbytecnt = bytes_cnt;
+            EBPFSetLastPktTs(fc, last_pkt_ns);
             return true;
         }
     }
@@ -655,7 +697,7 @@ static bool EBPFBypassCheckHalfFlow(Flow *f, FlowBypassInfo *fc,
  * Update lastts in the flow and do accounting
  *
  * */
-bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
+bool EBPFBypassUpdate(Flow *f, void *data)
 {
     EBPFBypassData *eb = (EBPFBypassData *)data;
     if (eb == NULL) {
@@ -674,7 +716,8 @@ bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
         EBPFDeleteKey(eb->mapfd, eb->key[1]);
         SCLogDebug("Done delete entry: %u", FLOW_IS_IPV6(f));
     } else {
-        f->lastts = SCTIME_FROM_SECS(tsec);
+        /* Recuperate added info in flow bypass that comes from ebpf map from latest activity */
+        f->lastts = fc->lastpktts;
         return true;
     }
     return false;
