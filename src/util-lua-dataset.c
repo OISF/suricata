@@ -33,6 +33,7 @@
 #include "util-debug.h"
 
 #include "datasets.h"
+#include "datasets-cidr.h"
 
 struct LuaDataset {
     Dataset *set;
@@ -63,7 +64,7 @@ static int LuaDatasetGetRef(lua_State *luastate)
         LUA_ERROR("null string");
     }
 
-    Dataset *dataset = DatasetFind(name, DATASET_TYPE_STRING);
+    Dataset *dataset = DatasetSearchByName(name);
     if (dataset == NULL) {
         LUA_ERROR("dataset not found");
     }
@@ -92,7 +93,14 @@ static int LuaDatasetAdd(lua_State *luastate)
 
     uint32_t str_len = lua_tonumber(luastate, 3);
 
-    int r = SCDatasetAdd(s->set, (const uint8_t *)str, str_len);
+    int r;
+    if (s->set != NULL && s->set->type == DATASET_TYPE_CIDR) {
+        /* CIDR sets store binary IPs; treat the Lua string as a CIDR text
+         * value and dispatch through the string helper. */
+        r = DatasetAddCIDRString(s->set, (const char *)str);
+    } else {
+        r = SCDatasetAdd(s->set, (const uint8_t *)str, str_len);
+    }
     /* return value through luastate, as a luanumber */
     lua_pushnumber(luastate, (lua_Number)r);
     SCLogDebug("add:end");
