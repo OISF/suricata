@@ -39,6 +39,11 @@ env:
   # Update this whenever we fix clippy issues due to a newer version of Rust.
   RUST_VERSION_KNOWN: "1.98.0"
 
+  # Version of nDPI the nDPI plugin is built against. The plugin targets the
+  # nDPI 6.0 API; releases older than that expose a different API and will
+  # not build.
+  NDPI_VERSION: "6.0"
+
 jobs:
 
   prepare-deps:
@@ -788,16 +793,16 @@ jobs:
 
       - name: Build and install nDPI
         run: |
-          curl -OL https://github.com/ntop/nDPI/archive/refs/tags/4.14.tar.gz
-          tar xvf 4.14.tar.gz
-          cd nDPI-4.14
+          curl -OL https://github.com/ntop/nDPI/archive/refs/tags/${{ env.NDPI_VERSION }}.tar.gz
+          tar xvf ${{ env.NDPI_VERSION }}.tar.gz
+          cd nDPI-${{ env.NDPI_VERSION }}
           ./autogen.sh
           ./configure
           make -j ${{ env.CPUS }}
 
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
       - name: ./configure
-        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-ndpi --with-ndpi=$(pwd)/nDPI-4.14 --enable-debug --enable-qa-simulation
+        run: CFLAGS="${DEFAULT_CFLAGS}" CPPFLAGS="-DUSE_GLOBAL_CONTEXT" ./configure --enable-ndpi --with-ndpi=$(pwd)/nDPI-${{ env.NDPI_VERSION }} --enable-debug --enable-qa-simulation
       - run: make -j ${{ env.CPUS }}
       - run: make install
       - run: make install-conf

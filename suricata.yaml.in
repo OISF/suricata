@@ -85,6 +85,22 @@ plugins:
   @ndpi_comment@- @prefix@/lib/@PACKAGE_NAME@/ndpi.so
 # - /path/to/plugin.so
 
+# nDPI plugin settings, only used when the nDPI plugin is loaded above.
+ndpi:
+  # nDPI 6.0 and later require the embedding application to declare under
+  # which license the library is used:
+  #
+  #   not-for-profit  : not-for-profit use; every dissector is enabled.
+  #                     This is the default.
+  #   for-profit      : for-profit use without a license agreement with ntop.
+  #                     The dual-licensed dissectors (DHCP, DNS, QUIC and TLS)
+  #                     are NOT loaded by nDPI, so rules matching on those
+  #                     protocols will never fire.
+  #   for-profit-dual : for-profit use with a license agreement signed with
+  #                     ntop for the dual-licensed components.
+  #
+  #license: not-for-profit
+
 # Configure the type of alert (and other) logging you would like.
 outputs:
   # a line based alerts log similar to Snort's fast.log

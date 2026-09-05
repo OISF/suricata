@@ -22,6 +22,7 @@
 #include "suricata-common.h"
 #include "suricata-plugin.h"
 
+#include "conf.h"
 #include "detect-engine-helper.h"
 #include "detect-parse.h"
 #include "flow.h"
@@ -38,6 +39,8 @@ static SCThreadStorageId thread_storage_id = { .id = -1 };
 static SCFlowStorageId flow_storage_id = { .id = -1 };
 static int ndpi_protocol_keyword_id = -1;
 static int ndpi_risk_keyword_id = -1;
+static struct ndpi_global_context *ndpi_g_ctx;
+static enum ndpi_license_type ndpi_license_type = NDPI_LICENSE_NOT_FOR_PROFIT_LGPL;
 
 struct NdpiThreadContext {
     struct ndpi_detection_module_struct *ndpi;
@@ -81,6 +84,79 @@ static inline struct NdpiFlowContext *NdpiGetFlowContext(const Flow *f)
     return SCFlowGetStorageById(f, flow_storage_id);
 }
 
+/**
+ * Since nDPI 6.0 the caller has to declare under which license the library is
+ * used. Dual-licensed dissectors (DHCP, DNS, QUIC and TLS) are not loaded when
+ * NDPI_LICENSE_FOR_PROFIT_LGPL is selected, so the not-for-profit case is the
+ * default and the choice is left to the user through "ndpi.license".
+ *
+ * Resolved once at plugin init, while Suricata is still single threaded.
+ */
+static enum ndpi_license_type NdpiResolveLicenseType(void)
+{
+    const char *license = NULL;
+
+    if (SCConfGet("ndpi.license", &license) != 1 || license == NULL)
+        return NDPI_LICENSE_NOT_FOR_PROFIT_LGPL;
+
+    if (strcmp(license, "not-for-profit") == 0)
+        return NDPI_LICENSE_NOT_FOR_PROFIT_LGPL;
+
+    if (strcmp(license, "for-profit") == 0) {
+        SCLogWarning("nDPI license set to \"for-profit\": the DHCP, DNS, QUIC and TLS "
+                     "dissectors are dual-licensed and will not be loaded");
+        return NDPI_LICENSE_FOR_PROFIT_LGPL;
+    }
+
+    if (strcmp(license, "for-profit-dual") == 0)
+        return NDPI_LICENSE_FOR_PROFIT_DUAL_LICENSE;
+
+    SCLogWarning("unknown nDPI license \"%s\", using \"not-for-profit\"", license);
+    return NDPI_LICENSE_NOT_FOR_PROFIT_LGPL;
+}
+
+/* nDPI keeps its cross-flow correlations in LRU caches that are private to a
+ * detection module unless they are made global, and it only accepts these
+ * settings when a global context is in use. Suricata spreads the flows of a
+ * single host over all its workers, so without sharing them the DNS, STUN and
+ * TLS correlations never leave the thread that saw the first flow. */
+static const char *ndpi_shared_lru_caches[] = {
+    "lru.ookla.scope",
+    "lru.bittorrent.scope",
+    "lru.stun.scope",
+    "lru.tls_cert.scope",
+    "lru.mining.scope",
+    "lru.msteams.scope",
+    "lru.fpc_dns.scope",
+    "lru.signal.scope",
+};
+
+/**
+ * Allocate and finalize a detection module. Worker modules attach to the
+ * global context to share their caches; the throwaway modules used while
+ * parsing rules do not, as they only resolve names.
+ */
+static struct ndpi_detection_module_struct *NdpiModuleNew(bool shared_caches)
+{
+    struct ndpi_detection_module_struct *ndpi =
+            ndpi_init_detection_module(shared_caches ? ndpi_g_ctx : NULL, ndpi_license_type);
+    if (ndpi == NULL)
+        return NULL;
+
+    if (shared_caches && ndpi_g_ctx != NULL) {
+        for (size_t i = 0; i < sizeof(ndpi_shared_lru_caches) / sizeof(ndpi_shared_lru_caches[0]);
+                i++) {
+            if (ndpi_set_config(ndpi, NULL, ndpi_shared_lru_caches[i], "1") != NDPI_CFG_OK) {
+                SCLogWarning("Failed to share the nDPI \"%s\" cache between threads",
+                        ndpi_shared_lru_caches[i]);
+            }
+        }
+    }
+
+    ndpi_finalize_initialization(ndpi);
+    return ndpi;
+}
+
 static void ThreadStorageFree(void *ptr)
 {
     SCLogDebug("Free'ing nDPI thread storage");
@@ -97,6 +173,8 @@ static void FlowStorageFree(void *ptr)
     struct NdpiFlowContext *ctx = ptr;
     if (ctx == NULL)
         return;
+    /* ndpi_flow_free() is the counterpart of ndpi_flow_malloc() and frees the
+     * flow internals as well */
     if (ctx->ndpi_flow != NULL)
         ndpi_flow_free(ctx->ndpi_flow);
     SCFree(ctx);
@@ -160,27 +238,43 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
 
     if (!flowctx->detection_completed && ip_ptr != NULL && ip_len > 0) {
         uint64_t time_ms = ((uint64_t)p->ts.secs) * 1000 + p->ts.usecs / 1000;
+        struct ndpi_flow_input_info input_info;
 
         SCLogDebug("Performing nDPI detection...");
 
+        /* Suricata already knows the direction of the packet, so telling nDPI
+         * spares it from guessing, which matters on asymmetric and midstream
+         * traffic. The beginning of the flow is reported as unknown: the flow
+         * accessors expose no reliable "handshake was seen" flag. */
+        memset(&input_info, 0, sizeof(input_info));
+        input_info.seen_flow_beginning = NDPI_FLOW_BEGINNING_UNKNOWN;
+        if (PKT_IS_TOSERVER(p))
+            input_info.in_pkt_dir = NDPI_IN_PKT_DIR_C_TO_S;
+        else if (PKT_IS_TOCLIENT(p))
+            input_info.in_pkt_dir = NDPI_IN_PKT_DIR_S_TO_C;
+        else
+            input_info.in_pkt_dir = NDPI_IN_PKT_DIR_UNKNOWN;
+
         flowctx->detected_l7_protocol = ndpi_detection_process_packet(
-                threadctx->ndpi, flowctx->ndpi_flow, ip_ptr, ip_len, time_ms, NULL);
+                threadctx->ndpi, flowctx->ndpi_flow, ip_ptr, ip_len, time_ms, &input_info);
 
-        if (ndpi_is_protocol_detected(flowctx->detected_l7_protocol) != 0) {
-            if (!ndpi_is_proto_unknown(flowctx->detected_l7_protocol.proto)) {
-                if (!ndpi_extra_dissection_possible(threadctx->ndpi, flowctx->ndpi_flow))
-                    flowctx->detection_completed = true;
-            }
-        } else {
-            uint16_t max_num_pkts = (flow_proto == IPPROTO_UDP) ? 8 : 24;
+        const uint16_t max_num_pkts = (flow_proto == IPPROTO_UDP) ? 8 : 24;
+        const bool enough_packets =
+                (SCFlowGetToServerPacketCount(f) + SCFlowGetToClientPacketCount(f)) > max_num_pkts;
 
-            if ((SCFlowGetToServerPacketCount(f) + SCFlowGetToClientPacketCount(f)) >
-                    max_num_pkts) {
-                uint8_t proto_guessed;
+        /* NDPI_STATE_CLASSIFIED only means the library has enough information
+         * to report a protocol, not that it is done with the flow: several
+         * dissectors keep extra_packets_func set to observe more packets after
+         * that point. Stopping earlier would silently cut those heuristics off,
+         * so we stop once the library itself is done or the packet cap fires. */
+        if ((flowctx->detected_l7_protocol.state == NDPI_STATE_CLASSIFIED &&
+                    flowctx->ndpi_flow->extra_packets_func == NULL) ||
+                enough_packets) {
+            flowctx->detection_completed = true;
 
+            if (flowctx->detected_l7_protocol.state != NDPI_STATE_CLASSIFIED) {
                 flowctx->detected_l7_protocol =
-                        ndpi_detection_giveup(threadctx->ndpi, flowctx->ndpi_flow, &proto_guessed);
-                flowctx->detection_completed = true;
+                        ndpi_detection_giveup(threadctx->ndpi, flowctx->ndpi_flow);
             }
         }
 
@@ -209,14 +303,10 @@ static void OnThreadInit(ThreadVars *tv, void *_data)
     if (context == NULL) {
         FatalError("Failed to allocate nDPI thread context");
     }
-    context->ndpi = ndpi_init_detection_module(NULL);
+    context->ndpi = NdpiModuleNew(true);
     if (context->ndpi == NULL) {
         FatalError("Failed to initialize nDPI detection module");
     }
-    NDPI_PROTOCOL_BITMASK protos;
-    NDPI_BITMASK_SET_ALL(protos);
-    ndpi_set_protocol_detection_bitmask2(context->ndpi, &protos);
-    ndpi_finalize_initialization(context->ndpi);
     SCThreadSetStorageById(tv, thread_storage_id, context);
 }
 
@@ -272,16 +362,11 @@ static DetectnDPIProtocolData *DetectnDPIProtocolParse(const char *arg, bool neg
     struct ndpi_detection_module_struct *ndpi_struct;
     ndpi_master_app_protocol l7_protocol;
     char *l7_protocol_name = (char *)arg;
-    NDPI_PROTOCOL_BITMASK all;
 
     /* convert protocol name (string) to ID */
-    ndpi_struct = ndpi_init_detection_module(NULL);
+    ndpi_struct = NdpiModuleNew(false);
     if (unlikely(ndpi_struct == NULL))
         return NULL;
-
-    NDPI_BITMASK_SET_ALL(all);
-    ndpi_set_protocol_detection_bitmask2(ndpi_struct, &all);
-    ndpi_finalize_initialization(ndpi_struct);
 
     l7_protocol = ndpi_get_protocol_by_name(ndpi_struct, l7_protocol_name);
     ndpi_exit_detection_module(ndpi_struct);
@@ -399,20 +484,10 @@ static int DetectnDPIRiskPacketMatch(
 static DetectnDPIRiskData *DetectnDPIRiskParse(const char *arg, bool negate)
 {
     DetectnDPIRiskData *data;
-    struct ndpi_detection_module_struct *ndpi_struct;
     ndpi_risk risk_mask;
-    NDPI_PROTOCOL_BITMASK all;
 
-    /* convert list of risk names (string) to mask */
-    ndpi_struct = ndpi_init_detection_module(NULL);
-    if (unlikely(ndpi_struct == NULL))
-        return NULL;
-
-    NDPI_BITMASK_SET_ALL(all);
-    ndpi_set_protocol_detection_bitmask2(ndpi_struct, &all);
-    ndpi_finalize_initialization(ndpi_struct);
-    ndpi_exit_detection_module(ndpi_struct);
-
+    /* convert list of risk names (string) to mask: ndpi_code2risk() needs no
+     * detection module, so none is created here */
     if (isdigit(arg[0]))
         risk_mask = atoll(arg);
     else {
@@ -571,6 +646,17 @@ static void NdpInitRiskKeyword(void)
 static void NdpiInit(void)
 {
     SCLogDebug("Initializing nDPI plugin");
+
+    ndpi_license_type = NdpiResolveLicenseType();
+
+    /* The global context is what lets the per-thread detection modules share
+     * their LRU caches; nDPI rejects the "lru.*.scope" settings without it.
+     * SCPlugin has no deinit hook, so it lives until the process exits. */
+    ndpi_g_ctx = ndpi_global_init();
+    if (ndpi_g_ctx == NULL) {
+        SCLogWarning("Failed to initialize the nDPI global context: "
+                     "per-thread caches will not be shared");
+    }
 
     /* Register thread storage. */
     thread_storage_id = SCThreadStorageRegister("ndpi", ThreadStorageFree);
