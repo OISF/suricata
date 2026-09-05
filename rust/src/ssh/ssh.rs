@@ -282,15 +282,21 @@ impl SSHState {
                                 }
                                 parser::MessageCode::Kexinit if hassh_is_enabled() => {
                                     // check if buffer is bigger than maximum reassembled packet size
-                                    hdr.record_left = head.pkt_len - 2;
-                                    if hdr.record_left < SSH_MAX_REASSEMBLED_RECORD_LEN as u32 {
+                                    let body_len = head.pkt_len - 2;
+                                    if body_len < SSH_MAX_REASSEMBLED_RECORD_LEN as u32 {
+                                        // returning incomplete means the body bytes in rem are
+                                        // not consumed and will be delivered again, so the whole
+                                        // body has to be skipped on the next call
+                                        hdr.record_left = body_len;
                                         // saving type of incomplete kex message
                                         hdr.record_left_msg = parser::MessageCode::Kexinit;
                                         return AppLayerResult::incomplete(
                                             (il - rem.len()) as u32,
-                                            head.pkt_len - 2,
+                                            body_len,
                                         );
                                     } else {
+                                        // returning ok consumes the body bytes in rem, so keep
+                                        // record_left = body_len - remlen computed above
                                         SCLogDebug!("SSH buffer is bigger than maximum reassembled packet size");
                                         self.set_event(SSHEvent::LongKexRecord);
                                     }
