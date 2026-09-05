@@ -51,6 +51,7 @@
 #include "util-conf.h"
 #include "util-cpu.h"
 #include "util-datalink.h"
+#include "util-landlock.h"
 #include "util-misc.h"
 #include "util-path.h"
 #include "util-time.h"
@@ -217,6 +218,43 @@ static OutputInitResult PcapLogInitCtx(SCConfNode *);
 static void PcapLogProfilingDump(PcapLogData *);
 static bool PcapLogCondition(ThreadVars *, void *, const Packet *);
 
+static void PcapLogLandlockEnableInstance(void *ruleset, SCConfNode *conf)
+{
+    /* Ring-buffer mode (max-files set) recycles the oldest pcap via
+     * remove(), so we need FS_REMOVE_FILE on the pcap directory. Without
+     * max-files there is no rotation and REMOVE stays out. */
+    bool ring_buffer = SCConfNodeLookupChildValue(conf, "max-files") != NULL;
+    const char *s_dir = SCConfNodeLookupChildValue(conf, "dir");
+    char path[PATH_MAX];
+    const char *target;
+    if (s_dir == NULL) {
+        /* default dir is the log directory, already granted for write */
+        if (!ring_buffer)
+            return;
+        target = SCConfigGetLogDirectory();
+    } else if (PathIsAbsolute(s_dir)) {
+        target = s_dir;
+    } else {
+        snprintf(path, sizeof(path), "%s/%s", SCConfigGetLogDirectory(), s_dir);
+        target = path;
+    }
+    if (ring_buffer) {
+        SCLandlockGrantWriteRemovePath(ruleset, target);
+        /* PcapLogInitRingBuffer() opendir()s the pcap directory to rebuild
+         * the ring from the files already on disk, so READ_DIR is needed on
+         * top of the write grant -- including when the pcap directory is the
+         * log directory, which is otherwise only granted for write. */
+        SCLandlockGrantReadPath(ruleset, target);
+    } else if (s_dir != NULL) {
+        SCLandlockGrantWritePath(ruleset, target);
+    }
+}
+
+static void PcapLogLandlockEnable(void *ruleset)
+{
+    SCLandlockForEachOutput(ruleset, "pcap-log", PcapLogLandlockEnableInstance);
+}
+
 void PcapLogRegister(void)
 {
     OutputPacketLoggerFunctions output_logger_functions = {
@@ -228,6 +266,10 @@ void PcapLogRegister(void)
     };
     OutputRegisterPacketModule(
             LOGGER_PCAP, MODULE_NAME, "pcap-log", PcapLogInitCtx, &output_logger_functions);
+    OutputModule *module = OutputGetModuleByConfName("pcap-log");
+    if (module != NULL) {
+        module->LandlockEnable = PcapLogLandlockEnable;
+    }
     PcapLogProfileSetup();
     SC_ATOMIC_INIT(thread_cnt);
     SC_ATOMIC_SET(thread_cnt, 1); /* first id is 1 */
@@ -1977,6 +2019,8 @@ void PcapLogProfileSetup(void)
                 profiling_pcaplog_file_mode = "a";
             } else {
                 profiling_pcaplog_file_mode = "w";
+                SCLandlockRegisterFile(profiling_pcaplog_file_name,
+                        SC_LANDLOCK_FILE_WRITE | SC_LANDLOCK_FILE_TRUNCATE);
             }
 
             profiling_pcaplog_output_to_file = 1;

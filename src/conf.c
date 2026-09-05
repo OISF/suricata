@@ -97,6 +97,18 @@ SCConfNode *SCConfNodeGetNodeOrCreate(SCConfNode *parent, const char *name, int 
             node->parent = parent;
             node->final = final;
             TAILQ_INSERT_TAIL(&parent->head, node, next);
+
+            /* Numeric-only key implies the parent is a sequence (yaml
+             * "- foo" produces the same shape). This lets --set style
+             * overrides populate list-typed config nodes. */
+            if (parent != NULL) {
+                const char *p = key;
+                while (*p != '\0' && isdigit((unsigned char)*p))
+                    p++;
+                if (*p == '\0' && p != key) {
+                    parent->is_seq = 1;
+                }
+            }
         }
         key = next;
         parent = node;
@@ -882,6 +894,48 @@ const char *SCConfNodeLookupChildValue(const SCConfNode *node, const char *name)
     child = SCConfNodeLookupChild(node, name);
     if (child != NULL)
         return child->val;
+
+    return NULL;
+}
+
+/**
+ * \brief Find a named entry inside a sequence node.
+ *
+ * A YAML sequence of single key maps -- the shape used by "outputs" --
+ * stores each entry as an unnamed node holding one child, so an entry is
+ * found at seq.<n>.<key> and not at seq.<key>. This walks the sequence and
+ * returns the child named \a key.
+ *
+ * A sequence may hold several entries with the same name (several eve-log
+ * outputs for instance), so \a prev allows iterating over all of them:
+ * pass NULL to get the first match, then the previous result to get the
+ * next one.
+ *
+ * \param seq The sequence node, may be NULL.
+ * \param key The name of the entry to look for.
+ * \param prev NULL to start, or the previously returned node to continue.
+ *
+ * \retval The matching SCConfNode or NULL when there is no (further) match.
+ */
+SCConfNode *SCConfNodeLookupInSequence(
+        const SCConfNode *seq, const char *key, const SCConfNode *prev)
+{
+    if (seq == NULL || key == NULL)
+        return NULL;
+
+    bool seen = (prev == NULL);
+    SCConfNode *entry;
+    TAILQ_FOREACH (entry, &seq->head, next) {
+        SCConfNode *child = SCConfNodeLookupChild(entry, key);
+        if (child == NULL)
+            continue;
+        if (!seen) {
+            if (child == prev)
+                seen = true;
+            continue;
+        }
+        return child;
+    }
 
     return NULL;
 }
