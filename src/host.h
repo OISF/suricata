@@ -130,7 +130,7 @@ typedef struct HostConfig_ {
 
 extern HostConfig host_config;
 SC_ATOMIC_EXTERN(uint64_t,host_memuse);
-SC_ATOMIC_EXTERN(uint32_t,host_counter);
+SC_ATOMIC_EXTERN(uint64_t, host_active);
 SC_ATOMIC_EXTERN(uint32_t,host_prune_idx);
 
 void HostInitConfig(bool quiet);
@@ -155,5 +155,6 @@ void HostUnlock(Host *h);
 int HostSetMemcap(uint64_t);
 uint64_t HostGetMemcap(void);
 uint64_t HostGetMemuse(void);
+uint64_t HostGetActive(void);
 
 #endif /* SURICATA_HOST_H */
