@@ -439,10 +439,62 @@ unsafe extern "C" fn dcerpc_tx_get_stub_data(
     return buffer;
 }
 
+unsafe extern "C" fn dcerpc_hdr_setup(
+    de_ctx: *mut DetectEngineCtx, s: *mut Signature, _str: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) < 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de_ctx, s, G_DCERPC_HDR_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn dcerpc_tx_get_hdr(
+    det_ctx: *mut DetectEngineThreadCtx, transforms: *const DetectEngineTransforms,
+    _flow: *mut Flow, dir: u8, tx: *mut c_void, list_id: c_int,
+) -> *mut InspectionBuffer {
+    let tx = cast_pointer!(tx, DCERPCTransaction);
+    let buffer = SCInspectionBufferGet(det_ctx, list_id);
+    if !(*buffer).initialized {
+        let hdr: Option<&[u8]> = if (dir & STREAM_TOSERVER) != 0 {
+            tx.udp_req_hdr
+                .as_ref()
+                .map(|h| h.as_slice())
+                .or_else(|| tx.req_hdr.as_ref().map(|h| h.as_slice()))
+        } else {
+            tx.udp_resp_hdr
+                .as_ref()
+                .map(|h| h.as_slice())
+                .or_else(|| tx.resp_hdr.as_ref().map(|h| h.as_slice()))
+        };
+        if let Some(hdr) = hdr {
+            if hdr[4] & 0x10 != 0 {
+                (*buffer).flags |= DETECT_CI_FLAGS_DCE_LE;
+            } else {
+                (*buffer).flags |= DETECT_CI_FLAGS_DCE_BE;
+            }
+            SCInspectionBufferSetupAndApplyTransforms(
+                det_ctx,
+                list_id,
+                buffer,
+                hdr.as_ptr(),
+                hdr.len() as u32,
+                transforms,
+            );
+        } else {
+            return std::ptr::null_mut();
+        }
+    }
+    return buffer;
+}
+
 static mut G_DCERPC_OPNUM_KW_ID: u16 = 0;
 static mut G_DCERPC_GENERIC_BUFFER_ID: c_int = 0;
 static mut G_DCERPC_IFACE_KW_ID: u16 = 0;
 static mut G_DCERPC_STUB_BUFFER_ID: c_int = 0;
+static mut G_DCERPC_HDR_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectDcerpcRegister() {
@@ -516,6 +568,22 @@ pub unsafe extern "C" fn SCDetectDcerpcRegister() {
     SCDetectHelperKeywordAliasRegister(
         stub_kw_id,
         b"dce_stub_data\0".as_ptr() as *const libc::c_char,
+    );
+
+    let kw_hdr = SigTableElmtStickyBuffer {
+        name: String::from("dcerpc.hdr"),
+        desc: String::from("match on the DCERPC header per direction"),
+        url: String::from("/rules/dcerpc-keywords.html#dcerpc-hdr"),
+        setup: dcerpc_hdr_setup,
+    };
+    let _hdr_kw_id = helper_keyword_register_sticky_buffer(&kw_hdr);
+    G_DCERPC_HDR_BUFFER_ID = SCDetectRegisterMpmGeneric(
+        b"dcerpc.hdr\0".as_ptr() as *const libc::c_char,
+        b"dcerpc header\0".as_ptr() as *const libc::c_char,
+        ALPROTO_DCERPC,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        Some(dcerpc_tx_get_hdr),
+        0,
     );
 }
 
