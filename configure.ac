@@ -1415,13 +1415,22 @@
         AC_CHECK_FUNCS([bpf_xdp_query_id])
     ])
 
+  # Optional libnuma probe (used for memory affinity binding, also
+  # mandatory for DPDK and Napatech below). Sets HAVE_LIBNUMA and links
+  # -lnuma when available.
+    AC_CHECK_LIB(numa, numa_available, [
+        have_libnuma=yes
+        AC_DEFINE([HAVE_LIBNUMA], [1], [Define to 1 if you have libnuma.])
+        LIBS="${LIBS} -lnuma"
+    ], [have_libnuma=no])
+
   # DPDK support
     enable_dpdk_bond_pmd="no"
     AC_ARG_ENABLE(dpdk,
             AS_HELP_STRING([--enable-dpdk], [Enable DPDK support [default=no]]),
                         [enable_dpdk=$enableval],[enable_dpdk=no])
     AS_IF([test "x$enable_dpdk" = "xyes"], [
-        AC_CHECK_LIB(numa, numa_available,, [numa_found="no"])
+        if test "$have_libnuma" = "no"; then numa_found="no"; fi
         if test "$numa_found" = "no"; then
             echo
             echo "  ERROR! libnuma not found by pkg-config, go get it"

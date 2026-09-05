@@ -60,6 +60,7 @@
 
 int debuglog_enabled = 0;
 bool threading_set_cpu_affinity = false;
+bool threading_set_memory_affinity = false;
 uint64_t threading_set_stack_size = 0;
 
 /* Runmode Global Thread Names */
@@ -972,6 +973,25 @@ void RunModeInitializeThreadSettings(void)
     if (threading_set_cpu_affinity) {
         AffinitySetupLoadFromConfig();
     }
+
+    int memory_affinity = 0;
+    if ((SCConfGetBool("threading.set-memory-affinity", &memory_affinity)) == 0) {
+        threading_set_memory_affinity = false;
+    } else {
+        threading_set_memory_affinity = memory_affinity == 1;
+    }
+    if (threading_set_memory_affinity && !threading_set_cpu_affinity) {
+        SCLogWarning("threading.set-memory-affinity has no effect without "
+                     "threading.set-cpu-affinity, ignoring");
+        threading_set_memory_affinity = false;
+    }
+#ifndef HAVE_LIBNUMA
+    if (threading_set_memory_affinity) {
+        SCLogWarning("threading.set-memory-affinity requested but Suricata "
+                     "was built without libnuma, ignoring");
+        threading_set_memory_affinity = false;
+    }
+#endif
     if ((SCConfGetFloat("threading.detect-thread-ratio", &threading_detect_ratio)) != 1) {
         if (SCConfGetNode("threading.detect-thread-ratio") != NULL)
             WarnInvalidConfEntry("threading.detect-thread-ratio", "%s", "1");
