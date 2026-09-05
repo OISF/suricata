@@ -21,7 +21,7 @@ use crate::detect::EnumString;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use std;
 
-fn log_websocket(
+pub(crate) fn log_websocket(
     tx: &WebSocketTransaction, js: &mut JsonBuilder, pp: bool, pb64: bool,
 ) -> Result<(), JsonError> {
     js.open_object("websocket")?;
