@@ -35,6 +35,9 @@
  *  flows for new flows and/or it's memcap limit it reached. In this state the
  *  flow engine with evaluate flows with lower timeout settings. */
 #define FLOW_EMERGENCY   0x01
+/** FlowManager is in shutdown stage. This results in a final pass of all
+ *  flows in the flow table, during which statistics from flows are collected. */
+#define FLOW_SHUTDOWN 0x02
 
 /* Flow Time out values */
 #define FLOW_DEFAULT_NEW_TIMEOUT 30
