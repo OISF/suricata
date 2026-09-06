@@ -423,7 +423,7 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
     if (*len < count/8) {
         goto error;
     }
-    while (count--) {
+    for (uint32_t i = 0; i < count; i++) {
 
         object = SCCalloc(1, sizeof(*object));
         if (unlikely(object == NULL)) {
