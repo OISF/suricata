@@ -151,6 +151,21 @@ PcapFileFileVars *PcapFileGetCurrentPfv(void);
 
 void PcapFileInstallCaptureHooks(void);
 
+void PcapFileRef(PcapFileFileVars *pfv);
+void PcapFileUnref(PcapFileFileVars *pfv);
+
+struct Flow_;
+
+/** Register the per-flow storage that remembers the source pcap file of a
+ *  flow's packets. Offline run modes only; a no-op id otherwise. */
+void RegisterFlowPcapFileVars(void);
+bool FlowPcapFileVarsStorageEnabled(void);
+
+/** Store the source pcap file vars on a flow and take a reference. */
+void FlowSetPcapFileVars(struct Flow_ *f, PcapFileFileVars *pfv);
+/** Return the source pcap file vars stored on a flow, or NULL. */
+PcapFileFileVars *FlowGetPcapFileVars(const struct Flow_ *f);
+
 #ifdef UNITTESTS
 void SourcePcapFileHelperRegisterTests(void);
 #endif
