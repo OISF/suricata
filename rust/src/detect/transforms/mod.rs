@@ -25,6 +25,7 @@ pub mod domain;
 pub mod dotprefix;
 pub mod hash;
 pub mod http_headers;
+pub mod json;
 pub mod strip_whitespace;
 pub mod subslice;
 pub mod urldecode;
