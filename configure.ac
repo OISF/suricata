@@ -548,6 +548,13 @@
         AC_DEFINE([PROFILE_RULES],[1],[Enable performance profiling for rules])
     ])
 
+  # detection-engine inspection tracing
+    AC_ARG_ENABLE(detect-trace,
+           AS_HELP_STRING([--enable-detect-trace], [Enable human-readable tracing of the content-inspection engine (developer aid; runtime toggle via SURICATA_DETECT_TRACE)]),[enable_detect_trace=$enableval],[enable_detect_trace=no])
+    AS_IF([test "x$enable_detect_trace" = "xyes"], [
+        AC_DEFINE([DETECT_TRACE],[1],[Enable content-inspection engine tracing])
+    ])
+
   # enable support for IPFW
     AC_ARG_ENABLE(ipfw,
             AS_HELP_STRING([--enable-ipfw], [Enable FreeBSD IPFW support for inline IDP]),[enable_ipfw=$enableval],[enable_ipfw=no])
@@ -2640,6 +2647,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Profiling enabled:                       ${enable_profiling}
   Profiling locks enabled:                 ${enable_profiling_locks}
   Profiling rules enabled:                 ${enable_profiling_rules}
+  Detection tracing enabled:               ${enable_detect_trace}
 
   Plugin support (experimental):           ${plugin_support}
   DPDK Bond PMD:                           ${enable_dpdk_bond_pmd}

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -739,6 +739,15 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx,
         goto error;
     }
 
+#ifdef DETECT_TRACE
+    /* keep the pattern text so the inspection tracer can display it */
+    pd->parse_regex.regexstr = SCStrdup(re);
+    if (pd->parse_regex.regexstr == NULL) {
+        SCLogError("failed to store regex string for tracing");
+        goto error;
+    }
+#endif
+
 #ifdef PCRE2_HAVE_JIT
     if (pcre2_use_jit) {
         ret = pcre2_jit_compile(pd->parse_regex.regex, PCRE2_JIT_COMPLETE);
@@ -1074,6 +1083,10 @@ static void DetectPcreFree(DetectEngineCtx *de_ctx, void *ptr)
         return;
 
     DetectPcreData *pd = (DetectPcreData *)ptr;
+#ifdef DETECT_TRACE
+    if (pd->parse_regex.regexstr != NULL)
+        SCFree(pd->parse_regex.regexstr);
+#endif
     DetectParseFreeRegex(&pd->parse_regex);
     DetectUnregisterThreadCtxFuncs(de_ctx, pd, "pcre");
 
