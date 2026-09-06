@@ -100,6 +100,15 @@ uint16_t UtilCpuGetNumProcessorsConfigured(void)
 #endif
 }
 
+#ifdef UNITTESTS
+static uint16_t unittest_cpus_online = 0;
+
+void UtilCpuSetNumProcessorsOnlineForTests(uint16_t ncpu)
+{
+    unittest_cpus_online = ncpu;
+}
+#endif
+
 /**
  * \brief Get the number of cpus online in the system
  * \retval 0 if the syscall is not available or we have an error;
@@ -107,6 +116,11 @@ uint16_t UtilCpuGetNumProcessorsConfigured(void)
  */
 uint16_t UtilCpuGetNumProcessorsOnline(void)
 {
+#ifdef UNITTESTS
+    if (unittest_cpus_online > 0) {
+        return unittest_cpus_online;
+    }
+#endif
 #ifdef SYSCONF_NPROCESSORS_ONLN_COMPAT
     long nprocs = -1;
     nprocs = sysconf(_SC_NPROCESSORS_ONLN);
