@@ -582,7 +582,6 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         hlen = IPV4_GET_RAW_HLEN(ip4h);
         data_offset = (uint16_t)((uint8_t *)ip4h + hlen - GET_PKT_DATA(p));
         data_len = IPV4_GET_RAW_IPLEN(ip4h) - hlen;
-        frag_end = frag_offset + data_len;
         ip_hdr_offset = (uint16_t)((uint8_t *)ip4h - GET_PKT_DATA(p));
 
         /* Ignore fragment if the end of packet extends past the
@@ -591,6 +590,8 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             ENGINE_SET_EVENT(p, IPV4_FRAG_PKT_TOO_LARGE);
             return NULL;
         }
+        /* the check above ensures the sum fits in frag_end */
+        frag_end = (uint16_t)(frag_offset + data_len);
     }
     else if (tracker->af == AF_INET6) {
         const IPV6Hdr *ip6h = PacketGetIPv6(p);
@@ -598,7 +599,15 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
         frag_offset = IPV6_EXTHDR_GET_FH_OFFSET(p);
         data_offset = p->l3.vars.ip6.eh.fh_data_offset;
         data_len = p->l3.vars.ip6.eh.fh_data_len;
-        frag_end = frag_offset + data_len;
+
+        /* Ignore fragment if the end of packet extends past the
+         * maximum size of a packet. */
+        if (frag_offset + data_len > IPV6_MAXPACKET) {
+            ENGINE_SET_EVENT(p, IPV6_FRAG_PKT_TOO_LARGE);
+            return NULL;
+        }
+        /* the check above ensures the sum fits in frag_end */
+        frag_end = (uint16_t)(frag_offset + data_len);
         ip_hdr_offset = (uint16_t)((uint8_t *)ip6h - GET_PKT_DATA(p));
         frag_hdr_offset = p->l3.vars.ip6.eh.fh_header_offset;
 
@@ -620,13 +629,6 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
             ip6_nh_set_value = IPV6_EXTHDR_GET_FH_NH(p);
             SCLogDebug("offset %d, value %u", ip6_nh_set_offset, ip6_nh_set_value);
         }
-
-        /* Ignore fragment if the end of packet extends past the
-         * maximum size of a packet. */
-        if (frag_offset + data_len > IPV6_MAXPACKET) {
-            ENGINE_SET_EVENT(p, IPV6_FRAG_PKT_TOO_LARGE);
-            return NULL;
-        }
     }
     else {
         DEBUG_VALIDATE_BUG_ON(1);
@@ -642,7 +644,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
 
     if (!RB_EMPTY(&tracker->fragment_tree)) {
         Frag key = {
-            .offset = frag_offset - 1,
+            .offset = frag_offset ? frag_offset - 1 : 0,
         };
         next = RB_NFIND(IP_FRAGMENTS, &tracker->fragment_tree, &key);
         if (next == NULL) {
@@ -3135,6 +3137,117 @@ static int DefragBsdMissingFragmentIpv6Test(void)
     PASS;
 }
 
+/**
+ * \test Reassemble a datagram where the fragment at offset 0 comes in last,
+ *     with the other fragments already in the tree. This is the RB_NFIND
+ *     search key case from ticket 8232.
+ */
+static int DefragOutOfOrderFirstFragmentTest(void)
+{
+    Packet *p1 = NULL, *p2 = NULL, *p3 = NULL, *p4 = NULL;
+    Packet *reassembled = NULL;
+    int id = 8232;
+
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+
+    /* four fragments, no overlaps, offset 0 delivered last */
+    p1 = BuildIpv4TestPacket(IPPROTO_ICMP, id, 24 >> 3, 0, 'D', 8);
+    FAIL_IF_NULL(p1);
+    p2 = BuildIpv4TestPacket(IPPROTO_ICMP, id, 8 >> 3, 1, 'B', 8);
+    FAIL_IF_NULL(p2);
+    p3 = BuildIpv4TestPacket(IPPROTO_ICMP, id, 16 >> 3, 1, 'C', 8);
+    FAIL_IF_NULL(p3);
+    p4 = BuildIpv4TestPacket(IPPROTO_ICMP, id, 0, 1, 'A', 8);
+    FAIL_IF_NULL(p4);
+
+    FAIL_IF(Defrag(&test_tv, &test_dtv, p1) != NULL);
+    FAIL_IF(Defrag(&test_tv, &test_dtv, p2) != NULL);
+    FAIL_IF(Defrag(&test_tv, &test_dtv, p3) != NULL);
+
+    reassembled = Defrag(&test_tv, &test_dtv, p4);
+    FAIL_IF_NULL(reassembled);
+
+    FAIL_IF(IPV4_GET_RAW_HLEN(PacketGetIPv4(reassembled)) != 20);
+    FAIL_IF(IPV4_GET_RAW_IPLEN(PacketGetIPv4(reassembled)) != 20 + 32);
+
+    for (int i = 20 + 0; i < 20 + 8; i++)
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'A');
+    for (int i = 20 + 8; i < 20 + 16; i++)
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'B');
+    for (int i = 20 + 16; i < 20 + 24; i++)
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'C');
+    for (int i = 20 + 24; i < 20 + 32; i++)
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'D');
+
+    PacketFree(p1);
+    PacketFree(p2);
+    PacketFree(p3);
+    PacketFree(p4);
+    PacketFree(reassembled);
+
+    DefragDestroy();
+    PASS;
+}
+
+/**
+ * \test A fragment arrives at an offset that is already in the tree, with an
+ *     earlier fragment overlapping it from the left. Keeps the frag_offset - 1
+ *     search key honest: with frag_offset the seek skips the overlapping
+ *     fragment and 16..24 comes out as 'B' instead of 'D'.
+ */
+static int DefragSameOffsetPrecedingOverlapTest(void)
+{
+    Packet *packets[5] = { NULL };
+    Packet *reassembled = NULL;
+    int id = 8232;
+
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+
+    /* B 8..24 goes in first so it keeps offset 8. A only sets its ltrim later,
+     * otherwise BSD would bake the trim into the stored offset. */
+    FAIL_IF_NOT(BuildIpv4TestPacketWithContent(
+            &packets[0], IPPROTO_ICMP, id, 8 >> 3, 1, (uint8_t *)"BBBBBBBBBBBBBBBB", 16));
+    /* A 0..16, overlaps B and D from the left */
+    FAIL_IF_NOT(BuildIpv4TestPacketWithContent(
+            &packets[1], IPPROTO_ICMP, id, 0, 1, (uint8_t *)"AAAAAAAAAAAAAAAA", 16));
+    /* C 24..32, the node RB_NFIND(8) lands on */
+    FAIL_IF_NOT(BuildIpv4TestPacketWithContent(
+            &packets[2], IPPROTO_ICMP, id, 24 >> 3, 1, (uint8_t *)"CCCCCCCC", 8));
+    /* D 8..24, same offset as B, has to be reconciled against A */
+    FAIL_IF_NOT(BuildIpv4TestPacketWithContent(
+            &packets[3], IPPROTO_ICMP, id, 8 >> 3, 1, (uint8_t *)"DDDDDDDDDDDDDDDD", 16));
+    /* E 32..40, last fragment, kicks off reassembly */
+    FAIL_IF_NOT(BuildIpv4TestPacketWithContent(
+            &packets[4], IPPROTO_ICMP, id, 32 >> 3, 0, (uint8_t *)"EEEEEEEE", 8));
+
+    for (int i = 0; i < 4; i++)
+        FAIL_IF(Defrag(&test_tv, &test_dtv, packets[i]) != NULL);
+    reassembled = Defrag(&test_tv, &test_dtv, packets[4]);
+    FAIL_IF_NULL(reassembled);
+
+    FAIL_IF(IPV4_GET_RAW_IPLEN(PacketGetIPv4(reassembled)) != 20 + 40);
+
+    // clang-format off
+    const uint8_t expected[] = {
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+        'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+        'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+    };
+    // clang-format on
+    FAIL_IF(memcmp(expected, GET_PKT_DATA(reassembled) + 20, sizeof(expected)) != 0);
+
+    for (int i = 0; i < 5; i++)
+        PacketFree(packets[i]);
+    PacketFree(reassembled);
+
+    DefragDestroy();
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void DefragRegisterTests(void)
@@ -3187,5 +3300,7 @@ void DefragRegisterTests(void)
             DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test_2);
     UtRegisterTest("DefragBsdMissingFragmentIpv4Test", DefragBsdMissingFragmentIpv4Test);
     UtRegisterTest("DefragBsdMissingFragmentIpv6Test", DefragBsdMissingFragmentIpv6Test);
+    UtRegisterTest("DefragOutOfOrderFirstFragmentTest", DefragOutOfOrderFirstFragmentTest);
+    UtRegisterTest("DefragSameOffsetPrecedingOverlapTest", DefragSameOffsetPrecedingOverlapTest);
 #endif /* UNITTESTS */
 }
