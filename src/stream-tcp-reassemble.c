@@ -86,6 +86,7 @@ static SCMutex segment_thread_pool_mutex = SCMUTEX_INITIALIZER;
 
 /* Memory use counter */
 SC_ATOMIC_DECLARE(uint64_t, ra_memuse);
+SC_ATOMIC_DECLARE(uint64_t, ra_active_segments);
 
 static int g_tcp_session_dump_enabled = 0;
 
@@ -106,6 +107,12 @@ void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
 void StreamTcpReassembleInitMemuse(void)
 {
     SC_ATOMIC_INIT(ra_memuse);
+}
+
+void StreamTcpReassembleInitActive(void)
+{
+    SC_ATOMIC_INIT(ra_active_segments);
+    SC_ATOMIC_SET(ra_active_segments, 0);
 }
 
 /**
@@ -152,6 +159,12 @@ uint64_t StreamTcpReassembleMemuseGlobalCounter(void)
 {
     uint64_t smemuse = SC_ATOMIC_GET(ra_memuse);
     return smemuse;
+}
+
+uint64_t StreamTcpReassembleGetActive(void)
+{
+    uint64_t ra_active_segmentscopy = SC_ATOMIC_GET(ra_active_segments);
+    return ra_active_segmentscopy;
 }
 
 /**
@@ -381,6 +394,8 @@ void StreamTcpSegmentReturntoPool(TcpSegment *seg)
     if (seg == NULL)
         return;
 
+    SC_ATOMIC_SUB(ra_active_segments, 1);
+
     if (seg->pcap_hdr_storage && seg->pcap_hdr_storage->pktlen) {
         seg->pcap_hdr_storage->pktlen = 0;
     }
@@ -531,6 +546,9 @@ int StreamTcpReassembleInit(bool quiet)
 #endif
     StatsRegisterGlobalCounter("tcp.reassembly_memuse",
             StreamTcpReassembleMemuseGlobalCounter);
+
+    StatsRegisterGlobalCounter("tcp.reassembly_active_segments", StreamTcpReassembleGetActive);
+
     return 0;
 }
 
@@ -2121,6 +2139,7 @@ TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
     TcpSegment *seg = StreamTcpThreadCacheGetSegment();
     if (seg) {
         StatsCounterIncr(&tv->stats, ra_ctx->counter_tcp_segment_from_cache);
+        SC_ATOMIC_ADD(ra_active_segments, 1);
         return seg;
     }
 
@@ -2134,6 +2153,7 @@ TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
     } else {
         memset(&seg->sbseg, 0, sizeof(seg->sbseg));
         StatsCounterIncr(&tv->stats, ra_ctx->counter_tcp_segment_from_pool);
+        SC_ATOMIC_ADD(ra_active_segments, 1);
     }
 
     return seg;

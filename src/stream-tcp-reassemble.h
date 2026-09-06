@@ -91,6 +91,7 @@ typedef struct TcpReassemblyThreadCtx_ {
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD
 
 void StreamTcpReassembleInitMemuse(void);
+void StreamTcpReassembleInitActive(void);
 int StreamTcpReassembleHandleSegment(
         ThreadVars *, TcpReassemblyThreadCtx *, TcpSession *, TcpStream *, Packet *);
 int StreamTcpReassembleInit(bool);
@@ -129,6 +130,7 @@ int StreamTcpReassembleSetMemcap(uint64_t size);
 uint64_t StreamTcpReassembleGetMemcap(void);
 int StreamTcpReassembleCheckMemcap(uint64_t size);
 uint64_t StreamTcpReassembleMemuseGlobalCounter(void);
+uint64_t StreamTcpReassembleGetActive(void);
 
 void StreamTcpDisableAppLayer(Flow *f);
 int StreamTcpAppLayerIsDisabled(Flow *f);
