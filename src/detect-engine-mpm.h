@@ -93,6 +93,9 @@ void DetectAppLayerMpmRegisterSubState(const char *name, int direction, int prio
 void DetectAppLayerMpmRegisterSingle(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionSingleBufferGetDataPtr GetData,
         AppProto alproto, uint8_t tx_min_progress);
+void DetectAppLayerMpmRegisterSingleSubState(const char *name, int direction, int priority,
+        PrefilterRegisterFunc PrefilterRegister, InspectionSingleBufferGetDataPtr GetData,
+        AppProto alproto, uint8_t sub_state, uint8_t tx_min_progress);
 void DetectAppLayerMpmMultiRegister(const char *name, int direction, int priority,
         PrefilterRegisterFunc PrefilterRegister, InspectionMultiBufferGetDataPtr GetData,
         AppProto alproto, uint8_t tx_min_progress);
