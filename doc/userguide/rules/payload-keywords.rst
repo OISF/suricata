@@ -519,7 +519,7 @@ Format::
 +----------------+------------------------------------------------------------------------------+
 | [dce]		 | Allow the DCE module to determine the byte order 				|
 +----------------+------------------------------------------------------------------------------+
-| [bitmask]	 | Applies the AND operator on the bytes converted				|
+| [bitmask] <value> | The AND operator will be applied to the extracted value. The result will be right shifted by the number of bits equal to the number of trailing zeros in the mask. |
 +----------------+------------------------------------------------------------------------------+
 
 
