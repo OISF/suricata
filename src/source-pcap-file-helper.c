@@ -229,6 +229,7 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
             SCLogError("Pcap callback PcapFileCallbackLoop failed for %s", ptv->filename);
             loop_result = TM_ECODE_FAILED;
         }
+        TmThreadFlushOutQueue(ptv->shared->tv);
         StatsSyncCountersIfSignalled(&ptv->shared->tv->stats);
     }
 
