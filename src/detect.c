@@ -1444,6 +1444,14 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     can->stream_result = match;
                     TRACE_SID_TXS(s->id, tx, "stream ran, store result %d for next tx (if any)", match);
                 }
+
+                if (match == DETECT_ENGINE_INSPECT_SIG_NO_MATCH &&
+                        (s->flags & SIG_FLAG_FW_HOOK_LTE) &&
+                        s->app_progress_hook <= tx->tx_progress) {
+                    SCLogDebug("no match for LTE rule at or below progress, so no match "
+                               "DETECT_ENGINE_INSPECT_SIG_CANT_MATCH");
+                    match = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+                }
             }
             if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
                 inspect_flags |= BIT_U32(engine->id);
@@ -1720,6 +1728,10 @@ struct DetectFirewallAppTxState {
     bool fw_last_for_progress;
     bool fw_next_progress_missing;
     bool last_fw_rule; /**< processing the last fw rule, so we need to eval all hooks after it. */
+
+    /* state (Signature::app_progress_hook) value of an in-progress LTE rule. 0 if none are in
+     * progress. */
+    uint8_t max_in_progress_lte_hook;
 };
 
 static inline void DetectRunAppendDefaultAppPolicyAlert(DetectEngineThreadCtx *det_ctx, Packet *p,
@@ -1964,23 +1976,36 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
         SCLogDebug("SIG_FLAG_FW_HOOK_LTE");
         return DETECT_TX_FW_FC_OK; // TODO check for other cases
     }
-    /* if our first rule is beyond the starting state, we need to check if
-     * there are rules missing for states in between. */
-    if (s->app_progress_hook > tx->detect_progress_orig && can_idx == 0) {
-        SCLogDebug("missing fw rules at list start: sid %u, progress %u (%u:%u)", s->id,
-                s->app_progress_hook, tx->detect_progress, tx->detect_progress_orig);
-        /* if this rule was after the state we expected meaning that there are
-         * no rules for that state. Invoke the default policies. */
-        enum DetectTxFirewallFlowControl r =
-                DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies, tx, p,
-                        s->alproto, direction, tx->detect_progress_orig, s->app_progress_hook - 1);
-        if (r != DETECT_TX_FW_FC_OK) {
-            /* both SKIP and BREAK mean: no more fw rules to inspect.
-             * SKIP applies to just this TX.
-             * DROP applies to everything. */
-            fw_state->fw_skip_app_filter = true;
+
+    SCLogDebug("check if prior hooks are satisfied: s->app_progress_hook %u, "
+               "w_state->max_in_progress_lte_hook %u, tx->detect_progress_orig %u",
+            s->app_progress_hook, fw_state->max_in_progress_lte_hook, tx->detect_progress_orig);
+
+    if (can_idx == 0) {
+        if (s->app_progress_hook <= fw_state->max_in_progress_lte_hook) {
+            SCLogDebug("later LTE in-progress rule brough us here: us:%u them:%u",
+                    s->app_progress_hook, fw_state->max_in_progress_lte_hook);
+            return DETECT_TX_FW_FC_OK;
         }
-        return r;
+
+        /* if our first rule is beyond the starting state, we need to check if
+         * there are rules missing for states in between. */
+        if (s->app_progress_hook > tx->detect_progress_orig) {
+            SCLogDebug("missing fw rules at list start: sid %u, progress %u (%u:%u)", s->id,
+                    s->app_progress_hook, tx->detect_progress, tx->detect_progress_orig);
+            /* if this rule was after the state we expected meaning that there are
+             * no rules for that state. Invoke the default policies. */
+            enum DetectTxFirewallFlowControl r = DetectFirewallApplyDefaultPolicies(det_ctx,
+                    det_ctx->de_ctx->fw_policies, tx, p, s->alproto, direction,
+                    tx->detect_progress_orig, s->app_progress_hook - 1);
+            if (r != DETECT_TX_FW_FC_OK) {
+                /* both SKIP and BREAK mean: no more fw rules to inspect.
+                 * SKIP applies to just this TX.
+                 * DROP applies to everything. */
+                fw_state->fw_skip_app_filter = true;
+            }
+            return r;
+        }
     }
     return DETECT_TX_FW_FC_OK;
 }
@@ -2012,15 +2037,24 @@ static enum DetectTxFirewallFlowControl DetectRunTxCheckRuleState(DetectEngineTh
                     "peek: peeking at sid %u / progress %u", next_s->id, next_s->app_progress_hook);
             if (next_s->flags & SIG_FLAG_FIREWALL) {
                 if (s->app_progress_hook != next_s->app_progress_hook) {
-                    SCLogDebug("peek: next sid progress %u != current progress %u, so current "
-                               "is last for progress",
-                            next_s->app_progress_hook, s->app_progress_hook);
-                    fw_state->fw_last_for_progress = true;
+                    if (next_s->app_progress_hook > s->app_progress_hook &&
+                            (next_s->flags & SIG_FLAG_FW_HOOK_LTE)) {
+                        SCLogDebug("next sig is FW LTE");
+                    } else if (fw_state->max_in_progress_lte_hook != 0 &&
+                               s->app_progress_hook <= fw_state->max_in_progress_lte_hook) {
+                        SCLogDebug("we have a LTE in-progress. Us:%u they:%u", s->app_progress_hook,
+                                fw_state->max_in_progress_lte_hook);
+                    } else {
+                        SCLogDebug("peek: next sid progress %u != current progress %u, so current "
+                                   "is last for progress",
+                                next_s->app_progress_hook, s->app_progress_hook);
+                        fw_state->fw_last_for_progress = true;
 
-                    if (next_s->app_progress_hook - s->app_progress_hook > 1) {
-                        SCLogDebug("peek: missing progress, so we'll drop that unless we get a "
-                                   "sweeping accept first");
-                        fw_state->fw_next_progress_missing = true;
+                        if (next_s->app_progress_hook - s->app_progress_hook > 1) {
+                            SCLogDebug("peek: missing progress, so we'll drop that unless we get a "
+                                       "sweeping accept first");
+                            fw_state->fw_next_progress_missing = true;
+                        }
                     }
                 }
             } else {
@@ -2403,6 +2437,9 @@ static void DetectRunTx(ThreadVars *tv,
         uint32_t total_rules = det_ctx->match_array_cnt;
         total_rules += (tx.de_state ? tx.de_state->cnt : 0);
 
+        /* highest progress value of in-progress fw LTE rule */
+        uint8_t max_in_progress_fw_lte_rule = 0;
+
         /* run prefilter engines and merge results into a candidates array */
         if (sgh && sgh->tx_engines) {
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_TX);
@@ -2424,6 +2461,13 @@ static void DetectRunTx(ThreadVars *tv,
                 det_ctx->tx_candidates[array_idx].id = id;
                 det_ctx->tx_candidates[array_idx].flags = NULL;
                 det_ctx->tx_candidates[array_idx].stream_reset = 0;
+
+                /* check for LTE rule with in-progress SID */
+                if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
+                    SCLogDebug("sid %u: LTE and in candidates list", s->id);
+                    max_in_progress_fw_lte_rule =
+                            MAX(max_in_progress_fw_lte_rule, s->app_progress_hook);
+                }
                 array_idx++;
             }
             PMQ_RESET(&det_ctx->pmq);
@@ -2470,6 +2514,16 @@ static void DetectRunTx(ThreadVars *tv,
                         item->flags &= ~(DE_STATE_FLAG_SIG_CANT_MATCH|DE_STATE_FLAG_FULL_INSPECT|DE_STATE_FLAG_FILE_INSPECT);
                         SCLogDebug("rule id %u, post file reset inspect_flags %u", item->sid, item->flags);
                     }
+
+                    /* check for LTE rule with in-progress SID */
+                    if ((de_ctx->sig_array[item->sid]->flags & SIG_FLAG_FW_HOOK_LTE) &&
+                            (item->flags & (DE_STATE_FLAG_FULL_INSPECT |
+                                                   DE_STATE_FLAG_SIG_CANT_MATCH)) == 0) {
+                        SCLogDebug("sid %u: LTE and in progress", de_ctx->sig_array[item->sid]->id);
+                        max_in_progress_fw_lte_rule = MAX(max_in_progress_fw_lte_rule,
+                                de_ctx->sig_array[item->sid]->app_progress_hook);
+                    }
+
                     det_ctx->tx_candidates[array_idx].s = de_ctx->sig_array[item->sid];
                     det_ctx->tx_candidates[array_idx].id = item->sid;
                     det_ctx->tx_candidates[array_idx].flags = &item->flags;
@@ -2485,6 +2539,7 @@ static void DetectRunTx(ThreadVars *tv,
             qsort(det_ctx->tx_candidates, array_idx, sizeof(RuleMatchCandidateTx),
                     DetectRunTxSortHelper);
         }
+        SCLogDebug("max_in_progress_fw_lte_rule %u", max_in_progress_fw_lte_rule);
 
 #ifdef PROFILING
         if (array_idx >= de_ctx->profile_match_logging_threshold)
@@ -2506,6 +2561,7 @@ static void DetectRunTx(ThreadVars *tv,
             false,
             false,
             false,
+            max_in_progress_fw_lte_rule,
         };
 
         SCLogDebug("%s: tx_progress %u tx %p have_fw_rules %s array_idx %u detect_progress_orig %u "
