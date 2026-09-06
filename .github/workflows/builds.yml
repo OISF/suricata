@@ -2766,9 +2766,10 @@ jobs:
           path: prep
       - uses: ./.github/actions/install-cbindgen
       - run: ./autogen.sh
-      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-netmap --enable-debug
+      - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-netmap --enable-debug --enable-unittests
       - run: make -j ${{ env.CPUS }}
       - run: ./src/suricata --build-info | grep -E "Netmap support:\s+yes"
+      - run: ./src/suricata -u -U Netmap
 
   ubuntu-22-04-minimal-recommended-build:
     name: Ubuntu 22.04 (Minimal/Recommended Build)
