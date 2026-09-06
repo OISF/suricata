@@ -18,6 +18,9 @@
 use crate::detect::uint::{
     detect_parse_uint_bitflags, detect_parse_uint_enum, DetectBitflagModifier, DetectUintData,
 };
+use crate::detect::EnumString;
+use crate::jsonbuilder::JsonBuilder;
+use suricata_sys::sys::SCJsonBuilder;
 
 use std::ffi::CStr;
 
@@ -101,6 +104,12 @@ pub unsafe extern "C" fn SCDnp3DetectIndParse(
         }
     }
     return std::ptr::null_mut();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCDnp3DetectFuncListValues(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = Dnp3Func::list_values(jsb);
 }
 
 #[no_mangle]

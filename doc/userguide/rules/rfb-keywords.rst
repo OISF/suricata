@@ -27,6 +27,8 @@ Match on the value of the RFB security result, e.g. ``ok``, ``fail``, ``toomany`
 
 rfb.secresult uses an :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
 
+See ``suricata --list-keywords=json | jq '."rfb.secresult".enum_values'``
+
 Examples::
 
   rfb.secresult: ok;

@@ -56,6 +56,13 @@ pub trait EnumString<T> {
     fn from_str(s: &str) -> Option<Self>
     where
         Self: Sized;
+
+    /// Get an enum variant from parsing a string.
+    fn list_values(
+        jsb: &mut crate::jsonbuilder::JsonBuilder,
+    ) -> Result<(), crate::jsonbuilder::JsonError>
+    where
+        Self: Sized;
 }
 
 pub use suricata_ffi::detect::{

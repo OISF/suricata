@@ -9,6 +9,8 @@ It is possible to specify the following values defined in RFC4120:
 
 krb5_msg_type uses :ref:`unsigned 32-bit integer <rules-integer-keywords>`.
 
+See ``suricata --list-keywords=json | jq '."krb5_msg_type".enum_values'``
+
 * 10 (AS-REQ)
 * 11 (AS-REP)
 * 12 (TGS-REQ)

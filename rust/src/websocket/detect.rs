@@ -22,15 +22,18 @@ use crate::detect::uint::{
     SCDetectU32Free, SCDetectU32Match, SCDetectU32Parse, SCDetectU8Free, SCDetectU8Match,
 };
 use crate::detect::{
-    helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer, SIGMATCH_INFO_BITFLAGS_UINT,
-    SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8,
+    helper_keyword_register_sticky_buffer, EnumString, SigTableElmtStickyBuffer,
+    SIGMATCH_INFO_BITFLAGS_UINT, SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT32,
+    SIGMATCH_INFO_UINT8,
 };
+use crate::jsonbuilder::JsonBuilder;
 use crate::websocket::parser::WebSocketOpcode;
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList,
-    SCSigTableAppLiteElmt, SigMatchCtx, Signature,
+    SCDetectHelperKeywordJsonInfoRegister, SCDetectHelperKeywordRegister,
+    SCDetectSignatureSetAppProto, SCJsonBuilder, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt,
+    SigMatchCtx, Signature,
 };
 
 use std::ffi::CStr;
@@ -223,6 +226,11 @@ pub unsafe extern "C" fn websocket_detect_payload_get_data(
     return true;
 }
 
+unsafe extern "C" fn websocket_opcode_list_values(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = WebSocketOpcode::list_values(jsb);
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectWebsocketRegister() {
     let kw = SCSigTableAppLiteElmt {
@@ -235,6 +243,10 @@ pub unsafe extern "C" fn SCDetectWebsocketRegister() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_WEBSOCKET_OPCODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordJsonInfoRegister(
+        G_WEBSOCKET_OPCODE_KW_ID,
+        Some(websocket_opcode_list_values),
+    );
     G_WEBSOCKET_OPCODE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"websocket.opcode\0".as_ptr() as *const libc::c_char,
         ALPROTO_WEBSOCKET,

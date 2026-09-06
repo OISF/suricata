@@ -56,6 +56,8 @@ It can also be specified by text from the enumeration
 
 websocket.opcode uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>`
 
+See ``suricata --list-keywords=json | jq '."websocket.opcode".enum_values'``
+
 Examples::
 
   websocket.opcode:1;

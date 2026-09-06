@@ -97,6 +97,16 @@ static int g_http2_match_buffer_id = 0;
 static int g_http2_complete_buffer_id = 0;
 static int g_http2_header_buffer_id = 0;
 
+static void DetectHTTP2frameTypeListValues(SCJsonBuilder *jsb)
+{
+    SCDetectHTTP2frameTypeListValues(jsb);
+}
+
+static void DetectHTTP2errorcodeListValues(SCJsonBuilder *jsb)
+{
+    SCDetectHTTP2errorcodeListValues(jsb);
+}
+
 /**
  * \brief Registration function for HTTP2 keywords
  */
@@ -112,6 +122,7 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].Free = DetectHTTP2frametypeFree;
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].flags =
             SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT;
+    sigmatch_table[DETECT_HTTP2_FRAMETYPE].JsonAdditionalInfo = DetectHTTP2frameTypeListValues;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP2_FRAMETYPE].RegisterTests = DetectHTTP2frameTypeRegisterTests;
 #endif
@@ -125,6 +136,7 @@ void DetectHttp2Register(void)
     sigmatch_table[DETECT_HTTP2_ERRORCODE].Free = DetectHTTP2errorcodeFree;
     sigmatch_table[DETECT_HTTP2_ERRORCODE].flags =
             SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT;
+    sigmatch_table[DETECT_HTTP2_ERRORCODE].JsonAdditionalInfo = DetectHTTP2errorcodeListValues;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_HTTP2_ERRORCODE].RegisterTests = DetectHTTP2errorCodeRegisterTests;
 #endif
