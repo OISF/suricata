@@ -49,6 +49,10 @@
 #include "util-validate.h"
 #include "source-pcap-file-helper.h"
 
+#ifdef HAVE_LIBNUMA
+#include <numa.h>
+#endif
+
 #ifdef PROFILE_LOCKING
 thread_local uint64_t mutex_lock_contention;
 thread_local uint64_t mutex_lock_wait_ticks;
@@ -857,6 +861,33 @@ int TmThreadGetNbThreads(uint8_t type)
 }
 
 /**
+ * \brief Bind subsequent allocations on this thread to the local NUMA node.
+ *
+ * Must be called after the thread's CPU affinity has been pinned. Uses
+ * MPOL_LOCAL (via numa_set_localalloc) so allocations prefer the node of
+ * the running CPU but can fall back to other nodes when local memory is
+ * exhausted. No-op when libnuma is not compiled in or the system has a
+ * single NUMA node.
+ */
+static void SetMemoryAffinityLocal(const char *name)
+{
+#ifdef HAVE_LIBNUMA
+    if (!threading_set_memory_affinity)
+        return;
+    if (numa_available() == -1)
+        return;
+    if (numa_max_node() < 1)
+        return;
+    numa_set_localalloc();
+    SCLogPerf("Setting memory affinity for thread \"%s\" to local NUMA node, "
+              "thread id %lu",
+            name, SCGetThreadIdLong());
+#else
+    (void)name;
+#endif
+}
+
+/**
  * \brief Set the thread options (cpu affinitythread).
  *        Priority should be already set by pthread_create.
  *
@@ -869,6 +900,7 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
                   "%"PRIu16", thread id %lu", tv->name, tv->cpu_affinity,
                   SCGetThreadIdLong());
         SetCPUAffinity(tv->cpu_affinity);
+        SetMemoryAffinityLocal(tv->name);
     }
 
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined __sun
@@ -915,6 +947,7 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
                       "thread id %lu", tv->thread_priority,
                       tv->name, SCGetThreadIdLong());
         }
+        SetMemoryAffinityLocal(tv->name);
         TmThreadSetPrio(tv);
     }
 #endif
