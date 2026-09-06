@@ -47,6 +47,12 @@ Major Changes
   suricata.yaml is now 1 MiB instead of 0/unlimited.
 - LLMNR protocol parser, logger and sticky buffers are implemented.
 
+Detection Changes
+~~~~~~~~~~~~~~~~~
+- Without ``any_frag``, ``dcerpc.iface`` now requires ``PFC_FIRST_FRAG`` on
+  the request PDU instead of on the BIND PDU, matching Snort. See ticket
+  `#8577 <https://redmine.openinfosecfoundation.org/issues/8577>`_.
+
 Logging Changes
 ~~~~~~~~~~~~~~~
 - The format of IKEv1 proposal attributes has been changed to handle
