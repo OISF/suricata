@@ -100,18 +100,6 @@ Automatic Protocol Detection
    -  Use ``,norm`` for normalized buffer
    -  e.g. ``urilen:>20,norm;``
 
-``http_uri`` Buffer
--------------------
-
--  In Snort, the ``http_uri`` buffer normalizes '+' characters
-   (0x2B) to spaces (0x20).
-
-   -  Suricata can do this as well but you have to explicitly
-      set ``query-plusspace-decode: yes`` in the ``libhtp`` section of Suricata's yaml file.
-
--  `https://redmine.openinfosecfoundation.org/issues/1035 <https://redmine.openinfosecfoundation.org/issues/1035>`_
--  `https://github.com/inliniac/suricata/pull/620 <https://github.com/inliniac/suricata/pull/620>`_
-
 ``http_header`` Buffer
 ----------------------
 
