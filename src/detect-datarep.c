@@ -167,6 +167,9 @@ static int DetectDatarepParse(const char *str, char *cmd, int cmd_len, char *nam
                     *type = DATASET_TYPE_IPV6;
                 } else if (strcmp(val, "ipv6") == 0) {
                     *type = DATASET_TYPE_IPV6;
+                } else if (strcmp(val, "cidr") == 0) {
+                    SCLogError("datarep does not support type cidr");
+                    return -1;
                 } else {
                     SCLogDebug("bad type %s", val);
                     return -1;

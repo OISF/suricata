@@ -79,12 +79,12 @@ Syntax::
     dataset:<cmd>,<name>,<options>;
 
     dataset:<set|unset|isset|isnotset>,<name> \
-        [, type <string|md5|sha256|ipv4|ip>, save <file name>, load <file name>, state <file name>, memcap <size>, hashsize <size>
+        [, type <string|md5|sha256|ipv4|ip|cidr>, save <file name>, load <file name>, state <file name>, memcap <size>, hashsize <size>
          , format <csv|json|ndjson>, context_key <output_key>, value_key <json_key>, array_key <json_path>,
-         remove_key, match subdomain];
+         remove_key, match subdomain, mask <prefix-length>];
 
 type <type>
-  the data type: string, md5, sha256, ipv4, ip
+  the data type: string, md5, sha256, ipv4, ip, cidr
 load <file name>
   file name for load the data when Suricata starts up
 state
@@ -92,6 +92,22 @@ state
 save <file name>
   advanced option to set the file name for saving the in-memory data
   when Suricata exits.
+mask <prefix-length>
+  CIDR datasets only, ``set`` and ``unset`` commands only. Apply a prefix
+  length to the matched address before adding or removing it, so that the
+  dataset operates on /N prefixes rather than individual hosts. The value may
+  be expressed as a decimal integer (``mask 24``), a hex prefix length
+  (``mask 0x18``), or an IPv4 bitmask (``mask 0xffffff00`` — equivalent to
+  /24). Valid range: 1–32 for IPv4 prefix lengths and IPv4 bitmasks, 1–128
+  for IPv6 prefix lengths. A mask of 0, which would match every address,
+  is rejected at rule load. The same mask value must be used on both ``set``
+  and ``unset`` to ensure the correct prefix is removed.
+
+  ``ip.src`` and ``ip.dst`` fire on both IPv4 and IPv6 packets. A mask
+  greater than 32 applied to a packet whose address is IPv4 is rejected
+  at match time and the ``set`` (or ``unset``) does not fire on that
+  packet. Use two separate rules if the mask semantics for IPv4 and
+  IPv6 need to differ.
 memcap <size>
   maximum memory limit for the respective dataset
 hashsize <size>
@@ -168,6 +184,107 @@ Notice how it is not possible to do certain operations alone with datasets
 keywords. Keep in mind the cost of additional keywords though e.g. in the
 second example rule above, negative performance impact can be expected due
 to ``pcrexform``.
+
+CIDR datasets
+~~~~~~~~~~~~~
+
+The ``cidr`` dataset type stores IPv4 and IPv6 network ranges and checks
+whether a given IP address falls within any of them. It is backed by
+radix trees and reads the raw address from the ``ip.src`` or ``ip.dst``
+sticky buffer.
+
+Dataset file format — one CIDR block per line::
+
+    # IPv4 ranges
+    192.168.0.0/16
+    10.0.0.0/8
+    172.16.0.0/12
+
+    # Single IPv4 host (equivalent to /32)
+    8.8.8.8
+
+    # IPv6 ranges
+    fc00::/7
+    2001:db8::/32
+
+    # Single IPv6 host (equivalent to /128)
+    2001:4860:4860::8888
+
+Example rules:
+
+.. container:: example-rule
+
+    alert ip any any -> any any (msg:"Traffic from RFC1918 range"; ip.src; dataset:isset,rfc1918,type cidr,load rfc1918.lst; sid:1; rev:1;)
+
+.. container:: example-rule
+
+    alert ip any any -> any any (msg:"Traffic to non-allowlisted destination"; ip.dst; dataset:isnotset,allowed-nets,type cidr,load allowed-nets.lst; sid:2; rev:1;)
+
+``ip.src`` and ``ip.dst`` provide the raw address bytes (4 for IPv4,
+16 for IPv6). The CIDR dataset selects the tree from the address
+length.
+
+The ``set`` command adds the matched host address as a /32 (IPv4) or
+/128 (IPv6) host entry. Combined with ``mask``, it adds the containing
+subnet prefix instead. For example, to build a set of seen /24 networks:
+
+.. container:: example-rule
+
+    alert ip any any -> any any (msg:"New /24 network seen"; ip.src; dataset:set,seen-nets,type cidr,mask 24; sid:3; rev:1;)
+
+The ``unset`` command removes an entry that was previously added via ``set``
+or loaded from a file. Without ``mask``, it removes the exact host entry
+(/32 or /128). With ``mask N``, it applies the same prefix length as the
+corresponding ``set`` rule and removes the /N netblock — use the same mask
+value on both ``set`` and ``unset`` to correctly undo the addition. Subnet
+entries loaded from a file (e.g. ``192.168.0.0/16``) can be removed via the
+unix socket ``dataset-remove`` command.
+
+``isset`` and ``isnotset`` perform a longest-prefix (best-match) lookup:
+the raw host address is matched against every stored prefix and the
+most-specific covering entry wins. A source address of ``192.168.1.5``
+matches a stored ``192.168.1.0/24`` directly. ``mask`` is not valid on these commands because the
+radix tree already handles the host-to-prefix matching.
+
+.. note:: ``save`` and ``state`` are not supported for CIDR datasets; only ``load`` is available. Specifying either will cause rule loading to fail.
+
+.. note:: Reputation values (``datarep``) are not supported for CIDR datasets.
+
+.. note::
+
+   ``memcap`` on a CIDR dataset is approximate. Each stored prefix
+   counts as ~128 bytes for IPv4 and ~192 bytes for IPv6; the radix
+   tree's internal split nodes are not counted, so real memory use
+   will be somewhat higher than the tracked total. Once the tracked
+   total for a family exceeds ``memcap``, further ``set`` operations
+   for that family are rejected and one warning is logged per family.
+   A ``memcap`` of 0 disables the cap. Rules that use ``dataset:set``
+   on ``ip.src`` or ``ip.dst`` grow the tree in response to network
+   traffic, so keep ``memcap`` tight when the source is untrusted.
+
+.. note::
+
+   A ``dataset:set`` rule on ``ip.src`` or ``ip.dst`` exposed to
+   attacker-controlled unique sources at multi-Gbps rates can also
+   saturate the per-family write lock across worker threads. Narrow
+   the rule with specific ports, protocols, or flow states so the
+   write path only runs on packets that need to update the set.
+
+.. note::
+
+   For deployments that treat the CIDR set as an admin-managed
+   allow/deny list, use ``dataset:isset`` or ``dataset:isnotset`` in
+   rules and update the set at runtime through the unix socket
+   (``dataset-add`` / ``dataset-remove`` for single entries, or
+   ``dataset-add-batch`` for bulk imports). The packet path takes
+   only the read lock; admin writes take the write lock for the
+   length of one tree walk per update, blocking concurrent readers
+   during that window. Trickle updates are invisible; bulk imports
+   of thousands of entries can block the packet path for the
+   duration of the import. Prefer ``dataset-add-batch`` for bulk
+   loads -- it takes one write lock per address family for the
+   whole batch instead of one per entry -- and schedule such
+   imports during quiet windows.
 
 datarep
 ~~~~~~~
@@ -260,13 +377,60 @@ Syntax::
 set name
   Name of an already defined dataset
 type
-  Data type: string, md5, sha256, ipv4, ip
+  Data type: string, md5, sha256, ipv4, ip, cidr
 data
   Data to add in serialized form (base64 for string, hex notation for md5/sha256, string representation for ipv4/ip)
 
 Example adding 'google.com' to set 'myset'::
 
     dataset-add myset string Z29vZ2xlLmNvbQ==
+
+dataset-add-batch
+~~~~~~~~~~~~~~~~~
+
+Unix Socket command to add many values to a set in one call. The command
+takes a JSON array of values instead of a single ``data`` argument.
+
+For CIDR datasets, the whole batch is inserted under one write lock per
+address family instead of one lock per entry, which is much cheaper when
+loading thousands of prefixes at once. For hash-based dataset types the
+per-entry lock is already fine-grained; batching only saves the
+per-entry unix-socket round trip.
+
+Arguments (JSON)::
+
+    {
+      "command": "dataset-add-batch",
+      "arguments": {
+        "setname":  "<set name>",
+        "settype":  "string|md5|sha256|ipv4|ip|cidr",
+        "values":   ["value1", "value2", ...]
+      }
+    }
+
+The reply reports how each value was handled::
+
+    {
+      "return":  "OK",
+      "message": {
+        "added":            <int>,   /* new entries inserted */
+        "existed":          <int>,   /* value already present, skipped */
+        "failed":           <int>,   /* malformed or insert failure */
+        "rejected_memcap":  <int>    /* CIDR only: skipped by memcap */
+      }
+    }
+
+The batch is not atomic: a malformed or memcap-rejected value is
+counted in its own bucket while the rest of the batch proceeds. For
+CIDR sets, the write lock is held for the whole batch, so a bulk
+import of thousands of entries can briefly block the packet path.
+Schedule bulk imports during quiet windows.
+
+Example adding three CIDR blocks to set 'blocklist'::
+
+    {"command": "dataset-add-batch",
+     "arguments": {"setname": "blocklist", "settype": "cidr",
+                   "values": ["10.0.0.0/8", "192.168.0.0/16", "fc00::/7"]}}
 
 dataset-remove
 ~~~~~~~~~~~~~~
@@ -281,7 +445,7 @@ Syntax::
 set name
   Name of an already defined dataset
 type
-  Data type: string, md5, sha256, ipv4, ip
+  Data type: string, md5, sha256, ipv4, ip, cidr
 data
   Data to remove in serialized form (base64 for string, hex notation for md5/sha256, string representation for ipv4/ip)
 
@@ -298,7 +462,7 @@ Syntax::
 set name
   Name of an already defined dataset
 type
-  Data type: string, md5, sha256, ipv4, ip
+  Data type: string, md5, sha256, ipv4, ip, cidr
 
 dataset-lookup
 ~~~~~~~~~~~~~~
@@ -312,7 +476,7 @@ Syntax::
 set name
   Name of an already defined dataset
 type
-  Data type: string, md5, sha256, ipv4, ip
+  Data type: string, md5, sha256, ipv4, ip, cidr
 data
   Data to test in serialized form (base64 for string, hex notation for md5/sha256, string notation for ipv4/ip)
 
@@ -342,7 +506,7 @@ Syntax::
 set name
   Name of an already defined dataset
 type
-  Data type: string, md5, sha256, ipv4, ip
+  Data type: string, md5, sha256, ipv4, ip, cidr
 data
   Data to add in serialized form (base64 for string, hex notation for md5/sha256, string representation for ipv4/ip)
 
@@ -369,6 +533,9 @@ ipv4
   in the file as string
 ip
   in the file as string, it can be IPv6 or IPv4 address (standard notation or IPv4 in IPv6 one)
+cidr
+  in the file as a CIDR block in standard notation (e.g. ``192.168.0.0/16``, ``fc00::/7``);
+  a bare address without a prefix length is treated as a host route (``/32`` or ``/128``)
 
 
 dataset

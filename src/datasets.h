@@ -49,6 +49,7 @@ enum DatasetTypes {
     DATASET_TYPE_SHA256,
     DATASET_TYPE_IPV4,
     DATASET_TYPE_IPV6,
+    DATASET_TYPE_CIDR,
 };
 
 #define DATASET_NAME_MAX_LEN 63
@@ -60,6 +61,7 @@ typedef struct Dataset {
     bool hidden;                        /* Mark the old sets hidden in case of reload */
     bool remove_key;                    /* Mark that value key should be removed from extra data */
     THashTableContext *hash;
+    struct CIDRType *cidr_data; /* Radix tree wrapper for DATASET_TYPE_CIDR; NULL otherwise */
 
     char load[PATH_MAX];
     char save[PATH_MAX];
@@ -78,6 +80,7 @@ Dataset *DatasetGet(const char *name, enum DatasetTypes type, const char *save, 
         uint64_t memcap, uint32_t hashsize);
 int DatasetGetOrCreate(const char *name, enum DatasetTypes type, const char *save, const char *load,
         uint64_t *memcap, uint32_t *hashsize, Dataset **ret_set);
+int DatasetClear(Dataset *set);
 int DatasetRemove(Dataset *set, const uint8_t *data, const uint32_t data_len);
 int DatasetLookup(Dataset *set, const uint8_t *data, const uint32_t data_len);
 DataRepResultType DatasetLookupwRep(Dataset *set, const uint8_t *data, const uint32_t data_len,

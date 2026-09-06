@@ -1118,6 +1118,8 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("memcap-list", UnixSocketShowAllMemcap, NULL, 0);
 
     UnixManagerRegisterCommand("dataset-add", UnixSocketDatasetAdd, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand(
+            "dataset-add-batch", UnixSocketDatasetAddBatch, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dataset-remove", UnixSocketDatasetRemove, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand(
             "dataset-add-json", UnixSocketDatajsonAdd, &command, UNIX_CMD_TAKE_ARGS);
