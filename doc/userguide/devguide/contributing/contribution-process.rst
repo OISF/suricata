@@ -14,11 +14,16 @@ Essentially, these are:
 #. Follow our :ref:`Coding Style`
 #. Use our :ref:`documentation-style`
 #. Stick to our :ref:`commit guidelines<commits>`
-#. Add version numbers to your :ref:`Pull Requests <send-a-pull-request>`
+#. Version your :ref:`Pull Requests <send-a-pull-request>`
 #. Incorporate :ref:`feedback` into new PRs
+#. Understand :ref:`AI usage <ai-usage>`
 #. [Work merged] :ref:`Wrap up! <wrap-up>`
 
 The rest of this document will cover those in detail.
+
+.. attention::
+   Keep a maximum of 3 open PRs and tickets assigned to you. If you have
+   work in progress, prioritize completing those instead of starting something new.
 
 .. _contribution-agreement:
 
@@ -350,8 +355,9 @@ The pull request is used to request inclusion of your patches into the main
 repository. Before it is merged, it will be reviewed and pushed through a QA
 process.
 
-Please consider our :ref:`Pull Requests Criteria <pull-requests-criteria>` when
-submitting.
+Please respect our :ref:`Pull Requests Criteria <pull-requests-criteria>` when
+submitting. This includes reading the PR template and filling it in adequately.
+Add a version number to your PRs -- it makes following the work history easier.
 
 We have 'GitHub-CI' integration enabled. This means some automated build check,
 suricata-verity and unit tests are performed on the pull request. Generally,
@@ -371,9 +377,28 @@ Feedback
 You'll likely get some feedback. Even our most experienced devs do, so don't
 feel bad about it.
 
-After discussing what needs to be changed (usually on the PR itself), it's time
-to go back to ":ref:`create-your-own-branch`" and do it all again. This process
-can iterate quite a few times, as the contribution is refined.
+If there are review comments, make sure to address them,
+:ref:`create a new branch<create-your-own-branch>`, and **incorporate the
+requested changes into a new PR**. (If you force-push changes, change your PR
+status to DRAFT. When it's ready, create a new PR.)
+
+While you can use generative AI tooling to support your contribution process, do
+not use it for Pull Requests. PR titles, descriptions and all related
+communication must be written by you, not an AI assistant or agent.
+
+.. _ai-usage:
+
+AI Usage
+========
+
+- Use of generative AI tooling is allowed, but must be disclosed.
+- Pull Request titles, descriptions, and all related communication must be
+  written by you, not an AI assistant or agent.
+- You are expected to understand any AI-generated code and commit messages you
+  submit, and to follow our contribution guidelines (more at
+  https://docs.suricata.io/en/latest/devguide/contributing/index.html).
+
+PRs that do not meet these requirements will be de-prioritized or rejected.
 
 .. _wrap-up:
 
