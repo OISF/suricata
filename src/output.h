@@ -25,6 +25,7 @@
 #define SURICATA_OUTPUT_H
 
 #include "decode.h"
+#include "suricata-plugin.h"
 #include "tm-modules.h"
 
 #define DEFAULT_LOG_MODE_APPEND     "yes"
@@ -78,6 +79,11 @@ typedef struct OutputModule_ {
     enum SCOutputStreamingType stream_type;
     int tc_log_progress;
     int ts_log_progress;
+
+    /** Optional callback invoked before landlock sandboxing is enforced. May be
+     *  NULL. Look the module up with OutputGetModuleByConfName() right after
+     *  registration to assign it. */
+    SCLandlockEnableFunc LandlockEnable;
 
     TAILQ_ENTRY(OutputModule_) entries;
 } OutputModule;

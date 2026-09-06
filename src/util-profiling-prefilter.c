@@ -30,6 +30,7 @@
 #ifdef PROFILING
 #include "detect-engine-prefilter.h"
 #include "util-conf.h"
+#include "util-landlock.h"
 #include "util-path.h"
 #include "util-time.h"
 
@@ -81,6 +82,8 @@ void SCProfilingPrefilterGlobalInit(void)
                     profiling_file_mode = "a";
                 } else {
                     profiling_file_mode = "w";
+                    SCLandlockRegisterFile(profiling_file_name,
+                            SC_LANDLOCK_FILE_WRITE | SC_LANDLOCK_FILE_TRUNCATE);
                 }
 
                 profiling_prefilter_output_to_file = 1;

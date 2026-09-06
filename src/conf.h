@@ -81,6 +81,8 @@ void SCConfCreateContextBackup(void);
 void SCConfRestoreContextBackup(void);
 SCConfNode *SCConfNodeLookupChild(const SCConfNode *node, const char *key);
 const char *SCConfNodeLookupChildValue(const SCConfNode *node, const char *key);
+SCConfNode *SCConfNodeLookupInSequence(
+        const SCConfNode *seq, const char *key, const SCConfNode *prev);
 void SCConfNodeRemove(SCConfNode *);
 void SCConfRegisterTests(void);
 int SCConfNodeChildValueIsTrue(const SCConfNode *node, const char *key);

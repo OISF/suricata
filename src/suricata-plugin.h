@@ -32,8 +32,19 @@
 
 // Do not reuse autoconf PACKAGE_VERSION which is a string
 // Defined as major version.minor version (no patch version)
-static const uint64_t SC_API_VERSION = 0x0900;
+static const uint64_t SC_API_VERSION = 0x0901;
 #define SC_PACKAGE_VERSION PACKAGE_VERSION
+
+/**
+ * Callback signature for plugins, output modules and EVE filetypes that need to
+ * declare additional landlock permissions before the sandbox is enforced.
+ *
+ * The ruleset is opaque: implementations must not dereference it and must only
+ * hand it back to the SCLandlockGrant* helpers declared in util-landlock.h.
+ * Those helpers are no-ops when landlock is unavailable, so an implementation
+ * never has to guard its grants.
+ */
+typedef void (*SCLandlockEnableFunc)(void *ruleset);
 
 /**
  * Structure to define a Suricata plugin.
@@ -47,6 +58,10 @@ typedef struct SCPlugin_ {
     const char *license;
     const char *author;
     void (*Init)(void);
+    /** Optional callback invoked before landlock sandboxing is enforced.
+     *  The plugin may grant additional filesystem/network access using the
+     *  SCLandlockGrant* helpers in util-landlock.h. May be NULL. */
+    SCLandlockEnableFunc LandlockEnable;
 } SCPlugin;
 
 typedef SCPlugin *(*SCPluginRegisterFunc)(void);

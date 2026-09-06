@@ -1362,9 +1362,18 @@ security:
   # Use landlock security module under Linux
   landlock:
     enabled: no
+    # set to false if ever plugins are not trusted. This means the
+    # landlock configuration needs to be done manually in this section.
+    plugin-setup: true
     directories:
       #write:
       #  - @e_rundir@
+      # rewrite grants read, write and truncate. Needed for files that are
+      # replaced in place each time they are updated, such as dataset
+      # save/state files stored outside the default data directory. Plain
+      # write does not allow overwriting an existing file's content.
+      #rewrite:
+      #  - /var/lib/mysets/
       # /usr and /etc folders are added to read list to allow
       # file magic to be used.
       read:
