@@ -22,9 +22,15 @@ jobs:
           # github.event.pull_request.body has the body from the
           # initial pull request.
           PR_HREF: ${{ github.event.pull_request._links.self.href }}
+          # Unauthenticated calls get 60 requests/hour per runner's egress IP.
+          # Authenticating moves the limit to 1000+ requests/hour per repo.
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -eo pipefail
           if test "${PR_HREF}"; then
-              body=$(curl -s "${PR_HREF}" | jq -r .body | tr -d '\r')
+              body=$(curl --silent --show-error --fail \
+                  --header "Authorization: Bearer ${GH_TOKEN}" \
+                  "${PR_HREF}" | jq -r '.body' | tr -d '\r')
 
               echo "Parsing branch and PR info from:"
               echo "${body}"
