@@ -1044,6 +1044,7 @@ impl ConnectionParser {
             | HtpContentEncoding::Deflate
             | HtpContentEncoding::Zlib
             | HtpContentEncoding::Brotli
+            | HtpContentEncoding::Zstd
             | HtpContentEncoding::Lzma => {
                 // Send data buffer to the decompressor if it exists
                 if req.request_decompressor.is_none() && data.is_none() {
@@ -1130,6 +1131,8 @@ impl ConnectionParser {
                 HtpContentEncoding::Brotli
             } else if ce.cmp_nocase_nozero(b"lzma") {
                 HtpContentEncoding::Lzma
+            } else if ce.cmp_nocase_nozero(b"zstd") {
+                HtpContentEncoding::Zstd
             } else if ce.cmp_nocase_nozero(b"inflate") || ce.cmp_nocase_nozero(b"none") {
                 HtpContentEncoding::None
             } else {
@@ -1158,6 +1161,7 @@ impl ConnectionParser {
             | HtpContentEncoding::Deflate
             | HtpContentEncoding::Zlib
             | HtpContentEncoding::Brotli
+            | HtpContentEncoding::Zstd
             | HtpContentEncoding::Lzma => {
                 self.request_prepend_decompressor(request_content_encoding_processing)?;
             }
