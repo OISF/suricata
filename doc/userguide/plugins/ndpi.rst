@@ -6,6 +6,9 @@ nDPI
 Installation
 ************
 
+This plugin requires nDPI 6.0 or later: earlier releases expose a
+different API and will not build.
+
 Before using nDPI, Suricata must be built with nDPI support, for
 example:
 
@@ -25,6 +28,37 @@ building Suricata with nDPI support.
 
 For more information on nDPI, see
 https://www.ntop.org/products/deep-packet-inspection/ndpi/.
+
+Configuration
+*************
+
+Starting with nDPI 6.0, the library has to be told under which license it
+is being used, as some of its dissectors are dual-licensed by ntop. The
+plugin exposes this through the optional ``ndpi`` section:
+
+.. code-block:: yaml
+
+  ndpi:
+    license: not-for-profit
+
+Accepted values:
+
+``not-for-profit``
+  Not-for-profit use. Every dissector is enabled. This is the default when
+  the option is absent.
+
+``for-profit``
+  For-profit use without a license agreement with ntop. nDPI refuses to load
+  its dual-licensed dissectors, which currently include DHCP, DNS, QUIC and
+  TLS, so rules matching on those protocols will never fire. The plugin logs
+  a warning at startup when this value is selected.
+
+``for-profit-dual``
+  For-profit use with a license agreement signed with ntop covering the
+  dual-licensed components. Every dissector is enabled.
+
+See https://www.ntop.org/announcing-ndpi-dual-license-change/ for the
+licensing terms themselves.
 
 Keywords
 ********
