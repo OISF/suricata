@@ -499,19 +499,33 @@ int SCConfYamlLoadFile(const char *filename)
         return -1;
     }
 
-    struct stat stat_buf;
-    if (stat(filename, &stat_buf) == 0) {
-        if (stat_buf.st_mode & S_IFDIR) {
-            SCLogError("yaml argument is not a file but a directory: %s. "
-                       "Please specify the yaml file in your -c option.",
-                    filename);
-            yaml_parser_delete(&parser);
-            return -1;
-        }
+    /* Open the config file first (with O_NOFOLLOW to prevent symlink attacks),
+     * then fstat on the fd to avoid TOCTOU. */
+    int fd = open(filename, O_RDONLY | O_NOFOLLOW);
+    if (fd == -1) {
+        SCLogError("failed to open config file: %s: %s", filename, strerror(errno));
+        yaml_parser_delete(&parser);
+        return -1;
     }
 
-    // coverity[toctou : FALSE]
-    infile = fopen(filename, "r");
+    struct stat stat_buf;
+    if (fstat(fd, &stat_buf) < 0) {
+        SCLogError("failed to stat config file: %s: %s", filename, strerror(errno));
+        close(fd);
+        yaml_parser_delete(&parser);
+        return -1;
+    }
+
+    if (S_ISDIR(stat_buf.st_mode)) {
+        SCLogError("yaml argument is not a file but a directory: %s. "
+                   "Please specify the yaml file in your -c option.",
+                filename);
+        close(fd);
+        yaml_parser_delete(&parser);
+        return -1;
+    }
+
+    infile = fdopen(fd, "r");
     if (infile == NULL) {
         SCLogError("failed to open file: %s: %s", filename, strerror(errno));
         yaml_parser_delete(&parser);
@@ -570,24 +584,39 @@ int SCConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
     int ret;
     SCConfNode *root = SCConfGetNode(prefix);
 
+    int fd;
     struct stat stat_buf;
-    /* coverity[toctou] */
-    if (stat(filename, &stat_buf) == 0) {
-        if (stat_buf.st_mode & S_IFDIR) {
-            SCLogError("yaml argument is not a file but a directory: %s. "
-                       "Please specify the yaml file in your -c option.",
-                    filename);
-            return -1;
-        }
-    }
-
     if (yaml_parser_initialize(&parser) != 1) {
         SCLogError("failed to initialize yaml parser.");
         return -1;
     }
 
-    /* coverity[toctou] */
-    infile = fopen(filename, "r");
+    /* Open the config file first (with O_NOFOLLOW to prevent symlink attacks),
+     * then fstat on the fd to avoid TOCTOU. */
+    fd = open(filename, O_RDONLY | O_NOFOLLOW);
+    if (fd == -1) {
+        SCLogError("failed to open config file: %s: %s", filename, strerror(errno));
+        yaml_parser_delete(&parser);
+        return -1;
+    }
+
+    if (fstat(fd, &stat_buf) < 0) {
+        SCLogError("failed to stat config file: %s: %s", filename, strerror(errno));
+        close(fd);
+        yaml_parser_delete(&parser);
+        return -1;
+    }
+
+    if (S_ISDIR(stat_buf.st_mode)) {
+        SCLogError("yaml argument is not a file but a directory: %s. "
+                   "Please specify the yaml file in your -c option.",
+                filename);
+        close(fd);
+        yaml_parser_delete(&parser);
+        return -1;
+    }
+
+    infile = fdopen(fd, "r");
     if (infile == NULL) {
         SCLogError("failed to open file: %s: %s", filename, strerror(errno));
         yaml_parser_delete(&parser);

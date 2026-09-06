@@ -101,18 +101,36 @@ static void InitPlugin(const char *path)
 
 static void LoadPluginsFromPath(const char *plugin_path)
 {
-    struct stat statbuf;
-    if (stat(plugin_path, &statbuf) == -1) {
+    /* Open with O_NOFOLLOW to prevent symlink-based path injection,
+     * then fstat on the fd to avoid TOCTOU. */
+    int fd = open(plugin_path, O_RDONLY | O_NOFOLLOW);
+    if (fd < 0) {
         SCLogError("Bad plugin path: %s: %s", plugin_path, strerror(errno));
         return;
     }
+
+    struct stat statbuf;
+    if (fstat(fd, &statbuf) < 0) {
+        SCLogError("Failed to check plugin path: %s: %s", plugin_path, strerror(errno));
+        close(fd);
+        return;
+    }
+
+    if (!S_ISDIR(statbuf.st_mode) && !S_ISREG(statbuf.st_mode)) {
+        SCLogError("Plugin path is not a directory or regular file: %s", plugin_path);
+        close(fd);
+        return;
+    }
+
     if (S_ISDIR(statbuf.st_mode)) {
-        // coverity[toctou : FALSE]
-        DIR *dir = opendir(plugin_path);
+        /* fdopendir provides an atomic open + opendir to avoid TOCTOU. */
+        DIR *dir = fdopendir(fd);
         if (dir == NULL) {
             SCLogError("Failed to open plugin directory %s: %s", plugin_path, strerror(errno));
+            close(fd);
             return;
         }
+
         struct dirent *entry = NULL;
         char path[PATH_MAX];
         while ((entry = readdir(dir)) != NULL) {
@@ -123,6 +141,7 @@ static void LoadPluginsFromPath(const char *plugin_path)
         }
         closedir(dir);
     } else {
+        close(fd);
         InitPlugin(plugin_path);
     }
 }
