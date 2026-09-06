@@ -162,7 +162,9 @@ impl DCERPCUDPState {
         });
     }
 
-    pub fn handle_fragment_data(&mut self, hdr: &DCERPCHdrUdp, input: &[u8]) -> bool {
+    pub fn handle_fragment_data(
+        &mut self, hdr: &DCERPCHdrUdp, hdr_bytes: &[u8], input: &[u8],
+    ) -> bool {
         if hdr.pkt_type != DCERPC_TYPE_REQUEST && hdr.pkt_type != DCERPC_TYPE_RESPONSE {
             SCLogDebug!("Unrecognized packet type");
             return false;
@@ -186,10 +188,12 @@ impl DCERPCUDPState {
             tx.tx_data.0.updated_tc = true;
             tx.tx_data.0.updated_ts = true;
             let done = (hdr.flags1 & PFCL1_FRAG) == 0 || (hdr.flags1 & PFCL1_LASTFRAG) != 0;
+            let raw_hdr: Option<[u8; DCERPC_UDP_HDR_LEN as usize]> = hdr_bytes.try_into().ok();
 
             let max_size = cfg_max_stub_size() as usize;
             match hdr.pkt_type {
                 DCERPC_TYPE_REQUEST => {
+                    tx.udp_req_hdr = raw_hdr;
                     tx.frag_cnt_ts = tx.frag_cnt_ts.saturating_add(1);
                     if input.len() + tx.stub_data_buffer_ts.len() < max_size {
                         tx.stub_data_buffer_ts.extend_from_slice(input);
@@ -203,6 +207,7 @@ impl DCERPCUDPState {
                     return true;
                 }
                 DCERPC_TYPE_RESPONSE => {
+                    tx.udp_resp_hdr = raw_hdr;
                     tx.frag_cnt_tc = tx.frag_cnt_tc.saturating_add(1);
                     if input.len() + tx.stub_data_buffer_tc.len() < max_size {
                         tx.stub_data_buffer_tc.extend_from_slice(input);
@@ -244,7 +249,12 @@ impl DCERPCUDPState {
                     );
                     return AppLayerResult::err();
                 }
-                if !self.handle_fragment_data(&header, &leftover_bytes[..header.fraglen as usize]) {
+                let hdr_len = DCERPC_UDP_HDR_LEN as usize;
+                if !self.handle_fragment_data(
+                    &header,
+                    &input[..hdr_len],
+                    &leftover_bytes[..header.fraglen as usize],
+                ) {
                     return AppLayerResult::err();
                 }
             }
