@@ -1757,7 +1757,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:24.04
-      options: --privileged
+      options: --privileged --cgroupns=host
     needs: [prepare-deps, prepare-cbindgen]
     steps:
       - name: Cache ~/.cargo
@@ -1814,7 +1814,14 @@ jobs:
                 curl \
                 time \
                 wget \
-                dpdk-dev
+                dpdk-dev \
+                podman \
+                hping3 \
+                tcpdump \
+                tcpreplay \
+                ethtool \
+                iproute2 \
+                iptables
       # specific version to match up to the llvm version in ubuntu below
       - name: Install Rust
         run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.85.1 -y
@@ -1824,6 +1831,7 @@ jobs:
         with:
           name: prep
           path: prep
+      - run: tar xf prep/suricata-verify.tar.gz
       - uses: ./.github/actions/install-cbindgen
       - name: Fix kernel mmap rnd bits
       # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
@@ -1889,6 +1897,9 @@ jobs:
           ./qa/live/multi-tenant.sh "autofp"
         env:
           LLVM_PROFILE_FILE: "/tmp/mt-autofp.profraw"
+      - run: python3 ./suricata-verify/live/run.py
+        env:
+          LLVM_PROFILE_FILE: "/tmp/sv-live-afpdpdk-%p-%m.profraw"
       - run: llvm-profdata-19 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-19 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" --skip-branches > coverage.lcov
       - name: Upload coverage.lcov artifact
@@ -1999,7 +2010,7 @@ jobs:
     needs: [prepare-deps, prepare-cbindgen]
     container:
       image: ubuntu:24.04
-      options: --privileged
+      options: --privileged --cgroupns=host
     steps:
       - name: Cache ~/.cargo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
@@ -2046,6 +2057,7 @@ jobs:
                 libevent-pthreads-2.1-7 \
                 make \
                 parallel \
+                podman \
                 python3-yaml \
                 software-properties-common \
                 sudo \
@@ -2060,12 +2072,15 @@ jobs:
                 ethtool \
                 iproute2 \
                 iptables \
+                tcpdump \
+                tcpreplay \
                 tshark
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: prep
           path: prep
+      - run: tar xf prep/suricata-verify.tar.gz
       # packaged Rust version is too old for coverage, so get from rustup. 1.85.1 matches
       # LLVM 19
       - name: Install Rust
@@ -2135,7 +2150,12 @@ jobs:
           LLVM_PROFILE_FILE: "/tmp/afp-fw-netns-bridge.profraw"
       - run: llvm-profdata-19 merge -o afp-fw-netns-bridge.profdata /tmp/afp-fw-netns-bridge.profraw
 
-      - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata afp-ips-bond1.profdata afp-ips-bond2.profdata afp-fw-netns-bridge.profdata nfq-fw-netns-route.profdata
+      - run: python3 ./suricata-verify/live/run.py
+        env:
+          LLVM_PROFILE_FILE: "/tmp/sv-live-%p-%m.profraw"
+      - run: llvm-profdata-19 merge -o sv-live.profdata /tmp/sv-live-*.profraw
+
+      - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata afp-ips-bond1.profdata afp-ips-bond2.profdata afp-fw-netns-bridge.profdata nfq-fw-netns-route.profdata sv-live.profdata
       - run: llvm-cov-19 export ./src/suricata -instr-profile=combined.profdata -format=lcov --ignore-filename-regex="^(/github/home/.cargo/.*|/usr/.*|/rustc/.*)" --skip-branches > coverage.lcov
       - name: Upload coverage.lcov artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -2155,7 +2175,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:24.04
-      options: --privileged
+      options: --privileged --cgroupns=host
     needs: [prepare-deps, prepare-cbindgen]
     env:
       RV: "1.89"
@@ -2180,9 +2200,16 @@ jobs:
                 cargo-${RV} \
                 cbindgen \
                 clang-18 \
+                ethtool \
+                podman \
+                hping3 \
+                tcpdump \
+                tcpreplay \
                 git \
                 hwloc \
                 libhwloc-dev \
+                iproute2 \
+                iptables \
                 jq \
                 inetutils-ping \
                 libc++-dev \
@@ -2224,6 +2251,7 @@ jobs:
         with:
           name: prep
           path: prep
+      - run: tar xf prep/suricata-verify.tar.gz
       - name: Fix kernel mmap rnd bits
         run: sudo sysctl vm.mmap_rnd_bits=28
       - run: ./autogen.sh
@@ -2259,6 +2287,7 @@ jobs:
           ./qa/live/pcap.sh "single"
       - run: |
           ./qa/live/multi-tenant.sh "autofp"
+      - run: python3 ./suricata-verify/live/run.py
 
   ubuntu-24-04-cov-fuzz:
     name: Ubuntu 24.04 (fuzz corpus coverage)
@@ -2841,7 +2870,9 @@ jobs:
   ubuntu-22-04-dpdk-build:
     name: Ubuntu 22.04 (DPDK Build)
     runs-on: ubuntu-22.04
-    container: ubuntu:22.04
+    container:
+      image: ubuntu:22.04
+      options: --privileged --cgroupns=host
     needs: [ prepare-deps, prepare-cbindgen ]
     strategy:
       matrix:
@@ -2869,8 +2900,17 @@ jobs:
                 autoconf \
                 automake \
                 cargo-${RV} \
+                ethtool \
                 git \
+                hping3 \
+                tcpdump \
+                tcpreplay \
                 hwloc \
+                inetutils-ping \
+                iproute2 \
+                iptables \
+                podman \
+                procps \
                 libhwloc-dev \
                 jq \
                 libtool \
@@ -2932,6 +2972,7 @@ jobs:
           name: prep
           path: prep
       - uses: ./.github/actions/install-cbindgen
+      - run: tar xf prep/suricata-verify.tar.gz
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-dpdk --enable-hwloc
       - run: make -j ${{ env.CPUS }}
@@ -2944,6 +2985,7 @@ jobs:
           ./qa/live/dpdk.sh "qa/live/dpdk/suricata-null-ips.yaml"
       # DPDK configuration checks
       - run: ./qa/live/dpdk/dpdk-testsuite.sh
+      - run: python3 ./suricata-verify/live/run.py
 
   debian-12:
     name: Debian 12 (xdp)
