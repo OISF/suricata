@@ -212,6 +212,7 @@ pub struct DceRpcRecord<'a> {
     pub little_endian: bool,
 
     pub packet_type: u8,
+    pub packet_flags: u8,
 
     pub call_id: u32,
     pub data: &'a [u8],
@@ -256,6 +257,7 @@ pub fn parse_dcerpc_record(i: &[u8]) -> IResult<&[u8], DceRpcRecord<'_>> {
         version_major,
         version_minor,
         packet_type,
+        packet_flags: (packet_flags.0 << 2) | (packet_flags.1 << 1) | packet_flags.2,
         first_frag: packet_flags.2 == 1,
         last_frag: packet_flags.1 == 1,
         frag_len,
