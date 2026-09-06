@@ -76,6 +76,7 @@ static void DetectLuaRegisterTests(void);
 static void DetectLuaFree(DetectEngineCtx *, void *);
 static int g_lua_ja3_list_id = 0;
 static int g_lua_ja3s_list_id = 0;
+static int g_lua_http_uri_list_id = 0;
 
 /**
  * \brief Registration function for keyword: lua
@@ -105,6 +106,12 @@ void DetectLuaRegister(void)
     DetectAppLayerInspectEngineRegister(
             "ja3s.lua", ALPROTO_QUIC, SIG_FLAG_TOCLIENT, 1, DetectEngineInspectGenericList, NULL);
 
+    g_lua_http_uri_list_id = DetectBufferTypeRegister("http.uri.lua");
+    DetectAppLayerInspectEngineRegister("http.uri.lua", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
+            HTP_REQUEST_PROGRESS_LINE, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegisterSubState("http.uri.lua", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectGenericList, NULL);
+
     SCLogDebug("registering lua rule option");
 }
 
@@ -113,6 +120,7 @@ void DetectLuaRegister(void)
 #define FLAG_DATATYPE_PAYLOAD                   BIT_U32(1)
 #define FLAG_LIST_JA3                           BIT_U32(3)
 #define FLAG_LIST_JA3S                          BIT_U32(4)
+#define FLAG_LIST_HTTP_URI                      BIT_U32(5)
 #define FLAG_ERROR_LOGGED                       BIT_U32(23)
 #define FLAG_BLOCKED_FUNCTION_LOGGED            BIT_U32(24)
 #define FLAG_INSTRUCTION_LIMIT_LOGGED           BIT_U32(25)
@@ -658,6 +666,8 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
             ld->flags |= FLAG_LIST_JA3;
         } else if (strcmp(k, "ja3s") == 0) {
             ld->flags |= FLAG_LIST_JA3S;
+        } else if (strcmp(k, "http.uri") == 0) {
+            ld->flags |= FLAG_LIST_HTTP_URI;
         } else if (strcmp(k, "packet") == 0) {
             ld->flags |= FLAG_DATATYPE_PACKET;
         } else if (strcmp(k, "payload") == 0) {
@@ -769,6 +779,8 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
             list = g_lua_ja3_list_id;
         } else if (lua->flags & FLAG_LIST_JA3S) {
             list = g_lua_ja3s_list_id;
+        } else if (lua->flags & FLAG_LIST_HTTP_URI) {
+            list = g_lua_http_uri_list_id;
         }
     }
 
