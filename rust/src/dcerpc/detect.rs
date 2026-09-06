@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -22,7 +22,9 @@ use super::dcerpc::{
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{detect_match_uint, detect_parse_uint, DetectUintData};
 use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
-use crate::smb::detect::{smb_tx_get_stub_data, smb_tx_match_dce_iface, smb_tx_match_dce_opnum};
+use crate::smb::detect::{
+    smb_tx_get_stub_data, smb_tx_match_dce_iface, smb_tx_match_dce_opnum, smb_tx_match_dce_ptype,
+};
 use crate::smb::smb::ALPROTO_SMB;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_int, c_void};
@@ -439,9 +441,85 @@ unsafe extern "C" fn dcerpc_tx_get_stub_data(
     return buffer;
 }
 
+fn parse_dcerpc_ptype(arg: &str) -> Option<DetectUintData<u8>> {
+    if let Ok((_, ctx)) = detect_parse_uint::<u8>(arg) {
+        return Some(ctx);
+    }
+    None
+}
+
+unsafe extern "C" fn dcerpc_ptype_parse(carg: *const c_char) -> *mut c_void {
+    if let Ok(arg) = CStr::from_ptr(carg).to_str() {
+        if let Some(detect) = parse_dcerpc_ptype(arg) {
+            return Box::into_raw(Box::new(detect)) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+unsafe extern "C" fn dcerpc_ptype_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0 {
+        return -1;
+    }
+    let ctx = dcerpc_ptype_parse(raw);
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_DCERPC_PTYPE_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_DCERPC_GENERIC_BUFFER_ID,
+    )
+    .is_null()
+    {
+        dcerpc_ptype_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe fn dcerpc_tx_match_dce_ptype(tx: *mut c_void, ctx: *const SigMatchCtx, flags: u8) -> c_int {
+    let tx = cast_pointer!(tx, DCERPCTransaction);
+    let du8 = cast_pointer!(ctx, DetectUintData<u8>);
+
+    if flags & STREAM_TOSERVER != 0 {
+        if tx.req_seen && detect_match_uint(du8, tx.req_cmd) {
+            return 1;
+        }
+    } else if tx.resp_seen && detect_match_uint(du8, tx.resp_cmd) {
+        return 1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn dcerpc_ptype_match(
+    _de: *mut DetectEngineThreadCtx, f: *mut crate::flow::Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    if SCFlowGetAppProtocol(f) == ALPROTO_DCERPC {
+        return dcerpc_tx_match_dce_ptype(tx, ctx, flags);
+    }
+    if smb_tx_match_dce_ptype(tx, ctx, flags) != 1 {
+        return 0;
+    }
+
+    return 1;
+}
+
+unsafe extern "C" fn dcerpc_ptype_free(_de: *mut DetectEngineCtx, ptr: *mut c_void) {
+    if !ptr.is_null() {
+        std::mem::drop(Box::from_raw(ptr as *mut DetectUintData<u8>));
+    }
+}
+
 static mut G_DCERPC_OPNUM_KW_ID: u16 = 0;
 static mut G_DCERPC_GENERIC_BUFFER_ID: c_int = 0;
 static mut G_DCERPC_IFACE_KW_ID: u16 = 0;
+static mut G_DCERPC_PTYPE_KW_ID: u16 = 0;
 static mut G_DCERPC_STUB_BUFFER_ID: c_int = 0;
 
 #[no_mangle]
@@ -489,6 +567,17 @@ pub unsafe extern "C" fn SCDetectDcerpcRegister() {
         G_DCERPC_IFACE_KW_ID,
         b"dce_iface\0".as_ptr() as *const libc::c_char,
     );
+
+    let kw = SCSigTableAppLiteElmt {
+        name: b"dcerpc.ptype\0".as_ptr() as *const libc::c_char,
+        desc: b"match on the PDU type in a DCERPC header\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/dcerpc-keywords.html#dcerpc-ptype\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(dcerpc_ptype_match),
+        Setup: Some(dcerpc_ptype_setup),
+        Free: Some(dcerpc_ptype_free),
+        flags: 0,
+    };
+    G_DCERPC_PTYPE_KW_ID = SCDetectHelperKeywordRegister(&kw);
 
     let kw_stub = SigTableElmtStickyBuffer {
         name: String::from("dcerpc.stub_data"),
