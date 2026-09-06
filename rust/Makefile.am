@@ -157,6 +157,7 @@ if HAVE_BINDGEN
 		--allowlist-function 'SC.*' \
 		--allowlist-var 'SC.*' \
 		--allowlist-var 'SIGMATCH.*' \
+		--allowlist-var 'DETECT_CI_FLAGS.*' \
 		--opaque-type 'SCConfNode' \
 		--allowlist-type 'ThreadVars.?' \
 		--opaque-type 'ThreadVars.?' \

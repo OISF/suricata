@@ -22,8 +22,9 @@
  */
 
 #include "suricata-common.h"
-#include "detect-engine-inspect-buffer.h"
 #include "detect.h"
+#include "detect-engine-inspect-buffer.h"
+#include "detect-engine-content-inspection.h"
 
 #include "util-validate.h"
 
@@ -150,6 +151,7 @@ void InspectionBufferSetupMultiEmpty(InspectionBuffer *buffer)
     buffer->inspect = NULL;
     buffer->inspect_len = 0;
     buffer->len = 0;
+    buffer->flags = 0;
     buffer->initialized = true;
 }
 
@@ -163,6 +165,7 @@ void InspectionBufferSetupMulti(DetectEngineThreadCtx *det_ctx, InspectionBuffer
     buffer->inspect = buffer->orig = data;
     buffer->inspect_len = buffer->orig_len = data_len;
     buffer->len = 0;
+    buffer->flags = 0;
     buffer->initialized = true;
 
     InspectionBufferApplyTransformsInternal(det_ctx, buffer, transforms);
@@ -184,6 +187,7 @@ static inline void InspectionBufferSetupInternal(DetectEngineThreadCtx *det_ctx,
     buffer->inspect = buffer->orig = data;
     buffer->inspect_len = buffer->orig_len = data_len;
     buffer->len = 0;
+    buffer->flags = 0;
     buffer->initialized = true;
 }
 /** \brief setup the buffer with our initial data */
@@ -240,6 +244,12 @@ void SCInspectionBufferTruncate(InspectionBuffer *buffer, uint32_t buf_len)
     DEBUG_VALIDATE_BUG_ON(buf_len > buffer->size);
     buffer->inspect = buffer->buf;
     buffer->inspect_len = buf_len;
+    buffer->initialized = true;
+}
+
+void SCInspectionBufferSetError(InspectionBuffer *buffer)
+{
+    buffer->flags |= DETECT_CI_FLAGS_ERROR;
     buffer->initialized = true;
 }
 
