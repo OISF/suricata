@@ -3380,6 +3380,10 @@ static void CheckJA4Enabled(void)
 /**
  * \brief Function to register the SSL protocol parser and other functions
  */
+#ifdef UNITTESTS
+void SSLStateParserRegisterTests(void);
+#endif /* UNITTESTS */
+
 void RegisterSSLParsers(void)
 {
     const char *proto_name = "tls";
@@ -3441,6 +3445,11 @@ void RegisterSSLParsers(void)
 
         AppLayerParserRegisterStateProgressCompletionStatus(
                 ALPROTO_TLS, TLS_STATE_CLIENT_FINISHED, TLS_STATE_SERVER_FINISHED);
+
+#ifdef UNITTESTS
+        AppLayerParserRegisterProtocolUnittests(
+                IPPROTO_TCP, ALPROTO_TLS, SSLStateParserRegisterTests);
+#endif /* UNITTESTS */
 
         SCConfNode *enc_handle = SCConfGetNode("app-layer.protocols.tls.encryption-handling");
         if (enc_handle != NULL && enc_handle->val != NULL) {
@@ -3565,3 +3574,353 @@ bool SSLJA4IsEnabled(void)
 {
     return SC_ATOMIC_GET(ssl_config.enable_ja4);
 }
+
+#ifdef UNITTESTS
+static int TLSPhaseStateTestClient(void)
+{
+    const char *names[] = { "client_started", "client_hello", "client_cert", "client_data",
+        "client_finished" };
+    for (int i = 0; i < 5; i++) {
+        FAIL_IF(AppLayerParserGetStateIdByName(
+                        IPPROTO_TCP, ALPROTO_TLS, names[i], STREAM_TOSERVER) != i);
+        FAIL_IF(strcmp(AppLayerParserGetStateNameById(IPPROTO_TCP, ALPROTO_TLS, i, STREAM_TOSERVER),
+                        names[i]) != 0);
+    }
+    PASS;
+}
+
+static int TLSPhaseStateTestServer(void)
+{
+    const char *names[] = { "server_started", "server_hello", "server_cert", "server_data",
+        "server_finished" };
+    for (int i = 0; i < 5; i++) {
+        FAIL_IF(AppLayerParserGetStateIdByName(
+                        IPPROTO_TCP, ALPROTO_TLS, names[i], STREAM_TOCLIENT) != i);
+        FAIL_IF(strcmp(AppLayerParserGetStateNameById(IPPROTO_TCP, ALPROTO_TLS, i, STREAM_TOCLIENT),
+                        names[i]) != 0);
+    }
+    PASS;
+}
+
+static int TLSPhaseStateTestOldNamesGone(void)
+{
+    const char *old_client[] = { "client_in_progress", "client_hello_done", "client_cert_done",
+        "client_handshake_done" };
+    const char *old_server[] = { "server_in_progress", "server_hello_done", "server_cert_done",
+        "server_handshake_done" };
+    for (int i = 0; i < 4; i++) {
+        FAIL_IF(AppLayerParserGetStateIdByName(
+                        IPPROTO_TCP, ALPROTO_TLS, old_client[i], STREAM_TOSERVER) >= 0);
+        FAIL_IF(AppLayerParserGetStateIdByName(
+                        IPPROTO_TCP, ALPROTO_TLS, old_server[i], STREAM_TOCLIENT) >= 0);
+    }
+    PASS;
+}
+
+static int TLSPhaseStateTestCompletion(void)
+{
+    FAIL_IF(AppLayerParserGetStateProgressCompletionStatus(ALPROTO_TLS, STREAM_TOSERVER) != 4);
+    FAIL_IF(AppLayerParserGetStateProgressCompletionStatus(ALPROTO_TLS, STREAM_TOCLIENT) != 4);
+    /* progression is monotonic: a backwards write is a no-op (a peer track
+     * shortcut must never undo a phase), an equal write passes */
+    SSLState *ssl_state = SSLStateAlloc(NULL, ALPROTO_TLS);
+    FAIL_IF(ssl_state == NULL);
+    UpdateServerState(ssl_state, TLS_STATE_SERVER_DATA);
+    UpdateServerState(ssl_state, TLS_STATE_SERVER_CERT);
+    FAIL_IF(ssl_state->server_state != TLS_STATE_SERVER_DATA);
+    UpdateServerState(ssl_state, TLS_STATE_SERVER_DATA);
+    FAIL_IF(ssl_state->server_state != TLS_STATE_SERVER_DATA);
+    SSLStateFree(ssl_state);
+    PASS;
+}
+
+/* Drive a truncated ClientHello, a valid ServerHello and a garbage
+ * Certificate through the handshake parser: a message enters its phase
+ * at its start, a failed decode blocks only the hand-over to the next
+ * phase - the bytes are consumed, the next message parses normally, and
+ * a hello failure keeps the track in the hello phase. */
+static int TLSPhaseSuppressionTest(void)
+{
+    SSLState *ssl_state = SSLStateAlloc(NULL, ALPROTO_TLS);
+    if (ssl_state == NULL)
+        return 0;
+
+    /* P4: ClientHello, message length 6 - version parses, random
+     * truncated */
+    const uint8_t p4[] = { 0x01, 0x00, 0x00, 0x06, 0x03, 0x03, 0x01, 0x02, 0x03, 0x04 };
+    /* P5: valid ServerHello (version, random, session id, selected
+     * cipher, compression; no extensions - optional per RFC5246) */
+    uint8_t p5[4 + 2 + 32 + 1 + 1 + 2 + 1];
+    int i;
+    int rc;
+
+    p5[0] = 0x02;
+    p5[1] = 0;
+    p5[2] = 0;
+    p5[3] = 39;
+    p5[4] = 0x03;
+    p5[5] = 0x03;
+    for (i = 0; i < 32; i++)
+        p5[6 + i] = (uint8_t)i;
+    p5[38] = 1;    /* session id length */
+    p5[39] = 0xaa; /* session id */
+    p5[40] = 0x13;
+    p5[41] = 0x01; /* selected cipher suite */
+    p5[42] = 0x00; /* compression */
+    /* P6: Certificate with a 10-byte garbage body (not ASN.1) */
+    const uint8_t p6[] = { 0x0b, 0x00, 0x00, 0x10, 0x00, 0x00, 0x0d, 0x00, 0x00, 0x0a, 0x41, 0x41,
+        0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41 };
+
+    /* truncated hello: entered at its start, the failed decode blocks
+     * the hand-over, so the client stays in client_hello */
+    ssl_state->curr_connp = &ssl_state->client_connp;
+    ssl_state->curr_connp->record_length = sizeof(p4);
+    ssl_state->curr_connp->bytes_processed = 0;
+    ssl_state->curr_connp->version = 0x0303;
+    rc = SSLv3ParseHandshakeProtocol(ssl_state, p4, sizeof(p4), 0);
+    FAIL_IF(rc < 0);
+    FAIL_IF(!ssl_state->client_connp.phase_suppressed);
+    FAIL_IF(ssl_state->client_state != TLS_STATE_CLIENT_HELLO);
+
+    /* valid hello: the flag is reset per message, completion hands the
+     * track to the cert phase */
+    ssl_state->curr_connp = &ssl_state->server_connp;
+    ssl_state->curr_connp->record_length = sizeof(p5);
+    ssl_state->curr_connp->bytes_processed = 0;
+    ssl_state->curr_connp->version = 0x0303;
+    rc = SSLv3ParseHandshakeProtocol(ssl_state, p5, sizeof(p5), 1);
+    FAIL_IF(rc < 0);
+    FAIL_IF(ssl_state->server_connp.phase_suppressed);
+    FAIL_IF(ssl_state->server_state != TLS_STATE_SERVER_CERT);
+    /* the cert phase is entered with the hello, the chain is not
+     * parsed yet: chain content is not final */
+    FAIL_IF(ssl_state->server_connp.cert_chain_final);
+
+    /* garbage certificate: the cert phase was entered at the message
+     * header, the failed decode keeps the track in it; the suppression
+     * flag is hello-specific */
+    ssl_state->curr_connp = &ssl_state->server_connp;
+    ssl_state->curr_connp->record_length = sizeof(p6);
+    ssl_state->curr_connp->bytes_processed = 0;
+    rc = SSLv3ParseHandshakeProtocol(ssl_state, p6, sizeof(p6), 1);
+    FAIL_IF(rc < 0);
+    FAIL_IF(ssl_state->server_connp.phase_suppressed);
+    FAIL_IF(!ssl_state->server_connp.cert_data_incomplete);
+    FAIL_IF(ssl_state->server_state != TLS_STATE_SERVER_CERT);
+    FAIL_IF(ssl_state->server_connp.cert_chain_final);
+
+    SSLStateFree(ssl_state);
+    PASS;
+}
+
+/* A Certificate message whose first certificate is undecodable but whose
+ * remaining certificates are valid: the bad leaf is skipped (one decoder
+ * event), the rest of the chain is kept and the cert0 fields are filled
+ * from the first decodable certificate (compared against a direct
+ * extraction from the fixture). The message enters the cert phase at its
+ * start; the incomplete-data condition is sticky - a following
+ * ServerHelloDone resets the per-message suppression but the track stays
+ * in the cert phase, out of the data phase. The valid certificate body
+ * is the same fixture as the sv test ruletype-firewall-153 client
+ * certificate. */
+static int TLSPhaseCertChainSkipTest(void)
+{
+    static const uint8_t valid_cert[] = { 0x30, 0x82, 0x03, 0x0b, 0x30, 0x82, 0x01, 0xf3, 0xa0,
+        0x03, 0x02, 0x01, 0x02, 0x02, 0x14, 0x16, 0x1b, 0x77, 0xa9, 0xae, 0xe9, 0xea, 0xaa, 0x2d,
+        0xf9, 0xbb, 0xd6, 0xda, 0x13, 0x92, 0xf8, 0x73, 0xf8, 0x93, 0xa0, 0x30, 0x0d, 0x06, 0x09,
+        0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0b, 0x05, 0x00, 0x30, 0x15, 0x31, 0x13,
+        0x30, 0x11, 0x06, 0x03, 0x55, 0x04, 0x03, 0x0c, 0x0a, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74,
+        0x74, 0x65, 0x73, 0x74, 0x30, 0x1e, 0x17, 0x0d, 0x32, 0x36, 0x30, 0x39, 0x31, 0x38, 0x30,
+        0x33, 0x34, 0x38, 0x35, 0x36, 0x5a, 0x17, 0x0d, 0x32, 0x36, 0x30, 0x39, 0x32, 0x30, 0x30,
+        0x33, 0x34, 0x38, 0x35, 0x36, 0x5a, 0x30, 0x15, 0x31, 0x13, 0x30, 0x11, 0x06, 0x03, 0x55,
+        0x04, 0x03, 0x0c, 0x0a, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x74, 0x65, 0x73, 0x74, 0x30,
+        0x82, 0x01, 0x22, 0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01,
+        0x01, 0x05, 0x00, 0x03, 0x82, 0x01, 0x0f, 0x00, 0x30, 0x82, 0x01, 0x0a, 0x02, 0x82, 0x01,
+        0x01, 0x00, 0xc7, 0xdc, 0x32, 0x3c, 0x76, 0x5d, 0x86, 0x02, 0xbd, 0x3e, 0xc0, 0x8e, 0x6f,
+        0x34, 0x7e, 0xa2, 0x2c, 0x66, 0xe4, 0x20, 0x2f, 0x1c, 0xf4, 0x6c, 0x4d, 0xb6, 0x8e, 0xed,
+        0x5c, 0xdf, 0x36, 0xdb, 0xa8, 0xea, 0xf9, 0x01, 0xbe, 0x20, 0x92, 0x85, 0x72, 0x9c, 0x5d,
+        0x19, 0xf5, 0xa1, 0xa6, 0xdf, 0x60, 0x17, 0xc3, 0xba, 0xb7, 0xed, 0x57, 0x99, 0x19, 0x46,
+        0xee, 0xb2, 0x04, 0xfe, 0x18, 0x17, 0x65, 0x62, 0xe2, 0xd7, 0x45, 0xb1, 0x0f, 0x0c, 0xc8,
+        0x6b, 0xe4, 0x63, 0x4a, 0x6b, 0xd9, 0x30, 0xae, 0xf5, 0x81, 0xc5, 0xac, 0x50, 0x51, 0xc6,
+        0x91, 0x5c, 0x78, 0xc0, 0x74, 0x2a, 0x47, 0x6b, 0xae, 0xc3, 0x4b, 0x7d, 0x54, 0x66, 0x0d,
+        0xd7, 0xa1, 0x81, 0x07, 0x80, 0x44, 0xba, 0x30, 0x02, 0xeb, 0x82, 0x3c, 0x78, 0xbb, 0x9f,
+        0x2b, 0xeb, 0x1b, 0x1c, 0x30, 0x41, 0x02, 0xeb, 0xf5, 0x9c, 0xb3, 0xef, 0x43, 0x52, 0x4b,
+        0x54, 0x1f, 0xf3, 0x0d, 0xeb, 0xcc, 0x25, 0x97, 0xda, 0x52, 0x07, 0xdf, 0x54, 0x35, 0x4b,
+        0x85, 0x63, 0x67, 0xd6, 0x60, 0x9f, 0x0f, 0x88, 0xbf, 0x7e, 0xc9, 0x44, 0x2f, 0x34, 0xd6,
+        0x28, 0xad, 0x2d, 0x59, 0x7e, 0x56, 0xb6, 0x73, 0x5a, 0xe0, 0xb0, 0x1c, 0xc9, 0x23, 0x5f,
+        0x2a, 0x3c, 0x46, 0x1c, 0x27, 0x7f, 0x0e, 0x25, 0x16, 0x19, 0xb0, 0x03, 0x71, 0x05, 0xd5,
+        0xc6, 0xed, 0x49, 0x7c, 0x90, 0xca, 0x94, 0xfb, 0xe4, 0x75, 0x23, 0x67, 0x17, 0x37, 0x08,
+        0x05, 0xb8, 0x58, 0x7f, 0x61, 0x16, 0x24, 0x91, 0xeb, 0x0c, 0x1c, 0x05, 0x0d, 0xa5, 0x45,
+        0x55, 0x03, 0x2e, 0x60, 0x15, 0xc4, 0x6b, 0xcb, 0x68, 0x1f, 0xec, 0xbe, 0x59, 0xbf, 0x4a,
+        0x93, 0x0b, 0xa3, 0x08, 0x86, 0xe0, 0xe9, 0x5c, 0x08, 0x23, 0x3b, 0x0f, 0xbd, 0xc9, 0x91,
+        0xa1, 0x48, 0xf9, 0x02, 0x03, 0x01, 0x00, 0x01, 0xa3, 0x53, 0x30, 0x51, 0x30, 0x1d, 0x06,
+        0x03, 0x55, 0x1d, 0x0e, 0x04, 0x16, 0x04, 0x14, 0xae, 0xed, 0xef, 0x6c, 0xe0, 0xf6, 0xb7,
+        0xe3, 0x8c, 0xd9, 0x37, 0x7f, 0x0b, 0x53, 0x36, 0x96, 0x06, 0x5d, 0x0f, 0x09, 0x30, 0x1f,
+        0x06, 0x03, 0x55, 0x1d, 0x23, 0x04, 0x18, 0x30, 0x16, 0x80, 0x14, 0xae, 0xed, 0xef, 0x6c,
+        0xe0, 0xf6, 0xb7, 0xe3, 0x8c, 0xd9, 0x37, 0x7f, 0x0b, 0x53, 0x36, 0x96, 0x06, 0x5d, 0x0f,
+        0x09, 0x30, 0x0f, 0x06, 0x03, 0x55, 0x1d, 0x13, 0x01, 0x01, 0xff, 0x04, 0x05, 0x30, 0x03,
+        0x01, 0x01, 0xff, 0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01,
+        0x0b, 0x05, 0x00, 0x03, 0x82, 0x01, 0x01, 0x00, 0x08, 0x2e, 0x15, 0x02, 0x17, 0xcb, 0xf8,
+        0x5b, 0x4b, 0x31, 0x47, 0xf4, 0x8d, 0x55, 0x53, 0xa4, 0x05, 0x46, 0x73, 0xb7, 0x6a, 0x79,
+        0xfc, 0x02, 0xe4, 0x89, 0x09, 0xb9, 0x3d, 0x8c, 0xda, 0x98, 0x0d, 0x67, 0x83, 0x30, 0x00,
+        0xe5, 0x3b, 0xc4, 0x7c, 0xc4, 0x63, 0xa7, 0x20, 0x97, 0x74, 0x8d, 0x18, 0xfa, 0xb1, 0xe7,
+        0x67, 0x13, 0x48, 0x55, 0x99, 0xde, 0xca, 0x70, 0xe4, 0x7a, 0x3a, 0x65, 0x28, 0x08, 0xce,
+        0xc3, 0x93, 0xbb, 0x95, 0x15, 0x10, 0x25, 0x67, 0x7a, 0xad, 0xe8, 0xbc, 0xfb, 0xee, 0x94,
+        0xfa, 0x09, 0x6a, 0x3e, 0xa6, 0xb9, 0x9b, 0xd7, 0x01, 0xe4, 0x4f, 0x53, 0x69, 0x92, 0x8a,
+        0xf4, 0x52, 0xbf, 0x44, 0xfd, 0x26, 0x80, 0xb3, 0xed, 0x9d, 0x25, 0xa8, 0x99, 0x24, 0x1e,
+        0xd7, 0x29, 0xde, 0xa3, 0x08, 0x63, 0x44, 0x2a, 0xb9, 0x94, 0x19, 0x73, 0xb9, 0xf3, 0xee,
+        0x67, 0xc1, 0x81, 0xdd, 0x78, 0x2f, 0x8c, 0x1d, 0x7e, 0xb5, 0x06, 0x97, 0x24, 0x60, 0xfb,
+        0x27, 0xf1, 0x4d, 0x85, 0x2d, 0x1e, 0x8c, 0x13, 0x95, 0x2b, 0x5c, 0x12, 0x3a, 0xe3, 0x31,
+        0x55, 0x07, 0xdd, 0xf2, 0x85, 0xc5, 0x2e, 0x28, 0x2a, 0x9b, 0x3a, 0x89, 0xef, 0xd6, 0xba,
+        0x00, 0x55, 0xc2, 0x61, 0x74, 0xaf, 0xcc, 0xfd, 0x44, 0x7c, 0xae, 0xd8, 0xbb, 0xa7, 0xb7,
+        0x93, 0xc1, 0x3a, 0x0d, 0xef, 0x7e, 0x14, 0x67, 0x3a, 0x0b, 0x62, 0x57, 0x5e, 0x78, 0x58,
+        0x5c, 0x63, 0x2b, 0x79, 0x2d, 0x81, 0x61, 0x4d, 0xd2, 0xdb, 0x41, 0xe9, 0xbd, 0x00, 0xc8,
+        0x26, 0xd3, 0xea, 0x6b, 0x10, 0xa9, 0x8e, 0xab, 0x64, 0x85, 0x6a, 0x55, 0xc1, 0x78, 0x65,
+        0x31, 0x9b, 0x4d, 0x44, 0x84, 0xea, 0x60, 0x15, 0x52, 0x6b, 0x9d, 0x4b, 0x14, 0x5c, 0xba,
+        0x4f, 0xa2, 0x53, 0x8f, 0x2a, 0x2c, 0xda, 0x36, 0x96
+
+    };
+
+    /* a garbage first certificate (10 bytes, not ASN.1) followed by the
+     * valid one */
+    const uint32_t bad_len = 10;
+    const uint32_t good_len = sizeof(valid_cert);
+    const uint32_t chain_len = 3 + bad_len + 3 + good_len;
+    const uint32_t hs_len = 3 + chain_len;
+    const uint32_t msg_len = 4 + 3 + 3 + bad_len + 3 + good_len;
+    uint8_t msg[msg_len];
+
+    msg[0] = 0x0b;
+    msg[1] = 0;
+    msg[2] = (hs_len >> 8) & 0xff;
+    msg[3] = hs_len & 0xff;
+    msg[4] = 0;
+    msg[5] = (chain_len >> 8) & 0xff;
+    msg[6] = chain_len & 0xff;
+    msg[7] = 0;
+    msg[8] = 0;
+    msg[9] = bad_len;
+    for (uint32_t k = 0; k < bad_len; k++)
+        msg[10 + k] = 0x41;
+    const uint32_t off = 10 + bad_len;
+    msg[off] = 0;
+    msg[off + 1] = (good_len >> 8) & 0xff;
+    msg[off + 2] = good_len & 0xff;
+    memcpy(msg + off + 3, valid_cert, good_len);
+
+    SSLState *ssl_state = SSLStateAlloc(NULL, ALPROTO_TLS);
+    if (ssl_state == NULL)
+        return 0;
+
+    ssl_state->curr_connp = &ssl_state->server_connp;
+    ssl_state->curr_connp->record_length = msg_len;
+    ssl_state->curr_connp->bytes_processed = 0;
+    ssl_state->curr_connp->version = 0x0303;
+
+    /* the bytes are consumed (rc > 0) and the cert phase is entered at
+     * the header; the incomplete data keeps the track out of the data
+     * phase (the record level shortcut requires complete certificate
+     * data); the suppression flag is hello-specific */
+    int rc = SSLv3ParseHandshakeProtocol(ssl_state, msg, msg_len, 1);
+    FAIL_IF(rc < 0);
+    FAIL_IF(ssl_state->server_connp.phase_suppressed);
+    FAIL_IF(!ssl_state->server_connp.cert_data_incomplete);
+    FAIL_IF(ssl_state->server_state != TLS_STATE_SERVER_CERT);
+    /* the rest of the chain survived: the valid certificate is in the
+     * chain and the cert0 fields come from the first decodable cert */
+    SSLCertsChain *item = TAILQ_FIRST(&ssl_state->server_connp.certs);
+    FAIL_IF(item == NULL);
+    FAIL_IF(item->cert_len != good_len);
+    FAIL_IF(ssl_state->server_connp.cert0_subject == NULL);
+    FAIL_IF(ssl_state->server_connp.cert0_issuerdn == NULL);
+
+    /* the certificate data comes from the valid (second) certificate:
+     * compare the fields against a direct extraction from the fixture */
+    uint32_t errc = 0;
+    X509 *ref = SCX509Decode(valid_cert, sizeof(valid_cert), &errc);
+    FAIL_IF(ref == NULL);
+    uint8_t *subj = NULL;
+    uint32_t subj_len = 0;
+    uint8_t *iss = NULL;
+    uint32_t iss_len = 0;
+    SCX509GetSubject(ref, &subj, &subj_len);
+    SCX509GetIssuer(ref, &iss, &iss_len);
+    FAIL_IF(subj == NULL || iss == NULL);
+    FAIL_IF(ssl_state->server_connp.cert0_subject_len != subj_len);
+    FAIL_IF(memcmp(ssl_state->server_connp.cert0_subject, subj, subj_len) != 0);
+    FAIL_IF(ssl_state->server_connp.cert0_issuerdn_len != iss_len);
+    FAIL_IF(memcmp(ssl_state->server_connp.cert0_issuerdn, iss, iss_len) != 0);
+    if (subj != NULL)
+        SCX509ArrayFree(subj, subj_len);
+    if (iss != NULL)
+        SCX509ArrayFree(iss, iss_len);
+    SCX509Free(ref);
+
+    /* the incomplete-certificate-data condition is sticky: a later
+     * handshake message resets the per-message suppression but does not
+     * complete the certificate data (only a fully decoded certificate
+     * message does), so the track stays in the cert phase, out of the
+     * data phase */
+    const uint8_t shd[] = { 0x0e, 0x00, 0x00, 0x00 };
+    ssl_state->curr_connp = &ssl_state->server_connp;
+    ssl_state->curr_connp->record_length = sizeof(shd);
+    ssl_state->curr_connp->bytes_processed = 0;
+    rc = SSLv3ParseHandshakeProtocol(ssl_state, shd, sizeof(shd), 1);
+    FAIL_IF(rc < 0);
+    FAIL_IF(ssl_state->server_connp.phase_suppressed);
+    FAIL_IF(!ssl_state->server_connp.cert_data_incomplete);
+    FAIL_IF(ssl_state->server_state != TLS_STATE_SERVER_CERT);
+
+    /* a fully decodable first certificate message clears the incomplete
+     * flag and enters the cert phase at its start: the preconditions for
+     * the record level data shortcut (the shortcut itself is pinned by
+     * sv ruletype-firewall-51). On the client connp: its one-shot buffer
+     * is untouched here */
+    const uint32_t mlen = 4 + 3 + 3 + sizeof(valid_cert);
+    uint8_t full[mlen];
+    memset(full, 0, sizeof(full));
+    full[0] = 0x0b;
+    full[1] = ((3 + 3 + good_len) >> 16) & 0xff;
+    full[2] = ((3 + 3 + good_len) >> 8) & 0xff;
+    full[3] = (3 + 3 + good_len) & 0xff;
+    full[4] = ((3 + good_len) >> 16) & 0xff;
+    full[5] = ((3 + good_len) >> 8) & 0xff;
+    full[6] = (3 + good_len) & 0xff;
+    full[7] = (good_len >> 16) & 0xff;
+    full[8] = (good_len >> 8) & 0xff;
+    full[9] = good_len & 0xff;
+    memcpy(full + 10, valid_cert, good_len);
+    ssl_state->curr_connp = &ssl_state->client_connp;
+    ssl_state->curr_connp->record_length = mlen;
+    ssl_state->curr_connp->bytes_processed = 0;
+    rc = SSLv3ParseHandshakeProtocol(ssl_state, full, mlen, 0);
+    FAIL_IF(rc < 0);
+    FAIL_IF(ssl_state->client_connp.cert_data_incomplete);
+    FAIL_IF(ssl_state->client_connp.cert0_subject == NULL);
+    FAIL_IF(ssl_state->client_state != TLS_STATE_CLIENT_CERT);
+    FAIL_IF(!ssl_state->client_connp.cert_chain_final);
+
+    /* the one-shot buffer latches: a second server certificate message
+     * is not decoded and cannot clear the incomplete flag (base
+     * semantics, renegotiation re-sends the same certificate) */
+    ssl_state->curr_connp = &ssl_state->server_connp;
+    ssl_state->curr_connp->record_length = mlen;
+    ssl_state->curr_connp->bytes_processed = 0;
+    rc = SSLv3ParseHandshakeProtocol(ssl_state, full, mlen, 1);
+    FAIL_IF(rc < 0);
+    FAIL_IF(!ssl_state->server_connp.cert_data_incomplete);
+
+    SSLStateFree(ssl_state);
+    PASS;
+}
+
+void SSLStateParserRegisterTests(void)
+{
+    UtRegisterTest("TLSPhaseStateTestClient", TLSPhaseStateTestClient);
+    UtRegisterTest("TLSPhaseStateTestServer", TLSPhaseStateTestServer);
+    UtRegisterTest("TLSPhaseStateTestOldNamesGone", TLSPhaseStateTestOldNamesGone);
+    UtRegisterTest("TLSPhaseStateTestCompletion", TLSPhaseStateTestCompletion);
+    UtRegisterTest("TLSPhaseSuppressionTest", TLSPhaseSuppressionTest);
+    UtRegisterTest("TLSPhaseCertChainSkipTest", TLSPhaseCertChainSkipTest);
+}
+#endif /* UNITTESTS */
