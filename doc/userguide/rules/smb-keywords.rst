@@ -7,6 +7,8 @@ SMB Keywords
 
 SMB keywords used in both SMB1 and SMB2 protocols.
 
+.. _smb-keyword-named-pipe:
+
 smb.named_pipe
 --------------
 
@@ -20,6 +22,8 @@ Examples::
 ``smb.named_pipe`` is a 'sticky buffer'.
 
 ``smb.named_pipe`` can be used as ``fast_pattern``.
+
+.. _smb-keyword-share:
 
 smb.share
 ---------
@@ -35,6 +39,8 @@ Examples::
 
 ``smb.share`` can be used as ``fast_pattern``.
 
+.. _smb-keyword-ntlmssp-user:
+
 smb.ntlmssp_user
 ----------------
 
@@ -48,6 +54,8 @@ Examples::
 ``smb.ntlmssp_user`` is a 'sticky buffer'.
 
 ``smb.ntlmssp_user`` can be used as ``fast_pattern``.
+
+.. _smb-keyword-ntlmssp-domain:
 
 smb.ntlmssp_domain
 ------------------
@@ -63,6 +71,8 @@ Examples::
 
 ``smb.ntlmssp_domain`` can be used as ``fast_pattern``.
 
+
+.. _smb-keyword-version:
 
 smb.version
 ------------
@@ -116,6 +126,8 @@ On the other hand, SMBv3 is more like an extension of SMBv2. When using SMBv2 we
 We say we are using SMBv3 when we select a 3.x dialect for the conversation, so you can use SMB 3.0, SMB 3.0.2 or SMB 3.1.1. The higher you choose, the more capabilities you have, but the message syntax and message command number remains the same.
 
 SMB version and dialect are separate components. In the case of SMBv3 for instance, the SMB version will be 2 but the dialect will be 3.x. Dialect specification is not available currently via keyword.
+
+.. _smb-keyword-file-name:
 
 file.name
 ---------
