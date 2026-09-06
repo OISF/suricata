@@ -966,6 +966,10 @@ static AppProto FTPUserProbingParser(
         // POP traffic begins by same "USER" pattern as FTP
         return ALPROTO_FAILED;
     }
+    if (f->alproto_tc == ALPROTO_IMAP) {
+        // USER may be used as an IMAP tag
+        return ALPROTO_FAILED;
+    }
     return ALPROTO_FTP;
 }
 
