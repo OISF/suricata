@@ -901,6 +901,59 @@ static int DetectSetupDirection(Signature *s, char **str, bool only_dir)
     return 0;
 }
 
+/**
+ * \brief called only with firewall rules, to validate options
+ *
+ *  It is valid to call this before the keyword's value, if any, has been parsed.
+ *
+ * \retval false if the keyword is not allowed for this rule's action and/or action scope
+ */
+static bool SigParseFirewallRuleAllowed(
+        uint8_t action, uint8_t action_scope, uint32_t sig_flags, const char *optname)
+{
+    if ((sig_flags & SIGMATCH_BAN_FIREWALL_RULE) != 0) {
+        SCLogError("keyword \'%s\' is not allowed with firewall rules", optname);
+        return false;
+    }
+    if ((sig_flags & SIGMATCH_BAN_FIREWALL_MODE) != 0) {
+        SCLogError("keyword \'%s\' is not allowed in firewall mode", optname);
+        return false;
+    }
+    if ((action & ACTION_CONFIG) != 0 && (sig_flags & SIGMATCH_BAN_ACTION_CONFIG) != 0) {
+        SCLogError("keyword \'%s\' cannot be used in combination with \'config\' action", optname);
+        return false;
+    }
+    if ((action & ACTION_REJECT_ANY) != 0 && (sig_flags & SIGMATCH_BAN_ACTION_REJECT) != 0) {
+        SCLogError("keyword \'%s\' cannot be used in combination with \'reject\' action", optname);
+        return false;
+    }
+    if ((action & ACTION_DROP) != 0 && (sig_flags & SIGMATCH_BAN_ACTION_DROP) != 0) {
+        SCLogError("keyword \'%s\' cannot be used in combination with \'drop\' action", optname);
+        return false;
+    }
+    if (action_scope == (uint8_t)ACTION_SCOPE_PACKET) {
+        if ((sig_flags & SIGMATCH_BAN_FIREWALL_SCOPE_PACKET) != 0) {
+            SCLogError(
+                    "keyword \'%s\' cannot be used in combination with \'packet\' scope", optname);
+            return false;
+        }
+    }
+    if (action_scope == (uint8_t)ACTION_SCOPE_TX) {
+        if ((sig_flags & SIGMATCH_BAN_FIREWALL_SCOPE_TX) != 0) {
+            SCLogError("keyword \'%s\' cannot be used in combination with \'tx\' scope", optname);
+            return false;
+        }
+    }
+    if (action_scope == (uint8_t)ACTION_SCOPE_HOOK) {
+        if ((sig_flags & SIGMATCH_BAN_FIREWALL_SCOPE_HOOK) != 0) {
+            SCLogError("keyword \'%s\' cannot be used in combination with \'hook\' scope", optname);
+            return false;
+        }
+    }
+    /* for most cases, firewall rules should be allowed */
+    return true;
+}
+
 static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, char *output,
         size_t output_size, bool requires)
 {
@@ -1001,16 +1054,24 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
 #undef URL
     }
 
-    if (s->init_data->firewall_rule && (st->flags & SIGMATCH_BAN_FIREWALL_RULE) != 0) {
-        SCLogError("keyword \'%s\' is not allowed with firewall rules", optname);
+    if (EngineModeIsFirewall() && s->init_data->firewall_rule &&
+            !SigParseFirewallRuleAllowed(s->action, s->action_scope, st->flags, optname)) {
         goto error;
     }
 
-    if (EngineModeIsFirewall() && (st->flags & SIGMATCH_BAN_FIREWALL_MODE) != 0) {
+    /* For non-firewall rules */
+    if (EngineModeIsFirewall() && !s->init_data->firewall_rule &&
+            (st->flags & SIGMATCH_BAN_FIREWALL_MODE) != 0) {
         SCLogError("keyword \'%s\' is not allowed in firewall mode", optname);
         goto error;
     }
 
+    if (EngineModeIsFirewall() && !s->init_data->firewall_rule &&
+            (st->flags & SIGMATCH_BAN_TD_FIREWALL_MODE) != 0) {
+        SCLogError("keyword \'%s\' is not allowed in threat detection rules with firewall mode",
+                optname);
+        goto error;
+    }
     int setup_ret = 0;
 
     /* Validate double quoting, trimming trailing white space along the way. */
@@ -2770,6 +2831,7 @@ static bool DetectRuleValidateTable(const Signature *s)
     return true;
 }
 
+/** \brief validates firewall rule action scope */
 static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Signature *s)
 {
     if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_NOT_SET) {

@@ -19,6 +19,19 @@ Thresholds are tracked in a hash table that is sized according to configuration,
   Rule actions ``drop`` (IPS mode) and ``reject`` are applied to each packet
   (not only the one that meets the limit condition).
 
+.. note::
+
+   In firewall mode, the ``threshold`` keyword is not allowed in firewall
+   rules, and ``threshold.config`` entries may not name a firewall rule's
+   signature id.
+   Either leads to a fatal error on engine initialization when
+   ``--init-errors-fatal`` is set, rather than silently ignoring the entry.
+   Without that option, and on a rule reload, the entry is skipped with a
+   warning. Firewall rules matched by a wildcard ``threshold.config`` entry are
+   always skipped with a warning summarizing how many rules were skipped.
+   ``detection_filter`` is allowed in firewall rules. Below its rate the rule
+   does not apply.
+
 threshold
 ---------
 

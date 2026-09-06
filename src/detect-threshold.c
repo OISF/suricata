@@ -94,8 +94,8 @@ void DetectThresholdRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_THRESHOLD].RegisterTests = ThresholdRegisterTests;
 #endif
-    /* this is compatible to ip-only signatures */
-    sigmatch_table[DETECT_THRESHOLD].flags |= SIGMATCH_IPONLY_COMPAT;
+    /* this is compatible to ip-only signatures, and not compatible with firewall rules */
+    sigmatch_table[DETECT_THRESHOLD].flags = SIGMATCH_IPONLY_COMPAT | SIGMATCH_BAN_FIREWALL_RULE;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }

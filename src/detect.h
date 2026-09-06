@@ -368,6 +368,8 @@ typedef struct SigMatch_ {
 typedef struct SigMatchData_ {
     uint16_t type;   /**< match type */
     bool is_last;    /**< Last element of the list */
+    bool deferred;   /**< post-match entry withheld until firewall verdict is known.
+                      *  Only ever set for TD rules in FW mode */
     SigMatchCtx *ctx; /**< plugin specific data */
 } SigMatchData;
 
@@ -1777,6 +1779,7 @@ extern SigTableElmt *sigmatch_table;
 TmEcode Detect(ThreadVars *tv, Packet *p, void *data);
 uint8_t DetectPreFlow(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p);
 uint8_t DetectPreStream(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p);
+void DetectRunPostMatchDeferred(DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s);
 
 SigMatch *SigMatchAlloc(void);
 Signature *SigFindSignatureBySidGid(DetectEngineCtx *, uint32_t, uint32_t);
