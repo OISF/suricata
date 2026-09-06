@@ -20,7 +20,7 @@ use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_match_uint, detect_parse_array_uint_enum, detect_parse_uint_enum,
     detect_uint_match_at_index, DetectUintArrayData, DetectUintData, SCDetectU32Free,
-    SCDetectU32Parse, SCDetectU8Free,
+    SCDetectU32Parse, SCDetectU8Free, SCDetectU8Parse,
 };
 use crate::detect::{
     helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
@@ -28,7 +28,7 @@ use crate::detect::{
     SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8,
 };
 use crate::ldap::types::*;
-use ldap_parser::ldap::{LdapMessage, ProtocolOp};
+use ldap_parser::ldap::{AuthenticationChoice, LdapMessage, ProtocolOp};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister,
@@ -42,6 +42,12 @@ use std::os::raw::{c_int, c_void};
 
 static mut G_LDAP_REQUEST_OPERATION_KW_ID: u16 = 0;
 static mut G_LDAP_REQUEST_OPERATION_BUFFER_ID: c_int = 0;
+static mut G_LDAP_BIND_REQUEST_VERSION_KW_ID: u16 = 0;
+static mut G_LDAP_BIND_REQUEST_VERSION_BUFFER_ID: c_int = 0;
+static mut G_LDAP_BIND_REQUEST_AUTHENTICATION_KW_ID: u16 = 0;
+static mut G_LDAP_BIND_REQUEST_AUTHENTICATION_BUFFER_ID: c_int = 0;
+static mut G_LDAP_BIND_REQUEST_SASL_MECHANISM_BUFFER_ID: c_int = 0;
+static mut G_LDAP_BIND_REQUEST_SASL_CREDENTIALS_BUFFER_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_OPERATION_KW_ID: u16 = 0;
 static mut G_LDAP_RESPONSES_OPERATION_BUFFER_ID: c_int = 0;
 static mut G_LDAP_RESPONSES_COUNT_KW_ID: u16 = 0;
@@ -109,6 +115,156 @@ unsafe extern "C" fn ldap_detect_request_free(_de: *mut DetectEngineCtx, ctx: *m
     // Just unbox...
     let ctx = cast_pointer!(ctx, DetectUintData<u8>);
     SCDetectU8Free(ctx);
+}
+
+unsafe extern "C" fn ldap_detect_bind_request_version_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
+        return -1;
+    }
+    let ctx = SCDetectU8Parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_LDAP_BIND_REQUEST_VERSION_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_LDAP_BIND_REQUEST_VERSION_BUFFER_ID,
+    )
+    .is_null()
+    {
+        ldap_detect_request_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn ldap_detect_bind_request_version_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, LdapTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    if let Some(request) = &tx.request {
+        if let ProtocolOp::BindRequest(req) = &request.protocol_op {
+            return detect_match_uint(ctx, req.version) as c_int;
+        }
+    }
+    return 0;
+}
+
+unsafe extern "C" fn ldap_detect_bind_request_authentication_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
+        return -1;
+    }
+    let ctx = CStr::from_ptr(raw)
+        .to_str()
+        .ok()
+        .and_then(detect_parse_uint_enum::<u8, BindAuthenticationChoice>)
+        .map(Box::new)
+        .map(Box::into_raw)
+        .unwrap_or(std::ptr::null_mut()) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_LDAP_BIND_REQUEST_AUTHENTICATION_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_LDAP_BIND_REQUEST_AUTHENTICATION_BUFFER_ID,
+    )
+    .is_null()
+    {
+        ldap_detect_request_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    0
+}
+
+unsafe extern "C" fn ldap_detect_bind_request_authentication_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, _flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, LdapTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    if let Some(request) = &tx.request {
+        if let ProtocolOp::BindRequest(req) = &request.protocol_op {
+            let authentication = match &req.authentication {
+                AuthenticationChoice::Simple(_) => BindAuthenticationChoice::Simple as u8,
+                AuthenticationChoice::Sasl(_) => BindAuthenticationChoice::Sasl as u8,
+            };
+            return detect_match_uint(ctx, authentication) as c_int;
+        }
+    }
+    0
+}
+
+unsafe extern "C" fn ldap_detect_bind_request_sasl_mechanism_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_LDAP_BIND_REQUEST_SASL_MECHANISM_BUFFER_ID) < 0 {
+        return -1;
+    }
+    0
+}
+
+unsafe extern "C" fn ldap_detect_bind_request_sasl_credentials_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_LDAP) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_LDAP_BIND_REQUEST_SASL_CREDENTIALS_BUFFER_ID) < 0 {
+        return -1;
+    }
+    0
+}
+
+unsafe extern "C" fn ldap_detect_bind_request_sasl_mechanism_get_data(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, LdapTransaction);
+    *buffer = std::ptr::null();
+    *buffer_len = 0;
+    if let Some(request) = &tx.request {
+        if let ProtocolOp::BindRequest(req) = &request.protocol_op {
+            if let AuthenticationChoice::Sasl(sasl) = &req.authentication {
+                *buffer = sasl.mechanism.0.as_ptr();
+                *buffer_len = sasl.mechanism.0.len() as u32;
+                return true;
+            }
+        }
+    }
+    false
+}
+
+unsafe extern "C" fn ldap_detect_bind_request_sasl_credentials_get_data(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, LdapTransaction);
+    *buffer = std::ptr::null();
+    *buffer_len = 0;
+    if let Some(request) = &tx.request {
+        if let ProtocolOp::BindRequest(req) = &request.protocol_op {
+            if let AuthenticationChoice::Sasl(sasl) = &req.authentication {
+                if let Some(credentials) = &sasl.credentials {
+                    *buffer = credentials.as_ptr();
+                    *buffer_len = credentials.len() as u32;
+                    return true;
+                }
+            }
+        }
+    }
+    false
 }
 
 unsafe extern "C" fn ldap_parse_protocol_resp_op(
@@ -529,6 +685,68 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         ALPROTO_LDAP,
         STREAM_TOSERVER,
         0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"ldap.bind_request.version\0".as_ptr() as *const libc::c_char,
+        desc: b"match LDAP BindRequest version\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/ldap-keywords.html#ldap-bind-request-version\0".as_ptr()
+            as *const libc::c_char,
+        AppLayerTxMatch: Some(ldap_detect_bind_request_version_match),
+        Setup: Some(ldap_detect_bind_request_version_setup),
+        Free: Some(ldap_detect_request_free),
+        flags: SIGMATCH_INFO_UINT8,
+    };
+    G_LDAP_BIND_REQUEST_VERSION_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_LDAP_BIND_REQUEST_VERSION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"ldap.bind_request.version\0".as_ptr() as *const libc::c_char,
+        ALPROTO_LDAP,
+        STREAM_TOSERVER,
+        0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"ldap.bind_request.authentication\0".as_ptr() as *const libc::c_char,
+        desc: b"match LDAP BindRequest authentication choice\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/ldap-keywords.html#ldap-bind-request-authentication\0".as_ptr()
+            as *const libc::c_char,
+        AppLayerTxMatch: Some(ldap_detect_bind_request_authentication_match),
+        Setup: Some(ldap_detect_bind_request_authentication_setup),
+        Free: Some(ldap_detect_request_free),
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT,
+    };
+    G_LDAP_BIND_REQUEST_AUTHENTICATION_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_LDAP_BIND_REQUEST_AUTHENTICATION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"ldap.bind_request.authentication\0".as_ptr() as *const libc::c_char,
+        ALPROTO_LDAP,
+        STREAM_TOSERVER,
+        0,
+    );
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("ldap.bind_request.sasl.mechanism"),
+        desc: String::from("sticky buffer to match LDAP BindRequest SASL mechanism"),
+        url: String::from("/rules/ldap-keywords.html#ldap-bind-request-sasl-mechanism"),
+        setup: ldap_detect_bind_request_sasl_mechanism_setup,
+    };
+    helper_keyword_register_sticky_buffer(&kw);
+    G_LDAP_BIND_REQUEST_SASL_MECHANISM_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"ldap.bind_request.sasl.mechanism\0".as_ptr() as *const libc::c_char,
+        b"LDAP BIND REQUEST SASL MECHANISM\0".as_ptr() as *const libc::c_char,
+        ALPROTO_LDAP,
+        STREAM_TOSERVER,
+        Some(ldap_detect_bind_request_sasl_mechanism_get_data),
+    );
+    let kw = SigTableElmtStickyBuffer {
+        name: String::from("ldap.bind_request.sasl.credentials"),
+        desc: String::from("sticky buffer to match LDAP BindRequest SASL credentials"),
+        url: String::from("/rules/ldap-keywords.html#ldap-bind-request-sasl-credentials"),
+        setup: ldap_detect_bind_request_sasl_credentials_setup,
+    };
+    helper_keyword_register_sticky_buffer(&kw);
+    G_LDAP_BIND_REQUEST_SASL_CREDENTIALS_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"ldap.bind_request.sasl.credentials\0".as_ptr() as *const libc::c_char,
+        b"LDAP BIND REQUEST SASL CREDENTIALS\0".as_ptr() as *const libc::c_char,
+        ALPROTO_LDAP,
+        STREAM_TOSERVER,
+        Some(ldap_detect_bind_request_sasl_credentials_get_data),
     );
     let kw = SCSigTableAppLiteElmt {
         name: b"ldap.responses.operation\0".as_ptr() as *const libc::c_char,
