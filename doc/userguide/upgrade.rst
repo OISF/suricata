@@ -46,6 +46,7 @@ Major Changes
 - Default value for ``stream.reassembly.depth`` when the value is not specified in
   suricata.yaml is now 1 MiB instead of 0/unlimited.
 - LLMNR protocol parser, logger and sticky buffers are implemented.
+- Email keywords (except email.url) match on the IMAP protocol.
 
 Logging Changes
 ~~~~~~~~~~~~~~~
