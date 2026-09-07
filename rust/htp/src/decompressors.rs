@@ -1,4 +1,4 @@
-use brotli;
+use brotli::{BrotliDecompressStream, BrotliResult, BrotliState, HeapAlloc, HuffmanCode};
 use std::{
     io::{Cursor, Write},
     time::Instant,
@@ -738,27 +738,76 @@ impl BufWriter for LzmaBufWriter {
 }
 
 /// Simple wrapper around an lzma implementation
-struct BrotliBufWriter(brotli::DecompressorWriter<BlockingCursor>);
+struct BrotliBufWriter {
+    state: BrotliState<HeapAlloc<u8>, HeapAlloc<u32>, HeapAlloc<HuffmanCode>>,
+    cursor: BlockingCursor,
+}
+
+impl BrotliBufWriter {
+    pub fn new(cursor: BlockingCursor) -> BrotliBufWriter {
+        BrotliBufWriter {
+            state: BrotliState::new(
+                HeapAlloc::<u8>::new(0),
+                HeapAlloc::<u32>::new(0),
+                HeapAlloc::<HuffmanCode>::new(HuffmanCode { bits: 0, value: 0 }),
+            ),
+            cursor,
+        }
+    }
+}
 
 impl Write for BrotliBufWriter {
-    fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
-        self.0.write(data)
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let start_offset = 0;
+        let mut input_offset = 0;
+        let mut available_in = buf.len() - input_offset;
+        let mut output_offset = self.cursor.cursor.position() as usize;
+        let mut available_out = self.cursor.cursor.get_ref().len() - output_offset;
+        let mut written = 0;
+        match BrotliDecompressStream(
+            &mut available_in,
+            &mut input_offset,
+            buf,
+            &mut available_out,
+            &mut output_offset,
+            self.cursor.cursor.get_mut(),
+            &mut written,
+            &mut self.state,
+        ) {
+            BrotliResult::ResultSuccess => {
+                self.cursor.cursor.set_position(output_offset as u64);
+                Ok(input_offset - start_offset)
+            }
+            BrotliResult::NeedsMoreInput => {
+                self.cursor.cursor.set_position(output_offset as u64);
+                Ok(input_offset - start_offset)
+            }
+            BrotliResult::NeedsMoreOutput => {
+                self.cursor.cursor.set_position(output_offset as u64);
+                if input_offset == start_offset {
+                    return Err(std::io::ErrorKind::WriteZero.into());
+                }
+                Ok(input_offset - start_offset)
+            }
+            BrotliResult::ResultFailure => {
+                Err(std::io::Error::other("Brotli decompression failed"))
+            }
+        }
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        self.0.flush()
+        self.write(&[])?;
+        Ok(())
     }
 }
 
 impl BufWriter for BrotliBufWriter {
     fn get_mut(&mut self) -> Option<&mut BlockingCursor> {
-        Some(self.0.get_mut())
+        Some(&mut self.cursor)
     }
 
     fn finish(self: Box<Self>) -> std::io::Result<BlockingCursor> {
-        self.0
-            .into_inner()
-            .map_err(|_e| std::io::Error::new(std::io::ErrorKind::Other, "brotli"))
+        Ok(self.cursor)
     }
 
     fn try_finish(&mut self) -> std::io::Result<()> {
@@ -799,13 +848,7 @@ impl InnerDecompressor {
                 Box::new(ZlibBufWriter(flate2::write::ZlibDecoder::new(buf))),
                 false,
             )),
-            HtpContentEncoding::Brotli => Ok((
-                Box::new(BrotliBufWriter(brotli::DecompressorWriter::new(
-                    buf,
-                    ENCODING_CHUNK_SIZE,
-                ))),
-                false,
-            )),
+            HtpContentEncoding::Brotli => Ok((Box::new(BrotliBufWriter::new(buf)), false)),
             HtpContentEncoding::Lzma => {
                 if let Some(options) = options.lzma {
                     Ok((
