@@ -104,7 +104,12 @@ pub type AppLayerDecoderEventsSetEventRawFunc =
 pub type AppLayerDecoderEventsFreeEventsFunc =
     extern "C" fn (events: *mut *mut AppLayerDecoderEvents);
 
-pub enum StreamingBufferConfig {}
+#[cfg_attr(test, repr(C))]
+pub enum StreamingBufferConfig {
+    // File operations are stubbed in Rust unit tests; no C config is needed.
+    #[cfg(test)]
+    Test,
+}
 
 // Opaque flow type (defined in C)
 pub enum HttpRangeContainerBlock {}

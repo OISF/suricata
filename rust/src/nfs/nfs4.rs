@@ -65,9 +65,8 @@ impl NFSState {
             Vec::new()
         };
 
-        // Reject an oversized WRITE: log it as a transaction and skip to
-        // the record boundary to keep the flow in sync.
-        // A zero limit disables the check.
+        // Reject an oversized WRITE: log it as a tx and skip to the record
+        // boundary to keep the flow in sync.
         let max_write_size = unsafe { NFS_CFG_MAX_WRITE_SIZE };
         if max_write_size != 0 && w.write_len > max_write_size {
             let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
@@ -75,11 +74,21 @@ impl NFSState {
             tx.xid = r.hdr.xid;
             tx.is_first = true;
             tx.nfs_version = r.progver as u16;
+            tx.request_done = true;
+            tx.response_done = true;
+            // Close the tx so a later same-handle op cannot reuse it.
+            tx.is_file_closed = true;
             tx.tx_data.set_event(NFSEvent::WriteRequestTooLarge as u8);
+            // Complete the rejected transaction immediately: without
+            // this the tx and its event only surface at flow teardown.
+            tx.tx_data.updated_ts = true;
+            tx.tx_data.updated_tc = true;
             // Rejected tx never opened a file: zero files_opened, else the tx
             // (and file) stays live until teardown and grows unbounded on repeats.
             tx.tx_data.files_opened = 0;
-            let pending = w.write_len.saturating_sub(w.data.len() as u32);
+            // Skip to the RPC record boundary: claim vs data can disagree, and
+            // claimed-count math lands mid-padding or in a later record.
+            let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
             self.set_skip(Direction::ToServer, pending);
             self.ts_chunk_xid = 0;
             self.ts_chunk_left = 0;
@@ -92,16 +101,18 @@ impl NFSState {
             return;
         }
 
-        let mut queue_event: Option<NFSEvent> = None;
         let mut queue_exceeded = false;
 
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             Some(tx) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                     if let Some(event) =
-                        write_queue_limit_event(&tdf.file_tracker, w.data.len() as u64)
+                        write_queue_limit_event(&tdf.file_tracker, w.offset, w.data.len() as u64)
                     {
-                        queue_event = Some(event);
+                        // Attach to the affected file tx, not the newest tx.
+                        tx.tx_data.set_event(event as u8);
+                        tx.tx_data.updated_ts = true;
+                        tx.tx_data.updated_tc = true;
                         queue_exceeded = true;
                     } else {
                         filetracker_newchunk(
@@ -129,10 +140,20 @@ impl NFSState {
         if !found {
             let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
             if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                if let Some(event) = write_queue_limit_event(&tdf.file_tracker, w.data.len() as u64)
+                if let Some(event) =
+                    write_queue_limit_event(&tdf.file_tracker, w.offset, w.data.len() as u64)
                 {
-                    queue_event = Some(event);
+                    // tx just created: set the event on it directly.
+                    tx.tx_data.set_event(event as u8);
+                    tx.tx_data.updated_ts = true;
+                    tx.tx_data.updated_tc = true;
                     queue_exceeded = true;
+                    // Chunk rejected before the file was opened: complete + close the
+                    // tx and zero files_opened, else it dangles until teardown.
+                    tx.request_done = true;
+                    tx.response_done = true;
+                    tx.is_file_closed = true;
+                    tx.tx_data.files_opened = 0;
                 } else {
                     filetracker_newchunk(
                         &mut tdf.file_tracker,
@@ -157,13 +178,9 @@ impl NFSState {
             tx.is_first = true;
             tx.nfs_version = r.progver as u16;
         }
-        if let Some(event) = queue_event {
-            self.set_event(event);
-        }
         if queue_exceeded {
-            // don't buffer the remainder of this record; skip it from the
-            // stream instead of adding it to the file tracker
-            let pending = w.write_len.saturating_sub(w.data.len() as u32);
+            // Don't buffer the rest of the record: skip to its RPC boundary.
+            let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
             self.set_skip(Direction::ToServer, pending);
             self.ts_chunk_xid = 0;
             self.ts_chunk_left = 0;

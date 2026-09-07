@@ -52,6 +52,9 @@ impl FileContainer {
 
     pub fn file_open(&mut self, cfg: &'static SuricataFileContext, track_id: u32, name: &[u8], flags: u16) -> i32 {
         match unsafe {SC} {
+            #[cfg(test)]
+            None => 0,
+            #[cfg(not(test))]
             None => panic!("BUG no suricata_config"),
             Some(c) => {
                 SCLogDebug!("FILE {:p} OPEN flags {:04X}", &self, flags);
@@ -70,6 +73,9 @@ impl FileContainer {
             return 0
         }
         match unsafe {SC} {
+            #[cfg(test)]
+            None => 0,
+            #[cfg(not(test))]
             None => panic!("BUG no suricata_config"),
             Some(c) => {
                 let res = match is_gap {
@@ -95,6 +101,9 @@ impl FileContainer {
         SCLogDebug!("FILECONTAINER: CLOSEing");
 
         match unsafe {SC} {
+            #[cfg(test)]
+            None => 0,
+            #[cfg(not(test))]
             None => panic!("BUG no suricata_config"),
             Some(c) => {
                 let res = (c.FileCloseFile)(self, cfg.files_sbcfg, *track_id, ptr::null(), 0u32, flags);
