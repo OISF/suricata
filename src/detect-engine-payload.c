@@ -70,6 +70,21 @@ static int StreamMpmFunc(
     return 0;
 }
 
+static int StreamMpmFuncNop(
+        void *cb_data, const uint8_t *data, const uint32_t data_len, const uint64_t _offset)
+{
+    return 0;
+}
+
+static void PrefilterPktStreamNoMpm(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    /* used to advance raw_stream_progress */
+    if (p->flags & PKT_DETECT_HAS_STREAMDATA) {
+        StreamReassembleRaw(
+                p->flow->protoctx, p, StreamMpmFuncNop, NULL, &det_ctx->raw_stream_progress, false);
+    }
+}
+
 static void PrefilterPktStream(DetectEngineThreadCtx *det_ctx,
         Packet *p, const void *pectx)
 {
@@ -110,6 +125,17 @@ int PrefilterPktStreamRegister(DetectEngineCtx *de_ctx,
 {
     return PrefilterAppendPayloadEngine(de_ctx, sgh,
             PrefilterPktStream, mpm_ctx, NULL, "stream");
+}
+
+static void FreePrefilterNoMpmCtx(void *ctx)
+{
+    SCFree(ctx);
+}
+
+int PrefilterPktStreamRegisterNoMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    return PrefilterAppendPayloadEngine(de_ctx, sgh, PrefilterPktStreamNoMpm, mpm_ctx,
+            FreePrefilterNoMpmCtx, "stream_progress_only");
 }
 
 static void PrefilterPktPayload(DetectEngineThreadCtx *det_ctx,
