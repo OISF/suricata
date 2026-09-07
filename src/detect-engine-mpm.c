@@ -2323,11 +2323,17 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             }
 
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_STREAM_TS);
-            if (mpm_store != NULL) {
-                PrefilterPktStreamRegister(de_ctx, sh, mpm_store->mpm_ctx);
-            }
-
             SetRawReassemblyFlag(de_ctx, sh);
+            if (mpm_store != NULL && mpm_store->mpm_ctx) {
+                PrefilterPktStreamRegister(de_ctx, sh, mpm_store->mpm_ctx);
+            } else if (sh->flags & SIG_GROUP_HEAD_HAVERAWSTREAM) {
+                MpmCtx *mpm_ctx = SCCalloc(1, sizeof(MpmCtx));
+                if (mpm_ctx) {
+                    // we want to update raw_stream_progress
+                    // also when sgh does not have prefilter
+                    PrefilterPktStreamRegisterNoMpm(de_ctx, sh, mpm_ctx);
+                }
+            }
         }
         if (SGH_DIRECTION_TC(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_PKT_TC);
@@ -2336,11 +2342,15 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             }
 
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_STREAM_TC);
-            if (mpm_store != NULL) {
-                PrefilterPktStreamRegister(de_ctx, sh, mpm_store->mpm_ctx);
-            }
-
             SetRawReassemblyFlag(de_ctx, sh);
+            if (mpm_store != NULL && mpm_store->mpm_ctx) {
+                PrefilterPktStreamRegister(de_ctx, sh, mpm_store->mpm_ctx);
+            } else if (sh->flags & SIG_GROUP_HEAD_HAVERAWSTREAM) {
+                MpmCtx *mpm_ctx = SCCalloc(1, sizeof(MpmCtx));
+                if (mpm_ctx) {
+                    PrefilterPktStreamRegisterNoMpm(de_ctx, sh, mpm_ctx);
+                }
+            }
        }
     } else if (SGH_PROTO(sh, IPPROTO_UDP)) {
         if (SGH_DIRECTION_TS(sh)) {
