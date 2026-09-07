@@ -90,7 +90,7 @@ pub(super) struct BrotliDecompressor {
 impl BrotliDecompressor {
     pub fn new(cursor: HTTP2cursor) -> BrotliDecompressor {
         BrotliDecompressor {
-            state: BrotliState::new(
+            state: BrotliState::new_strict(
                 HeapAlloc::<u8>::new(0),
                 HeapAlloc::<u32>::new(0),
                 HeapAlloc::<HuffmanCode>::new(HuffmanCode { bits: 0, value: 0 }),
