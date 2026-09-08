@@ -2662,6 +2662,12 @@ pgsql flow. Some of the possible request messages are:
   in a CopyOut transaction
 * "copy_done": string. Similar to ``command_completed`` but sent after the
   backend finishes sending a batch of ``CopyData`` messages
+* "field_count": integer. The number of fields declared by a ``RowDescription``
+  message
+* "row_description_malformed": bool. True when the ``field_count`` declared by a
+  ``RowDescription`` message disagreed with the message body delimited by its
+  length field. The declared ``field_count`` is still logged, as seen on the
+  wire
 * "ssl_accepted": bool. With this event, the initial PGSQL SSL Handshake
   negotiation is complete in terms of tracking and logging. The session will be
   upgraded to use TLS encryption
