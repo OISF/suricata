@@ -5275,6 +5275,10 @@
                         "routine": {
                             "type": "string"
                         },
+                        "row_description_malformed": {
+                            "type": "boolean",
+                            "description": "True when the field count declared in a RowDescription message disagreed with the message body delimited by its length field"
+                        },
                         "secret_key": {
                             "type": "integer"
                         },

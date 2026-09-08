@@ -23,15 +23,16 @@ use crate::common::nom8::take_until_and_consume;
 use nom8::branch::alt;
 use nom8::bytes::streaming::{tag, take, take_until, take_until1};
 use nom8::character::streaming::{alphanumeric1, char};
-use nom8::combinator::{all_consuming, cond, eof, map_parser, opt, peek, verify};
+use nom8::combinator::{all_consuming, complete, cond, eof, map_parser, opt, peek, verify};
 use nom8::error::{make_error, ErrorKind, ParseError};
-use nom8::multi::{many1, many_m_n, many_till};
+use nom8::multi::{count, many1, many_till};
 use nom8::number::streaming::{be_i16, be_i32};
 use nom8::number::streaming::{be_u16, be_u32, be_u8};
 use nom8::sequence::terminated;
 use nom8::{Err, IResult, Parser};
 
 const PGSQL_LENGTH_FIELD: u32 = 4;
+const PGSQL_ROW_HEADER_LENGTH: u32 = 6;
 
 const PGSQL_DUMMY_PROTO_MAJOR: u16 = 1234; // 0x04d2
 const PGSQL_DUMMY_PROTO_CANCEL_REQUEST: u16 = 5678; // 0x162e
@@ -251,6 +252,8 @@ pub(crate) struct BackendKeyDataMessage {
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct ConsolidatedDataRowPacket {
+    // also built in pgsql.rs, as a per-transaction summary
+    pub is_malformed: bool,
     pub identifier: u8,
     pub row_cnt: u64, // row or msg cnt
     pub data_size: u64,
@@ -363,6 +366,8 @@ impl PgsqlBEMessage {
             PgsqlBEMessage::CopyInResponse(m) | PgsqlBEMessage::CopyOutResponse(m) => {
                 m.is_malformed
             }
+            PgsqlBEMessage::RowDescription(r) => r.is_malformed,
+            PgsqlBEMessage::ConsolidatedDataRow(d) => d.is_malformed,
             _ => false,
         }
     }
@@ -468,6 +473,7 @@ pub(crate) struct RowField {
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct RowDescriptionMessage {
+    is_malformed: bool,
     pub identifier: u8,
     pub length: u32,
     pub field_count: u16,
@@ -1032,16 +1038,29 @@ fn parse_row_field(i: &[u8]) -> IResult<&[u8], RowField, PgsqlParseError<&[u8]>>
 
 fn parse_row_description(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'T').parse(i)?;
-    let (i, length) = parse_gte_length(i, 7)?;
+    let (i, length) = parse_gte_length(i, PGSQL_ROW_HEADER_LENGTH + 1)?;
     let (i, field_count) = be_u16.parse(i)?;
-    let (i, fields) = map_parser(
-        take(length - 6),
-        many_m_n(0, field_count.into(), parse_row_field),
-    )
-    .parse(i)?;
+    let (i, body) = take(length - PGSQL_ROW_HEADER_LENGTH).parse(i)?;
+    let fields =
+        match all_consuming(count(complete(parse_row_field), field_count.into())).parse(body) {
+            Ok((_, fields)) => fields,
+            Err(_) => {
+                return Ok((
+                    i,
+                    PgsqlBEMessage::RowDescription(RowDescriptionMessage {
+                        is_malformed: true,
+                        identifier,
+                        length,
+                        field_count,
+                        fields: Vec::new(),
+                    }),
+                ));
+            }
+        };
     Ok((
         i,
         PgsqlBEMessage::RowDescription(RowDescriptionMessage {
+            is_malformed: false,
             identifier,
             length,
             field_count,
@@ -1154,6 +1173,7 @@ fn parse_consolidated_copy_data_out(
     Ok((
         i,
         PgsqlBEMessage::ConsolidatedCopyDataOut(ConsolidatedDataRowPacket {
+            is_malformed: false,
             identifier,
             row_cnt: 1,
             data_size: (length - PGSQL_LENGTH_FIELD) as u64,
@@ -1171,6 +1191,7 @@ fn parse_consolidated_copy_data_in(
     Ok((
         i,
         PgsqlFEMessage::ConsolidatedCopyDataIn(ConsolidatedDataRowPacket {
+            is_malformed: false,
             identifier,
             row_cnt: 1,
             data_size: (length - PGSQL_LENGTH_FIELD) as u64,
@@ -1215,17 +1236,29 @@ fn parse_copy_fail(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&
 // Later on, we calculate the number of lines the command actually returned by counting ConsolidatedDataRow messages
 fn parse_consolidated_data_row(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'D').parse(i)?;
-    let (i, length) = parse_gte_length(i, 7)?;
+    let (i, length) = parse_gte_length(i, PGSQL_ROW_HEADER_LENGTH + 1)?;
     let (i, field_count) = be_u16.parse(i)?;
-    // 6 here is for skipping length + field_count
-    let (i, rows) = map_parser(
-        take(length - 6),
-        many_m_n(0, field_count.into(), parse_data_row_value),
-    )
-    .parse(i)?;
+    let (i, body) = take(length - PGSQL_ROW_HEADER_LENGTH).parse(i)?;
+    let rows = match all_consuming(count(complete(parse_data_row_value), field_count.into()))
+        .parse(body)
+    {
+        Ok((_, rows)) => rows,
+        Err(_) => {
+            return Ok((
+                i,
+                PgsqlBEMessage::ConsolidatedDataRow(ConsolidatedDataRowPacket {
+                    is_malformed: true,
+                    identifier,
+                    row_cnt: 1,
+                    data_size: 0,
+                }),
+            ));
+        }
+    };
     Ok((
         i,
         PgsqlBEMessage::ConsolidatedDataRow(ConsolidatedDataRowPacket {
+            is_malformed: false,
             identifier,
             row_cnt: 1,
             data_size: add_up_data_size(rows),
@@ -2509,12 +2542,12 @@ mod tests {
         // T  ..
         // source   @  .   .......  version   @  .   .......  sid   @  .   . .....
         let buffer: &[u8] = &[
-            0x54, 0x00, 0x00, 0x00, 0x50, 0x00, 0x03, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x00,
+            0x54, 0x00, 0x00, 0x00, 0x4f, 0x00, 0x03, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x00,
             0x00, 0x00, 0x40, 0x09, 0x00, 0x01, 0x00, 0x00, 0x00, 0x19, 0xff, 0xff, 0xff, 0xff,
             0xff, 0xff, 0x00, 0x00, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x00, 0x00, 0x00,
             0x40, 0x09, 0x00, 0x02, 0x00, 0x00, 0x00, 0x19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
             0x00, 0x00, 0x73, 0x69, 0x64, 0x00, 0x00, 0x00, 0x40, 0x09, 0x00, 0x03, 0x00, 0x00,
-            0x00, 0x14, 0x00, 0x08, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00,
+            0x00, 0x14, 0x00, 0x08, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00,
         ];
 
         let field1 = RowField {
@@ -2550,8 +2583,9 @@ mod tests {
         let fields_vec = vec![field1, field2, field3];
 
         let ok_res = PgsqlBEMessage::RowDescription(RowDescriptionMessage {
+            is_malformed: false,
             identifier: b'T',
-            length: 80,
+            length: 79,
             field_count: 3,
             fields: fields_vec,
         });
@@ -2705,8 +2739,17 @@ mod tests {
             0x07, 0x32, 0x30, 0x32, 0x31, 0x37, 0x30, 0x31,
         ];
 
-        let result = parse_consolidated_data_row(buffer);
-        assert!(result.is_ok());
+        let ok_res = PgsqlBEMessage::ConsolidatedDataRow(ConsolidatedDataRowPacket {
+            is_malformed: false,
+            identifier: b'D',
+            row_cnt: 1,
+            data_size: 17,
+        });
+
+        assert_eq!(
+            parse_consolidated_data_row(buffer),
+            Ok((&buffer[36..], ok_res))
+        );
     }
 
     #[test]
