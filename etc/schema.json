@@ -5179,7 +5179,7 @@
                             "properties": {
                                 "malformed": {
                                     "type": "boolean",
-                                    "description": "True in case the massage body format on the wire disagreed with specifications"
+                                    "description": "True in case the message body format on the wire disagreed with specifications"
                                 },
                                 "columns": {
                                     "type": "integer",
@@ -5194,7 +5194,7 @@
                             "properties": {
                                 "malformed": {
                                     "type": "boolean",
-                                    "description": "True in case the massage body format on the wire disagreed with specifications"
+                                    "description": "True in case the message body format on the wire disagreed with specifications"
                                 },
                                 "columns": {
                                     "type": "integer",
