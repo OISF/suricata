@@ -125,6 +125,7 @@ fn log_request(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Resul
                 identifier: _,
                 row_cnt,
                 data_size,
+                ..
             }) => {
                 js.open_object(req.to_str())?;
                 js.set_uint("msg_count", *row_cnt)?;
@@ -279,6 +280,7 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             identifier: _,
             row_cnt,
             data_size,
+            ..
         }) => {
             jb.open_object(res.to_str())?;
             jb.set_uint("row_count", *row_cnt)?;
@@ -290,13 +292,16 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             length: _,
             field_count,
             fields: _,
+            ..
         }) => {
+            jb.set_bool("row_description_malformed", res.is_malformed())?;
             jb.set_uint("field_count", *field_count)?;
         }
         PgsqlBEMessage::ConsolidatedDataRow(ConsolidatedDataRowPacket {
             identifier: _,
             row_cnt,
             data_size,
+            ..
         }) => {
             jb.set_uint("data_rows", *row_cnt)?;
             jb.set_uint("data_size", *data_size)?;

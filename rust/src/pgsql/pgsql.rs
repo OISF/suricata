@@ -431,6 +431,7 @@ impl PgsqlState {
                         {
                             let consolidated_copy_data =
                                 PgsqlFEMessage::ConsolidatedCopyDataIn(ConsolidatedDataRowPacket {
+                                    is_malformed: false,
                                     identifier: b'd',
                                     row_cnt: tx.get_row_cnt(),
                                     data_size: tx.data_size, // total byte count of all copy_data messages combined
@@ -640,6 +641,9 @@ impl PgsqlState {
                             tx.tx_res_state = PgsqlTxProgress::Received;
                         }
                         if matches!(response, PgsqlBEMessage::ConsolidatedDataRow(_)) {
+                            if response.is_malformed() {
+                                tx.tx_data.set_event(PgsqlEvent::MalformedResponse as u8);
+                            }
                             tx.incr_row_cnt();
                         } else if matches!(response, PgsqlBEMessage::CommandComplete(_))
                             && tx.get_row_cnt() > 0
@@ -647,6 +651,7 @@ impl PgsqlState {
                             // let's summarize the info from the data_rows in one response
                             let consolidated_data_row =
                                 PgsqlBEMessage::ConsolidatedDataRow(ConsolidatedDataRowPacket {
+                                    is_malformed: false,
                                     identifier: b'D',
                                     row_cnt: tx.get_row_cnt(),
                                     data_size: tx.data_size, // total byte count of all data_row messages combined
@@ -664,6 +669,7 @@ impl PgsqlState {
                             // let's summarize the info from the data_rows in one response
                             let consolidated_copy_data = PgsqlBEMessage::ConsolidatedCopyDataOut(
                                 ConsolidatedDataRowPacket {
+                                    is_malformed: false,
                                     identifier: b'd',
                                     row_cnt: tx.get_row_cnt(),
                                     data_size: tx.data_size, // total byte count of all data_row messages combined
