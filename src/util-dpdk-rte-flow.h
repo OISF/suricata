@@ -16,32 +16,42 @@
  */
 
 /**
+ *  \defgroup dpdk DPDK rte_flow rules util functions
+ *
+ *  @{
+ */
+
+/**
  * \file
  *
  * \author Adam Kiripolsky <adam.kiripolsky@cesnet.cz>
+ *
+ * DPDK rte_flow rules util functions
+ *
  */
 
-#ifndef UTIL_DPDK_RSS
-#define UTIL_DPDK_RSS
-
-#include "suricata-common.h"
+#ifndef SURICATA_RTE_FLOW_RULES_H
+#define SURICATA_RTE_FLOW_RULES_H
 
 #ifdef HAVE_DPDK
 
-#include "util-dpdk.h"
+#include "conf.h"
+#include "flow-bypass.h"
+#include "flow-hash.h"
+#include "util-dpdk-common.h"
+#include "util-dpdk-rte-flow-structs.h"
 
-#define RSS_HKEY_LEN 40
-
-extern uint8_t RSS_HKEY[];
-
-struct rte_flow_action_rss DPDKInitRSSAction(struct rte_eth_rss_conf rss_conf, int nb_rx_queues,
-        uint16_t *queues, enum rte_eth_hash_function func, bool set_key);
-int DPDKCreateRSSFlowGeneric(
-        int port_id, const char *port_name, struct rte_flow_action_rss rss_conf, uint32_t group);
-int DPDKSetRSSFlowQueues(int port_id, const char *port_name, struct rte_flow_action_rss rss_conf);
-int DPDKCreateRSSFlow(int port_id, const char *port_name, struct rte_flow_action_rss rss_conf,
-        uint64_t rss_type, struct rte_flow_item *pattern);
+int ConfigSetCaptureBypass(DPDKIfaceConfig *);
+int RteBypassInit(DPDKIfaceConfig *iconf, const char *driver_name);
+int RteFlowCreateJumpRule(uint16_t port_id);
+int RteFlowBypassCallback(Packet *);
+int RteFlowBypassRuleLoad(
+        ThreadVars *th_v, struct flows_stats *bypassstats, struct timespec *curtime, void *data);
+bool RteBypassUpdate(Flow *flow, void *data, time_t tsec);
+void RteBypassFree(void *data);
 
 #endif /* HAVE_DPDK */
-
-#endif /* UTIL_DPDK_RSS */
+#endif /* SURICATA_RTE_FLOW_RULES_H */
+/**
+ * @}
+ */

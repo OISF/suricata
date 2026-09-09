@@ -836,6 +836,12 @@ static inline bool FlowIsTimedOut(
         const FlowThreadId ftid, const Flow *f, const SCTime_t pktts, const bool emerg)
 {
     SCTime_t timesout_at;
+#ifdef CAPTURE_OFFLOAD
+    /* FlowManager handles timeout of capture-bypassed flows, as only it has the necessary means to
+     * check the flow activity properly (BypassUpdate() callback) */
+    if (f->flow_state == FLOW_STATE_CAPTURE_BYPASSED)
+        return false;
+#endif /* CAPTURE_OFFLOAD */
     if (emerg) {
         extern FlowProtoTimeout flow_timeouts_emerg[FLOW_PROTO_MAX];
         timesout_at = SCTIME_ADD_SECS(f->lastts,
@@ -1049,7 +1055,7 @@ Flow *FlowGetExistingFlowFromFlowId(uint64_t flow_id)
  *  \param hash Value of the flow hash
  *  \retval f *LOCKED* flow or NULL
  */
-static Flow *FlowGetExistingFlowFromHash(FlowKey *key, const uint32_t hash)
+Flow *FlowGetExistingFlowFromHash(FlowKey *key, const uint32_t hash)
 {
     /* get our hash bucket and lock it */
     FlowBucket *fb = &flow_hash[hash % flow_config.hash_size];
