@@ -1160,6 +1160,9 @@ void StatsInit(void)
     }
 
     StatsPublicThreadContextInit(&stats_ctx->global_counter_ctx);
+
+    StatsRegisterRateCounter("stats.pps", "decoder.pkts");
+    StatsRegisterRateCounter("stats.bps", "decoder.bytes");
 }
 
 void StatsSetupPostConfigPreOutput(void)
