@@ -170,6 +170,7 @@ StatsCounterId StatsRegisterCounter(const char *, StatsThreadContext *);
 StatsCounterAvgId StatsRegisterAvgCounter(const char *, StatsThreadContext *);
 StatsCounterMaxId StatsRegisterMaxCounter(const char *, StatsThreadContext *);
 StatsCounterGlobalId StatsRegisterGlobalCounter(const char *cname, uint64_t (*Func)(void));
+StatsCounterRateId StatsRegisterRateCounter(const char *name, const char *source_name);
 
 StatsCounterDeriveId StatsRegisterDeriveDivCounter(
         const char *cname, const char *dname1, const char *dname2, StatsThreadContext *);
