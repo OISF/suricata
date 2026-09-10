@@ -117,6 +117,37 @@ pub fn parse_rpc_gssapi_integrity(i: &[u8]) -> IResult<&[u8], RpcGssApiIntegrity
     Ok((i, res))
 }
 
+/// Outcome of locating the v4 compound to scan inside a possibly
+/// RPCSEC_GSS integrity wrapped prog_data.
+#[derive(Debug, PartialEq, Eq)]
+pub enum GssCompoundScan<'a> {
+    /// Scan this compound data (unwrapped, or no wrapper at all).
+    Compound(&'a [u8]),
+    /// The integrity envelope is not fully buffered yet; it declares less than
+    /// RPC_MAX_CREDS_SIZE bytes, so the record completes before the scan is definitive.
+    EnvelopeIncomplete,
+    /// The claimed envelope length fails the bounds check: definitive malformed
+    /// (the full record path rejects it the same way).
+    EnvelopeMalformed,
+}
+
+/// `gss_proc`/`gss_service` carry the request's RPCSEC_GSS credential combination
+/// (header on the request side, xidmap on the response). Only the (0, 2) combination
+/// the full record path unwraps is unwrapped here, so both always see the same compound.
+pub fn gss_compound_scan_data<'a>(
+    gss_proc: u32, gss_service: u32, prog_data: &'a [u8],
+) -> GssCompoundScan<'a> {
+    if gss_proc == 0 && gss_service == 2 {
+        match parse_rpc_gssapi_integrity(prog_data) {
+            Ok((_rem, ref rec)) => GssCompoundScan::Compound(rec.data),
+            Err(Err::Incomplete(_)) => GssCompoundScan::EnvelopeIncomplete,
+            Err(_) => GssCompoundScan::EnvelopeMalformed,
+        }
+    } else {
+        GssCompoundScan::Compound(prog_data)
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct RpcPacketHeader {
     pub frag_is_last: bool,
@@ -463,5 +494,63 @@ mod tests {
                 panic!("failed {:?}", r);
             }
         }
+    }
+
+    #[test]
+    fn test_gss_compound_scan_data_unwrap() {
+        // (0, 2): the envelope is unwrapped, the compound is what scans
+        let compound: &[u8] = &[0x00, 0x00, 0x00, 0x01]; // a compound head
+        let mut envelope: Vec<u8> = Vec::new();
+        envelope.extend_from_slice(&((compound.len()) as u32).to_be_bytes()); // len
+        envelope.extend_from_slice(&1u32.to_be_bytes()); // seqnum
+        envelope.extend_from_slice(compound); // data
+        let r = gss_compound_scan_data(0, 2, &envelope[..]);
+        match r {
+            GssCompoundScan::Compound(d) => assert_eq!(d, compound),
+            _ => panic!("unexpected {:?}", r),
+        }
+    }
+
+    #[test]
+    fn test_gss_compound_scan_data_no_wrapper() {
+        // non-GSS requests: prog_data is scanned as-is
+        let prog: &[u8] = &[0x00, 0x00, 0x00, 0x02];
+        assert_eq!(
+            gss_compound_scan_data(0, 0, prog),
+            GssCompoundScan::Compound(prog)
+        );
+        // other GSS combinations are not unwrapped (the full record path
+        // does not unwrap them either)
+        assert_eq!(
+            gss_compound_scan_data(1, 0, prog),
+            GssCompoundScan::Compound(prog)
+        );
+    }
+
+    #[test]
+    fn test_gss_compound_scan_data_envelope_incomplete() {
+        // the envelope claims 100 bytes, only 4 are buffered: bounded
+        // incomplete, not a reject
+        let mut envelope: Vec<u8> = Vec::new();
+        envelope.extend_from_slice(&100u32.to_be_bytes());
+        envelope.extend_from_slice(&1u32.to_be_bytes());
+        assert_eq!(
+            gss_compound_scan_data(0, 2, &envelope[..]),
+            GssCompoundScan::EnvelopeIncomplete
+        );
+    }
+
+    #[test]
+    fn test_gss_compound_scan_data_envelope_malformed() {
+        // the envelope claims more than the bounds check allows:
+        // definitive malformed, as the full record path decides
+        let mut envelope: Vec<u8> = Vec::new();
+        envelope.extend_from_slice(&RPC_MAX_CREDS_SIZE.to_be_bytes());
+        envelope.extend_from_slice(&1u32.to_be_bytes());
+        envelope.extend_from_slice(&[0u8; 16]);
+        assert_eq!(
+            gss_compound_scan_data(0, 2, &envelope[..]),
+            GssCompoundScan::EnvelopeMalformed
+        );
     }
 }

@@ -43,6 +43,7 @@ use crate::frames::*;
 
 use crate::nfs::nfs2_records::*;
 use crate::nfs::nfs3_records::*;
+use crate::nfs::nfs4_records::*;
 use crate::nfs::nfs_records::*;
 use crate::nfs::rpc_records::*;
 use crate::nfs::types::*;
@@ -111,6 +112,12 @@ pub static mut NFS_CFG_MAX_READ_QUEUE_CNT: u32 = 64;
 pub static mut NFS_CFG_MAX_WRITE_QUEUE_SIZE: u32 = 67108864;
 /// Max queued (out-of-order) write chunks. 0 = no limit.
 pub static mut NFS_CFG_MAX_WRITE_QUEUE_CNT: u32 = 64;
+/// Max claimed size of a single WRITE request (bytes). Larger requests
+/// are rejected with an event and their payload remainder skipped.
+pub static mut NFS_CFG_MAX_WRITE_SIZE: u32 = 16777216;
+/// Max data size of a single READ response (bytes). Larger responses
+/// are rejected with an event.
+pub static mut NFS_CFG_MAX_READ_SIZE: u32 = 16777216;
 
 #[derive(AppLayerFrameType)]
 pub enum NFSFrameType {
@@ -142,6 +149,10 @@ pub enum NFSEvent {
     WriteQueueSizeExceeded = 6,
     /// Number of queued (out-of-order) write chunks exceeds `max-write-queue-cnt`
     WriteQueueCntExceeded = 7,
+    /// WRITE request claims more data than the configured `max-write-size`
+    WriteRequestTooLarge = 8,
+    /// READ response returns more data than the configured `max-read-size`
+    ReadResponseTooLarge = 9,
 }
 
 #[derive(Debug)]
@@ -1067,11 +1078,6 @@ impl NFSState {
             fill_bytes = 4 - pad;
         }
 
-        // linux defines a max of 1mb. Allow several multiples.
-        if w.count == 0 || w.count > 16777216 {
-            return 0;
-        }
-
         // for now assume that stable FILE_SYNC flags means a single chunk
         let is_last = w.stable == 2;
         let file_handle = w.handle.value.to_vec();
@@ -1082,6 +1088,50 @@ impl NFSState {
             SCLogDebug!("WRITE object {:?} not found", w.handle.value);
             Vec::new()
         };
+
+        if w.count == 0 {
+            return 0;
+        }
+
+        // Oversized WRITE: log + skip to the record boundary to stay in sync.
+        // A zero limit disables the check.
+        let max_write_size = unsafe { NFS_CFG_MAX_WRITE_SIZE };
+        if max_write_size != 0 && w.count > max_write_size {
+            let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
+            tx.procedure = NFSPROC3_WRITE;
+            tx.xid = r.hdr.xid;
+            tx.is_first = true;
+            tx.nfs_version = r.progver as u16;
+            tx.request_done = true;
+            tx.response_done = true;
+            // Close the file transaction so a later same-handle
+            // operation cannot reuse this rejected one.
+            tx.is_file_closed = true;
+            tx.tx_data.set_event(NFSEvent::WriteRequestTooLarge as u8);
+            // Complete the rejected transaction immediately: without
+            // this the tx and its event only surface at flow teardown.
+            tx.tx_data.0.updated_ts = true;
+            tx.tx_data.0.updated_tc = true;
+            // Rejected tx never opened a file: zero files_opened, else the tx
+            // (and file) stays live until teardown and grows unbounded on repeats.
+            tx.tx_data.0.files_opened = 0;
+            // Skip to the RPC record boundary: claim vs data can disagree, and
+            // claimed-count math lands mid-padding or in a later record.
+            let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+            if !self.is_udp {
+                self.set_skip(Direction::ToServer, pending);
+                self.ts_chunk_xid = 0;
+                self.ts_chunk_left = 0;
+                self.ts_chunk_fh.clear();
+            }
+            SCLogDebug!(
+                "WRITE too large (claim {} > {}): skipping {} stream bytes",
+                w.count,
+                unsafe { NFS_CFG_MAX_WRITE_SIZE },
+                pending
+            );
+            return 0;
+        }
 
         let mut queue_event: Option<NFSEvent> = None;
         let mut queue_exceeded = false;
@@ -1203,6 +1253,126 @@ impl NFSState {
         self.requestmap.put(r.hdr.xid, xidmap);
 
         return self.process_write_record(flow, r, w);
+    }
+    /// Reject a partial v4 WRITE compound whose claimed length exceeds the
+    /// limit: log the tx and skip the record so the data blob is never buffered.
+    fn process_partial_v4_write_request_record<'b>(&mut self, r: &RpcPacket<'b>) {
+        SCLogDebug!(
+            "REQUEST {} partial v4 WRITE rejected: claim exceeds {}",
+            r.hdr.xid,
+            unsafe { NFS_CFG_MAX_WRITE_SIZE }
+        );
+
+        let xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
+        self.requestmap.put(r.hdr.xid, xidmap);
+
+        let tx = self.new_file_tx(&b""[..], &b""[..], Direction::ToServer);
+        tx.procedure = NFSPROC4_WRITE;
+        tx.xid = r.hdr.xid;
+        tx.is_first = true;
+        tx.nfs_version = 4;
+        tx.request_done = true;
+        tx.response_done = true;
+        // Close the file transaction so a later same-handle
+        // operation cannot reuse this rejected one.
+        tx.is_file_closed = true;
+        tx.tx_data.set_event(NFSEvent::WriteRequestTooLarge as u8);
+        // Complete the rejected transaction immediately: without
+        // this the tx and its event only surface at flow teardown.
+        tx.tx_data.0.updated_ts = true;
+        tx.tx_data.0.updated_tc = true;
+        // Rejected tx never opened a file: zero files_opened, else the tx
+        // (and file) stays live until teardown and grows unbounded on repeats.
+        tx.tx_data.0.files_opened = 0;
+        // Skip to the RPC record boundary: claim vs data can disagree, and
+        // claimed-count math lands mid-padding or in a later record.
+        let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+        self.set_skip(Direction::ToServer, pending);
+        self.ts_chunk_xid = 0;
+        self.ts_chunk_left = 0;
+        SCLogDebug!(
+            "v4 WRITE too large (record claim {} > {}): skipping {} stream bytes",
+            r.prog_data_size,
+            unsafe { NFS_CFG_MAX_WRITE_SIZE },
+            pending
+        );
+    }
+
+    /// Mark a partially buffered v4 COMPOUND request record as malformed and
+    /// skip it so the (attacker-controlled) record length is never buffered:
+    /// the scanner's structural errors (op count above the bound, unknown
+    /// leading op) are definitive from the bytes already seen, and the full
+    /// record parser rejects the same record.
+    fn process_partial_v4_malformed_request_record<'b>(&mut self, r: &RpcPacket<'b>) {
+        SCLogDebug!(
+            "REQUEST {} partial v4 COMPOUND rejected: structural scan error",
+            r.hdr.xid
+        );
+        // A definitive structural error from the buffered bytes: log a
+        // malformed tx for the record and skip it (bounded fallback; no
+        // buffering toward the claimed record length).
+        let mut tx = self.new_tx();
+        tx.xid = r.hdr.xid;
+        tx.procedure = r.procedure;
+        tx.nfs_version = r.progver as u16;
+        tx.request_done = true;
+        tx.response_done = true;
+        tx.is_file_closed = true;
+        tx.tx_data.set_event(NFSEvent::MalformedData as u8);
+        tx.tx_data.0.updated_ts = true;
+        tx.tx_data.0.updated_tc = true;
+        self.transactions.push(tx);
+        // Mirror the full record path: register the xid so a matching reply
+        // is processed like any other v4 request.
+        let xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
+        self.requestmap.put(r.hdr.xid, xidmap);
+        // Skip to the RPC record boundary without buffering the claimed rest
+        // of the record.
+        let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+        self.set_skip(Direction::ToServer, pending);
+        self.ts_chunk_xid = 0;
+        self.ts_chunk_left = 0;
+        SCLogDebug!(
+            "v4 COMPOUND malformed (record claim {}): skipping {} stream bytes",
+            r.prog_data_size,
+            pending
+        );
+    }
+
+    /// Mark a partially buffered v4 COMPOUND reply record as malformed and
+    /// skip it (bounded fallback; cf.
+    /// process_partial_v4_malformed_request_record).
+    fn process_partial_v4_malformed_response_record<'b>(&mut self, r: &RpcReplyPacket<'b>) {
+        SCLogDebug!(
+            "REPLY {} partial v4 COMPOUND rejected: structural scan error",
+            r.hdr.xid
+        );
+        // Same bounded fallback on the response side: malformed tx + skip
+        // the record, no buffering toward the claimed length.
+        let mut tx = self.new_tx();
+        tx.xid = r.hdr.xid;
+        tx.nfs_version = self.nfs_version;
+        tx.request_done = true;
+        tx.response_done = true;
+        tx.is_file_closed = true;
+        tx.tx_data.set_event(NFSEvent::MalformedData as u8);
+        tx.tx_data.0.updated_ts = true;
+        tx.tx_data.0.updated_tc = true;
+        self.transactions.push(tx);
+        // Skip to the RPC record boundary without buffering the claimed rest
+        // of the record.
+        // NB: no requestmap entry is left behind: a reply to this (already
+        // rejected) request is dropped by process_reply_record with no
+        // event -- the request-side MalformedData tx is the only signal.
+        let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+        self.set_skip(Direction::ToClient, pending);
+        self.tc_chunk_xid = 0;
+        self.tc_chunk_left = 0;
+        SCLogDebug!(
+            "v4 COMPOUND reply malformed (record claim {}): skipping {} stream bytes",
+            r.prog_data_size,
+            pending
+        );
     }
 
     fn process_reply_record(
@@ -1416,8 +1586,7 @@ impl NFSState {
             fill_bytes = 4 - pad;
         }
 
-        // linux defines a max of 1mb. Allow several multiples.
-        if reply.count == 0 || reply.count > 16777216 {
+        if reply.count == 0 {
             return 0;
         }
 
@@ -1435,11 +1604,79 @@ impl NFSState {
                     chunk_offset = xidmap.chunk_offset;
                     nfs_version = xidmap.progver;
                 } else {
+                    // Unknown xid (unsolicited reply): the data cannot be
+                    // associated. Skip to the record boundary instead of
+                    // leaving the stream buffered toward the claim.
+                    let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+                    self.set_skip(Direction::ToClient, pending);
                     return 0;
                 }
             }
         }
         SCLogDebug!("chunk_offset {}", chunk_offset);
+
+        // Oversized READ reply: reject with an event, log the file state as
+        // a tx when one doesn't exist, and skip the payload tail to stay in sync.
+        // A zero limit disables the check.
+        let max_read_size = unsafe { NFS_CFG_MAX_READ_SIZE };
+        if max_read_size != 0 && reply.count > max_read_size {
+            let event = NFSEvent::ReadResponseTooLarge;
+            match self.get_file_tx_by_handle(&file_handle, Direction::ToClient) {
+                Some(tx) => {
+                    // Rejected response is the final word for this read:
+                    // complete the tx so it is actually logged.
+                    tx.tx_data.set_event(event as u8);
+                    tx.is_last = true;
+                    tx.request_done = true;
+                    tx.response_done = true;
+                    // Close it so a later same-handle op cannot reuse it.
+                    tx.is_file_closed = true;
+                    tx.tx_data.0.updated_ts = true;
+                    tx.tx_data.0.updated_tc = true;
+                    // Read can no longer complete: truncate the file so it is
+                    // logged now and the tx accounting balances.
+                    if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                        filetracker_trunc(&mut tdf.file_tracker);
+                    }
+                }
+                None => {
+                    let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToClient);
+                    tx.procedure = if nfs_version < 4 {
+                        NFSPROC3_READ
+                    } else {
+                        NFSPROC4_READ
+                    };
+                    tx.xid = r.hdr.xid;
+                    tx.is_first = true;
+                    tx.is_last = true;
+                    tx.request_done = true;
+                    tx.response_done = true;
+                    tx.is_file_closed = true;
+                    tx.nfs_version = if nfs_version < 4 { 3 } else { 4 };
+                    tx.tx_data.set_event(event as u8);
+                    tx.tx_data.0.updated_ts = true;
+                    tx.tx_data.0.updated_tc = true;
+                    // Rejected tx never opened a file: zero files_opened, else it
+                    // stays live until teardown and grows unbounded on repeats.
+                    tx.tx_data.0.files_opened = 0;
+                }
+            }
+            // Skip to the RPC record boundary: claim vs data can disagree, and
+            // claimed-count math lands mid-padding or in a later record.
+            let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+            if !self.is_udp {
+                self.set_skip(Direction::ToClient, pending);
+                self.tc_chunk_xid = 0;
+                self.tc_chunk_left = 0;
+            }
+            SCLogDebug!(
+                "READ too large ({} > {}): skipping {} stream bytes",
+                reply.count,
+                unsafe { NFS_CFG_MAX_READ_SIZE },
+                pending
+            );
+            return 0;
+        }
 
         let mut is_last = reply.eof;
         SCLogDebug!(
@@ -1739,6 +1976,68 @@ impl NFSState {
                     }
                 }
             }
+            // NFSv4 WRITE data is inside a compound op: scan the compound to
+            // the claimed write length so oversized records are rejected + skipped
+            // before the RPC fragment (up to the 31-bit record length) is buffered.
+            if phdr.progver == 4 && phdr.procedure == NFSPROC4_COMPOUND {
+                let max_write = unsafe { NFS_CFG_MAX_WRITE_SIZE };
+                // a zero limit disables the check
+                if max_write != 0 {
+                    match parse_rpc(cur_i, false) {
+                        Ok((_rem, ref hdr)) => {
+                            // RPCSEC_GSS integrity compounds arrive wrapped
+                            // (length, seqnum, data): unwrap the same way the
+                            // full record path does before scanning. Scanning
+                            // the raw envelope would read the envelope length
+                            // as the compound tag length and stay incomplete
+                            // while buffering toward the claimed record size
+                            // (Redmine #8791).
+                            let (gss_proc, gss_service) = match &hdr.creds {
+                                RpcRequestCreds::GssApi(ref g) => (g.procedure, g.service),
+                                _ => (0, 0),
+                            };
+                            let scanres = match gss_compound_scan_data(
+                                gss_proc,
+                                gss_service,
+                                hdr.prog_data,
+                            ) {
+                                GssCompoundScan::Compound(data) => {
+                                    scan_nfs4_request_compound_write_len(data, max_write)
+                                }
+                                GssCompoundScan::EnvelopeIncomplete => Nfs4CompoundScan::Incomplete,
+                                GssCompoundScan::EnvelopeMalformed => Nfs4CompoundScan::Malformed,
+                            };
+                            match scanres {
+                                Nfs4CompoundScan::Oversized(_write_len) => {
+                                    self.process_partial_v4_write_request_record(hdr);
+                                    return AppLayerResult::ok();
+                                }
+                                // A structurally malformed compound is
+                                // definitive from the buffered bytes: skip it
+                                // instead of buffering toward the claimed
+                                // (attacker-controlled) record length.
+                                Nfs4CompoundScan::Malformed => {
+                                    self.process_partial_v4_malformed_request_record(hdr);
+                                    return AppLayerResult::ok();
+                                }
+                                // Incomplete: the scan needs more data.
+                                // Clean: no oversized op found. Both fall
+                                // through to the normal incomplete handling.
+                                Nfs4CompoundScan::Incomplete | Nfs4CompoundScan::Clean => {}
+                            }
+                        }
+                        Err(Err::Incomplete(_)) => {
+                            // normal: the compound scan needs more data
+                            SCLogDebug!("TS v4 data incomplete");
+                        }
+                        Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
+                            self.set_event(NFSEvent::MalformedData);
+                            SCLogDebug!("Parsing failed: {:?}", _e);
+                            return AppLayerResult::err();
+                        }
+                    }
+                }
+            }
         }
         // make sure we pass a value higher than current input
         // but lower than the record size
@@ -1888,6 +2187,42 @@ impl NFSState {
         &mut self, flow: *mut Flow, base_input: &'b [u8], cur_i: &'b [u8], phdr: &RpcPacketHeader,
         rec_size: usize,
     ) -> AppLayerResult {
+        // A partial reply that cannot carry file data must never be buffered
+        // toward its claimed length (31-bit, attacker-controlled): a
+        // legitimate reply always follows its request on this flow, so an
+        // unknown xid or a non-file procedure (only READ replies carry file
+        // data) means the record is unsolicited or a lost request's reply.
+        // Skip to the claimed record boundary instead.
+        match parse_rpc_reply(cur_i, false) {
+            Ok((_, ref hdr)) => {
+                let carries_file_data = self
+                    .requestmap
+                    .get(&hdr.hdr.xid)
+                    .map(|xm| xm.procedure == NFSPROC3_READ || xm.procedure == NFSPROC4_COMPOUND)
+                    .unwrap_or(false);
+                if !carries_file_data {
+                    let pending = hdr
+                        .prog_data_size
+                        .saturating_sub(hdr.prog_data.len() as u32);
+                    self.set_skip(Direction::ToClient, pending);
+                    SCLogDebug!(
+                        "partial reply xid {:08X} carries no file data: skipping {} stream bytes",
+                        hdr.hdr.xid,
+                        pending
+                    );
+                    return AppLayerResult::ok();
+                }
+            }
+            Err(Err::Incomplete(_)) => {
+                // not enough header bytes yet: keep buffering (bounded by the
+                // 28-byte header) and fall through to the incomplete handling
+            }
+            Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
+                self.set_event(NFSEvent::MalformedData);
+                SCLogDebug!("Parsing failed: {:?}", _e);
+                return AppLayerResult::err();
+            }
+        }
         // special case: avoid buffering file read blobs
         // as these can be large.
         if rec_size >= 512 && cur_i.len() >= 128 {
@@ -1934,6 +2269,81 @@ impl NFSState {
                         self.set_event(NFSEvent::MalformedData);
                         SCLogDebug!("Parsing failed: {:?}", _e);
                         return AppLayerResult::err();
+                    }
+                }
+            }
+            // NFSv4 READ data is inside a COMPOUND reply: scan the compound to
+            // the claimed read length so oversized replies are rejected + skipped
+            // before the RPC fragment (up to the 31-bit record length) is buffered.
+            if self.peek_reply_record(phdr) == NFSPROC4_COMPOUND {
+                let max_read = unsafe { NFS_CFG_MAX_READ_SIZE };
+                // a zero limit disables the check
+                if max_read != 0 {
+                    // the request recorded its RPCSEC_GSS credential
+                    // combination in the xidmap; integrity-wrapped
+                    // compounds (procedure 0, service 2) must be unwrapped
+                    // before scanning, exactly like the full record path
+                    let gss_integrity = self
+                        .requestmap
+                        .get(&phdr.xid)
+                        .map(|xm| xm.gssapi_proc == 0 && xm.gssapi_service == 2)
+                        .unwrap_or(false);
+                    match parse_rpc_reply(cur_i, false) {
+                        Ok((_rem, ref hdr)) => {
+                            let scanres = if gss_integrity {
+                                match gss_compound_scan_data(0, 2, hdr.prog_data) {
+                                    GssCompoundScan::Compound(data) => {
+                                        scan_nfs4_response_compound_read_len(data, max_read)
+                                    }
+                                    GssCompoundScan::EnvelopeIncomplete => {
+                                        Nfs4CompoundScan::Incomplete
+                                    }
+                                    GssCompoundScan::EnvelopeMalformed => {
+                                        Nfs4CompoundScan::Malformed
+                                    }
+                                }
+                            } else {
+                                scan_nfs4_response_compound_read_len(hdr.prog_data, max_read)
+                            };
+                            match scanres {
+                                Nfs4CompoundScan::Oversized(read_len) => {
+                                    // run the shared reject path (transaction
+                                    // handling + skip) with the claimed length
+                                    let reply = NfsReplyRead {
+                                        status: 0,
+                                        attr_follows: 0,
+                                        attr_blob: &[],
+                                        count: read_len,
+                                        eof: false,
+                                        data_len: 0,
+                                        data: &[],
+                                    };
+                                    self.process_read_record(flow, hdr, &reply, None);
+                                    return AppLayerResult::ok();
+                                }
+                                // A structurally malformed compound is
+                                // definitive from the buffered bytes: skip it
+                                // instead of buffering toward the claimed
+                                // (attacker-controlled) record length.
+                                Nfs4CompoundScan::Malformed => {
+                                    self.process_partial_v4_malformed_response_record(hdr);
+                                    return AppLayerResult::ok();
+                                }
+                                // Incomplete: the scan needs more data.
+                                // Clean: no oversized op found. Both fall
+                                // through to the normal incomplete handling.
+                                Nfs4CompoundScan::Incomplete | Nfs4CompoundScan::Clean => {}
+                            }
+                        }
+                        Err(Err::Incomplete(_)) => {
+                            // normal: the compound scan needs more data
+                            SCLogDebug!("TC v4 data incomplete");
+                        }
+                        Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
+                            self.set_event(NFSEvent::MalformedData);
+                            SCLogDebug!("Parsing failed: {:?}", _e);
+                            return AppLayerResult::err();
+                        }
                     }
                 }
             }
@@ -2107,9 +2517,25 @@ impl NFSState {
                         _ => {}
                     }
                 }
-                Err(Err::Incomplete(_)) => {}
-                Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
-                    SCLogDebug!("Parsing failed: {:?}", _e);
+                Err(_e) => {
+                    // UDP: a datagram cannot be completed by a later one; an
+                    // unparseable one is corrupt -> log it and drop just this
+                    // datagram. Records are self-delimited (no stream to keep
+                    // in sync), so abandoning the whole flow would let a single
+                    // crafted datagram suppress inspection of everything after.
+                    SCLogDebug!("UDP ts parse failed: {:?}", _e);
+                    if self.is_udp {
+                        let mut tx = self.new_tx();
+                        tx.nfs_version = self.nfs_version;
+                        tx.request_done = true;
+                        tx.response_done = true;
+                        tx.is_file_closed = true;
+                        tx.tx_data.set_event(NFSEvent::MalformedData as u8);
+                        tx.tx_data.0.updated_ts = true;
+                        tx.tx_data.0.updated_tc = true;
+                        self.transactions.push(tx);
+                        return AppLayerResult::ok();
+                    }
                 }
             }
         }
@@ -2128,9 +2554,23 @@ impl NFSState {
                     self.add_rpc_udp_tc_frames(flow, stream_slice, input, input.len() as i64);
                     self.process_reply_record(flow, stream_slice, rpc_record);
                 }
-                Err(Err::Incomplete(_)) => {}
-                Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
-                    SCLogDebug!("Parsing failed: {:?}", _e);
+                Err(_e) => {
+                    // See the parse_udp_ts arm above: a corrupt datagram on a
+                    // locked-in UDP flow is logged and dropped (datagram only,
+                    // the flow keeps being inspected).
+                    SCLogDebug!("UDP tc parse failed: {:?}", _e);
+                    if self.is_udp {
+                        let mut tx = self.new_tx();
+                        tx.nfs_version = self.nfs_version;
+                        tx.request_done = true;
+                        tx.response_done = true;
+                        tx.is_file_closed = true;
+                        tx.tx_data.set_event(NFSEvent::MalformedData as u8);
+                        tx.tx_data.0.updated_ts = true;
+                        tx.tx_data.0.updated_tc = true;
+                        self.transactions.push(tx);
+                        return AppLayerResult::ok();
+                    }
                 }
             }
         }
@@ -2504,11 +2944,8 @@ unsafe extern "C" fn nfs_probe_udp_tc(
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"nfs\0";
 
-/// Load the NFS queue limits from the config.
-///
-/// Called from both the TCP and the UDP parser registration so that
-/// single-transport configurations (e.g. UDP only) also load the
-/// configured limits instead of silently keeping the defaults.
+/// Load the NFS queue and record-size limits from the config. Called from
+/// both TCP and UDP registration so single-transport configs load them.
 unsafe fn load_nfs_limit_config() {
     let retval = conf_get("app-layer.protocols.nfs.max-read-queue-size");
     if let Some(val) = retval {
@@ -2556,6 +2993,40 @@ unsafe fn load_nfs_limit_config() {
             NFS_CFG_MAX_WRITE_QUEUE_CNT = v;
         } else {
             SCLogError!("Invalid max-write-queue-cnt value");
+        }
+    }
+    let retval = conf_get("app-layer.protocols.nfs.max-write-size");
+    if let Some(val) = retval {
+        match get_memval(val) {
+            Ok(v) => match u32::try_from(v) {
+                Ok(v32) => {
+                    // a value of 0 disables the check (documented)
+                    NFS_CFG_MAX_WRITE_SIZE = v32;
+                }
+                Err(_) => {
+                    SCLogError!("Invalid max-write-size value (too large)");
+                }
+            },
+            Err(_) => {
+                SCLogError!("Invalid max-write-size value");
+            }
+        }
+    }
+    let retval = conf_get("app-layer.protocols.nfs.max-read-size");
+    if let Some(val) = retval {
+        match get_memval(val) {
+            Ok(v) => match u32::try_from(v) {
+                Ok(v32) => {
+                    // a value of 0 disables the check (documented)
+                    NFS_CFG_MAX_READ_SIZE = v32;
+                }
+                Err(_) => {
+                    SCLogError!("Invalid max-read-size value (too large)");
+                }
+            },
+            Err(_) => {
+                SCLogError!("Invalid max-read-size value");
+            }
         }
     }
 }
