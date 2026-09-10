@@ -17,11 +17,11 @@
 
 //! Nom parsers for NFSv4 records
 use nom7::bytes::streaming::{tag, take};
-use nom7::combinator::{complete, cond, map, peek, rest, verify};
+use nom7::combinator::{complete, cond, map, peek, verify};
 use nom7::error::{make_error, ErrorKind};
 use nom7::multi::{count, many_till};
 use nom7::number::streaming::{be_u32, be_u64};
-use nom7::{Err, IResult};
+use nom7::{Err, IResult, Needed};
 
 use crate::nfs::types::*;
 
@@ -198,17 +198,19 @@ pub struct Nfs4RequestCreateSession<'a> {
 }
 
 fn nfs4_req_create_session(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent<'_>> {
+    // Parsed exactly op by op (clientid, seqid, flags, channel attrs, cb
+    // prog/ver, machine name): a blanket rest() would swallow every following
+    // op, so a later oversized WRITE is only "seen" once the full record buffers.
     let (i, client_id) = take(8_usize)(i)?;
     let (i, seqid) = be_u32(i)?;
     let (i, _flags) = be_u32(i)?;
     let (i, _fore_chan_attrs) = take(28_usize)(i)?;
     let (i, _back_chan_attrs) = take(28_usize)(i)?;
     let (i, _cb_program) = be_u32(i)?;
-    let (i, _) = be_u32(i)?;
-    let (i, _flavor) = be_u32(i)?;
-    let (i, _stamp) = be_u32(i)?;
+    let (i, _cb_version) = be_u32(i)?;
+    let (i, _g_flavor) = be_u32(i)?;
+    let (i, _g_stamp) = be_u32(i)?;
     let (i, machine_name) = nfs4_parse_nfsstring(i)?;
-    let (i, _) = rest(i)?;
 
     let req = Nfs4RequestContent::CreateSession(Nfs4RequestCreateSession {
         client_id,
@@ -624,6 +626,533 @@ pub fn parse_nfs4_request_compound(i: &[u8]) -> IResult<&[u8], Nfs4RequestCompou
     }
     let (i, commands) = count(parse_request_compound_command, ops_cnt as usize)(i)?;
     Ok((i, Nfs4RequestCompoundRecord { commands }))
+}
+
+// Self-contained leading-op advance for the scanners: declared length fields
+// + XDR padding only (regular parsers are not wire-faithful); untabled ops fall back.
+
+/// Consume `len` bytes plus their XDR padding (bound-checked so the skip
+/// cannot wrap a usize on 32-bit targets).
+fn skip_xdr_bytes(i: &[u8], len: usize) -> IResult<&[u8], ()> {
+    let pad = (4 - (len % 4)) % 4;
+    if i.len() < len || i.len() - len < pad {
+        return Err(Err::Incomplete(Needed::new(1)));
+    }
+    Ok((&i[len + pad..], ()))
+}
+
+fn skip_fixed(i: &[u8], n: usize) -> IResult<&[u8], ()> {
+    if i.len() < n {
+        return Err(Err::Incomplete(Needed::new(1)));
+    }
+    Ok((&i[n..], ()))
+}
+
+/// Consume a length-prefixed XDR string (length + bytes + padding).
+fn skip_len_bytes(i: &[u8]) -> IResult<&[u8], ()> {
+    let (i, len) = be_u32(i)?;
+    skip_xdr_bytes(i, len as usize)
+}
+
+/// Consume a declared sattr4 bitmap: attr_cnt + attr_cnt words, no blob.
+fn skip_attrbits(i: &[u8]) -> IResult<&[u8], ()> {
+    let (i, attr_cnt) = be_u32(i)?;
+    skip_xdr_bytes(i, (attr_cnt as usize).saturating_mul(4))
+}
+
+/// Consume a declared fattr4: attr_cnt + attr_cnt words + the fields blob
+/// (present even when empty).
+fn skip_attrlist(i: &[u8]) -> IResult<&[u8], ()> {
+    let (i, attr_cnt) = be_u32(i)?;
+    let (i, ()) = skip_xdr_bytes(i, (attr_cnt as usize).saturating_mul(4))?;
+    skip_len_bytes(i)
+}
+
+/// Consume a sattr4/fattr4 bitmap the way the parser reads it
+/// (nfs4_parse_attrbits): attr_cnt + mask1 (always) + mask2 (cnt >= 2) + mask3
+/// (cnt == 3). Unlike skip_attrbits this mirrors the parser, not the wire: the
+/// OPEN requests/replies the parser supports carry the mask words it consumes,
+/// and the scan must end where the parser ends.
+fn skip_parser_attrbits(i: &[u8]) -> IResult<&[u8], ()> {
+    let (i, attr_cnt) = be_u32(i)?;
+    let (i, ()) = skip_fixed(i, 4)?;
+    let i = if attr_cnt >= 2 {
+        let (i, ()) = skip_fixed(i, 4)?;
+        i
+    } else {
+        i
+    };
+    let i = if attr_cnt == 3 {
+        let (i, ()) = skip_fixed(i, 4)?;
+        i
+    } else {
+        i
+    };
+    Ok((i, ()))
+}
+
+/// Consume the fattr4/sattr4 fields blob: len + bytes, no XDR pad
+/// (mirrors nfs4_parse_attr_fields).
+fn skip_attr_fields(i: &[u8]) -> IResult<&[u8], ()> {
+    let (i, len) = be_u32(i)?;
+    if i.len() < len as usize {
+        return Err(Err::Incomplete(Needed::new(1)));
+    }
+    Ok((&i[len as usize..], ()))
+}
+
+/// Advance past the arguments of a leading REQUEST op per the wire. Ok
+/// (next op position) for tabled ops; Err(Incomplete) when the declared
+/// fields are not all in the buffer yet; Err(Error(Switch)) for ops that
+/// are not tabled (the caller falls back to the regular parser).
+fn skip_request_lead_op(i: &[u8], cmd: u32) -> IResult<&[u8], ()> {
+    match cmd {
+        NFSPROC4_PUTFH => skip_len_bytes(i),
+        NFSPROC4_GETFH | NFSPROC4_SAVEFH | NFSPROC4_PUTROOTFH => skip_fixed(i, 0),
+        NFSPROC4_RENEW => skip_fixed(i, 8),
+        NFSPROC4_RECLAIM_COMPLETE => skip_fixed(i, 4),
+        // attribute bitmap (getattr4args)
+        NFSPROC4_GETATTR => skip_attrbits(i),
+        // stateid + the parser's attr list (bitmap + fields blob, even
+        // when empty)
+        NFSPROC4_SETATTR => {
+            let (i, ()) = skip_fixed(i, 16)?;
+            skip_attrlist(i)
+        }
+        // seq + stateid
+        NFSPROC4_CLOSE | NFSPROC4_OPEN_CONFIRM => {
+            let (i, ()) = skip_fixed(i, 4)?;
+            skip_fixed(i, 16)
+        }
+        // offset + count
+        NFSPROC4_COMMIT => skip_fixed(i, 12),
+        // stateid + offset + count
+        NFSPROC4_READ => {
+            let (i, ()) = skip_fixed(i, 16)?;
+            skip_fixed(i, 12)
+        }
+        // access bits
+        NFSPROC4_ACCESS => skip_fixed(i, 4),
+        // open4args as nfs4_req_open parses it: seq_id (4) + share_access +
+        // share_deny + client_id (8) + owner (len + bytes, no XDR pad) +
+        // open_type (+ open_data for type 1) + claim_type + name. The parser
+        // reads no claim payload: payload-bearing claims desync it (their
+        // stateid/fh is read as the name length), as do the other
+        // open_types: not skippable.
+        NFSPROC4_OPEN => {
+            let (i, ()) = skip_fixed(i, 20)?;
+            let (i, owner_len) = be_u32(i)?;
+            if i.len() < owner_len as usize {
+                return Err(Err::Incomplete(Needed::new(1)));
+            }
+            let i = &i[owner_len as usize..];
+            let (i, open_type) = be_u32(i)?;
+            let i = if open_type == 1 {
+                let (i, mode) = be_u32(i)?;
+                match mode {
+                    // sattr4 like nfs4_parse_attrs: parser-shaped bitmap +
+                    // the fields blob
+                    0 | 1 => {
+                        let (i, ()) = skip_parser_attrbits(i)?;
+                        let (i, ()) = skip_attr_fields(i)?;
+                        i
+                    }
+                    2 | 3 => {
+                        let (i, ()) = skip_fixed(i, 8)?;
+                        i
+                    }
+                    _ => return Err(Err::Error(make_error(i, ErrorKind::Switch))),
+                }
+            } else if open_type == 0 {
+                i
+            } else {
+                return Err(Err::Error(make_error(i, ErrorKind::Switch)));
+            };
+            // claim4: the parser reads no claim payload (void claims
+            // only): payload-bearing claims (FH, DELEGATE, FH_ONLY and the
+            // v4.2 claims) desync it (the payload is read as the name
+            // length). Only the claims void in every version (NULL=0,
+            // UNIQUE=2) are skippable; the rest are a bounded rejection,
+            // never Incomplete (buffering toward the record claim).
+            let (i, claim_type) = be_u32(i)?;
+            match claim_type {
+                0 | 2 => {}
+                _ => return Err(Err::Error(make_error(i, ErrorKind::Switch))),
+            }
+            skip_len_bytes(i)
+        }
+        // name (XDR string)
+        NFSPROC4_LOOKUP | NFSPROC4_REMOVE => skip_len_bytes(i),
+        // two names
+        NFSPROC4_RENAME => {
+            let (i, ()) = skip_len_bytes(i)?;
+            skip_len_bytes(i)
+        }
+        // cookie + cookie verifier + counts + attribute bitmap
+        NFSPROC4_READDIR => {
+            let (i, ()) = skip_fixed(i, 24)?;
+            skip_attrbits(i)
+        }
+        // stateid
+        NFSPROC4_DELEGRETURN => skip_fixed(i, 16),
+        // NB: CREATE_SESSION is intentionally NOT tabled: its variable-length
+        // / union args can't be reliably skipped; the scanner treats it as
+        // untabled and applies a bounded rejection (scan_*_compound_*_len_i).
+        // ftype (+ link content when NF4LNK) + name + attribute list
+        NFSPROC4_CREATE => {
+            let (i, ftype) = be_u32(i)?;
+            let i = if ftype == 3 || ftype == 4 {
+                // nfset4: block/character device number (RFC 7530
+                // createhow4 union)
+                let (i, ()) = skip_fixed(i, 8)?;
+                i
+            } else {
+                i
+            };
+            let i = if ftype == 5 {
+                let (i, ()) = skip_len_bytes(i)?;
+                i
+            } else {
+                i
+            };
+            let (i, ()) = skip_len_bytes(i)?;
+            skip_attrlist(i)
+        }
+        // layout args
+        NFSPROC4_LAYOUTGET => skip_fixed(i, 4 + 4 + 4 + 8 + 8 + 8 + 16 + 4),
+        // device id + counts + the declared notify bitmap
+        NFSPROC4_GETDEVINFO => {
+            let (i, ()) = skip_fixed(i, 16 + 4 + 4)?;
+            skip_attrbits(i)
+        }
+        // LAYOUTRETURN4args (RFC 8881 18.44): reclaim + layout type + iomode; only
+        // FILE(1) carries lrf offset/length/stateid + body opaque (FSID/ALL carry nothing)
+        NFSPROC4_LAYOUTRETURN => {
+            let (i, ()) = skip_fixed(i, 4 + 4 + 4)?;
+            let (i, ret_type) = be_u32(i)?;
+            if ret_type == 1 {
+                let (i, ()) = skip_fixed(i, 8 + 8 + 16)?;
+                skip_len_bytes(i)
+            } else {
+                Ok((i, ()))
+            }
+        }
+        NFSPROC4_DESTROY_SESSION => skip_fixed(i, 16),
+        NFSPROC4_DESTROY_CLIENTID => skip_fixed(i, 8),
+        NFSPROC4_SETCLIENTID_CONFIRM => skip_fixed(i, 16),
+        // setclientid4args (RFC 7530 18.26): verifier + client_id + cb_program
+        // + r_netid + r_addr + cb_id
+        NFSPROC4_SETCLIENTID => {
+            let (i, ()) = skip_fixed(i, 8)?;
+            let (i, ()) = skip_len_bytes(i)?;
+            let (i, ()) = skip_fixed(i, 4)?;
+            let (i, ()) = skip_len_bytes(i)?;
+            let (i, ()) = skip_len_bytes(i)?;
+            skip_fixed(i, 4)
+        }
+        // exchange_id3 args: verifier + clientstring + 3 words + nii domain
+        // + name + 12-byte date
+        NFSPROC4_EXCHANGE_ID => {
+            let (i, ()) = skip_fixed(i, 8)?;
+            let (i, ()) = skip_len_bytes(i)?;
+            let (i, ()) = skip_fixed(i, 12)?;
+            let (i, ()) = skip_len_bytes(i)?;
+            let (i, ()) = skip_len_bytes(i)?;
+            skip_fixed(i, 12)
+        }
+        // 4-byte security flavor
+        NFSPROC4_SECINFO_NO_NAME => skip_fixed(i, 4),
+        NFSPROC4_SEQUENCE => skip_fixed(i, 16 + 16),
+        _ => Err(Err::Error(make_error(i, ErrorKind::Switch))),
+    }
+}
+
+/// Advance past the arguments of a leading RESPONSE op per the wire (see
+/// skip_request_lead_op). A failed op carries its status only.
+fn skip_response_lead_op(i: &[u8], cmd: u32) -> IResult<&[u8], ()> {
+    let (i, status) = be_u32(i)?;
+    if status != 0 {
+        return Ok((i, ()));
+    }
+    match cmd {
+        NFSPROC4_PUTFH
+        | NFSPROC4_PUTROOTFH
+        | NFSPROC4_RENEW
+        | NFSPROC4_DELEGRETURN
+        | NFSPROC4_LOOKUP
+        | NFSPROC4_SAVEFH
+        | NFSPROC4_SETCLIENTID_CONFIRM
+        | NFSPROC4_RECLAIM_COMPLETE
+        | NFSPROC4_DESTROY_SESSION
+        | NFSPROC4_DESTROY_CLIENTID => Ok((i, ())),
+        // two change_info4 structs (verifier before/after + atomic each)
+        NFSPROC4_RENAME => skip_fixed(i, 40),
+        // file handle
+        NFSPROC4_GETFH => skip_len_bytes(i),
+        // attribute list (fattr4: bitmap + fields blob, even when empty)
+        NFSPROC4_GETATTR => skip_attrlist(i),
+        // changed attributes bitmap
+        NFSPROC4_SETATTR => skip_attrbits(i),
+        // stateid
+        NFSPROC4_CLOSE | NFSPROC4_OPEN_CONFIRM => skip_fixed(i, 16),
+        // writeverf4
+        NFSPROC4_COMMIT => skip_fixed(i, 8),
+        // count + committed + writeverf4
+        NFSPROC4_WRITE => skip_fixed(i, 16),
+        // change info
+        NFSPROC4_REMOVE => skip_fixed(i, 20),
+        // change_info4 + attributes bitmap
+        NFSPROC4_CREATE => {
+            let (i, ()) = skip_fixed(i, 20)?;
+            skip_attrbits(i)
+        }
+        // supported types + access rights
+        NFSPROC4_ACCESS => skip_fixed(i, 8),
+        // stateid + change_info + result_flags + fattr4 bitmap + file_delegation4 union
+        NFSPROC4_OPEN => {
+            let (i, ()) = skip_fixed(i, 16 + 20 + 4)?;
+            let (i, ()) = skip_parser_attrbits(i)?;
+            let (i, deleg) = be_u32(i)?;
+            match deleg {
+                // stateid + 4 words + who_len, then who (no XDR pad, mirrors the parser)
+                OPEN_DELEGATE_READ => {
+                    let (i, ()) = skip_fixed(i, 16 + 4 * 4)?;
+                    let (i, who_len) = be_u32(i)?;
+                    if i.len() < who_len as usize {
+                        return Err(Err::Incomplete(Needed::new(1)));
+                    }
+                    Ok((&i[who_len as usize..], ()))
+                }
+                // stateid + 6 words, then who (nfsstring)
+                OPEN_DELEGATE_WRITE => {
+                    let (i, ()) = skip_fixed(i, 16 + 4 * 6)?;
+                    skip_len_bytes(i)
+                }
+                OPEN_DELEGATE_NONE => Ok((i, ())),
+                _ => Err(Err::Error(make_error(i, ErrorKind::Switch))),
+            }
+        }
+        // nfs41_sequence_ok = ssn4(16) + seqid(4) + slots(12) + flags(4) = 36 bytes.
+        // A typical NFSv4.1 reply leads with SEQUENCE; skipping its result reaches a
+        // following READ (status already consumed above).
+        NFSPROC4_SEQUENCE => skip_fixed(i, 36),
+        // setclientid4resok: client_id + verifier
+        NFSPROC4_SETCLIENTID => skip_fixed(i, 16),
+        // exchange_id4resok: client_id + seqid + flags + state_protect + minorid
+        // + majorid + scope + impl_id + nii + date
+        NFSPROC4_EXCHANGE_ID => {
+            let (i, ()) = skip_fixed(i, 8 + 4 + 4 + 4 + 8)?;
+            let (i, ()) = skip_len_bytes(i)?;
+            let (i, ()) = skip_len_bytes(i)?;
+            let (i, ()) = skip_fixed(i, 4)?;
+            let (i, ()) = skip_len_bytes(i)?;
+            let (i, ()) = skip_len_bytes(i)?;
+            skip_fixed(i, 12)
+        }
+        // secinfo_no_name_resok: flavors_cnt + count * flavor; a GSS flavor
+        // carries an oid string + 8 bytes, others only the 4-byte type.
+        // Each entry consumes at least 4 bytes, so the loop is bounded.
+        NFSPROC4_SECINFO_NO_NAME => {
+            let (i, cnt) = be_u32(i)?;
+            let mut i = i;
+            for _n in 0..cnt {
+                let (i2, flavor) = be_u32(i)?;
+                if flavor == RPCSEC_GSS {
+                    let (i3, ()) = skip_len_bytes(i2)?;
+                    let (i4, ()) = skip_fixed(i3, 8)?;
+                    i = i4;
+                } else {
+                    i = i2;
+                }
+            }
+            Ok((i, ()))
+        }
+        _ => Err(Err::Error(make_error(i, ErrorKind::Switch))),
+    }
+}
+
+/// Outcome of the bounded v4 compound scanners
+/// (scan_nfs4_request_compound_write_len / scan_nfs4_response_compound_read_len).
+///
+/// A structural scan error ([Nfs4CompoundScan::Malformed]) is definitive
+/// from the buffered bytes: it must never be treated as "no oversized op",
+/// failing open would let the record be buffered toward the
+/// attacker-controlled record length (memory exhaustion).
+#[derive(Debug, PartialEq, Eq)]
+pub enum Nfs4CompoundScan {
+    /// A WRITE/READ op claims more than the limit: reject the record even
+    /// though its data is not (all) buffered.
+    Oversized(u32),
+    /// A within-limit file op is present but its data is not all buffered
+    /// yet (or the scan needs more header bytes): the record must complete
+    /// before the scan is conclusive.
+    Incomplete,
+    /// Structurally malformed compound (op count above the bound, unknown
+    /// leading op, desynchronized fields): skip the record; do not buffer
+    /// toward the claimed record length.
+    Malformed,
+    /// The scan completed and found no oversized file op.
+    Clean,
+}
+
+/// Scan a (possibly incomplete) v4 request compound for a WRITE. A WRITE
+/// whose claimed length exceeds `max` is reported as Oversized even with
+/// incomplete data; completed within-limit WRITEs and leading ops are
+/// skipped, so a later WRITE cannot hide behind them.
+pub fn scan_nfs4_request_compound_write_len(i: &[u8], max: u32) -> Nfs4CompoundScan {
+    match scan_nfs4_request_compound_write_len_i(i, max) {
+        Ok((_, Some(v))) if v > max => Nfs4CompoundScan::Oversized(v),
+        Ok((_, Some(_v))) => Nfs4CompoundScan::Incomplete,
+        Ok((_, None)) => Nfs4CompoundScan::Clean,
+        Err(Err::Incomplete(_)) => Nfs4CompoundScan::Incomplete,
+        Err(_) => Nfs4CompoundScan::Malformed,
+    }
+}
+
+/// Returns Ok((_, Some(claim))) when a WRITE is found (oversized claim,
+/// or within-limit with incomplete data) and Ok((_, None)) when the
+/// compound carries no WRITE at all.
+fn scan_nfs4_request_compound_write_len_i(i: &[u8], max: u32) -> IResult<&[u8], Option<u32>> {
+    // The tag is an XDR string: consume it with its padding (a non-aligned tag
+    // shifts every later read early, making the compound look op-less).
+    let (i, _tag) = nfs4_parse_nfsstring(i)?;
+    let (i, _min_ver) = be_u32(i)?;
+    let (i, ops_cnt) = be_u32(i)?;
+    if ops_cnt as usize > NFSD_MAX_OPS_PER_COMPOUND {
+        return Err(Err::Error(make_error(i, ErrorKind::Count)));
+    }
+    let mut cur = i;
+    for idx in 0..ops_cnt as usize {
+        let (next, cmd) = be_u32(cur)?;
+        if cmd == NFSPROC4_WRITE {
+            // stop at the claimed length; the data blob is not needed
+            let (i, _stateid) = nfs4_parse_stateid(next)?;
+            let (i, _offset) = be_u64(i)?;
+            let (i, _stable) = be_u32(i)?;
+            let (i, write_len) = be_u32(i)?;
+            if write_len > max {
+                // reject even if the (unbuffered) data is missing
+                return Ok((i, Some(write_len)));
+            }
+            // XDR pads the data to a 32-bit boundary (mirrors nfs4_req_write);
+            // the next op tag starts after it.
+            let pad = (4 - (write_len % 4) as usize) % 4;
+            // bound-check before the addition so the skip cannot wrap a
+            // usize on 32-bit targets
+            if write_len as usize > i.len() || i.len() - (write_len as usize) < pad {
+                // the data (or its padding) is not all here yet: nothing after this
+                // WRITE is visible; stop and let the record complete (re-runs longer).
+                return Ok((i, Some(write_len)));
+            }
+            // a completed, within-limit WRITE: skip its data and padding
+            // so a later WRITE in the same compound cannot hide behind it
+            cur = &i[(write_len as usize) + pad..];
+            continue;
+        }
+        // Leading ops are advanced per the wire (declared length fields +
+        // XDR padding); see skip_request_lead_op.
+        match skip_request_lead_op(next, cmd) {
+            Ok((pos, _)) => cur = pos,
+            Err(Err::Incomplete(_)) => return Err(Err::Incomplete(Needed::new(1))),
+            Err(_) => {
+                // Not in the safe skip table (variable-length / union args, cf.
+                // CREATE_SESSION/OPEN). Last op -> nothing follows -> clean; otherwise
+                // bounded rejection (Malformed), never Incomplete (OOM) or Clean (fail-open).
+                if idx + 1 == ops_cnt as usize {
+                    return Ok((cur, None));
+                }
+                return Err(Err::Error(make_error(cur, ErrorKind::Switch)));
+            }
+        }
+    }
+    // no WRITE op in the compound
+    Ok((i, None))
+}
+
+/// Scan a (possibly incomplete) v4 response compound for a successful
+/// READ. A READ whose claimed length exceeds `max` is reported as
+/// Oversized even with incomplete data; failed READs, within-limit READs
+/// and leading ops are skipped, so a later READ cannot hide behind them.
+pub fn scan_nfs4_response_compound_read_len(i: &[u8], max: u32) -> Nfs4CompoundScan {
+    match scan_nfs4_response_compound_read_len_i(i, max) {
+        Ok((_, Some(v))) if v > max => Nfs4CompoundScan::Oversized(v),
+        Ok((_, Some(_v))) => Nfs4CompoundScan::Incomplete,
+        Ok((_, None)) => Nfs4CompoundScan::Clean,
+        Err(Err::Incomplete(_)) => Nfs4CompoundScan::Incomplete,
+        Err(_) => Nfs4CompoundScan::Malformed,
+    }
+}
+
+/// Returns Ok((_, Some(claim))) when a successful READ is found
+/// (oversized claim, or within-limit with incomplete data) and
+/// Ok((_, None)) when the compound carries no successful READ at all.
+fn scan_nfs4_response_compound_read_len_i(i: &[u8], max: u32) -> IResult<&[u8], Option<u32>> {
+    let (i, _status) = be_u32(i)?;
+    // The compound status reflects the last executed op only; earlier ops
+    // may have returned data, so the scan continues regardless.
+    let (i, _tag) = nfs4_parse_nfsstring(i)?; // XDR string: padding included
+                                              /* compoundres4: no minorversion field (unlike the request's
+                                               * compoundargs4); the operation count follows the tag. */
+    let (i, ops_cnt) = be_u32(i)?;
+    if ops_cnt as usize > NFSD_MAX_OPS_PER_COMPOUND {
+        return Err(Err::Error(make_error(i, ErrorKind::Count)));
+    }
+    let mut cur = i;
+    for idx in 0..ops_cnt as usize {
+        let (next, cmd) = be_u32(cur)?;
+        if cmd == NFSPROC4_READ {
+            // stop at the claimed length; the data blob is not needed
+            let (i, st) = be_u32(next)?;
+            if st != 0 {
+                // this READ failed: no result words follow the status (cf. nfs4_res_read).
+                // Keep walking -- a later successful READ may still carry an oversized claim.
+                cur = i;
+                continue;
+            }
+            let (i, _eof) = verify(be_u32, |&v| v <= 1)(i)?;
+            let (i, read_len) = be_u32(i)?;
+            if read_len > max {
+                // reject even if the (unbuffered) data is missing
+                return Ok((i, Some(read_len)));
+            }
+            if i.len() < read_len as usize {
+                // the data is not all here yet: stop and let the record complete
+                // (the scan re-runs with the longer buffer)
+                return Ok((i, Some(read_len)));
+            }
+            // XDR pads the data to a 32-bit boundary; the next op tag starts after it.
+            // (nfs4_res_read_ok doesn't consume the padding; the scan follows the wire.)
+            let pad = (4 - (read_len % 4) as usize) % 4;
+            // bound-check before the addition so the skip cannot wrap a
+            // usize on 32-bit targets
+            if read_len as usize > i.len() || i.len() - (read_len as usize) < pad {
+                // the data (or its padding) is not all here yet: nothing after this
+                // READ is visible; stop and let the record complete (re-runs longer).
+                return Ok((i, Some(read_len)));
+            }
+            // a completed, within-limit READ: skip its data and padding
+            // so a later READ in the same compound cannot hide behind it
+            cur = &i[(read_len as usize) + pad..];
+            continue;
+        }
+        // Leading ops are advanced per the wire (declared length fields +
+        // XDR padding); see skip_response_lead_op.
+        match skip_response_lead_op(next, cmd) {
+            Ok((pos, _)) => cur = pos,
+            Err(Err::Incomplete(_)) => return Err(Err::Incomplete(Needed::new(1))),
+            Err(_) => {
+                // Not in the safe skip table (variable-length / union args). Last op
+                // -> nothing follows -> clean; otherwise bounded rejection (Malformed),
+                // never Incomplete (OOM) or Clean (fail-open).
+                if idx + 1 == ops_cnt as usize {
+                    return Ok((cur, None));
+                }
+                return Err(Err::Error(make_error(cur, ErrorKind::Switch)));
+            }
+        }
+    }
+    // no successful READ op in the compound
+    Ok((i, None))
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -2157,5 +2686,493 @@ mod tests {
                 panic!("Failure, {:?}", request);
             }
         }
+    }
+
+    fn be32(v: u32) -> [u8; 4] {
+        v.to_be_bytes()
+    }
+
+    // compound header: XDR string tag + minver + op count
+    fn compound_head(ops_cnt: u32) -> Vec<u8> {
+        let mut v: Vec<u8> = Vec::new();
+        v.extend_from_slice(&be32(0)); // tag length 0
+        v.extend_from_slice(&be32(0)); // minor version
+        v.extend_from_slice(&be32(ops_cnt));
+        v
+    }
+
+    // a v4 WRITE op carrying the given claimed length, no data
+    fn write_op(write_len: u32) -> Vec<u8> {
+        let mut v: Vec<u8> = Vec::new();
+        v.extend_from_slice(&be32(NFSPROC4_WRITE));
+        v.extend_from_slice(&be32(1)); // stateid seqid
+        v.extend_from_slice(&[0u8; 12]); // stateid data
+        v.extend_from_slice(&[0u8; 8]); // offset
+        v.extend_from_slice(&be32(2)); // stable: FILE_SYNC
+        v.extend_from_slice(&be32(write_len));
+        v
+    }
+
+    // a v4 READ (success) op carrying the given claimed length, no data
+    fn read_op(read_len: u32) -> Vec<u8> {
+        let mut v: Vec<u8> = Vec::new();
+        v.extend_from_slice(&be32(NFSPROC4_READ));
+        v.extend_from_slice(&be32(0)); // status: OK
+        v.extend_from_slice(&be32(0)); // eof
+        v.extend_from_slice(&be32(read_len));
+        v
+    }
+
+    // a v4 PUTFH request op with a file handle of the given length
+    fn putfh_req_op(fh_len: u32) -> Vec<u8> {
+        let mut v: Vec<u8> = Vec::new();
+        v.extend_from_slice(&be32(NFSPROC4_PUTFH));
+        v.extend_from_slice(&be32(fh_len));
+        v.resize(v.len() + fh_len as usize, 0);
+        let pad = (4 - (fh_len as usize % 4)) % 4;
+        v.resize(v.len() + pad, 0);
+        v
+    }
+
+    // a v4 GETFH request op (no args)
+    fn getfh_req_op() -> Vec<u8> {
+        be32(NFSPROC4_GETFH).to_vec()
+    }
+
+    // a v4 READ request op (stateid + offset + count)
+    fn read_req_op(count: u32) -> Vec<u8> {
+        let mut v: Vec<u8> = Vec::new();
+        v.extend_from_slice(&be32(NFSPROC4_READ));
+        v.extend_from_slice(&[0u8; 16]); // stateid
+        v.extend_from_slice(&[0u8; 8]); // offset
+        v.extend_from_slice(&be32(count));
+        v
+    }
+
+    // a successful v4 OPEN response op (delegate NONE, empty attrs)
+    fn open_res_op() -> Vec<u8> {
+        let mut v: Vec<u8> = Vec::new();
+        v.extend_from_slice(&be32(NFSPROC4_OPEN));
+        v.extend_from_slice(&be32(0)); // status: OK
+        v.extend_from_slice(&[0u8; 16]); // stateid
+        v.extend_from_slice(&[0u8; 20]); // change_info
+        v.extend_from_slice(&be32(0)); // result_flags
+        v.extend_from_slice(&be32(0)); // fattr4 attr_cnt (0)
+        v.extend_from_slice(&be32(0)); // mask1 (the parser always reads it)
+        v.extend_from_slice(&be32(OPEN_DELEGATE_NONE)); // file_delegation4 type
+        v
+    }
+
+    // a successful v4 GETFH response op with a file handle of the given length
+    fn getfh_res_op(fh_len: u32) -> Vec<u8> {
+        let mut v: Vec<u8> = Vec::new();
+        v.extend_from_slice(&be32(NFSPROC4_GETFH));
+        v.extend_from_slice(&be32(0)); // status: OK
+        v.extend_from_slice(&be32(fh_len));
+        v.resize(v.len() + fh_len as usize, 0);
+        let pad = (4 - (fh_len as usize % 4)) % 4;
+        v.resize(v.len() + pad, 0);
+        v
+    }
+
+    #[test]
+    fn test_scan_request_compound_oversized_write() {
+        let mut buf = compound_head(1);
+        buf.extend_from_slice(&write_op(4096));
+        assert_eq!(
+            scan_nfs4_request_compound_write_len(&buf, 1024),
+            Nfs4CompoundScan::Oversized(4096)
+        );
+    }
+
+    #[test]
+    fn test_scan_request_compound_within_limit_write_incomplete() {
+        // claimed 8 <= max, but the write data is not buffered yet
+        let mut buf = compound_head(1);
+        buf.extend_from_slice(&write_op(8));
+        assert_eq!(
+            scan_nfs4_request_compound_write_len(&buf, 1024),
+            Nfs4CompoundScan::Incomplete
+        );
+    }
+
+    #[test]
+    fn test_scan_request_compound_no_write() {
+        // a completed compound without any WRITE op
+        let mut buf = compound_head(1);
+        buf.extend_from_slice(&be32(NFSPROC4_GETATTR));
+        buf.extend_from_slice(&be32(1)); // attr bitmap word count
+        buf.extend_from_slice(&be32(0x0000_00ff));
+        assert_eq!(
+            scan_nfs4_request_compound_write_len(&buf, 1024),
+            Nfs4CompoundScan::Clean
+        );
+    }
+
+    #[test]
+    fn test_scan_request_compound_too_many_ops_is_malformed() {
+        // op count above the bound is a structural error, not "no write"
+        let mut buf = compound_head(100);
+        buf.extend_from_slice(&[0u8; 8]);
+        assert_eq!(
+            scan_nfs4_request_compound_write_len(&buf, 1024),
+            Nfs4CompoundScan::Malformed
+        );
+    }
+
+    #[test]
+    fn test_scan_request_compound_untabled_lead_op_is_malformed() {
+        // RESTOREFH is a valid op but is not parsed; a desync must not
+        // degrade to "no oversized op"
+        let mut buf = compound_head(2);
+        buf.extend_from_slice(&be32(NFSPROC4_RESTOREFH));
+        buf.extend_from_slice(&be32(NFSPROC4_PUTFH));
+        buf.extend_from_slice(&be32(32)); // fh length
+        buf.extend_from_slice(&[0x11u8; 32]);
+        assert_eq!(
+            scan_nfs4_request_compound_write_len(&buf, 1024),
+            Nfs4CompoundScan::Malformed
+        );
+    }
+
+    /// CREATE_SESSION op per the layout the parser follows:
+    /// clientid(8) + 80 fixed bytes (seqid..g_stamp) + machine name
+    fn create_session_op(name: &[u8]) -> Vec<u8> {
+        let mut v: Vec<u8> = Vec::new();
+        v.extend_from_slice(&be32(NFSPROC4_CREATE_SESSION));
+        v.extend_from_slice(&[0x22u8; 8]); // clientid4
+        v.extend_from_slice(&[0x33u8; 80]); // seqid..g_stamp
+        v.extend_from_slice(&be32(name.len() as u32));
+        v.extend_from_slice(name);
+        let pad = (4 - (name.len() % 4)) % 4;
+        v.resize(v.len() + pad, 0);
+        v
+    }
+
+    #[test]
+    fn test_scan_request_compound_create_session_hides_oversized_write() {
+        // a leading CREATE_SESSION has variable-length channel/RDMA args the scanner
+        // can't advance past: bounded rejection (Malformed), never Incomplete (OOM)
+        // or Clean (fail open), so a following oversized WRITE isn't buffered.
+        let mut buf = compound_head(2);
+        buf.extend_from_slice(&create_session_op(b"suri"));
+        buf.extend_from_slice(&be32(NFSPROC4_WRITE));
+        buf.extend_from_slice(&[0u8; 16]); // stateid
+        buf.extend_from_slice(&[0u8; 8]); // offset
+        buf.extend_from_slice(&be32(2)); // stable
+        buf.extend_from_slice(&be32(10 * 1024 * 1024)); // write_len
+        assert_eq!(
+            scan_nfs4_request_compound_write_len(&buf, 1024),
+            Nfs4CompoundScan::Malformed
+        );
+    }
+
+    #[test]
+    fn test_scan_request_compound_create_session_last_op_is_clean() {
+        // CREATE_SESSION as the *last* op: nothing follows, so there is no
+        // oversized WRITE to hide -- the scan concludes clean (no OOM).
+        let mut buf = compound_head(1);
+        buf.extend_from_slice(&create_session_op(b"suri"));
+        assert_eq!(
+            scan_nfs4_request_compound_write_len(&buf, 1024),
+            Nfs4CompoundScan::Clean
+        );
+    }
+
+    #[test]
+    fn test_scan_request_compound_open_last_op_is_clean() {
+        // OPEN as the last op: nothing follows -- conclude clean.
+        let mut buf = compound_head(1);
+        buf.extend_from_slice(&be32(NFSPROC4_OPEN));
+        buf.extend_from_slice(&[0u8; 40]);
+        assert_eq!(
+            scan_nfs4_request_compound_write_len(&buf, 1024),
+            Nfs4CompoundScan::Clean
+        );
+    }
+
+    #[test]
+    fn test_scan_request_compound_read_getfh_no_write() {
+        // a leading READ is a valid op the full parser supports: the scanner
+        // must skip it (not reject the compound) and reach the trailing GETFH.
+        let mut buf = compound_head(3);
+        buf.extend_from_slice(&putfh_req_op(16));
+        buf.extend_from_slice(&read_req_op(8));
+        buf.extend_from_slice(&getfh_req_op());
+        assert_eq!(
+            scan_nfs4_request_compound_write_len(&buf, 1024),
+            Nfs4CompoundScan::Clean
+        );
+    }
+
+    // a v4 OPEN request op as nfs4_req_open parses it: seq_id + share_access
+    // + share_deny + client_id + owner (len + bytes, no pad) + open_type
+    // (+ open_data for type 1) + claim_type (void claim, no payload) + name
+    fn open_req_op(open_type: u32, mode: u32, claim_type: u32, claim_payload: &[u8]) -> Vec<u8> {
+        let mut v: Vec<u8> = Vec::new();
+        v.extend_from_slice(&be32(NFSPROC4_OPEN));
+        v.extend_from_slice(&[0u8; 20]); // seq_id + share_access + share_deny + client_id
+        v.extend_from_slice(&be32(0)); // owner len 0
+        v.extend_from_slice(&be32(open_type));
+        if open_type == 1 {
+            v.extend_from_slice(&be32(mode));
+            match mode {
+                0 | 1 => {
+                    v.extend_from_slice(&be32(0)); // attr_cnt (0)
+                    v.extend_from_slice(&be32(0)); // mask1 (the parser always reads it)
+                    v.extend_from_slice(&be32(0)); // fields blob len 0
+                }
+                _ => v.extend_from_slice(&[0u8; 8]), // exclusive4 words
+            }
+        }
+        v.extend_from_slice(&be32(claim_type)); // claim_type
+        v.extend_from_slice(claim_payload);
+        v.extend_from_slice(&be32(3)); // name len
+        v.extend_from_slice(b"foo");
+        v.push(0); // XDR pad
+        v
+    }
+
+    #[test]
+    fn test_scan_request_compound_read_then_within_limit_write() {
+        // the READ is skipped so a following within-limit WRITE is reached
+        // (not hidden behind it).
+        let mut buf = compound_head(3);
+        buf.extend_from_slice(&putfh_req_op(16));
+        buf.extend_from_slice(&read_req_op(8));
+        buf.extend_from_slice(&write_op(8)); // within-limit, no data buffered
+        assert_eq!(
+            scan_nfs4_request_compound_write_len(&buf, 1024),
+            Nfs4CompoundScan::Incomplete
+        );
+    }
+
+    #[test]
+    fn test_scan_request_compound_open_getfh_no_write() {
+        // a leading CLAIM_NULL OPEN is a valid op the full parser supports:
+        // the scanner must skip it (not reject the compound) and reach the
+        // trailing GETFH.
+        let mut buf = compound_head(2);
+        buf.extend_from_slice(&open_req_op(0, 0, 0, &[]));
+        buf.extend_from_slice(&getfh_req_op());
+        assert_eq!(
+            scan_nfs4_request_compound_write_len(&buf, 1024),
+            Nfs4CompoundScan::Clean
+        );
+    }
+
+    #[test]
+    fn test_scan_request_compound_open_payload_claim_rejected() {
+        // a payload-bearing claim (FH=1, DELEGATE=3, FH_ONLY=4, the v4.2
+        // claims 5+) desyncs the parser (the stateid/fh is read as the name
+        // length): the scanner must reject the compound boundedly
+        // (Malformed), not buffer (Incomplete) and not report the oversized
+        // WRITE behind it.
+        let mut stateid = be32(1).to_vec();
+        stateid.resize(16, 0);
+        for claim_type in [1u32, 3, 4, 8, 9] {
+            let mut buf = compound_head(2);
+            buf.extend_from_slice(&open_req_op(0, 0, claim_type, &stateid));
+            buf.extend_from_slice(&write_op(10 * 1024 * 1024));
+            assert_eq!(
+                scan_nfs4_request_compound_write_len(&buf, 1024),
+                Nfs4CompoundScan::Malformed,
+                "claim_type {}",
+                claim_type
+            );
+        }
+    }
+
+    #[test]
+    fn test_scan_request_compound_open_hides_oversized_write() {
+        // the OPEN is skipped so a following oversized WRITE is reached (not
+        // hidden behind it): the record is rejected, not buffered.
+        let mut buf = compound_head(2);
+        buf.extend_from_slice(&open_req_op(0, 0, 0, &[]));
+        buf.extend_from_slice(&write_op(10 * 1024 * 1024));
+        assert_eq!(
+            scan_nfs4_request_compound_write_len(&buf, 1024),
+            Nfs4CompoundScan::Oversized(10 * 1024 * 1024)
+        );
+    }
+
+    #[test]
+    fn test_scan_request_compound_open_exclusive_getfh_no_write() {
+        // open_type 1 with an exclusive open_data (8 words) is skipped the
+        // same way.
+        let mut buf = compound_head(2);
+        buf.extend_from_slice(&open_req_op(1, 2, 0, &[]));
+        buf.extend_from_slice(&getfh_req_op());
+        assert_eq!(
+            scan_nfs4_request_compound_write_len(&buf, 1024),
+            Nfs4CompoundScan::Clean
+        );
+    }
+
+    #[test]
+    fn test_nfs4_req_create_session_exact_wire_length() {
+        // the parser must stop at the op boundary: a following op tag
+        // stays in the remainder instead of being swallowed (rest())
+        let mut op = create_session_op(b"suri")[4..].to_vec(); // the
+                                                               // helper emits the op tag too; the parser gets the args only
+        let next = be32(NFSPROC4_GETATTR);
+        op.extend_from_slice(&next);
+        let op = op.as_slice();
+        let (rem, content) = nfs4_req_create_session(op).unwrap();
+        assert_eq!(rem, &next[..]);
+        match content {
+            Nfs4RequestContent::CreateSession(ref cs) => {
+                assert_eq!(cs.machine_name, b"suri".as_slice());
+                assert_eq!(cs.seqid, 0x33333333);
+            }
+            _ => panic!("unexpected content"),
+        }
+    }
+
+    // response compound head: compound status + XDR string tag + op count
+    // (no minor version field, unlike the request)
+    fn response_compound_head(ops_cnt: u32) -> Vec<u8> {
+        let mut v: Vec<u8> = Vec::new();
+        v.extend_from_slice(&be32(0)); // compound status
+        v.extend_from_slice(&be32(0)); // tag length 0
+        v.extend_from_slice(&be32(ops_cnt));
+        v
+    }
+
+    #[test]
+    fn test_scan_response_compound_oversized_read() {
+        let mut buf = response_compound_head(1);
+        buf.extend_from_slice(&read_op(4096));
+        assert_eq!(
+            scan_nfs4_response_compound_read_len(&buf, 1024),
+            Nfs4CompoundScan::Oversized(4096)
+        );
+    }
+
+    #[test]
+    fn test_scan_response_compound_within_limit_read_incomplete() {
+        let mut buf = response_compound_head(1);
+        buf.extend_from_slice(&read_op(8));
+        assert_eq!(
+            scan_nfs4_response_compound_read_len(&buf, 1024),
+            Nfs4CompoundScan::Incomplete
+        );
+    }
+
+    #[test]
+    fn test_scan_response_compound_no_read() {
+        let mut buf = response_compound_head(1);
+        buf.extend_from_slice(&be32(NFSPROC4_PUTFH)); // no args, status ok
+        buf.extend_from_slice(&be32(0));
+        assert_eq!(
+            scan_nfs4_response_compound_read_len(&buf, 1024),
+            Nfs4CompoundScan::Clean
+        );
+    }
+
+    #[test]
+    fn test_scan_response_compound_too_many_ops_is_malformed() {
+        let mut buf = response_compound_head(100);
+        buf.extend_from_slice(&[0u8; 8]);
+        assert_eq!(
+            scan_nfs4_response_compound_read_len(&buf, 1024),
+            Nfs4CompoundScan::Malformed
+        );
+    }
+
+    #[test]
+    fn test_scan_response_compound_untabled_lead_op_is_malformed() {
+        // an untabled leading op (RESTOREFH) with a following op can't be advanced
+        // past: bounded rejection (Malformed), so a following oversized READ isn't buffered.
+        let mut buf = response_compound_head(2);
+        buf.extend_from_slice(&be32(NFSPROC4_RESTOREFH));
+        buf.extend_from_slice(&be32(0)); // op status
+        buf.extend_from_slice(&be32(NFSPROC4_READ));
+        buf.extend_from_slice(&be32(0)); // READ status
+        buf.extend_from_slice(&be32(1)); // eof
+        buf.extend_from_slice(&be32(10 * 1024 * 1024)); // read_len
+        assert_eq!(
+            scan_nfs4_response_compound_read_len(&buf, 1024),
+            Nfs4CompoundScan::Malformed
+        );
+    }
+
+    #[test]
+    fn test_scan_response_compound_untabled_last_op_is_clean() {
+        // an untabled op as the *last* op: nothing follows, so there is no
+        // oversized READ to hide -- conclude clean.
+        let mut buf = response_compound_head(1);
+        buf.extend_from_slice(&be32(NFSPROC4_RESTOREFH));
+        buf.extend_from_slice(&be32(0)); // op status
+        assert_eq!(
+            scan_nfs4_response_compound_read_len(&buf, 1024),
+            Nfs4CompoundScan::Clean
+        );
+    }
+
+    #[test]
+    fn test_scan_response_compound_sequence_hides_oversized_read() {
+        // a SEQUENCE op (the typical NFSv4.1 reply lead) followed by an oversized READ:
+        // the scanner must skip the 36-byte SEQUENCE result to reach the READ, or it
+        // rejects the compound (Malformed) and loses the file inspection.
+        let mut buf = response_compound_head(2);
+        // SEQUENCE: tag + status(0) + ssn4(16) + seqid(4) + slots(12) + flags(4)
+        buf.extend_from_slice(&be32(NFSPROC4_SEQUENCE));
+        buf.extend_from_slice(&be32(0)); // status ok
+        buf.extend_from_slice(&[0x11u8; 36]); // sequence_ok result
+                                              // READ: tag + status(0) + eof + read_len (oversized)
+        buf.extend_from_slice(&be32(NFSPROC4_READ));
+        buf.extend_from_slice(&be32(0)); // status ok
+        buf.extend_from_slice(&be32(1)); // eof
+        buf.extend_from_slice(&be32(10 * 1024 * 1024)); // read_len
+        assert_eq!(
+            scan_nfs4_response_compound_read_len(&buf, 1024),
+            Nfs4CompoundScan::Oversized(10 * 1024 * 1024)
+        );
+    }
+
+    #[test]
+    fn test_scan_response_compound_sequence_then_within_limit_read() {
+        // SEQUENCE + a within-limit READ: the scanner skips the SEQUENCE
+        // result and the (empty) READ, concluding clean.
+        let mut buf = response_compound_head(2);
+        buf.extend_from_slice(&be32(NFSPROC4_SEQUENCE));
+        buf.extend_from_slice(&be32(0));
+        buf.extend_from_slice(&[0x11u8; 36]);
+        buf.extend_from_slice(&be32(NFSPROC4_READ));
+        buf.extend_from_slice(&be32(0));
+        buf.extend_from_slice(&be32(0)); // eof
+        buf.extend_from_slice(&be32(0)); // read_len 0
+        assert_eq!(
+            scan_nfs4_response_compound_read_len(&buf, 1024),
+            Nfs4CompoundScan::Clean
+        );
+    }
+
+    #[test]
+    fn test_scan_response_compound_open_getfh_no_read() {
+        // a leading OPEN is a valid op the full parser supports: the scanner
+        // must skip its result (not reject the compound) and reach the GETFH.
+        let mut buf = response_compound_head(2);
+        buf.extend_from_slice(&open_res_op());
+        buf.extend_from_slice(&getfh_res_op(16));
+        assert_eq!(
+            scan_nfs4_response_compound_read_len(&buf, 1024),
+            Nfs4CompoundScan::Clean
+        );
+    }
+
+    #[test]
+    fn test_scan_response_compound_open_then_within_limit_read() {
+        // the OPEN is skipped so a following within-limit READ is reached
+        // (not hidden behind it).
+        let mut buf = response_compound_head(3);
+        buf.extend_from_slice(&open_res_op());
+        buf.extend_from_slice(&getfh_res_op(16));
+        buf.extend_from_slice(&read_op(8)); // within-limit, no data buffered
+        assert_eq!(
+            scan_nfs4_response_compound_read_len(&buf, 1024),
+            Nfs4CompoundScan::Incomplete
+        );
     }
 }

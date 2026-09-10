@@ -52,8 +52,7 @@ impl NFSState {
             fill_bytes = 4 - pad;
         }
 
-        // linux defines a max of 1mb. Allow several multiples.
-        if w.write_len == 0 || w.write_len > 16777216 {
+        if w.write_len == 0 {
             return;
         }
 
@@ -65,6 +64,33 @@ impl NFSState {
             SCLogDebug!("WRITE object {:?} not found", w.stateid.data);
             Vec::new()
         };
+
+        // Reject an oversized WRITE: log it as a transaction and skip to
+        // the record boundary to keep the flow in sync.
+        // A zero limit disables the check.
+        let max_write_size = unsafe { NFS_CFG_MAX_WRITE_SIZE };
+        if max_write_size != 0 && w.write_len > max_write_size {
+            let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
+            tx.procedure = NFSPROC4_WRITE;
+            tx.xid = r.hdr.xid;
+            tx.is_first = true;
+            tx.nfs_version = r.progver as u16;
+            tx.tx_data.set_event(NFSEvent::WriteRequestTooLarge as u8);
+            // Rejected tx never opened a file: zero files_opened, else the tx
+            // (and file) stays live until teardown and grows unbounded on repeats.
+            tx.tx_data.files_opened = 0;
+            let pending = w.write_len.saturating_sub(w.data.len() as u32);
+            self.set_skip(Direction::ToServer, pending);
+            self.ts_chunk_xid = 0;
+            self.ts_chunk_left = 0;
+            SCLogDebug!(
+                "WRITEv4 too large (claim {} > {}): skipping {} stream bytes",
+                w.write_len,
+                unsafe { NFS_CFG_MAX_WRITE_SIZE },
+                pending
+            );
+            return;
+        }
 
         let mut queue_event: Option<NFSEvent> = None;
         let mut queue_exceeded = false;
