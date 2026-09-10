@@ -4825,6 +4825,19 @@
                         ]
                     }
                 },
+                "bypassed": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "description": "Packets and bytes counted by the capture bypass method",
+                    "properties": {
+                        "bytes": {
+                            "type": "integer"
+                        },
+                        "pkts": {
+                            "type": "integer"
+                        }
+                    }
+                },
                 "bytes": {
                     "type": "integer",
                     "description": "Total number of bytes transferred to server/client",

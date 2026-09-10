@@ -2182,6 +2182,7 @@ static int AFPInsertHalfFlow(int mapd, void *key, unsigned int nr_cpus)
     for (i = 0; i < nr_cpus; i++) {
         BPF_PERCPU(value, i).packets = 0;
         BPF_PERCPU(value, i).bytes = 0;
+        BPF_PERCPU(value, i).time = 0;
     }
     if (bpf_map_update_elem(mapd, key, value, BPF_NOEXIST) != 0) {
         switch (errno) {

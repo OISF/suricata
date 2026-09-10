@@ -111,6 +111,11 @@ Other Changes
   like `alert ip`.
 - ``ldap`` has bound the maximum number of responses per transaction
   to 1024 by default.
+- The eBPF/XDP bypass programs now store the timestamp of the last bypassed
+  packet in the flow table entries, which changes the layout of the bypass
+  maps. The eBPF/XDP programs shipped with Suricata 8 and earlier are not
+  compatible with Suricata 9: they must be rebuilt and reinstalled, and any
+  pinned map must be removed, before starting Suricata 9 with bypass enabled.
 
 Changes for Library Users and Plugin Developers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
