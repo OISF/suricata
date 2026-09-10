@@ -494,6 +494,12 @@ pub struct NFSState {
     /// size of the current chunk that we still need to receive
     pub ts_chunk_left: u32,
     pub tc_chunk_left: u32,
+    /// unbuffered tail of the in-progress chunk's RPC record. Tracked
+    /// separately from the count-based chunk promise (file_len <= count):
+    /// a rejected continuation must never consume/skip past the record
+    /// boundary into the next RPC.
+    pub ts_chunk_tail: u32,
+    pub tc_chunk_tail: u32,
     /// file handle of in progress toserver WRITE file chunk
     ts_chunk_fh: Vec<u8>,
 
@@ -554,6 +560,8 @@ impl NFSState {
             skip_tc: 0,
             ts_chunk_left: 0,
             tc_chunk_left: 0,
+            ts_chunk_tail: 0,
+            tc_chunk_tail: 0,
             ts_chunk_fh: Vec::new(),
             ts_ssn_gap: false,
             tc_ssn_gap: false,
@@ -1141,7 +1149,9 @@ impl NFSState {
         &mut self, flow: *mut Flow, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>,
     ) -> u32 {
         let mut fill_bytes = 0;
-        let pad = w.count % 4;
+        // the parser derives the XDR padding from file_len (the data that is
+        // actually on the wire), not from the claimed count
+        let pad = w.file_len % 4;
         if pad != 0 {
             fill_bytes = 4 - pad;
         }
@@ -1190,6 +1200,7 @@ impl NFSState {
                 self.set_skip(Direction::ToServer, pending);
                 self.ts_chunk_xid = 0;
                 self.ts_chunk_left = 0;
+                self.ts_chunk_tail = 0;
                 self.ts_chunk_fh.clear();
             }
             SCLogDebug!(
@@ -1298,17 +1309,27 @@ impl NFSState {
                 self.set_skip(Direction::ToServer, pending);
                 self.ts_chunk_xid = 0;
                 self.ts_chunk_left = 0;
+                self.ts_chunk_tail = 0;
                 self.ts_chunk_fh.clear();
                 SCLogDebug!("WRITE queue exceeded: skipping {} stream bytes", pending);
             } else {
                 self.ts_chunk_xid = r.hdr.xid;
-                debug_validate_bug_on!(w.file_data.len() as u32 > w.count);
-                self.ts_chunk_left = w.count - w.file_data.len() as u32;
+                // the chunk promise follows what the parser/tracker actually
+                // consume (file_len-based, incl. partial data): a count-based
+                // promise outlives the record when count > file_len and would
+                // eat the following record's bytes as chunk continuation
+                debug_validate_bug_on!(w.file_data.len() as u32 > w.file_len);
+                self.ts_chunk_left = w.file_len - w.file_data.len() as u32;
+                // the record's unbuffered tail: file_len <= count, so this
+                // (not the count-based promise) bounds what a rejected
+                // continuation may consume or skip
+                self.ts_chunk_tail = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
                 self.ts_chunk_fh = file_handle;
                 SCLogDebug!(
-                    "REQUEST chunk_xid {:04X} chunk_left {}",
+                    "REQUEST chunk_xid {:04X} chunk_left {} chunk_tail {}",
                     self.ts_chunk_xid,
-                    self.ts_chunk_left
+                    self.ts_chunk_left,
+                    self.ts_chunk_tail
                 );
             }
         }
@@ -1367,6 +1388,7 @@ impl NFSState {
         self.set_skip(Direction::ToServer, pending);
         self.ts_chunk_xid = 0;
         self.ts_chunk_left = 0;
+        self.ts_chunk_tail = 0;
         SCLogDebug!(
             "v4 WRITE too large (record claim {} > {}): skipping {} stream bytes",
             r.prog_data_size,
@@ -1406,6 +1428,7 @@ impl NFSState {
         self.set_skip(Direction::ToServer, pending);
         self.ts_chunk_xid = 0;
         self.ts_chunk_left = 0;
+        self.ts_chunk_tail = 0;
         SCLogDebug!(
             "v4 COMPOUND malformed (record claim {}): skipping {} stream bytes",
             r.prog_data_size,
@@ -1441,6 +1464,7 @@ impl NFSState {
         self.set_skip(Direction::ToClient, pending);
         self.tc_chunk_xid = 0;
         self.tc_chunk_left = 0;
+        self.tc_chunk_tail = 0;
         SCLogDebug!(
             "v4 COMPOUND reply malformed (record claim {}): skipping {} stream bytes",
             r.prog_data_size,
@@ -1515,6 +1539,13 @@ impl NFSState {
         } else {
             self.tc_chunk_left
         };
+        // the record tail is tracked alongside the chunk promise (see the
+        // struct field): a rejected continuation may only consume/skip it
+        let mut chunk_tail = if direction == Direction::ToServer {
+            self.ts_chunk_tail
+        } else {
+            self.tc_chunk_tail
+        };
 
         let ssn_gap = self.ts_ssn_gap | self.tc_ssn_gap;
         // Backstop: cap the OOO queue on every open file tx (an interleaved
@@ -1554,6 +1585,9 @@ impl NFSState {
         }
         // bytes of this call's input that belong to the in-progress chunk
         let chunk_total = chunk_left;
+        // record tail at call start: bounds the stream bytes a rejected
+        // continuation may consume/skip
+        let chunk_tail0 = chunk_tail;
         let to_client = direction == Direction::ToClient;
         // bytes for the in-progress chunk, gap bytes included: gaps entering
         // file state count toward queue growth.
@@ -1574,6 +1608,7 @@ impl NFSState {
         // we have the data that we expect
         if chunk_left <= data.len() as u32 {
             chunk_left = 0;
+            chunk_tail = 0;
 
             if direction == Direction::ToServer {
                 self.ts_chunk_xid = 0;
@@ -1612,12 +1647,6 @@ impl NFSState {
             }
         }
 
-        if direction == Direction::ToServer {
-            self.ts_chunk_left = chunk_left;
-        } else {
-            self.tc_chunk_left = chunk_left;
-        }
-
         // Chunk-path queue-limit bookkeeping, acted on after the tx borrow
         // ends: the event to raise and how many chunk bytes to skip/reset.
         let mut limit_event: Option<NFSEvent> = None;
@@ -1642,24 +1671,31 @@ impl NFSState {
                             tx.tx_data.set_event(e as u8);
                             tx.tx_data.0.updated_ts = true;
                             tx.tx_data.0.updated_tc = true;
-                            // XDR padding of the rejected record's chunk, before the
-                            // tracker state is cleared.
+                            // The record's XDR padding, before the tracker state
+                            // is cleared below: it follows the claimed data on
+                            // the wire, so the claim-relative tail does not
+                            // cover it.
                             let fill = tdf.file_tracker.get_fill_bytes() as u32;
                             // Drop the rejected chunk: clear queue + in-progress chunk.
                             filetracker_trunc(&mut tdf.file_tracker);
                             limit_event = Some(e);
-                            if chunk_left == 0 {
-                                // Record completes in this segment: consume chunk data +
-                                // trailing padding together (else the rest is skipped next call).
-                                let total = chunk_total.saturating_add(fill);
-                                consumed = std::cmp::min(data.len() as u32, total);
-                                limit_skip = total.saturating_sub(consumed);
-                            } else {
-                                // All of this segment is chunk data; the promised
-                                // remainder and padding are skipped on later calls.
+                            // Stream accounting follows the record's unbuffered
+                            // tail (file_len-based) plus its XDR padding, not
+                            // the count-based promise: count > file_len would
+                            // run the consume/skip past the record into the
+                            // next RPC.
+                            let total = chunk_tail0.saturating_add(fill);
+                            if total > data.len() as u32 {
+                                // all of this segment is record tail; the rest is
+                                // skipped on later calls
                                 consumed = data.len() as u32;
-                                limit_skip = chunk_left.saturating_add(fill);
+                                limit_skip = total - data.len() as u32;
+                            } else {
+                                // consume exactly the tail + padding: the stream
+                                // lands on the next RPC boundary
+                                consumed = total;
                             }
+                            chunk_tail = 0;
                         }
                     }
                     if limit_event.is_none() {
@@ -1709,6 +1745,21 @@ impl NFSState {
             None => consumed = 0,
         };
 
+        // the record tail shrinks by what the tracker consumed from the stream
+        if limit_event.is_none() && consumed > 0 {
+            chunk_tail = chunk_tail.saturating_sub(consumed);
+        }
+
+        // persist after the limit bookkeeping: the rejected-chunk reset and
+        // the normal-path tail decrement both land in the stream state
+        if direction == Direction::ToServer {
+            self.ts_chunk_left = chunk_left;
+            self.ts_chunk_tail = chunk_tail;
+        } else {
+            self.tc_chunk_left = chunk_left;
+            self.tc_chunk_tail = chunk_tail;
+        }
+
         // Chunk-limit overflow: reset chunk state and skip the promised
         // remainder (event attached to the file tx under the borrow).
         if let Some(_ev) = limit_event {
@@ -1740,7 +1791,9 @@ impl NFSState {
         let nfs_version;
 
         let mut fill_bytes = 0;
-        let pad = reply.count % 4;
+        // the XDR padding derives from data_len (the data actually present in
+        // the reply), not from the requested count
+        let pad = reply.data_len % 4;
         if pad != 0 {
             fill_bytes = 4 - pad;
         }
@@ -1826,6 +1879,7 @@ impl NFSState {
                 self.set_skip(Direction::ToClient, pending);
                 self.tc_chunk_xid = 0;
                 self.tc_chunk_left = 0;
+                self.tc_chunk_tail = 0;
             }
             SCLogDebug!(
                 "READ too large ({} > {}): skipping {} stream bytes",
@@ -1865,7 +1919,7 @@ impl NFSState {
             }
         }
 
-        let is_partial = reply.data.len() < reply.count as usize;
+        let is_partial = reply.data.len() < reply.data_len as usize;
         SCLogDebug!("partial data? {}", is_partial);
 
         let mut queue_exceeded = false;
@@ -1890,7 +1944,7 @@ impl NFSState {
                             &file_name,
                             reply.data,
                             chunk_offset,
-                            reply.count,
+                            reply.data_len,
                             fill_bytes as u8,
                             is_last,
                             &r.hdr.xid,
@@ -1949,7 +2003,7 @@ impl NFSState {
                         &file_name,
                         reply.data,
                         chunk_offset,
-                        reply.count,
+                        reply.data_len,
                         fill_bytes as u8,
                         is_last,
                         &r.hdr.xid,
@@ -1993,11 +2047,20 @@ impl NFSState {
                 self.set_skip(Direction::ToClient, pending);
                 self.tc_chunk_xid = 0;
                 self.tc_chunk_left = 0;
+                self.tc_chunk_tail = 0;
                 SCLogDebug!("READ queue exceeded: skipping {} stream bytes", pending);
             } else {
                 self.tc_chunk_xid = r.hdr.xid;
-                debug_validate_bug_on!(reply.data.len() as u32 > reply.count);
-                self.tc_chunk_left = reply.count - reply.data.len() as u32;
+                // the chunk promise follows the data actually present in the
+                // reply (data_len-based): a count-based promise outlives the
+                // record on a short read and would eat the following record's
+                // bytes as chunk continuation
+                debug_validate_bug_on!(reply.data.len() as u32 > reply.data_len);
+                self.tc_chunk_left = reply.data_len - reply.data.len() as u32;
+                // the record's unbuffered tail: data_len <= count, so this
+                // (not the count-based promise) bounds what a rejected
+                // continuation may consume or skip
+                self.tc_chunk_tail = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
             }
         }
 

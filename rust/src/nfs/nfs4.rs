@@ -184,11 +184,14 @@ impl NFSState {
             self.set_skip(Direction::ToServer, pending);
             self.ts_chunk_xid = 0;
             self.ts_chunk_left = 0;
+            self.ts_chunk_tail = 0;
             SCLogDebug!("WRITE queue exceeded: skipping {} stream bytes", pending);
         } else {
             self.ts_chunk_xid = r.hdr.xid;
             debug_validate_bug_on!(w.data.len() as u32 > w.write_len);
             self.ts_chunk_left = w.write_len - w.data.len() as u32;
+            // keep the record-tail bookkeeping in sync with the v3 path
+            self.ts_chunk_tail = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
         }
     }
 
