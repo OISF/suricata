@@ -93,6 +93,7 @@ struct flowv6_keys {
 struct pair {
     __u64 packets;
     __u64 bytes;
+    __u64 time;
 };
 
 struct {
@@ -305,6 +306,7 @@ static int __always_inline filter_ipv4(struct xdp_md *ctx, void *data, __u64 nh_
         __sync_fetch_and_add(&value->packets, 1);
         __sync_fetch_and_add(&value->bytes, data_end - data);
 #endif
+        value->time = bpf_ktime_get_ns();
 
 #if GOT_TX_PEER
         iface_peer = bpf_map_lookup_elem(&tx_peer_int, &key0);
@@ -436,6 +438,7 @@ static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_
         __sync_fetch_and_add(&value->packets, 1);
         __sync_fetch_and_add(&value->bytes, data_end - data);
 #endif
+        value->time = bpf_ktime_get_ns();
 
 #if GOT_TX_PEER
         iface_peer = bpf_map_lookup_elem(&tx_peer_int, &key0);
