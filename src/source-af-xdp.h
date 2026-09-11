@@ -42,6 +42,13 @@ typedef struct AFXDPIfaceConfig {
     uint32_t gro_flush_timeout;
     uint32_t napi_defer_hard_irqs;
 
+    /* UMEM size in frames and derived RX ring depth, per thread */
+    uint32_t umem_frames;
+    uint32_t rx_ring_size;
+    /* Size of one UMEM frame in bytes */
+    uint32_t frame_size;
+
+    SC_ATOMIC_DECLARE(uint32_t, queue_idx);
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
 } AFXDPIfaceConfig;
