@@ -140,7 +140,6 @@ struct QueueAssignment {
 
 struct XskSockInfo {
     struct xsk_ring_cons rx;
-    struct xsk_ring_prod tx;
     struct xsk_socket *xsk;
 
     /* Queue assignment structure */
@@ -443,7 +442,7 @@ static TmEcode OpenXSKSocket(AFXDPThreadVars *ptv)
     SCMutexLock(&xsk_protect.queue_protect);
 
     if ((ret = xsk_socket__create(&ptv->xsk.xsk, ptv->livedev->dev, ptv->xsk.queue.queue_num,
-                 ptv->umem.umem, &ptv->xsk.rx, &ptv->xsk.tx, &ptv->xsk.cfg))) {
+                 ptv->umem.umem, &ptv->xsk.rx, NULL, &ptv->xsk.cfg))) {
         SCLogError("Failed to create socket: %s", strerror(-ret));
         SCMutexUnlock(&xsk_protect.queue_protect);
         SCReturnInt(TM_ECODE_FAILED);
@@ -640,9 +639,9 @@ static TmEcode ReceiveAFXDPThreadInit(ThreadVars *tv, const void *initdata, void
 
     ptv->threads = afxdpconfig->threads;
 
-    /* Socket configuration */
+    /* Socket configuration. No TX ring is created, AF_XDP capture is receive
+     * only, so tx_size is left at 0 and a NULL TX ring is passed at bind. */
     ptv->xsk.cfg.rx_size = afxdpconfig->rx_ring_size;
-    ptv->xsk.cfg.tx_size = XSK_RING_PROD__DEFAULT_NUM_DESCS;
     ptv->xsk.cfg.xdp_flags = afxdpconfig->mode;
     ptv->xsk.cfg.bind_flags = afxdpconfig->bind_flags;
 
