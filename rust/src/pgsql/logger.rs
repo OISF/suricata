@@ -295,7 +295,6 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             identifier: _,
             length: _,
             field_count,
-            fields: _,
             ..
         }) => {
             jb.set_bool("row_description_malformed", res.is_malformed())?;
