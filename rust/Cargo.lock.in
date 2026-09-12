@@ -736,9 +736,9 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "ldap-parser"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db3356a3bd19e90fdc8b29f32c48e21b1bb1c5d129c1df7000ce3071c6f9e6b1"
+checksum = "4dee1f4925a99fde2a970d303b0a93e9a426c0a6468aa58fdd5022c5fcbb08d6"
 dependencies = [
  "asn1-rs 0.7.1",
  "rusticata-macros",
