@@ -101,9 +101,17 @@ impl SMBState {
             d.update_file_flags(tx.tx_data.file_flags);
         }
         tx.tx_data.init_files_opened();
-        tx.tx_data.file_tx = if direction == Direction::ToServer { STREAM_TOSERVER } else { STREAM_TOCLIENT }; // TODO direction to flag func?
-        SCLogDebug!("SMB: new_file_tx: TX FILE created: ID {} NAME {}",
-                tx.id, String::from_utf8_lossy(file_name));
+        tx.tx_data.file_tx = if direction == Direction::ToServer {
+            STREAM_TOSERVER
+        } else {
+            STREAM_TOCLIENT
+        }; // TODO direction to flag func?
+        SCLogDebug!(
+            "SMB: new_file_tx: TX FILE created: ID {} NAME {}",
+            tx.id,
+            String::from_utf8_lossy(file_name)
+        );
+        self.file_tx_count += 1;
         self.transactions.push_back(tx);
         self.transactions.back_mut()
     }
@@ -204,18 +212,11 @@ impl SMBState {
         } else {
             self.file_tc_left
         };
-        let file_handle = if direction == Direction::ToServer {
-            self.file_ts_guid.to_vec()
-        } else {
-            self.file_tc_guid.to_vec()
-        };
-
-        let ssn_gap = self.ts_ssn_gap | self.tc_ssn_gap;
         // Backstop: cap the OOO queue on every open file tx (an interleaved
-        // handle can hide a first file's queue), running even with chunk_left == 0.
-        if ssn_gap {
-            // Last-resort cap for OOO data in gapped streams: configured
-            // size/count (1 GiB / 1024 when limits are off).
+        // handle can hide a queue); runs when the call feeds data: app-layer
+        // OOO needs no stream gap to grow a queue, an empty call grows none.
+        // A queue can only exist inside a held file tx.
+        if !data.is_empty() && self.file_tx_count > 0 {
             let backstop = Self::ooo_queue_backstop(direction);
             let cnt_backstop = Self::ooo_queue_backstop_cnt(direction);
             for tx in &mut self.transactions {
@@ -225,7 +226,7 @@ impl SMBState {
                         let queued_cnt = tdf.file_tracker.get_inflight_cnt() as u64;
                         if queued_data > backstop || queued_cnt > cnt_backstop {
                             SCLogDebug!(
-                                "QUEUED size {} / count {} > backstop {} / {} while we've seen GAPs. Truncating file.",
+                                "QUEUED size {} / count {} > backstop {} / {}. Truncating file.",
                                 queued_data,
                                 queued_cnt,
                                 backstop,
@@ -247,6 +248,13 @@ impl SMBState {
             return 0;
         }
         SCLogDebug!("chunk_left {} data {}", chunk_left, data.len());
+        // the backstop above no longer needs the handle: allocate it only
+        // when a chunk is in flight
+        let file_handle = if direction == Direction::ToServer {
+            self.file_ts_guid.to_vec()
+        } else {
+            self.file_tc_guid.to_vec()
+        };
 
         let data_to_handle_len = if chunk_left as usize >= data.len() {
             data.len()
@@ -348,6 +356,7 @@ mod tests {
 
     #[test]
     fn test_ooo_queue_backstop_thresholds() {
+        let _lock = super::SMB_CFG_TEST_LOCK.lock().unwrap();
         // defaults: 64 MiB queue caps in both directions
         assert_eq!(SMBState::ooo_queue_backstop(Direction::ToClient), 67108864);
         assert_eq!(SMBState::ooo_queue_backstop(Direction::ToServer), 67108864);
@@ -384,6 +393,7 @@ mod tests {
     #[test]
     fn test_ooo_queue_backstop_cnt_thresholds() {
         // defaults: 64 chunks in both directions
+        let _lock = super::SMB_CFG_TEST_LOCK.lock().unwrap();
         assert_eq!(SMBState::ooo_queue_backstop_cnt(Direction::ToClient), 64);
         assert_eq!(SMBState::ooo_queue_backstop_cnt(Direction::ToServer), 64);
 

@@ -752,6 +752,10 @@ pub struct SMBState<> {
     /// transactions list
     pub transactions: VecDeque<SMBTransaction>,
 
+    /// file txs held in the transactions list: the OOO backstop scan is a
+    /// no-op without one, so it is skipped when this is 0
+    pub(crate) file_tx_count: u32,
+
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
 
@@ -813,6 +817,7 @@ impl SMBState {
             check_post_gap_file_txs: false,
             post_gap_files_checked: false,
             transactions: VecDeque::new(),
+            file_tx_count: 0,
             tx_id: 0,
             dialect: 0,
             dialect_vec: None,
@@ -857,8 +862,20 @@ impl SMBState {
             }
         }
         if found {
-            SCLogDebug!("freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
-                    tx_id, tx_id+1, index, self.transactions.len(), self.tx_id);
+            if matches!(
+                self.transactions[index].type_data,
+                Some(SMBTransactionTypeData::FILE(_))
+            ) {
+                self.file_tx_count = self.file_tx_count.saturating_sub(1);
+            }
+            SCLogDebug!(
+                "freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
+                tx_id,
+                tx_id + 1,
+                index,
+                self.transactions.len(),
+                self.tx_id
+            );
             self.transactions.remove(index);
         }
     }
