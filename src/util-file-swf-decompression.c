@@ -187,7 +187,6 @@ int FileSwfLzmaDecompression(DetectEngineThreadCtx *det_ctx, const uint8_t *comp
         DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR);
     } else if (ret == LzmaXzError) {
         /* We should not see XZ compressed SWF files */
-        DEBUG_VALIDATE_BUG_ON(ret == LzmaXzError);
         DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_XZ_ERROR);
     } else {
         DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR);
