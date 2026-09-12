@@ -1970,7 +1970,6 @@ static int StreamTcp3whsStoreSyn(TcpSession *ssn, Packet *p)
         return 0;
 
     if (ssn->queue != NULL && ssn->queue_len == stream_config.max_syn_queued) {
-        DEBUG_VALIDATE_BUG_ON(ssn->queue == NULL);
         SCLogDebug("%" PRIu64 ": ssn %p: =~ SYN queue limit reached, rotate", PcapPacketCntGet(p),
                 ssn);
         StreamTcpSetEvent(p, STREAM_3WHS_SYN_FLOOD);
