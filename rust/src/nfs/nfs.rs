@@ -1354,7 +1354,7 @@ impl NFSState {
     }
     /// Reject a partial v4 WRITE compound whose claimed length exceeds the
     /// limit: log the tx and skip the record so the data blob is never buffered.
-    fn process_partial_v4_write_request_record<'b>(&mut self, r: &RpcPacket<'b>) {
+    fn process_partial_v4_write_request_record(&mut self, r: &RpcPacket<'_>) {
         SCLogDebug!(
             "REQUEST {} partial v4 WRITE rejected: claim exceeds {}",
             r.hdr.xid,
@@ -1400,7 +1400,7 @@ impl NFSState {
     /// Mark a partially buffered v4 COMPOUND request record malformed and skip it
     /// so the (attacker-controlled) record length is never buffered: the scanner's
     /// structural errors are definitive and the full parser rejects the same record.
-    fn process_partial_v4_malformed_request_record<'b>(&mut self, r: &RpcPacket<'b>) {
+    fn process_partial_v4_malformed_request_record(&mut self, r: &RpcPacket<'_>) {
         SCLogDebug!(
             "REQUEST {} partial v4 COMPOUND rejected: structural scan error",
             r.hdr.xid
@@ -1438,7 +1438,7 @@ impl NFSState {
 
     /// Mark a partially buffered v4 COMPOUND reply record malformed and skip it
     /// (bounded fallback; cf. process_partial_v4_malformed_request_record).
-    fn process_partial_v4_malformed_response_record<'b>(&mut self, r: &RpcReplyPacket<'b>) {
+    fn process_partial_v4_malformed_response_record(&mut self, r: &RpcReplyPacket<'_>) {
         SCLogDebug!(
             "REPLY {} partial v4 COMPOUND rejected: structural scan error",
             r.hdr.xid
