@@ -134,9 +134,9 @@ pub enum GssCompoundScan<'a> {
 /// `gss_proc`/`gss_service` carry the request's RPCSEC_GSS credential combination
 /// (header on the request side, xidmap on the response). Only the (0, 2) combination
 /// the full record path unwraps is unwrapped here, so both always see the same compound.
-pub fn gss_compound_scan_data<'a>(
-    gss_proc: u32, gss_service: u32, prog_data: &'a [u8],
-) -> GssCompoundScan<'a> {
+pub fn gss_compound_scan_data(
+    gss_proc: u32, gss_service: u32, prog_data: &[u8],
+) -> GssCompoundScan<'_> {
     if gss_proc == 0 && gss_service == 2 {
         match parse_rpc_gssapi_integrity(prog_data) {
             Ok((_rem, ref rec)) => GssCompoundScan::Compound(rec.data),
