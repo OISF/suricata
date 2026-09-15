@@ -433,6 +433,9 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
 
                 if (InitPcapFile(pftv) == TM_ECODE_FAILED) {
                     SCLogWarning("Failed to init pcap file %s, skipping", current_file->filename);
+                    if (CompareTimes(&current_file->modified_time, &last_time_seen) > 0) {
+                        CopyTime(&current_file->modified_time, &last_time_seen);
+                    }
                     CleanupPendingFile(current_file);
                     CleanupPcapFileFileVars(pftv);
                     status = TM_ECODE_OK;
