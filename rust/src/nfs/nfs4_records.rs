@@ -293,7 +293,10 @@ fn nfs4_req_open_exclusive4(i: &[u8]) -> IResult<&[u8], Nfs4OpenRequestContent<'
 }
 
 fn nfs4_req_open_exclusive4_1(i: &[u8]) -> IResult<&[u8], Nfs4OpenRequestContent<'_>> {
-    map(take(8_usize), Nfs4OpenRequestContent::Exclusive4_1)(i)
+    // EXCLUSIVE4_1 carries an fattr4 after the verifier (RFC 8881 18.16.1.1)
+    let (i, verifier) = take(8_usize)(i)?;
+    let (i, _attrs) = nfs4_parse_attrs(i)?;
+    Ok((i, Nfs4OpenRequestContent::Exclusive4_1(verifier)))
 }
 
 fn nfs4_req_open_type(i: &[u8]) -> IResult<&[u8], Nfs4OpenRequestContent<'_>> {
@@ -324,10 +327,33 @@ fn nfs4_req_open(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent<'_>> {
     let (i, _client_id) = be_u64(i)?;
     let (i, owner_len) = be_u32(i)?;
     let (i, _) = cond(owner_len > 0, take(owner_len as usize))(i)?;
+    let (i, _) = cond(owner_len % 4 != 0, take(4 - (owner_len % 4)))(i)?;
     let (i, open_type) = be_u32(i)?;
     let (i, open_data) = cond(open_type == 1, nfs4_req_open_type)(i)?;
-    let (i, _claim_type) = be_u32(i)?;
-    let (i, filename) = nfs4_parse_nfsstring(i)?;
+    // open_claim4 (RFC 8881 18.16.1): only some claim types carry a name
+    let (i, claim_type) = be_u32(i)?;
+    let (i, filename) = match claim_type {
+        // CLAIM_NULL / CLAIM_DELEGATE_PREV: the component4 only
+        0 | 3 => nfs4_parse_nfsstring(i)?,
+        // CLAIM_PREVIOUS: an open_delegation_type4
+        1 => {
+            let (i, _deleg) = be_u32(i)?;
+            (i, &[][..])
+        }
+        // CLAIM_DELEGATE_CUR: stateid4 + component4
+        2 => {
+            let (i, _stateid) = nfs4_parse_stateid(i)?;
+            nfs4_parse_nfsstring(i)?
+        }
+        // CLAIM_FH / CLAIM_DELEG_PREV_FH: void
+        4 | 6 => (i, &[][..]),
+        // CLAIM_DELEG_CUR_FH: stateid4 only
+        5 => {
+            let (i, _stateid) = nfs4_parse_stateid(i)?;
+            (i, &[][..])
+        }
+        _ => return Err(Err::Error(make_error(i, ErrorKind::Switch))),
+    };
     let req = Nfs4RequestContent::Open(Nfs4RequestOpen {
         open_type,
         filename,
@@ -731,16 +757,12 @@ fn skip_request_lead_op(i: &[u8], cmd: u32) -> IResult<&[u8], ()> {
         }
         // access bits
         NFSPROC4_ACCESS => skip_fixed(i, 4),
-        // open4args as nfs4_req_open parses it: seq_id (4) + share_access +
-        // share_deny + client_id (8) + owner (len + bytes, no XDR pad) +
-        // open_type (+ open_data for type 1) + claim_type + name.
+        // open4args (RFC 8881 18.16.1): seq_id + share_access + share_deny +
+        // open_owner4 (client_id + padded owner) + openflag4 + open_claim4.
         NFSPROC4_OPEN => {
             let (i, ()) = skip_fixed(i, 20)?;
             let (i, owner_len) = be_u32(i)?;
-            if i.len() < owner_len as usize {
-                return Err(Err::Incomplete(Needed::new(1)));
-            }
-            let i = &i[owner_len as usize..];
+            let (i, ()) = skip_xdr_bytes(i, owner_len as usize)?;
             let (i, open_type) = be_u32(i)?;
             let i = if open_type == 1 {
                 let (i, mode) = be_u32(i)?;
@@ -752,8 +774,15 @@ fn skip_request_lead_op(i: &[u8], cmd: u32) -> IResult<&[u8], ()> {
                         let (i, ()) = skip_attr_fields(i)?;
                         i
                     }
-                    2 | 3 => {
+                    2 => {
                         let (i, ()) = skip_fixed(i, 8)?;
+                        i
+                    }
+                    // EXCLUSIVE4_1: verifier + fattr4
+                    3 => {
+                        let (i, ()) = skip_fixed(i, 8)?;
+                        let (i, ()) = skip_parser_attrbits(i)?;
+                        let (i, ()) = skip_attr_fields(i)?;
                         i
                     }
                     _ => return Err(Err::Error(make_error(i, ErrorKind::Switch))),
@@ -763,19 +792,20 @@ fn skip_request_lead_op(i: &[u8], cmd: u32) -> IResult<&[u8], ()> {
             } else {
                 return Err(Err::Error(make_error(i, ErrorKind::Switch)));
             };
-            // open_claim4 (RFC 7530 16.16.2): the parser reads no claim
-            // payload; only NULL(0) and DELEGATE_PREV(3) carry a
-            // component4 name, byte-identical to the name read the parser
-            // does after the claim word. PREVIOUS(1)/DELEGATE_CUR(2) carry
-            // delegate_type/stateid payloads and unknown values desync the
-            // parser: bounded rejection, never Incomplete (buffering toward
-            // the record claim).
+            // open_claim4: name for 0/2/3, stateid for 2/5, delegation type
+            // for 1, void for 4/6 (fh-only claims)
             let (i, claim_type) = be_u32(i)?;
             match claim_type {
-                0 | 3 => {}
-                _ => return Err(Err::Error(make_error(i, ErrorKind::Switch))),
+                0 | 3 => skip_len_bytes(i),
+                1 => skip_fixed(i, 4),
+                2 => {
+                    let (i, ()) = skip_fixed(i, 16)?;
+                    skip_len_bytes(i)
+                }
+                4 | 6 => Ok((i, ())),
+                5 => skip_fixed(i, 16),
+                _ => Err(Err::Error(make_error(i, ErrorKind::Switch))),
             }
-            skip_len_bytes(i)
         }
         // name (XDR string)
         NFSPROC4_LOOKUP | NFSPROC4_REMOVE => skip_len_bytes(i),
@@ -2683,7 +2713,7 @@ mod tests {
             0x0, 0x0, 0x0, 0x8, 0x74, 0x65, 0x73, 0x74, 0x2e, 0x70, 0x6e, 0x67, /*filename*/
         ];
 
-        let (_, filename_buf) = nfs4_parse_nfsstring(&buf[96..]).unwrap();
+        let (_, filename_buf) = nfs4_parse_nfsstring(&buf[100..]).unwrap();
 
         let (_, request) = nfs4_req_open(&buf[4..]).unwrap();
         match request {
@@ -2920,10 +2950,25 @@ mod tests {
         );
     }
 
-    // a v4 OPEN request op as nfs4_req_open parses it: seq_id + share_access
-    // + share_deny + client_id + owner (len + bytes, no pad) + open_type
-    // (+ open_data for type 1) + claim_type (void claim, no payload) + name
-    fn open_req_op(open_type: u32, mode: u32, claim_type: u32, claim_payload: &[u8]) -> Vec<u8> {
+    // an XDR string (length + bytes + XDR pad)
+    fn xdr_name(s: &[u8]) -> Vec<u8> {
+        let mut v = be32(s.len() as u32).to_vec();
+        v.extend_from_slice(s);
+        v.extend(std::iter::repeat_n(0u8, (4 - (s.len() % 4)) % 4));
+        v
+    }
+
+    // a stateid4 (seqid + 12 data bytes)
+    fn xdr_stateid() -> Vec<u8> {
+        let mut v = be32(1).to_vec();
+        v.extend(std::iter::repeat_n(0u8, 12));
+        v
+    }
+
+    // a v4 OPEN request op per RFC 8881 18.16.1: seq_id + share_access +
+    // share_deny + open_owner4 (client_id + owner) + openflag4 (+ open_data
+    // for type 1) + open_claim4 with the payload its claim type carries
+    fn open_req_op(open_type: u32, mode: u32, claim_type: u32) -> Vec<u8> {
         let mut v: Vec<u8> = Vec::new();
         v.extend_from_slice(&be32(NFSPROC4_OPEN));
         v.extend_from_slice(&[0u8; 20]); // seq_id + share_access + share_deny + client_id
@@ -2937,14 +2982,29 @@ mod tests {
                     v.extend_from_slice(&be32(0)); // mask1 (the parser always reads it)
                     v.extend_from_slice(&be32(0)); // fields blob len 0
                 }
-                _ => v.extend_from_slice(&[0u8; 8]), // exclusive4 words
+                2 => v.extend_from_slice(&[0u8; 8]), // verifier4
+                // EXCLUSIVE4_1: verifier4 + fattr4
+                3 => {
+                    v.extend_from_slice(&[0u8; 8]);
+                    v.extend_from_slice(&be32(0)); // attr_cnt (0)
+                    v.extend_from_slice(&be32(0)); // mask1
+                    v.extend_from_slice(&be32(0)); // fields blob len 0
+                }
+                _ => {}
             }
         }
-        v.extend_from_slice(&be32(claim_type)); // claim_type
-        v.extend_from_slice(claim_payload);
-        v.extend_from_slice(&be32(3)); // name len
-        v.extend_from_slice(b"foo");
-        v.push(0); // XDR pad
+        v.extend_from_slice(&be32(claim_type));
+        match claim_type {
+            0 | 3 => v.extend_from_slice(&xdr_name(b"foo")),
+            1 => v.extend_from_slice(&be32(OPEN_DELEGATE_NONE)),
+            2 => {
+                v.extend_from_slice(&xdr_stateid());
+                v.extend_from_slice(&xdr_name(b"foo"));
+            }
+            4 | 6 => {}
+            5 => v.extend_from_slice(&xdr_stateid()),
+            _ => {}
+        }
         v
     }
 
@@ -2968,7 +3028,7 @@ mod tests {
         // the scanner must skip it (not reject the compound) and reach the
         // trailing GETFH.
         let mut buf = compound_head(2);
-        buf.extend_from_slice(&open_req_op(0, 0, 0, &[]));
+        buf.extend_from_slice(&open_req_op(0, 0, 0));
         buf.extend_from_slice(&getfh_req_op());
         assert_eq!(
             scan_nfs4_request_compound_write_len(&buf, 1024),
@@ -2977,17 +3037,43 @@ mod tests {
     }
 
     #[test]
-    fn test_scan_request_compound_open_payload_claim_rejected() {
-        // a non-name claim (PREVIOUS=1, DELEGATE_CUR=2) or an unknown value
-        // (4+) desyncs the parser (the delegate_type/stateid payload is read
-        // as the name length): the scanner must reject the compound boundedly
-        // (Malformed), not buffer (Incomplete) and not report the oversized
-        // WRITE behind it.
-        let mut stateid = be32(1).to_vec();
-        stateid.extend(std::iter::repeat(0u8).take(12));
-        for claim_type in [1u32, 2, 4, 8, 9] {
+    fn test_scan_request_compound_open_delegate_prev_claim_skipped() {
+        // CLAIM_DELEGATE_PREV (3) carries a component4, the layout the parser
+        // reads: the scanner skips it and reaches the trailing op
+        let mut buf = compound_head(2);
+        buf.extend_from_slice(&open_req_op(0, 0, 3));
+        buf.extend_from_slice(&getfh_req_op());
+        assert_eq!(
+            scan_nfs4_request_compound_write_len(&buf, 1024),
+            Nfs4CompoundScan::Clean
+        );
+    }
+
+    #[test]
+    fn test_scan_request_compound_open_payload_claims_reach_write() {
+        // the claims whose payload is not a bare name (1: delegate_type, 2:
+        // stateid then a name, 4/6: void, 5: stateid) are skipped per the wire,
+        // so a following oversized WRITE is reached
+        for claim_type in [1u32, 2, 4, 5, 6] {
             let mut buf = compound_head(2);
-            buf.extend_from_slice(&open_req_op(0, 0, claim_type, &stateid));
+            buf.extend_from_slice(&open_req_op(0, 0, claim_type));
+            buf.extend_from_slice(&write_op(10 * 1024 * 1024));
+            assert_eq!(
+                scan_nfs4_request_compound_write_len(&buf, 1024),
+                Nfs4CompoundScan::Oversized(10 * 1024 * 1024),
+                "claim_type {}",
+                claim_type
+            );
+        }
+    }
+
+    #[test]
+    fn test_scan_request_compound_open_unknown_claim_rejected() {
+        // a claim type outside the RFC 8881 union can't be advanced past: the
+        // compound is rejected boundedly, never skipped on a guess
+        for claim_type in [7u32, 8, 9] {
+            let mut buf = compound_head(2);
+            buf.extend_from_slice(&open_req_op(0, 0, claim_type));
             buf.extend_from_slice(&write_op(10 * 1024 * 1024));
             assert_eq!(
                 scan_nfs4_request_compound_write_len(&buf, 1024),
@@ -2999,17 +3085,20 @@ mod tests {
     }
 
     #[test]
-    fn test_scan_request_compound_open_delegate_prev_claim_skipped() {
-        // CLAIM_DELEGATE_PREV (3) carries a component4 name, the same layout
-        // the parser reads after the claim word (the op's trailing name):
-        // the scanner skips it and reaches the trailing op (no rejection).
-        let mut buf = compound_head(2);
-        buf.extend_from_slice(&open_req_op(0, 0, 3, &[]));
-        buf.extend_from_slice(&getfh_req_op());
-        assert_eq!(
-            scan_nfs4_request_compound_write_len(&buf, 1024),
-            Nfs4CompoundScan::Clean
-        );
+    fn test_scan_request_compound_open_name_claims_reach_write() {
+        // NULL(0)/DELEGATE_PREV(3) carry the one name the parser consumes:
+        // the OPEN is skipped, a following oversized WRITE is reached
+        for claim_type in [0u32, 3] {
+            let mut buf = compound_head(2);
+            buf.extend_from_slice(&open_req_op(0, 0, claim_type));
+            buf.extend_from_slice(&write_op(10 * 1024 * 1024));
+            assert_eq!(
+                scan_nfs4_request_compound_write_len(&buf, 1024),
+                Nfs4CompoundScan::Oversized(10 * 1024 * 1024),
+                "claim_type {}",
+                claim_type
+            );
+        }
     }
 
     #[test]
@@ -3017,7 +3106,7 @@ mod tests {
         // the OPEN is skipped so a following oversized WRITE is reached (not
         // hidden behind it): the record is rejected, not buffered.
         let mut buf = compound_head(2);
-        buf.extend_from_slice(&open_req_op(0, 0, 0, &[]));
+        buf.extend_from_slice(&open_req_op(0, 0, 0));
         buf.extend_from_slice(&write_op(10 * 1024 * 1024));
         assert_eq!(
             scan_nfs4_request_compound_write_len(&buf, 1024),
@@ -3027,15 +3116,19 @@ mod tests {
 
     #[test]
     fn test_scan_request_compound_open_exclusive_getfh_no_write() {
-        // open_type 1 with an exclusive open_data (8 words) is skipped the
-        // same way.
-        let mut buf = compound_head(2);
-        buf.extend_from_slice(&open_req_op(1, 2, 0, &[]));
-        buf.extend_from_slice(&getfh_req_op());
-        assert_eq!(
-            scan_nfs4_request_compound_write_len(&buf, 1024),
-            Nfs4CompoundScan::Clean
-        );
+        // open_type 1 with an exclusive open_data (EXCLUSIVE4 verifier, or the
+        // EXCLUSIVE4_1 verifier + fattr4) is skipped the same way.
+        for mode in [2u32, 3] {
+            let mut buf = compound_head(2);
+            buf.extend_from_slice(&open_req_op(1, mode, 0));
+            buf.extend_from_slice(&getfh_req_op());
+            assert_eq!(
+                scan_nfs4_request_compound_write_len(&buf, 1024),
+                Nfs4CompoundScan::Clean,
+                "mode {}",
+                mode
+            );
+        }
     }
 
     #[test]
@@ -3056,6 +3149,55 @@ mod tests {
             }
             _ => panic!("unexpected content"),
         }
+    }
+
+    #[test]
+    fn test_nfs4_req_open_claim_types_exact_wire_length() {
+        // every open_claim4 layout must stop at the op boundary: the following
+        // op tag stays in the remainder instead of being read as a name
+        for claim_type in 0..7u32 {
+            let next = be32(NFSPROC4_GETATTR);
+            let mut args = open_req_op(0, 0, claim_type)[4..].to_vec();
+            args.extend_from_slice(&next);
+            let (rem, content) = nfs4_req_open(&args).unwrap();
+            let filename = match content {
+                Nfs4RequestContent::Open(ref req) => {
+                    assert_eq!(req.open_type, 0);
+                    assert_eq!(req.open_data, None);
+                    req.filename
+                }
+                _ => panic!("unexpected content"),
+            };
+            let expected: &[u8] = if claim_type == 0 || claim_type == 2 || claim_type == 3 {
+                b"foo"
+            } else {
+                &[]
+            };
+            assert_eq!(filename, expected, "claim_type {}", claim_type);
+            assert_eq!(rem, &next[..], "claim_type {}", claim_type);
+        }
+    }
+
+    #[test]
+    fn test_nfs4_req_open_owner_padding_exact_wire_length() {
+        // owner4 is an opaque<>: a 5-byte owner consumes 8 bytes on the wire,
+        // so the following op tag stays at the head of the remainder
+        let next = be32(NFSPROC4_GETATTR);
+        let mut args: Vec<u8> = Vec::new();
+        args.extend_from_slice(&[0u8; 20]); // seq_id + share_access + share_deny + client_id
+        args.extend_from_slice(&be32(5)); // owner len
+        args.extend_from_slice(b"owner");
+        args.extend_from_slice(&[0u8; 3]); // XDR pad
+        args.extend_from_slice(&be32(0)); // open_type: OPEN4_NOCREATE
+        args.extend_from_slice(&be32(0)); // claim_type: CLAIM_NULL
+        args.extend_from_slice(&xdr_name(b"file"));
+        args.extend_from_slice(&next);
+        let (rem, content) = nfs4_req_open(&args).unwrap();
+        match content {
+            Nfs4RequestContent::Open(ref req) => assert_eq!(req.filename, b"file".as_slice()),
+            _ => panic!("unexpected content"),
+        }
+        assert_eq!(rem, &next[..]);
     }
 
     // response compound head: compound status + XDR string tag + op count
