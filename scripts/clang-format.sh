@@ -415,7 +415,16 @@ function CheckBranch {
     # by "| head" prematurely. Use work-around with writing to tmpfile first.
     local format_changes="$git_clang_format --extensions c,h $first_commit^"
     local tmpfile=$(mktemp /tmp/clang-format.check.XXXXXX)
-    $format_changes > $tmpfile
+    local errfile=$(mktemp /tmp/clang-format.err.XXXXXX)
+    $format_changes > $tmpfile 2> $errfile
+    local format_rc=$?
+    cat $errfile 1>&2
+    rm $errfile
+    # Exit code 1 means formatting changes were found, 2 and up are errors.
+    if [ $format_rc -gt 1 ]; then
+        rm $tmpfile
+        Die "git clang-format failed"
+    fi
     local changes=$(cat $tmpfile | head -1)
     if [ $show_diff -eq 1 -o $show_diffstat -eq 1 ]; then
         cat $tmpfile
@@ -487,7 +496,8 @@ function ReformatBranch {
     echo "First commit on branch: $first_commit"
 
     $GIT_CLANG_FORMAT --style file --extensions c,h $with_unstaged $first_commit^
-    if [ $? -ne 0 ]; then
+    # Exit code 1 means formatting changes were made, 2 and up are errors.
+    if [ $? -gt 1 ]; then
         Die "Cannot reformat branch. git clang-format failed"
     fi
 }
@@ -503,7 +513,8 @@ function ReformatCommit {
     fi
 
     $GIT_CLANG_FORMAT --style file --extensions c,h $commit
-    if [ $? -ne 0 ]; then
+    # Exit code 1 means formatting changes were made, 2 and up are errors.
+    if [ $? -gt 1 ]; then
         Die "Cannot reformat most recent commit. git clang-format failed"
     fi
 }
@@ -527,7 +538,8 @@ function ReformatCached {
     fi
 
     $GIT_CLANG_FORMAT --style file --extensions c,h $with_unstaged
-    if [ $? -ne 0 ]; then
+    # Exit code 1 means formatting changes were made, 2 and up are errors.
+    if [ $? -gt 1 ]; then
         Die "Cannot reformat staging. git clang-format failed"
     fi
 }
@@ -563,7 +575,10 @@ function ReformatCommitsOnBranch {
         local first_commit=$(FirstCommitOfBranch)
         echo "First commit on branch: $first_commit"
         # Use --force in case it's run a second time on the same branch
-        git filter-branch --force --tree-filter "$GIT_CLANG_FORMAT --extensions c,h $first_commit^" -- $first_commit..HEAD
+        # Tolerate exit code 1, it means the tree filter reformatted files.
+        git filter-branch --force --tree-filter \
+            "$GIT_CLANG_FORMAT --extensions c,h $first_commit^ || [ \$? -le 1 ]" \
+            -- $first_commit..HEAD
         if [ $? -ne 0 ]; then
             Die "Cannot rewrite branch. git filter-branch failed"
         fi
