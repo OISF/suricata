@@ -5,6 +5,7 @@ on:
     # Only run on pushes to pull request branches
     branches-ignore:
       - 'main'
+      - 'main-*'
       - 'master-*'
     paths-ignore:
       - "doc/**"
