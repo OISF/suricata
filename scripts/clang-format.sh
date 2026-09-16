@@ -340,8 +340,11 @@ function HelpCommand {
 # Do not compare with main directly as it will diff with the latest commit
 # on main. If our branch has not been rebased on the latest main, this
 # would result in including all new commits on main!
+# Returns non-zero when baseline doesn't exist
 function FirstCommitOfBranch {
-    start="${SURICATA_BRANCH:-origin/main}"
+    # don't leak a local variable
+    local start="${SURICATA_BRANCH:-origin/main}"
+    git rev-parse --verify --quiet "$start^{commit}" >/dev/null || return 1
     local first_commit=$(git rev-list $start..HEAD | tail -n 1)
     echo $first_commit
 }
@@ -397,7 +400,16 @@ function CheckBranch {
 
     # Find first commit on branch. Use $first_commit^ if you need the
     # commit on main we branched off.
-    local first_commit=$(FirstCommitOfBranch)
+    local first_commit
+    first_commit=$(FirstCommitOfBranch) ||
+        Die "Baseline branch '${SURICATA_BRANCH:-origin/main}' does not exist"
+    # No commits of our own, e.g. when the branch is the baseline itself.
+    if [ -z "$first_commit" ]; then
+        if [ $quiet -ne 1 ]; then
+            echo "no commits on branch"
+        fi
+        return $EXIT_CODE_OK
+    fi
 
     # git-clang-format is a python script that does not like SIGPIPE shut down
     # by "| head" prematurely. Use work-around with writing to tmpfile first.
@@ -465,7 +477,13 @@ function ReformatBranch {
 
     # Find first commit on branch. Use $first_commit^ if you need the
     # commit on main we branched off.
-    local first_commit=$(FirstCommitOfBranch)
+    local first_commit
+    first_commit=$(FirstCommitOfBranch) ||
+        Die "Baseline branch '${SURICATA_BRANCH:-origin/main}' does not exist"
+    if [ -z "$first_commit" ]; then
+        echo "no commits on branch"
+        ExitWith $EXIT_CODE_OK
+    fi
     echo "First commit on branch: $first_commit"
 
     $GIT_CLANG_FORMAT --style file --extensions c,h $with_unstaged $first_commit^
@@ -541,6 +559,7 @@ function ReformatCommitsOnBranch {
 
         # Find first commit on branch. Use $first_commit^ if you need the
         # commit on main we branched off.
+        # CheckBranch above already bailed out on a missing baseline.
         local first_commit=$(FirstCommitOfBranch)
         echo "First commit on branch: $first_commit"
         # Use --force in case it's run a second time on the same branch
