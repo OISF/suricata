@@ -578,7 +578,7 @@ function ReformatCommitsOnBranch {
         # Tolerate exit code 1, it means the tree filter reformatted files.
         git filter-branch --force --tree-filter \
             "$GIT_CLANG_FORMAT --extensions c,h $first_commit^ || [ \$? -le 1 ]" \
-            -- $first_commit..HEAD
+            -- $first_commit^..HEAD
         if [ $? -ne 0 ]; then
             Die "Cannot rewrite branch. git filter-branch failed"
         fi
