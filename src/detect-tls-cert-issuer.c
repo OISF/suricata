@@ -87,10 +87,10 @@ void DetectTlsIssuerRegister(void)
             GetData, ALPROTO_TLS, TLS_STATE_CLIENT_CERT);
 
     DetectAppLayerInspectEngineRegister("tls.cert_issuer", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
-            TLS_STATE_SERVER_CERT_DONE, DetectEngineInspectBufferGeneric, GetData);
+            TLS_STATE_SERVER_CERT, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("tls.cert_issuer", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_TLS, TLS_STATE_SERVER_CERT_DONE);
+            GetData, ALPROTO_TLS, TLS_STATE_SERVER_CERT);
 
     DetectBufferTypeSetDescriptionByName("tls.cert_issuer",
             "TLS certificate issuer");
