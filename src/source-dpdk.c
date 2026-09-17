@@ -409,7 +409,8 @@ static inline bool RXPacketCountHeuristic(ThreadVars *tv, DPDKThreadVars *ptv, u
  * \brief Initializes a packet from an mbuf
  * \return true if the packet was initialized successfully, false otherwise
  */
-static inline Packet *PacketInitFromMbuf(DPDKThreadVars *ptv, struct rte_mbuf *mbuf)
+static inline Packet *PacketInitFromMbuf(
+        DPDKThreadVars *ptv, struct rte_mbuf *mbuf, SCTime_t timestamp)
 {
     Packet *p = PacketGetFromQueueOrAlloc();
     if (unlikely(p == NULL)) {
@@ -421,7 +422,7 @@ static inline Packet *PacketInitFromMbuf(DPDKThreadVars *ptv, struct rte_mbuf *m
         p->flags |= PKT_IGNORE_CHECKSUM;
     }
 
-    p->ts = TimeGet();
+    p->ts = timestamp;
     p->dpdk_v.mbuf = mbuf;
     p->ReleasePacket = DPDKReleasePacket;
     p->dpdk_v.copy_mode = ptv->copy_mode;
@@ -582,13 +583,17 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
 
         uint16_t nb_rx =
                 rte_eth_rx_burst(ptv->port_id, ptv->queue_id, ptv->received_mbufs, burst_size);
+        SCTime_t timestamp = { 0 };
+        if (nb_rx > 0) {
+            timestamp = TimeGet();
+        }
         if (RXPacketCountHeuristic(tv, ptv, nb_rx)) {
             continue;
         }
 
         ptv->pkts += (uint64_t)nb_rx;
         for (uint16_t i = 0; i < nb_rx; i++) {
-            Packet *p = PacketInitFromMbuf(ptv, ptv->received_mbufs[i]);
+            Packet *p = PacketInitFromMbuf(ptv, ptv->received_mbufs[i], timestamp);
             if (p == NULL) {
                 rte_pktmbuf_free(ptv->received_mbufs[i]);
                 continue;
