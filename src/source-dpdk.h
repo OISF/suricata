@@ -35,6 +35,8 @@ typedef enum { DPDK_COPY_MODE_NONE, DPDK_COPY_MODE_TAP, DPDK_COPY_MODE_IPS } Dpd
 
 #define DPDK_BURST_TX_WAIT_US 1
 
+#define DPDK_RX_BURST_SIZE 32U
+
 /* DPDK Flags */
 // General flags
 #define DPDK_PROMISC   (1 << 0) /**< Promiscuous mode */
