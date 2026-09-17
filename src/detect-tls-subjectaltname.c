@@ -92,7 +92,7 @@ void DetectTlsSubjectAltNameRegister(void)
             SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 
     DetectAppLayerMultiRegister("tls.subjectaltname", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
-            TLS_STATE_SERVER_CERT_DONE, TlsSubjectAltNameGetData, 2);
+            TLS_STATE_SERVER_CERT, TlsSubjectAltNameGetData, 2);
 
     DetectBufferTypeSetDescriptionByName("tls.subjectaltname", "TLS Subject Alternative Name");
 
