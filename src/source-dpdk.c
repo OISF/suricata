@@ -210,12 +210,8 @@ static void DevicePreClosePMDSpecificActions(DPDKThreadVars *ptv, const char *dr
         driver_name = BondingDeviceDriverGet(ptv->port_id);
     }
 
-    if (
-#if RTE_VERSION > RTE_VERSION_NUM(20, 0, 0, 0)
-            strcmp(driver_name, "net_i40e") == 0 ||
-#endif /* RTE_VERSION > RTE_VERSION_NUM(20, 0, 0, 0) */
-            strcmp(driver_name, "net_ixgbe") == 0 || strcmp(driver_name, "net_ice") == 0 ||
-            strcmp(driver_name, "mlx5_pci") == 0) {
+    if (strcmp(driver_name, "net_i40e") == 0 || strcmp(driver_name, "net_ixgbe") == 0 ||
+            strcmp(driver_name, "net_ice") == 0 || strcmp(driver_name, "mlx5_pci") == 0) {
         // Flush the RSS rules that have been inserted in the post start section
         struct rte_flow_error flush_error = { 0 };
         int32_t retval = rte_flow_flush(ptv->port_id, &flush_error);
@@ -710,17 +706,10 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
             }
             if (link.link_status) {
                 char link_status_str[RTE_ETH_LINK_MAX_STR_LEN];
-#if RTE_VERSION >= RTE_VERSION_NUM(20, 11, 0, 0)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
                 rte_eth_link_to_str(link_status_str, sizeof(link_status_str), &link);
 #pragma GCC diagnostic pop
-#else
-                snprintf(link_status_str, sizeof(link_status_str),
-                        "Link Up, speed %u Mbps, %s", // 22 chars + 10 for digits + 11 for duplex
-                        link.link_speed,
-                        (link.link_duplex == ETH_LINK_FULL_DUPLEX) ? "full-duplex" : "half-duplex");
-#endif
 
                 SCLogInfo("%s: %s", dpdk_config->iface, link_status_str);
                 break;

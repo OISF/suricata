@@ -1331,10 +1331,8 @@ static void DumpRXOffloadCapabilities(const uint64_t rx_offld_capa)
             rx_offld_capa & RTE_ETH_RX_OFFLOAD_OUTER_UDP_CKSUM ? "" : "NOT ");
     SCLogConfig("RTE_ETH_RX_OFFLOAD_RSS_HASH - %savailable",
             rx_offld_capa & RTE_ETH_RX_OFFLOAD_RSS_HASH ? "" : "NOT ");
-#if RTE_VERSION >= RTE_VERSION_NUM(20, 11, 0, 0)
     SCLogConfig("RTE_ETH_RX_OFFLOAD_BUFFER_SPLIT - %savailable",
             rx_offld_capa & RTE_ETH_RX_OFFLOAD_BUFFER_SPLIT ? "" : "NOT ");
-#endif
 }
 
 static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
@@ -1347,28 +1345,12 @@ static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_
         SCReturnInt(-ERANGE);
     }
 
-#if RTE_VERSION < RTE_VERSION_NUM(21, 11, 0, 0)
-    // check if jumbo frames are set and are available
-    if (iconf->mtu > RTE_ETHER_MAX_LEN &&
-            !(dev_info->rx_offload_capa & DEV_RX_OFFLOAD_JUMBO_FRAME)) {
-        SCLogError("%s: jumbo frames not supported, set MTU to 1500", iconf->iface);
-        SCReturnInt(-EINVAL);
-    }
-#endif
-
     SCReturnInt(0);
 }
 
 static void DeviceSetMTU(struct rte_eth_conf *port_conf, uint16_t mtu)
 {
-#if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
     port_conf->rxmode.mtu = mtu;
-#else
-    port_conf->rxmode.max_rx_pkt_len = mtu;
-    if (mtu > RTE_ETHER_MAX_LEN) {
-        port_conf->rxmode.offloads |= DEV_RX_OFFLOAD_JUMBO_FRAME;
-    }
-#endif
 }
 
 static void PortConfSetInterruptMode(const DPDKIfaceConfig *iconf, struct rte_eth_conf *port_conf)
