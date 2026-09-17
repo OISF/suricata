@@ -133,36 +133,47 @@ In this example the ``packet:filter`` rules will be more opinionated about the t
     accept:hook tcp:all $HOME_NET any <> $EXTERNAL_NET 443 (flow:established; sid:4;)
 
 Then on the TLS level this will be a TLS SNI firewall.
+:doc:`tls-state-migration` covers migrating rules and config
+keys from the pre-phase state names.
 
-Again all the states need to be accepted. Only in the ``client_hello_done`` state will
+Again all the states need to be accepted. Only in the ``client_hello`` state will
 there be additional constraints::
 
-    accept:hook tls:client_in_progress $HOME_NET any -> $EXTERNAL_NET any (sid:100;)
+    accept:hook tls:client_started $HOME_NET any -> $EXTERNAL_NET any (sid:100;)
     # allow the good sites
-    accept:hook tls:client_hello_done $HOME_NET any -> $EXTERNAL_NET any (tls.sni; \
+    accept:hook tls:client_hello $HOME_NET any -> $EXTERNAL_NET any (tls.sni; \
             pcre:"/^(suricata.io|oisf.net)$/; sid:101;)
-    accept:hook tls:client_cert_done $HOME_NET any -> $EXTERNAL_NET any (sid:102;)
-    accept:hook tls:client_handshake_done $HOME_NET any -> $EXTERNAL_NET any (sid:103;)
+    accept:hook tls:client_cert $HOME_NET any -> $EXTERNAL_NET any (sid:102;)
+    accept:hook tls:client_data $HOME_NET any -> $EXTERNAL_NET any (sid:103;)
     accept:hook tls:client_finished $HOME_NET any -> $EXTERNAL_NET any (sid:104;)
 
-    accept:hook tls:server_in_progress $EXTERNAL_NET any -> $HOME_NET any (sid:200;)
+    accept:hook tls:server_started $EXTERNAL_NET any -> $HOME_NET any (sid:200;)
     accept:hook tls:server_hello $EXTERNAL_NET any -> $HOME_NET any (sid:201;)
-    accept:hook tls:server_cert_done $EXTERNAL_NET any -> $HOME_NET any (sid:202;)
-    accept:hook tls:server_hello_done $EXTERNAL_NET any -> $HOME_NET any (sid:203;)
-    accept:hook tls:server_handshake_done $EXTERNAL_NET any -> $HOME_NET any (sid:204;)
+    accept:hook tls:server_cert $EXTERNAL_NET any -> $HOME_NET any (sid:202;)
+    accept:hook tls:server_data $EXTERNAL_NET any -> $HOME_NET any (sid:204;)
     accept:hook tls:server_finished $EXTERNAL_NET any -> $HOME_NET any (sid:205;)
+
+The ``client_hello`` state is entered once the ClientHello message is
+fully buffered, so the SNI is available when rules in this state are
+evaluated; a ClientHello fragmented over several TLS records is
+decided at ``client_started`` until its final fragment arrives. A rule
+that matches in the state (such as the SNI accept above) determines
+the flow's verdict and preempts the default policy; the default policy
+applies to flows for which no rule matches.
+``client_started`` covers the packets before the hello, including the
+records of a fragmented hello.
 
 TLS SNI with auto-accept logic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Rule that has the same effect as the 11 TLS rules above::
 
-    accept:flow tls:<client_hello_done $HOME_NET any -> $EXTERNAL_NET any (tls.sni; \
+    accept:flow tls:<client_hello $HOME_NET any -> $EXTERNAL_NET any (tls.sni; \
             pcre:"/^(suricata.io|oisf.net)$/; sid:101;)
 
 Explanation: ``accept:flow`` accepts all of the TLS flow from the moment the rule
-has matched. The ``tls:client_in_progress`` hook is auto-accepted by the use of the
-``<`` modifier in the hook ``tls:<client_hello_done``.
+has matched. The ``tls:client_started`` hook is auto-accepted by the use of the
+``<`` modifier in the hook ``tls:<client_hello``.
 
 TLS SNI with auto-accept logic, plus disabling TD matching
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -171,8 +182,8 @@ To allow-list a connection to a specific SNI, w/o threat detection rules
 matching on this flow either, the example above can be extended by adding ``pass:flow``
 as a secondary action::
 
-    accept:flow,pass:flow tls:<client_hello_done $HOME_NET any -> $EXTERNAL_NET any \
+    accept:flow,pass:flow tls:<client_hello $HOME_NET any -> $EXTERNAL_NET any \
         (tls.sni; pcre:"/^(suricata.io|oisf.net)$/; sid:101;)
 
-Explanation: as soon as this rule fully matches at the ``tls:client_hello_done`` hook,
+Explanation: as soon as this rule fully matches at the ``tls:client_hello`` hook,
 a ``pass`` is applied to the flow effectively bypassing the threat detection engine.

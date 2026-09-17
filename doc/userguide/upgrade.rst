@@ -50,6 +50,15 @@ Major Changes
   ``app-layer.protocols.pgsql`` section was absent from suricata.yaml, the
   parser would be enabled. It's now disabled by default. Simply enabling its EVE
   output will no longer suffice, either.
+- The TLS state names used in firewall rules (``accept:hook
+  tls:<state>``, ``alert tls:<state>``) and in the
+  ``firewall.policies.app.tls`` config keys changed from completion
+  milestones to active phases (e.g. ``client_hello_done`` becomes
+  ``client_hello``, ``client_in_progress`` becomes ``client_started``).
+  A rule with an old state name fails to load and is **not enforced**,
+  and a config key that no longer matches a state is an error at load
+  (the init aborts when ``init-failure-fatal`` is set). See
+  :doc:`firewall/tls-state-migration` for the old-to-new mapping.
 
 Logging Changes
 ~~~~~~~~~~~~~~~
@@ -71,6 +80,11 @@ Logging Changes
   as an array of key-value pairs like ``[{"key":"mykey", "value":"myvalue"}]``
   under ``properties`` object, instead of as ``{key: value}`` pairs as a part
   of the ``properties`` object itself.
+
+- The ``ts_progress``/``tc_progress`` values in alerts for the renamed
+  TLS firewall states now use the new phase names (e.g.
+  ``client_hello_done`` is now ``client_hello``). See
+  :doc:`firewall/tls-state-migration` for the old-to-new mapping.
 
 Removals
 ~~~~~~~~
