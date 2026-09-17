@@ -95,6 +95,9 @@ Major Changes
   keeps the drop by having no certificate-state accept).
 - DPDK capture support now requires DPDK 21.11 or later;
   ``./configure --enable-dpdk`` fails on older releases.
+- ``mempool-size: auto`` for DPDK interfaces now reserves one RX burst (32
+  packets) per queue in addition to the RX and TX descriptors, and a manually
+  set ``mempool-size`` is validated against the same requirement.
 
 Logging Changes
 ~~~~~~~~~~~~~~~
