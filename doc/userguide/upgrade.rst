@@ -122,6 +122,11 @@ Logging Changes
   ``stats.app_layer.*.ftp-data`` becomes ``stats.app_layer.*.ftp_data``,
   and same for bittorrent_dht
 
+- DPDK: all packets of one RX burst carry the same timestamp, taken when the
+  burst was received, instead of a timestamp taken when the processing of each
+  packet started. This should have none-to-minimal impact on timestamp accuracy
+  for most use cases.
+
 
 - MQTT user properties are now logged as a new object called ``user_properties``
   as an array of key-value pairs like ``[{"key":"mykey", "value":"myvalue"}]``
