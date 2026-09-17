@@ -89,10 +89,10 @@ void DetectTlsFingerprintRegister(void)
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, TLS_STATE_SERVER_CERT_DONE);
 
     DetectAppLayerInspectEngineRegister("tls.cert_fingerprint", ALPROTO_TLS, SIG_FLAG_TOSERVER,
-            TLS_STATE_CLIENT_CERT_DONE, DetectEngineInspectBufferGeneric, GetData);
+            TLS_STATE_CLIENT_CERT, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("tls.cert_fingerprint", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, TLS_STATE_CLIENT_CERT_DONE);
+            PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, TLS_STATE_CLIENT_CERT);
 
     DetectBufferTypeSetDescriptionByName("tls.cert_fingerprint",
             "TLS certificate fingerprint");

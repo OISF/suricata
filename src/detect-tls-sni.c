@@ -75,10 +75,10 @@ void DetectTlsSniRegister(void)
     sigmatch_table[DETECT_TLS_SNI].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("tls.sni", ALPROTO_TLS, SIG_FLAG_TOSERVER,
-            TLS_STATE_CLIENT_HELLO_DONE, DetectEngineInspectBufferGeneric, GetData);
+            TLS_STATE_CLIENT_HELLO, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("tls.sni", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister, GetData,
-            ALPROTO_TLS, TLS_STATE_CLIENT_HELLO_DONE);
+            ALPROTO_TLS, TLS_STATE_CLIENT_HELLO);
 
     DetectBufferTypeSetDescriptionByName("tls.sni",
             "TLS Server Name Indication (SNI) extension");
