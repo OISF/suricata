@@ -793,7 +793,7 @@ static OutputInitResult OutputLuaLogInit(SCConfNode *conf)
         } else if (opts.alproto == ALPROTO_TLS) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_TLS;
-            om->tc_log_progress = TLS_STATE_SERVER_HANDSHAKE_DONE;
+            om->tc_log_progress = TLS_STATE_SERVER_DATA;
             om->ts_log_progress = TLS_STATE_CLIENT_DATA;
             SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
         } else if (opts.alproto == ALPROTO_DNS) {

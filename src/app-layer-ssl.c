@@ -70,24 +70,20 @@ static SCEnumCharMap tls_state_client_table[] = {
 
 static SCEnumCharMap tls_state_server_table[] = {
     {
-            "server_in_progress",
-            TLS_STATE_SERVER_IN_PROGRESS,
+            "server_started",
+            TLS_STATE_SERVER_STARTED,
     },
     {
             "server_hello",
             TLS_STATE_SERVER_HELLO,
     },
     {
-            "server_cert_done",
-            TLS_STATE_SERVER_CERT_DONE,
+            "server_cert",
+            TLS_STATE_SERVER_CERT,
     },
     {
-            "server_hello_done",
-            TLS_STATE_SERVER_HELLO_DONE,
-    },
-    {
-            "server_handshake_done",
-            TLS_STATE_SERVER_HANDSHAKE_DONE,
+            "server_data",
+            TLS_STATE_SERVER_DATA,
     },
     {
             "server_finished",
@@ -479,6 +475,14 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
     X509 *x509 = NULL;
     int rc = 0;
 
+    /* stashed cert0 extraction: published to connp only when the whole
+     * certificate decodes (see the cert0 fill below) */
+    uint8_t *st_subject = NULL, *st_issuer = NULL, *st_serial = NULL;
+    SSLSubjectAltName *st_sans = NULL;
+    uint32_t st_subject_len = 0, st_issuer_len = 0, st_serial_len = 0;
+    uint16_t st_sans_num = 0;
+    int64_t st_not_before = 0, st_not_after = 0;
+
     if (!(HAS_SPACE(3)))
         goto invalid_cert;
 
@@ -493,47 +497,69 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
             connp->cert0_serial == NULL) {
         x509 = SCX509Decode(input, cert_len, &err_code);
         if (x509 == NULL) {
+            /* an undecodable certificate: report it once and let the
+             * caller skip it - the rest of the chain must still be
+             * decoded */
             TlsDecodeHSCertificateErrSetEvent(ssl_state, err_code);
-            goto next;
+            goto fail;
         }
 
-        SCX509GetSubject(x509, &connp->cert0_subject, &connp->cert0_subject_len);
-        if (connp->cert0_subject == NULL) {
+        /* extract into the stashes and publish to connp->cert0_* only
+         * when the whole certificate yields every field: a partial fill
+         * would otherwise block the next certificate from completing the
+         * fields */
+        SCX509GetSubject(x509, &st_subject, &st_subject_len);
+        if (st_subject == NULL) {
             err_code = ERR_EXTRACT_SUBJECT;
             goto error;
         }
 
-        SCX509GetIssuer(x509, &connp->cert0_issuerdn, &connp->cert0_issuerdn_len);
-        if (connp->cert0_issuerdn == NULL) {
+        SCX509GetIssuer(x509, &st_issuer, &st_issuer_len);
+        if (st_issuer == NULL) {
             err_code = ERR_EXTRACT_ISSUER;
             goto error;
         }
 
-        connp->cert0_sans_num = SCX509GetSubjectAltNameLen(x509);
-        if (connp->cert0_sans_num == TLS_MAX_SAN) {
+        st_sans_num = SCX509GetSubjectAltNameLen(x509);
+        if (st_sans_num == TLS_MAX_SAN) {
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_TOO_MANY_SUBJECT_ALTERNATIVE_NAMES);
         }
-        connp->cert0_sans = SCCalloc(connp->cert0_sans_num, sizeof(SSLSubjectAltName));
-        if (connp->cert0_sans == NULL) {
-            connp->cert0_sans_num = 0;
-            goto error;
-        }
-        for (uint16_t i = 0; i < connp->cert0_sans_num; i++) {
-            SCX509GetSubjectAltNameAt(
-                    x509, i, &connp->cert0_sans[i].san, &connp->cert0_sans[i].san_len);
+        if (st_sans_num > 0) {
+            st_sans = SCCalloc(st_sans_num, sizeof(SSLSubjectAltName));
+            if (st_sans == NULL) {
+                st_sans_num = 0;
+                goto error;
+            }
+            for (uint16_t i = 0; i < st_sans_num; i++) {
+                SCX509GetSubjectAltNameAt(x509, i, &st_sans[i].san, &st_sans[i].san_len);
+            }
         }
 
-        SCX509GetSerial(x509, &connp->cert0_serial, &connp->cert0_serial_len);
-        if (connp->cert0_serial == NULL) {
+        SCX509GetSerial(x509, &st_serial, &st_serial_len);
+        if (st_serial == NULL) {
             err_code = ERR_INVALID_SERIAL;
             goto error;
         }
 
-        rc = SCX509GetValidity(x509, &connp->cert0_not_before, &connp->cert0_not_after);
+        rc = SCX509GetValidity(x509, &st_not_before, &st_not_after);
         if (rc != 0) {
             err_code = ERR_EXTRACT_VALIDITY;
             goto error;
         }
+
+        /* the certificate yielded every field: publish it */
+        connp->cert0_subject = st_subject;
+        connp->cert0_subject_len = st_subject_len;
+        connp->cert0_issuerdn = st_issuer;
+        connp->cert0_issuerdn_len = st_issuer_len;
+        connp->cert0_sans = st_sans;
+        connp->cert0_sans_num = st_sans_num;
+        connp->cert0_serial = st_serial;
+        connp->cert0_serial_len = st_serial_len;
+        connp->cert0_not_before = st_not_before;
+        connp->cert0_not_after = st_not_after;
+        st_subject = st_issuer = st_serial = NULL;
+        st_sans = NULL;
 
         SCX509Free(x509);
         x509 = NULL;
@@ -551,16 +577,30 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state, SSLStateConnp *connp,
         goto error;
     }
 
-next:
     input += cert_len;
     return (int)(input - initial_input);
 
 error:
     if (err_code != 0)
         TlsDecodeHSCertificateErrSetEvent(ssl_state, err_code);
+    /* the certificate did not fully decode: nothing was published, release
+     * the stashed extraction so the next certificate can fill cert0 */
+    if (st_subject != NULL)
+        SCX509ArrayFree(st_subject, st_subject_len);
+    if (st_issuer != NULL)
+        SCX509ArrayFree(st_issuer, st_issuer_len);
+    if (st_serial != NULL)
+        SCX509ArrayFree(st_serial, st_serial_len);
+    if (st_sans != NULL) {
+        for (uint16_t i = 0; i < st_sans_num; i++)
+            SCX509ArrayFree(st_sans[i].san, st_sans[i].san_len);
+        SCFree(st_sans);
+    }
     if (x509 != NULL)
         SCX509Free(x509);
+    return -1;
 
+fail:
     return -1;
 
 invalid_cert:
@@ -593,6 +633,11 @@ static int TlsDecodeHSCertificates(SSLState *ssl_state, SSLStateConnp *connp,
         return -1;
     }
 
+    /* this connp's certificate message: until it decodes fully the
+     * certificate data is incomplete - only a fully decoded certificate
+     * message completes it, never a later handshake message */
+    connp->cert_data_incomplete = true;
+
     connp->certs_buffer = SCCalloc(1, cert_chain_len);
     if (connp->certs_buffer == NULL) {
         return -1;
@@ -602,21 +647,40 @@ static int TlsDecodeHSCertificates(SSLState *ssl_state, SSLStateConnp *connp,
 
     int cert_cnt = 0;
     uint32_t processed_len = 0;
+    bool cert_failed = false;
     /* coverity[tainted_data] */
     while (processed_len < cert_chain_len) {
         int rc = TlsDecodeHSCertificate(ssl_state, connp, connp->certs_buffer + processed_len,
                 connp->certs_buffer_size - processed_len, cert_cnt);
-        if (rc <= 0) { // 0 should be impossible, but lets be defensive
-            return -1;
-        }
-        DEBUG_VALIDATE_BUG_ON(processed_len + (uint32_t)rc > cert_chain_len);
-        if (processed_len + (uint32_t)rc > cert_chain_len) {
-            return -1;
+        if (rc > 0) {
+            DEBUG_VALIDATE_BUG_ON(processed_len + (uint32_t)rc > cert_chain_len);
+            if (processed_len + (uint32_t)rc > cert_chain_len) {
+                return -1;
+            }
+            processed_len += (uint32_t)rc;
+            continue;
         }
 
-        processed_len += (uint32_t)rc;
+        /* a certificate failed to decode: skip its bytes so the rest
+         * of the chain is still decoded; an invalid length aborts the
+         * message */
+        const uint8_t *cert = connp->certs_buffer + processed_len;
+        if (processed_len + 3 > cert_chain_len)
+            return -1;
+        const uint32_t skip = cert[0] << 16 | cert[1] << 8 | cert[2];
+        if (processed_len + 3 + skip > cert_chain_len)
+            return -1;
+        processed_len += 3 + skip;
+        cert_failed = true;
     }
 
+    if (cert_failed) {
+        /* the message contains an undecodable certificate: the phase
+         * data is incomplete, so the caller suppresses the cert phase;
+         * the decoded rest of the chain is kept */
+        return -1;
+    }
+    connp->cert_data_incomplete = false;
     return processed_len + 3;
 }
 
@@ -1490,15 +1554,19 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
     int ret;
     uint32_t parsed = 0;
 
+    /* a failed sub-decode must not fail the parse: the message bytes are
+     * consumed either way. The phase advance that follows relies on a
+     * fully parsed message, so suppress it via the connp flag instead. */
+
     ret = TLSDecodeHSHelloVersion(ssl_state, input, input_len);
     if (ret < 0)
-        goto end;
+        goto fail;
 
     parsed += ret;
 
     ret = TLSDecodeHSHelloRandom(ssl_state, input + parsed, input_len - parsed);
     if (ret < 0)
-        goto end;
+        goto fail;
 
     parsed += ret;
 
@@ -1510,7 +1578,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
         ret = TLSDecodeHSHelloSessionID(ssl_state, input + parsed,
                                         input_len - parsed);
         if (ret < 0)
-            goto end;
+            goto fail;
 
         parsed += ret;
     }
@@ -1518,7 +1586,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
     ret = TLSDecodeHSHelloCipherSuites(ssl_state, input + parsed,
                                        input_len - parsed);
     if (ret < 0)
-        goto end;
+        goto fail;
 
     parsed += ret;
 
@@ -1530,7 +1598,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
         ret = TLSDecodeHSHelloCompressionMethods(ssl_state, input + parsed,
                                                  input_len - parsed);
         if (ret < 0)
-            goto end;
+            goto fail;
 
         parsed += ret;
     }
@@ -1538,16 +1606,15 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
     ret = TLSDecodeHSHelloExtensions(ssl_state, input + parsed,
                                      input_len - parsed);
     if (ret < 0)
-        goto end;
+        goto fail;
 
     if (SC_ATOMIC_GET(ssl_config.enable_ja3) && ssl_state->curr_connp->ja3_hash == NULL) {
         ssl_state->curr_connp->ja3_hash = Ja3GenerateHash(ssl_state->curr_connp->ja3_str);
     }
+    return 0;
 
-    if (ssl_state->curr_connp != &ssl_state->client_connp) {
-        UpdateServerState(ssl_state, TLS_STATE_SERVER_HELLO);
-    }
-end:
+fail:
+    ssl_state->curr_connp->phase_suppressed = true;
     return 0;
 }
 
@@ -1571,10 +1638,9 @@ static inline int SSLv3ParseHandshakeTypeCertificate(SSLState *ssl_state, SSLSta
     } else if (rc < 0) {
         SCLogDebug("error parsing cert, reset state");
         SSLParserHSReset(connp);
-        /* fall through to still consume the cert bytes */
-    }
-    if (connp != &ssl_state->client_connp) {
-        UpdateServerState(ssl_state, TLS_STATE_SERVER_CERT_DONE);
+        /* the certificate phase data is incomplete (an undecodable
+         * certificate): suppress the phase advance, consume the bytes */
+        connp->phase_suppressed = true;
     }
     return input_len;
 }
@@ -1616,6 +1682,10 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
     int rc;
 
     DEBUG_VALIDATE_BUG_ON(RecordAlreadyProcessed(ssl_state->curr_connp));
+
+    /* a fresh handshake message: the suppression set by a failed decode
+     * of the previous message has been consumed by now */
+    ssl_state->curr_connp->phase_suppressed = false;
 
     switch (ssl_state->curr_connp->handshake_type) {
         case SSLV3_HS_CLIENT_HELLO:
@@ -1668,14 +1738,10 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
         case SSLV3_HS_FINISHED:
         case SSLV3_HS_CERTIFICATE_URL:
         case SSLV3_HS_CERTIFICATE_STATUS:
+        case SSLV3_HS_SERVER_HELLO_DONE:
             break;
         case SSLV3_HS_NEW_SESSION_TICKET:
             SCLogDebug("new session ticket");
-            break;
-        case SSLV3_HS_SERVER_HELLO_DONE:
-            if (direction) {
-                UpdateServerState(ssl_state, TLS_STATE_SERVER_HELLO_DONE);
-            }
             break;
         default:
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
@@ -1697,13 +1763,26 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
  * in place until the final fragment completes the message, so the phase
  * data (SNI, certificates) is available when its state is entered.
  */
-static void SSLv3HandshakePhaseAdvance(SSLState *ssl_state)
+static void SSLv3HandshakePhaseAdvance(SSLState *ssl_state, const uint8_t hs_type)
 {
+    /* some handshake messages (certificates) clear the connp handshake
+     * type before returning, so the message type is passed in */
+
+    /* a handshake message that failed to decode suppresses its own phase
+     * advance: the phase data (SNI, certificates) does not exist */
+    if (ssl_state->curr_connp->phase_suppressed)
+        return;
     if (ssl_state->curr_connp == &ssl_state->client_connp) {
-        if (ssl_state->curr_connp->handshake_type == SSLV3_HS_CLIENT_HELLO) {
+        if (hs_type == SSLV3_HS_CLIENT_HELLO) {
             UpdateClientState(ssl_state, TLS_STATE_CLIENT_HELLO);
-        } else if (ssl_state->curr_connp->handshake_type == SSLV3_HS_CERTIFICATE) {
+        } else if (hs_type == SSLV3_HS_CERTIFICATE) {
             UpdateClientState(ssl_state, TLS_STATE_CLIENT_CERT);
+        }
+    } else {
+        if (hs_type == SSLV3_HS_SERVER_HELLO) {
+            UpdateServerState(ssl_state, TLS_STATE_SERVER_HELLO);
+        } else if (hs_type == SSLV3_HS_CERTIFICATE) {
+            UpdateServerState(ssl_state, TLS_STATE_SERVER_CERT);
         }
     }
 }
@@ -1775,7 +1854,8 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input
                 }
                 SCLogDebug("retval %d", retval);
 
-                SSLv3HandshakePhaseAdvance(ssl_state);
+                SSLv3HandshakePhaseAdvance(
+                        ssl_state, ssl_state->curr_connp->hs_buffer_message_type);
 
                 /* data processed, reset buffer */
                 SCFree(ssl_state->curr_connp->hs_buffer);
@@ -1865,14 +1945,17 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input
 
         } else {
             /* full record, parse it now */
+            const uint8_t full_record_hs_type = ssl_state->curr_connp->handshake_type;
             int retval = SSLv3ParseHandshakeType(
                     ssl_state, input, ssl_state->curr_connp->message_length, direction);
             if (retval < 0 || retval > (int)input_len) {
                 DEBUG_VALIDATE_BUG_ON(retval > (int)input_len);
+                if (retval < 0)
+                    SSLParserHSReset(ssl_state->curr_connp);
                 return (retval);
             }
             SCLogDebug("retval %d input_len %u", retval, input_len);
-            SSLv3HandshakePhaseAdvance(ssl_state);
+            SSLv3HandshakePhaseAdvance(ssl_state, full_record_hs_type);
             input += retval;
             input_len -= retval;
 
@@ -2328,7 +2411,6 @@ static struct SSLDecoderResult SSLv2Decode(uint8_t direction, SSLState *ssl_stat
             } else {
                 ssl_state->current_flags = SSL_AL_FLAG_STATE_CLIENT_KEYX;
             }
-            UpdateServerState(ssl_state, TLS_STATE_SERVER_CERT_DONE);
 
             /* fall through */
         case SSLV2_MT_SERVER_VERIFY:
@@ -2588,7 +2670,7 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
             if (ssl_state->curr_connp == &ssl_state->client_connp) {
                 UpdateClientState(ssl_state, TLS_STATE_CLIENT_DATA);
             } else {
-                UpdateServerState(ssl_state, TLS_STATE_SERVER_HANDSHAKE_DONE);
+                UpdateServerState(ssl_state, TLS_STATE_SERVER_DATA);
             }
 
             if (ssl_config.encrypt_mode != SSL_CNF_ENC_HANDLE_FULL) {
@@ -2821,17 +2903,23 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
         counter++;
     } /* while (input_len) */
 
-    /* mark handshake as done if we have subject and issuer */
+    /* mark handshake as done if we have subject and issuer; the
+     * certificate data must be complete - a certificate message whose
+     * decode failed (even with the rest of the chain decoded) leaves the
+     * data incomplete until a certificate message decodes fully, so the
+     * tracks must not cross the cert phase on partial data */
     if ((ssl_state->flags & SSL_AL_FLAG_NEED_CLIENT_CERT) &&
+            !ssl_state->client_connp.cert_data_incomplete &&
             ssl_state->client_connp.cert0_subject && ssl_state->client_connp.cert0_issuerdn) {
         /* update both sides to keep existing behavior */
         UpdateClientState(ssl_state, TLS_STATE_CLIENT_DATA);
-        UpdateServerState(ssl_state, TLS_STATE_SERVER_HANDSHAKE_DONE);
+        UpdateServerState(ssl_state, TLS_STATE_SERVER_DATA);
     } else if ((ssl_state->flags & SSL_AL_FLAG_NEED_CLIENT_CERT) == 0 &&
+               !ssl_state->server_connp.cert_data_incomplete &&
                ssl_state->server_connp.cert0_subject && ssl_state->server_connp.cert0_issuerdn) {
         /* update both sides to keep existing behavior */
         UpdateClientState(ssl_state, TLS_STATE_CLIENT_DATA);
-        UpdateServerState(ssl_state, TLS_STATE_SERVER_HANDSHAKE_DONE);
+        UpdateServerState(ssl_state, TLS_STATE_SERVER_DATA);
     }
 
     /* flag session as finished if APP_LAYER_PARSER_EOF is set */

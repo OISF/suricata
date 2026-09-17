@@ -85,11 +85,10 @@ enum TlsStateClient {
 };
 
 enum TlsStateServer {
-    TLS_STATE_SERVER_IN_PROGRESS = 0,
+    TLS_STATE_SERVER_STARTED = 0,
     TLS_STATE_SERVER_HELLO,
-    TLS_STATE_SERVER_CERT_DONE,
-    TLS_STATE_SERVER_HELLO_DONE,
-    TLS_STATE_SERVER_HANDSHAKE_DONE,
+    TLS_STATE_SERVER_CERT,
+    TLS_STATE_SERVER_DATA,
     TLS_STATE_SERVER_FINISHED,
 };
 
@@ -225,6 +224,19 @@ typedef struct SSLStateConnp_ {
      * TLS records. */
     uint8_t *hs_buffer;
     uint8_t hs_buffer_message_type;
+
+    /* the current handshake message failed to decode: suppress the phase
+     * advance that follows it (the phase data does not exist); the
+     * message bytes are consumed and parsing continues; reset per message */
+    bool phase_suppressed;
+
+    /* this connp's certificate message has not decoded fully (it failed,
+     * or a certificate in it failed): the certificate data is incomplete,
+     * so the handshake-done heuristic must not establish the data phase
+     * from it; set while the first certificate message is being decoded,
+     * cleared by a fully decoded certificate message only */
+    bool cert_data_incomplete;
+
     uint32_t hs_buffer_message_size;
     uint32_t hs_buffer_size;   /**< allocation size */
     uint32_t hs_buffer_offset; /**< write offset */

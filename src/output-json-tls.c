@@ -733,6 +733,6 @@ void JsonTlsLogRegister (void)
 {
     /* register as child of eve-log */
     OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", "JsonTlsLog", "eve-log.tls",
-            OutputTlsLogInitSub, ALPROTO_TLS, JsonTlsLogger, TLS_STATE_SERVER_HANDSHAKE_DONE,
+            OutputTlsLogInitSub, ALPROTO_TLS, JsonTlsLogger, TLS_STATE_SERVER_DATA,
             TLS_STATE_CLIENT_DATA, JsonTlsLogThreadInit, JsonTlsLogThreadDeinit);
 }
