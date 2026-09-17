@@ -147,7 +147,7 @@ void DetectTlsRegister (void)
             TLS_STATE_SERVER_CERT_DONE, DetectEngineInspectGenericList, NULL);
 
     DetectAppLayerInspectEngineRegister("tls_cert", ALPROTO_TLS, SIG_FLAG_TOSERVER,
-            TLS_STATE_CLIENT_CERT_DONE, DetectEngineInspectGenericList, NULL);
+            TLS_STATE_CLIENT_CERT, DetectEngineInspectGenericList, NULL);
 }
 
 /**
