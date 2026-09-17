@@ -133,36 +133,71 @@ In this example the ``packet:filter`` rules will be more opinionated about the t
     accept:hook tcp:all $HOME_NET any <> $EXTERNAL_NET 443 (flow:established; sid:4;)
 
 Then on the TLS level this will be a TLS SNI firewall.
+:doc:`tls-state-migration` covers migrating rules and config
+keys from the pre-phase state names.
 
-Again all the states need to be accepted. Only in the ``client_hello_done`` state will
-there be additional constraints::
+Again all the states need to be accepted. Only in the ``client_hello``
+state will there be additional constraints::
 
-    accept:hook tls:client_in_progress $HOME_NET any -> $EXTERNAL_NET any (sid:100;)
+    accept:hook tls:client_started $HOME_NET any -> $EXTERNAL_NET any (sid:100;)
     # allow the good sites
-    accept:hook tls:client_hello_done $HOME_NET any -> $EXTERNAL_NET any (tls.sni; \
-            pcre:"/^(suricata.io|oisf.net)$/; sid:101;)
-    accept:hook tls:client_cert_done $HOME_NET any -> $EXTERNAL_NET any (sid:102;)
-    accept:hook tls:client_handshake_done $HOME_NET any -> $EXTERNAL_NET any (sid:103;)
-    accept:hook tls:client_finished $HOME_NET any -> $EXTERNAL_NET any (sid:104;)
+    accept:flow tls:client_hello $HOME_NET any -> $EXTERNAL_NET any (tls.sni; \
+            pcre:"/^(suricata.io|oisf.net)$/R"; sid:101;)
+    # drop every ClientHello that carried an SNI the rule above does
+    # not allow; the SNI buffer is required, so a fragment still in
+    # flight (no SNI buffer yet) cannot match
+    drop:flow tls:client_hello $HOME_NET any -> $EXTERNAL_NET any (alert; tls.sni; \
+            pcre:!"/^(suricata.io|oisf.net)$/R"; sid:102;)
+    # hello packets that carry no verdict of their own: the in-flight
+    # fragments
+    accept:hook tls:client_hello $HOME_NET any -> $EXTERNAL_NET any (sid:103;)
+    # no accept at the certificate state: a hello without an SNI matches
+    # no SNI rule and is decided by the default policy of the states it
+    # walked over (the implicit drop:flow) - the same outcome the base
+    # release gave it at the hello-completion milestone. If you want to
+    # accept SNI-less hellos, add an explicit accept here and audit the
+    # relaxation.
+    accept:hook tls:client_data $HOME_NET any -> $EXTERNAL_NET any (sid:105;)
+    accept:hook tls:client_finished $HOME_NET any -> $EXTERNAL_NET any (sid:106;)
 
-    accept:hook tls:server_in_progress $EXTERNAL_NET any -> $HOME_NET any (sid:200;)
+    accept:hook tls:server_started $EXTERNAL_NET any -> $HOME_NET any (sid:200;)
     accept:hook tls:server_hello $EXTERNAL_NET any -> $HOME_NET any (sid:201;)
-    accept:hook tls:server_cert_done $EXTERNAL_NET any -> $HOME_NET any (sid:202;)
-    accept:hook tls:server_hello_done $EXTERNAL_NET any -> $HOME_NET any (sid:203;)
-    accept:hook tls:server_handshake_done $EXTERNAL_NET any -> $HOME_NET any (sid:204;)
+    accept:hook tls:server_cert $EXTERNAL_NET any -> $HOME_NET any (sid:202;)
+    accept:hook tls:server_data $EXTERNAL_NET any -> $HOME_NET any (sid:204;)
     accept:hook tls:server_finished $EXTERNAL_NET any -> $HOME_NET any (sid:205;)
+
+The ``client_hello`` state names the ClientHello being parsed: it is
+entered at the first byte of the message, and its completion hands the
+track to ``client_cert``. The SNI buffer is owned by the hello state, so
+``tls.sni`` rules must live in ``client_hello`` even though the record
+that completes the hello is decided at ``client_cert``: a flow that
+matches the SNI accept is carried over by the flow-scoped accept (101)
+and a flow whose SNI is not allowed is dropped by 102 on that same
+record - the drop is rule-scoped and alerts, where the implicit
+default policy would drop silently. The plain ``accept:hook`` at 103
+carries the fragments in flight (the SNI buffer is not available
+before the message completes, so it also cannot gate them). A
+ClientHello that carries no SNI at all matches no SNI rule either -
+and with no accept at the certificate state it is decided by the
+default policy of the states it walked over (the implicit
+drop:flow), the same outcome the base release gave it at the
+hello-completion milestone. A flow whose hello is accepted by 101 is
+carried by the flow-scoped accept: the flow action is checked before
+any further firewall rule of a packet is evaluated, so the later
+states of that flow never reach the implicit default.
+``client_started`` covers the packets before the hello.
 
 TLS SNI with auto-accept logic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Rule that has the same effect as the 11 TLS rules above::
 
-    accept:flow tls:<client_hello_done $HOME_NET any -> $EXTERNAL_NET any (tls.sni; \
-            pcre:"/^(suricata.io|oisf.net)$/; sid:101;)
+    accept:flow tls:<client_hello $HOME_NET any -> $EXTERNAL_NET any (tls.sni; \
+            pcre:"/^(suricata.io|oisf.net)$/R"; sid:101;)
 
 Explanation: ``accept:flow`` accepts all of the TLS flow from the moment the rule
-has matched. The ``tls:client_in_progress`` hook is auto-accepted by the use of the
-``<`` modifier in the hook ``tls:<client_hello_done``.
+has matched. The ``tls:client_started`` hook is auto-accepted by the use of the
+``<`` modifier in the hook ``tls:<client_hello``.
 
 TLS SNI with auto-accept logic, plus disabling TD matching
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -171,8 +206,8 @@ To allow-list a connection to a specific SNI, w/o threat detection rules
 matching on this flow either, the example above can be extended by adding ``pass:flow``
 as a secondary action::
 
-    accept:flow,pass:flow tls:<client_hello_done $HOME_NET any -> $EXTERNAL_NET any \
+    accept:flow,pass:flow tls:<client_hello $HOME_NET any -> $EXTERNAL_NET any \
         (tls.sni; pcre:"/^(suricata.io|oisf.net)$/; sid:101;)
 
-Explanation: as soon as this rule fully matches at the ``tls:client_hello_done`` hook,
+Explanation: as soon as this rule fully matches at the ``tls:client_hello`` hook,
 a ``pass`` is applied to the flow effectively bypassing the threat detection engine.
