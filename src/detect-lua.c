@@ -95,7 +95,7 @@ void DetectLuaRegister(void)
 
     g_lua_ja3_list_id = DetectBufferTypeRegister("ja3.lua");
     DetectAppLayerInspectEngineRegister("ja3.lua", ALPROTO_TLS, SIG_FLAG_TOSERVER,
-            TLS_STATE_CLIENT_HELLO_DONE, DetectEngineInspectGenericList, NULL);
+            TLS_STATE_CLIENT_HELLO, DetectEngineInspectGenericList, NULL);
     DetectAppLayerInspectEngineRegister(
             "ja3.lua", ALPROTO_QUIC, SIG_FLAG_TOSERVER, 1, DetectEngineInspectGenericList, NULL);
 
