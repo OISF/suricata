@@ -114,8 +114,8 @@ void DetectTlsCertsRegister(void)
     sigmatch_table[DETECT_TLS_CERTS].flags |=
             SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 
-    DetectAppLayerMultiRegister("tls.certs", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
-            TLS_STATE_SERVER_CERT_DONE, TlsCertsGetData, 2);
+    DetectAppLayerMultiRegister(
+            "tls.certs", ALPROTO_TLS, SIG_FLAG_TOCLIENT, TLS_STATE_SERVER_CERT, TlsCertsGetData, 2);
     DetectAppLayerMultiRegister(
             "tls.certs", ALPROTO_TLS, SIG_FLAG_TOSERVER, TLS_STATE_CLIENT_CERT, TlsCertsGetData, 2);
 
@@ -149,7 +149,7 @@ static int DetectTlsCertsSetup(DetectEngineCtx *de_ctx, Signature *s,
 }
 
 static int g_tls_cert_buffer_id = 0;
-#define BUFFER_NAME  "tls:server_cert_done:generic"
+#define BUFFER_NAME  "tls:server_cert:generic"
 #define KEYWORD_ID   DETECT_TLS_CHAIN_LEN
 #define KEYWORD_NAME "tls.cert_chain_len"
 #define KEYWORD_DESC "match TLS certificate chain length"
@@ -179,6 +179,18 @@ static int DetectTLSCertChainLenMatch(DetectEngineThreadCtx *det_ctx, Flow *f, u
     SSLState *ssl_state = state;
     if (flags & STREAM_TOCLIENT) {
         SSLStateConnp *connp = &ssl_state->server_connp;
+        /* count the chain only when the certificate data is final:
+         * a Certificate message that failed to decode leaves a partial
+         * chain with cert_data_incomplete set, sticky across later
+         * phases (an application-data record advances the track and
+         * rules at server_cert are still evaluated mid-walk);
+         * within the cert phase the queue may also simply not be
+         * parsed yet (the track enters it at ServerHello completion,
+         * before any certificate byte) */
+        if (connp->cert_data_incomplete ||
+                (ssl_state->server_state == TLS_STATE_SERVER_CERT && !connp->cert_chain_final)) {
+            SCReturnInt(0);
+        }
         uint32_t cnt = 0;
         SSLCertsChain *cert;
         TAILQ_FOREACH (cert, &connp->certs, next) {
