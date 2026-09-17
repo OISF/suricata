@@ -27,138 +27,10 @@ jobs:
         with:
           path: ~/.cargo
           key: scan-build
-
-      - name: Install system packages
-        run: |
-          apt update
-          apt -y install \
-                libpcre2-dev \
-                build-essential \
-                autoconf \
-                automake \
-                cargo \
-                cbindgen \
-                clang-22 \
-                clang-tools-22 \
-                dpdk-dev \
-                git \
-                libtool \
-                libpcap-dev \
-                libnet1-dev \
-                libyaml-0-2 \
-                libyaml-dev \
-                libcap-ng-dev \
-                libcap-ng0 \
-                libmagic-dev \
-                libnetfilter-log-dev \
-                libnetfilter-queue-dev \
-                libnetfilter-queue1 \
-                libnfnetlink-dev \
-                libnfnetlink0 \
-                libnuma-dev \
-                libhiredis-dev \
-                libhyperscan-dev \
-                libjansson-dev \
-                libevent-dev \
-                libevent-pthreads-2.1-7 \
-                liblz4-dev \
-                llvm-22-dev \
-                make \
-                python3-yaml \
-                rustc \
-                software-properties-common \
-                zlib1g \
-                zlib1g-dev
+      - run: apt update && apt -y install git
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - run: git config --global --add safe.directory /__w/suricata/suricata
-      - run: ./scripts/bundle.sh
-      - run: ./autogen.sh
-      - run: scan-build-22 ./configure --enable-warnings --enable-dpdk --enable-nfqueue --enable-nflog
-        env:
-          CC: clang-22
-      # disable security.insecureAPI.DeprecatedOrUnsafeBufferHandling explicitly as
-      # this will require significant effort to address.
-      # disable optin.core.EnumCastOutOfRange as it trips up capng's enum values as
-      # flags handling.
-      - run: |
-          scan-build-22 --status-bugs --exclude "$(pwd)/rust/" \
-                --exclude "$HOME/\.cargo/registry/src/" \
-                -o scan-build-report/ \
-                -enable-checker core.BitwiseShift \
-                -enable-checker core.CallAndMessage \
-                -enable-checker core.DivideZero \
-                -enable-checker core.FixedAddressDereference \
-                -enable-checker core.NonNullParamChecker \
-                -enable-checker core.NullDereference \
-                -enable-checker core.NullPointerArithm \
-                -enable-checker core.StackAddressEscape \
-                -enable-checker core.UndefinedBinaryOperatorResult \
-                -enable-checker core.VLASize \
-                -enable-checker core.uninitialized.ArraySubscript \
-                -enable-checker core.uninitialized.Assign \
-                -enable-checker core.uninitialized.Branch \
-                -enable-checker core.uninitialized.CapturedBlockVariable \
-                -enable-checker core.uninitialized.NewArraySize \
-                -enable-checker core.uninitialized.UndefReturn \
-                \
-                -enable-checker deadcode.DeadStores \
-                \
-                -enable-checker nullability.NullableReturnedFromNonnull \
-                -enable-checker nullability.NullablePassedToNonnull \
-                -enable-checker nullability.NullableDereferenced \
-                -enable-checker nullability.NullReturnedFromNonnull \
-                \
-                -enable-checker optin.performance.GCDAntipattern \
-                -disable-checker optin.core.EnumCastOutOfRange \
-                -enable-checker optin.performance.Padding \
-                -enable-checker optin.portability.UnixAPI \
-                -enable-checker optin.taint.GenericTaint \
-                -enable-checker optin.taint.TaintedAlloc \
-                -enable-checker optin.taint.TaintedDiv \
-                \
-                -enable-checker security.ArrayBound \
-                -enable-checker security.FloatLoopCounter \
-                -enable-checker security.MmapWriteExec \
-                -enable-checker security.PointerSub \
-                -enable-checker security.PutenvStackArray \
-                -enable-checker security.SetgidSetuidOrder \
-                -enable-checker security.VAList \
-                -enable-checker security.cert.env.InvalidPtr \
-                \
-                -enable-checker security.insecureAPI.UncheckedReturn \
-                -enable-checker security.insecureAPI.bcmp \
-                -enable-checker security.insecureAPI.bcopy \
-                -enable-checker security.insecureAPI.bzero \
-                -enable-checker security.insecureAPI.decodeValueOfObjCType \
-                -enable-checker security.insecureAPI.getpw \
-                -enable-checker security.insecureAPI.gets \
-                -enable-checker security.insecureAPI.mkstemp \
-                -enable-checker security.insecureAPI.mktemp \
-                -enable-checker security.insecureAPI.rand \
-                -enable-checker security.insecureAPI.strcpy \
-                -enable-checker security.insecureAPI.vfork \
-                \
-                -disable-checker security.insecureAPI.DeprecatedOrUnsafeBufferHandling \
-                \
-                -enable-checker unix.API \
-                -enable-checker unix.BlockInCriticalSection \
-                -enable-checker unix.Chroot \
-                -enable-checker unix.Errno \
-                -enable-checker unix.Malloc \
-                -enable-checker unix.MallocSizeof \
-                -enable-checker unix.MismatchedDeallocator \
-                -enable-checker unix.StdCLibraryFunctions \
-                -enable-checker unix.Stream \
-                -enable-checker unix.Vfork \
-                -enable-checker unix.cstring.BadSizeArg \
-                -enable-checker unix.cstring.NotNullTerminated \
-                -enable-checker unix.cstring.NullArg \
-                \
-                -analyzer-config optin.taint.TaintPropagation:Config="$(pwd)/qa/sb-taint-config.yaml" \
-                \
-                make
-        env:
-          CC: clang-22
+      - name: Build with scan-build
+        run: ./qa/ci/scan-build.sh
       - name: 'Upload Scan Build Results'
         uses: actions/upload-artifact@v7.0.1
         if: always()
@@ -166,6 +38,7 @@ jobs:
           name: scan-build-results
           path: scan-build-report/
           retention-days: 5
+
   gcc-analyzer:
     name: GCC analyzer
     runs-on: ubuntu-latest
