@@ -2526,8 +2526,7 @@ Other NICs using the same driver as mentioned above should work as well.
 The DPDK capture interface has not been tested neither with the virtual
 interfaces nor in the virtual environments like VMs, Docker or similar.
 
-The minimal supported DPDK is version 19.11 which should be available in most
-repositories of major distributions.
+The minimal supported DPDK version is 21.11.
 Alternatively, it is also possible to use ``meson`` and ``ninja`` to build and
 install DPDK from source files.
 It is required to have correctly configured tool ``pkg-config`` as it is used to
