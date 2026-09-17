@@ -602,9 +602,8 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
             PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
                     rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
             if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
-                TmqhOutputPacketpool(ptv->tv, p);
-                DPDKFreeMbufArray(ptv->received_mbufs, nb_rx - i - 1, i + 1);
-                SCReturnInt(EXIT_FAILURE);
+                DPDKFreeMbufArray(ptv->received_mbufs, nb_rx, i + 1);
+                SCReturnInt(TM_ECODE_FAILED);
             }
         }
 
