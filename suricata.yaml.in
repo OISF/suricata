@@ -832,7 +832,7 @@ dpdk:
 
       # To approximately calculate required amount of space (in bytes) for interface's mempool: mempool-size * mtu
       # Make sure you have enough allocated hugepages.
-      mempool-size: auto # autocalculated based on Rx/Tx descriptors and threads
+      mempool-size: auto # autocalculated based on Rx/Tx descriptors, in-flight packets and threads
       mempool-cache-size: auto # autocalculated from the mempool size
       rx-descriptors: auto # max number of descriptors
       tx-descriptors: auto # max number of descriptors

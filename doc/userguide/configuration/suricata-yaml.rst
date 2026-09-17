@@ -2489,6 +2489,8 @@ auto-calculated by setting ``mempool-size: auto``. If ``mempool-size`` is set
 manually (to e.g. ``mempool-size: 65536``), the value is divided by the number of
 worker cores of the interface (on 4 worker threads, each worker is assigned
 with a mempool containing 16383 packet objects).
+Both auto sizing and manual minimum validation include each worker's RX and
+TX descriptors and a 32-mbuf in-flight margin.
 Memory (in bytes) for interface's memory pools is calculated as:
 ``mempool-size`` * ``mtu``.
 The sum of memory pool requirements divided by the size of one hugepage results
