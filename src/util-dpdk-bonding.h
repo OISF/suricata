@@ -31,8 +31,7 @@
 
 uint16_t BondingMemberDevicesGet(
         uint16_t bond_pid, uint16_t bonded_devs[], uint16_t bonded_devs_length);
-uint32_t BondingMempoolSizeCalculate(
-        uint16_t bond_pid, const struct rte_eth_dev_info *dev_info, uint32_t mempool_size);
+uint16_t BondingMemberDevCount(const struct rte_eth_dev_info *dev_info);
 int32_t BondingAllDevicesSameDriver(uint16_t bond_pid);
 const char *BondingDeviceDriverGet(uint16_t bond_pid);
 

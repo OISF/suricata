@@ -203,8 +203,8 @@ by the NIC. Number of TX descriptors depends on the configured ``copy-mode``.
 IDS (none) mode uses no TX descriptors and does not create any TX queues by
 default. IPS and TAP mode uses the same number of TX descriptors as RX
 descriptors.
-The number of mempool and its cache is then derived from the count of
-descriptors.
+The size of each queue's mempool and its cache is then derived from the count
+of descriptors and an allowance for in-flight packets.
 
 Rx (and Tx) descriptors are set to the highest possible value to allow more
 buffer room when traffic spikes occur. However, it requires more memory.

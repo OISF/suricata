@@ -95,7 +95,6 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #include "util-dpdk-bonding.h"
 #include <numa.h>
 
-#define BURST_SIZE 32
 // interrupt mode constants
 #define MIN_ZERO_POLL_COUNT          10U
 #define MIN_ZERO_POLL_COUNT_TO_SLEEP 10U
@@ -135,7 +134,7 @@ typedef struct DPDKThreadVars_ {
     uint16_t port_id;
     uint16_t queue_id;
     int32_t port_socket_id;
-    struct rte_mbuf *received_mbufs[BURST_SIZE];
+    struct rte_mbuf *received_mbufs[DPDK_RX_BURST_SIZE];
     DPDKWorkerSync *workers_sync;
 } DPDKThreadVars;
 
@@ -569,7 +568,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
     DPDKThreadVars *ptv = (DPDKThreadVars *)data;
     ptv->slot = ((TmSlot *)slot)->slot_next;
     uint32_t mp_sz = ptv->livedev->dpdk_vars->pkt_mp[ptv->queue_id]->size;
-    uint16_t burst_size = (uint16_t)MIN(BURST_SIZE, mp_sz);
+    uint16_t burst_size = (uint16_t)MIN(DPDK_RX_BURST_SIZE, mp_sz);
 
     TmEcode ret = ReceiveDPDKLoopInit(tv, ptv);
     if (ret != TM_ECODE_OK) {
