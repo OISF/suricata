@@ -92,8 +92,8 @@ void DetectTlsAlpnRegister(void)
     sigmatch_table[DETECT_TLS_ALPN].flags |=
             SIGMATCH_INFO_STICKY_BUFFER | SIGMATCH_INFO_MULTI_BUFFER;
 
-    DetectAppLayerMultiRegister("tls.alpn", ALPROTO_TLS, SIG_FLAG_TOSERVER,
-            TLS_STATE_CLIENT_HELLO_DONE, TlsAlpnGetData, 2);
+    DetectAppLayerMultiRegister(
+            "tls.alpn", ALPROTO_TLS, SIG_FLAG_TOSERVER, TLS_STATE_CLIENT_HELLO, TlsAlpnGetData, 2);
     DetectAppLayerMultiRegister(
             "tls.alpn", ALPROTO_TLS, SIG_FLAG_TOCLIENT, TLS_STATE_SERVER_HELLO, TlsAlpnGetData, 2);
 

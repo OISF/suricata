@@ -46,20 +46,20 @@
 
 static SCEnumCharMap tls_state_client_table[] = {
     {
-            "client_in_progress",
-            TLS_STATE_CLIENT_IN_PROGRESS,
+            "client_started",
+            TLS_STATE_CLIENT_STARTED,
     },
     {
-            "client_hello_done",
-            TLS_STATE_CLIENT_HELLO_DONE,
+            "client_hello",
+            TLS_STATE_CLIENT_HELLO,
     },
     {
-            "client_cert_done",
-            TLS_STATE_CLIENT_CERT_DONE,
+            "client_cert",
+            TLS_STATE_CLIENT_CERT,
     },
     {
-            "client_handshake_done",
-            TLS_STATE_CLIENT_HANDSHAKE_DONE,
+            "client_data",
+            TLS_STATE_CLIENT_DATA,
     },
     {
             "client_finished",
@@ -1544,9 +1544,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
         ssl_state->curr_connp->ja3_hash = Ja3GenerateHash(ssl_state->curr_connp->ja3_str);
     }
 
-    if (ssl_state->curr_connp == &ssl_state->client_connp) {
-        UpdateClientState(ssl_state, TLS_STATE_CLIENT_HELLO_DONE);
-    } else {
+    if (ssl_state->curr_connp != &ssl_state->client_connp) {
         UpdateServerState(ssl_state, TLS_STATE_SERVER_HELLO);
     }
 end:
@@ -1575,9 +1573,7 @@ static inline int SSLv3ParseHandshakeTypeCertificate(SSLState *ssl_state, SSLSta
         SSLParserHSReset(connp);
         /* fall through to still consume the cert bytes */
     }
-    if (connp == &ssl_state->client_connp) {
-        UpdateClientState(ssl_state, TLS_STATE_CLIENT_CERT_DONE);
-    } else {
+    if (connp != &ssl_state->client_connp) {
         UpdateServerState(ssl_state, TLS_STATE_SERVER_CERT_DONE);
     }
     return input_len;
@@ -1694,6 +1690,24 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, const uint8_t *input,
     return input_len;
 }
 
+/**
+ * \brief advance the phase state once a handshake message is fully parsed
+ *
+ * A handshake message may span several records: the started states stay
+ * in place until the final fragment completes the message, so the phase
+ * data (SNI, certificates) is available when its state is entered.
+ */
+static void SSLv3HandshakePhaseAdvance(SSLState *ssl_state)
+{
+    if (ssl_state->curr_connp == &ssl_state->client_connp) {
+        if (ssl_state->curr_connp->handshake_type == SSLV3_HS_CLIENT_HELLO) {
+            UpdateClientState(ssl_state, TLS_STATE_CLIENT_HELLO);
+        } else if (ssl_state->curr_connp->handshake_type == SSLV3_HS_CERTIFICATE) {
+            UpdateClientState(ssl_state, TLS_STATE_CLIENT_CERT);
+        }
+    }
+}
+
 static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input,
                                        uint32_t input_len, uint8_t direction)
 {
@@ -1760,6 +1774,8 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input
                     return (retval);
                 }
                 SCLogDebug("retval %d", retval);
+
+                SSLv3HandshakePhaseAdvance(ssl_state);
 
                 /* data processed, reset buffer */
                 SCFree(ssl_state->curr_connp->hs_buffer);
@@ -1856,6 +1872,7 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input
                 return (retval);
             }
             SCLogDebug("retval %d input_len %u", retval, input_len);
+            SSLv3HandshakePhaseAdvance(ssl_state);
             input += retval;
             input_len -= retval;
 
@@ -2281,7 +2298,7 @@ static struct SSLDecoderResult SSLv2Decode(uint8_t direction, SSLState *ssl_stat
 
             ssl_state->current_flags = SSL_AL_FLAG_STATE_CLIENT_HELLO;
             ssl_state->current_flags |= SSL_AL_FLAG_SSL_CLIENT_HS;
-            UpdateClientState(ssl_state, TLS_STATE_CLIENT_HELLO_DONE);
+            UpdateClientState(ssl_state, TLS_STATE_CLIENT_HELLO);
 
             const uint16_t version = (uint16_t)(input[0] << 8) | input[1];
             SCLogDebug("SSLv2: version %04x", version);
@@ -2542,7 +2559,7 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
                 ssl_state->flags |= SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC;
 
                 // TODO TLS 1.3
-                UpdateClientState(ssl_state, TLS_STATE_CLIENT_HANDSHAKE_DONE);
+                UpdateClientState(ssl_state, TLS_STATE_CLIENT_DATA);
             }
             break;
 
@@ -2569,7 +2586,7 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
             /* if we see (encrypted) application data, then this means the
                handshake must be done */
             if (ssl_state->curr_connp == &ssl_state->client_connp) {
-                UpdateClientState(ssl_state, TLS_STATE_CLIENT_HANDSHAKE_DONE);
+                UpdateClientState(ssl_state, TLS_STATE_CLIENT_DATA);
             } else {
                 UpdateServerState(ssl_state, TLS_STATE_SERVER_HANDSHAKE_DONE);
             }
@@ -2808,12 +2825,12 @@ static AppLayerResult SSLDecode(Flow *f, uint8_t direction, void *alstate,
     if ((ssl_state->flags & SSL_AL_FLAG_NEED_CLIENT_CERT) &&
             ssl_state->client_connp.cert0_subject && ssl_state->client_connp.cert0_issuerdn) {
         /* update both sides to keep existing behavior */
-        UpdateClientState(ssl_state, TLS_STATE_CLIENT_HANDSHAKE_DONE);
+        UpdateClientState(ssl_state, TLS_STATE_CLIENT_DATA);
         UpdateServerState(ssl_state, TLS_STATE_SERVER_HANDSHAKE_DONE);
     } else if ((ssl_state->flags & SSL_AL_FLAG_NEED_CLIENT_CERT) == 0 &&
                ssl_state->server_connp.cert0_subject && ssl_state->server_connp.cert0_issuerdn) {
         /* update both sides to keep existing behavior */
-        UpdateClientState(ssl_state, TLS_STATE_CLIENT_HANDSHAKE_DONE);
+        UpdateClientState(ssl_state, TLS_STATE_CLIENT_DATA);
         UpdateServerState(ssl_state, TLS_STATE_SERVER_HANDSHAKE_DONE);
     }
 
