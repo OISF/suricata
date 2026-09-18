@@ -131,7 +131,7 @@ endif
 check:
 	cd $(abs_top_srcdir)/rust && \
 		$(CARGO_ENV) \
-		$(CARGO) test --all $(RELEASE) --features "$(RUST_FEATURES)"
+		$(CARGO) test --workspace $(RELEASE) --features "$(RUST_FEATURES)"
 	$(MAKE) check-bindgen-bindings
 
 vendor:
