@@ -38,6 +38,11 @@ static int LuaBytevarMap(lua_State *L)
     if (ld == NULL) {
         return luaL_error(L, "bytevar API not available in this context");
     }
+    /* map() appends to the shared DetectLuaData like the flowvar/flowint
+     * register() APIs: only allowed while init() runs */
+    if (!ld->register_in_init) {
+        return luaL_error(L, "bytevar.map() must be called from init()");
+    }
     if (!lua_islightuserdata(L, -2)) {
         return luaL_error(L, "bytevar.map: first argument must be the signature passed to init");
     }
@@ -52,8 +57,8 @@ static int LuaBytevarMap(lua_State *L)
         }
     }
 
-    if (ld->bytevars == DETECT_LUA_MAX_BYTEVARS) {
-        luaL_error(L, "too many bytevars mapped");
+    if (ld->bytevars >= DETECT_LUA_MAX_BYTEVARS) {
+        return luaL_error(L, "too many bytevars mapped");
     }
 
     DetectByteIndexType idx;
@@ -63,7 +68,7 @@ static int LuaBytevarMap(lua_State *L)
 
     ld->bytevar[ld->bytevars].name = SCStrdup(name);
     if (ld->bytevar[ld->bytevars].name == NULL) {
-        luaL_error(L, "failed to allocate memory for bytevar name: %s", name);
+        return luaL_error(L, "failed to allocate memory for bytevar name: %s", name);
     }
     ld->bytevar[ld->bytevars++].id = idx;
 

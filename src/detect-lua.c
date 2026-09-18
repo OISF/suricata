@@ -569,10 +569,13 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
      * access to the signature. */
     lua_pushlightuserdata(luastate, (void *)s);
 
+    ld->register_in_init = true;
     if (lua_pcall(luastate, 1, 1, 0) != 0) {
         SCLogError("couldn't run script 'init' function: %s", lua_tostring(luastate, -1));
+        ld->register_in_init = false;
         goto error;
     }
+    ld->register_in_init = false;
 
     /* process returns from script */
     if (lua_gettop(luastate) == 0) {

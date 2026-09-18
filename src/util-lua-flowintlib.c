@@ -49,14 +49,19 @@ static int LuaFlowintRegister(lua_State *L)
     if (ld == NULL) {
         return luaL_error(L, "flowint API not available in this context");
     }
+    if (!ld->register_in_init) {
+        return luaL_error(L, "flowint.register() must be called from init()");
+    }
     const char *name = luaL_checkstring(L, 1);
+    /* check the limit first: a failed over-limit registration must not
+     * leave a name store entry that nothing unregisters */
+    if (ld->flowints >= DETECT_LUA_MAX_FLOWINTS) {
+        return luaL_error(L, "too many flowints registered");
+    }
     uint32_t *flowvar_id = lua_newuserdata(L, sizeof(*flowvar_id));
     *flowvar_id = VarNameStoreRegister(name, VAR_TYPE_FLOW_INT);
     if (*flowvar_id == 0) {
-        return luaL_error(L, "failed to register flowvar");
-    }
-    if (ld->flowints >= DETECT_LUA_MAX_FLOWINTS) {
-        return luaL_error(L, "too many flowints registered");
+        return luaL_error(L, "failed to register flowint");
     }
     ld->flowint[ld->flowints++] = *flowvar_id;
 
