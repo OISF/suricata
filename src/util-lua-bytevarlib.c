@@ -46,6 +46,12 @@ static int LuaBytevarMap(lua_State *L)
     if (!lua_islightuserdata(L, -2)) {
         return luaL_error(L, "bytevar.map: first argument must be the signature passed to init");
     }
+    /* only the exact signature pointer the engine passed to init() is
+     * valid; the script could forge other lightuserdata values (e.g. from
+     * the registry) and map() must fail closed */
+    if (lua_touserdata(L, -2) != (void *)ld->signature) {
+        return luaL_error(L, "bytevar.map: first argument is not the signature passed to init");
+    }
     const Signature *s = lua_touserdata(L, -2);
     const char *name = luaL_checkstring(L, -1);
 

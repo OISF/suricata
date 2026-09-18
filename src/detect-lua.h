@@ -45,6 +45,8 @@ typedef struct DetectLuaData {
     int thread_ctx_id;
     int negated;
     char *filename;
+    const Signature *signature; /* the exact sig pointer passed to init();
+                                 * bytevar.map() must match it */
     uint32_t flags;
     char *buffername; /* buffer name in case of a single buffer */
     uint32_t flowint[DETECT_LUA_MAX_FLOWINTS];
