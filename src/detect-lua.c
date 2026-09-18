@@ -516,6 +516,10 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld, const
 {
     int status;
 
+    /* the signature passed to init(): bytevar.map() must accept exactly
+     * this pointer */
+    ld->signature = s;
+
     lua_State *luastate = SCLuaSbStateNew(ld->alloc_limit, ld->instruction_limit);
     if (luastate == NULL)
         return -1;
