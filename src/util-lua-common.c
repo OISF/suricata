@@ -99,14 +99,19 @@ void LuaPushTableKeyValueArray(
     lua_settable(luastate, -3);
 }
 
+/*
+ * Protocol check for the tx libs. Returns a plain boolean: 1 when the
+ * flow's app protocol matches, 0 otherwise (including the no-flow
+ * case). Errors are reported by the callers, so nothing is pushed on
+ * the stack. The previous implementation returned
+ * LuaCallbackError's 2 for the no-flow case, which the boolean callers
+ * treat as a protocol match.
+ */
 int LuaStateNeedProto(lua_State *luastate, AppProto alproto)
 {
-    AppProto flow_alproto = 0;
     Flow *flow = LuaStateGetFlow(luastate);
     if (flow == NULL)
-        return LuaCallbackError(luastate, "internal error: no flow");
+        return 0;
 
-    flow_alproto = flow->alproto;
-
-    return (alproto == flow_alproto);
+    return (alproto == flow->alproto);
 }
