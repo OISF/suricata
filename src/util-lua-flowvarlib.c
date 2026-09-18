@@ -121,7 +121,9 @@ static int LuaFlowvarSet(lua_State *L)
     buf[len] = '\0';
     FlowVarAddIdValue(f, *flowvar_id, buf, (uint16_t)len);
 
-    return 1;
+    /* set() documents no result; claiming one hands back the last
+     * argument (or the flow lock hint left by LuaStateGetFlow) */
+    return 0;
 }
 
 static const luaL_Reg flowvarlib[] = {
