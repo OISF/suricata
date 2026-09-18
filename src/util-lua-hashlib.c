@@ -57,6 +57,15 @@ static int CheckHashingEnabled(lua_State *L)
     }
     return 0;
 }
+
+/* the FFI takes a uint32_t length: reject inputs that would truncate */
+static int CheckInputLength(lua_State *L, size_t len)
+{
+    if (len > (size_t)UINT32_MAX) {
+        return luaL_error(L, "input too long: %I bytes", (lua_Integer)len);
+    }
+    return 0;
+}
 #define SHA1_MT   "suricata:hashlib:sha1"
 #define MD5_MT    "suricata:hashlib:md5"
 
@@ -92,6 +101,9 @@ static int LuaHashLibSha256Update(lua_State *L)
     }
     size_t data_len;
     const char *data = luaL_checklstring(L, 2, &data_len);
+    if (CheckInputLength(L, data_len)) {
+        return 1;
+    }
     SCSha256Update(*hasher, (const uint8_t *)data, (uint32_t)data_len);
     return 0;
 }
@@ -145,6 +157,9 @@ static int LuaHashLibSha256Digest(lua_State *L)
     if (CheckHashingEnabled(L)) {
         return 1;
     }
+    if (CheckInputLength(L, buf_len)) {
+        return 1;
+    }
 
     uint8_t output[SC_SHA256_LEN];
     if (!SCSha256HashBuffer((uint8_t *)input, (uint32_t)buf_len, output, SC_SHA256_LEN)) {
@@ -162,6 +177,9 @@ static int LuaHashLibSha256HexDigest(lua_State *L)
     const char *input = luaL_checklstring(L, 1, &buf_len);
 
     if (CheckHashingEnabled(L)) {
+        return 1;
+    }
+    if (CheckInputLength(L, buf_len)) {
         return 1;
     }
 
@@ -212,6 +230,9 @@ static int LuaHashLibSha1Update(lua_State *L)
 
     size_t data_len;
     const char *data = luaL_checklstring(L, 2, &data_len);
+    if (CheckInputLength(L, data_len)) {
+        return 1;
+    }
     SCSha1Update(*hasher, (const uint8_t *)data, (uint32_t)data_len);
     return 0;
 }
@@ -265,6 +286,9 @@ static int LuaHashLibSha1Digest(lua_State *L)
     if (CheckHashingEnabled(L)) {
         return 1;
     }
+    if (CheckInputLength(L, buf_len)) {
+        return 1;
+    }
 
     uint8_t output[SC_SHA1_LEN];
     if (!SCSha1HashBuffer((uint8_t *)input, (uint32_t)buf_len, output, sizeof(output))) {
@@ -281,6 +305,9 @@ static int LuaHashLibSha1HexDigest(lua_State *L)
     const char *input = luaL_checklstring(L, 1, &buf_len);
 
     if (CheckHashingEnabled(L)) {
+        return 1;
+    }
+    if (CheckInputLength(L, buf_len)) {
         return 1;
     }
 
@@ -331,6 +358,9 @@ static int LuaHashLibMd5Update(lua_State *L)
 
     size_t data_len;
     const char *data = luaL_checklstring(L, 2, &data_len);
+    if (CheckInputLength(L, data_len)) {
+        return 1;
+    }
     SCMd5Update(*hasher, (const uint8_t *)data, (uint32_t)data_len);
     return 0;
 }
@@ -384,6 +414,9 @@ static int LuaHashLibMd5Digest(lua_State *L)
     if (CheckHashingEnabled(L)) {
         return 1;
     }
+    if (CheckInputLength(L, buf_len)) {
+        return 1;
+    }
 
     uint8_t output[SC_MD5_LEN];
     if (!SCMd5HashBuffer((uint8_t *)input, (uint32_t)buf_len, output, sizeof(output))) {
@@ -400,6 +433,9 @@ static int LuaHashLibMd5HexDigest(lua_State *L)
     const char *input = luaL_checklstring(L, 1, &buf_len);
 
     if (CheckHashingEnabled(L)) {
+        return 1;
+    }
+    if (CheckInputLength(L, buf_len)) {
         return 1;
     }
 
