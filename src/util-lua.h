@@ -31,6 +31,9 @@
 #include "threadvars.h"
 #include "detect.h"
 
+/* see detect-lua.h */
+typedef struct DetectLuaData DetectLuaData;
+
 typedef struct LuaStreamingBuffer_ {
     const uint8_t *data;
     uint32_t data_len;
@@ -66,6 +69,12 @@ File *LuaStateGetFile(lua_State *luastate);
 DetectEngineThreadCtx *LuaStateGetDetCtx(lua_State *luastate);
 
 LuaStreamingBuffer *LuaStateGetStreamingBuffer(lua_State *luastate);
+
+/** \brief get the per-rule DetectLuaData, NULL when the state has none
+ * (output/transform states) */
+DetectLuaData *LuaStateGetDetectLuaData(lua_State *luastate);
+
+void LuaStateSetDetectLuaData(lua_State *luastate, DetectLuaData *ld);
 
 int LuaStateGetDirection(lua_State *luastate);
 

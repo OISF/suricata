@@ -29,11 +29,7 @@ static const char suricata_bytevar_mt[] = "suricata:bytevar:mt";
 
 static DetectLuaData *GetLuaData(lua_State *luastate)
 {
-    DetectLuaData *ld;
-    lua_pushlightuserdata(luastate, (void *)&luaext_key_ld);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    ld = lua_touserdata(luastate, -1);
-    return ld;
+    return LuaStateGetDetectLuaData(luastate);
 }
 
 static int LuaBytevarMap(lua_State *L)
