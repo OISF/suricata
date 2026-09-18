@@ -356,13 +356,26 @@ static void TransformLuaxform(
         }
 
         if (lua_isstring(tlua->luastate, -2)) {
-            const char *transformed_buffer = lua_tostring(tlua->luastate, -2);
-            lua_Integer transformed_buffer_byte_count = lua_tointeger(tlua->luastate, -1);
-            if (transformed_buffer != NULL && transformed_buffer_byte_count > 0)
+            size_t real_len = 0;
+            const char *transformed_buffer = lua_tolstring(tlua->luastate, -2, &real_len);
+            int isnum = 0;
+            lua_Integer transformed_buffer_byte_count = lua_tointegerx(tlua->luastate, -1, &isnum);
+            /* the returned length is script-controlled: validate it against
+             * the real string length before copying. isnum keeps a missing
+             * second return (lua_pcall pads it with nil) from reading as a
+             * valid zero length */
+            if (transformed_buffer == NULL || !isnum || transformed_buffer_byte_count <= 0 ||
+                    (size_t)transformed_buffer_byte_count > real_len ||
+                    (size_t)transformed_buffer_byte_count > UINT32_MAX) {
+                SCLogDebug("transform returned invalid length %" PRIi64 " (string len %zu), "
+                           "keeping original buffer",
+                        (int64_t)transformed_buffer_byte_count, real_len);
+            } else {
                 InspectionBufferCopy(buffer, (uint8_t *)transformed_buffer,
                         (uint32_t)transformed_buffer_byte_count);
-            SCLogDebug("transform returns [nbytes %d] \"%p\"",
-                    (uint32_t)transformed_buffer_byte_count, transformed_buffer);
+                SCLogDebug("transform returns [nbytes %" PRIi64 "] \"%p\"",
+                        (int64_t)transformed_buffer_byte_count, transformed_buffer);
+            }
         }
     }
 
