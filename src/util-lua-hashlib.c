@@ -39,12 +39,24 @@
  * Support hashes: sha256, sha1, md5
  */
 
+#include "suricata-common.h"
+#include "suricata.h"
 #include "util-lua-hashlib.h"
 
 #include "lauxlib.h"
 #include "rust-bindings.h"
 
 #define SHA256_MT "suricata:hashlib:sha256"
+
+/* --disable-hashing is enforced by the transforms, file hashing and
+ * JA3/JA4: the Lua API honors it as well */
+static int CheckHashingEnabled(lua_State *L)
+{
+    if (g_disable_hashing) {
+        return luaL_error(L, "hashing is disabled");
+    }
+    return 0;
+}
 #define SHA1_MT   "suricata:hashlib:sha1"
 #define MD5_MT    "suricata:hashlib:md5"
 
@@ -53,6 +65,9 @@
  */
 static int LuaHashLibSha256New(lua_State *L)
 {
+    if (CheckHashingEnabled(L)) {
+        return 1;
+    }
     struct SCSha256 **hasher = lua_newuserdata(L, sizeof(struct SCSha256 *));
     if (hasher == NULL) {
         return luaL_error(L, "failed to allocate userdata for sha256");
@@ -127,6 +142,10 @@ static int LuaHashLibSha256Digest(lua_State *L)
     size_t buf_len;
     const char *input = luaL_checklstring(L, 1, &buf_len);
 
+    if (CheckHashingEnabled(L)) {
+        return 1;
+    }
+
     uint32_t output_len = SC_SHA256_LEN;
     uint8_t output[output_len];
     if (!SCSha256HashBuffer((uint8_t *)input, (uint32_t)buf_len, output, output_len)) {
@@ -142,6 +161,10 @@ static int LuaHashLibSha256HexDigest(lua_State *L)
 {
     size_t buf_len;
     const char *input = luaL_checklstring(L, 1, &buf_len);
+
+    if (CheckHashingEnabled(L)) {
+        return 1;
+    }
 
     char output[SC_SHA256_HEX_LEN + 1];
     if (!SCSha256HashBufferToHex((uint8_t *)input, (uint32_t)buf_len, output, sizeof(output))) {
@@ -165,6 +188,9 @@ static int LuaHashLibSha256Gc(lua_State *L)
 
 static int LuaHashLibSha1New(lua_State *L)
 {
+    if (CheckHashingEnabled(L)) {
+        return 1;
+    }
     struct SCSha1 **hasher = lua_newuserdata(L, sizeof(struct SCSha1 *));
     if (hasher == NULL) {
         return luaL_error(L, "failed to allocate userdata for sha1");
@@ -237,6 +263,10 @@ static int LuaHashLibSha1Digest(lua_State *L)
     size_t buf_len;
     const char *input = luaL_checklstring(L, 1, &buf_len);
 
+    if (CheckHashingEnabled(L)) {
+        return 1;
+    }
+
     uint8_t output[SC_SHA1_LEN];
     if (!SCSha1HashBuffer((uint8_t *)input, (uint32_t)buf_len, output, sizeof(output))) {
         return luaL_error(L, "sha1 hashing failed");
@@ -250,6 +280,10 @@ static int LuaHashLibSha1HexDigest(lua_State *L)
 {
     size_t buf_len;
     const char *input = luaL_checklstring(L, 1, &buf_len);
+
+    if (CheckHashingEnabled(L)) {
+        return 1;
+    }
 
     char output[SC_SHA1_HEX_LEN + 1];
     if (!SCSha1HashBufferToHex((uint8_t *)input, (uint32_t)buf_len, output, sizeof(output))) {
@@ -273,6 +307,9 @@ static int LuaHashLibSha1Gc(lua_State *L)
 
 static int LuaHashLibMd5New(lua_State *L)
 {
+    if (CheckHashingEnabled(L)) {
+        return 1;
+    }
     struct SCMd5 **hasher = lua_newuserdata(L, sizeof(struct SCMd5 *));
     if (hasher == NULL) {
         return luaL_error(L, "failed to allocate userdata for sha1");
@@ -345,6 +382,10 @@ static int LuaHashLibMd5Digest(lua_State *L)
     size_t buf_len;
     const char *input = luaL_checklstring(L, 1, &buf_len);
 
+    if (CheckHashingEnabled(L)) {
+        return 1;
+    }
+
     uint8_t output[SC_MD5_LEN];
     if (!SCMd5HashBuffer((uint8_t *)input, (uint32_t)buf_len, output, sizeof(output))) {
         return luaL_error(L, "md5 hashing failed");
@@ -358,6 +399,10 @@ static int LuaHashLibMd5HexDigest(lua_State *L)
 {
     size_t buf_len;
     const char *input = luaL_checklstring(L, 1, &buf_len);
+
+    if (CheckHashingEnabled(L)) {
+        return 1;
+    }
 
     char output[SC_MD5_HEX_LEN + 1];
     if (!SCMd5HashBufferToHex((uint8_t *)input, (uint32_t)buf_len, output, sizeof(output))) {
