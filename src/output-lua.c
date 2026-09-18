@@ -493,9 +493,14 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options, Log
     lua_pushnil(luastate);
     const char *k, *v;
     while (lua_next(luastate, -2)) {
-        k = lua_tostring(luastate, -2);
-        if (k == NULL)
+        /* only string keys name an option. lua_tostring() on a number
+         * key converts it in place and the next lua_next() then raises
+         * "invalid key to 'next'" outside any pcall (abort) */
+        if (lua_type(luastate, -2) != LUA_TSTRING) {
+            lua_pop(luastate, 1);
             continue;
+        }
+        k = lua_tostring(luastate, -2);
 
         v = lua_tostring(luastate, -1);
         lua_pop(luastate, 1);
