@@ -46,6 +46,9 @@ static DetectLuaData *GetLuaData(lua_State *luastate)
 static int LuaFlowvarRegister(lua_State *L)
 {
     DetectLuaData *ld = GetLuaData(L);
+    if (ld == NULL) {
+        return luaL_error(L, "flowvar API not available in this context");
+    }
     const char *name = luaL_checkstring(L, 1);
     uint32_t *flowvar_id = lua_newuserdata(L, sizeof(*flowvar_id));
     *flowvar_id = VarNameStoreRegister(name, VAR_TYPE_FLOW_VAR);
