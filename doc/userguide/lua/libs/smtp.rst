@@ -63,7 +63,13 @@ Example::
 -------------------
 
 Get all the MIME header field names from the SMTP transaction as a
-table.
+table, starting with the first header.
+
+.. note::
+
+   The list is indexed from the first header. Earlier releases (up to
+   8.0.x as of this change) started at the header after the first
+   one, so scripts written against those shift by one.
 
 Example::
 
