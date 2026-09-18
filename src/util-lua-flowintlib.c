@@ -99,14 +99,23 @@ static int LuaFlowintValue(lua_State *L)
 
 static int LuaFlowintSet(lua_State *L)
 {
-    const int value = (int)luaL_checkinteger(L, 2);
+    const lua_Integer value = luaL_checkinteger(L, 2);
     uint32_t *flowvar_id = luaL_checkudata(L, 1, suricata_flowint_mt);
     Flow *f = LuaStateGetFlow(L);
     if (f == NULL) {
         return luaL_error(L, "no flow");
     }
 
-    FlowVarAddInt(f, *flowvar_id, value);
+    /* the stored value is a uint32_t: reject what would truncate
+     * instead of wrapping silently. Compare through int64_t: on ILP32
+     * targets lua_Integer is 32 bits and (lua_Integer)UINT32_MAX wraps
+     * to -1 */
+    const int64_t v = (int64_t)value;
+    if (v < 0 || (uint64_t)v > (uint64_t)UINT32_MAX) {
+        return luaL_error(L, "value out of range: must be 0..4294967295");
+    }
+
+    FlowVarAddInt(f, *flowvar_id, (uint32_t)value);
 
     /* set() documents no result; claiming one hands back the last
      * argument (or the flow lock hint left by LuaStateGetFlow) */
