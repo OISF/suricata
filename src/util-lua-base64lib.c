@@ -55,6 +55,11 @@ static int LuaBase64Decode(lua_State *L, SCBase64Mode mode)
 {
     size_t input_len;
     const char *input = luaL_checklstring(L, 1, &input_len);
+    if (input_len == 0) {
+        /* empty input decodes to an empty string, not an error */
+        lua_pushlstring(L, "", 0);
+        return 1;
+    }
     char *output = SCCalloc(input_len, sizeof(char));
     if (output == NULL) {
         return luaL_error(L, "malloc");
