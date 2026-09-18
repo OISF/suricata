@@ -3268,7 +3268,13 @@ Suricata 7.0 default:
        # Allow Lua rules. Enabled by default.
        #allow-rules: true
 
-       # Upper bound of allocations by a Lua rule before it will fail
+       # Upper bound of live memory a sandboxed Lua state may grow
+       # beyond its setup-time footprint (the loaded libs, the script
+       # chunk and the values thread_init() stored). Per-call working
+       # memory and memory the script retains between calls (module
+       # variables, upvalues, cached handles) count against it; the
+       # setup-time footprint and the call's own inputs (the inspected
+       # buffer and args) do not.
        #max-bytes: 500000 
 
        # Upper bound of lua instructions by a Lua rule before it will fail

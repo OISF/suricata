@@ -43,6 +43,16 @@ typedef struct SCLuaSbState {
     /* Allocation limits */
     size_t alloc_bytes;
     uint64_t alloc_limit;
+    uint64_t alloc_limit_cfg;
+    uint64_t alloc_baseline;
+    bool alloc_baseline_done;
+    /* gross bytes allocated while the current call is open (between the
+     * Reset and the Update): the engine's setup pushes are not script
+     * memory; the gross count keeps a GC step during the setup from
+     * undercounting them via the previous call's reclaims */
+    uint64_t alloc_since_start;
+    /* lifetime gross bytes allocated; never decremented */
+    uint64_t alloc_bytes_allocated;
 
     /* Execution Limits */
     uint64_t instruction_count;
@@ -88,19 +98,26 @@ void SCLuaSbResetInstructionCounter(lua_State *sb);
  */
 void SCLuaSbLoadLibs(lua_State *L);
 
-/* alloc_limit (max-bytes) handling. To give the script the full budget
- * during it's execution, temporary disable the limit and then restore
- * it with the existing use as baseline
+/* alloc_limit (max-bytes) handling. The cap is the configured limit on
+ * top of the state's setup-time baseline (loaded libs, the script chunk
+ * and whatever thread_init() stored), captured once on first use, plus
+ * the call's own inputs (the inspected buffer and args table, pushed
+ * between the Reset and the Update). Per-call working memory and values
+ * the script retains between calls both count against the configured
+ * limit, while the baseline and the call's own inputs do not. To give
+ * the setup code the freedom to push buffers without failing the cap, the
+ * limit is temporarily disabled while the per-call data is prepared and
+ * then restored.
  *
  * ```
  *     // get configured limit and reset active limit to 0
  *     const uint64_t cfg_limit = SCLuaSbResetBytesLimit(tlua->luastate);
  *     // push some data to the state
  *     LuaPushStringBuffer(tlua->luastate, input, (size_t)input_len);
- *     // restore the limit, which may now be lower than `alloc_bytes`.
+ *     // restore the limit
  *     SCLuaSbRestoreBytesLimit(tlua->luastate, cfg_limit);
- *     // update allowance to take `alloc_bytes` as the baseline, so
- *     // effectively: sb->alloc_bytes + sb->alloc_limit
+ *     // fix the cap at baseline + configured limit; the data pushed
+ *     // between the Reset and the Update (the call's own inputs) stays exempt
  *     SCLuaSbUpdateBytesLimit(tlua->luastate);
  *
  *     ... run script, lua_pcall...
@@ -120,8 +137,8 @@ void SCLuaSbLoadLibs(lua_State *L);
 uint64_t SCLuaSbResetBytesLimit(lua_State *L);
 
 /*
- * Update the alloc_limit to take the pre-script initialization bytes
- * as the base line.
+ * Fixes the cap at baseline + configured limit; the Reset->Update delta
+ * (the call's own inputs) stays exempt.
  */
 void SCLuaSbUpdateBytesLimit(lua_State *L);
 
