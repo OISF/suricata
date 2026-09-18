@@ -155,13 +155,6 @@ void LuaDumpStack(lua_State *state, const char *prefix)
     }
 }
 
-static void LuaStateSetDetectLuaData(lua_State *state, DetectLuaData *data)
-{
-    lua_pushlightuserdata(state, (void *)&luaext_key_ld);
-    lua_pushlightuserdata(state, (void *)data);
-    lua_settable(state, LUA_REGISTRYINDEX);
-}
-
 /**
  * \brief Common function to run the Lua match function and process
  *     the return value.

@@ -51,6 +51,7 @@
 
 #include "util-lua.h"
 #include "util-lua-sandbox.h"
+#include "detect-lua-extensions.h"
 
 lua_State *LuaGetState(void)
 {
@@ -80,8 +81,6 @@ const char lua_ext_key_tx_id[] = "suricata:lua:tx_id";
 const char lua_ext_key_p[] = "suricata:lua:pkt:ptr";
 /* key for f (flow) pointer */
 const char lua_ext_key_flow[] = "suricata:lua:flow:ptr";
-/* key for flow lock hint bool */
-const char lua_ext_key_flow_lock_hint[] = "suricata:lua:flow:lock_hint";
 /* key for direction */
 const char lua_ext_key_direction[] = "suricata:lua:direction";
 
@@ -96,45 +95,120 @@ const char lua_ext_key_det_ctx[] = "suricata:lua:det_ctx:ptr";
 /* key for streaming buffer pointer */
 const char lua_ext_key_streaming_buffer[] = "suricata:lua:streaming_buffer:ptr";
 
+/*
+ * Registry context values are wrapped in a typed userdata instead of
+ * being stored as bare lightuserdata. In unsandboxed states the registry
+ * is script-writable, so a bare pointer can be moved between keys and
+ * re-cast by the libs (type confusion/UAF). The type id is checked on
+ * every read; a retyped value fails the check and yields NULL.
+ */
+typedef struct SCLuaRegValue_ {
+    uint32_t type_id;
+    void *ptr;
+} SCLuaRegValue;
+
+enum {
+    SCLUA_REG_INVALID = 0,
+    SCLUA_REG_TV,
+    SCLUA_REG_PACKET,
+    SCLUA_REG_TX,
+    SCLUA_REG_FLOW,
+    SCLUA_REG_PACKET_ALERT,
+    SCLUA_REG_SIGNATURE,
+    SCLUA_REG_FILE,
+    SCLUA_REG_DET_CTX,
+    SCLUA_REG_DETECT_LUA_DATA,
+};
+
+static void LuaStateSetReg(lua_State *luastate, const void *key, uint32_t type_id, void *ptr)
+{
+    lua_pushlightuserdata(luastate, (void *)key);
+    if (ptr == NULL) {
+        /* clear without allocating (this runs at state teardown, where the
+         * sandbox allocator may be over its cap): NULL a typed slot in
+         * place, drop anything else (a nil settable never inserts) */
+        lua_gettable(luastate, LUA_REGISTRYINDEX);
+        if (lua_type(luastate, -1) == LUA_TUSERDATA &&
+                lua_rawlen(luastate, -1) == sizeof(SCLuaRegValue)) {
+            SCLuaRegValue *v = (SCLuaRegValue *)lua_touserdata(luastate, -1);
+            if (v != NULL && v->type_id == type_id) {
+                v->ptr = NULL;
+                lua_pop(luastate, 1);
+                return;
+            }
+        }
+        lua_pop(luastate, 1);
+        lua_pushlightuserdata(luastate, (void *)key);
+        lua_pushnil(luastate);
+        lua_settable(luastate, LUA_REGISTRYINDEX);
+        return;
+    }
+    /* the registry survives across match calls: when the slot already
+     * holds a value of this type, update it in place instead of paying
+     * a fresh GC allocation on every set (hot path) */
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    if (lua_type(luastate, -1) == LUA_TUSERDATA &&
+            lua_rawlen(luastate, -1) == sizeof(SCLuaRegValue)) {
+        SCLuaRegValue *v = (SCLuaRegValue *)lua_touserdata(luastate, -1);
+        if (v != NULL && v->type_id == type_id) {
+            v->ptr = ptr;
+            lua_pop(luastate, 1);
+            return;
+        }
+    }
+    lua_pop(luastate, 1);
+    lua_pushlightuserdata(luastate, (void *)key);
+    SCLuaRegValue *v = (SCLuaRegValue *)lua_newuserdata(luastate, sizeof(*v));
+    v->type_id = type_id;
+    v->ptr = ptr;
+    lua_settable(luastate, LUA_REGISTRYINDEX);
+}
+
+static void *LuaStateGetReg(lua_State *luastate, const void *key, uint32_t type_id)
+{
+    lua_pushlightuserdata(luastate, (void *)key);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    void *ptr = NULL;
+    /* require the exact full-userdata shape before casting: a
+     * lightuserdata or a foreign small userdata would otherwise be
+     * re-read as SCLuaRegValue (OOB ptr on a size match) */
+    if (lua_type(luastate, -1) == LUA_TUSERDATA &&
+            lua_rawlen(luastate, -1) == sizeof(SCLuaRegValue)) {
+        SCLuaRegValue *v = (SCLuaRegValue *)lua_touserdata(luastate, -1);
+        if (v != NULL && v->type_id == type_id) {
+            ptr = v->ptr;
+        }
+    }
+    lua_pop(luastate, 1);
+    return ptr;
+}
+
 /** \brief get tv pointer from the lua state */
 ThreadVars *LuaStateGetThreadVars(lua_State *luastate)
 {
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_tv);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    void *tv = lua_touserdata(luastate, -1);
-    return (ThreadVars *)tv;
+    return (ThreadVars *)LuaStateGetReg(luastate, lua_ext_key_tv, SCLUA_REG_TV);
 }
 
 void LuaStateSetThreadVars(lua_State *luastate, ThreadVars *tv)
 {
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_tv);
-    lua_pushlightuserdata(luastate, (void *)tv);
-    lua_settable(luastate, LUA_REGISTRYINDEX);
+    LuaStateSetReg(luastate, lua_ext_key_tv, SCLUA_REG_TV, (void *)tv);
 }
 
 /** \brief get packet pointer from the lua state */
 Packet *LuaStateGetPacket(lua_State *luastate)
 {
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_p);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    void *p = lua_touserdata(luastate, -1);
-    return (Packet *)p;
+    return (Packet *)LuaStateGetReg(luastate, lua_ext_key_p, SCLUA_REG_PACKET);
 }
 
 void LuaStateSetPacket(lua_State *luastate, Packet *p)
 {
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_p);
-    lua_pushlightuserdata(luastate, (void *)p);
-    lua_settable(luastate, LUA_REGISTRYINDEX);
+    LuaStateSetReg(luastate, lua_ext_key_p, SCLUA_REG_PACKET, (void *)p);
 }
 
 /** \brief get tx pointer from the lua state */
 void *LuaStateGetTX(lua_State *luastate)
 {
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_tx);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    void *tx = lua_touserdata(luastate, -1);
-    return tx;
+    return LuaStateGetReg(luastate, lua_ext_key_tx, SCLUA_REG_TX);
 }
 
 /** \brief get tx id from the lua state */
@@ -143,13 +217,15 @@ uint64_t LuaStateGetTxId(lua_State *luastate)
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_tx_id);
     lua_gettable(luastate, LUA_REGISTRYINDEX);
     uint64_t tx_id = lua_tointeger(luastate, -1);
+    lua_pop(luastate, 1);
     return tx_id;
 }
 void LuaStateSetTX(lua_State *luastate, void *txptr, const uint64_t tx_id)
 {
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_tx);
-    lua_pushlightuserdata(luastate, (void *)txptr);
-    lua_settable(luastate, LUA_REGISTRYINDEX);
+    LuaStateSetReg(luastate, lua_ext_key_tx, SCLUA_REG_TX, txptr);
+    if (txptr == NULL) {
+        return; /* cleared: the id is read together with the slot */
+    }
 
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_tx_id);
     lua_pushinteger(luastate, tx_id);
@@ -158,15 +234,7 @@ void LuaStateSetTX(lua_State *luastate, void *txptr, const uint64_t tx_id)
 
 Flow *LuaStateGetFlow(lua_State *luastate)
 {
-    Flow *f = NULL;
-
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_flow);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    f = lua_touserdata(luastate, -1);
-
-    /* need flow lock hint */
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_flow_lock_hint);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    Flow *f = (Flow *)LuaStateGetReg(luastate, lua_ext_key_flow, SCLUA_REG_FLOW);
 
     return f;
 }
@@ -174,79 +242,52 @@ Flow *LuaStateGetFlow(lua_State *luastate)
 void LuaStateSetFlow(lua_State *luastate, Flow *f)
 {
     /* flow */
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_flow);
-    lua_pushlightuserdata(luastate, (void *)f);
-    lua_settable(luastate, LUA_REGISTRYINDEX);
-
-    /* flow lock status hint */
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_flow_lock_hint);
-    /* locking is not required, set to 0 for backwards compatibility */
-    lua_pushboolean(luastate, 0);
-    lua_settable(luastate, LUA_REGISTRYINDEX);
+    LuaStateSetReg(luastate, lua_ext_key_flow, SCLUA_REG_FLOW, (void *)f);
 }
 
 /** \brief get packet alert pointer from the lua state */
 PacketAlert *LuaStateGetPacketAlert(lua_State *luastate)
 {
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_pa);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    void *pa = lua_touserdata(luastate, -1);
-    return (PacketAlert *)pa;
+    return (PacketAlert *)LuaStateGetReg(luastate, lua_ext_key_pa, SCLUA_REG_PACKET_ALERT);
 }
 
 void LuaStateSetPacketAlert(lua_State *luastate, PacketAlert *pa)
 {
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_pa);
-    lua_pushlightuserdata(luastate, (void *)pa);
-    lua_settable(luastate, LUA_REGISTRYINDEX);
+    LuaStateSetReg(luastate, lua_ext_key_pa, SCLUA_REG_PACKET_ALERT, (void *)pa);
 }
 
 /** \brief get signature pointer from the lua state */
 Signature *LuaStateGetSignature(lua_State *luastate)
 {
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_s);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    void *s = lua_touserdata(luastate, -1);
-    return (Signature *)s;
+    return (Signature *)LuaStateGetReg(luastate, lua_ext_key_s, SCLUA_REG_SIGNATURE);
 }
 
 void LuaStateSetSignature(lua_State *luastate, const Signature *s)
 {
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_s);
-    lua_pushlightuserdata(luastate, (void *)s);
-    lua_settable(luastate, LUA_REGISTRYINDEX);
+    LuaStateSetReg(luastate, lua_ext_key_s, SCLUA_REG_SIGNATURE, (void *)s);
 }
 
 /** \brief get file pointer from the lua state */
 File *LuaStateGetFile(lua_State *luastate)
 {
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_file);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    void *file = lua_touserdata(luastate, -1);
-    return (File *)file;
+    return (File *)LuaStateGetReg(luastate, lua_ext_key_file, SCLUA_REG_FILE);
 }
 
 void LuaStateSetFile(lua_State *luastate, File *file)
 {
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_file);
-    lua_pushlightuserdata(luastate, (void *)file);
-    lua_settable(luastate, LUA_REGISTRYINDEX);
+    LuaStateSetReg(luastate, lua_ext_key_file, SCLUA_REG_FILE, (void *)file);
 }
 
 /** \brief get DetectEngineThreadCtx pointer from the lua state */
 DetectEngineThreadCtx *LuaStateGetDetCtx(lua_State *luastate)
 {
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_det_ctx);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    void *det_ctx = lua_touserdata(luastate, -1);
-    return (DetectEngineThreadCtx *)det_ctx;
+    return (DetectEngineThreadCtx *)LuaStateGetReg(
+            luastate, lua_ext_key_det_ctx, SCLUA_REG_DET_CTX);
 }
 
 void LuaStateSetDetCtx(lua_State *luastate, DetectEngineThreadCtx *det_ctx)
 {
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_det_ctx);
-    lua_pushlightuserdata(luastate, (void *)det_ctx);
-    lua_settable(luastate, LUA_REGISTRYINDEX);
+    LuaStateSetReg(luastate, lua_ext_key_det_ctx, SCLUA_REG_DET_CTX, (void *)det_ctx);
 }
 
 LuaStreamingBuffer *LuaStateGetStreamingBuffer(lua_State *luastate)
@@ -264,12 +305,24 @@ void LuaStateSetStreamingBuffer(lua_State *luastate, LuaStreamingBuffer *b)
     lua_settable(luastate, LUA_REGISTRYINDEX);
 }
 
+/** \brief get the per-rule DetectLuaData */
+DetectLuaData *LuaStateGetDetectLuaData(lua_State *luastate)
+{
+    return (DetectLuaData *)LuaStateGetReg(luastate, luaext_key_ld, SCLUA_REG_DETECT_LUA_DATA);
+}
+
+void LuaStateSetDetectLuaData(lua_State *luastate, DetectLuaData *ld)
+{
+    LuaStateSetReg(luastate, luaext_key_ld, SCLUA_REG_DETECT_LUA_DATA, (void *)ld);
+}
+
 /** \brief get packet pointer from the lua state */
 int LuaStateGetDirection(lua_State *luastate)
 {
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_direction);
     lua_gettable(luastate, LUA_REGISTRYINDEX);
     int dir = lua_toboolean(luastate, -1);
+    lua_pop(luastate, 1);
     return dir;
 }
 
