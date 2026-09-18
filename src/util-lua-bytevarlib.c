@@ -34,12 +34,15 @@ static DetectLuaData *GetLuaData(lua_State *luastate)
 
 static int LuaBytevarMap(lua_State *L)
 {
+    DetectLuaData *ld = GetLuaData(L);
+    if (ld == NULL) {
+        return luaL_error(L, "bytevar API not available in this context");
+    }
     if (!lua_islightuserdata(L, -2)) {
         return luaL_error(L, "bytevar.map: first argument must be the signature passed to init");
     }
     const Signature *s = lua_touserdata(L, -2);
     const char *name = luaL_checkstring(L, -1);
-    DetectLuaData *ld = GetLuaData(L);
 
     /* Is this name already mapped? */
     for (uint16_t i = 0; i < ld->bytevars; i++) {
