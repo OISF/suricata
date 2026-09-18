@@ -78,6 +78,9 @@ void LuaStateSetDetectLuaData(lua_State *luastate, DetectLuaData *ld);
 
 int LuaStateGetDirection(lua_State *luastate);
 
+/* \brief get a string argument from the stack, NULL when absent or empty */
+const char *LuaGetStringArgument(lua_State *luastate, int idx);
+
 /* sets */
 
 void LuaStateSetPacket(lua_State *luastate, Packet *p);

@@ -148,8 +148,9 @@ static int LuaHttpGetHeader(lua_State *luastate, int dir)
         return 1;
     }
 
-    /* since arg was added at last, it must be on top of the stack */
-    const char *name = LuaGetStringArgument(luastate, lua_gettop(luastate));
+    /* method call: self (the tx userdata) is arg 1, the header name is
+     * arg 2; extra arguments must not change the lookup key */
+    const char *name = LuaGetStringArgument(luastate, 2);
     if (name == NULL) {
         return LuaCallbackError(luastate, "argument missing, empty or wrong type");
     }
