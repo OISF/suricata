@@ -6941,6 +6941,28 @@
                                 }
                             }
                         },
+                        "dpdk": {
+                            "type": "object",
+                            "description": "Statistics for the DPDK capture module",
+                            "additionalProperties": false,
+                            "properties": {
+                                "ierrors": {
+                                    "type": "integer",
+                                    "description":
+                                            "Number of erroneous received packets reported by DPDK"
+                                },
+                                "imissed": {
+                                    "type": "integer",
+                                    "description":
+                                            "Number of packets dropped by the NIC because receive buffers were unavailable"
+                                },
+                                "no_mbufs": {
+                                    "type": "integer",
+                                    "description":
+                                            "Number of RX packet-buffer allocation failures reported by DPDK"
+                                }
+                            }
+                        },
                         "errors": {
                             "type": "integer",
                             "description": "Number of Suricata errors reported while reading capture module"
@@ -6956,6 +6978,20 @@
                         "kernel_packets": {
                             "type": "integer",
                             "description": "Number of packets received from the kernel"
+                        },
+                        "packets": {
+                            "type": "integer",
+                            "description":
+                                    "Number of received packets plus receive errors reported by the DPDK capture module"
+                        },
+                        "rx_errors": {
+                            "type": "integer",
+                            "description":
+                                    "Total DPDK missed packets, erroneous received packets, and RX packet-buffer allocation failures"
+                        },
+                        "tx_errors": {
+                            "type": "integer",
+                            "description": "Number of packet transmission errors reported by DPDK"
                         }
                     }
                 },
