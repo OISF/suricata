@@ -425,6 +425,9 @@ void SCLuaSbResetInstructionCounter(lua_State *L)
     if (sb != NULL) {
         sb->blocked_function_error = false;
         sb->instruction_count_error = false;
+        /* the flags are consumed by the per-call error classification,
+         * so they are as sticky as the other two */
+        sb->memory_limit_error = false;
         sb->instruction_count = 0;
         lua_sethook(L, HookFunc, LUA_MASKCOUNT, sb->hook_instruction_count);
     }
