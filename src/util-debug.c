@@ -245,7 +245,11 @@ static int SCLogMessageJSON(SCTime_t tval, char *buffer, size_t buffer_size, SCL
     SCJbClose(js); // engine
 
     SCJbClose(js);
-    memcpy(buffer, SCJbPtr(js), MIN(buffer_size, SCJbLen(js)));
+    /* reserve 1 byte for the NUL: the buffer is consumed as a C string by
+     * the stream and syslog sinks */
+    const size_t len = MIN(buffer_size - 1, (size_t)SCJbLen(js));
+    memcpy(buffer, SCJbPtr(js), len);
+    buffer[len] = '\0';
 
     SCJbFree(js);
 
