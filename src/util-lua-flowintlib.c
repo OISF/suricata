@@ -108,7 +108,9 @@ static int LuaFlowintSet(lua_State *L)
 
     FlowVarAddInt(f, *flowvar_id, value);
 
-    return 1;
+    /* set() documents no result; claiming one hands back the last
+     * argument (or the flow lock hint left by LuaStateGetFlow) */
+    return 0;
 }
 
 static int LuaFlowintIncr(lua_State *L)
