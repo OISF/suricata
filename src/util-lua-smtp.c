@@ -47,17 +47,22 @@ static int LuaSmtpGetTx(lua_State *L)
         return LuaCallbackError(L, "error: protocol not SMTP");
     }
 
-    Flow *flow = LuaStateGetFlow(L);
-    if (flow == NULL) {
-        return LuaCallbackError(L, "error: no flow found");
+    /* prefer the transaction the engine is inspecting (the match setup
+     * sets the registry entry in the tx-inspection phase); in the plain
+     * packet phase the entry is empty and the flow's current
+     * transaction is the one the script wants */
+    SMTPTransaction *tx = (SMTPTransaction *)LuaStateGetTX(L);
+    if (tx == NULL) {
+        Flow *flow = LuaStateGetFlow(L);
+        if (flow == NULL) {
+            return LuaCallbackError(L, "error: no flow found");
+        }
+        SMTPState *state = (SMTPState *)FlowGetAppState(flow);
+        if (state == NULL) {
+            return LuaCallbackError(L, "error: no SMTP state");
+        }
+        tx = state->curr_tx;
     }
-
-    SMTPState *state = (SMTPState *)FlowGetAppState(flow);
-    if (state == NULL) {
-        return LuaCallbackError(L, "error: no SMTP state");
-    }
-
-    SMTPTransaction *tx = state->curr_tx;
     if (tx == NULL) {
         return LuaCallbackError(L, "error: no SMTP transaction found");
     }
