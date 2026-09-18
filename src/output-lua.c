@@ -98,6 +98,8 @@ static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow 
     int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
     if (retval != 0) {
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+        /* a failed pcall leaves the error object on the stack */
+        lua_pop(td->lua_ctx->luastate, 1);
     }
 
     SCMutexUnlock(&td->lua_ctx->m);
@@ -158,6 +160,8 @@ static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
     int retval = lua_pcall(luastate, 1, 0, 0);
     if (retval != 0) {
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+        /* a failed pcall leaves the error object on the stack */
+        lua_pop(td->lua_ctx->luastate, 1);
     }
 
     SCMutexUnlock(&td->lua_ctx->m);
@@ -216,6 +220,8 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
         int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
         if (retval != 0) {
             SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+            /* a failed pcall leaves the error object on the stack */
+            lua_pop(td->lua_ctx->luastate, 1);
         }
     }
     SCMutexUnlock(&td->lua_ctx->m);
@@ -265,6 +271,8 @@ static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
     if (retval != 0) {
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+        /* a failed pcall leaves the error object on the stack */
+        lua_pop(td->lua_ctx->luastate, 1);
     }
     SCMutexUnlock(&td->lua_ctx->m);
 not_supported:
@@ -310,6 +318,8 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
     int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
     if (retval != 0) {
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+        /* a failed pcall leaves the error object on the stack */
+        lua_pop(td->lua_ctx->luastate, 1);
     }
     SCMutexUnlock(&td->lua_ctx->m);
     return 0;
@@ -340,6 +350,8 @@ static int LuaFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
     if (retval != 0) {
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+        /* a failed pcall leaves the error object on the stack */
+        lua_pop(td->lua_ctx->luastate, 1);
     }
     SCMutexUnlock(&td->lua_ctx->m);
     return 0;
@@ -393,6 +405,8 @@ static int LuaStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *s
     int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
     if (retval != 0) {
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+        /* a failed pcall leaves the error object on the stack */
+        lua_pop(td->lua_ctx->luastate, 1);
     }
     SCMutexUnlock(&td->lua_ctx->m);
     return 0;
