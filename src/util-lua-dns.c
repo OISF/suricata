@@ -103,8 +103,10 @@ static int LuaDnsTxGetRecursionDesired(lua_State *L)
         lua_pushnil(L);
         return 1;
     }
-    uint16_t flags = SCDnsTxGetResponseFlags(tx->tx);
-    int recursion_desired = flags & 0x0080 ? 1 : 0;
+    /* RD is a request flag (bit 0x0100); the response flags only carry
+     * RA (0x0080) and friends */
+    uint16_t flags = SCDnsTxGetRequestFlags(tx->tx);
+    int recursion_desired = flags & 0x0100 ? 1 : 0;
     lua_pushboolean(L, recursion_desired);
     return 1;
 }

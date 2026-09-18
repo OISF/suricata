@@ -1213,6 +1213,19 @@ pub extern "C" fn SCDnsTxGetResponseFlags(tx: &mut DNSTransaction) -> u16 {
     return tx.rcode();
 }
 
+/// Get the DNS request header flags for a transaction, 0 when there is
+/// no request in the transaction. The recursion desired (RD) bit is
+/// copied into the response header (RFC 1035 4.1.1), but this accessor
+/// reports it from the request only: a response-only transaction
+/// reports false.
+#[no_mangle]
+pub extern "C" fn SCDnsTxGetRequestFlags(tx: &mut DNSTransaction) -> u16 {
+    match &tx.request {
+        Some(msg) => return msg.header.flags,
+        None => return 0,
+    }
+}
+
 pub(crate) unsafe extern "C" fn probe_udp(
     _flow: *const Flow, _dir: u8, input: *const u8, len: u32, rdir: *mut u8,
 ) -> AppProto {
