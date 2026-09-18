@@ -178,7 +178,8 @@ static const struct luaL_Reg txlib[] = {
 static int LuaSshEnableHassh(lua_State *L)
 {
     SCSshEnableHassh();
-    return 1;
+    /* global, parse-time switch: no result to return */
+    return 0;
 }
 
 static const struct luaL_Reg sshlib[] = {

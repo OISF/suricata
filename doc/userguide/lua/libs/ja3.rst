@@ -18,7 +18,9 @@ by calling ``ja3.enable_ja3()``::
 
 ``ja3.enable_ja3()`` will not enable ja3 if they are explicitly
 disabled, so you should add ``requires: feature ja3;``
-(see :ref:`keyword_requires`) to your rule.
+(see :ref:`keyword_requires`) to your rule. It is a
+process-global, parse-time switch that only affects flows parsed
+after the call, and returns no value.
 
 For use in rule matching, the rule should use need ``ja3`` or
 ``ja3s`` in your init script::

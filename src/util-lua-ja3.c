@@ -183,7 +183,8 @@ static const struct luaL_Reg txlib[] = {
 static int LuaJa3Enable(lua_State *L)
 {
     SSLEnableJA3();
-    return 1;
+    /* global, parse-time switch: no result to return */
+    return 0;
 }
 
 static const struct luaL_Reg ja3lib[] = {
