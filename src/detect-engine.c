@@ -3584,9 +3584,10 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     /* Alert processing queue */
     AlertQueueInit(det_ctx);
 
-    /* byte_extract storage */
-    det_ctx->byte_values = SCMalloc(sizeof(*det_ctx->byte_values) *
-                                  (de_ctx->byte_extract_max_local_id + 1));
+    /* byte_extract/byte_math slots (value + written marker + writing
+     * signature); zeroed so an unwritten slot reads as unset */
+    det_ctx->byte_values =
+            SCCalloc((de_ctx->byte_extract_max_local_id + 1), sizeof(*det_ctx->byte_values));
     if (det_ctx->byte_values == NULL) {
         return TM_ECODE_FAILED;
     }

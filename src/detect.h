@@ -1310,6 +1310,14 @@ typedef struct SigJsonContent {
     char json_content[SIG_JSON_CONTENT_ITEM_LEN];
 } SigJsonContent;
 
+/* byte_extract/byte_math slot: the value, the "written this detect
+ * run" marker and the writing signature */
+typedef struct ByteVarSlot_ {
+    uint64_t value;
+    uint8_t set;
+    const Signature *writer;
+} ByteVarSlot;
+
 /**
   * Detection engine thread data.
   */
@@ -1347,8 +1355,13 @@ typedef struct DetectEngineThreadCtx_ {
      * prototype held by DetectEngineCtx. */
     SpmThreadCtx *spm_thread_ctx;
 
-    /* byte_* values */
-    uint64_t *byte_values;
+    /* byte_extract/byte_math slots: value + "written this detect run"
+     * marker + writing signature, cleared per run for the slots the run
+     * wrote; an unwritten slot reads as unset (nil) to scripts */
+    ByteVarSlot *byte_values;
+    /* highest slot index written this run, -1 if none; the per-run
+     * clear only walks up to it */
+    int32_t byte_values_max;
 
     SigJsonContent *json_content;
     uint8_t json_content_capacity;

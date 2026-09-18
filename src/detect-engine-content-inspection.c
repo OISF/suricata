@@ -157,7 +157,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 if (cd->flags & DETECT_CONTENT_DISTANCE) {
                     if (cd->flags & DETECT_CONTENT_DISTANCE_VAR) {
                         // This cast is wrong if a 64-bit value was extracted
-                        distance = (uint32_t)det_ctx->byte_values[cd->distance];
+                        distance = (uint32_t)det_ctx->byte_values[cd->distance].value;
                     }
                     if (distance < 0 && (uint32_t)(abs(distance)) > offset)
                         offset = 0;
@@ -171,9 +171,11 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 if (cd->flags & DETECT_CONTENT_WITHIN) {
                     if (cd->flags & DETECT_CONTENT_WITHIN_VAR) {
                         // This cast is wrong if a 64-bit value was extracted for within
-                        if ((int32_t)depth > (int32_t)(prev_buffer_offset + det_ctx->byte_values[cd->within] + distance)) {
+                        if ((int32_t)depth >
+                                (int32_t)(prev_buffer_offset +
+                                          det_ctx->byte_values[cd->within].value + distance)) {
                             depth = prev_buffer_offset +
-                                    (uint32_t)det_ctx->byte_values[cd->within] + distance;
+                                    (uint32_t)det_ctx->byte_values[cd->within].value + distance;
                         }
                     } else {
                         if ((int32_t)depth > (int32_t)(prev_buffer_offset + cd->within + distance)) {
@@ -196,9 +198,10 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 }
 
                 if (cd->flags & DETECT_CONTENT_DEPTH_VAR) {
-                    if ((det_ctx->byte_values[cd->depth] + prev_buffer_offset) < depth) {
+                    if ((det_ctx->byte_values[cd->depth].value + prev_buffer_offset) < depth) {
                         // ok to cast as we checked the byte value fits in a u32
-                        depth = prev_buffer_offset + (uint32_t)det_ctx->byte_values[cd->depth];
+                        depth = prev_buffer_offset +
+                                (uint32_t)det_ctx->byte_values[cd->depth].value;
                     }
                 } else {
                     if (cd->depth != 0) {
@@ -211,9 +214,9 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 }
 
                 if (cd->flags & DETECT_CONTENT_OFFSET_VAR) {
-                    if (det_ctx->byte_values[cd->offset] > offset) {
+                    if (det_ctx->byte_values[cd->offset].value > offset) {
                         // This cast is wrong if a 64-bit value was extracted
-                        offset = (uint32_t)det_ctx->byte_values[cd->offset];
+                        offset = (uint32_t)det_ctx->byte_values[cd->offset].value;
                     }
                 } else {
                     if (cd->offset > offset) {
@@ -225,7 +228,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 /* set depth */
                 if (cd->flags & DETECT_CONTENT_DEPTH_VAR) {
                     // This cast is wrong if a 64-bit value was extracted
-                    depth = (uint32_t)det_ctx->byte_values[cd->depth];
+                    depth = (uint32_t)det_ctx->byte_values[cd->depth].value;
                 } else {
                     if (cd->depth != 0) {
                         depth = cd->depth;
@@ -245,7 +248,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 /* set offset */
                 if (cd->flags & DETECT_CONTENT_OFFSET_VAR) {
                     // This cast is wrong if a 64-bit value was extracted
-                    offset = (uint32_t)det_ctx->byte_values[cd->offset];
+                    offset = (uint32_t)det_ctx->byte_values[cd->offset].value;
                 } else {
                     offset = cd->offset;
                 }
@@ -404,7 +407,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         const DetectIsdataatData *id = (DetectIsdataatData *)smd->ctx;
         uint32_t dataat = id->dataat;
         if (id->flags & ISDATAAT_OFFSET_VAR) {
-            uint64_t be_value = det_ctx->byte_values[dataat];
+            uint64_t be_value = det_ctx->byte_values[dataat].value;
             if (be_value >= 100000000) {
                 if ((id->flags & ISDATAAT_NEGATED) == 0) {
                     SCLogDebug("extracted value %"PRIu64" very big: no match", be_value);
@@ -508,14 +511,14 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         int32_t nbytes = btd->nbytes;
         if (btflags & DETECT_BYTETEST_OFFSET_VAR) {
             // This cast is wrong if a 64-bit value was extracted
-            offset = (int32_t)det_ctx->byte_values[offset];
+            offset = (int32_t)det_ctx->byte_values[offset].value;
         }
         if (btflags & DETECT_BYTETEST_VALUE_VAR) {
-            value = det_ctx->byte_values[value];
+            value = det_ctx->byte_values[value].value;
         }
         if (btflags & DETECT_BYTETEST_NBYTES_VAR) {
             // This cast is wrong if a 64-bit value was extracted
-            nbytes = (int32_t)det_ctx->byte_values[nbytes];
+            nbytes = (int32_t)det_ctx->byte_values[nbytes].value;
         }
 
         /* if we have dce enabled we will have to use the endianness
@@ -542,13 +545,13 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
         if (bjflags & DETECT_BYTEJUMP_OFFSET_VAR) {
             // This cast is wrong if a 64-bit value was extracted
-            offset = (int32_t)det_ctx->byte_values[offset];
+            offset = (int32_t)det_ctx->byte_values[offset].value;
             SCLogDebug("[BJ] using offset value %d", offset);
         }
 
         if (bjflags & DETECT_BYTEJUMP_NBYTES_VAR) {
             // This cast is wrong if a 64-bit value was extracted
-            nbytes = (int32_t)det_ctx->byte_values[bjd->nbytes];
+            nbytes = (int32_t)det_ctx->byte_values[bjd->nbytes].value;
             SCLogDebug("[BJ] using nbytes value %d [index %d]", nbytes, bjd->nbytes);
         } else {
             nbytes = bjd->nbytes;
@@ -587,12 +590,16 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         }
 
         if (DetectByteExtractDoMatch(det_ctx, smd, s, buffer, buffer_len,
-                    &det_ctx->byte_values[bed->local_id], endian) != 1) {
+                    &det_ctx->byte_values[bed->local_id].value, endian) != 1) {
             goto no_match;
         }
 
-        SCLogDebug("[BE] Fetched value for index %d: %"PRIu64,
-                   bed->local_id, det_ctx->byte_values[bed->local_id]);
+        det_ctx->byte_values[bed->local_id].set = 1;
+        det_ctx->byte_values[bed->local_id].writer = s;
+        if (bed->local_id > det_ctx->byte_values_max)
+            det_ctx->byte_values_max = bed->local_id;
+        SCLogDebug("[BE] Fetched value for index %d: %" PRIu64, bed->local_id,
+                det_ctx->byte_values[bed->local_id].value);
         goto match;
 
     } else if (smd->type == DETECT_BYTEMATH) {
@@ -610,25 +617,29 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         }
         uint64_t rvalue;
         if (bmd->flags & DETECT_BYTEMATH_FLAG_RVALUE_VAR) {
-            rvalue = det_ctx->byte_values[bmd->rvalue];
+            rvalue = det_ctx->byte_values[bmd->rvalue].value;
         } else {
             rvalue = bmd->rvalue;
         }
 
         uint8_t nbytes;
         if (bmd->flags & DETECT_BYTEMATH_FLAG_NBYTES_VAR) {
-            nbytes = (uint8_t)det_ctx->byte_values[bmd->nbytes];
+            nbytes = (uint8_t)det_ctx->byte_values[bmd->nbytes].value;
         } else {
             nbytes = bmd->nbytes;
         }
 
         if (DetectByteMathDoMatch(det_ctx, bmd, s, buffer, buffer_len, nbytes, rvalue,
-                    &det_ctx->byte_values[bmd->local_id], endian) != 1) {
+                    &det_ctx->byte_values[bmd->local_id].value, endian) != 1) {
             goto no_match;
         }
 
-        SCLogDebug("[BM] Fetched value for index %d: %"PRIu64,
-                   bmd->local_id, det_ctx->byte_values[bmd->local_id]);
+        det_ctx->byte_values[bmd->local_id].set = 1;
+        det_ctx->byte_values[bmd->local_id].writer = s;
+        if (bmd->local_id > det_ctx->byte_values_max)
+            det_ctx->byte_values_max = bmd->local_id;
+        SCLogDebug("[BM] Fetched value for index %d: %" PRIu64, bmd->local_id,
+                det_ctx->byte_values[bmd->local_id].value);
         goto match;
 
     } else if (smd->type == DETECT_BSIZE) {
