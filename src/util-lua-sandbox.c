@@ -74,6 +74,7 @@ static void *LuaAlloc(void *ud, void *ptr, size_t osize, size_t nsize)
         void *nptr = SCRealloc(ptr, nsize);
         if (nptr != NULL) {
             ctx->alloc_bytes += nsize;
+            ctx->alloc_bytes_allocated += nsize;
         }
         return nptr;
     } else {
@@ -92,6 +93,9 @@ static void *LuaAlloc(void *ud, void *ptr, size_t osize, size_t nsize)
             DEBUG_VALIDATE_BUG_ON((ssize_t)ctx->alloc_bytes + diff < 0);
             DEBUG_VALIDATE_BUG_ON(osize > ctx->alloc_bytes);
             ctx->alloc_bytes += diff;
+            if (diff > 0) {
+                ctx->alloc_bytes_allocated += (size_t)diff;
+            }
         }
         return nptr;
     }
@@ -288,6 +292,14 @@ void SCLuaSbLoadLibs(lua_State *L)
 {
     const luaL_Reg *lib;
 
+    /* the libs are the baseline, not script work: load uncapped so a
+     * max-bytes below the library footprint cannot abort a luaopen */
+    SCLuaSbState *sb = SCLuaSbGetContext(L);
+    const uint64_t saved_limit = (sb != NULL) ? sb->alloc_limit : 0;
+    if (sb != NULL) {
+        sb->alloc_limit = 0;
+    }
+
     for (lib = AllowedLibs; lib->func; lib++) {
         luaL_requiref(L, lib->name, lib->func, 1);
         lua_pop(L, 1);
@@ -316,6 +328,10 @@ void SCLuaSbLoadLibs(lua_State *L)
     /* Setup our custom require. */
     lua_pushcfunction(L, SCLuaSbRequire);
     lua_setglobal(L, "require");
+
+    if (sb != NULL) {
+        sb->alloc_limit = saved_limit;
+    }
 }
 
 /**
@@ -332,6 +348,7 @@ lua_State *SCLuaSbStateNew(uint64_t alloclimit, uint64_t instructionlimit)
     }
 
     sb->alloc_limit = alloclimit;
+    sb->alloc_limit_cfg = alloclimit;
     sb->alloc_bytes = 0;
     sb->hook_instruction_count = 100;
     sb->instruction_limit = instructionlimit;
@@ -394,7 +411,17 @@ uint64_t SCLuaSbResetBytesLimit(lua_State *L)
     uint64_t cfg_limit = 0;
     SCLuaSbState *sb = SCLuaSbGetContext(L);
     if (sb != NULL) {
-        cfg_limit = sb->alloc_limit;
+        if (!sb->alloc_baseline_done) {
+            /* capture before the per-call preparation pushes, so the
+             * baseline is the steady setup footprint (libs, script,
+             * retained init state), not the first call's arguments:
+             * those are reachable and a compaction cannot drop them */
+            lua_gc(L, LUA_GCCOLLECT, 0);
+            sb->alloc_baseline = sb->alloc_bytes;
+            sb->alloc_baseline_done = true;
+        }
+        sb->alloc_since_start = sb->alloc_bytes_allocated;
+        cfg_limit = sb->alloc_limit_cfg;
         sb->alloc_limit = 0;
     }
     return cfg_limit;
@@ -403,9 +430,27 @@ uint64_t SCLuaSbResetBytesLimit(lua_State *L)
 void SCLuaSbUpdateBytesLimit(lua_State *L)
 {
     SCLuaSbState *sb = SCLuaSbGetContext(L);
-    if (sb != NULL) {
-        sb->alloc_limit = sb->alloc_bytes + sb->alloc_limit;
+    if (sb == NULL) {
+        return;
     }
+    /* normally the baseline was captured by the Reset that opened the
+     * call; fall back here if a state is updated without a Reset */
+    if (!sb->alloc_baseline_done) {
+        lua_gc(L, LUA_GCCOLLECT, 0);
+        sb->alloc_baseline = sb->alloc_bytes;
+        sb->alloc_baseline_done = true;
+    }
+    /* fixed cap relative to the setup baseline. Re-basing on the live
+     * alloc_bytes per call (old behavior) let retained script memory
+     * escape the configured limit entirely */
+    /* the call's own inputs (allocated between the Reset and this
+     * Update) are exempt, as they were before the fixed cap: they are
+     * garbage once the call returns and retain nothing. The exemption
+     * is the gross allocation: a GC step during the setup pushes can
+     * reclaim the previous call's garbage, which the net delta would
+     * net against the inputs */
+    sb->alloc_limit = sb->alloc_baseline + sb->alloc_limit_cfg +
+                      (sb->alloc_bytes_allocated - sb->alloc_since_start);
 }
 
 void SCLuaSbRestoreBytesLimit(lua_State *L, const uint64_t cfg_limit)
