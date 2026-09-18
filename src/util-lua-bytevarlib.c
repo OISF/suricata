@@ -27,6 +27,12 @@
 
 static const char suricata_bytevar_mt[] = "suricata:bytevar:mt";
 
+/* handle = slot id + the signature whose extractor may have written it */
+typedef struct LuaBytevarHandle_ {
+    uint32_t id;
+    const Signature *sig;
+} LuaBytevarHandle;
+
 static DetectLuaData *GetLuaData(lua_State *luastate)
 {
     return LuaStateGetDetectLuaData(luastate);
@@ -91,8 +97,9 @@ static int LuaBytevarGet(lua_State *L)
 
     for (uint16_t i = 0; i < ld->bytevars; i++) {
         if (strcmp(ld->bytevar[i].name, name) == 0) {
-            uint32_t *bytevar_id = lua_newuserdata(L, sizeof(*bytevar_id));
-            *bytevar_id = ld->bytevar[i].id;
+            LuaBytevarHandle *handle = lua_newuserdata(L, sizeof(*handle));
+            handle->id = ld->bytevar[i].id;
+            handle->sig = ld->signature;
             luaL_getmetatable(L, suricata_bytevar_mt);
             lua_setmetatable(L, -2);
             return 1;
@@ -104,12 +111,34 @@ static int LuaBytevarGet(lua_State *L)
 
 static int LuaBytevarValue(lua_State *L)
 {
-    uint32_t *bytevar_id = luaL_checkudata(L, 1, suricata_bytevar_mt);
+    LuaBytevarHandle *handle = luaL_checkudata(L, 1, suricata_bytevar_mt);
     DetectEngineThreadCtx *det_ctx = LuaStateGetDetCtx(L);
     if (det_ctx == NULL) {
         return LuaCallbackError(L, "internal error: no det_ctx");
     }
-    lua_pushinteger(L, det_ctx->byte_values[*bytevar_id]);
+
+    const int32_t max_id = det_ctx->de_ctx->byte_extract_max_local_id;
+    if ((int32_t)handle->id < 0 || (int32_t)handle->id > max_id) {
+        return LuaCallbackError(L, "bytevar index out of range");
+    }
+
+    /* the slot is only valid once an extractor wrote it this detect
+     * run; an unwritten slot is stale (previous run) or uninitialized,
+     * so report it as unset rather than leaking that value to the script */
+    if (det_ctx->byte_values[handle->id].set == 0) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    /* the local id is shared across signatures (the first extractor of
+     * every rule is slot 0): only the value this rule's extractor wrote
+     * this run is this rule's to read */
+    if (det_ctx->byte_values[handle->id].writer != handle->sig) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    lua_pushinteger(L, det_ctx->byte_values[handle->id].value);
     return 1;
 }
 

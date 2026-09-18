@@ -1035,6 +1035,9 @@ static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
     det_ctx->raw_stream_progress = 0;
     det_ctx->match_array_cnt = 0;
     det_ctx->json_content_len = 0;
+    /* a fresh (zeroed) context has byte_values_max == 0, which would
+     * walk a bogus slot 0 in the per-run clear: start with none written */
+    det_ctx->byte_values_max = -1;
 
     det_ctx->alert_queue_size = 0;
     PacketAlertDropReset(p);
@@ -1151,11 +1154,36 @@ static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_
     }
 }
 
+static void DetectByteValuesClear(DetectEngineThreadCtx *det_ctx)
+{
+    /* clear the "written this run" marker of the byte_extract slots
+     * this run wrote, so the next run's scripts read them as unset;
+     * the value itself persists - the content modifiers (depth,
+     * offset, ...) read it without the marker, as before the marker
+     * existed. Only slots up to the run's highest written index are
+     * walked, and only set slots are touched. A set slot without a
+     * writer means a write site is buggy. NULL: stub multi-tenant
+     * thread contexts never allocate the array (and never run
+     * extractors). */
+    if (det_ctx->byte_values != NULL && det_ctx->byte_values_max >= 0) {
+        for (int32_t i = 0; i <= det_ctx->byte_values_max; i++) {
+            if (det_ctx->byte_values[i].set) {
+                DEBUG_VALIDATE_BUG_ON(det_ctx->byte_values[i].writer == NULL);
+                det_ctx->byte_values[i].set = 0;
+                det_ctx->byte_values[i].writer = NULL;
+            }
+        }
+        det_ctx->byte_values_max = -1;
+    }
+}
+
 static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
         Packet *p, Flow * const pflow)
 {
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_CLEANUP);
     InspectionBufferClean(det_ctx);
+
+    DetectByteValuesClear(det_ctx);
 
     if (pflow != NULL) {
         /* update inspected tracker for raw reassembly */
