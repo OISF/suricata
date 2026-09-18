@@ -111,10 +111,11 @@ static int LuaSmtpTxGetMimeList(lua_State *L)
 
     const uint8_t *field_name;
     uint32_t field_len;
-    int num = 1;
+    /* the FFI accessor is 0-based; the Lua table is 1-based */
+    int num = 0;
     lua_newtable(L);
     while (SCMimeSmtpGetHeaderName(tx->tx->mime_state, &field_name, &field_len, (uint32_t)num)) {
-        lua_pushinteger(L, num);
+        lua_pushinteger(L, num + 1);
         LuaPushStringBuffer(L, field_name, field_len);
         lua_settable(L, -3);
         num++;
