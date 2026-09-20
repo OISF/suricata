@@ -61,21 +61,20 @@ use std::str::FromStr;
 use syn::{self, parse_macro_input, DeriveInput};
 
 fn get_attr_enum_string_style(attr: &syn::Attribute) -> String {
-    let meta = attr.parse_meta().unwrap();
-    if let syn::Meta::List(l) = meta {
-        for n in l.nested {
-            if let syn::NestedMeta::Meta(syn::Meta::NameValue(nv)) = n {
-                if nv.path.is_ident("enum_string_style") {
-                    if let syn::Lit::Str(s) = nv.lit {
-                        return s.value();
-                    }
-                    panic!("enum_string_style invalid syntax");
-                }
-            }
+    let nv: syn::MetaNameValue = attr
+        .parse_args()
+        .unwrap_or_else(|_| panic!("suricata attribute is not a list"));
+    if nv.path.is_ident("enum_string_style") {
+        if let syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Str(s),
+            ..
+        }) = nv.value
+        {
+            return s.value();
         }
-        panic!("no enum_string_style");
+        panic!("enum_string_style invalid syntax");
     }
-    panic!("suricata attribute is not a list");
+    panic!("no enum_string_style");
 }
 
 pub fn derive_enum_string<T: std::str::FromStr + quote::ToTokens>(
@@ -96,7 +95,7 @@ where
 
     if let syn::Data::Enum(ref data) = input.data {
         for attr in input.attrs.iter() {
-            if attr.path.is_ident("suricata") {
+            if attr.path().is_ident("suricata") {
                 enum_string_style = get_attr_enum_string_style(attr);
             }
         }

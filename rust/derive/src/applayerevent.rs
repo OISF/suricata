@@ -143,7 +143,7 @@ pub fn transform_name(in_name: &str) -> String {
 /// ```
 fn parse_name(attrs: &[syn::Attribute]) -> Option<syn::LitStr> {
     for attr in attrs {
-        if attr.path.is_ident("name") {
+        if attr.path().is_ident("name") {
             if let Ok(val) = attr.parse_args::<syn::LitStr>() {
                 return Some(val);
             }
