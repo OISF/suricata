@@ -32,6 +32,7 @@
 #include "threadvars.h"
 #include "util-debug.h"
 #include "decode-events.h"
+#include "packet-bindgen.h"
 #include "util-exception-policy-types.h"
 #include "util-datalink.h"
 #ifdef PROFILING

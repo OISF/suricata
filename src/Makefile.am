@@ -386,6 +386,7 @@ noinst_HEADERS = \
 	output-streaming.h \
 	output-tx.h \
 	output.h \
+	packet-bindgen.h \
 	packet-queue.h \
 	packet.h \
 	pkt-var.h \
