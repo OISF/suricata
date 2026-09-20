@@ -3412,7 +3412,7 @@ error:
  */
 static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
 {
-    PatternMatchThreadPrepare(&det_ctx->mtc, de_ctx->mpm_matcher);
+    PatternMatchThreadPrepare(&det_ctx->mtc, de_ctx);
 
     PmqSetup(&det_ctx->pmq);
 
@@ -3426,6 +3426,10 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         det_ctx->match_array_len = de_ctx->sig_array_len;
         det_ctx->match_array = SCCalloc(det_ctx->match_array_len, sizeof(Signature *));
         if (det_ctx->match_array == NULL) {
+            return TM_ECODE_FAILED;
+        }
+        det_ctx->replace = SCCalloc(de_ctx->sig_array_len, sizeof(Signature *));
+        if (det_ctx->replace == NULL) {
             return TM_ECODE_FAILED;
         }
 
@@ -3685,6 +3689,8 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     }
     if (det_ctx->match_array != NULL)
         SCFree(det_ctx->match_array);
+    if (det_ctx->replace != NULL)
+        SCFree(det_ctx->replace);
 
     RuleMatchCandidateTxArrayFree(det_ctx);
 

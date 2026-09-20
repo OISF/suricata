@@ -962,10 +962,23 @@ void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matche
     SCLogDebug("mpm_thread_ctx %p, mpm_matcher %"PRIu16"", mpm_thread_ctx, mpm_matcher);
     MpmDestroyThreadCtx(mpm_thread_ctx, mpm_matcher);
 }
-void PatternMatchThreadPrepare(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher)
+void PatternMatchThreadPrepare(MpmThreadCtx *mpm_thread_ctx, DetectEngineCtx *de_ctx)
 {
-    SCLogDebug("mpm_thread_ctx %p, type %"PRIu16, mpm_thread_ctx, mpm_matcher);
-    MpmInitThreadCtx(mpm_thread_ctx, mpm_matcher);
+    SCLogDebug("mpm_thread_ctx %p, type %" PRIu16, mpm_thread_ctx, de_ctx->mpm_matcher);
+    MpmCtx cum_mpm_ctx = { 0 };
+    for (HashListTableBucket *htb = HashListTableGetListHead(de_ctx->mpm_hash_table); htb != NULL;
+            htb = HashListTableGetListNext(htb)) {
+        // iterate all de_ctx mpms to merge one MpmCtx with max pattern_cnt and max max_pat_id
+        const MpmStore *ms = (MpmStore *)HashListTableGetListData(htb);
+        if (ms == NULL || ms->mpm_ctx == NULL) {
+            continue;
+        }
+        if (ms->mpm_ctx->pattern_cnt > cum_mpm_ctx.pattern_cnt)
+            cum_mpm_ctx.pattern_cnt = ms->mpm_ctx->pattern_cnt;
+        if (ms->mpm_ctx->max_pat_id > cum_mpm_ctx.max_pat_id)
+            cum_mpm_ctx.max_pat_id = ms->mpm_ctx->max_pat_id;
+    }
+    MpmInitThreadCtx(mpm_thread_ctx, &cum_mpm_ctx, de_ctx->mpm_matcher);
 }
 
 /** \brief Predict a strength value for patterns
@@ -1729,11 +1742,12 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     uint32_t cnt = 0;
     int direction = 0;
     uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
-    uint8_t sids_array[max_sid];
-    memset(sids_array, 0x00, max_sid);
     int sgh_mpm_context = 0;
     int sm_list = DETECT_SM_LIST_PMATCH;
-
+    uint8_t *sids_array = SCCalloc(1, max_sid);
+    if (sids_array == NULL) {
+        return NULL;
+    }
     switch (buf) {
         case MPMB_TCP_PKT_TS:
         case MPMB_TCP_PKT_TC:
@@ -1822,8 +1836,10 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         }
     }
 
-    if (cnt == 0)
+    if (cnt == 0) {
+        SCFree(sids_array);
         return NULL;
+    }
 
     MpmStore lookup = { sids_array, max_sid, direction, buf, sm_list, 0, 0, NULL };
 
@@ -1835,6 +1851,7 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         uint8_t *sids = SCCalloc(1, max_sid);
         if (sids == NULL) {
             SCFree(copy);
+            SCFree(sids_array);
             return NULL;
         }
 
@@ -1848,8 +1865,10 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 
         MpmStoreSetup(de_ctx, copy);
         MpmStoreAdd(de_ctx, copy);
+        SCFree(sids_array);
         return copy;
     } else {
+        SCFree(sids_array);
         return result;
     }
 }
