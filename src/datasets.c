@@ -780,6 +780,9 @@ void DatasetsDestroy(void)
         set = next;
     }
     sets = NULL;
+    // these resets are useful for stateless fuzzing
+    dataset_used_hashsize = 0;
+    set_ids = 0;
     DatasetUnlock();
     SCLogDebug("destroying datasets done: %p", sets);
 }
