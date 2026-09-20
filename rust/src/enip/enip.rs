@@ -291,6 +291,15 @@ impl EnipState {
         }
         let mut start = input;
         while !start.is_empty() {
+            if start.len() < ENIP_HEADER_LEN as usize {
+                let consumed = (input.len() - start.len()) as u32;
+                return AppLayerResult::incomplete(consumed, ENIP_HEADER_LEN);
+            }
+            let pdulen = u16::from_le_bytes([start[2], start[3]]) as u32;
+            if (start.len() as u32) < ENIP_HEADER_LEN + pdulen {
+                let consumed = (input.len() - start.len()) as u32;
+                return AppLayerResult::incomplete(consumed, ENIP_HEADER_LEN + pdulen);
+            }
             match parser::parse_enip_pdu(start) {
                 Ok((rem, pdu)) => {
                     if !request {

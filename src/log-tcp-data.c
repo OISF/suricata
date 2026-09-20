@@ -103,12 +103,19 @@ static int LogTcpDataLoggerDir(ThreadVars *tv, void *thread_data, const Flow *f,
                 flags & OUTPUT_STREAMING_FLAG_TOSERVER ? "ts" : "tc");
 
         FILE *fp = fopen(name, mode);
-        BUG_ON(fp == NULL);
+        if (fp == NULL) {
+            SCLogWarning("failed to open '%s': %s", name, strerror(errno));
+            SCReturnInt(TM_ECODE_OK);
+        }
 
         // PrintRawDataFp(stdout, (uint8_t *)data, data_len);
-        fwrite(data, data_len, 1, fp);
+        if (fwrite(data, data_len, 1, fp) != 1) {
+            SCLogWarning("write to '%s' failed: %s", name, strerror(errno));
+        }
 
-        fclose(fp);
+        if (fclose(fp) != 0) {
+            SCLogWarning("failed to close '%s': %s", name, strerror(errno));
+        }
     }
     SCReturnInt(TM_ECODE_OK);
 }
@@ -281,8 +288,13 @@ OutputInitResult LogTcpDataLogInitCtx(SCConfNode *conf)
 
         SCLogInfo("using directory %s", dirfull);
 
-        /* if mkdir fails file open will fail, so deal with errors there */
-        (void)SCMkDir(dirfull, 0700);
+        if (SCMkDir(dirfull, 0700) < 0 && errno != EEXIST) {
+            SCLogError("failed to create log directory '%s': %s", dirfull, strerror(errno));
+            LogFileFreeCtx(file_ctx);
+            SCFree(tcpdatalog_ctx);
+            result = (OutputInitResult){ NULL, false };
+            return result;
+        }
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));

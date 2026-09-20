@@ -122,24 +122,25 @@ static uint8_t DetectFileInspect(DetectEngineThreadCtx *det_ctx, Flow *f, const 
         }
 
         /* run the file match functions. */
+        const SigMatchData *cur = smd;
         while (1) {
-            SCLogDebug("smd %p", smd);
+            SCLogDebug("cur %p", cur);
 
-            if (sigmatch_table[smd->type].FileMatch != NULL) {
+            if (sigmatch_table[cur->type].FileMatch != NULL) {
                 KEYWORD_PROFILING_START;
-                match = sigmatch_table[smd->type].FileMatch(det_ctx, f, flags, file, s, smd->ctx);
-                KEYWORD_PROFILING_END(det_ctx, smd->type, (match > 0));
+                match = sigmatch_table[cur->type].FileMatch(det_ctx, f, flags, file, s, cur->ctx);
+                KEYWORD_PROFILING_END(det_ctx, cur->type, (match > 0));
                 if (match == 0) {
                     r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILES;
                     break;
-                } else if (smd->is_last) {
+                } else if (cur->is_last) {
                     r = DETECT_ENGINE_INSPECT_SIG_MATCH;
                     break;
                 }
             }
-            if (smd->is_last)
+            if (cur->is_last)
                 break;
-            smd++;
+            cur++;
         }
 
         /* continue inspection for other files as we may want to store

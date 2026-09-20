@@ -37,6 +37,7 @@ pub const BOOTP_REPLY: u8 = 2;
 
 // DHCP option types. Names based on IANA naming:
 // https://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xhtml
+pub const DHCP_OPT_PAD: u8 = 0;
 pub const DHCP_OPT_SUBNET_MASK: u8 = 1;
 pub const DHCP_OPT_ROUTERS: u8 = 3;
 pub const DHCP_OPT_DNS_SERVER: u8 = 6;

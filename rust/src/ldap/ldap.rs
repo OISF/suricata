@@ -207,13 +207,8 @@ impl LdapState {
         }
 
         if self.request_gap {
-            match ldap_parse_msg(input) {
-                Ok((_, _msg)) => {
-                    AppLayerResult::ok();
-                }
-                Err(_e) => {
-                    return AppLayerResult::err();
-                }
+            if ldap_parse_msg(input).is_err() {
+                return AppLayerResult::ok();
             }
             self.request_gap = false;
         }
@@ -278,13 +273,8 @@ impl LdapState {
         }
 
         if self.response_gap {
-            match ldap_parse_msg(input) {
-                Ok((_, _msg)) => {
-                    AppLayerResult::ok();
-                }
-                Err(_e) => {
-                    return AppLayerResult::err();
-                }
+            if ldap_parse_msg(input).is_err() {
+                return AppLayerResult::ok();
             }
             self.response_gap = false;
         }

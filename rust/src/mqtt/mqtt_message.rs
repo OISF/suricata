@@ -103,6 +103,7 @@ pub struct MQTTConnectData {
     pub username: Option<String>,
     pub password: Option<Vec<u8>>,
     pub properties: Option<Vec<MQTTProperty>>, // MQTT 5.0
+    pub properties_truncated: bool,
     pub will_properties: Option<Vec<MQTTProperty>>, // MQTT 5.0
 }
 
@@ -111,6 +112,7 @@ pub struct MQTTConnackData {
     pub return_code: u8,
     pub session_present: bool,                 // MQTT 3.1.1
     pub properties: Option<Vec<MQTTProperty>>, // MQTT 5.0
+    pub properties_truncated: bool,
 }
 
 #[derive(Debug)]
@@ -119,6 +121,7 @@ pub struct MQTTPublishData {
     pub message_id: Option<u16>,
     pub message: Vec<u8>,
     pub properties: Option<Vec<MQTTProperty>>, // MQTT 5.0
+    pub properties_truncated: bool,
 }
 
 #[derive(Debug)]
@@ -126,6 +129,7 @@ pub struct MQTTMessageIdOnly {
     pub message_id: u16,
     pub reason_code: Option<u8>,               // MQTT 5.0
     pub properties: Option<Vec<MQTTProperty>>, // MQTT 5.0
+    pub properties_truncated: bool,
 }
 
 #[derive(Debug)]
@@ -139,6 +143,7 @@ pub struct MQTTSubscribeData {
     pub message_id: u16,
     pub topics: Vec<MQTTSubscribeTopicData>,
     pub properties: Option<Vec<MQTTProperty>>, // MQTT 5.0
+    pub properties_truncated: bool,
 }
 
 #[derive(Debug)]
@@ -146,6 +151,7 @@ pub struct MQTTSubackData {
     pub message_id: u16,
     pub qoss: Vec<u8>,
     pub properties: Option<Vec<MQTTProperty>>, // MQTT 5.0
+    pub properties_truncated: bool,
 }
 
 #[derive(Debug)]
@@ -153,25 +159,29 @@ pub struct MQTTUnsubscribeData {
     pub message_id: u16,
     pub topics: Vec<String>,
     pub properties: Option<Vec<MQTTProperty>>, // MQTT 5.0
+    pub properties_truncated: bool,
 }
 
 #[derive(Debug)]
 pub struct MQTTUnsubackData {
     pub message_id: u16,
     pub properties: Option<Vec<MQTTProperty>>, // MQTT 5.0
-    pub reason_codes: Option<Vec<u8>>,         // MQTT 5.0
+    pub properties_truncated: bool,
+    pub reason_codes: Option<Vec<u8>>, // MQTT 5.0
 }
 
 #[derive(Debug)]
 pub struct MQTTAuthData {
     pub reason_code: u8,                       // MQTT 5.0
     pub properties: Option<Vec<MQTTProperty>>, // MQTT 5.0
+    pub properties_truncated: bool,
 }
 
 #[derive(Debug)]
 pub struct MQTTDisconnectData {
     pub reason_code: Option<u8>,               // MQTT 5.0
     pub properties: Option<Vec<MQTTProperty>>, // MQTT 5.0
+    pub properties_truncated: bool,
 }
 
 #[derive(Debug)]

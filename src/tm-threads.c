@@ -1721,6 +1721,7 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
     }
 
     int rc = pthread_create(&tv->t, &attr, tv->tm_func, (void *)tv);
+    pthread_attr_destroy(&attr);
     if (rc) {
         FatalError("Unable to create thread %s with pthread_create(): retval %d: %s", tv->name, rc,
                 strerror(errno));
@@ -1733,6 +1734,7 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
             void *stack_addr;
             pthread_attr_getstack(&attr, &stack_addr, &stack_size);
             SCLogDebug("stack: %p;  size %" PRIu64, stack_addr, (uintmax_t)stack_size);
+            pthread_attr_destroy(&attr);
         } else {
             SCLogDebug("Unable to retrieve current stack-size for display; return code from "
                        "pthread_getattr_np() is %" PRId32,

@@ -929,8 +929,9 @@ static int SMTPProcessCommandDATA(
                                 state->file_track_id++, filename, filename_len, NULL, 0,
                                 flags) != 0) {
                         SCLogDebug("FileOpenFile() failed");
+                    } else {
+                        SMTPNewFile(state->curr_tx, tx->files_ts.tail);
                     }
-                    SMTPNewFile(state->curr_tx, tx->files_ts.tail);
                     break;
                 case MimeSmtpFileChunk:
                     // rust already run FileAppendData
@@ -1086,8 +1087,20 @@ static int SMTPProcessReply(
             SMTPSetEvent(state, SMTP_DECODER_EVENT_DATA_COMMAND_REJECTED);
         }
     } else if (IsReplyToCommand(state, SMTP_COMMAND_BDAT)) {
+        if ((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) &&
+                state->current_command == SMTP_COMMAND_BDAT &&
+                state->cmds_idx + 1 == state->cmds_cnt) {
+            // The server replied before receiving the entire chunk.
+            state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
+        }
         SMTPSetProgressTC(reply_tx, SMTP_RESPONSE_DATA);
     } else if (IsReplyToCommand(state, SMTP_COMMAND_BDAT_LAST)) {
+        if ((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) &&
+                state->current_command == SMTP_COMMAND_BDAT_LAST &&
+                state->cmds_idx + 1 == state->cmds_cnt) {
+            // The server replied before receiving the entire chunk.
+            state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
+        }
         if (reply_tx && !(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
             SMTPTransactionCompleteTC(reply_tx);
         }
@@ -1352,7 +1365,13 @@ static int SMTPProcessRequest(
         int r = 0;
         SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
 
-        if (line->len >= 8 && SCMemcmpLowercase("starttls", line->buf, 8) == 0) {
+        if (tx == NULL) {
+            DEBUG_VALIDATE_BUG_ON(!no_new_tx);
+            const bool is_rset = SCMemcmpLowercase("rset", line->buf, 4) == 0;
+            if (is_rset)
+                state->bdat_chunk_idx = 0;
+            state->current_command = is_rset ? SMTP_COMMAND_RSET : SMTP_COMMAND_QUIT;
+        } else if (line->len >= 8 && SCMemcmpLowercase("starttls", line->buf, 8) == 0) {
             state->current_command = SMTP_COMMAND_STARTTLS;
         } else if (line->len >= 4 && SCMemcmpLowercase("data", line->buf, 4) == 0) {
             state->current_command = SMTP_COMMAND_DATA;
@@ -1415,7 +1434,17 @@ static int SMTPProcessRequest(
             if (r == -1) {
                 SCReturnInt(-1);
             }
-            state->current_command = SMTP_COMMAND_OTHER_CMD;
+            if (state->curr_tx->mail_from != NULL || !TAILQ_EMPTY(&state->curr_tx->rcpt_to_list) ||
+                    state->curr_tx->progress_ts != SMTP_REQUEST_STARTED) {
+                /* Mid-session HELO/EHLO resets the state as if a RSET
+                 * had been issued (RFC 5321 4.1.4). The progress check
+                 * catches a transaction with no envelope but an attempted
+                 * DATA or BDAT, such as a rejected envelope-less DATA. */
+                state->bdat_chunk_idx = 0;
+                state->current_command = SMTP_COMMAND_RSET;
+            } else {
+                state->current_command = SMTP_COMMAND_OTHER_CMD;
+            }
         } else if (line->len >= 9 && SCMemcmpLowercase("mail from", line->buf, 9) == 0) {
             r = SMTPParseCommandMAILFROM(state, line);
             if (r == -1) {

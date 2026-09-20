@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -281,43 +281,52 @@ static AppLayerResult FTPGetLineForDirection(
 {
     SCEnter();
 
-    /* we have run out of input */
-    if (input->len <= 0)
-        return APP_LAYER_ERROR;
+    /* the caller reuses one FtpLineState for every line in a slice */
+    line->truncated = false;
 
-    const uint8_t *lf_idx = memchr(input->buf + input->consumed, 0x0a, input->len);
+    while (input->len > 0) {
+        const uint8_t *lf_idx = memchr(input->buf + input->consumed, 0x0a, input->len);
 
-    if (lf_idx == NULL) {
-        if (!(*current_line_truncated) && (uint32_t)input->len >= ftp_max_line_len) {
-            *current_line_truncated = true;
-            line->buf = input->buf;
-            line->len = ftp_max_line_len;
-            line->delim_len = 0;
-            input->len = 0;
-            SCReturnStruct(APP_LAYER_OK);
+        if (lf_idx == NULL) {
+            if (!(*current_line_truncated) && (uint32_t)input->len >= ftp_max_line_len) {
+                *current_line_truncated = true;
+                line->truncated = true;
+                line->buf = input->buf + input->consumed;
+                line->len = ftp_max_line_len;
+                line->delim_len = 0;
+                /* No caller reads consumed after this; advance it so the cursor
+                 * still describes the slice it was handed. */
+                input->consumed += input->len;
+                input->len = 0;
+                SCReturnStruct(APP_LAYER_OK);
+            }
+            SCReturnStruct(APP_LAYER_INCOMPLETE(input->consumed, input->len + 1));
         }
-        SCReturnStruct(APP_LAYER_INCOMPLETE(input->consumed, input->len + 1));
-    } else if (*current_line_truncated) {
-        // Whatever came in with first LF should also get discarded
-        *current_line_truncated = false;
-        line->len = 0;
-        line->delim_len = 0;
-        input->len = 0;
-        SCReturnStruct(APP_LAYER_ERROR);
-    } else {
+
+        const uint32_t o_consumed = input->consumed;
+        input->consumed = (uint32_t)(lf_idx - input->buf + 1);
+        const uint32_t line_len = (uint32_t)(input->consumed - o_consumed);
+        input->len -= (int32_t)line_len;
+        DEBUG_VALIDATE_BUG_ON((input->consumed + input->len) != input->orig_len);
+
+        if (*current_line_truncated) {
+            /* The tail of an over-long line ends at this LF. Discard just that
+             * tail -- anything after the LF is a line of its own and still has
+             * to be parsed. */
+            *current_line_truncated = false;
+            continue;
+        }
+
+        line->buf = input->buf + o_consumed;
+        line->len = line_len;
         // There could be one chunk of command data that has LF but post the line limit
         // e.g. input_len = 5077
         //      lf_idx = 5010
         //      max_line_len = 4096
-        uint32_t o_consumed = input->consumed;
-        input->consumed = (uint32_t)(lf_idx - input->buf + 1);
-        line->len = input->consumed - o_consumed;
-        input->len -= line->len;
-        line->lf_found = true;
-        DEBUG_VALIDATE_BUG_ON((input->consumed + input->len) != input->orig_len);
-        line->buf = input->buf + o_consumed;
         if (line->len >= ftp_max_line_len) {
-            *current_line_truncated = true;
+            /* This LF ends the line, so nothing carries into the next slice;
+             * the line is simply reported clipped to the limit. */
+            line->truncated = true;
             line->len = ftp_max_line_len;
             SCReturnStruct(APP_LAYER_OK);
         }
@@ -330,6 +339,9 @@ static AppLayerResult FTPGetLineForDirection(
         }
         SCReturnStruct(APP_LAYER_OK);
     }
+
+    /* we have run out of input */
+    return APP_LAYER_ERROR;
 }
 
 /**
@@ -391,23 +403,25 @@ static void FtpTransferCmdFree(void *data)
 
 static uint32_t CopyCommandLine(uint8_t **dest, FtpLineState *line)
 {
-    if (likely(line->len)) {
-        uint8_t *where = FTPCalloc(line->len + 1, sizeof(char));
-        if (unlikely(where == NULL)) {
-            return 0;
-        }
-        memcpy(where, line->buf, line->len);
-
-        /* Remove trailing newlines/carriage returns */
-        while (line->len && isspace((unsigned char)where[line->len - 1])) {
-            line->len--;
-        }
-
-        where[line->len] = '\0';
-        *dest = where;
+    /* Strip trailing whitespace before allocating, so the length accounted by
+     * FTPCalloc matches the length the caller later hands to FTPFree. */
+    while (line->len && isspace((unsigned char)line->buf[line->len - 1])) {
+        line->len--;
     }
-    /* either 0 or actual */
-    return line->len ? line->len + 1 : 0;
+
+    if (unlikely(line->len == 0)) {
+        return 0;
+    }
+
+    uint8_t *where = FTPCalloc(line->len + 1, sizeof(char));
+    if (unlikely(where == NULL)) {
+        return 0;
+    }
+    memcpy(where, line->buf, line->len);
+    where[line->len] = '\0';
+    *dest = where;
+
+    return line->len + 1;
 }
 
 #include "util-print.h"
@@ -440,7 +454,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
     }
 
     FtpInput ftpi = { .buf = input, .len = input_len, .orig_len = input_len, .consumed = 0 };
-    FtpLineState line = { .buf = NULL, .len = 0, .delim_len = 0, .lf_found = false };
+    FtpLineState line = { .buf = NULL, .len = 0, .delim_len = 0, .truncated = false };
 
     uint8_t direction = STREAM_TOSERVER;
     AppLayerResult res;
@@ -467,11 +481,7 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
 
         tx->command_descriptor = cmd_descriptor;
         tx->request_length = CopyCommandLine(&tx->request, &line);
-        tx->request_truncated = state->current_line_truncated_ts;
-
-        if (line.lf_found) {
-            state->current_line_truncated_ts = false;
-        }
+        tx->request_truncated = line.truncated;
         if (tx->request_truncated) {
             SCAppLayerDecoderEventsSetEventRaw(&tx->tx_data.events, FtpEventRequestCommandTooLong);
         }
@@ -603,10 +613,6 @@ static AppLayerResult FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserSt
             default:
                 break;
         }
-        if (line.len >= ftp_max_line_len) {
-            ftpi.consumed = ftpi.len + 1;
-            break;
-        }
         SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOSERVER);
     }
 
@@ -678,7 +684,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
         SCReturnStruct(APP_LAYER_OK);
     }
     FtpInput ftpi = { .buf = input, .len = input_len, .orig_len = input_len, .consumed = 0 };
-    FtpLineState line = { .buf = NULL, .len = 0, .delim_len = 0, .lf_found = false };
+    FtpLineState line = { .buf = NULL, .len = 0, .delim_len = 0, .truncated = false };
 
     FTPTransaction *lasttx = TAILQ_FIRST(&state->tx_list);
     AppLayerResult res;
@@ -708,6 +714,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
         }
 
         state->curr_tx = tx;
+
         uint16_t dyn_port;
         switch (state->command) {
             case FTP_COMMAND_AUTH_TLS:
@@ -760,13 +767,10 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
             if (likely(response)) {
                 FTPResponseWrapper *wrapper = FTPResponseWrapperAlloc(response);
                 if (likely(wrapper)) {
-                    response->truncated = state->current_line_truncated_tc;
+                    response->truncated = line.truncated;
                     if (response->truncated) {
                         SCAppLayerDecoderEventsSetEventRaw(
                                 &tx->tx_data.events, FtpEventResponseCommandTooLong);
-                    }
-                    if (line.lf_found) {
-                        state->current_line_truncated_tc = false;
                     }
                     TAILQ_INSERT_TAIL(&tx->response_list, wrapper, next);
                 } else {
@@ -784,11 +788,6 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
     tx_complete:
         tx->done = true;
         SCAppLayerParserTriggerRawStreamInspection(f, STREAM_TOCLIENT);
-
-        if (line.len >= ftp_max_line_len) {
-            ftpi.consumed = ftpi.len + 1;
-            break;
-        }
     }
 
     SCReturnStruct(APP_LAYER_OK);
@@ -1657,6 +1656,98 @@ static int FTPParserTest12(void)
     StreamTcpFreeConfig(true);
     PASS;
 }
+
+/** \test A command padded with trailing whitespace must leave the memuse
+ *        counter where it found it, and the padding must not be kept. */
+static int FTPParserTest13(void)
+{
+    Flow f;
+    uint8_t ftpbuf[] = "USER anonymous                                        \r\n";
+    const char expected[] = "USER anonymous";
+    TcpSession ssn;
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_FTP;
+
+    StreamTcpInitConfig(true);
+
+    const uint64_t memuse = SC_ATOMIC_GET(ftp_memuse);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER | STREAM_EOF,
+            ftpbuf, sizeof(ftpbuf) - 1);
+    FAIL_IF(r != 0);
+
+    FtpState *ftp_state = f.alstate;
+    FAIL_IF_NULL(ftp_state);
+    FAIL_IF(ftp_state->command != FTP_COMMAND_USER);
+
+    /* the request is what the transaction is freed with, so it has to be the
+     * stripped line: the padding is neither stored nor accounted */
+    FTPTransaction *tx = TAILQ_FIRST(&ftp_state->tx_list);
+    FAIL_IF_NULL(tx);
+    FAIL_IF_NULL(tx->request);
+    FAIL_IF(tx->request_length != sizeof(expected));
+    FAIL_IF(memcmp(tx->request, expected, sizeof(expected)) != 0);
+
+    FLOW_DESTROY(&f);
+    FAIL_IF(SC_ATOMIC_GET(ftp_memuse) != memuse);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/** \test The padding is stripped from the line itself, not just from the copy
+ *        kept on the transaction: what follows the copy has to see the
+ *        shortened line. */
+static int FTPParserTest14(void)
+{
+    Flow f;
+    uint8_t ftpbuf1[] = "PORT 192,168,1,1,0,80          \r\n";
+    uint8_t ftpbuf2[] = "227 OK\r\n";
+    const char expected[] = "PORT 192,168,1,1,0,80";
+    TcpSession ssn;
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_FTP;
+
+    StreamTcpInitConfig(true);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER | STREAM_START,
+            ftpbuf1, sizeof(ftpbuf1) - 1);
+    FAIL_IF(r != 0);
+
+    FtpState *ftp_state = f.alstate;
+    FAIL_IF_NULL(ftp_state);
+    FAIL_IF(ftp_state->command != FTP_COMMAND_PORT);
+
+    /* the port line is taken from the line, so the padding must be gone */
+    FAIL_IF(ftp_state->port_line_len != sizeof(expected) - 1);
+    FAIL_IF(memcmp(ftp_state->port_line, expected, sizeof(expected) - 1) != 0);
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOCLIENT, ftpbuf2, sizeof(ftpbuf2) - 1);
+    FAIL_IF(r != 0);
+
+    FAIL_IF(ftp_state->dyn_port != 80);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
 #endif /* UNITTESTS */
 
 void FTPParserRegisterTests(void)
@@ -1665,5 +1756,7 @@ void FTPParserRegisterTests(void)
     UtRegisterTest("FTPParserTest01", FTPParserTest01);
     UtRegisterTest("FTPParserTest11", FTPParserTest11);
     UtRegisterTest("FTPParserTest12", FTPParserTest12);
+    UtRegisterTest("FTPParserTest13", FTPParserTest13);
+    UtRegisterTest("FTPParserTest14", FTPParserTest14);
 #endif /* UNITTESTS */
 }

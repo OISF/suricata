@@ -1884,7 +1884,14 @@ bool SCAppLayerRequestProtocolTLSUpgrade(Flow *f)
 void SCAppLayerForceProtocolChange(Flow *f, AppProto new_proto)
 {
     if (new_proto != f->alproto) {
-        f->alproto_orig = f->alproto;
+        if (!FlowChangeProto(f)) {
+            // may happen when changing protocol from http1 to http2, then doh2
+            // We need to keep the original alproto, as HTTP1 state was not freed yet
+            f->alproto_orig = f->alproto;
+        } else if (f->alproto == f->alproto_expect) {
+            // First change went as expected
+            f->alproto_expect = new_proto;
+        }
         f->alproto = new_proto;
         f->alproto_ts = f->alproto;
         f->alproto_tc = f->alproto;

@@ -1729,10 +1729,11 @@ use of libhtp.
        # 2 types: 'deflate', 'lzma', 'both' will decompress deflate and lzma
        # compress-depth:
        # Specifies the maximum amount of data to decompress,
-       # set 0 for unlimited.
+       # set 0 for unlimited. The maximum is 4294967282 bytes.
        # decompress-depth:
-       # Specifies the maximum amount of decompressed data to obtain,
-       # set 0 for unlimited.
+       # Specifies the maximum amount of decompressed data to obtain. The
+       # output buffer grows on demand up to this limit. Set 0 to use the
+       # default limit of 50 MB. The maximum is 2147483640 bytes.
            swf-decompression:
              enabled: yes
              type: both
@@ -1894,6 +1895,60 @@ The `max-session-cache-size` setting controls the size of a generic hash table t
 SMB session to filenames, GUIDs and share names.
 
 
+Configure NFS
+~~~~~~~~~~~~~
+
+Resource limits
+^^^^^^^^^^^^^^^
+
+Several options are available for limiting record sizes and queued out of
+order file data.
+
+::
+
+    nfs:
+      enabled: yes
+      max-read-size: 16mb
+      max-write-size: 16mb
+
+      max-read-queue-size: 64mb
+      max-read-queue-cnt: 64
+
+      max-write-queue-size: 64mb
+      max-write-queue-cnt: 64
+
+The `max-read-size` option can be set to control the max size of accepted
+READ responses. Events will be raised if READ responses claim or carry too
+much data. A value of 0 disables the checks.
+
+The `max-write-size` option can be set to control the max size of accepted
+WRITE request records. Events will be raised if a WRITE request claims too
+much data. A value of 0 disables the checks.
+
+For file tracking the parser queues up out of order file data per file
+transaction. To avoid using too much memory the parser allows for limiting
+both the size in bytes and the number of queued chunks.
+
+::
+
+    nfs:
+      enabled: yes
+
+      max-read-queue-size: 64mb
+      max-read-queue-cnt: 64
+
+      max-write-queue-size: 64mb
+      max-write-queue-cnt: 64
+
+`max-read-queue-size` controls how many bytes can be queued per file for
+out of order READ data. `max-read-queue-cnt` controls how many chunks can
+be queued per file. When a limit is exceeded the data is discarded and an
+event is raised.
+
+`max-write-queue-size` and `max-write-queue-cnt` are as the READ variants,
+but then for WRITEs.
+
+
 Configure DCERPC
 ~~~~~~~~~~~~~~~~
 
@@ -2015,6 +2070,19 @@ default is 1 MB.
       mqtt:
         max-msg-length: 1mb
 
+RFB
+~~~
+
+RFB can have some strings whose maximum length according to the RFC is 4GiB.
+In order to limit ram consumption and log output, a configuration parameter ``max-string-length`` is available.
+This limit will also apply during detection.
+An event ``rfb.too_long_string`` will be emitted when a string exceeds the limit. The default is 4 KiB.
+
+::
+
+      rfb:
+        max-string-length: 4 KiB
+
 SMTP
 ~~~~~~
 
@@ -2037,7 +2105,7 @@ incompatible with ``decode-mime``. If both are enabled,
 Maximum transactions
 ~~~~~~~~~~~~~~~~~~~~
 
-SMTP, MQTT, FTP, PostgreSQL, SMB, DCERPC, HTTP1, ENIP and NFS have each a `max-tx`
+SMTP, MQTT, FTP, PGSQL, SMB, DCERPC, HTTP1, ENIP and NFS have each a `max-tx`
 parameter that can be customized.
 `max-tx` refers to the maximum number of live transactions for each flow.
 An app-layer event `protocol.too_many_transactions` is triggered when this value is reached.
@@ -2052,6 +2120,17 @@ For HTTP2, this parameter is named `max-streams` as an HTTP2 stream will get tra
 into one Suricata transaction. This configuration parameter is used whatever the
 value of `SETTINGS_MAX_CONCURRENT_STREAMS` negotiated between a client and a server
 in a specific flow is.
+
+Maximum Responses
+~~~~~~~~~~~~~~~~~
+
+LDAP and PGSQL each have a `max-responses` parameter that can be customized.
+`max-responses` refers to the maximum number of responses a single protocol
+transaction can hold. An app-layer event `protocol.too_many_responses` is triggered when this value is reached.
+As with `max-transactions` the point of this setting is to find a balance between visibility and resource consumption.
+When this cap is reached, new responses to the same transaction will not be pushed nor logged, but the parser will keep inspecting further transactions normally.
+
+.. note:: For PGSQL, the `too_many_responses` event is issued only once per transaction.
 
 Engine Logging
 --------------

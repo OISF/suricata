@@ -144,22 +144,22 @@ int DecodePPPOESession(
         /* decode contained PPP packet */
 
         uint8_t pppoesh_len;
-        uint16_t ppp_protocol = SCNtohs(pppoesh->protocol);
-
-        /* According to RFC1661-2, if the least significant bit of the most significant octet is
-         * set, we're dealing with a single-octet protocol field */
-        if (ppp_protocol & 0x0100) {
+        uint16_t ppp_protocol;
+        /* RFC1661: if LSB of the first protocol octet is set, it is a single-octet field. */
+        const uint8_t proto_hi = pkt[PPPOE_SESSION_HEADER_MIN_LEN - 1];
+        if (proto_hi & 0x01) {
             /* Single-octet variant */
-            ppp_protocol >>= 8;
+            ppp_protocol = proto_hi;
             pppoesh_len = PPPOE_SESSION_HEADER_MIN_LEN;
         } else {
-            /* Double-octet variant; increase the length of the session header accordingly */
+            /* Double-octet variant; need one more byte */
             pppoesh_len = PPPOE_SESSION_HEADER_MIN_LEN + 1;
-
             if (len < pppoesh_len) {
                 ENGINE_SET_INVALID_EVENT(p, PPPOE_PKT_TOO_SMALL);
                 return TM_ECODE_FAILED;
             }
+            ppp_protocol =
+                    (uint16_t)(((uint16_t)proto_hi << 8) | pkt[PPPOE_SESSION_HEADER_MIN_LEN]);
         }
 
         SCLogDebug("Protocol %" PRIu16 " len %" PRIu8 "", ppp_protocol, pppoesh_len);
@@ -235,11 +235,7 @@ int DecodePPPOESession(
                     ENGINE_SET_INVALID_EVENT(p, PPPIPV6_PKT_TOO_SMALL);
                     return TM_ECODE_OK;
                 }
-                if (unlikely(len - pppoesh_len > USHRT_MAX)) {
-                    return TM_ECODE_FAILED;
-                }
-
-                DecodeIPV6(tv, dtv, p, pkt + pppoesh_len, (uint16_t)(len - pppoesh_len));
+                DecodeIPV6(tv, dtv, p, pkt + pppoesh_len, len - pppoesh_len);
                 break;
 
             default:
@@ -521,6 +517,53 @@ static int DecodePPPOEtest10(void)
     PacketFree(p);
     PASS;
 }
+
+/**
+ *  \brief PPPOE session packet of exactly PPPOE_SESSION_HEADER_MIN_LEN bytes with a
+ *   double-octet protocol field, so packet is too small.
+ */
+static int DecodePPPOEtest11(void)
+{
+    uint8_t raw_pppoe[] = { 0x11, 0x00, 0x00, 0x2d, 0x00, 0x01, 0x00 };
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    int ret = DecodePPPOESession(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
+    FAIL_IF(ret != TM_ECODE_FAILED);
+    FAIL_IF(!ENGINE_ISSET_EVENT(p, PPPOE_PKT_TOO_SMALL));
+
+    PacketFree(p);
+    PASS;
+}
+
+/**
+ *  \brief PPPOE session packet of exactly PPPOE_SESSION_HEADER_MIN_LEN bytes with a
+ *  single-octet protocol field (PPP_IP)
+ */
+static int DecodePPPOEtest12(void)
+{
+    uint8_t raw_pppoe[] = { 0x11, 0x00, 0x00, 0x2d, 0x00, 0x01, 0x21 };
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    int ret = DecodePPPOESession(&tv, &dtv, p, raw_pppoe, sizeof(raw_pppoe));
+    FAIL_IF(ret != TM_ECODE_OK);
+    FAIL_IF(ENGINE_ISSET_EVENT(p, PPPOE_PKT_TOO_SMALL));
+    FAIL_IF(!ENGINE_ISSET_EVENT(p, PPPIPV4_PKT_TOO_SMALL));
+
+    PacketFree(p);
+    PASS;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -540,6 +583,8 @@ void DecodePPPOERegisterTests(void)
     UtRegisterTest("DecodePPPOEtest08", DecodePPPOEtest08);
     UtRegisterTest("DecodePPPOEtest09", DecodePPPOEtest09);
     UtRegisterTest("DecodePPPOEtest10", DecodePPPOEtest10);
+    UtRegisterTest("DecodePPPOEtest11", DecodePPPOEtest11);
+    UtRegisterTest("DecodePPPOEtest12", DecodePPPOEtest12);
 #endif /* UNITTESTS */
 }
 

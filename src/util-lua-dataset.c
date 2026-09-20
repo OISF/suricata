@@ -41,7 +41,7 @@ struct LuaDataset {
 static int LuaDatasetGC(lua_State *luastate)
 {
     SCLogDebug("gc:start");
-    struct LuaDataset *s = (struct LuaDataset *)lua_touserdata(luastate, 1);
+    struct LuaDataset *s = (struct LuaDataset *)luaL_testudata(luastate, 1, "dataset::metatable");
     if (s != NULL && s->set != NULL) {
         SCLogDebug("deref %s", s->set->name);
         s->set = NULL;
@@ -53,10 +53,7 @@ static int LuaDatasetGC(lua_State *luastate)
 static int LuaDatasetGetRef(lua_State *luastate)
 {
     SCLogDebug("get");
-    struct LuaDataset *s = (struct LuaDataset *)lua_touserdata(luastate, 1);
-    if (s == NULL) {
-        LUA_ERROR("dataset is not initialized");
-    }
+    struct LuaDataset *s = (struct LuaDataset *)luaL_checkudata(luastate, 1, "dataset::metatable");
 
     const char *name = lua_tostring(luastate, 2);
     if (name == NULL) {
@@ -74,25 +71,27 @@ static int LuaDatasetGetRef(lua_State *luastate)
 static int LuaDatasetAdd(lua_State *luastate)
 {
     SCLogDebug("add:start");
-    struct LuaDataset *s = (struct LuaDataset *)lua_touserdata(luastate, 1);
-    if (s == NULL) {
-        LUA_ERROR("dataset is not initialized");
+    struct LuaDataset *s = luaL_checkudata(luastate, 1, "dataset::metatable");
+    if (s->set == NULL) {
+        LUA_ERROR("dataset is not initialized (call :get first)");
     }
-    if (!lua_isstring(luastate, 2)) {
+
+    size_t real_len = 0;
+    const uint8_t *str = (const uint8_t *)lua_tolstring(luastate, 2, &real_len);
+    if (str == NULL) {
         LUA_ERROR("1st arg is not a string");
     }
-    if (!lua_isnumber(luastate, 3)) {
-        LUA_ERROR("2nd arg is not a number");
+
+    if (!lua_isinteger(luastate, 3)) {
+        LUA_ERROR("2nd arg is not a string");
     }
-
-    const uint8_t *str = (const uint8_t *)lua_tostring(luastate, 2);
-    if (str == NULL) {
-        LUA_ERROR("1st arg is not null string");
+    lua_Integer n = lua_tointeger(luastate, 3);
+    if (n < 0 || (size_t)n > real_len) {
+        LUA_ERROR("length out of range for supplied string");
     }
+    uint32_t str_len = (uint32_t)n;
 
-    uint32_t str_len = lua_tonumber(luastate, 3);
-
-    int r = SCDatasetAdd(s->set, (const uint8_t *)str, str_len);
+    int r = SCDatasetAdd(s->set, str, str_len);
     /* return value through luastate, as a luanumber */
     lua_pushnumber(luastate, (lua_Number)r);
     SCLogDebug("add:end");
@@ -106,6 +105,7 @@ static int LuaDatasetNew(lua_State *luastate)
     if (s == NULL) {
         LUA_ERROR("failed to get userdata");
     }
+    memset(s, 0, sizeof(*s));
     luaL_getmetatable(luastate, "dataset::metatable");
     lua_setmetatable(luastate, -2);
     SCLogDebug("new:done");

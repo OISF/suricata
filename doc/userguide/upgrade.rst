@@ -46,6 +46,10 @@ Major Changes
 - Default value for ``stream.reassembly.depth`` when the value is not specified in
   suricata.yaml is now 1 MiB instead of 0/unlimited.
 - LLMNR protocol parser, logger and sticky buffers are implemented.
+- ``pgsql`` is no longer enabled by default. Previously, if the
+  ``app-layer.protocols.pgsql`` section was absent from suricata.yaml, the
+  parser would be enabled. It's now disabled by default. Simply enabling its EVE
+  output will no longer suffice, either.
 
 Logging Changes
 ~~~~~~~~~~~~~~~
@@ -62,6 +66,11 @@ Logging Changes
 - App-layer stats protocols names replace dash by underscore, meaning
   ``stats.app_layer.*.ftp-data`` becomes ``stats.app_layer.*.ftp_data``,
   and same for bittorrent_dht
+
+- MQTT user properties are now logged as a new object called ``user_properties``
+  as an array of key-value pairs like ``[{"key":"mykey", "value":"myvalue"}]``
+  under ``properties`` object, instead of as ``{key: value}`` pairs as a part
+  of the ``properties`` object itself.
 
 Removals
 ~~~~~~~~

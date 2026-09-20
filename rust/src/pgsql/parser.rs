@@ -1,4 +1,4 @@
-/* Copyright (C) 2022-2025 Open Information Security Foundation
+/* Copyright (C) 2022-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -23,20 +23,24 @@ use crate::common::nom8::take_until_and_consume;
 use nom8::branch::alt;
 use nom8::bytes::streaming::{tag, take, take_until, take_until1};
 use nom8::character::streaming::{alphanumeric1, char};
-use nom8::combinator::{all_consuming, cond, eof, map_parser, opt, peek, verify};
+use nom8::combinator::{all_consuming, complete, cond, eof, map_parser, opt, peek, verify};
 use nom8::error::{make_error, ErrorKind, ParseError};
-use nom8::multi::{many1, many_m_n, many_till};
+use nom8::multi::{count, many1, many_till};
 use nom8::number::streaming::{be_i16, be_i32};
 use nom8::number::streaming::{be_u16, be_u32, be_u8};
 use nom8::sequence::terminated;
-use nom8::{Err, IResult, Parser, ToUsize};
+use nom8::{Err, IResult, Parser};
 
 const PGSQL_LENGTH_FIELD: u32 = 4;
+const PGSQL_ROW_HEADER_LENGTH: u32 = 6;
 
 const PGSQL_DUMMY_PROTO_MAJOR: u16 = 1234; // 0x04d2
 const PGSQL_DUMMY_PROTO_CANCEL_REQUEST: u16 = 5678; // 0x162e
 const PGSQL_DUMMY_PROTO_MINOR_SSL: u16 = 5679; //0x162f
 const _PGSQL_DUMMY_PROTO_MINOR_GSSAPI: u16 = 5680; // 0x1630
+
+// fields: length (4) + format (1) + columns (2)
+const PGSQL_COPY_RESPONSE_MIN_LENGTH: u32 = 7;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum PgsqlParseError<I> {
@@ -248,6 +252,8 @@ pub(crate) struct BackendKeyDataMessage {
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct ConsolidatedDataRowPacket {
+    // also built in pgsql.rs, as a per-transaction summary
+    pub is_malformed: bool,
     pub identifier: u8,
     pub row_cnt: u64, // row or msg cnt
     pub data_size: u64,
@@ -272,6 +278,7 @@ pub(crate) struct NotificationResponse {
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct CopyResponse {
+    is_malformed: bool,
     pub identifier: u8,
     pub length: u32,
     pub column_cnt: u16,
@@ -351,6 +358,17 @@ impl PgsqlBEMessage {
                 return (message.backend_pid, message.secret_key);
             }
             _ => (0, 0),
+        }
+    }
+
+    pub fn is_malformed(&self) -> bool {
+        match self {
+            PgsqlBEMessage::CopyInResponse(m) | PgsqlBEMessage::CopyOutResponse(m) => {
+                m.is_malformed
+            }
+            PgsqlBEMessage::RowDescription(r) => r.is_malformed,
+            PgsqlBEMessage::ConsolidatedDataRow(d) => d.is_malformed,
+            _ => false,
         }
     }
 }
@@ -455,6 +473,7 @@ pub(crate) struct RowField {
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct RowDescriptionMessage {
+    is_malformed: bool,
     pub identifier: u8,
     pub length: u32,
     pub field_count: u16,
@@ -1019,16 +1038,29 @@ fn parse_row_field(i: &[u8]) -> IResult<&[u8], RowField, PgsqlParseError<&[u8]>>
 
 fn parse_row_description(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'T').parse(i)?;
-    let (i, length) = parse_gte_length(i, 7)?;
+    let (i, length) = parse_gte_length(i, PGSQL_ROW_HEADER_LENGTH + 1)?;
     let (i, field_count) = be_u16.parse(i)?;
-    let (i, fields) = map_parser(
-        take(length - 6),
-        many_m_n(0, field_count.into(), parse_row_field),
-    )
-    .parse(i)?;
+    let (i, body) = take(length - PGSQL_ROW_HEADER_LENGTH).parse(i)?;
+    let fields =
+        match all_consuming(count(complete(parse_row_field), field_count.into())).parse(body) {
+            Ok((_, fields)) => fields,
+            Err(_) => {
+                return Ok((
+                    i,
+                    PgsqlBEMessage::RowDescription(RowDescriptionMessage {
+                        is_malformed: true,
+                        identifier,
+                        length,
+                        field_count,
+                        fields: Vec::new(),
+                    }),
+                ));
+            }
+        };
     Ok((
         i,
         PgsqlBEMessage::RowDescription(RowDescriptionMessage {
+            is_malformed: false,
             identifier,
             length,
             field_count,
@@ -1068,14 +1100,29 @@ fn add_up_data_size(columns: Vec<ColumnFieldValue>) -> u64 {
 
 fn parse_copy_out_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'H').parse(i)?;
-    // copy out message : identifier (u8), length (u32), format (u8), cols (u16), formats (u16*cols)
-    let (i, length) = parse_gte_length(i, 8)?;
-    let (i, _format) = be_u8.parse(i)?;
-    let (i, columns) = be_u16.parse(i)?;
-    let (i, _formats) = many_m_n(0, columns.to_usize(), be_u16).parse(i)?;
+    // copy out message: length (4), format (1), cols (2), formats (2*cols)
+    // the identifier isn't accounted for in length
+    let (i, length) = parse_gte_length(i, PGSQL_COPY_RESPONSE_MIN_LENGTH)?;
+    // slice message body to provided length
+    let (i, body) = take(length - PGSQL_LENGTH_FIELD).parse(i)?;
+    let (b, _format) = be_u8.parse(body)?;
+    let (_b, columns) = be_u16.parse(b)?;
+    if length != (PGSQL_COPY_RESPONSE_MIN_LENGTH + 2 * (columns as u32)) {
+        // if the columns lead to a mismatched message payload, truncate the body
+        return Ok((
+            i,
+            PgsqlBEMessage::CopyOutResponse(CopyResponse {
+                is_malformed: true,
+                identifier,
+                length,
+                column_cnt: 0,
+            }),
+        ));
+    }
     Ok((
         i,
         PgsqlBEMessage::CopyOutResponse(CopyResponse {
+            is_malformed: false,
             identifier,
             length,
             column_cnt: columns,
@@ -1085,13 +1132,30 @@ fn parse_copy_out_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlPars
 
 fn parse_copy_in_response(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'G').parse(i)?;
-    let (i, length) = parse_gte_length(i, 8)?;
-    let (i, _format) = be_u8.parse(i)?;
-    let (i, columns) = be_u16.parse(i)?;
-    let (i, _formats) = many_m_n(0, columns.to_usize(), be_u16).parse(i)?;
+    // copy in message: length (4), format (1), cols (2), formats (2*cols)
+    // the identifier isn't accounted for in length
+    let (i, length) = parse_gte_length(i, PGSQL_COPY_RESPONSE_MIN_LENGTH)?;
+    // slice message body to provided length
+    let (i, body) = take(length - PGSQL_LENGTH_FIELD).parse(i)?;
+    let (b, _format) = be_u8.parse(body)?;
+    let (_b, columns) = be_u16.parse(b)?;
+    // then, verify informed length
+    if length != (PGSQL_COPY_RESPONSE_MIN_LENGTH + 2 * (columns as u32)) {
+        // if the columns lead to a mismatched message payload, truncate the body
+        return Ok((
+            i,
+            PgsqlBEMessage::CopyInResponse(CopyResponse {
+                is_malformed: true,
+                identifier,
+                length,
+                column_cnt: 0,
+            }),
+        ));
+    }
     Ok((
         i,
         PgsqlBEMessage::CopyInResponse(CopyResponse {
+            is_malformed: false,
             identifier,
             length,
             column_cnt: columns,
@@ -1109,6 +1173,7 @@ fn parse_consolidated_copy_data_out(
     Ok((
         i,
         PgsqlBEMessage::ConsolidatedCopyDataOut(ConsolidatedDataRowPacket {
+            is_malformed: false,
             identifier,
             row_cnt: 1,
             data_size: (length - PGSQL_LENGTH_FIELD) as u64,
@@ -1126,6 +1191,7 @@ fn parse_consolidated_copy_data_in(
     Ok((
         i,
         PgsqlFEMessage::ConsolidatedCopyDataIn(ConsolidatedDataRowPacket {
+            is_malformed: false,
             identifier,
             row_cnt: 1,
             data_size: (length - PGSQL_LENGTH_FIELD) as u64,
@@ -1170,17 +1236,29 @@ fn parse_copy_fail(i: &[u8]) -> IResult<&[u8], PgsqlFEMessage, PgsqlParseError<&
 // Later on, we calculate the number of lines the command actually returned by counting ConsolidatedDataRow messages
 fn parse_consolidated_data_row(i: &[u8]) -> IResult<&[u8], PgsqlBEMessage, PgsqlParseError<&[u8]>> {
     let (i, identifier) = verify(be_u8, |&x| x == b'D').parse(i)?;
-    let (i, length) = parse_gte_length(i, 7)?;
+    let (i, length) = parse_gte_length(i, PGSQL_ROW_HEADER_LENGTH + 1)?;
     let (i, field_count) = be_u16.parse(i)?;
-    // 6 here is for skipping length + field_count
-    let (i, rows) = map_parser(
-        take(length - 6),
-        many_m_n(0, field_count.into(), parse_data_row_value),
-    )
-    .parse(i)?;
+    let (i, body) = take(length - PGSQL_ROW_HEADER_LENGTH).parse(i)?;
+    let rows = match all_consuming(count(complete(parse_data_row_value), field_count.into()))
+        .parse(body)
+    {
+        Ok((_, rows)) => rows,
+        Err(_) => {
+            return Ok((
+                i,
+                PgsqlBEMessage::ConsolidatedDataRow(ConsolidatedDataRowPacket {
+                    is_malformed: true,
+                    identifier,
+                    row_cnt: 1,
+                    data_size: 0,
+                }),
+            ));
+        }
+    };
     Ok((
         i,
         PgsqlBEMessage::ConsolidatedDataRow(ConsolidatedDataRowPacket {
+            is_malformed: false,
             identifier,
             row_cnt: 1,
             data_size: add_up_data_size(rows),
@@ -2464,12 +2542,12 @@ mod tests {
         // T  ..
         // source   @  .   .......  version   @  .   .......  sid   @  .   . .....
         let buffer: &[u8] = &[
-            0x54, 0x00, 0x00, 0x00, 0x50, 0x00, 0x03, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x00,
+            0x54, 0x00, 0x00, 0x00, 0x4f, 0x00, 0x03, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x00,
             0x00, 0x00, 0x40, 0x09, 0x00, 0x01, 0x00, 0x00, 0x00, 0x19, 0xff, 0xff, 0xff, 0xff,
             0xff, 0xff, 0x00, 0x00, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x00, 0x00, 0x00,
             0x40, 0x09, 0x00, 0x02, 0x00, 0x00, 0x00, 0x19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
             0x00, 0x00, 0x73, 0x69, 0x64, 0x00, 0x00, 0x00, 0x40, 0x09, 0x00, 0x03, 0x00, 0x00,
-            0x00, 0x14, 0x00, 0x08, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00,
+            0x00, 0x14, 0x00, 0x08, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00,
         ];
 
         let field1 = RowField {
@@ -2505,8 +2583,9 @@ mod tests {
         let fields_vec = vec![field1, field2, field3];
 
         let ok_res = PgsqlBEMessage::RowDescription(RowDescriptionMessage {
+            is_malformed: false,
             identifier: b'T',
-            length: 80,
+            length: 79,
             field_count: 3,
             fields: fields_vec,
         });
@@ -2530,6 +2609,128 @@ mod tests {
         }
     }
 
+    /// check especially that the parser consumes the correct message length
+    #[test]
+    fn test_parse_copy_out_response() {
+        let buf: &[u8] = &[
+            /* identifier */ 0x48, /* length */ 0x00, 0x00, 0x00, 0x0b,
+            /* format */ 0x00, /* columns */ 0x00, 0x02, /* format codes */ 0x00,
+            0x00, 0x00, 0x00, /* 'Z' ReadyForQuery(idle) */ 0x5a, 0x00, 0x00, 0x00, 0x05,
+            0x49,
+        ];
+
+        let ok_res = PgsqlBEMessage::CopyOutResponse(CopyResponse {
+            is_malformed: false,
+            identifier: b'H',
+            length: 11,
+            column_cnt: 2,
+        });
+
+        assert_eq!(parse_copy_out_response(buf), Ok((&buf[12..], ok_res)));
+
+        // CopyOutResponse with zero columns: the
+        // shortest such message possible: length is 7.
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            /* identifier */ 0x48, /* length */ 0x00, 0x00, 0x00, 0x07,
+            /* format */ 0x00, /* columns */ 0x00, 0x00,
+        ];
+
+        let ok_res = PgsqlBEMessage::CopyOutResponse(CopyResponse {
+            is_malformed: false,
+            identifier: b'H',
+            length: 7,
+            column_cnt: 0,
+        });
+
+        assert_eq!(parse_copy_out_response(buf), Ok((&buf[8..], ok_res)));
+
+        // Over-read: length claims a 4-byte body; column count asks
+        // for 8 bytes of format codes. Reading those would swallow the
+        // ErrorResponse that a length-framed peer sees at offset 9.
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            /* identifier */ 0x48, /* length */ 0x00, 0x00, 0x00, 0x08,
+            /* format */ 0x00, /* columns */ 0x00, 0x04,
+            /* last body byte, per the length field */ 0x00,
+            /* 'E' ErrorResponse, ERROR - the message being hidden */
+            0x45, 0x00, 0x00, 0x00, 0x0c, 0x53, 0x45, 0x52, 0x52, 0x4f, 0x52, 0x00, 0x00,
+        ];
+
+        let err_res = PgsqlBEMessage::CopyOutResponse(CopyResponse {
+            is_malformed: true,
+            identifier: b'H',
+            length: 8,
+            column_cnt: 0,
+        });
+
+        // identifier (1) + length (8), so we resume at the ErrorResponse
+        assert_eq!(parse_copy_out_response(buf), Ok((&buf[9..], err_res)));
+
+        // Under-read: length announces 8 bytes past the column count,
+        // column count asks for none. A length-framed peer skips
+        // those bytes, so we must not parse the ReadyForQuery planted there.
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            /* identifier */ 0x48, /* length */ 0x00, 0x00, 0x00, 0x0f,
+            /* format */ 0x00, /* columns */ 0x00, 0x00,
+            /* padding, holding a message only we would see */
+            0x5a, 0x00, 0x00, 0x00, 0x05, 0x49, 0x00, 0x00,
+            /* 'Z' ReadyForQuery(idle), the next message on the wire */
+            0x5a, 0x00, 0x00, 0x00, 0x05, 0x49,
+        ];
+
+        let err_res = PgsqlBEMessage::CopyOutResponse(CopyResponse {
+            is_malformed: true,
+            identifier: b'H',
+            length: 15,
+            column_cnt: 0,
+        });
+
+        // identifier (1) + length (15), so the padding is skipped as well
+        assert_eq!(parse_copy_out_response(buf), Ok((&buf[16..], err_res)));
+    }
+
+    #[test]
+    fn test_parse_copy_in_response() {
+        // A well-formed CopyInResponse for one binary column.
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            /* identifier */ 0x47, /* length */ 0x00, 0x00, 0x00, 0x09,
+            /* format */ 0x01, /* columns */ 0x00, 0x01,
+            /* format codes */ 0x00, 0x01,
+        ];
+
+        let ok_res = PgsqlBEMessage::CopyInResponse(CopyResponse {
+            is_malformed: false,
+            identifier: b'G',
+            length: 9,
+            column_cnt: 1,
+        });
+
+        assert_eq!(parse_copy_in_response(buf), Ok((&buf[10..], ok_res)));
+
+        // Largest possible over-read: a 3-byte body, but a column count
+        // asking for 131070 bytes of format codes.
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            /* identifier */ 0x47, /* length */ 0x00, 0x00, 0x00, 0x07,
+            /* format */ 0x00, /* columns */ 0xff, 0xff,
+            /* 'Z' ReadyForQuery(idle), the next message on the wire */
+            0x5a, 0x00, 0x00, 0x00, 0x05, 0x49,
+        ];
+
+        let err_res = PgsqlBEMessage::CopyInResponse(CopyResponse {
+            is_malformed: true,
+            identifier: b'G',
+            length: 7,
+            column_cnt: 0,
+        });
+
+        // identifier (1) + length (7)
+        assert_eq!(parse_copy_in_response(buf), Ok((&buf[8..], err_res)));
+    }
+
     #[test]
     fn test_parse_data_row() {
         let buffer: &[u8] = &[
@@ -2538,8 +2739,17 @@ mod tests {
             0x07, 0x32, 0x30, 0x32, 0x31, 0x37, 0x30, 0x31,
         ];
 
-        let result = parse_consolidated_data_row(buffer);
-        assert!(result.is_ok());
+        let ok_res = PgsqlBEMessage::ConsolidatedDataRow(ConsolidatedDataRowPacket {
+            is_malformed: false,
+            identifier: b'D',
+            row_cnt: 1,
+            data_size: 17,
+        });
+
+        assert_eq!(
+            parse_consolidated_data_row(buffer),
+            Ok((&buffer[36..], ok_res))
+        );
     }
 
     #[test]

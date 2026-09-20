@@ -401,8 +401,8 @@ fn http2_parse_headers_block_literal_incindex<'a>(
                         if dyn_headers.current_size <= (unsafe { HTTP2_MAX_TABLESIZE } as usize) {
                             //overflow had not yet happened
                             dyn_headers.table.push(headcopy);
-                        } else if dyn_headers.current_size > dyn_headers.max_size {
-                            //overflow happens, we cannot replace evicted headers
+                        } else {
+                            //overflow happens, we cannot record new headers
                             dyn_headers.overflow = 2;
                         }
                     }
@@ -506,7 +506,14 @@ fn http2_parse_headers_block_dynamic_size<'a>(
             toremove += 1;
         }
         dyn_headers.table.drain(0..toremove);
+        if maxsize2 <= unsafe { HTTP2_MAX_TABLESIZE.into() } {
+            dyn_headers.overflow = 0;
+        }
+    } else if maxsize2 > unsafe { HTTP2_MAX_TABLESIZE.into() } {
+        //mark potential overflow
+        dyn_headers.overflow = 1;
     }
+    dyn_headers.max_size = maxsize2 as usize;
     return Ok((
         i3,
         HTTP2FrameHeaderBlock {
@@ -584,6 +591,32 @@ fn http2_parse_headers_blocks<'a>(
     return Ok((i3, blocks));
 }
 
+pub(super) fn get_frame_headers_hpack(
+    input: &[u8], flags: u8,
+) -> IResult<&[u8], HTTP2FrameHeaders> {
+    let (i2, padlength) = cond(flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)(input)?;
+    let (i3, priority) = cond(
+        flags & HTTP2_FLAG_HEADER_PRIORITY != 0,
+        http2_parse_headers_priority,
+    )(i2)?;
+    let i3 = if let Some(pl) = padlength {
+        if (pl as usize) > i3.len() {
+            return Err(Err::Error(make_error(input, ErrorKind::LengthValue)));
+        }
+        &i3[..i3.len() - pl as usize]
+    } else {
+        i3
+    };
+    return Ok((
+        i3,
+        HTTP2FrameHeaders {
+            padlength,
+            priority,
+            blocks: Vec::new(),
+        },
+    ));
+}
+
 pub fn http2_parse_frame_headers<'a>(
     input: &'a [u8], flags: u8, dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameHeaders> {
@@ -592,6 +625,14 @@ pub fn http2_parse_frame_headers<'a>(
         flags & HTTP2_FLAG_HEADER_PRIORITY != 0,
         http2_parse_headers_priority,
     )(i2)?;
+    let i3 = if let Some(pl) = padlength {
+        if (pl as usize) > i3.len() {
+            return Err(Err::Error(make_error(input, ErrorKind::LengthValue)));
+        }
+        &i3[..i3.len() - pl as usize]
+    } else {
+        i3
+    };
     let (i3, blocks) = http2_parse_headers_blocks(i3, dyn_headers)?;
     return Ok((
         i3,
@@ -616,6 +657,14 @@ pub fn http2_parse_frame_push_promise<'a>(
 ) -> IResult<&'a [u8], HTTP2FramePushPromise> {
     let (i2, padlength) = cond(flags & HTTP2_FLAG_HEADER_PADDED != 0, be_u8)(input)?;
     let (i3, stream_id) = bits(tuple((take_bits(1u8), take_bits(31u32))))(i2)?;
+    let i3 = if let Some(pl) = padlength {
+        if (pl as usize) > i3.len() {
+            return Err(Err::Error(make_error(input, ErrorKind::LengthValue)));
+        }
+        &i3[..i3.len() - pl as usize]
+    } else {
+        i3
+    };
     let (i3, blocks) = http2_parse_headers_blocks(i3, dyn_headers)?;
     return Ok((
         i3,

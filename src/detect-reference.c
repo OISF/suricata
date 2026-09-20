@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -161,14 +161,7 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
     } else {
 
         SCRConfReference *lookup_ref_conf = SCRConfGetReference(key, de_ctx);
-        if (lookup_ref_conf != NULL) {
-            ref->key = SCStrdup(lookup_ref_conf->url);
-            if (ref->key == NULL) {
-                goto error;
-            }
-            /* already bound checked to be REFERENCE_SYSTEM_NAME_MAX or less */
-            ref->key_len = (uint16_t)strlen(ref->key);
-        } else {
+        if (lookup_ref_conf == NULL) {
             if (SigMatchStrictEnabled(DETECT_REFERENCE)) {
                 SCLogError("unknown reference key \"%s\"", key);
                 goto error;
@@ -185,6 +178,13 @@ static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx
             if (lookup_ref_conf == NULL)
                 goto error;
         }
+
+        ref->key = SCStrdup(lookup_ref_conf->url);
+        if (ref->key == NULL) {
+            goto error;
+        }
+        /* already bound checked to be REFERENCE_CONTENT_NAME_MAX or less */
+        ref->key_len = (uint16_t)strlen(ref->key);
     }
 
     /* make a copy so we can free pcre's substring */
@@ -340,6 +340,13 @@ static int DetectReferenceParseTest03(void)
                                    "(msg:\"invalid ref\"; "
                                    "reference:unknownkey,001-2010; sid:2;)");
     FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->references);
+    /* an unregistered key resolves through the synthetic config entry */
+    FAIL_IF_NULL(s->references->key);
+    FAIL_IF(strcmp(s->references->key, "undefined") != 0);
+    FAIL_IF(s->references->key_len != strlen("undefined"));
+    FAIL_IF_NULL(s->references->reference);
+    FAIL_IF(strcmp(s->references->reference, "001-2010") != 0);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }

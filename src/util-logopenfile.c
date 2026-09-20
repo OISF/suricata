@@ -983,16 +983,19 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         SCMutexDestroy(&lf_ctx->fp_mutex);
     }
 
-    if (lf_ctx->prefix != NULL) {
-        SCFree(lf_ctx->prefix);
-        lf_ctx->prefix_len = 0;
+    if (lf_ctx->parent == NULL) {
+        if (lf_ctx->prefix != NULL) {
+            SCFree(lf_ctx->prefix);
+            lf_ctx->prefix_len = 0;
+        }
+
+        if (lf_ctx->sensor_name != NULL) {
+            SCFree(lf_ctx->sensor_name);
+        }
     }
 
     if(lf_ctx->filename != NULL)
         SCFree(lf_ctx->filename);
-
-    if (lf_ctx->sensor_name)
-        SCFree(lf_ctx->sensor_name);
 
     if (!lf_ctx->threaded) {
         OutputUnregisterFileRotationFlag(&lf_ctx->rotation_flag);

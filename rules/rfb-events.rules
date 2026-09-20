@@ -6,3 +6,4 @@ alert rfb any any -> any any (msg:"SURICATA RFB Malformed or unknown message"; a
 alert rfb any any -> any any (msg:"SURICATA RFB Unimplemented security type"; app-layer-event:rfb.unimplemented_security_type; classtype:protocol-command-decode; sid:2233001; rev:1;)
 alert rfb any any -> any any (msg:"SURICATA RFB Unknown security result"; app-layer-event:rfb.unknown_security_result; classtype:protocol-command-decode; sid:2233002; rev:1;)
 alert rfb any any -> any any (msg:"SURICATA RFB Unexpected State in Parser"; app-layer-event:rfb.confused_state; classtype:protocol-command-decode; sid:2233003; rev:1;)
+alert rfb any any -> any any (msg:"SURICATA RFB too long string"; app-layer-event:rfb.too_long_string; classtype:protocol-command-decode; sid:2233004; rev:1;)

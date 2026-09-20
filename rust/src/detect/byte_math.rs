@@ -348,11 +348,21 @@ fn parse_bytemath(input: &str) -> IResult<&str, DetectByteMathData, RuleParseErr
         )));
     }
 
-    // Using left/right shift further restricts the value of nbytes. Note that
-    // validation has already ensured nbytes is in [1..10]
+    // Using left/right shift further restricts the values of nbytes and rvalue.
+    // Note that validation has already ensured nbytes is in [1..10]
     match byte_math.oper {
-        ByteMathOperator::LeftShift | ByteMathOperator::RightShift if byte_math.nbytes > 4 => {
-            return Err(make_error(format!("nbytes must be 1 through 4 (inclusive) when used with \"<<\" or \">>\"; {} is not valid", byte_math.nbytes)));
+        ByteMathOperator::LeftShift | ByteMathOperator::RightShift => {
+            if byte_math.nbytes > 4 {
+                return Err(make_error(format!("nbytes must be 1 through 4 (inclusive) when used with \"<<\" or \">>\"; {} is not valid", byte_math.nbytes)));
+            }
+            // A shift of 64 or more always yields 0. Reject the literal form;
+            // the variable form is only known at match time.
+            if 0 == (byte_math.flags & DETECT_BYTEMATH_FLAG_RVALUE_VAR) && byte_math.rvalue >= 64 {
+                return Err(make_error(format!(
+                    "rvalue must be less than 64 when used with \"<<\" or \">>\"; {} is not valid",
+                    byte_math.rvalue
+                )));
+            }
         }
         _ => {}
     };
@@ -615,6 +625,21 @@ mod tests {
         );
         assert!(
             parse_bytemath("bytes 5, offset 3933, oper <<, rvalue myrvalue, result foo").is_err()
+        );
+    }
+
+    #[test]
+    // a literal rvalue of 64 or more is rejected with rshift/lshift; a variable
+    // rvalue is resolved at match time and cannot be checked here
+    fn test_parser_shift_rvalue() {
+        assert!(parse_bytemath("bytes 4, offset 3933, oper >>, rvalue 63, result foo").is_ok());
+        assert!(parse_bytemath("bytes 4, offset 3933, oper <<, rvalue 63, result foo").is_ok());
+        assert!(parse_bytemath("bytes 4, offset 3933, oper >>, rvalue 64, result foo").is_err());
+        assert!(parse_bytemath("bytes 4, offset 3933, oper <<, rvalue 64, result foo").is_err());
+        assert!(parse_bytemath("bytes 4, offset 3933, oper >>, rvalue 100, result foo").is_err());
+        assert!(parse_bytemath("bytes 4, offset 3933, oper +, rvalue 100, result foo").is_ok());
+        assert!(
+            parse_bytemath("bytes 4, offset 3933, oper >>, rvalue myrvalue, result foo").is_ok()
         );
     }
 

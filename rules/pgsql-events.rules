@@ -6,3 +6,4 @@ alert pgsql any any -> any any (msg:"SURICATA PGSQL Too many transactions"; app-
 alert pgsql any any -> any any (msg:"SURICATA PGSQL Malformed request"; app-layer-event:pgsql.malformed_request; flow:to_server; sid:2241001; rev:1;)
 alert pgsql any any -> any any (msg:"SURICATA PGSQL Malformed response"; app-layer-event:pgsql.malformed_response; flow:to_client; sid:2241002; rev:1;)
 alert pgsql any any -> any any (msg:"SURICATA PGSQL Invalid length"; app-layer-event:pgsql.invalid_length; sid:2241003; rev:1;)
+alert pgsql any any -> any any (msg:"SURICATA PGSQL Too Many Responses in a single transaction"; app-layer-event:pgsql.too_many_responses; flow:to_client; sid:2241004; rev:1;)

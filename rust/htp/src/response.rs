@@ -222,10 +222,14 @@ impl ConnectionParser {
                         Ok((len, ext)) => {
                             self.response_chunked_length = len;
                             if ext {
-                                htp_warn!(
+                                let mut flags = 0; // unused but needed by macro
+                                htp_warn_once!(
                                     self.logger,
                                     HtpLogCode::RESPONSE_CHUNK_EXTENSION,
-                                    "Response chunk extension"
+                                    "Response chunk extension",
+                                    self.response_mut().unwrap().flags,
+                                    flags,
+                                    HtpFlags::FIELD_RESP_CHUNK_EXTENSION
                                 );
                             }
                             // Handle chunk length
@@ -446,10 +450,14 @@ impl ConnectionParser {
                 _ => {
                     let response_tx = self.response_mut().unwrap();
                     if response_tx.seen_100continue {
-                        htp_error!(
+                        let mut flags = 0; // unused but needed by macro
+                        htp_warn_once!(
                             self.logger,
                             HtpLogCode::CONTINUE_ALREADY_SEEN,
-                            "Already seen 100-Continue."
+                            "Already seen 100-Continue.",
+                            self.response_mut().unwrap().flags,
+                            flags,
+                            HtpFlags::FIELD_100_CONTINUE
                         );
                     }
                     // Expecting to see another response line next.

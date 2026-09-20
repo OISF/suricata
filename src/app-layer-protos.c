@@ -38,6 +38,16 @@ typedef struct AppProtoStringTuple {
 
 AppProtoStringTuple *g_alproto_strings = NULL;
 
+const char *AppProtoToStringRaw(AppProto alproto)
+{
+    const char *proto_name = NULL;
+    if (alproto < g_alproto_max) {
+        DEBUG_VALIDATE_BUG_ON(g_alproto_strings[alproto].alproto != alproto);
+        proto_name = g_alproto_strings[alproto].str;
+    }
+    return proto_name;
+}
+
 const char *AppProtoToString(AppProto alproto)
 {
     const char *proto_name = NULL;

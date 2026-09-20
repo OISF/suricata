@@ -118,6 +118,9 @@ void DetectListSupportedProtocols(void);
 
 const char *ActionScopeToString(enum ActionScope s);
 
+const char *DetectFirewallAppGenericHookName(
+        const uint8_t state, const uint8_t complete_state, const int direction);
+
 struct DetectFirewallPolicy;
 void DetectFirewallPolicyToString(const struct DetectFirewallPolicy *p, char *out, size_t out_size);
 int DetectFirewallInitDefaultPolicies(DetectEngineCtx *);

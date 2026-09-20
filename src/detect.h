@@ -160,6 +160,7 @@ enum {
 };
 
 #define ADDRESS_FLAG_NOT            0x01 /**< address is negated */
+#define ADDRESS_FLAG_RANGE          0x02 /**< address has range */
 
 /** \brief address structure for use in the detection engine.
  *
@@ -183,6 +184,8 @@ typedef struct DetectAddress_ {
 typedef struct DetectAddressHead_ {
     DetectAddress *ipv4_head;
     DetectAddress *ipv6_head;
+
+    bool contains_range;
 } DetectAddressHead;
 
 
@@ -607,6 +610,9 @@ typedef struct SignatureInitData_ {
      * skip it for ip-only */
     bool src_contains_negation;
     bool dst_contains_negation;
+    /* see if the address contains range and skip it from iponly engine */
+    bool src_contains_range;
+    bool dst_contains_range;
 
     /** see if any of the sigmatches supports an enabled prefilter */
     bool has_possible_prefilter;

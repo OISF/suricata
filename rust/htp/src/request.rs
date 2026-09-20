@@ -400,10 +400,14 @@ impl ConnectionParser {
                 let (len, ext) = parse_chunked_length(&data2)?;
                 self.request_chunked_length = len;
                 if ext {
-                    htp_warn!(
+                    let mut flags = 0; // unused but needed by macro
+                    htp_warn_once!(
                         self.logger,
                         HtpLogCode::REQUEST_CHUNK_EXTENSION,
-                        "Request chunk extension"
+                        "Request chunk extension",
+                        self.request_mut().unwrap().flags,
+                        flags,
+                        HtpFlags::FIELD_REQ_CHUNK_EXTENSION
                     );
                 }
                 let len = len.as_ref().ok_or(HtpStatus::ERROR).map_err(|e| {

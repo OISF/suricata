@@ -21,6 +21,7 @@
 use super::parser;
 use crate::applayer;
 use crate::applayer::*;
+use crate::conf::{conf_get, get_memval};
 use crate::core::{
     sc_app_layer_parser_trigger_raw_stream_inspection, ALPROTO_UNKNOWN, IPPROTO_TCP,
 };
@@ -38,6 +39,9 @@ use suricata_sys::sys::{
 };
 
 pub(super) static mut ALPROTO_RFB: AppProto = ALPROTO_UNKNOWN;
+// Maximum strings length in bytes.
+// If some string exceeds this length, it will be truncated.
+static mut MAX_STR_LEN: u32 = 4096;
 
 #[derive(FromPrimitive, Debug, AppLayerEvent)]
 pub enum RFBEvent {
@@ -45,6 +49,7 @@ pub enum RFBEvent {
     UnknownSecurityResult,
     MalformedMessage,
     ConfusedState,
+    TooLongString,
 }
 
 #[derive(AppLayerFrameType)]
@@ -116,6 +121,7 @@ pub struct RFBState {
     tx_id: u64,
     transactions: Vec<RFBTransaction>,
     state: parser::RFBGlobalState,
+    to_skip_tc: u32,
 }
 
 impl State<RFBTransaction> for RFBState {
@@ -141,6 +147,7 @@ impl RFBState {
             tx_id: 0,
             transactions: Vec::new(),
             state: parser::RFBGlobalState::TCServerProtocolVersion,
+            to_skip_tc: 0,
         }
     }
 
@@ -426,9 +433,16 @@ impl RFBState {
         if input.is_empty() {
             return AppLayerResult::ok();
         }
-
-        let mut current = input;
         let mut consumed = 0;
+        let mut current = input;
+        if self.to_skip_tc >= input.len() as u32 {
+            self.to_skip_tc -= input.len() as u32;
+            return AppLayerResult::ok();
+        } else if self.to_skip_tc > 0 {
+            consumed += self.to_skip_tc as usize;
+            current = &current[self.to_skip_tc as usize..];
+            self.to_skip_tc = 0;
+        }
         SCLogDebug!(
             "response_state {}, response_len {}",
             self.state,
@@ -709,9 +723,15 @@ impl RFBState {
                     }
                 }
                 parser::RFBGlobalState::TCFailureReason => {
-                    match parser::parse_failure_reason(current) {
-                        Ok((_rem, request)) => {
+                    match parser::parse_failure_reason(current, unsafe { MAX_STR_LEN }) {
+                        Ok((rem, request)) => {
+                            if request.to_skip >= rem.len() as u32 {
+                                self.to_skip_tc = request.to_skip - rem.len() as u32;
+                            }
                             if let Some(current_transaction) = self.get_current_tx() {
+                                if request.to_skip > 0 {
+                                    current_transaction.set_event(RFBEvent::TooLongString);
+                                }
                                 current_transaction.tc_failure_reason = Some(request);
                                 sc_app_layer_parser_trigger_raw_stream_inspection(
                                     flow,
@@ -740,23 +760,35 @@ impl RFBState {
                     }
                 }
                 parser::RFBGlobalState::TCServerInit => {
-                    match parser::parse_server_init(current) {
+                    match parser::parse_server_init(current, unsafe { MAX_STR_LEN }) {
                         Ok((rem, request)) => {
                             consumed += current.len() - rem.len();
                             let _pdu = Frame::new(
                                 flow,
                                 &stream_slice,
                                 current,
-                                consumed as i64,
+                                consumed as i64 + request.to_skip as i64,
                                 RFBFrameType::Pdu as u8,
                                 None,
                             );
 
-                            current = rem;
+                            if request.to_skip >= rem.len() as u32 {
+                                current = &rem[rem.len()..];
+                                consumed += rem.len();
+                                self.to_skip_tc = request.to_skip - rem.len() as u32;
+                            } else if request.to_skip > 0 {
+                                current = &rem[request.to_skip as usize..];
+                                consumed += request.to_skip as usize;
+                            } else {
+                                current = rem;
+                            }
 
                             self.state = parser::RFBGlobalState::Skip;
 
                             if let Some(current_transaction) = self.get_current_tx() {
+                                if request.to_skip > 0 {
+                                    current_transaction.set_event(RFBEvent::TooLongString);
+                                }
                                 current_transaction.tc_server_init = Some(request);
                                 sc_app_layer_parser_trigger_raw_stream_inspection(
                                     flow,
@@ -949,6 +981,17 @@ pub unsafe extern "C" fn SCRfbRegisterParser() {
         ) < 0
         {
             SCLogDebug!("Failed to register protocol detection pattern for direction TOCLIENT");
+        }
+        if let Some(val) = conf_get("app-layer.protocols.rfb.max-string-length") {
+            if let Ok(v) = get_memval(val) {
+                if v <= u32::MAX.into() {
+                    MAX_STR_LEN = v as u32;
+                } else {
+                    SCLogWarning!("rfb.max-string-length max is {}", u32::MAX);
+                }
+            } else {
+                SCLogWarning!("Invalid value for rfb.max-string-length: {}", val);
+            }
         }
     } else {
         SCLogDebug!("Protocol detector and parser disabled for RFB.");

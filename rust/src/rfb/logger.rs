@@ -81,7 +81,10 @@ fn log_rfb(tx: &RFBTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.close()?; // Close authentication.
 
     if let Some(ref reason) = tx.tc_failure_reason {
-        js.set_string("server_security_failure_reason", &reason.reason_string)?;
+        js.set_string(
+            "server_security_failure_reason",
+            &String::from_utf8_lossy(&reason.reason_string),
+        )?;
     }
 
     // Client/Server init

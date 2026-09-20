@@ -59,6 +59,7 @@
 #include "detect-tcp-window.h"
 #include "detect-app-layer-protocol.h"
 #include "app-layer-parser.h"
+#include "detect-tcp-session.h"
 
 static int rule_warnings_only = 0;
 
@@ -192,7 +193,7 @@ void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, const c
         }
     }
 
-    FILE *fp = de_ctx->ea->rule_engine_analysis_fp;
+    FILE *fp = de_ctx->ea->fp_engine_analysis_fp;
     fprintf(fp, "== Sid: %u ==\n", s->id);
     fprintf(fp, "%s\n", line);
 
@@ -445,7 +446,10 @@ static int SetupRuleAnalyzer(DetectEngineCtx *de_ctx)
 
 static void CleanupFPAnalyzer(DetectEngineCtx *de_ctx)
 {
-    FILE *fp = de_ctx->ea->rule_engine_analysis_fp;
+    FILE *fp = de_ctx->ea->fp_engine_analysis_fp;
+    if (fp == NULL) {
+        return;
+    }
     fprintf(fp, "============\n"
                 "Summary:\n============\n");
 
@@ -461,15 +465,15 @@ static void CleanupFPAnalyzer(DetectEngineCtx *de_ctx)
                 (float)((double)f->tot / (float)f->cnt));
     }
 
-    fclose(de_ctx->ea->rule_engine_analysis_fp);
-    de_ctx->ea->rule_engine_analysis_fp = NULL;
+    fclose(de_ctx->ea->fp_engine_analysis_fp);
+    de_ctx->ea->fp_engine_analysis_fp = NULL;
 }
 
 static void CleanupRuleAnalyzer(DetectEngineCtx *de_ctx)
 {
-    if (de_ctx->ea->fp_engine_analysis_fp != NULL) {
-        fclose(de_ctx->ea->fp_engine_analysis_fp);
-        de_ctx->ea->fp_engine_analysis_fp = NULL;
+    if (de_ctx->ea->rule_engine_analysis_fp != NULL) {
+        fclose(de_ctx->ea->rule_engine_analysis_fp);
+        de_ctx->ea->rule_engine_analysis_fp = NULL;
     }
     if (de_ctx->ea->percent_re != NULL) {
         pcre2_code_free(de_ctx->ea->percent_re);
@@ -1113,6 +1117,20 @@ static void DumpMatches(RuleAnalyzer *ctx, SCJsonBuilder *js, const SigMatchData
                 SCJbSetString(js, "mode", DetectAppLayerProtocolModeName(ad->mode));
                 SCJbSetBool(js, "negated", ad->negated);
                 SCJbClose(js);
+                break;
+            }
+            case DETECT_TCP_SESSION: {
+                const DetectTcpSessionData *tsd = (const DetectTcpSessionData *)smd->ctx;
+                SCJbOpenObject(js, "tcp_session");
+                SCJbOpenArray(js, "phases");
+                if (tsd->phase_flags & DETECT_TCP_SESSION_PHASE_SETUP)
+                    SCJbAppendString(js, "setup");
+                if (tsd->phase_flags & DETECT_TCP_SESSION_PHASE_ESTABLISHED)
+                    SCJbAppendString(js, "established");
+                if (tsd->phase_flags & DETECT_TCP_SESSION_PHASE_CLOSING)
+                    SCJbAppendString(js, "closing");
+                SCJbClose(js); // phases
+                SCJbClose(js); // tcp_session
                 break;
             }
         }
@@ -2131,6 +2149,56 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
 
 #include "app-layer-parser.h"
 
+/**
+ * \brief Render a resolved firewall default policy as "<action>:<scope>".
+ *
+ * \retval true \p out holds the rendered policy
+ * \retval false the policy could not be rendered
+ */
+static bool FirewallPolicyToString(
+        const struct DetectFirewallPolicy *p, char *out, const size_t out_size)
+{
+    const char *as = ActionScopeToString(p->action_scope);
+    DEBUG_VALIDATE_BUG_ON(as == NULL);
+    if (as == NULL)
+        return false;
+    if (p->action & ACTION_REJECT_ANY) {
+        if (p->action & ACTION_REJECT_DST) {
+            snprintf(out, out_size, "rejectdst:%s", as);
+        } else if (p->action & ACTION_REJECT_BOTH) {
+            snprintf(out, out_size, "rejectboth:%s", as);
+        } else {
+            snprintf(out, out_size, "rejectsrc:%s", as);
+        }
+    } else if (p->action & ACTION_DROP) {
+        snprintf(out, out_size, "drop:%s", as);
+    } else if (p->action & ACTION_ACCEPT) {
+        snprintf(out, out_size, "accept:%s", as);
+    } else {
+        DEBUG_VALIDATE_BUG_ON(1);
+        return false;
+    }
+    if (p->action & ACTION_PASS) {
+        if (p->action_scope == ACTION_SCOPE_FLOW || p->action_scope == ACTION_SCOPE_PACKET) {
+            if (strlcat(out, ",pass:", out_size) >= out_size ||
+                    strlcat(out, as, out_size) >= out_size) {
+                DEBUG_VALIDATE_BUG_ON(1);
+                return false;
+            }
+        } else {
+            DEBUG_VALIDATE_BUG_ON(1);
+            return false;
+        }
+    }
+    if (p->action & ACTION_ALERT) {
+        if (strlcat(out, ",alert", out_size) >= out_size) {
+            DEBUG_VALIDATE_BUG_ON(1);
+            return false;
+        }
+    }
+    return true;
+}
+
 static void AddPolicy(const DetectEngineCtx *de_ctx, RuleAnalyzer *ctx, const AppProto a,
         const uint8_t sub_state, const uint8_t state, const uint8_t direction)
 {
@@ -2143,34 +2211,8 @@ static void AddPolicy(const DetectEngineCtx *de_ctx, RuleAnalyzer *ctx, const Ap
             HashTableLookup(fw_policies->app_policies, (void *)&lookup, 0);
     if (ap == NULL)
         return;
-    const struct DetectFirewallPolicy *p = &ap->policy;
-
-    const char *as = ActionScopeToString(p->action_scope);
-    DEBUG_VALIDATE_BUG_ON(as == NULL);
-    if (as == NULL)
+    if (!FirewallPolicyToString(&ap->policy, policy_string, sizeof(policy_string)))
         return;
-    if (p->action & ACTION_REJECT_ANY) {
-        if (p->action & ACTION_REJECT_DST) {
-            snprintf(policy_string, sizeof(policy_string), "rejectdst:%s", as);
-        } else if (p->action & ACTION_REJECT_BOTH) {
-            snprintf(policy_string, sizeof(policy_string), "rejectboth:%s", as);
-        } else {
-            snprintf(policy_string, sizeof(policy_string), "rejectsrc:%s", as);
-        }
-    } else if (p->action & ACTION_DROP) {
-        snprintf(policy_string, sizeof(policy_string), "drop:%s", as);
-    } else if (p->action & ACTION_ACCEPT) {
-        snprintf(policy_string, sizeof(policy_string), "accept:%s", as);
-    } else {
-        DEBUG_VALIDATE_BUG_ON(1);
-    }
-    if (p->action & ACTION_PASS) {
-        if (p->action_scope == ACTION_SCOPE_FLOW) {
-            strlcat(policy_string, ",pass:flow", sizeof(policy_string));
-        } else {
-            DEBUG_VALIDATE_BUG_ON(1);
-        }
-    }
     SCJbSetString(ctx->js, "policy", policy_string);
 }
 
@@ -2243,7 +2285,11 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
 
     SCJbOpenObject(ctx.js, "tables");
     SCJbOpenObject(ctx.js, "packet:filter");
-    SCJbSetString(ctx.js, "policy", "drop:packet");
+    char pkt_policy[64] = "";
+    if (FirewallPolicyToString(&de_ctx->fw_policies->pkt[DETECT_FIREWALL_POLICY_PACKET_FILTER],
+                pkt_policy, sizeof(pkt_policy))) {
+        SCJbSetString(ctx.js, "policy", pkt_policy);
+    }
     SCJbOpenArray(ctx.js, "rules");
     uint32_t accept_rules = 0;
     uint32_t last_sid = 0;
@@ -2334,11 +2380,8 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
             const char *name =
                     AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOSERVER);
             if (name == NULL) {
-                if (state == 0)
-                    name = "request-started";
-                else if (state == complete_state_ts)
-                    name = "request-complete";
-                else
+                name = DetectFirewallAppGenericHookName(state, complete_state_ts, STREAM_TOSERVER);
+                if (name == NULL)
                     name = "unknown";
             }
 
@@ -2360,11 +2403,8 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
             const char *name =
                     AppLayerParserGetStateNameById(IPPROTO_TCP, a, state, STREAM_TOCLIENT);
             if (name == NULL) {
-                if (state == 0)
-                    name = "response-started";
-                else if (state == complete_state_tc)
-                    name = "response-complete";
-                else
+                name = DetectFirewallAppGenericHookName(state, complete_state_tc, STREAM_TOCLIENT);
+                if (name == NULL)
                     name = "unknown";
             }
             char table_name[128];
@@ -2457,6 +2497,38 @@ int FirewallAnalyzer(const DetectEngineCtx *de_ctx)
     SCJbClose(ctx.js); // all
 
     SCJbClose(ctx.js); // lists
+
+    /* Per-rule keyword metadata for tcp.session */
+    SCJbOpenObject(ctx.js, "keyword_info");
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
+        const SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_MATCH];
+        if (smd == NULL)
+            continue;
+        for (;;) {
+            if (smd->type == DETECT_TCP_SESSION) {
+                const DetectTcpSessionData *tsd = (const DetectTcpSessionData *)smd->ctx;
+                if (tsd != NULL) {
+                    char sid_key[32];
+                    snprintf(sid_key, sizeof(sid_key), "%u", s->id);
+                    SCJbOpenObject(ctx.js, sid_key);
+                    SCJbOpenArray(ctx.js, "tcp_session");
+                    if (tsd->phase_flags & DETECT_TCP_SESSION_PHASE_SETUP)
+                        SCJbAppendString(ctx.js, "setup");
+                    if (tsd->phase_flags & DETECT_TCP_SESSION_PHASE_ESTABLISHED)
+                        SCJbAppendString(ctx.js, "established");
+                    if (tsd->phase_flags & DETECT_TCP_SESSION_PHASE_CLOSING)
+                        SCJbAppendString(ctx.js, "closing");
+                    SCJbClose(ctx.js); // tcp_session
+                    SCJbClose(ctx.js); // sid_key
+                }
+                break;
+            }
+            if (smd->is_last)
+                break;
+            smd++;
+        }
+    }
+    SCJbClose(ctx.js); // keyword_info
 
     SCJbClose(ctx.js); // top level object
 

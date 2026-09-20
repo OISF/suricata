@@ -249,6 +249,8 @@ static inline int BuildIPv6(libnet_t *c, Libnet11Packet *lpacket, const uint8_t 
 
 static inline void SetupEthernet(Packet *p, Libnet11Packet *lpacket, enum RejectDirection dir)
 {
+    if (!PacketIsEthernet(p))
+        return;
     const EthernetHdr *ethh = PacketGetEthernet(p);
     switch (dir) {
         case REJECT_DIR_SRC:
@@ -328,7 +330,7 @@ int RejectSendLibnet11IPv4TCP(ThreadVars *tv, Packet *p, void *data, enum Reject
     if (BuildIPv4(c, &lpacket, IPPROTO_TCP) < 0)
         goto cleanup;
 
-    if (t_inject_mode == LIBNET_LINK) {
+    if (t_inject_mode == LIBNET_LINK && PacketIsEthernet(p)) {
         SetupEthernet(p, &lpacket, dir);
 
         if (p->vlan_idx == 1) {
@@ -405,7 +407,7 @@ int RejectSendLibnet11IPv4ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     if (BuildIPv4(c, &lpacket, IPPROTO_ICMP) < 0)
         goto cleanup;
 
-    if (t_inject_mode == LIBNET_LINK) {
+    if (t_inject_mode == LIBNET_LINK && PacketIsEthernet(p)) {
         SetupEthernet(p, &lpacket, dir);
 
         if (p->vlan_idx == 1) {
@@ -470,7 +472,7 @@ int RejectSendLibnet11IPv6TCP(ThreadVars *tv, Packet *p, void *data, enum Reject
     if (BuildIPv6(c, &lpacket, IPPROTO_TCP) < 0)
         goto cleanup;
 
-    if (t_inject_mode == LIBNET_LINK) {
+    if (t_inject_mode == LIBNET_LINK && PacketIsEthernet(p)) {
         SetupEthernet(p, &lpacket, dir);
         if (p->vlan_idx == 1) {
             if (BuildEthernetVLAN(c, &lpacket, ETHERNET_TYPE_IPV6, p->vlan_id[0]) < 0)
@@ -547,7 +549,7 @@ int RejectSendLibnet11IPv6ICMP(ThreadVars *tv, Packet *p, void *data, enum Rejec
     if (BuildIPv6(c, &lpacket, IPPROTO_ICMPV6) < 0)
         goto cleanup;
 
-    if (t_inject_mode == LIBNET_LINK) {
+    if (t_inject_mode == LIBNET_LINK && PacketIsEthernet(p)) {
         SetupEthernet(p, &lpacket, dir);
         if (p->vlan_idx == 1) {
             if (BuildEthernetVLAN(c, &lpacket, ETHERNET_TYPE_IPV6, p->vlan_id[0]) < 0)

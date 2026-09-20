@@ -27,3 +27,4 @@ alert http2 any any -> any any (msg:"SURICATA HTTP2 data on stream zero"; flow:e
 # disabled by default, as it can happen in legit cases depending on the max-frames config value
 # alert http2 any any -> any any (msg:"SURICATA HTTP2 too many frames"; flow:established; app-layer-event:http2.too_many_frames; classtype:protocol-command-decode; sid:2290019; rev:1;)
 alert http2 any any -> any any (msg:"SURICATA HTTP2 compression bomb"; flow:established; app-layer-event:http2.compression_bomb; classtype:protocol-command-decode; sid:2290020; rev:1;)
+alert http2 any any -> any any (msg:"SURICATA HTTP2 headers table overflow"; flow:established; app-layer-event:http2.header_table_overflow; classtype:protocol-command-decode; sid:2290021; rev:1;)

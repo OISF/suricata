@@ -1943,11 +1943,16 @@ static const TcpStateQueue *StreamTcp3whsFindSyn(
 static void AddAndRotate(TcpSession *ssn, TcpStateQueue *tail, TcpStateQueue *search)
 {
     TcpStateQueue *old_head = ssn->queue;
-    TcpStateQueue *new_head = old_head->next;
-    /* set new head */
-    ssn->queue = new_head;
 
-    /* old head node is now appended to the list tail */
+    if (tail == old_head) {
+        /* single-element list: overwrite in place */
+        *old_head = *search;
+        old_head->next = NULL;
+        return;
+    }
+
+    /* multi-element list: pop head, append after tail, reuse as new tail */
+    ssn->queue = old_head->next;
     tail->next = old_head;
 
     *old_head = *search;
@@ -1964,8 +1969,7 @@ static int StreamTcp3whsStoreSyn(TcpSession *ssn, Packet *p)
     if (ssn->queue != NULL && StreamTcp3whsFindSyn(ssn, &search, &tail, false) != NULL)
         return 0;
 
-    if (ssn->queue_len > 0 && ssn->queue_len == stream_config.max_syn_queued) {
-        DEBUG_VALIDATE_BUG_ON(ssn->queue == NULL);
+    if (ssn->queue != NULL && ssn->queue_len == stream_config.max_syn_queued) {
         SCLogDebug("%" PRIu64 ": ssn %p: =~ SYN queue limit reached, rotate", PcapPacketCntGet(p),
                 ssn);
         StreamTcpSetEvent(p, STREAM_3WHS_SYN_FLOOD);
@@ -2013,7 +2017,7 @@ static inline void StreamTcp3whsStoreSynApplyToSsn(TcpSession *ssn, const TcpSta
         ssn->flags |= STREAMTCP_FLAG_SERVER_WSCALE;
         ssn->server.wscale = q->wscale;
     } else {
-        ssn->flags &= STREAMTCP_FLAG_SERVER_WSCALE;
+        ssn->flags &= ~STREAMTCP_FLAG_SERVER_WSCALE;
         ssn->server.wscale = 0;
     }
     ssn->server.window = q->win;

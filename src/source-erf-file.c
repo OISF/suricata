@@ -31,7 +31,21 @@
 #include "source-erf-file.h"
 #include "util-datalink.h"
 
-#define DAG_TYPE_ETH 2
+#define ERF_HEADER_LEN  16
+#define ERF_EXT_LEN     8
+#define ERF_ETH_PAD_LEN 2
+
+#ifndef HAVE_DAG
+#define ERF_TYPE_MASK           0x7f
+#define ERF_TYPE_MORE_EXT       0x80
+#define ERF_TYPE_ETH            2
+#define ERF_TYPE_COLOR_ETH      11
+#define ERF_TYPE_DSM_COLOR_ETH  16
+#define ERF_TYPE_COLOR_HASH_ETH 20
+
+#else /* Implied we do have DAG support */
+#include <dagapi.h>
+#endif
 
 typedef struct DagFlags_ {
     uint8_t iface:2;
@@ -50,7 +64,6 @@ typedef struct DagRecord_ {
     uint16_t rlen;
     uint16_t lctr;
     uint16_t wlen;
-    uint16_t pad;
 } __attribute__((packed)) DagRecord;
 
 typedef struct ErfFileThreadVars_ {
@@ -61,6 +74,8 @@ typedef struct ErfFileThreadVars_ {
 
     uint32_t pkts;
     uint64_t bytes;
+
+    uint8_t buffer[MAX_PAYLOAD_SIZE];
 } ErfFileThreadVars;
 
 static inline TmEcode ReadErfRecord(ThreadVars *, Packet *, void *);
@@ -129,7 +144,9 @@ TmEcode ReceiveErfFileLoop(ThreadVars *tv, void *data, void *slot)
          * to prevent us from alloc'ing packets at line rate. */
         PacketPoolWait();
 
-        p = PacketGetFromQueueOrAlloc();
+        if (p == NULL) {
+            p = PacketGetFromQueueOrAlloc();
+        }
         if (unlikely(p == NULL)) {
             SCLogError("Failed to allocate a packet.");
             EngineStop();
@@ -142,11 +159,15 @@ TmEcode ReceiveErfFileLoop(ThreadVars *tv, void *data, void *slot)
             EngineStop();
             SCReturnInt(TM_ECODE_FAILED);
         }
+        if (GET_PKT_LEN(p) == 0) {
+            continue;
+        }
 
         if (TmThreadsSlotProcessPkt(etv->tv, etv->slot, p) != TM_ECODE_OK) {
             EngineStop();
             SCReturnInt(TM_ECODE_FAILED);
         }
+        p = NULL;
     }
     SCReturnInt(TM_ECODE_FAILED);
 }
@@ -157,6 +178,8 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
 
     ErfFileThreadVars *etv = (ErfFileThreadVars *)data;
     DagRecord dr;
+    unsigned int hdr_num = 0;
+    char ext_hdr[ERF_EXT_LEN];
 
     size_t r = fread(&dr, sizeof(DagRecord), 1, etv->erf);
     if (r < 1) {
@@ -168,14 +191,55 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
         }
         SCReturnInt(TM_ECODE_FAILED);
     }
+    uint8_t hdr_type = dr.type;
     uint16_t rlen = SCNtohs(dr.rlen);
-    uint16_t wlen = SCNtohs(dr.wlen);
-    if (rlen < sizeof(DagRecord)) {
+    if (rlen < ERF_HEADER_LEN) {
         SCLogError("Bad ERF record, "
                    "record length less than size of header");
         SCReturnInt(TM_ECODE_FAILED);
     }
-    r = fread(GET_PKT_DATA(p), rlen - sizeof(DagRecord), 1, etv->erf);
+
+    /* count extension headers */
+    while (hdr_type & ERF_TYPE_MORE_EXT) {
+        if (rlen < (ERF_HEADER_LEN + ((hdr_num + 1) * 8))) {
+            SCLogError("Insufficient captured packet length.");
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+        r = fread(ext_hdr, ERF_EXT_LEN, 1, etv->erf);
+        if (r < 1) {
+            if (feof(etv->erf)) {
+                SCLogInfo("End of ERF file reached");
+            } else {
+                SCLogInfo("Error reading ERF record");
+            }
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+        hdr_type = ext_hdr[0];
+        hdr_num++;
+    }
+
+    /* read and discard ERF Ethernet pad */
+    if (rlen < (ERF_HEADER_LEN + (hdr_num * ERF_EXT_LEN) + ERF_ETH_PAD_LEN)) {
+        SCLogError("Insufficient captured packet length.");
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    r = fread(ext_hdr, ERF_ETH_PAD_LEN, 1, etv->erf);
+    if (r < 1) {
+        if (feof(etv->erf)) {
+            SCLogInfo("End of ERF file reached");
+        } else {
+            SCLogInfo("Error reading ERF record");
+        }
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    uint32_t caplen = rlen - (hdr_num * ERF_EXT_LEN) - ERF_HEADER_LEN - ERF_ETH_PAD_LEN;
+    if (caplen > MAX_PACKET_SIZE) {
+        SCLogError("Bad ERF record, capture length %u exceeds max %d", caplen, MAX_PACKET_SIZE);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    r = fread(etv->buffer, caplen, 1, etv->erf);
     if (r < 1) {
         if (feof(etv->erf)) {
             SCLogInfo("End of ERF file reached");
@@ -186,13 +250,22 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    /* Only support ethernet at this time. */
-    if (dr.type != DAG_TYPE_ETH) {
-        SCLogError("DAG record type %d not implemented.", dr.type);
+    /* Only support ethernet at this time. Return TM_ECODE_OK with pkt len = 0 to indicate skipped
+     * record */
+    switch (dr.type & ERF_TYPE_MASK) {
+        case ERF_TYPE_DSM_COLOR_ETH:
+        case ERF_TYPE_COLOR_ETH:
+        case ERF_TYPE_COLOR_HASH_ETH:
+        case ERF_TYPE_ETH:
+            break;
+        default:
+            SCReturnInt(TM_ECODE_OK);
+    }
+
+    if (PacketCopyData(p, etv->buffer, caplen) != 0) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    GET_PKT_LEN(p) = wlen;
     p->datalink = LINKTYPE_ETHERNET;
 
     /* Convert ERF time to SCTime_t */
@@ -204,7 +277,7 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
     p->ts = SCTIME_ADD_USECS(p->ts, usecs);
 
     etv->pkts++;
-    etv->bytes += wlen;
+    etv->bytes += caplen;
 
     SCReturnInt(TM_ECODE_OK);
 }

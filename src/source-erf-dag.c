@@ -89,6 +89,9 @@ NoErfDagSupportExit(ThreadVars *tv, const void *initdata, void **data)
 /* Number of bytes per loop to process before fetching more data. */
 #define BYTES_PER_LOOP (4 * 1024 * 1024) /* 4 MB */
 
+#define ERF_EXT_LEN     8
+#define ERF_ETH_PAD_LEN 2
+
 extern uint32_t max_pending_packets;
 
 typedef struct ErfDagThreadVars_ {
@@ -394,6 +397,10 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
     while (((top - ewtn->btm) >= dag_record_size) &&
         ((processed + dag_record_size) < BYTES_PER_LOOP)) {
 
+        if (suricata_ctl_flags & SURICATA_STOP) {
+            SCReturnInt(TM_ECODE_OK);
+        }
+
         /* Make sure we have at least one packet in the packet pool,
          * to prevent us from alloc'ing packets at line rate. */
         PacketPoolWait();
@@ -419,25 +426,25 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
         processed += rlen;
 
         /* Only support ethernet at this time. */
-        switch (hdr_type & 0x7f) {
-        case ERF_TYPE_PAD:
-        case ERF_TYPE_META:
-            /* Skip. */
-            continue;
-        case ERF_TYPE_DSM_COLOR_ETH:
-        case ERF_TYPE_COLOR_ETH:
-        case ERF_TYPE_COLOR_HASH_ETH:
-            /* In these types the color value overwrites the lctr
-             * (drop count). */
-            break;
-        case ERF_TYPE_ETH:
-            if (dr->lctr) {
-                StatsCounterAddI64(&ewtn->tv->stats, ewtn->drops, SCNtohs(dr->lctr));
-            }
-            break;
-        default:
-            SCLogError("Processing of DAG record type: %d not implemented.", dr->type);
-            SCReturnInt(TM_ECODE_FAILED);
+        switch (hdr_type & ERF_TYPE_MASK) {
+            case ERF_TYPE_PAD:
+            case ERF_TYPE_META:
+                /* Skip. */
+                continue;
+            case ERF_TYPE_DSM_COLOR_ETH:
+            case ERF_TYPE_COLOR_ETH:
+            case ERF_TYPE_COLOR_HASH_ETH:
+                /* In these types the color value overwrites the lctr
+                 * (drop count). */
+                break;
+            case ERF_TYPE_ETH:
+                if (dr->lctr) {
+                    StatsCounterAddI64(&ewtn->tv->stats, ewtn->drops, SCNtohs(dr->lctr));
+                }
+                break;
+            default:
+                SCLogError("Processing of DAG record type: %d not implemented.", dr->type);
+                SCReturnInt(TM_ECODE_FAILED);
         }
 
         err = ProcessErfDagRecord(ewtn, prec);
@@ -461,10 +468,10 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
 {
     SCEnter();
 
-    int wlen = 0;
-    int rlen = 0;
+    uint16_t wlen = 0;
+    uint16_t rlen = 0;
     int hdr_num = 0;
-    char hdr_type = 0;
+    uint8_t hdr_type = 0;
     dag_record_t  *dr = (dag_record_t*)prec;
     erf_payload_t *pload;
     Packet *p;
@@ -474,23 +481,23 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
     rlen = SCNtohs(dr->rlen);
 
     /* count extension headers */
-    while (hdr_type & 0x80) {
-        if (rlen < (dag_record_size + (hdr_num * 8))) {
+    while (hdr_type & ERF_TYPE_MORE_EXT) {
+        if (rlen < (dag_record_size + (hdr_num * ERF_EXT_LEN))) {
             SCLogError("Insufficient captured packet length.");
             SCReturnInt(TM_ECODE_FAILED);
         }
-        hdr_type = prec[(dag_record_size + (hdr_num * 8))];
+        hdr_type = prec[(dag_record_size + (hdr_num * ERF_EXT_LEN))];
         hdr_num++;
     }
 
     /* Check that the whole frame was captured */
-    if (rlen < (dag_record_size + (8 * hdr_num) + 2 + wlen)) {
+    if (rlen < (dag_record_size + (hdr_num * ERF_EXT_LEN) + ERF_ETH_PAD_LEN + wlen)) {
         SCLogInfo("Incomplete frame captured.");
         SCReturnInt(TM_ECODE_OK);
     }
 
     /* skip over extension headers */
-    pload = (erf_payload_t *)(prec + dag_record_size + (8 * hdr_num));
+    pload = (erf_payload_t *)(prec + dag_record_size + (hdr_num * ERF_EXT_LEN));
 
     p = PacketGetFromQueueOrAlloc();
     if (p == NULL) {

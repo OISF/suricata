@@ -126,8 +126,8 @@ impl crate::mqtt::mqtt_property::MQTTProperty {
             crate::mqtt::mqtt_property::MQTTProperty::RETAIN_AVAILABLE(v) => {
                 js.set_uint("retain_available", *v as u64)?;
             }
-            crate::mqtt::mqtt_property::MQTTProperty::USER_PROPERTY((k, v)) => {
-                js.set_string_limited(k, v, limit)?;
+            crate::mqtt::mqtt_property::MQTTProperty::USER_PROPERTY(_) => {
+                // handled in the logger
             }
             crate::mqtt::mqtt_property::MQTTProperty::MAXIMUM_PACKET_SIZE(v) => {
                 js.set_uint("maximum_packet_size", *v as u64)?;

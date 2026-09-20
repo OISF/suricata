@@ -211,19 +211,22 @@ impl IKEState {
             Ok((rem, isakmp_header)) => {
                 current = rem;
 
+                if isakmp_header.length as usize != input.len() {
+                    return AppLayerResult::err();
+                }
+
                 if isakmp_header.maj_ver != 1 && isakmp_header.maj_ver != 2 {
                     SCLogDebug!("Unsupported ISAKMP major_version");
                     return AppLayerResult::err();
                 }
 
                 if isakmp_header.maj_ver == 1 {
-                    handle_ikev1(self, current, isakmp_header, direction);
+                    return handle_ikev1(self, current, isakmp_header, direction);
                 } else if isakmp_header.maj_ver == 2 {
-                    handle_ikev2(self, current, isakmp_header, direction);
+                    return handle_ikev2(self, current, isakmp_header, direction);
                 } else {
                     return AppLayerResult::err();
                 }
-                return AppLayerResult::ok(); // todo either remove outer loop or check header length-field if we have completely read everything
             }
             Err(Err::Incomplete(_)) => {
                 SCLogDebug!("Insufficient data while parsing IKE");

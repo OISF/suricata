@@ -245,6 +245,11 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
         /* Rule is IP only, but contains negated addresses. */
         return 2;
     }
+    if (s->init_data->src_contains_range || s->init_data->dst_contains_range) {
+        /* Rule is IP only, but contains range of addresses. */
+        return 2;
+    }
+
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("IP-ONLY (%" PRIu32 "): source %s, dest %s", s->id,
                    s->flags & SIG_FLAG_SRC_ANY ? "ANY" : "SET",

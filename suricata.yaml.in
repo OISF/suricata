@@ -947,6 +947,7 @@ app-layer:
       enabled: yes
       detection-ports:
         dp: 5900, 5901, 5902, 5903, 5904, 5905, 5906, 5907, 5908, 5909
+      # max-string-length: 4 KiB
     mqtt:
       enabled: yes
       # max-msg-length: 1 MiB
@@ -989,11 +990,15 @@ app-layer:
       #encryption-handling: track-only
 
     pgsql:
-      enabled: no
+      # enabled: no
       # Stream reassembly size for PostgreSQL. By default, track it completely.
-      stream-depth: 0
+      # stream-depth: 0
       # Maximum number of live PostgreSQL transactions per flow
       # max-tx: 1024
+      # Maximum number of responses per PGSQL transaction
+      # Accepted values: 21-64, (min 21 to accommodate a full Startup sequence
+      # of responses)
+      # max-responses: 64
     dcerpc:
       enabled: yes
       # Maximum number of live DCERPC transactions per flow
@@ -1167,10 +1172,11 @@ app-layer:
            # Two types: 'deflate', 'lzma', 'both' will decompress deflate and lzma
            # compress-depth:
            # Specifies the maximum amount of data to decompress,
-           # set 0 for unlimited.
+           # set 0 for unlimited. The maximum is 4294967282 bytes.
            # decompress-depth:
-           # Specifies the maximum amount of decompressed data to obtain,
-           # set 0 for unlimited.
+           # Specifies the maximum amount of decompressed data to obtain. The
+           # output buffer grows on demand up to this limit. Set 0 to use the
+           # default limit of 50 MB. The maximum is 2147483640 bytes.
            swf-decompression:
              enabled: no
              type: both
@@ -1883,6 +1889,9 @@ detect:
   thresholds:
     hash-size: 16384
     memcap: 16 MiB
+    # Settings for per thread threshold cache.
+    cache:
+      #max-entries: 256
 
   profiling:
     # Log the rules that made it past the prefilter stage, per packet
@@ -2392,16 +2401,20 @@ firewall:
 
   # Default policies
   #
-  # Choose a default policy for each firewall hook.
-  # It is also possible to specify policies by app-layer protocol.
+  # Choose a default policy for each firewall hook. A `default-policy` covers
+  # every hook below it, so hooks that are not listed still get a policy.
+  # The most specific setting wins.
   # DNS example: Drop and alert on all DNS requests that are not allowed in firewall.rules, accept all responses.
   #
   #policies:
-  #  packet-filter: ["drop:packet"]
-  #  dns:
-  #    request-started: ["accept:hook"]
-  #    request-complete: ["drop:flow", "alert"]
-  #    response-started: ["accept:tx"]
+  #  default-policy: ["drop:flow"]
+  #  packet:
+  #    filter: ["drop:packet"]
+  #  app:
+  #    dns:
+  #      request-started: ["accept:hook"]
+  #      request-complete: ["drop:flow", "alert"]
+  #      response-started: ["accept:tx"]
 
 ##
 ## Include other configs

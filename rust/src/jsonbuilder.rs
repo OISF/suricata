@@ -482,6 +482,10 @@ impl JsonBuilder {
         Ok(self)
     }
 
+    fn is_valid_key(&mut self, key: &str) -> bool {
+        !key.as_bytes().iter().any(|&b| ESCAPED[b as usize] != 0)
+    }
+
     /// Set a key and string value type on an object.
     #[inline(always)]
     pub fn set_string(&mut self, key: &str, val: &str) -> Result<&mut Self, JsonError> {
@@ -497,9 +501,14 @@ impl JsonBuilder {
                 return Err(JsonError::InvalidState);
             }
         }
-        self.push('"')?;
-        self.push_str(key)?;
-        self.push_str("\":")?;
+        if self.is_valid_key(key) {
+            self.push('"')?;
+            self.push_str(key)?;
+            self.push_str("\":")?;
+        } else {
+            self.encode_string(key)?;
+            self.push(':')?;
+        }
         self.encode_string(val)?;
         Ok(self)
     }

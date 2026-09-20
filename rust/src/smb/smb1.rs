@@ -1078,16 +1078,29 @@ pub fn smb1_write_request_record(
                             if rd.offset < tdf.file_tracker.tracked {
                                 set_event_fileoverlap = true;
                             }
-                            filetracker_newchunk(
-                                &mut tdf.file_tracker,
-                                &file_name,
-                                rd.data,
+                            if let Some(ev) = smb_queue_limit_event(
+                                &tdf.file_tracker,
                                 rd.offset,
-                                rd.len,
+                                rd.len as u64,
                                 false,
-                                &file_id,
-                            );
-                            SCLogDebug!("FID {:?} found at tx {} => {:?}", file_fid, tx.id, tx);
+                            ) {
+                                // Attach to the affected file tx (not the newest tx).
+                                tx.set_event(ev);
+                                tx.tx_data.0.updated_ts = true;
+                                tx.tx_data.0.updated_tc = true;
+                                state.set_skip(Direction::ToServer, nbss_remaining);
+                            } else {
+                                filetracker_newchunk(
+                                    &mut tdf.file_tracker,
+                                    &file_name,
+                                    rd.data,
+                                    rd.offset,
+                                    rd.len,
+                                    false,
+                                    &file_id,
+                                );
+                            }
+                            SCLogDebug!("FID {:?} found at tx {}", file_fid, file_id);
                         }
                         true
                     }
@@ -1109,25 +1122,44 @@ pub fn smb1_write_request_record(
                     else {
                         return;
                     };
+                    tx.vercmd.set_smb1_cmd(SMB1_COMMAND_WRITE_ANDX);
+                    SCLogDebug!("FID {:?} found at tx {} => {:?}", file_fid, tx.id, tx);
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id: u32 = tx.id as u32;
                         if rd.offset < tdf.file_tracker.tracked {
                             set_event_fileoverlap = true;
                         }
-                        filetracker_newchunk(
-                            &mut tdf.file_tracker,
-                            &file_name,
-                            rd.data,
-                            rd.offset,
-                            rd.len,
-                            false,
-                            &file_id,
-                        );
                         tdf.share_name = share_name;
-                        SCLogDebug!("tdf {:?}", tdf);
+                        if let Some(ev) = smb_queue_limit_event(
+                            &tdf.file_tracker,
+                            rd.offset,
+                            rd.len as u64,
+                            false,
+                        ) {
+                            // tx just created: set the event on it directly.
+                            tx.set_event(ev);
+                            tx.tx_data.0.updated_ts = true;
+                            tx.tx_data.0.updated_tc = true;
+                            // Chunk rejected before the file was opened: complete + close the
+                            // tx and zero files_opened, else it dangles until teardown.
+                            tx.request_done = true;
+                            tx.response_done = true;
+                            tx.tx_data.0.files_opened = 0;
+                            state.set_skip(Direction::ToServer, nbss_remaining);
+                            // The trailing set_file_left also claims these bytes: safe -- records
+                            // only reach here with no chunk armed, and handle_skip runs first.
+                        } else {
+                            filetracker_newchunk(
+                                &mut tdf.file_tracker,
+                                &file_name,
+                                rd.data,
+                                rd.offset,
+                                rd.len,
+                                false,
+                                &file_id,
+                            );
+                        }
                     }
-                    tx.vercmd.set_smb1_cmd(SMB1_COMMAND_WRITE_ANDX);
-                    SCLogDebug!("FID {:?} found at tx {} => {:?}", file_fid, tx.id, tx);
                 }
             }
             if set_event_fileoverlap {
@@ -1206,15 +1238,28 @@ pub fn smb1_read_response_record(
                                 if offset < tdf.file_tracker.tracked {
                                     set_event_fileoverlap = true;
                                 }
-                                filetracker_newchunk(
-                                    &mut tdf.file_tracker,
-                                    &file_name,
-                                    rd.data,
+                                if let Some(ev) = smb_queue_limit_event(
+                                    &tdf.file_tracker,
                                     offset,
-                                    rd.len,
-                                    false,
-                                    &file_id,
-                                );
+                                    rd.len as u64,
+                                    true,
+                                ) {
+                                    // Attach to the affected file tx (not the newest tx).
+                                    tx.set_event(ev);
+                                    tx.tx_data.0.updated_ts = true;
+                                    tx.tx_data.0.updated_tc = true;
+                                    state.set_skip(Direction::ToClient, nbss_remaining);
+                                } else {
+                                    filetracker_newchunk(
+                                        &mut tdf.file_tracker,
+                                        &file_name,
+                                        rd.data,
+                                        offset,
+                                        rd.len,
+                                        false,
+                                        &file_id,
+                                    );
+                                }
                             }
                             true
                         }
@@ -1226,24 +1271,44 @@ pub fn smb1_read_response_record(
                         else {
                             return;
                         };
+                        tx.vercmd.set_smb1_cmd(SMB1_COMMAND_READ_ANDX);
+                        SCLogDebug!("FID {:?} found at tx {}", file_fid, tx.id);
                         if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                             let file_id: u32 = tx.id as u32;
-                            SCLogDebug!("FID {:?} found at tx {}", file_fid, tx.id);
                             if offset < tdf.file_tracker.tracked {
                                 set_event_fileoverlap = true;
                             }
-                            filetracker_newchunk(
-                                &mut tdf.file_tracker,
-                                &file_name,
-                                rd.data,
-                                offset,
-                                rd.len,
-                                false,
-                                &file_id,
-                            );
                             tdf.share_name = share_name;
+                            if let Some(ev) = smb_queue_limit_event(
+                                &tdf.file_tracker,
+                                offset,
+                                rd.len as u64,
+                                true,
+                            ) {
+                                // tx just created: set the event on it directly.
+                                tx.set_event(ev);
+                                tx.tx_data.0.updated_ts = true;
+                                tx.tx_data.0.updated_tc = true;
+                                // Chunk rejected before the file was opened: complete + close the
+                                // tx and zero files_opened, else it dangles until teardown.
+                                tx.request_done = true;
+                                tx.response_done = true;
+                                tx.tx_data.0.files_opened = 0;
+                                // The handler tail below also arms set_file_left for these bytes:
+                                // safe -- reached only with no chunk armed, handle_skip first.
+                                state.set_skip(Direction::ToClient, nbss_remaining);
+                            } else {
+                                filetracker_newchunk(
+                                    &mut tdf.file_tracker,
+                                    &file_name,
+                                    rd.data,
+                                    offset,
+                                    rd.len,
+                                    false,
+                                    &file_id,
+                                );
+                            }
                         }
-                        tx.vercmd.set_smb1_cmd(SMB1_COMMAND_READ_ANDX);
                     }
                     if set_event_fileoverlap {
                         state.set_event(SMBEvent::FileOverlap);

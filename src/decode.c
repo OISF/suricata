@@ -193,8 +193,7 @@ static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const 
             return DecodeIPV4(tv, dtv, p, pkt, (uint16_t)len);
         case DECODE_TUNNEL_IPV6:
         case DECODE_TUNNEL_IPV6_TEREDO:
-            DEBUG_VALIDATE_BUG_ON(len > UINT16_MAX);
-            return DecodeIPV6(tv, dtv, p, pkt, (uint16_t)len);
+            return DecodeIPV6(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_VLAN:
             return DecodeVLAN(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ETHERNET:
@@ -357,7 +356,11 @@ inline int PacketCopyDataOffset(Packet *p, uint32_t offset, const uint8_t *data,
             memcpy(GET_PKT_DIRECT_DATA(p) + offset, data, datalen);
         } else {
             /* here we need a dynamic allocation */
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+            p->ext_pkt = SCMalloc(offset + datalen);
+#else
             p->ext_pkt = SCMalloc(MAX_PAYLOAD_SIZE);
+#endif
             if (unlikely(p->ext_pkt == NULL)) {
                 SET_PKT_LEN(p, 0);
                 return -1;
@@ -497,11 +500,21 @@ Packet *PacketDefragPktSetup(Packet *parent, const uint8_t *pkt, uint32_t len, u
     /* tell new packet it's part of a tunnel */
     p->ttype = PacketTunnelChild;
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    if (!p->ext_pkt) {
+        p->ext_pkt = SCMalloc(MAX_PAYLOAD_SIZE);
+        if (unlikely(p->ext_pkt == NULL)) {
+            PacketFreeOrRelease(p);
+            return NULL;
+        }
+    }
+#endif
     /* copy packet and set length, proto */
     if (pkt && len) {
         PacketCopyData(p, pkt, len);
     }
     p->recursion_level = parent->recursion_level; /* NOT incremented */
+    p->nb_decoded_layers = parent->nb_decoded_layers;
     p->ts = parent->ts;
     p->tenant_id = parent->tenant_id;
     memcpy(&p->vlan_id[0], &parent->vlan_id[0], sizeof(p->vlan_id));

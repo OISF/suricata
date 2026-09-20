@@ -27,8 +27,6 @@
 
 #include "suricata-common.h"
 #include "flow-storage.h"
-#include "flow-hash.h"
-#include "flow-util.h"
 #include "util-storage.h"
 #include "util-unittest.h"
 
@@ -66,6 +64,8 @@ SCFlowStorageId SCFlowStorageRegister(const char *name, void (*Free)(void *))
 }
 
 #ifdef UNITTESTS
+
+#include "flow-util.h"
 
 static void StorageTestFree(void *x)
 {

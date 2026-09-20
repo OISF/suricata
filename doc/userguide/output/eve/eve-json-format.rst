@@ -2259,7 +2259,6 @@ Common fields from the MQTT fixed header:
 * "\*.retain": Boolean value of the MQTT 'retain' flag.
 * "\*.dup": Boolean value of the MQTT 'dup' (duplicate) flag.
 
-
 MQTT CONNECT fields
 ~~~~~~~~~~~~~~~~~~~
 
@@ -2310,7 +2309,7 @@ Example of MQTT CONNECT logging:
         "message_expiry_interval": 133,
         "payload_format_indicator": 144,
         "response_topic": "response_topic1",
-        "userprop": "uservalue",
+        "user_properties": [{"key": "userprop", "value": "uservalue"}],
         "will_delay_interval": 200
       }
     },
@@ -2319,8 +2318,7 @@ Example of MQTT CONNECT logging:
       "receive_maximum": 222,
       "session_expiry_interval": 555,
       "topic_alias_maximum": 666,
-      "userprop1": "userval1",
-      "userprop2": "userval2"
+      "user_properties": [{"key": "userprop1", "value": "userval1"}, {"key": "userprop2", "value": "userval2"}]
     }
   }
 
@@ -2372,7 +2370,7 @@ Example of MQTT PUBLISH logging:
       "payload_format_indicator": 88,
       "response_topic": "response_topic1",
       "topic_alias": 5,
-      "userprop": "userval"
+      "user_properties": [{"key": "userprop", "value":"userval"}]
     }
   }
 
@@ -2781,6 +2779,12 @@ pgsql flow. Some of the possible request messages are:
   in a CopyOut transaction
 * "copy_done": string. Similar to ``command_completed`` but sent after the
   backend finishes sending a batch of ``CopyData`` messages
+* "field_count": integer. The number of fields declared by a ``RowDescription``
+  message
+* "row_description_malformed": bool. True when the ``field_count`` declared by a
+  ``RowDescription`` message disagreed with the message body delimited by its
+  length field. The declared ``field_count`` is still logged, as seen on the
+  wire
 * "ssl_accepted": bool. With this event, the initial PGSQL SSL Handshake
   negotiation is complete in terms of tracking and logging. The session will be
   upgraded to use TLS encryption

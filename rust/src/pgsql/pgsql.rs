@@ -1,4 +1,4 @@
-/* Copyright (C) 2022-2025 Open Information Security Foundation
+/* Copyright (C) 2022-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -33,14 +33,19 @@ use std::ffi::CString;
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
     SCAppLayerParserSetStreamDepth, SCAppLayerParserStateIssetFlag,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerRequestProtocolTLSUpgrade,
+    SCAppLayerProtoDetectConfProtoDetectionEnabledDefault, SCAppLayerRequestProtocolTLSUpgrade,
 };
 
 const PGSQL_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
+// Min: 21 for the longest set of responses in one tx, for this parser:
+// AuthOk + ParameterStatus (var, max 17-18) + BackendKeyData + ReadyForQuery
+const PGSQL_CONFIG_DEFAULT_MIN_RESPONSES: usize = 21;
+const PGSQL_CONFIG_DEFAULT_MAX_RESPONSES: usize = 64;
 
 pub(crate) static mut ALPROTO_PGSQL: AppProto = ALPROTO_UNKNOWN;
 
 static mut PGSQL_MAX_TX: usize = 1024;
+static mut PGSQL_MAX_RESPONSES: usize = PGSQL_CONFIG_DEFAULT_MAX_RESPONSES;
 
 #[derive(AppLayerEvent, Debug, PartialEq, Eq)]
 enum PgsqlEvent {
@@ -48,6 +53,7 @@ enum PgsqlEvent {
     MalformedRequest,  // Enough data, but unexpected request format
     MalformedResponse, // Enough data, but unexpected response format
     TooManyTransactions,
+    TooManyResponses,
 }
 
 #[repr(u8)]
@@ -70,6 +76,7 @@ pub(crate) struct PgsqlTransaction {
     pub data_row_cnt: u64,
     pub data_size: u64,
 
+    is_max_responses_set: bool,
     tx_data: AppLayerTxData,
 }
 
@@ -95,6 +102,7 @@ impl PgsqlTransaction {
             responses: Vec::<PgsqlBEMessage>::new(),
             data_row_cnt: 0,
             data_size: 0,
+            is_max_responses_set: false,
             tx_data: AppLayerTxData::new(),
         }
     }
@@ -377,9 +385,9 @@ impl PgsqlState {
 
         // If there was gap, check we can sync up again.
         if self.request_gap {
-            if parser::parse_request(input).is_ok() {
-                // The parser now needs to decide what to do as we are not in sync.
-                // For now, we'll just try again next time.
+            if parser::parse_request(input).is_err() {
+                // We are not yet in sync with a frontend message header;
+                // try again on the next chunk
                 SCLogDebug!("Suricata interprets there's a gap in the request");
                 return AppLayerResult::ok();
             }
@@ -403,6 +411,7 @@ impl PgsqlState {
                     if let Some(state) = new_state {
                         self.state_progress = state;
                     };
+                    let curr_state = self.state_progress;
                     // PostreSQL progress states can be represented as a finite state machine
                     // After the connection phase, the backend/ server will be mostly waiting in a state of `ReadyForQuery`, unless
                     // it's processing some request.
@@ -414,30 +423,31 @@ impl PgsqlState {
                     // https://samadhiweb.com/blog/2013.04.28.graphviz.postgresv3.html
                     if let Some(tx) = self.find_or_create_tx() {
                         tx.tx_data.0.updated_ts = true;
-                        if let Some(state) = new_state {
-                            if state == PgsqlStateProgress::FirstCopyDataInReceived
-                                || state == PgsqlStateProgress::ConsolidatingCopyDataIn
-                            {
-                                // here we're actually only counting how many messages were received.
-                                // frontends are not forced to send one row per message
-                                if let PgsqlFEMessage::ConsolidatedCopyDataIn(ref msg) = request {
-                                    tx.sum_data_size(msg.data_size);
-                                    tx.incr_row_cnt();
-                                }
-                            } else if (state == PgsqlStateProgress::CopyDoneReceived
-                                || state == PgsqlStateProgress::CopyFailReceived)
-                                && tx.get_row_cnt() > 0
-                            {
-                                let consolidated_copy_data = PgsqlFEMessage::ConsolidatedCopyDataIn(
-                                    ConsolidatedDataRowPacket {
-                                        identifier: b'd',
-                                        row_cnt: tx.get_row_cnt(),
-                                        data_size: tx.data_size, // total byte count of all copy_data messages combined
-                                    },
-                                );
-                                tx.requests.push(consolidated_copy_data);
+                        if curr_state == PgsqlStateProgress::FirstCopyDataInReceived
+                            || curr_state == PgsqlStateProgress::ConsolidatingCopyDataIn
+                        {
+                            // here we're actually only counting how many messages were received.
+                            // frontends are not forced to send one row per message
+                            if let PgsqlFEMessage::ConsolidatedCopyDataIn(ref msg) = request {
+                                tx.sum_data_size(msg.data_size);
+                                tx.incr_row_cnt();
                             }
+                        } else if (matches!(
+                            request,
+                            PgsqlFEMessage::CopyDone(_) | PgsqlFEMessage::CopyFail(_)
+                        )) && tx.get_row_cnt() > 0
+                        {
+                            let consolidated_copy_data =
+                                PgsqlFEMessage::ConsolidatedCopyDataIn(ConsolidatedDataRowPacket {
+                                    is_malformed: false,
+                                    identifier: b'd',
+                                    row_cnt: tx.get_row_cnt(),
+                                    data_size: tx.data_size, // total byte count of all copy_data messages combined
+                                });
+                            tx.requests.push(consolidated_copy_data);
+                        }
 
+                        if let Some(state) = new_state {
                             if Self::request_is_complete(state) {
                                 tx.requests.push(request);
                                 // The request is complete at this point
@@ -574,6 +584,7 @@ impl PgsqlState {
             _ => {
                 // We don't always have to change current state when we see a response...
                 // NotificationResponse and NoticeResponse fall here
+                // AuthenticationSSPI also falls here
                 None
             }
         }
@@ -637,46 +648,82 @@ impl PgsqlState {
                         if tx.tx_res_state == PgsqlTxProgress::Init {
                             tx.tx_res_state = PgsqlTxProgress::Received;
                         }
-                        if let Some(state) = new_state {
-                            if state == PgsqlStateProgress::DataRowReceived {
-                                tx.incr_row_cnt();
-                            } else if state == PgsqlStateProgress::CommandCompletedReceived
-                                && tx.get_row_cnt() > 0
-                            {
-                                // let's summarize the info from the data_rows in one response
-                                let consolidated_data_row = PgsqlBEMessage::ConsolidatedDataRow(
-                                    ConsolidatedDataRowPacket {
-                                        identifier: b'D',
-                                        row_cnt: tx.get_row_cnt(),
-                                        data_size: tx.data_size, // total byte count of all data_row messages combined
-                                    },
-                                );
+                        if matches!(response, PgsqlBEMessage::ConsolidatedDataRow(_)) {
+                            if response.is_malformed() {
+                                tx.tx_data.set_event(PgsqlEvent::MalformedResponse as u8);
+                            }
+                            tx.incr_row_cnt();
+                        } else if matches!(response, PgsqlBEMessage::CommandComplete(_))
+                            && tx.get_row_cnt() > 0
+                        {
+                            // let's summarize the info from the data_rows in one response
+                            let consolidated_data_row =
+                                PgsqlBEMessage::ConsolidatedDataRow(ConsolidatedDataRowPacket {
+                                    is_malformed: false,
+                                    identifier: b'D',
+                                    row_cnt: tx.get_row_cnt(),
+                                    data_size: tx.data_size, // total byte count of all data_row messages combined
+                                });
+                            if tx.responses.len() + 2 <= unsafe { PGSQL_MAX_RESPONSES } {
+                                // we need two vacant places here
                                 tx.responses.push(consolidated_data_row);
                                 tx.responses.push(response);
                                 // reset values
                                 tx.data_row_cnt = 0;
                                 tx.data_size = 0;
-                            } else if state == PgsqlStateProgress::CopyDataOutReceived {
-                                tx.incr_row_cnt();
-                            } else if state == PgsqlStateProgress::CopyDoneReceived
-                                && tx.get_row_cnt() > 0
-                            {
-                                // let's summarize the info from the data_rows in one response
-                                let consolidated_copy_data =
-                                    PgsqlBEMessage::ConsolidatedCopyDataOut(
-                                        ConsolidatedDataRowPacket {
-                                            identifier: b'd',
-                                            row_cnt: tx.get_row_cnt(),
-                                            data_size: tx.data_size, // total byte count of all data_row messages combined
-                                        },
-                                    );
+                            } else if !tx.is_max_responses_set {
+                                tx.tx_data.set_event(PgsqlEvent::TooManyResponses as u8);
+                                tx.is_max_responses_set = true;
+                            }
+                        } else if matches!(response, PgsqlBEMessage::ConsolidatedCopyDataOut(_)) {
+                            tx.incr_row_cnt();
+                        } else if matches!(response, PgsqlBEMessage::CopyDone(_))
+                            && tx.get_row_cnt() > 0
+                        {
+                            // let's summarize the info from the data_rows in one response
+                            let consolidated_copy_data = PgsqlBEMessage::ConsolidatedCopyDataOut(
+                                ConsolidatedDataRowPacket {
+                                    is_malformed: false,
+                                    identifier: b'd',
+                                    row_cnt: tx.get_row_cnt(),
+                                    data_size: tx.data_size, // total byte count of all data_row messages combined
+                                },
+                            );
+                            if tx.responses.len() + 2 <= unsafe { PGSQL_MAX_RESPONSES } {
+                                // we need two vacant spaces, here
                                 tx.responses.push(consolidated_copy_data);
                                 tx.responses.push(response);
                                 // reset values
                                 tx.data_row_cnt = 0;
                                 tx.data_size = 0;
-                            } else {
-                                tx.responses.push(response);
+                            } else if !tx.is_max_responses_set {
+                                tx.tx_data.set_event(PgsqlEvent::TooManyResponses as u8);
+                                tx.is_max_responses_set = true;
+                            }
+                        } else {
+                            if response.is_malformed() {
+                                tx.tx_data.set_event(PgsqlEvent::MalformedResponse as u8);
+                            }
+                            if !matches!(
+                                response,
+                                PgsqlBEMessage::UnknownMessageType(_)
+                                    | PgsqlBEMessage::NoticeResponse(_)
+                                    | PgsqlBEMessage::NotificationResponse(_)
+                                    | PgsqlBEMessage::AuthenticationSSPI(_)
+                            ) {
+                                // since we are not logging UnknownMessages right now, let's not push them into the responses
+                                // vector, either
+                                // Don't log NoticeResponse, NotificationResponse, nor AuthenticationSSPI messages,
+                                // either (temporarily)
+                                if tx.responses.len() < unsafe { PGSQL_MAX_RESPONSES } {
+                                    tx.responses.push(response);
+                                } else if !tx.is_max_responses_set {
+                                    tx.tx_data.set_event(PgsqlEvent::TooManyResponses as u8);
+                                    tx.is_max_responses_set = true;
+                                }
+                            }
+
+                            if let Some(state) = new_state {
                                 if Self::response_is_complete(state) {
                                     tx.tx_req_state = PgsqlTxProgress::Done;
                                     tx.tx_res_state = PgsqlTxProgress::Done;
@@ -964,7 +1011,12 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
 
     let ip_proto_str = CString::new("tcp").unwrap();
 
-    if SCAppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+    if SCAppLayerProtoDetectConfProtoDetectionEnabledDefault(
+        ip_proto_str.as_ptr(),
+        parser.name,
+        false,
+    ) != 0
+    {
         let alproto = applayer_register_protocol_detection(&parser, 1);
         ALPROTO_PGSQL = alproto;
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
@@ -981,13 +1033,33 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
                     SCLogError!("Invalid depth value");
                 }
             }
-            SCAppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_PGSQL, stream_depth)
         }
+        SCAppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_PGSQL, stream_depth);
         if let Some(val) = conf_get("app-layer.protocols.pgsql.max-tx") {
             if let Ok(v) = val.parse::<usize>() {
                 PGSQL_MAX_TX = v;
             } else {
                 SCLogError!("Invalid value for pgsql.max-tx");
+            }
+        }
+        if let Some(val) = conf_get("app-layer.protocols.pgsql.max-responses") {
+            if let Ok(v) = val.parse::<usize>() {
+                if (PGSQL_CONFIG_DEFAULT_MIN_RESPONSES..=PGSQL_CONFIG_DEFAULT_MAX_RESPONSES)
+                    .contains(&v)
+                {
+                    PGSQL_MAX_RESPONSES = v;
+                } else {
+                    SCLogWarning!(
+                        "Invalid value of {} for pgsql.max-responses, keeping default of {}",
+                        v,
+                        PGSQL_CONFIG_DEFAULT_MAX_RESPONSES
+                    );
+                }
+            } else {
+                SCLogWarning!(
+                    "Invalid value for pgsql.max-responses, keeping default of {}",
+                    PGSQL_CONFIG_DEFAULT_MAX_RESPONSES
+                );
             }
         }
     } else {
@@ -1040,6 +1112,63 @@ mod test {
         assert_eq!(state.state_progress, ok_state);
 
         // TODO add test for startup request
+    }
+
+    #[test]
+    fn test_request_gap_resync() {
+        let mut state = PgsqlState::new();
+        // an SSL Request
+        let buf: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0x04, 0xd2, 0x16, 0x2f];
+
+        state.on_request_gap(42);
+        state.parse_request(std::ptr::null_mut(), buf);
+        assert!(!state.request_gap);
+        assert_eq!(state.state_progress, PgsqlStateProgress::SSLRequestReceived);
+    }
+
+    #[test]
+    fn test_request_gap_no_resync() {
+        // a truncated SSL Request: the chunk starts on a valid message header,
+        // but the message runs past the end of the chunk
+        let buf: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0x04, 0xd2, 0x16, 0x2f];
+
+        let mut state = PgsqlState::new();
+        state.on_request_gap(42);
+        let r = state.parse_request(std::ptr::null_mut(), &buf[0..3]);
+
+        // still out of sync: the chunk is consumed and dropped, and we wait
+        // for the next one
+        assert_eq!(
+            r,
+            AppLayerResult {
+                status: 0,
+                consumed: 0,
+                needed: 0
+            }
+        );
+        assert!(state.request_gap);
+        assert_eq!(state.state_progress, PgsqlStateProgress::IdleState);
+        assert!(state.transactions.is_empty());
+
+        // the same bytes, with no gap to recover from, are kept for reassembly
+        let mut state = PgsqlState::new();
+        let r = state.parse_request(std::ptr::null_mut(), &buf[0..3]);
+        assert_eq!(
+            r,
+            AppLayerResult {
+                status: 1,
+                consumed: 0,
+                needed: 4
+            }
+        );
+
+        // bytes from the middle of a message don't sync up either
+        let mid_message: &[u8] = b"ECT * FROM secrets;";
+        let mut state = PgsqlState::new();
+        state.on_request_gap(42);
+        state.parse_request(std::ptr::null_mut(), mid_message);
+        assert!(state.request_gap);
+        assert!(state.transactions.is_empty());
     }
 
     #[test]

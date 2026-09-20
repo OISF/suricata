@@ -58,6 +58,7 @@
 #include "app-layer-events.h"
 
 #include "util-debug.h"
+#include "util-file-decompression.h"
 #include "util-misc.h"
 
 #include "util-unittest.h"
@@ -640,8 +641,7 @@ static uint32_t AppLayerHtpComputeChunkLength(uint64_t content_len_so_far, uint3
  */
 static void HTPHandleError(HtpState *s, const uint8_t dir)
 {
-    if (s == NULL || s->conn == NULL || s->htp_messages_count >= HTP_MAX_MESSAGES) {
-        // ignore further messages
+    if (s == NULL || s->conn == NULL) {
         return;
     }
 
@@ -663,12 +663,9 @@ static void HTPHandleError(HtpState *s, const uint8_t dir)
         htp_free_cstring(msg);
         htp_log_free(log);
         s->htp_messages_count++;
-        if (s->htp_messages_count >= HTP_MAX_MESSAGES) {
+        if (s->htp_messages_count == HTP_MAX_MESSAGES) {
             // only once per HtpState
             HTPSetEvent(s, NULL, dir, HTTP_DECODER_EVENT_TOO_MANY_WARNINGS);
-            // too noisy in fuzzing
-            // DEBUG_VALIDATE_BUG_ON("Too many libhtp messages");
-            break;
         }
         log = htp_conn_next_log(s->conn);
     }
@@ -2340,17 +2337,19 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct 
                         exit(EXIT_FAILURE);
                     }
                 } else if (strcasecmp("compress-depth", pval->name) == 0) {
-                    if (ParseSizeStringU32(pval->val, &cfg_prec->swf_compress_depth) < 0) {
-                        SCLogError("Error parsing swf-decompression.compression-depth "
-                                   "from conf file - %s. Killing engine",
-                                p->val);
+                    if (ParseSizeStringU32(pval->val, &cfg_prec->swf_compress_depth) < 0 ||
+                            cfg_prec->swf_compress_depth > MAX_SWF_COMPRESS_DEPTH) {
+                        SCLogError("Invalid swf-decompression.compress-depth value %s: the "
+                                   "maximum is %u bytes. Killing engine",
+                                pval->val, MAX_SWF_COMPRESS_DEPTH);
                         exit(EXIT_FAILURE);
                     }
                 } else if (strcasecmp("decompress-depth", pval->name) == 0) {
-                    if (ParseSizeStringU32(pval->val, &cfg_prec->swf_decompress_depth) < 0) {
-                        SCLogError("Error parsing swf-decompression.decompression-depth "
-                                   "from conf file - %s. Killing engine",
-                                p->val);
+                    if (ParseSizeStringU32(pval->val, &cfg_prec->swf_decompress_depth) < 0 ||
+                            cfg_prec->swf_decompress_depth > MAX_SWF_DECOMPRESS_DEPTH) {
+                        SCLogError("Invalid swf-decompression.decompress-depth value %s: the "
+                                   "maximum is %u bytes. Killing engine",
+                                pval->val, MAX_SWF_DECOMPRESS_DEPTH);
                         exit(EXIT_FAILURE);
                     }
                 } else {

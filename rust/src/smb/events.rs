@@ -50,6 +50,9 @@ pub enum SMBEvent {
     UnusualNtlmsspOrder,
     /// Too many live transactions in one flow
     TooManyTransactions,
+    /// OOO file data exceeded the queue backstop (gapped stream); queued
+    /// data truncated to bound memory
+    TruncatedFileData,
 }
 
 impl SMBTransaction {

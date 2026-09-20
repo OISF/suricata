@@ -112,14 +112,14 @@ static void SCACGetConfig(void)
  */
 static inline size_t SCACCheckSafeSizetMult(size_t a, size_t b)
 {
-    /* check for safety of multiplication operation */
-    if (b > 0 && a > SIZE_MAX / b) {
+    size_t size = MpmCheckSafeSizetMult(a, b);
+    if (size == 0 && a != 0 && b != 0) {
         SCLogError("%" PRIuMAX " * %" PRIuMAX " > %" PRIuMAX
                    " would overflow size_t calculating buffer size",
                 (uintmax_t)a, (uintmax_t)b, (uintmax_t)SIZE_MAX);
         exit(EXIT_FAILURE);
     }
-    return a * b;
+    return size;
 }
 
 /**
@@ -920,7 +920,7 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 const uint32_t *pids = ctx->output_table[state & 0x00FFFFFF].pids;
                 for (uint32_t k = 0; k < no_of_entries; k++) {
                     if (pids[k] & AC_CASE_MASK) {
-                        const uint32_t lower_pid = pids[k] & 0x0000FFFF;
+                        const uint32_t lower_pid = pids[k] & AC_PID_MASK;
                         const SCACPatternList *pat = &pid_pat_list[lower_pid];
                         const int offset = i - pat->patlen + 1;
 
