@@ -21,7 +21,7 @@ use crate::applayer::{self, *};
 use crate::core::*;
 use crate::direction::Direction;
 use crate::flow::Flow;
-use asn1_rs::FromDer;
+use der_parser::asn1_rs::FromDer;
 use der_parser::ber::Class;
 use der_parser::der::der_read_element_header;
 use kerberos_parser::krb5::{
