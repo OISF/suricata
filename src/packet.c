@@ -16,6 +16,7 @@
  */
 
 #include "packet.h"
+#include "packet-bindgen.h"
 #include "pkt-var.h"
 #include "flow.h"
 #include "host.h"
@@ -212,4 +213,31 @@ inline void SCPacketSetTime(Packet *p, SCTime_t ts)
 inline void SCPacketSetSource(Packet *p, enum PktSrcEnum source)
 {
     p->pkt_src = (uint8_t)source;
+}
+
+/**
+ * \brief Get IP proto regardless of IP version.
+ *
+ * Exported wrapper around the PacketGetIPProto inline for plugins and Rust.
+ */
+uint8_t SCPacketGetIPProto(const Packet *p)
+{
+    return PacketGetIPProto(p);
+}
+
+/**
+ * \brief Get the flow associated with the packet.
+ */
+Flow *SCPacketGetFlow(const Packet *p)
+{
+    return p == NULL ? NULL : p->flow;
+}
+
+/**
+ * \brief Get packet timestamp as individual values.
+ */
+void SCPacketGetTimeAsParts(const Packet *p, uint64_t *secs, uint64_t *usecs)
+{
+    *secs = (uint64_t)SCTIME_SECS(p->ts);
+    *usecs = (uint64_t)SCTIME_USECS(p->ts);
 }
