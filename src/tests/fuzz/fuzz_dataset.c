@@ -56,6 +56,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         surifuzz.sig_file = strdup("/tmp/fuzz.rules");
         surifuzz.sig_file_exclusive = 1;
         surifuzz.delayed_detect = 1;
+        SCConfSetFinal("datasets.rules.allow-absolute-filenames", "true");
 
         PostConfLoadedSetup(&surifuzz);
         PreRunPostPrivsDropInit(SCRunmodeGet());
