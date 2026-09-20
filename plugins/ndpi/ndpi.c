@@ -134,7 +134,7 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
 
     /* Ignore packets that have a different protocol than the
      * flow. This can happen with ICMP unreachable packets. */
-    if (p->proto != flow_proto) {
+    if (SCPacketGetIPProto(p) != flow_proto) {
         return;
     }
 
@@ -159,7 +159,9 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
     }
 
     if (!flowctx->detection_completed && ip_ptr != NULL && ip_len > 0) {
-        uint64_t time_ms = ((uint64_t)p->ts.secs) * 1000 + p->ts.usecs / 1000;
+        uint64_t secs = 0, usecs = 0;
+        SCPacketGetTimeAsParts(p, &secs, &usecs);
+        uint64_t time_ms = secs * 1000 + usecs / 1000;
 
         SCLogDebug("Performing nDPI detection...");
 
@@ -225,7 +227,7 @@ static int DetectnDPIProtocolPacketMatch(
 {
     SCEnter();
 
-    const Flow *f = p->flow;
+    const Flow *f = SCPacketGetFlow(p);
     if (f == NULL) {
         SCLogDebug("packet %" PRIu64 ": no flow", PcapPacketCntGet(p));
         SCReturnInt(0);
@@ -360,7 +362,7 @@ static int DetectnDPIRiskPacketMatch(
 {
     SCEnter();
 
-    const Flow *f = p->flow;
+    const Flow *f = SCPacketGetFlow(p);
     if (f == NULL) {
         SCLogDebug("packet %" PRIu64 ": no flow", PcapPacketCntGet(p));
         SCReturnInt(0);
