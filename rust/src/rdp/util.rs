@@ -34,7 +34,7 @@ pub fn le_slice_to_string(input: &[u8]) -> Result<String, Box<dyn std::error::Er
         }
         vec.push(x);
     }
-    match U16CString::new(vec) {
+    match U16CString::from_vec(vec) {
         Ok(x) => match x.to_string() {
             Ok(x) => Ok(x),
             Err(e) => Err(e.into()),

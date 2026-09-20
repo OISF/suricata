@@ -36,7 +36,7 @@ clap = { version = "~4.6.6", default-features = false, features = ["std", "deriv
 flate2 = { version = "~1.1.10", features = ["zlib-default"], default-features = false }
 lazy_static = "~1.5.0"
 libc = "~0.2.172"
-lzma-rs = { version = "~0.2.0", features = ["stream"] }
+lzma-rs = { version = "~0.3.0", features = ["stream"] }
 nom8 = { package = "nom", version = "8.0.0" }
 once_cell = "1.21.3"
 regex = "~1.13.1"
@@ -65,14 +65,14 @@ nom7 = { version="7.1", package="nom" }
 nom8.workspace = true
 bitflags = "~1.3.2"
 byteorder = "~1.5.0"
-uuid = { version = "~0.8.2", features = ["serde"] }
-crc = "~1.8.1"
+uuid = { version = "~1.26.1", features = ["serde"] }
+crc = "~3.4.0"
 lzma-rs.workspace = true
 memchr = "~2.8.3"
 num = "~0.2.1"
 num-derive = "~0.4.2"
 num-traits = "~0.2.19"
-widestring = "~0.4.3"
+widestring = "~1.2.1"
 flate2.workspace = true
 brotli.workspace = true
 zstd.workspace = true

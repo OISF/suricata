@@ -330,7 +330,7 @@ pub fn smb_write_dcerpc_record(
                                     };
                                     let uuid_str = uuid::Uuid::from_slice(&x.clone());
                                     let _uuid_str = uuid_str
-                                        .map(|uuid_str| uuid_str.to_hyphenated().to_string())
+                                        .map(|uuid_str| uuid_str.as_hyphenated().to_string())
                                         .unwrap();
                                     let d = DCERPCIface::new(x, i.ver, i.ver_min, i.ctx_id);
                                     SCLogDebug!(

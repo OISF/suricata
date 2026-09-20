@@ -430,7 +430,7 @@ fn smb_common_header(
                                     let ifuuid = uuid::Uuid::from_slice(&i.uuid);
                                     let ifstr = ifuuid
                                         .as_ref()
-                                        .map(|ifuuid| ifuuid.to_hyphenated().to_string())
+                                        .map(|ifuuid| ifuuid.as_hyphenated().to_string())
                                         .unwrap();
                                     jsb.set_string("uuid", &ifstr)?;
                                     let vstr = format!("{}.{}", i.ver, i.ver_min);
@@ -456,7 +456,7 @@ fn smb_common_header(
                                 let ifuuid = uuid::Uuid::from_slice(&i.uuid);
                                 let ifstr = ifuuid
                                     .as_ref()
-                                    .map(|ifuuid| ifuuid.to_hyphenated().to_string())
+                                    .map(|ifuuid| ifuuid.as_hyphenated().to_string())
                                     .unwrap();
                                 jsb.set_string("uuid", &ifstr)?;
                                 let vstr = format!("{}.{}", i.ver, i.ver_min);
