@@ -273,16 +273,17 @@ mod tests {
 
     #[test]
     fn test_sha256_transform() {
-        let mut buf = Vec::with_capacity(SC_SHA256_LEN);
-        buf.extend_from_slice(b" A B C D ");
+        let buf = b" A B C D ";
         let mut out = vec![0; SC_SHA256_LEN];
-        sha256_transform_do(&buf, &mut out);
+        sha256_transform_do(buf, &mut out);
         assert_eq!(out, b"\xd6\xbf\x7d\x8d\x69\x53\x02\x4d\x0d\x84\x5c\x99\x9b\xae\x93\xcc\xac\x68\xea\xab\x9a\xc9\x77\xd0\xfd\x30\x6a\xf5\x9a\x3d\xe4\x3a");
-        // test in place
-        let still_buf = unsafe { std::slice::from_raw_parts(buf.as_ptr(), buf.len()) };
-        buf.resize(SC_SHA256_LEN, 0);
-        sha256_transform_do(still_buf, &mut buf);
-        assert_eq!(&buf, b"\xd6\xbf\x7d\x8d\x69\x53\x02\x4d\x0d\x84\x5c\x99\x9b\xae\x93\xcc\xac\x68\xea\xab\x9a\xc9\x77\xd0\xfd\x30\x6a\xf5\x9a\x3d\xe4\x3a");
+        // in-place style: the digest is written into a buffer that holds
+        // the input bytes at its start; the input is borrowed from a
+        // static byte string so it can never alias the output buffer
+        let mut in_place = vec![0; SC_SHA256_LEN];
+        in_place[..buf.len()].copy_from_slice(buf);
+        sha256_transform_do(buf, &mut in_place);
+        assert_eq!(in_place, b"\xd6\xbf\x7d\x8d\x69\x53\x02\x4d\x0d\x84\x5c\x99\x9b\xae\x93\xcc\xac\x68\xea\xab\x9a\xc9\x77\xd0\xfd\x30\x6a\xf5\x9a\x3d\xe4\x3a");
     }
 
     #[test]
