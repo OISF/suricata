@@ -16,6 +16,7 @@
  */
 
 #include "packet.h"
+#include "packet-bindgen.h"
 #include "pkt-var.h"
 #include "flow.h"
 #include "host.h"
@@ -208,4 +209,38 @@ inline void SCPacketSetTime(Packet *p, SCTime_t ts)
 inline void SCPacketSetSource(Packet *p, enum PktSrcEnum source)
 {
     p->pkt_src = (uint8_t)source;
+}
+
+/**
+ * \brief Get IP proto regardless of IP version.
+ */
+inline uint8_t SCPacketGetIPProto(const Packet *p)
+{
+    if (p->proto != 0) {
+        return p->proto;
+    }
+    if (PacketIsIPv4(p)) {
+        const IPV4Hdr *hdr = PacketGetIPv4(p);
+        return IPV4_GET_RAW_IPPROTO(hdr);
+    } else if (PacketIsIPv6(p)) {
+        return IPV6_GET_L4PROTO(p);
+    }
+    return 0;
+}
+
+/**
+ * \brief Get the flow associated with the packet.
+ */
+const Flow *SCPacketGetFlow(const Packet *p)
+{
+    return p == NULL ? NULL : p->flow;
+}
+
+/**
+ * \brief Get packet timestamp as individual values.
+ */
+void SCPacketGetTimeAsParts(const Packet *p, uint64_t *secs, uint64_t *usecs)
+{
+    *secs = (uint64_t)SCTIME_SECS(p->ts);
+    *usecs = (uint64_t)SCTIME_USECS(p->ts);
 }

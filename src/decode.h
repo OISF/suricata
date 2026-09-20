@@ -32,6 +32,7 @@
 #include "threadvars.h"
 #include "util-debug.h"
 #include "decode-events.h"
+#include "packet-bindgen.h"
 #include "util-exception-policy-types.h"
 #include "util-datalink.h"
 #ifdef PROFILING
@@ -732,21 +733,6 @@ static inline IPV4Hdr *PacketSetIPV4(Packet *p, const uint8_t *buf)
     p->l3.type = PACKET_L3_IPV4;
     p->l3.hdrs.ip4h = (IPV4Hdr *)buf;
     return p->l3.hdrs.ip4h;
-}
-
-/* Retrieve proto regardless of IP version */
-static inline uint8_t PacketGetIPProto(const Packet *p)
-{
-    if (p->proto != 0) {
-        return p->proto;
-    }
-    if (PacketIsIPv4(p)) {
-        const IPV4Hdr *hdr = PacketGetIPv4(p);
-        return IPV4_GET_RAW_IPPROTO(hdr);
-    } else if (PacketIsIPv6(p)) {
-        return IPV6_GET_L4PROTO(p);
-    }
-    return 0;
 }
 
 static inline uint8_t PacketGetIPv4IPProto(const Packet *p)
