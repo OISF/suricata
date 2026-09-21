@@ -1807,6 +1807,73 @@ static int SSHParserTest29(void)
     PASS;
 }
 
+/** \test A direction parked in banner_wait_eol that then fails a
+ *  \test record jumps to done; a >=256B banner without EOL that does
+ *  \test not parse as a banner jumps to done at once.
+ */
+static int SSHParserTest30(void)
+{
+    Flow f;
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = NULL;
+    uint8_t longbanner[300];
+    uint8_t junk[300];
+    uint8_t contbuf[8 + 2];
+    uint8_t badrecord[] = { 0x00, 0x00, 0x00, 0x00, 0x08, 0x21, 0x00, 0x00 };
+    void *tx;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    StreamTcpInitConfig(true);
+    alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    // phase 1: 300B banner without EOL -> banner_wait_eol; the line
+    // completes and the following record is invalid -> done
+    memset(longbanner, 'A', sizeof(longbanner));
+    memcpy(longbanner, "SSH-2.0-", 8);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, longbanner, sizeof(longbanner));
+    FAIL_IF(r != 0);
+    FAIL_IF_NULL(f.alstate);
+    tx = SCSshStateGetTx(f.alstate, 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBannerWaitEol);
+
+    memcpy(contbuf, "\r\n", 2);
+    memcpy(contbuf + 2, badrecord, sizeof(badrecord));
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, contbuf, sizeof(contbuf));
+    FAIL_IF(r != -1);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateDone);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateBanner);
+
+    // phase 2: 300B of junk without EOL (>= 256, not a valid banner)
+    // -> done at once
+    FLOW_DESTROY(&f);
+    memset(&f, 0, sizeof(f));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+    memset(junk, 'X', sizeof(junk));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, junk, sizeof(junk));
+    FAIL_IF(r != -1);
+    FAIL_IF_NULL(f.alstate);
+    tx = SCSshStateGetTx(f.alstate, 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateDone);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateBanner);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
 /** \test A banner line split over two segments publishes nothing until
  *  \test it completes: the open-line segment must not mark the tx
  *  \test updated (no re-evaluation of unchanged state); the line
@@ -1955,6 +2022,7 @@ void SSHParserRegisterTests(void)
     UtRegisterTest("SSHParserTest27 - Per-direction session state", SSHParserTest27);
     UtRegisterTest("SSHParserTest28 - Failure jumps to done", SSHParserTest28);
     UtRegisterTest("SSHParserTest29 - Reassembly stash leaves tx un-updated", SSHParserTest29);
+    UtRegisterTest("SSHParserTest30 - wait_eol failure jumps to done", SSHParserTest30);
     UtRegisterTest("SSHParserTest32 - banner continuation tx updated flag", SSHParserTest32);
     UtRegisterTest("SSHParserTest33 - failed peer no-inspection", SSHParserTest33);
 #endif /* UNITTESTS */
