@@ -143,10 +143,9 @@ Code snippet from: rust/src/ssh/ssh.rs:
 
     pub enum SSHConnectionState {
         SshStateBanner = 0,
-        SshStateBannerWaitEol = 1,
-        SshStateKex = 2,
-        SshStateSession = 3,
-        SshStateDone = 4,
+        SshStateKex = 1,
+        SshStateSession = 2,
+        SshStateDone = 3,
     }
 
 From src/app-layer-ftp.h:

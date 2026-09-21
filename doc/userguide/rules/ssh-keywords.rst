@@ -18,37 +18,60 @@ and stops applying once it advances past it (see :ref:`app-layer-state`).
 
 Request (``to_server``) side:
 
-+-----------------------------+-------------------------------------------------+
-| State                       | Meaning                                         |
-+=============================+=================================================+
-| ``request_banner``          | Version exchange: the banner (version) phase;   |
-|                             | the first packets of the direction.             |
-+-----------------------------+-------------------------------------------------+
-| ``request_banner_wait_eol`` | The banner line is 256 bytes or longer and no   |
-|                             | end-of-line has been seen yet. The ``long_      |
-|                             | banner`` event is logged. A direction parked    |
-|                             | here stays in this state when the line          |
-|                             | completes (the parser does not advance it       |
-|                             | to ``kex``), so it never reports ``kex`` and    |
-|                             | jumps straight to ``session`` at a ``new        |
-|                             | keys`` record.                                  |
-+-----------------------------+-------------------------------------------------+
-| ``request_kex``             | A valid banner line was parsed; key exchange.   |
-|                             | ``ssh.proto``, ``ssh.software`` and the hassh   |
-|                             | buffers are registered at this state.           |
-+-----------------------------+-------------------------------------------------+
-| ``request_session``         | A ``new keys`` record was seen in this          |
-|                             | direction: the session is established for that  |
-|                             | direction (the other direction advances         |
-|                             | independently). ``new keys`` is a transition    |
-|                             | rather than a phase with its own data: match    |
-|                             | the record itself with a frame rule (message    |
-|                             | code 21, see the example below).                |
-+-----------------------------+-------------------------------------------------+
++---------------------------+-------------------------------------------------+
+| State                     | Meaning                                         |
++===========================+=================================================+
+| ``request_banner``        | Version exchange: the banner (version) phase;   |
+|                           | the first packets of the direction. A banner    |
+|                           | line of 256 bytes or more without an            |
+|                           | end-of-line keeps the direction here: the line  |
+|                           | is consumed greedily until the end-of-line, and |
+|                           | the condition is observable through the         |
+|                           | ``ssh.long_banner`` event (the banner data is   |
+|                           | published when the long line first parses).     |
++---------------------------+-------------------------------------------------+
+| ``request_kex``           | A valid banner line was parsed; key exchange.   |
+|                           | ``ssh.proto``, ``ssh.software`` and the hassh   |
+|                           | buffers are registered at this state.           |
++---------------------------+-------------------------------------------------+
+| ``request_session``       | A ``new keys`` record was seen in this          |
+|                           | direction: the session is established for that  |
+|                           | direction (the other direction advances         |
+|                           | independently). ``new keys`` is a transition    |
+|                           | rather than a phase with its own data: match    |
+|                           | the record itself with a frame rule (message    |
+|                           | code 21, see the example below).                |
++---------------------------+-------------------------------------------------+
 
-Response (``to_client``) side: the same states with the ``response_``
-prefix: ``response_banner``, ``response_banner_wait_eol``,
-``response_kex``, ``response_session``.
+Response (``to_client``) side:
+
++---------------------------+-------------------------------------------------+
+| State                     | Meaning                                         |
++===========================+=================================================+
+| ``response_banner``       | Server banner (version) phase: the same         |
+|                           | behavior as ``request_banner`` above, in the    |
+|                           | server-to-client direction.                     |
++---------------------------+-------------------------------------------------+
+| ``response_kex``          | Server key exchange: same as                    |
+|                           | ``request_kex`` — the direction's               |
+|                           | ``ssh.proto`` / ``ssh.software`` and hassh      |
+|                           | buffers are registered at this state.           |
++---------------------------+-------------------------------------------------+
+| ``response_session``      | A ``new keys`` record was seen in the           |
+|                           | server-to-client direction: same as             |
+|                           | ``request_session``.                            |
++---------------------------+-------------------------------------------------+
+
+Overly long banner lines
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+A banner line of 256 bytes or more without an end-of-line keeps the
+direction in the ``banner`` state: the line is consumed greedily
+until the end-of-line arrives and the direction then advances to
+``kex``. The condition is observable through the ``ssh.long_banner``
+app-layer event (the banner data is published when the long line
+first parses). If the line does not parse as a banner when it
+completes, the direction fails (it jumps straight to ``done``).
 
 Completion and failure
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -64,9 +87,8 @@ reason is available through the ``ssh.invalid_banner`` /
 ``invalid_record``; a failed flow is logged even when no banner was
 parsed, so the error field may be its only content). The
 ``ssh.long_banner`` and ``ssh.long_kex_record`` events are non-fatal:
-the direction continues (a long banner parks it in
-``banner_wait_eol``, an oversized key-exchange record keeps
-stashing).
+the direction continues (a long banner keeps it in ``banner`` until
+the line completes, an oversized key-exchange record keeps stashing).
 
 Consequences worth knowing:
 
@@ -86,11 +108,6 @@ Consequences worth knowing:
   *failed (or were disrupted, e.g. by a stream gap or depth
   truncation)* — a successful request direction stops at
   ``request_session``.
-* ``banner_wait_eol`` used to be clamped to the banner state by the
-  progress accessor, so rules hooking it never matched. It now matches
-  normally when the parser reports it; firewall rules written against
-  the old behaviour — notably a *drop* at this state — become active
-  with this change.
 
 Frames
 ------

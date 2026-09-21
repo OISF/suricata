@@ -78,10 +78,9 @@ pub enum SSHError {
 #[suricata(alstate_strip_prefix = "SshState")]
 pub enum SSHConnectionState {
     SshStateBanner = 0,
-    SshStateBannerWaitEol = 1,
-    SshStateKex = 2,
-    SshStateSession = 3,
-    SshStateDone = 4,
+    SshStateKex = 1,
+    SshStateSession = 2,
+    SshStateDone = 3,
 }
 
 pub const SSH_MAX_BANNER_LEN: usize = 256;
@@ -374,10 +373,13 @@ impl SSHState {
         } else {
             &mut self.transaction.srv_hdr
         };
-        if hdr.state == SSHConnectionState::SshStateBannerWaitEol {
+        // A banner already parsed with the line still open: the
+        // published latch keeps the continuation from re-parsing the
+        // banner.
+        if hdr.banner_published {
             match parser::ssh_parse_line(input) {
                 Ok((rem, _)) => {
-                    // line complete: the banner data was parsed at
+                    // line complete: the banner data was published at
                     // entry, this only takes the direction to kex
                     hdr.state = SSHConnectionState::SshStateKex;
                     let mut r = self.parse_record(rem, resp, pstate, flow, stream_slice);
@@ -415,6 +417,7 @@ impl SSHState {
                     if !banner.swver.is_empty() {
                         hdr.swver.extend(banner.swver);
                     }
+                    hdr.banner_published = true;
                     hdr.state = SSHConnectionState::SshStateKex;
                 } else {
                     SCLogDebug!("SSH invalid banner");
@@ -461,7 +464,7 @@ impl SSHState {
                         if !banner.swver.is_empty() {
                             hdr.swver.extend(banner.swver);
                         }
-                        hdr.state = SSHConnectionState::SshStateBannerWaitEol;
+                        hdr.banner_published = true;
                         self.set_event(SSHEvent::LongBanner);
                         return AppLayerResult::ok();
                     } else {
@@ -649,7 +652,6 @@ unsafe extern "C" fn ssh_state_id_by_name(
     };
     match s2 {
         "banner" => SSHConnectionState::SshStateBanner as i32,
-        "banner_wait_eol" => SSHConnectionState::SshStateBannerWaitEol as i32,
         "kex" => SSHConnectionState::SshStateKex as i32,
         "session" => SSHConnectionState::SshStateSession as i32,
         _ => -1,
@@ -660,16 +662,14 @@ extern "C" fn ssh_state_name_by_id(
     id: std::os::raw::c_int, dir: u8,
 ) -> *const std::os::raw::c_char {
     // process-lifetime statics
-    static NAMES_TS: [&[u8]; 5] = [
+    static NAMES_TS: [&[u8]; 4] = [
         b"request_banner\0",
-        b"request_banner_wait_eol\0",
         b"request_kex\0",
         b"request_session\0",
         b"request_done\0",
     ];
-    static NAMES_TC: [&[u8]; 5] = [
+    static NAMES_TC: [&[u8]; 4] = [
         b"response_banner\0",
-        b"response_banner_wait_eol\0",
         b"response_kex\0",
         b"response_session\0",
         b"response_done\0",
@@ -680,7 +680,7 @@ extern "C" fn ssh_state_name_by_id(
         &NAMES_TC
     };
     match id {
-        0..=4 => names[id as usize].as_ptr() as *const std::os::raw::c_char,
+        0..=3 => names[id as usize].as_ptr() as *const std::os::raw::c_char,
         _ => std::ptr::null(),
     }
 }

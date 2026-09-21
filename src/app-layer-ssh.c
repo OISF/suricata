@@ -1567,15 +1567,14 @@ static int SSHParserTest25(void)
     PASS;
 }
 
-/** \test State name table: new names, legacy aliases, the unhookable
- *  completion state and the id-to-name mapping. */
+/** \test State name table: the four phase names, the rejected legacy
+ *  names (no backward-compat aliases), the unhookable completion
+ *  state, unknown names and the id-to-name mapping. */
 static int SSHParserTest26(void)
 {
     /* new names */
     FAIL_IF(AppLayerParserGetStateIdByName(
                     IPPROTO_TCP, ALPROTO_SSH, "request_banner", STREAM_TOSERVER) != SshStateBanner);
-    FAIL_IF(AppLayerParserGetStateIdByName(IPPROTO_TCP, ALPROTO_SSH, "request_banner_wait_eol",
-                    STREAM_TOSERVER) != SshStateBannerWaitEol);
     FAIL_IF(AppLayerParserGetStateIdByName(
                     IPPROTO_TCP, ALPROTO_SSH, "request_kex", STREAM_TOSERVER) != SshStateKex);
     FAIL_IF(AppLayerParserGetStateIdByName(IPPROTO_TCP, ALPROTO_SSH, "request_session",
@@ -1602,9 +1601,12 @@ static int SSHParserTest26(void)
     FAIL_IF(AppLayerParserGetStateIdByName(
                     IPPROTO_TCP, ALPROTO_SSH, "response_done", STREAM_TOCLIENT) != -1);
 
-    /* unknown name, and wrong direction prefix */
+    /* unknown names (including banner_wait_eol) and wrong direction
+     * prefix */
     FAIL_IF(AppLayerParserGetStateIdByName(
                     IPPROTO_TCP, ALPROTO_SSH, "request_nosuchstate", STREAM_TOSERVER) != -1);
+    FAIL_IF(AppLayerParserGetStateIdByName(
+                    IPPROTO_TCP, ALPROTO_SSH, "request_banner_wait_eol", STREAM_TOSERVER) != -1);
     FAIL_IF(AppLayerParserGetStateIdByName(
                     IPPROTO_TCP, ALPROTO_SSH, "response_banner", STREAM_TOSERVER) != -1);
 
@@ -1867,9 +1869,11 @@ static int SSHParserTest29(void)
     PASS;
 }
 
-/** \test A direction parked in banner_wait_eol that then fails a
- *  \test record jumps to done; a >=256B banner without EOL that does
- *  \test not parse as a banner jumps to done at once.
+/** \test A long banner (>=256B without EOL) keeps the direction in
+ *  \test the banner phase with the line consumed greedily; the line
+ *  \test completion moves it to kex, and a record that then fails
+ *  \test jumps to done. A >=256B line without EOL that does not parse
+ *  \test as a banner jumps to done at once.
  */
 static int SSHParserTest30(void)
 {
@@ -1878,7 +1882,6 @@ static int SSHParserTest30(void)
     AppLayerParserThreadCtx *alp_tctx = NULL;
     uint8_t longbanner[300];
     uint8_t junk[300];
-    uint8_t contbuf[8 + 2];
     uint8_t badrecord[] = { 0x00, 0x00, 0x00, 0x00, 0x08, 0x21, 0x00, 0x00 };
     void *tx;
 
@@ -1893,8 +1896,9 @@ static int SSHParserTest30(void)
     alp_tctx = AppLayerParserThreadCtxAlloc();
     FAIL_IF_NULL(alp_tctx);
 
-    // phase 1: 300B banner without EOL -> banner_wait_eol; the line
-    // completes and the following record is invalid -> done
+    // phase 1: 300B banner without EOL -> the direction stays in the
+    // banner phase (the line is still open); the line completion
+    // moves it to kex; the following record is invalid -> done
     memset(longbanner, 'A', sizeof(longbanner));
     memcpy(longbanner, "SSH-2.0-", 8);
     int r = AppLayerParserParse(
@@ -1902,12 +1906,16 @@ static int SSHParserTest30(void)
     FAIL_IF(r != 0);
     FAIL_IF_NULL(f.alstate);
     tx = SCSshStateGetTx(f.alstate, 0);
-    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBannerWaitEol);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBanner);
 
-    memcpy(contbuf, "\r\n", 2);
-    memcpy(contbuf + 2, badrecord, sizeof(badrecord));
+    // line completion -> kex
     r = AppLayerParserParse(
-            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, contbuf, sizeof(contbuf));
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, (const uint8_t *)"\r\n", 2);
+    FAIL_IF(r != 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, badrecord, sizeof(badrecord));
     FAIL_IF(r != -1);
     FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateDone);
     FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateBanner);
@@ -2082,7 +2090,8 @@ void SSHParserRegisterTests(void)
     UtRegisterTest("SSHParserTest27 - Per-direction session state", SSHParserTest27);
     UtRegisterTest("SSHParserTest28 - Failure jumps to done", SSHParserTest28);
     UtRegisterTest("SSHParserTest29 - Reassembly stash leaves tx un-updated", SSHParserTest29);
-    UtRegisterTest("SSHParserTest30 - wait_eol failure jumps to done", SSHParserTest30);
+    UtRegisterTest(
+            "SSHParserTest30 - long-banner continuation failure jumps to done", SSHParserTest30);
     UtRegisterTest("SSHParserTest31 - failed flow admits the eve log condition", SSHParserTest31);
     UtRegisterTest("SSHParserTest32 - banner continuation tx updated flag", SSHParserTest32);
     UtRegisterTest("SSHParserTest33 - failed peer no-inspection", SSHParserTest33);
