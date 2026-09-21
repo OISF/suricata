@@ -1897,9 +1897,21 @@ jobs:
           ./qa/live/multi-tenant.sh "autofp"
         env:
           LLVM_PROFILE_FILE: "/tmp/mt-autofp.profraw"
-      - run: python3 ./suricata-verify/live/run.py
+      - name: Run suricata-verify live tests
+        id: sv_live
+        run: python3 ./suricata-verify/live/run.py
         env:
           LLVM_PROFILE_FILE: "/tmp/sv-live-afpdpdk-%p-%m.profraw"
+      - name: Upload failed suricata-verify live test outputs
+        if: ${{ failure() && steps.sv_live.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: sv-live-output-${{ github.job }}
+          path: |
+            suricata-verify/live/tests/**/output/**
+            !suricata-verify/live/tests/**/output/*.socket
+            !suricata-verify/live/tests/**/output/sur
+          if-no-files-found: ignore
       - run: llvm-profdata-19 merge -o default.profdata $(find /tmp/ -name '*.profraw')
       - run: llvm-cov-19 export ./src/suricata -instr-profile=default.profdata -format=lcov --ignore-filename-regex="^/(root|usr|rustc|github)/.*" --skip-branches > coverage.lcov
       - name: Upload coverage.lcov artifact
@@ -2150,9 +2162,21 @@ jobs:
           LLVM_PROFILE_FILE: "/tmp/afp-fw-netns-bridge.profraw"
       - run: llvm-profdata-19 merge -o afp-fw-netns-bridge.profdata /tmp/afp-fw-netns-bridge.profraw
 
-      - run: python3 ./suricata-verify/live/run.py
+      - name: Run suricata-verify live tests
+        id: sv_live
+        run: python3 ./suricata-verify/live/run.py
         env:
           LLVM_PROFILE_FILE: "/tmp/sv-live-%p-%m.profraw"
+      - name: Upload failed suricata-verify live test outputs
+        if: ${{ failure() && steps.sv_live.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: sv-live-output-${{ github.job }}
+          path: |
+            suricata-verify/live/tests/**/output/**
+            !suricata-verify/live/tests/**/output/*.socket
+            !suricata-verify/live/tests/**/output/sur
+          if-no-files-found: ignore
       - run: llvm-profdata-19 merge -o sv-live.profdata /tmp/sv-live-*.profraw
 
       - run: llvm-profdata-19 merge -o combined.profdata afp-ips.profdata nfq-ips.profdata afp-ips-autofp.profdata nfq-ips-workers.profdata afp-ips-bond1.profdata afp-ips-bond2.profdata afp-fw-netns-bridge.profdata nfq-fw-netns-route.profdata sv-live.profdata
@@ -2287,7 +2311,19 @@ jobs:
           ./qa/live/pcap.sh "single"
       - run: |
           ./qa/live/multi-tenant.sh "autofp"
-      - run: python3 ./suricata-verify/live/run.py
+      - name: Run suricata-verify live tests
+        id: sv_live
+        run: python3 ./suricata-verify/live/run.py
+      - name: Upload failed suricata-verify live test outputs
+        if: ${{ failure() && steps.sv_live.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: sv-live-output-${{ github.job }}
+          path: |
+            suricata-verify/live/tests/**/output/**
+            !suricata-verify/live/tests/**/output/*.socket
+            !suricata-verify/live/tests/**/output/sur
+          if-no-files-found: ignore
 
   ubuntu-24-04-cov-fuzz:
     name: Ubuntu 24.04 (fuzz corpus coverage)
@@ -2985,7 +3021,19 @@ jobs:
           ./qa/live/dpdk.sh "qa/live/dpdk/suricata-null-ips.yaml"
       # DPDK configuration checks
       - run: ./qa/live/dpdk/dpdk-testsuite.sh
-      - run: python3 ./suricata-verify/live/run.py
+      - name: Run suricata-verify live tests
+        id: sv_live
+        run: python3 ./suricata-verify/live/run.py
+      - name: Upload failed suricata-verify live test outputs
+        if: ${{ failure() && steps.sv_live.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: sv-live-output-${{ github.job }}-${{ matrix.dpdk_version }}
+          path: |
+            suricata-verify/live/tests/**/output/**
+            !suricata-verify/live/tests/**/output/*.socket
+            !suricata-verify/live/tests/**/output/sur
+          if-no-files-found: ignore
 
   debian-12:
     name: Debian 12 (xdp)
