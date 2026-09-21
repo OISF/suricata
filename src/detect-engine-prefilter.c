@@ -829,8 +829,11 @@ static int TxNonPFAddSig(DetectEngineCtx *de_ctx, HashListTable *tx_engines_hash
     add->sigs_cnt++;
 
     char engine_name[128];
-    snprintf(engine_name, sizeof(engine_name), "%s:%s:non_pf:%s", AppProtoToString(alproto), name,
-            dir == 0 ? "toserver" : "toclient");
+    /* the id-to-name lookup can return null for a state id outside
+     * the protocol's table (e.g. the ssh completion state); a null
+     * %s argument is UB and would register a "(null)" engine name */
+    snprintf(engine_name, sizeof(engine_name), "%s:%s:non_pf:%s", AppProtoToString(alproto),
+            name ? name : "unknown", dir == 0 ? "toserver" : "toclient");
     char *engine_name_heap = SCStrdup(engine_name);
     if (engine_name_heap == NULL) {
         SCFree(add->sigs);
