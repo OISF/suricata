@@ -61,14 +61,20 @@ pub enum SSHEvent {
     LongKexRecord,
 }
 
+/// Per-direction phases; the value doubles as the detection progress
+/// (progress changes when the processing of the next state begins).
+/// SshStateDone is the registered completion state, never assigned
+/// during stream parsing — the flow-EOF final inspection covers it —
+/// so it is not hookable.
 #[repr(u8)]
 #[derive(AppLayerState, Copy, Clone, PartialOrd, PartialEq, Eq)]
 #[suricata(alstate_strip_prefix = "SshState")]
 pub enum SSHConnectionState {
-    SshStateInProgress = 0,
+    SshStateBanner = 0,
     SshStateBannerWaitEol = 1,
-    SshStateBannerDone = 2,
-    SshStateFinished = 3,
+    SshStateKex = 2,
+    SshStateSession = 3,
+    SshStateDone = 4,
 }
 
 pub const SSH_MAX_BANNER_LEN: usize = 256;
@@ -79,7 +85,7 @@ pub struct SshHeader {
     record_left: u32,
     record_left_msg: parser::MessageCode,
 
-    flags: SSHConnectionState,
+    state: SSHConnectionState,
     pub protover: Vec<u8>,
     pub swver: Vec<u8>,
 
@@ -99,7 +105,7 @@ impl SshHeader {
             record_left: 0,
             record_left_msg: parser::MessageCode::Undefined(0),
 
-            flags: SSHConnectionState::SshStateInProgress,
+            state: SSHConnectionState::SshStateBanner,
             protover: Vec::new(),
             swver: Vec::new(),
 
@@ -215,8 +221,8 @@ impl SSHState {
                             }
                         }
                         parser::MessageCode::NewKeys => {
-                            hdr.flags = SSHConnectionState::SshStateFinished;
-                            if ohdr.flags >= SSHConnectionState::SshStateFinished {
+                            hdr.state = SSHConnectionState::SshStateSession;
+                            if ohdr.state >= SSHConnectionState::SshStateSession {
                                 let mut flags = 0;
 
                                 match encryption_bypass_mode() {
@@ -278,7 +284,7 @@ impl SSHState {
                             //header with rem as incomplete data
                             match head.msg_code {
                                 parser::MessageCode::NewKeys => {
-                                    hdr.flags = SSHConnectionState::SshStateFinished;
+                                    hdr.state = SSHConnectionState::SshStateSession;
                                 }
                                 parser::MessageCode::Kexinit if hassh_is_enabled() => {
                                     // check if buffer is bigger than maximum reassembled packet size
@@ -340,7 +346,7 @@ impl SSHState {
         } else {
             &mut self.transaction.srv_hdr
         };
-        if hdr.flags == SSHConnectionState::SshStateBannerWaitEol {
+        if hdr.state == SSHConnectionState::SshStateBannerWaitEol {
             match parser::ssh_parse_line(input) {
                 Ok((rem, _)) => {
                     let mut r = self.parse_record(rem, resp, pstate, flow, stream_slice);
@@ -375,7 +381,7 @@ impl SSHState {
                     if !banner.swver.is_empty() {
                         hdr.swver.extend(banner.swver);
                     }
-                    hdr.flags = SSHConnectionState::SshStateBannerDone;
+                    hdr.state = SSHConnectionState::SshStateKex;
                 } else {
                     SCLogDebug!("SSH invalid banner");
                     self.set_event(SSHEvent::InvalidBanner);
@@ -419,7 +425,7 @@ impl SSHState {
                         if !banner.swver.is_empty() {
                             hdr.swver.extend(banner.swver);
                         }
-                        hdr.flags = SSHConnectionState::SshStateBannerWaitEol;
+                        hdr.state = SSHConnectionState::SshStateBannerWaitEol;
                         self.set_event(SSHEvent::LongBanner);
                         return AppLayerResult::ok();
                     } else {
@@ -466,7 +472,7 @@ unsafe extern "C" fn ssh_parse_request(
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.cli_hdr;
     state.transaction.tx_data.0.updated_ts = true;
-    if hdr.flags < SSHConnectionState::SshStateBannerDone {
+    if hdr.state < SSHConnectionState::SshStateKex {
         return state.parse_banner(buf, false, pstate, flow, &stream_slice);
     } else {
         return state.parse_record(buf, false, pstate, flow, &stream_slice);
@@ -481,7 +487,7 @@ unsafe extern "C" fn ssh_parse_response(
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.srv_hdr;
     state.transaction.tx_data.0.updated_tc = true;
-    if hdr.flags < SSHConnectionState::SshStateBannerDone {
+    if hdr.state < SSHConnectionState::SshStateKex {
         return state.parse_banner(buf, true, pstate, flow, &stream_slice);
     } else {
         return state.parse_record(buf, true, pstate, flow, &stream_slice);
@@ -506,9 +512,9 @@ pub unsafe extern "C" fn SCSshTxGetFlags(
 ) -> SSHConnectionState {
     let tx = cast_pointer!(tx, SSHTransaction);
     if direction == u8::from(Direction::ToServer) {
-        return tx.cli_hdr.flags;
+        return tx.cli_hdr.state;
     } else {
-        return tx.srv_hdr.flags;
+        return tx.srv_hdr.state;
     }
 }
 
@@ -517,22 +523,81 @@ pub unsafe extern "C" fn SCSshTxGetAlStateProgress(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, SSHTransaction);
+    // per-direction: each direction reports its own phase; the completion
+    // state is only reached at flow end, so the tx stays inspectable
+    // until then
+    let progress = if direction == u8::from(Direction::ToServer) {
+        tx.cli_hdr.state
+    } else {
+        tx.srv_hdr.state
+    };
+    return progress as i32;
+}
 
-    if tx.cli_hdr.flags >= SSHConnectionState::SshStateFinished
-        && tx.srv_hdr.flags >= SSHConnectionState::SshStateFinished
-    {
-        return SSHConnectionState::SshStateFinished as i32;
+// State name tables for rule hooks. "done" is intentionally absent
+// from the name-to-id table: it is unreachable during stream
+// parsing, so a hook on it would be dead configuration. Legacy
+// pre-redesign names do not resolve (pre-production - breaking
+// changes allowed).
+unsafe extern "C" fn ssh_state_id_by_name(
+    name: *const std::os::raw::c_char, dir: u8,
+) -> std::os::raw::c_int {
+    if name.is_null() {
+        return -1;
     }
-
-    if direction == u8::from(Direction::ToServer) {
-        if tx.cli_hdr.flags >= SSHConnectionState::SshStateBannerDone {
-            return SSHConnectionState::SshStateBannerDone as i32;
+    let Ok(s) = std::ffi::CStr::from_ptr(name).to_str() else {
+        return -1;
+    };
+    let s2 = match Direction::from(dir) {
+        Direction::ToServer => {
+            if !s.starts_with("request_") {
+                return -1;
+            }
+            &s["request_".len()..]
         }
-    } else if tx.srv_hdr.flags >= SSHConnectionState::SshStateBannerDone {
-        return SSHConnectionState::SshStateBannerDone as i32;
+        Direction::ToClient => {
+            if !s.starts_with("response_") {
+                return -1;
+            }
+            &s["response_".len()..]
+        }
+    };
+    match s2 {
+        "banner" => SSHConnectionState::SshStateBanner as i32,
+        "banner_wait_eol" => SSHConnectionState::SshStateBannerWaitEol as i32,
+        "kex" => SSHConnectionState::SshStateKex as i32,
+        "session" => SSHConnectionState::SshStateSession as i32,
+        _ => -1,
     }
+}
 
-    return SSHConnectionState::SshStateInProgress as i32;
+extern "C" fn ssh_state_name_by_id(
+    id: std::os::raw::c_int, dir: u8,
+) -> *const std::os::raw::c_char {
+    // process-lifetime statics
+    static NAMES_TS: [&[u8]; 5] = [
+        b"request_banner\0",
+        b"request_banner_wait_eol\0",
+        b"request_kex\0",
+        b"request_session\0",
+        b"request_done\0",
+    ];
+    static NAMES_TC: [&[u8]; 5] = [
+        b"response_banner\0",
+        b"response_banner_wait_eol\0",
+        b"response_kex\0",
+        b"response_session\0",
+        b"response_done\0",
+    ];
+    let names = if dir == u8::from(Direction::ToServer) {
+        &NAMES_TS
+    } else {
+        &NAMES_TC
+    };
+    match id {
+        0..=4 => names[id as usize].as_ptr() as *const std::os::raw::c_char,
+        _ => std::ptr::null(),
+    }
 }
 
 // Parser name as a C style string.
@@ -556,8 +621,8 @@ pub unsafe extern "C" fn SCRegisterSshParser() {
         parse_tc: ssh_parse_response,
         get_tx_count: ssh_state_get_tx_count,
         get_tx: SCSshStateGetTx,
-        tx_comp_st_ts: SSHConnectionState::SshStateFinished as i32,
-        tx_comp_st_tc: SSHConnectionState::SshStateFinished as i32,
+        tx_comp_st_ts: SSHConnectionState::SshStateDone as i32,
+        tx_comp_st_tc: SSHConnectionState::SshStateDone as i32,
         tx_get_progress: SCSshTxGetAlStateProgress,
         get_eventinfo: Some(SSHEvent::get_event_info),
         get_eventinfo_byid: Some(SSHEvent::get_event_info_by_id),
@@ -571,8 +636,8 @@ pub unsafe extern "C" fn SCRegisterSshParser() {
         flags: 0,
         get_frame_id_by_name: Some(SshFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(SshFrameType::ffi_name_from_id),
-        get_state_id_by_name: Some(SSHConnectionState::ffi_id_from_name),
-        get_state_name_by_id: Some(SSHConnectionState::ffi_name_from_id),
+        get_state_id_by_name: Some(ssh_state_id_by_name),
+        get_state_name_by_id: Some(ssh_state_name_by_id),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
@@ -619,13 +684,13 @@ pub unsafe extern "C" fn SCSshTxGetLogCondition(tx: *mut std::os::raw::c_void) -
     let tx = cast_pointer!(tx, SSHTransaction);
 
     if SCSshHasshIsEnabled() {
-        if tx.cli_hdr.flags == SSHConnectionState::SshStateFinished
-            && tx.srv_hdr.flags == SSHConnectionState::SshStateFinished
+        if tx.cli_hdr.state == SSHConnectionState::SshStateSession
+            && tx.srv_hdr.state == SSHConnectionState::SshStateSession
         {
             return true;
         }
-    } else if tx.cli_hdr.flags == SSHConnectionState::SshStateBannerDone
-        && tx.srv_hdr.flags == SSHConnectionState::SshStateBannerDone
+    } else if tx.cli_hdr.state == SSHConnectionState::SshStateKex
+        && tx.srv_hdr.state == SSHConnectionState::SshStateKex
     {
         return true;
     }
