@@ -51,7 +51,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         SCRunmodeSet(RUNMODE_PCAP_FILE);
         // redirect logs to /tmp
         ConfigSetLogDirectory("/tmp/");
-        ConfigSetDataDirectory("/tmp/");
+        ConfigSetDataDirectory((char *)"/tmp/");
 
         // do not load rules before reproducible DetectEngineReload
         remove("/tmp/fuzz.rules");
