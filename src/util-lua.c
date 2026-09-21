@@ -369,6 +369,13 @@ void LuaPrintStack(lua_State *state) {
 
 int LuaPushStringBuffer(lua_State *luastate, const uint8_t *input, size_t input_len)
 {
+    /* a NULL buffer is outside the lua_pushlstring contract even with
+     * zero length; push the empty string instead (and clamp the length,
+     * a NULL input has no content of its own) */
+    if (input == NULL) {
+        input = (const uint8_t *)"";
+        input_len = 0;
+    }
     lua_pushlstring(luastate, (char *)input, input_len);
     return 1;
 }

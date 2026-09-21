@@ -173,8 +173,20 @@ static int GetCertInfo(lua_State *luastate, bool client, const SSLState *ssl_sta
 
     int r = LuaPushStringBuffer(luastate, (uint8_t *)ssl_version, strlen(ssl_version));
     r += LuaPushStringBuffer(luastate, connp->cert0_subject, connp->cert0_subject_len);
-    r += LuaPushStringBuffer(luastate, connp->cert0_issuerdn, connp->cert0_issuerdn_len);
-    r += LuaPushStringBuffer(luastate, (uint8_t *)connp->cert0_fingerprint, strlen(connp->cert0_fingerprint));
+    /* issuerdn/fingerprint are separate allocations that can be NULL while
+     * subject is set (alloc-failure paths); push an empty string to keep
+     * the 4-value return shape */
+    if (connp->cert0_issuerdn != NULL) {
+        r += LuaPushStringBuffer(luastate, connp->cert0_issuerdn, connp->cert0_issuerdn_len);
+    } else {
+        r += LuaPushStringBuffer(luastate, NULL, 0);
+    }
+    if (connp->cert0_fingerprint != NULL) {
+        r += LuaPushStringBuffer(
+                luastate, (uint8_t *)connp->cert0_fingerprint, strlen(connp->cert0_fingerprint));
+    } else {
+        r += LuaPushStringBuffer(luastate, NULL, 0);
+    }
     return r;
 }
 
