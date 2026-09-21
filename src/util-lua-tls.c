@@ -169,9 +169,10 @@ static int GetCertInfo(lua_State *luastate, bool client, const SSLState *ssl_sta
     if (connp->cert0_subject == NULL)
         return LuaCallbackError(luastate, "error: no cert");
 
-    /* tls.version */
+    /* the selected direction's version: the client hello version can
+     * differ from the server's */
     char ssl_version[SSL_VERSION_MAX_STRLEN];
-    SSLVersionToString(ssl_state->server_connp.version, ssl_version);
+    SSLVersionToString(connp->version, ssl_version);
 
     int r = LuaPushStringBuffer(luastate, (uint8_t *)ssl_version, strlen(ssl_version));
     r += LuaPushStringBuffer(luastate, connp->cert0_subject, connp->cert0_subject_len);
