@@ -64,7 +64,7 @@ pub fn derive_enum_string_u8(input: TokenStream) -> TokenStream {
     stringenum::derive_enum_string::<u8>(input, "u8")
 }
 
-#[proc_macro_derive(EnumStringU16, attributes(name))]
+#[proc_macro_derive(EnumStringU16, attributes(name, suricata))]
 pub fn derive_enum_string_u16(input: TokenStream) -> TokenStream {
     stringenum::derive_enum_string::<u16>(input, "u16")
 }
