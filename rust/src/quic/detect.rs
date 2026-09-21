@@ -62,8 +62,14 @@ unsafe extern "C" fn quic_tx_get_sni(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCQuicTxGetJa3(
-    tx: &QuicTransaction, dir: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: *const c_void, dir: u8, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> bool {
+    if tx.is_null() {
+        *buffer = ptr::null();
+        *buffer_len = 0;
+        return false;
+    }
+    let tx = cast_pointer!(tx, QuicTransaction);
     if tx.client {
         if dir & STREAM_TOSERVER == 0 {
             return false;
@@ -81,8 +87,14 @@ pub unsafe extern "C" fn SCQuicTxGetJa3(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCQuicTxGetJa4(
-    tx: &QuicTransaction, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: *const c_void, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
+    if tx.is_null() {
+        *buffer = ptr::null();
+        *buffer_len = 0;
+        return 0;
+    }
+    let tx = cast_pointer!(tx, QuicTransaction);
     if let Some(ja4) = &tx.ja4 {
         *buffer = ja4.as_ref().as_ptr();
         *buffer_len = ja4.as_ref().len() as u32;
