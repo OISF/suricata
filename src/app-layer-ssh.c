@@ -1731,6 +1731,66 @@ static int SSHParserTest28(void)
     PASS;
 }
 
+/** \test The eve ssh log condition admits failed flows: a direction
+ *  \test that jumps to done (invalid banner) satisfies the condition
+ *  \test (the error field makes the failure observable in eve), while
+ *  \test a banner-only flow does not (hassh is forced on in unit
+ *  \test tests: both dirs must be at session, and the toclient dir
+ *  \test is still at banner).
+ */
+static int SSHParserTest31(void)
+{
+    Flow f;
+    uint8_t badbanner[] = "SSH-bogus\r\n";
+    uint32_t badbannerlen = sizeof(badbanner) - 1;
+    uint8_t banner[] = "SSH-2.0-TestClient-1.0\r\n";
+    uint32_t bannerlen = sizeof(banner) - 1;
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    /* invalid banner: the failed direction admits the log condition */
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    StreamTcpInitConfig(true);
+
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, badbanner, badbannerlen);
+    FAIL_IF(r != -1);
+    void *ssh_state = f.alstate;
+    FAIL_IF_NULL(ssh_state);
+    void *tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateDone);
+    FAIL_IF(SCSshTxGetLogCondition(tx) != true);
+
+    FLOW_DESTROY(&f);
+
+    /* valid banner only: not enough (toclient dir still at banner) */
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, banner, bannerlen);
+    FAIL_IF(r != 0);
+    ssh_state = f.alstate;
+    FAIL_IF_NULL(ssh_state);
+    tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetLogCondition(tx) != false);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
 /** \test A record reassembly stash and a header fragment do not mark
  *  \test the tx updated; completing the record does.
  *  \test A pkt_len=29 record (27 payload bytes after the 6B header,
@@ -2023,6 +2083,7 @@ void SSHParserRegisterTests(void)
     UtRegisterTest("SSHParserTest28 - Failure jumps to done", SSHParserTest28);
     UtRegisterTest("SSHParserTest29 - Reassembly stash leaves tx un-updated", SSHParserTest29);
     UtRegisterTest("SSHParserTest30 - wait_eol failure jumps to done", SSHParserTest30);
+    UtRegisterTest("SSHParserTest31 - failed flow admits the eve log condition", SSHParserTest31);
     UtRegisterTest("SSHParserTest32 - banner continuation tx updated flag", SSHParserTest32);
     UtRegisterTest("SSHParserTest33 - failed peer no-inspection", SSHParserTest33);
 #endif /* UNITTESTS */

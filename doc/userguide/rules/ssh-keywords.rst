@@ -59,10 +59,14 @@ direction hits an unrecoverable error — an invalid banner or an
 invalid record (header or payload) — that direction jumps straight
 to ``done``. The failure is terminal for every keyword, and the
 reason is available through the ``ssh.invalid_banner`` /
-``ssh.invalid_record`` app-layer events. The ``ssh.long_banner`` and
-``ssh.long_kex_record`` events are non-fatal: the direction continues
-(a long banner parks it in ``banner_wait_eol``, an oversized
-key-exchange record keeps stashing).
+``ssh.invalid_record`` app-layer events and the per-direction
+``error`` field of the eve ``ssh`` object (``invalid_banner`` /
+``invalid_record``; a failed flow is logged even when no banner was
+parsed, so the error field may be its only content). The
+``ssh.long_banner`` and ``ssh.long_kex_record`` events are non-fatal:
+the direction continues (a long banner parks it in
+``banner_wait_eol``, an oversized key-exchange record keeps
+stashing).
 
 Consequences worth knowing:
 

@@ -6296,6 +6296,10 @@
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
+                        "error": {
+                            "type": "string",
+                            "description": "Unrecoverable parse failure in this direction (invalid_banner or invalid_record)"
+                        },
                         "hassh": {
                             "type": "object",
                             "additionalProperties": false,
@@ -6320,6 +6324,10 @@
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
+                        "error": {
+                            "type": "string",
+                            "description": "Unrecoverable parse failure in this direction (invalid_banner or invalid_record)"
+                        },
                         "hassh": {
                             "type": "object",
                             "additionalProperties": false,

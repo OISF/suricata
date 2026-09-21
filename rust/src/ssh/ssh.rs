@@ -61,16 +61,18 @@ pub enum SSHEvent {
     LongKexRecord,
 }
 
-/// Per-direction phases; the value doubles as the detection progress
-/// (progress changes when the processing of the next state begins).
+/// Unrecoverable parse failure per direction — the reason the
+/// direction jumped to SshStateDone. Set at the failure sites
+/// alongside the failure event; never cleared.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum SSHError {
+    InvalidBanner,
+    InvalidRecord,
+}
+
+/// Per-direction phases; the value doubles as the detection progress.
 /// SshStateDone is the registered completion state and the failure
-/// state: an unrecoverable parse error jumps the failing direction
-/// straight to done (failure >= completion), so a failed direction is
-/// terminal for every keyword. A successful direction never reports
-/// it (its maximum progress is SshStateSession), so completion-state
-/// hooks match only failed directions. It stays out of the name-to-id
-/// table (not hookable); the failure reason is exposed via app-layer
-/// events.
+/// state (a failure jumps straight to done); it is not hookable.
 #[repr(u8)]
 #[derive(AppLayerState, Copy, Clone, PartialOrd, PartialEq, Eq)]
 #[suricata(alstate_strip_prefix = "SshState")]
@@ -97,6 +99,7 @@ pub struct SshHeader {
     banner_published: bool,
     pub protover: Vec<u8>,
     pub swver: Vec<u8>,
+    pub error: Option<SSHError>,
 
     pub hassh: Vec<u8>,
     pub hassh_string: Vec<u8>,
@@ -118,6 +121,7 @@ impl SshHeader {
             banner_published: false,
             protover: Vec::new(),
             swver: Vec::new(),
+            error: None,
 
             hassh: Vec::new(),
             hassh_string: Vec::new(),
@@ -343,6 +347,7 @@ impl SSHState {
                         Err(_e) => {
                             SCLogDebug!("SSH invalid record header {}", _e);
                             hdr.state = SSHConnectionState::SshStateDone;
+                            hdr.error = Some(SSHError::InvalidRecord);
                             self.set_event(SSHEvent::InvalidRecord);
                             return AppLayerResult::err();
                         }
@@ -351,6 +356,7 @@ impl SSHState {
                 Err(_e) => {
                     SCLogDebug!("SSH invalid record {}", _e);
                     hdr.state = SSHConnectionState::SshStateDone;
+                    hdr.error = Some(SSHError::InvalidRecord);
                     self.set_event(SSHEvent::InvalidRecord);
                     return AppLayerResult::err();
                 }
@@ -396,6 +402,7 @@ impl SSHState {
                     SCLogDebug!("SSH invalid banner {}", _e);
                     // terminal for all keywords: failure >= completion
                     hdr.state = SSHConnectionState::SshStateDone;
+                    hdr.error = Some(SSHError::InvalidBanner);
                     self.set_event(SSHEvent::InvalidBanner);
                     return AppLayerResult::err();
                 }
@@ -412,6 +419,7 @@ impl SSHState {
                 } else {
                     SCLogDebug!("SSH invalid banner");
                     hdr.state = SSHConnectionState::SshStateDone;
+                    hdr.error = Some(SSHError::InvalidBanner);
                     self.set_event(SSHEvent::InvalidBanner);
                     return AppLayerResult::err();
                 }
@@ -458,6 +466,7 @@ impl SSHState {
                         return AppLayerResult::ok();
                     } else {
                         hdr.state = SSHConnectionState::SshStateDone;
+                        hdr.error = Some(SSHError::InvalidBanner);
                         self.set_event(SSHEvent::InvalidBanner);
                         return AppLayerResult::err();
                     }
@@ -466,6 +475,7 @@ impl SSHState {
             Err(_e) => {
                 SCLogDebug!("SSH invalid banner {}", _e);
                 hdr.state = SSHConnectionState::SshStateDone;
+                hdr.error = Some(SSHError::InvalidBanner);
                 self.set_event(SSHEvent::InvalidBanner);
                 return AppLayerResult::err();
             }
@@ -769,5 +779,7 @@ pub unsafe extern "C" fn SCSshTxGetLogCondition(tx: *mut std::os::raw::c_void) -
     {
         return true;
     }
-    return false;
+    // a failed direction is logged too: the error field is what makes
+    // the failure observable in the eve ssh object
+    return tx.cli_hdr.error.is_some() || tx.srv_hdr.error.is_some();
 }
