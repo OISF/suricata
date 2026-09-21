@@ -15,35 +15,55 @@
  * 02110-1301, USA.
  */
 
-use std::os::raw::c_int;
+use std::os::raw::{c_int, c_void};
 
 use super::ntp::NTPTransaction;
 use crate::lua::*;
 
 #[no_mangle]
-pub extern "C" fn SCNtpLuaGetVersion(clua: &mut CLuaState, tx: &mut NTPTransaction) -> c_int {
+pub unsafe extern "C" fn SCNtpLuaGetVersion(clua: &mut CLuaState, tx: *const c_void) -> c_int {
     let lua = LuaState { lua: clua };
+    if tx.is_null() {
+        lua.pushnil();
+        return 1;
+    }
+    let tx = cast_pointer!(tx, NTPTransaction);
     lua.pushinteger(tx.version as i64);
     1
 }
 
 #[no_mangle]
-pub extern "C" fn SCNtpLuaGetMode(clua: &mut CLuaState, tx: &mut NTPTransaction) -> c_int {
+pub unsafe extern "C" fn SCNtpLuaGetMode(clua: &mut CLuaState, tx: *const c_void) -> c_int {
     let lua = LuaState { lua: clua };
+    if tx.is_null() {
+        lua.pushnil();
+        return 1;
+    }
+    let tx = cast_pointer!(tx, NTPTransaction);
     lua.pushinteger(tx.mode as i64);
     1
 }
 
 #[no_mangle]
-pub extern "C" fn SCNtpLuaGetStratum(clua: &mut CLuaState, tx: &mut NTPTransaction) -> c_int {
+pub unsafe extern "C" fn SCNtpLuaGetStratum(clua: &mut CLuaState, tx: *const c_void) -> c_int {
     let lua = LuaState { lua: clua };
+    if tx.is_null() {
+        lua.pushnil();
+        return 1;
+    }
+    let tx = cast_pointer!(tx, NTPTransaction);
     lua.pushinteger(tx.stratum as i64);
     1
 }
 
 #[no_mangle]
-pub extern "C" fn SCNtpLuaGetReferenceId(clua: &mut CLuaState, tx: &mut NTPTransaction) -> c_int {
+pub unsafe extern "C" fn SCNtpLuaGetReferenceId(clua: &mut CLuaState, tx: *const c_void) -> c_int {
     let lua = LuaState { lua: clua };
+    if tx.is_null() {
+        lua.pushnil();
+        return 1;
+    }
+    let tx = cast_pointer!(tx, NTPTransaction);
     lua.pushbytes(&tx.reference_id);
     1
 }

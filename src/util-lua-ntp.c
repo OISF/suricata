@@ -24,7 +24,7 @@
 static const char ntp_tx[] = "suricata:ntp:tx";
 
 struct LuaTx {
-    NTPTransaction *tx;
+    void *tx;
 };
 
 static int LuaNtpGetTx(lua_State *L)
@@ -32,7 +32,7 @@ static int LuaNtpGetTx(lua_State *L)
     if (!(LuaStateNeedProto(L, ALPROTO_NTP))) {
         return LuaCallbackError(L, "error: protocol not ntp");
     }
-    NTPTransaction *tx = LuaStateGetTX(L);
+    void *tx = LuaStateGetTX(L);
     if (tx == NULL) {
         return LuaCallbackError(L, "error: no tx available");
     }
