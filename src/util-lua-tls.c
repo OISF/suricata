@@ -168,8 +168,9 @@ static int GetCertInfo(lua_State *luastate, bool client, const SSLState *ssl_sta
         return LuaCallbackError(luastate, "error: no cert");
 
     /* the selected direction's version: the client hello version can
-     * differ from the server's */
-    char ssl_version[SSL_VERSION_MAX_STRLEN];
+     * differ from the server's. "Unknown" fallback: on a false return
+     * the buffer is left untouched */
+    char ssl_version[SSL_VERSION_MAX_STRLEN] = "Unknown";
     SSLVersionToString(connp->version, ssl_version);
 
     int r = LuaPushStringBuffer(luastate, (uint8_t *)ssl_version, strlen(ssl_version));
@@ -329,7 +330,7 @@ static int GetAgreedVersion(lua_State *luastate, bool client)
         version = s->state->server_connp.version;
     }
 
-    char ssl_version[SSL_VERSION_MAX_STRLEN];
+    char ssl_version[SSL_VERSION_MAX_STRLEN] = "Unknown";
     SSLVersionToString(version, ssl_version);
 
     lua_pushstring(luastate, (const char *)&ssl_version);
