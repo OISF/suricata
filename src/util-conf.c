@@ -29,6 +29,29 @@
 #include "util-conf.h"
 #include "util-debug.h"
 #include "util-path.h"
+#include "util-atomic.h"
+
+#ifdef OS_WIN32
+/* _getcwd(NULL, 0) mallocs per call and the callers have no ownership
+ * contract; the cwd does not change for the process lifetime. The cached
+ * value is the fast path; a first-call race is settled atomically and the
+ * loser frees its copy */
+static SC_ATOMIC_DECLARE(char *, cached_cwd);
+
+static const char *ConfigGetCwdFallback(void)
+{
+    const char *c = SC_ATOMIC_GET(cached_cwd);
+    if (c != NULL)
+        return c;
+    char *p = _getcwd(NULL, 0);
+    char *prev = NULL;
+    if (!SC_ATOMIC_CAS(&cached_cwd, prev, p)) {
+        free(p);
+        return SC_ATOMIC_GET(cached_cwd);
+    }
+    return p;
+}
+#endif /* OS_WIN32 */
 
 TmEcode ConfigSetLogDirectory(const char *name)
 {
@@ -41,7 +64,7 @@ const char *SCConfigGetLogDirectory(void)
 
     if (SCConfGetNonNull("default-log-dir", &log_dir) != 1) {
 #ifdef OS_WIN32
-        log_dir = _getcwd(NULL, 0);
+        log_dir = ConfigGetCwdFallback();
         if (log_dir == NULL) {
             log_dir = DEFAULT_LOG_DIR;
         }
@@ -83,7 +106,7 @@ const char *ConfigGetDataDirectory(void)
 
     if (SCConfGetNonNull("default-data-dir", &data_dir) != 1) {
 #ifdef OS_WIN32
-        data_dir = _getcwd(NULL, 0);
+        data_dir = ConfigGetCwdFallback();
         if (data_dir == NULL) {
             data_dir = DEFAULT_DATA_DIR;
         }
