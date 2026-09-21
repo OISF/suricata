@@ -46,6 +46,35 @@ fn encryption_bypass_mode() -> EncryptionHandling {
     unsafe { ENCRYPTION_BYPASS_ENABLED }
 }
 
+// Arms the no-inspection/bypass flags on the session transition,
+// shared by the complete-record and incomplete-header arms: a
+// NewKeys record whose body arrives in a later parser call must
+// reach the same decision - the record header already identifies
+// the key switch. The peer check keeps a merely-failed peer from
+// arming the flags.
+fn ssh_arm_session_flags(ohdr_state: SSHConnectionState, pstate: *mut AppLayerParserState) {
+    if ohdr_state < SSHConnectionState::SshStateSession {
+        return;
+    }
+    let mut flags = 0;
+    match encryption_bypass_mode() {
+        EncryptionHandling::ENCRYPTION_HANDLING_BYPASS => {
+            flags |= APP_LAYER_PARSER_NO_INSPECTION
+                | APP_LAYER_PARSER_NO_REASSEMBLY
+                | APP_LAYER_PARSER_BYPASS_READY;
+        }
+        EncryptionHandling::ENCRYPTION_HANDLING_TRACK_ONLY => {
+            flags |= APP_LAYER_PARSER_NO_INSPECTION;
+        }
+        _ => {}
+    }
+    if flags != 0 {
+        unsafe {
+            SCAppLayerParserStateSetFlag(pstate, flags);
+        }
+    }
+}
+
 #[derive(AppLayerFrameType)]
 pub enum SshFrameType {
     RecordHdr,
@@ -61,13 +90,24 @@ pub enum SSHEvent {
     LongKexRecord,
 }
 
+/// Unrecoverable parse failure per direction. Set at the failure
+/// sites alongside the failure event; never cleared. The failed
+/// direction is frozen in the state the error occurred in.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum SSHError {
+    InvalidBanner,
+    InvalidRecord,
+}
+
 /// Per-direction phases; the value doubles as the detection progress
 /// (progress changes when the processing of the next state begins).
-/// SshStateDone is the registered completion state, never assigned
-/// during stream parsing — the flow-EOF final inspection covers it —
-/// so it is not hookable; it also stays out of the id-to-name
-/// table, so the hook listing and the firewall policy key walk
-/// see the same surface as the name-to-id table.
+/// SshStateDone is the registered completion state and is never
+/// reported: a successful direction tops out at SshStateSession, and
+/// a failed direction is frozen in the state the unrecoverable parse
+/// error occurred in (the parse entry guards on the error flag). It
+/// stays out of both name tables (not hookable, not listed, not a
+/// firewall policy key); the failure is exposed via app-layer
+/// events.
 #[repr(u8)]
 #[derive(AppLayerState, Copy, Clone, PartialOrd, PartialEq, Eq)]
 #[suricata(alstate_strip_prefix = "SshState")]
@@ -90,6 +130,7 @@ pub struct SshHeader {
     state: SSHConnectionState,
     pub protover: Vec<u8>,
     pub swver: Vec<u8>,
+    pub error: Option<SSHError>,
 
     pub hassh: Vec<u8>,
     pub hassh_string: Vec<u8>,
@@ -110,6 +151,7 @@ impl SshHeader {
             state: SSHConnectionState::SshStateBanner,
             protover: Vec::new(),
             swver: Vec::new(),
+            error: None,
 
             hassh: Vec::new(),
             hassh_string: Vec::new(),
@@ -209,6 +251,8 @@ impl SSHState {
                     );
                     SCLogDebug!("SSH valid record {}", head);
                     match head.msg_code {
+                        // a failed direction never gets here: it is
+                        // frozen in the state it failed in
                         parser::MessageCode::Kexinit if hassh_is_enabled() => {
                             //let endkex = SSH_RECORD_HEADER_LEN + head.pkt_len - 2;
                             let endkex = input.len() - rem.len();
@@ -224,27 +268,7 @@ impl SSHState {
                         }
                         parser::MessageCode::NewKeys => {
                             hdr.state = SSHConnectionState::SshStateSession;
-                            if ohdr.state >= SSHConnectionState::SshStateSession {
-                                let mut flags = 0;
-
-                                match encryption_bypass_mode() {
-                                    EncryptionHandling::ENCRYPTION_HANDLING_BYPASS => {
-                                        flags |= APP_LAYER_PARSER_NO_INSPECTION
-                                            | APP_LAYER_PARSER_NO_REASSEMBLY
-                                            | APP_LAYER_PARSER_BYPASS_READY;
-                                    }
-                                    EncryptionHandling::ENCRYPTION_HANDLING_TRACK_ONLY => {
-                                        flags |= APP_LAYER_PARSER_NO_INSPECTION;
-                                    }
-                                    _ => {}
-                                }
-
-                                if flags != 0 {
-                                    unsafe {
-                                        SCAppLayerParserStateSetFlag(pstate, flags);
-                                    }
-                                }
-                            }
+                            ssh_arm_session_flags(ohdr.state, pstate);
                         }
                         _ => {}
                     }
@@ -287,6 +311,7 @@ impl SSHState {
                             match head.msg_code {
                                 parser::MessageCode::NewKeys => {
                                     hdr.state = SSHConnectionState::SshStateSession;
+                                    ssh_arm_session_flags(ohdr.state, pstate);
                                 }
                                 parser::MessageCode::Kexinit if hassh_is_enabled() => {
                                     // check if buffer is bigger than maximum reassembled packet size
@@ -324,6 +349,7 @@ impl SSHState {
                         }
                         Err(_e) => {
                             SCLogDebug!("SSH invalid record header {}", _e);
+                            hdr.error = Some(SSHError::InvalidRecord);
                             self.set_event(SSHEvent::InvalidRecord);
                             return AppLayerResult::err();
                         }
@@ -331,6 +357,7 @@ impl SSHState {
                 }
                 Err(_e) => {
                     SCLogDebug!("SSH invalid record {}", _e);
+                    hdr.error = Some(SSHError::InvalidRecord);
                     self.set_event(SSHEvent::InvalidRecord);
                     return AppLayerResult::err();
                 }
@@ -371,6 +398,7 @@ impl SSHState {
                 }
                 Err(_e) => {
                     SCLogDebug!("SSH invalid banner {}", _e);
+                    hdr.error = Some(SSHError::InvalidBanner);
                     self.set_event(SSHEvent::InvalidBanner);
                     return AppLayerResult::err();
                 }
@@ -386,6 +414,7 @@ impl SSHState {
                     hdr.state = SSHConnectionState::SshStateKex;
                 } else {
                     SCLogDebug!("SSH invalid banner");
+                    hdr.error = Some(SSHError::InvalidBanner);
                     self.set_event(SSHEvent::InvalidBanner);
                     return AppLayerResult::err();
                 }
@@ -431,6 +460,7 @@ impl SSHState {
                         self.set_event(SSHEvent::LongBanner);
                         return AppLayerResult::ok();
                     } else {
+                        hdr.error = Some(SSHError::InvalidBanner);
                         self.set_event(SSHEvent::InvalidBanner);
                         return AppLayerResult::err();
                     }
@@ -438,6 +468,7 @@ impl SSHState {
             }
             Err(_e) => {
                 SCLogDebug!("SSH invalid banner {}", _e);
+                hdr.error = Some(SSHError::InvalidBanner);
                 self.set_event(SSHEvent::InvalidBanner);
                 return AppLayerResult::err();
             }
@@ -473,6 +504,14 @@ unsafe extern "C" fn ssh_parse_request(
     let state = &mut cast_pointer!(state, SSHState);
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.cli_hdr;
+
+    // A failed direction is frozen in the state it failed in: the
+    // failure is unrecoverable, so no further parsing, no state
+    // change. The end state the progress accessor reports is the
+    // state it failed in.
+    if hdr.error.is_some() {
+        return AppLayerResult::ok();
+    }
     state.transaction.tx_data.0.updated_ts = true;
     if hdr.state < SSHConnectionState::SshStateKex {
         return state.parse_banner(buf, false, pstate, flow, &stream_slice);
@@ -488,6 +527,11 @@ unsafe extern "C" fn ssh_parse_response(
     let state = &mut cast_pointer!(state, SSHState);
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.srv_hdr;
+
+    // See ssh_parse_request for the failure freeze.
+    if hdr.error.is_some() {
+        return AppLayerResult::ok();
+    }
     state.transaction.tx_data.0.updated_tc = true;
     if hdr.state < SSHConnectionState::SshStateKex {
         return state.parse_banner(buf, true, pstate, flow, &stream_slice);
@@ -525,9 +569,10 @@ pub unsafe extern "C" fn SCSshTxGetAlStateProgress(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, SSHTransaction);
-    // per-direction: each direction reports its own phase; the completion
-    // state is only reached at flow end, so the tx stays inspectable
-    // until then
+    // per-direction: each direction reports its own phase. No direction
+    // reports the completion state (maximum is session; a failed
+    // direction is frozen in the state it failed in), so a live tx
+    // stays inspectable until flow end
     let progress = if direction == u8::from(Direction::ToServer) {
         tx.cli_hdr.state
     } else {
@@ -537,10 +582,12 @@ pub unsafe extern "C" fn SCSshTxGetAlStateProgress(
 }
 
 // State name tables for rule hooks. "done" is intentionally absent
-// from the name-to-id table: it is unreachable during stream
-// parsing, so a hook on it would be dead configuration. Legacy
-// pre-redesign names do not resolve (pre-production - breaking
-// changes allowed).
+// from both name tables: no direction ever reports it (success
+// tops out at session; failure keeps the state the error occurred
+// in - banner, kex, or session), so a hook on it would be dead
+// configuration; the hook listing, the firewall policy key walk
+// and the rule-engine lookups must all agree it is not a state
+// name (the id-to-name lookup returns null for it).
 unsafe extern "C" fn ssh_state_id_by_name(
     name: *const std::os::raw::c_char, dir: u8,
 ) -> std::os::raw::c_int {
