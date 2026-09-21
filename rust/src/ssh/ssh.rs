@@ -63,9 +63,14 @@ pub enum SSHEvent {
 
 /// Per-direction phases; the value doubles as the detection progress
 /// (progress changes when the processing of the next state begins).
-/// SshStateDone is the registered completion state, never assigned
-/// during stream parsing — the flow-EOF final inspection covers it —
-/// so it is not hookable.
+/// SshStateDone is the registered completion state and the failure
+/// state: an unrecoverable parse error jumps the failing direction
+/// straight to done (failure >= completion), so a failed direction is
+/// terminal for every keyword. A successful direction never reports
+/// it (its maximum progress is SshStateSession), so completion-state
+/// hooks match only failed directions. It stays out of the name-to-id
+/// table (not hookable); the failure reason is exposed via app-layer
+/// events.
 #[repr(u8)]
 #[derive(AppLayerState, Copy, Clone, PartialOrd, PartialEq, Eq)]
 #[suricata(alstate_strip_prefix = "SshState")]
@@ -207,6 +212,8 @@ impl SSHState {
                     );
                     SCLogDebug!("SSH valid record {}", head);
                     match head.msg_code {
+                        // a failed direction never gets here: the parse error
+                        // jumps it to done and disables the app layer
                         parser::MessageCode::Kexinit if hassh_is_enabled() => {
                             //let endkex = SSH_RECORD_HEADER_LEN + head.pkt_len - 2;
                             let endkex = input.len() - rem.len();
@@ -221,8 +228,15 @@ impl SSHState {
                             }
                         }
                         parser::MessageCode::NewKeys => {
-                            hdr.state = SSHConnectionState::SshStateSession;
+                            // a failed or already-session direction is
+                            // terminal; post-failure garbage must not
+                            // reset it
+                            if hdr.state < SSHConnectionState::SshStateSession {
+                                hdr.state = SSHConnectionState::SshStateSession;
+                            }
                             if ohdr.state >= SSHConnectionState::SshStateSession {
+                                // done >= session: a failed peer direction is
+                                // terminal for this decision
                                 let mut flags = 0;
 
                                 match encryption_bypass_mode() {
@@ -284,7 +298,11 @@ impl SSHState {
                             //header with rem as incomplete data
                             match head.msg_code {
                                 parser::MessageCode::NewKeys => {
-                                    hdr.state = SSHConnectionState::SshStateSession;
+                                    // monotonic: a failed (done) direction is
+                                    // terminal and must not regress
+                                    if hdr.state < SSHConnectionState::SshStateSession {
+                                        hdr.state = SSHConnectionState::SshStateSession;
+                                    }
                                 }
                                 parser::MessageCode::Kexinit if hassh_is_enabled() => {
                                     // check if buffer is bigger than maximum reassembled packet size
@@ -322,6 +340,7 @@ impl SSHState {
                         }
                         Err(_e) => {
                             SCLogDebug!("SSH invalid record header {}", _e);
+                            hdr.state = SSHConnectionState::SshStateDone;
                             self.set_event(SSHEvent::InvalidRecord);
                             return AppLayerResult::err();
                         }
@@ -329,6 +348,7 @@ impl SSHState {
                 }
                 Err(_e) => {
                     SCLogDebug!("SSH invalid record {}", _e);
+                    hdr.state = SSHConnectionState::SshStateDone;
                     self.set_event(SSHEvent::InvalidRecord);
                     return AppLayerResult::err();
                 }
@@ -369,6 +389,8 @@ impl SSHState {
                 }
                 Err(_e) => {
                     SCLogDebug!("SSH invalid banner {}", _e);
+                    // terminal for all keywords: failure >= completion
+                    hdr.state = SSHConnectionState::SshStateDone;
                     self.set_event(SSHEvent::InvalidBanner);
                     return AppLayerResult::err();
                 }
@@ -384,6 +406,7 @@ impl SSHState {
                     hdr.state = SSHConnectionState::SshStateKex;
                 } else {
                     SCLogDebug!("SSH invalid banner");
+                    hdr.state = SSHConnectionState::SshStateDone;
                     self.set_event(SSHEvent::InvalidBanner);
                     return AppLayerResult::err();
                 }
@@ -429,6 +452,7 @@ impl SSHState {
                         self.set_event(SSHEvent::LongBanner);
                         return AppLayerResult::ok();
                     } else {
+                        hdr.state = SSHConnectionState::SshStateDone;
                         self.set_event(SSHEvent::InvalidBanner);
                         return AppLayerResult::err();
                     }
@@ -436,6 +460,7 @@ impl SSHState {
             }
             Err(_e) => {
                 SCLogDebug!("SSH invalid banner {}", _e);
+                hdr.state = SSHConnectionState::SshStateDone;
                 self.set_event(SSHEvent::InvalidBanner);
                 return AppLayerResult::err();
             }
@@ -523,9 +548,10 @@ pub unsafe extern "C" fn SCSshTxGetAlStateProgress(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, SSHTransaction);
-    // per-direction: each direction reports its own phase; the completion
-    // state is only reached at flow end, so the tx stays inspectable
-    // until then
+    // per-direction: each direction reports its own phase. A successful
+    // direction never reports the completion state (its maximum is
+    // session), so a live tx stays inspectable until flow end; a failed
+    // direction reports done and is terminal
     let progress = if direction == u8::from(Direction::ToServer) {
         tx.cli_hdr.state
     } else {
@@ -535,10 +561,10 @@ pub unsafe extern "C" fn SCSshTxGetAlStateProgress(
 }
 
 // State name tables for rule hooks. "done" is intentionally absent
-// from the name-to-id table: it is unreachable during stream
-// parsing, so a hook on it would be dead configuration. Legacy
-// pre-redesign names do not resolve (pre-production - breaking
-// changes allowed).
+// from the name-to-id table, so rules cannot reference it; the
+// id-to-name table still returns it for the generic hook-list
+// registration. The failure reason it represents is exposed via the
+// app-layer events.
 unsafe extern "C" fn ssh_state_id_by_name(
     name: *const std::os::raw::c_char, dir: u8,
 ) -> std::os::raw::c_int {
