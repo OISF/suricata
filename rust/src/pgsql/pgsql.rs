@@ -1057,6 +1057,8 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
                 );
             }
         }
+        // Let users know, since this may be unexpected
+        SCLogNotice!("Protocol detector and parser enabled by default.");
     } else {
         SCLogDebug!("Protocol detector and parser disabled for PGSQL.");
     }
