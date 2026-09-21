@@ -4529,6 +4529,17 @@ struct FwPolicyStateRenameHint {
  * key an error under the section of the protocol that renamed it, so a
  * cross-protocol typo stays a plain warning */
 static const struct FwPolicyStateRenameHint g_fw_policy_state_rename_hints[] = {
+    /* ssh: the state scale was rebuilt; the parked long-banner state
+     * (banner-wait-eol) was removed - the banner state plus the
+     * one-shot ssh.long_banner event cover it */
+    { ALPROTO_SSH, "request-in-progress", "request-banner" },
+    { ALPROTO_SSH, "request-banner-wait-eol", "request-banner" },
+    { ALPROTO_SSH, "request-banner-done", "request-kex" },
+    { ALPROTO_SSH, "request-finished", "request-session" },
+    { ALPROTO_SSH, "response-in-progress", "response-banner" },
+    { ALPROTO_SSH, "response-banner-wait-eol", "response-banner" },
+    { ALPROTO_SSH, "response-banner-done", "response-kex" },
+    { ALPROTO_SSH, "response-finished", "response-session" },
     { ALPROTO_TLS, "client-in-progress", "client-started" },
     { ALPROTO_TLS, "client-hello-done", "client-hello" },
     { ALPROTO_TLS, "client-cert-done", "client-cert" },
