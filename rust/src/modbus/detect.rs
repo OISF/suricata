@@ -18,10 +18,10 @@
 use super::modbus::{ModbusTransaction, ALPROTO_MODBUS};
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
-    DetectUintData, SCDetectU16Free, SCDetectU16Match, SCDetectU16Parse, SCDetectU8Free,
-    SCDetectU8Match, SCDetectU8Parse,
+    detect_parse_uint_enum, DetectUintData, SCDetectU16Free, SCDetectU16Match, SCDetectU16Parse,
+    SCDetectU8Free, SCDetectU8Match, SCDetectU8Parse,
 };
-use crate::detect::{SIGMATCH_INFO_UINT16, SIGMATCH_INFO_UINT8};
+use crate::detect::{SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT16, SIGMATCH_INFO_UINT8};
 use crate::direction::Direction;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -509,6 +509,12 @@ static mut G_MODBUS_TRANSACTION_ID_KW_ID: u16 = 0;
 static mut G_MODBUS_TRANSACTION_ID_BUFFER_ID: c_int = 0;
 static mut G_MODBUS_PROTOCOL_ID_KW_ID: u16 = 0;
 static mut G_MODBUS_PROTOCOL_ID_BUFFER_ID: c_int = 0;
+static mut G_MODBUS_FUNCTION_KW_ID: u16 = 0;
+static mut G_MODBUS_FUNCTION_BUFFER_ID: c_int = 0;
+static mut G_MODBUS_SUBFUNCTION_KW_ID: u16 = 0;
+static mut G_MODBUS_SUBFUNCTION_BUFFER_ID: c_int = 0;
+static mut G_MODBUS_EXCEPTION_CODE_KW_ID: u16 = 0;
+static mut G_MODBUS_EXCEPTION_CODE_BUFFER_ID: c_int = 0;
 
 /// Get the message matching the direction of the packet under inspection:
 /// the request for to-server, the response for to-client.
@@ -649,6 +655,270 @@ unsafe extern "C" fn protocol_id_free(_de: *mut DetectEngineCtx, ctx: *mut c_voi
     SCDetectU16Free(ctx);
 }
 
+/// Modbus function codes, mirroring sawp_modbus::FunctionCode without its
+/// Unknown variant, whose value collides with function code 44
+#[repr(u8)]
+#[derive(EnumStringU8)]
+// parse RdCoils, as logged in function_code, not rd_coils
+#[suricata(enum_string_style = "UPPERCASE")]
+pub enum ModbusFunctionCode {
+    RdCoils = 0x01,
+    RdDiscreteInputs = 0x02,
+    RdHoldRegs = 0x03,
+    RdInputRegs = 0x04,
+    WrSingleCoil = 0x05,
+    WrSingleReg = 0x06,
+    RdExcStatus = 0x07,
+    Diagnostic = 0x08,
+    Program484 = 0x09,
+    Poll484 = 0x0a,
+    GetCommEventCtr = 0x0b,
+    GetCommEventLog = 0x0c,
+    ProgramController = 0x0d,
+    PollController = 0x0e,
+    WrMultCoils = 0x0f,
+    WrMultRegs = 0x10,
+    ReportServerID = 0x11,
+    Program884 = 0x12,
+    ResetCommLink = 0x13,
+    RdFileRec = 0x14,
+    WrFileRec = 0x15,
+    MaskWrReg = 0x16,
+    RdWrMultRegs = 0x17,
+    RdFIFOQueue = 0x18,
+    MEI = 0x2b,
+}
+
+/// Modbus diagnostic subfunction codes, mirroring
+/// sawp_modbus::DiagnosticSubfunction without its Reserved variant, whose
+/// value collides with subfunction 22
+#[repr(u16)]
+#[derive(EnumStringU16)]
+// parse RetQueryData, as logged in diagnostic.code, not ret_query_data
+#[suricata(enum_string_style = "UPPERCASE")]
+pub enum ModbusDiagnosticSubfunction {
+    RetQueryData = 0x00,
+    RestartCommOpt = 0x01,
+    RetDiagReg = 0x02,
+    ChangeInputDelimiter = 0x03,
+    ForceListenOnlyMode = 0x04,
+    ClearCtrDiagReg = 0x0a,
+    RetBusMsgCount = 0x0b,
+    RetBusCommErrCount = 0x0c,
+    RetBusExcErrCount = 0x0d,
+    RetServerMsgCount = 0x0e,
+    RetServerNoRespCount = 0x0f,
+    RetServerNAKCount = 0x10,
+    RetServerBusyCount = 0x11,
+    RetBusCharOverrunCount = 0x12,
+    RetOverrunErrCount = 0x13,
+    ClearOverrunCounterFlag = 0x14,
+    GetClearPlusStats = 0x15,
+}
+
+/// Modbus exception codes, mirroring sawp_modbus::ExceptionCode without its
+/// Unknown variant, whose value collides with exception code 12
+#[repr(u8)]
+#[derive(EnumStringU8)]
+// parse IllegalFunction, as logged in exception.code, not illegal_function
+#[suricata(enum_string_style = "UPPERCASE")]
+pub enum ModbusExceptionCode {
+    IllegalFunction = 0x01,
+    IllegalDataAddr = 0x02,
+    IllegalDataValue = 0x03,
+    ServerDeviceFail = 0x04,
+    Ack = 0x05,
+    ServerDeviceBusy = 0x06,
+    NegAck = 0x07,
+    MemParityErr = 0x08,
+    GatewayPathUnavailable = 0x0a,
+    GatewayTargetFailToResp = 0x0b,
+}
+
+unsafe fn function_parse(raw: *const c_char) -> *mut DetectUintData<u8> {
+    let raw: &CStr = CStr::from_ptr(raw); //unsafe
+    if let Ok(s) = raw.to_str() {
+        if let Some(ctx) = detect_parse_uint_enum::<u8, ModbusFunctionCode>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+unsafe fn subfunction_parse(raw: *const c_char) -> *mut DetectUintData<u16> {
+    let raw: &CStr = CStr::from_ptr(raw); //unsafe
+    if let Ok(s) = raw.to_str() {
+        if let Some(ctx) = detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+unsafe fn exception_code_parse(raw: *const c_char) -> *mut DetectUintData<u8> {
+    let raw: &CStr = CStr::from_ptr(raw); //unsafe
+    if let Ok(s) = raw.to_str() {
+        if let Some(ctx) = detect_parse_uint_enum::<u8, ModbusExceptionCode>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+fn tx_get_function(tx: &ModbusTransaction, direction: u8) -> Option<u8> {
+    return tx_get_message(tx, direction).map(|msg| msg.function.raw);
+}
+
+fn tx_get_subfunction(tx: &ModbusTransaction, direction: u8) -> Option<u16> {
+    if let Some(msg) = tx_get_message(tx, direction) {
+        if let Data::Diagnostic { func, .. } = &msg.data {
+            return Some(func.raw);
+        }
+    }
+    return None;
+}
+
+fn tx_get_exception_code(tx: &ModbusTransaction, direction: u8) -> Option<u8> {
+    if let Some(msg) = tx_get_message(tx, direction) {
+        if let Data::Exception(exc) = &msg.data {
+            return Some(exc.raw);
+        }
+    }
+    return None;
+}
+
+unsafe extern "C" fn function_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = function_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_FUNCTION_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_FUNCTION_BUFFER_ID,
+    )
+    .is_null()
+    {
+        function_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn function_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    if let Some(val) = tx_get_function(tx, flags) {
+        return SCDetectU8Match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn function_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    SCDetectU8Free(ctx);
+}
+
+unsafe extern "C" fn subfunction_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = subfunction_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_SUBFUNCTION_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_SUBFUNCTION_BUFFER_ID,
+    )
+    .is_null()
+    {
+        subfunction_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn subfunction_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(val) = tx_get_subfunction(tx, flags) {
+        return SCDetectU16Match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn subfunction_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    SCDetectU16Free(ctx);
+}
+
+unsafe extern "C" fn exception_code_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = exception_code_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_EXCEPTION_CODE_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_EXCEPTION_CODE_BUFFER_ID,
+    )
+    .is_null()
+    {
+        exception_code_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn exception_code_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    if let Some(val) = tx_get_exception_code(tx, flags) {
+        return SCDetectU8Match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn exception_code_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    SCDetectU8Free(ctx);
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectModbusRegister() {
     let kw = SCSigTableAppLiteElmt {
@@ -715,6 +985,54 @@ pub unsafe extern "C" fn SCDetectModbusRegister() {
         STREAM_TOSERVER | STREAM_TOCLIENT,
         0,
     );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.function\0".as_ptr() as *const c_char,
+        desc: b"match on Modbus function code\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-function\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(function_match),
+        Setup: Some(function_setup),
+        Free: Some(function_free),
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT,
+    };
+    G_MODBUS_FUNCTION_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_FUNCTION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.function\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.subfunction\0".as_ptr() as *const c_char,
+        desc: b"match on Modbus diagnostic subfunction code\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-subfunction\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(subfunction_match),
+        Setup: Some(subfunction_setup),
+        Free: Some(subfunction_free),
+        flags: SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_ENUM_UINT,
+    };
+    G_MODBUS_SUBFUNCTION_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_SUBFUNCTION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.subfunction\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.exception_code\0".as_ptr() as *const c_char,
+        desc: b"match on Modbus exception code in error responses\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-exception-code\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(exception_code_match),
+        Setup: Some(exception_code_setup),
+        Free: Some(exception_code_free),
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT,
+    };
+    G_MODBUS_EXCEPTION_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_EXCEPTION_CODE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.exception_code\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
 }
 
 #[cfg(test)]
@@ -722,7 +1040,80 @@ mod test {
     use super::super::modbus::ModbusState;
     use super::*;
     use crate::applayer::*;
+    use crate::detect::uint::DetectUintMode;
     use sawp::parser::Direction;
+
+    #[test]
+    fn test_parse_function_enum() {
+        let ctx = detect_parse_uint_enum::<u8, ModbusFunctionCode>("8").unwrap();
+        assert_eq!(ctx.arg1, 8);
+        let ctx = detect_parse_uint_enum::<u8, ModbusFunctionCode>("Diagnostic").unwrap();
+        assert_eq!(ctx.arg1, 8);
+        assert_eq!(ctx.mode, DetectUintMode::DetectUintModeEqual);
+        let ctx = detect_parse_uint_enum::<u8, ModbusFunctionCode>("RdCoils").unwrap();
+        assert_eq!(ctx.arg1, 1);
+        // names are case insensitive
+        let ctx = detect_parse_uint_enum::<u8, ModbusFunctionCode>("rdcoils").unwrap();
+        assert_eq!(ctx.arg1, 1);
+        let ctx = detect_parse_uint_enum::<u8, ModbusFunctionCode>("RDCOILS").unwrap();
+        assert_eq!(ctx.arg1, 1);
+        let ctx = detect_parse_uint_enum::<u8, ModbusFunctionCode>("MEI").unwrap();
+        assert_eq!(ctx.arg1, 0x2b);
+        // negation
+        let ctx = detect_parse_uint_enum::<u8, ModbusFunctionCode>("!Diagnostic").unwrap();
+        assert_eq!(ctx.arg1, 8);
+        assert_eq!(ctx.mode, DetectUintMode::DetectUintModeNe);
+        // the sawp catch-all variant is not a name we accept
+        assert!(detect_parse_uint_enum::<u8, ModbusFunctionCode>("Unknown").is_none());
+        assert!(detect_parse_uint_enum::<u8, ModbusFunctionCode>("").is_none());
+        assert!(detect_parse_uint_enum::<u8, ModbusFunctionCode>("NoSuchFunction").is_none());
+        assert!(detect_parse_uint_enum::<u8, ModbusFunctionCode>("256").is_none());
+    }
+
+    #[test]
+    fn test_parse_subfunction_enum() {
+        let ctx = detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("4").unwrap();
+        assert_eq!(ctx.arg1, 4);
+        let ctx = detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("ForceListenOnlyMode")
+            .unwrap();
+        assert_eq!(ctx.arg1, 4);
+        let ctx = detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("forcelistenonlymode")
+            .unwrap();
+        assert_eq!(ctx.arg1, 4);
+        let ctx =
+            detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("RetQueryData").unwrap();
+        assert_eq!(ctx.arg1, 0);
+        let ctx = detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("GetClearPlusStats")
+            .unwrap();
+        assert_eq!(ctx.arg1, 0x15);
+        let ctx =
+            detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("!RetDiagReg").unwrap();
+        assert_eq!(ctx.arg1, 2);
+        assert_eq!(ctx.mode, DetectUintMode::DetectUintModeNe);
+        // the sawp catch-all variant is not a name we accept
+        assert!(detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("Reserved").is_none());
+        assert!(detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("").is_none());
+    }
+
+    #[test]
+    fn test_parse_exception_code_enum() {
+        let ctx = detect_parse_uint_enum::<u8, ModbusExceptionCode>("11").unwrap();
+        assert_eq!(ctx.arg1, 11);
+        let ctx =
+            detect_parse_uint_enum::<u8, ModbusExceptionCode>("GatewayTargetFailToResp").unwrap();
+        assert_eq!(ctx.arg1, 0x0b);
+        let ctx =
+            detect_parse_uint_enum::<u8, ModbusExceptionCode>("gatewaytargetfailtoresp").unwrap();
+        assert_eq!(ctx.arg1, 0x0b);
+        let ctx = detect_parse_uint_enum::<u8, ModbusExceptionCode>("IllegalFunction").unwrap();
+        assert_eq!(ctx.arg1, 1);
+        let ctx = detect_parse_uint_enum::<u8, ModbusExceptionCode>("!Ack").unwrap();
+        assert_eq!(ctx.arg1, 5);
+        assert_eq!(ctx.mode, DetectUintMode::DetectUintModeNe);
+        // the sawp catch-all variant is not a name we accept
+        assert!(detect_parse_uint_enum::<u8, ModbusExceptionCode>("Unknown").is_none());
+        assert!(detect_parse_uint_enum::<u8, ModbusExceptionCode>("").is_none());
+    }
 
     #[test]
     fn test_parse() {
