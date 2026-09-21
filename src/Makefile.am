@@ -568,6 +568,7 @@ noinst_HEADERS = \
 	util-radix6-tree.h \
 	util-random.h \
 	util-reference-config.h \
+	util-ring-buffer.h \
 	util-rohash.h \
 	util-rule-vars.h \
 	util-runmodes.h \
@@ -1129,6 +1130,7 @@ libsuricata_c_a_SOURCES = \
 	util-radix6-tree.c \
 	util-random.c \
 	util-reference-config.c \
+	util-ring-buffer.c \
 	util-rohash.c \
 	util-rule-vars.c \
 	util-runmodes.c \
