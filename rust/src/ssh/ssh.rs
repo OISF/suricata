@@ -91,6 +91,10 @@ pub struct SshHeader {
     record_left_msg: parser::MessageCode,
 
     state: SSHConnectionState,
+    // explicit latch for the continuation path: set the moment the
+    // banner first parses; the latch keys off the publish event
+    // rather than a data field
+    banner_published: bool,
     pub protover: Vec<u8>,
     pub swver: Vec<u8>,
 
@@ -111,6 +115,7 @@ impl SshHeader {
             record_left_msg: parser::MessageCode::Undefined(0),
 
             state: SSHConnectionState::SshStateBanner,
+            banner_published: false,
             protover: Vec::new(),
             swver: Vec::new(),
 
@@ -153,34 +158,29 @@ impl SSHState {
             (&mut self.transaction.srv_hdr, &self.transaction.cli_hdr)
         };
         let il = input.len();
-        //first skip record left bytes
+        // A reassembled record is pending completion. The pure stash
+        // case (record_left > input) is handled by the parse wrapper
+        // before the tx updated flag is set, so only completion
+        // reaches here.
         if hdr.record_left > 0 {
-            //should we check for overflow ?
-            let ilen = input.len() as u32;
-            if hdr.record_left > ilen {
-                hdr.record_left -= ilen;
-                return AppLayerResult::ok();
-            } else {
-                let start = hdr.record_left as usize;
-                match hdr.record_left_msg {
-                    // parse reassembled tcp segments
-                    parser::MessageCode::Kexinit if hassh_is_enabled() => {
-                        if let Ok((_rem, key_exchange)) =
-                            parser::ssh_parse_key_exchange(&input[..start])
-                        {
-                            key_exchange.generate_hassh(
-                                &mut hdr.hassh_string,
-                                &mut hdr.hassh,
-                                &resp,
-                            );
-                        }
-                        hdr.record_left_msg = parser::MessageCode::Undefined(0);
+            // record_left comes from the wire pkt_len; clamp so the
+            // slice indexes stay in bounds even if a caller skips the
+            // wrapper's stash branch
+            let start = (hdr.record_left as usize).min(il);
+            match hdr.record_left_msg {
+                // parse reassembled tcp segments
+                parser::MessageCode::Kexinit if hassh_is_enabled() => {
+                    if let Ok((_rem, key_exchange)) =
+                        parser::ssh_parse_key_exchange(&input[..start])
+                    {
+                        key_exchange.generate_hassh(&mut hdr.hassh_string, &mut hdr.hassh, &resp);
                     }
-                    _ => {}
+                    hdr.record_left_msg = parser::MessageCode::Undefined(0);
                 }
-                input = &input[start..];
-                hdr.record_left = 0;
+                _ => {}
             }
+            input = &input[start..];
+            hdr.record_left = 0;
         }
         //parse records out of input
         while !input.is_empty() {
@@ -330,7 +330,9 @@ impl SSHState {
                             return AppLayerResult::ok();
                         }
                         Err(Err::Incomplete(_)) => {
-                            //we may have consumed data from previous records
+                            // a leading fragment is handled by the parse
+                            // wrapper; here a prior record in this call
+                            // already set the tx updated flag
                             debug_validate_bug_on!(input.len() >= SSH_RECORD_HEADER_LEN);
                             //do not trust nom incomplete value
                             return AppLayerResult::incomplete(
@@ -369,6 +371,9 @@ impl SSHState {
         if hdr.state == SSHConnectionState::SshStateBannerWaitEol {
             match parser::ssh_parse_line(input) {
                 Ok((rem, _)) => {
+                    // line complete: the banner data was parsed at
+                    // entry, this only takes the direction to kex
+                    hdr.state = SSHConnectionState::SshStateKex;
                     let mut r = self.parse_record(rem, resp, pstate, flow, stream_slice);
                     if r.is_incomplete() {
                         //adds bytes consumed by banner to incomplete result
@@ -496,12 +501,37 @@ unsafe extern "C" fn ssh_parse_request(
     let state = &mut cast_pointer!(state, SSHState);
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.cli_hdr;
-    state.transaction.tx_data.0.updated_ts = true;
-    if hdr.state < SSHConnectionState::SshStateKex {
-        return state.parse_banner(buf, false, pstate, flow, &stream_slice);
-    } else {
-        return state.parse_record(buf, false, pstate, flow, &stream_slice);
+
+    // Mark the tx updated only when the parse publishes something the
+    // detection engine can see (frame, field, state change, event).
+    // The record outcomes below and a banner continuation publish
+    // nothing and leave the flag false so the engine does not
+    // re-evaluate unchanged state:
+    if hdr.state >= SSHConnectionState::SshStateKex {
+        if hdr.record_left > 0 {
+            let ilen = buf.len() as u32;
+            if hdr.record_left > ilen {
+                // pure record reassembly stash
+                hdr.record_left -= ilen;
+                return AppLayerResult::ok();
+            }
+        } else if !buf.is_empty() && buf.len() < SSH_RECORD_HEADER_LEN {
+            // record header fragment: nothing consumed yet
+            return AppLayerResult::incomplete(0_u32, SSH_RECORD_HEADER_LEN as u32);
+        }
     }
+    if hdr.state < SSHConnectionState::SshStateKex {
+        // the open banner line is consumed in place: only a publish
+        // or a state change marks the tx updated
+        let pub_before = hdr.banner_published;
+        let st_before = hdr.state;
+        let r = state.parse_banner(buf, false, pstate, flow, &stream_slice);
+        state.transaction.tx_data.0.updated_ts = state.transaction.cli_hdr.state != st_before
+            || state.transaction.cli_hdr.banner_published != pub_before;
+        return r;
+    }
+    state.transaction.tx_data.0.updated_ts = true;
+    state.parse_record(buf, false, pstate, flow, &stream_slice)
 }
 
 unsafe extern "C" fn ssh_parse_response(
@@ -511,12 +541,31 @@ unsafe extern "C" fn ssh_parse_response(
     let state = &mut cast_pointer!(state, SSHState);
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.srv_hdr;
-    state.transaction.tx_data.0.updated_tc = true;
-    if hdr.state < SSHConnectionState::SshStateKex {
-        return state.parse_banner(buf, true, pstate, flow, &stream_slice);
-    } else {
-        return state.parse_record(buf, true, pstate, flow, &stream_slice);
+
+    // See ssh_parse_request for the updated flag policy.
+    if hdr.state >= SSHConnectionState::SshStateKex {
+        if hdr.record_left > 0 {
+            let ilen = buf.len() as u32;
+            if hdr.record_left > ilen {
+                // pure record reassembly stash
+                hdr.record_left -= ilen;
+                return AppLayerResult::ok();
+            }
+        } else if !buf.is_empty() && buf.len() < SSH_RECORD_HEADER_LEN {
+            // record header fragment: nothing consumed yet
+            return AppLayerResult::incomplete(0_u32, SSH_RECORD_HEADER_LEN as u32);
+        }
     }
+    if hdr.state < SSHConnectionState::SshStateKex {
+        let pub_before = hdr.banner_published;
+        let st_before = hdr.state;
+        let r = state.parse_banner(buf, true, pstate, flow, &stream_slice);
+        state.transaction.tx_data.0.updated_tc = state.transaction.srv_hdr.state != st_before
+            || state.transaction.srv_hdr.banner_published != pub_before;
+        return r;
+    }
+    state.transaction.tx_data.0.updated_tc = true;
+    state.parse_record(buf, true, pstate, flow, &stream_slice)
 }
 
 #[no_mangle]
