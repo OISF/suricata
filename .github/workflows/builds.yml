@@ -3410,29 +3410,8 @@ jobs:
           sync: rsync
           copyback: false
           envs: "DEFAULT_CFLAGS"
-          prepare: |
-            pkg install -y \
-              autoconf \
-              automake \
-              gmake \
-              jq \
-              rust-cbindgen \
-              jansson \
-              libpcap \
-              libtool \
-              libyaml \
-              pcre2 \
-              pkgconf \
-              python3 \
-              py312-pyyaml \
-              rust
-          run: |
-            tar xf prep/suricata-verify.tar.gz
-            ./autogen.sh
-            CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests
-            gmake -j$(sysctl -n hw.ncpu)
-            ./src/suricata -u -l /tmp/
-            python3 ./suricata-verify/run.py -q --debug-failed
+          prepare: ./qa/ci/freebsd.sh prepare
+          run: ./qa/ci/freebsd.sh run
 
   windows-msys2-mingw64-npcap:
     name: Windows MSYS2 MINGW64 (NPcap)
