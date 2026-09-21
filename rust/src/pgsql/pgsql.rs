@@ -1017,6 +1017,10 @@ pub unsafe extern "C" fn SCRegisterPgsqlParser() {
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
+        if conf_get_node("app-layer.protocols.pgsql.enabled").is_none()
+            && conf_get_node("app-layer.protocols.pgsql.tcp.enabled").is_none() {
+            SCLogNotice!("Protocol detector and parser enabled by default for PGSQL.");
+        }
         SCLogDebug!("Rust pgsql parser registered.");
         let retval = conf_get("app-layer.protocols.pgsql.stream-depth");
         if let Some(val) = retval {
