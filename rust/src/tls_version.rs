@@ -158,7 +158,7 @@ pub unsafe extern "C" fn SSLVersionToString(v: u16, buf: *mut c_char) -> bool {
     };
     let b = vers.as_bytes();
 
-    if b.len() > SSL_VERSION_MAX_STRLEN {
+    if b.len() >= SSL_VERSION_MAX_STRLEN {
         return false;
     }
 
@@ -192,5 +192,54 @@ mod tests {
     fn test_oor_versions() {
         assert!(!SCTlsVersion::is_valid(0xffff));
         assert!(!SCTlsVersion::is_valid(0xfffe));
+    }
+
+    // SSLVersionToString always writes a NUL one byte past the string, so every
+    // string it can emit must leave room for that NUL in a MAX_STRLEN buffer.
+    // A regression to a >=-long string would write one byte past the caller's
+    // buffer.
+    #[test]
+    fn test_version_strings_fit_buffer() {
+        let all: [u16; 26] = [
+            TLS_VERSION_UNKNOWN,
+            SSL_VERSION_2,
+            SSL_VERSION_3,
+            TLS_VERSION_10,
+            TLS_VERSION_11,
+            TLS_VERSION_12,
+            TLS_VERSION_13,
+            TLS_VERSION_13_DRAFT28,
+            TLS_VERSION_13_DRAFT27,
+            TLS_VERSION_13_DRAFT26,
+            TLS_VERSION_13_DRAFT25,
+            TLS_VERSION_13_DRAFT24,
+            TLS_VERSION_13_DRAFT23,
+            TLS_VERSION_13_DRAFT22,
+            TLS_VERSION_13_DRAFT21,
+            TLS_VERSION_13_DRAFT20,
+            TLS_VERSION_13_DRAFT19,
+            TLS_VERSION_13_DRAFT18,
+            TLS_VERSION_13_DRAFT17,
+            TLS_VERSION_13_DRAFT16,
+            TLS_VERSION_13_PRE_DRAFT16,
+            TLS_VERSION_13_DRAFT20_FB,
+            TLS_VERSION_13_DRAFT21_FB,
+            TLS_VERSION_13_DRAFT22_FB,
+            TLS_VERSION_13_DRAFT23_FB,
+            TLS_VERSION_13_DRAFT26_FB,
+        ];
+        let mut buf = [0u8; SSL_VERSION_MAX_STRLEN];
+        for &v in &all {
+            // every named version must format and leave room for the NUL
+            assert!(
+                unsafe { SSLVersionToString(v, buf.as_mut_ptr() as *mut std::ffi::c_char) },
+                "version {v:04x} must fit the version string buffer"
+            );
+            let len = buf.iter().position(|&b| b == 0).unwrap();
+            assert!(
+                len < SSL_VERSION_MAX_STRLEN,
+                "version {v:04x} string length {len} + NUL overflows the buffer"
+            );
+        }
     }
 }
