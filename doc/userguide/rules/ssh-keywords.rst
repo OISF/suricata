@@ -10,21 +10,83 @@ connections.
 Hooks
 -----
 
-The available hooks for SSH are:
+The SSH parser exposes a per-direction state machine. A rule that
+hooks one of the states below is evaluated once the transaction's
+progress in that direction has reached the state; for firewall rules
+the verdict applies while the transaction stays at the hooked state
+and stops applying once it advances past it (see :ref:`app-layer-state`).
 
 Request (``to_server``) side:
 
-* ``request_in_progress``
-* ``request_banner_wait_eol``
-* ``request_banner_done``
-* ``request_finished``
++-----------------------------+-------------------------------------------------+
+| State                       | Meaning                                         |
++=============================+=================================================+
+| ``request_banner``          | Version exchange: the banner (version) phase;   |
+|                             | the first packets of the direction.             |
++-----------------------------+-------------------------------------------------+
+| ``request_banner_wait_eol`` | The banner line is 256 bytes or longer and no   |
+|                             | end-of-line has been seen yet. The ``long_      |
+|                             | banner`` event is logged. A direction parked    |
+|                             | here stays in this state when the line          |
+|                             | completes (the parser does not advance it       |
+|                             | to ``kex``), so it never reports ``kex`` and    |
+|                             | jumps straight to ``session`` at a ``new        |
+|                             | keys`` record.                                  |
++-----------------------------+-------------------------------------------------+
+| ``request_kex``             | A valid banner line was parsed; key exchange.   |
+|                             | ``ssh.proto``, ``ssh.software`` and the hassh   |
+|                             | buffers are registered at this state.           |
++-----------------------------+-------------------------------------------------+
+| ``request_session``         | A ``new keys`` record was seen in this          |
+|                             | direction: the session is established for that  |
+|                             | direction (the other direction advances         |
+|                             | independently). ``new keys`` is a transition    |
+|                             | rather than a phase with its own data: match    |
+|                             | the record itself with a frame rule (message    |
+|                             | code 21, see the example below).                |
++-----------------------------+-------------------------------------------------+
 
-Response (``to_client``) side:
+Response (``to_client``) side: the same states with the ``response_``
+prefix: ``response_banner``, ``response_banner_wait_eol``,
+``response_kex``, ``response_session``.
 
-* ``response_in_progress``
-* ``response_banner_wait_eol``
-* ``response_banner_done``
-* ``response_finished``
+Completion and failure
+~~~~~~~~~~~~~~~~~~~~~~
+
+``request_done`` / ``response_done`` is the registered completion
+state and doubles as the failure state. When the parser in one
+direction hits an unrecoverable error — an invalid banner or an
+invalid record (header or payload) — that direction jumps straight
+to ``done``. The failure is terminal for every keyword, and the
+reason is available through the ``ssh.invalid_banner`` /
+``ssh.invalid_record`` app-layer events. The ``ssh.long_banner`` and
+``ssh.long_kex_record`` events are non-fatal: the direction continues
+(a long banner parks it in ``banner_wait_eol``, an oversized
+key-exchange record keeps stashing).
+
+Consequences worth knowing:
+
+* A successful direction never reports ``done`` — its maximum
+  progress is ``session``. The engine-level hook ``request_complete``
+  (and the firewall policy key ``request-complete``) is bound to the
+  completion state: before this change it matched a flow whose
+  session was established, and it matches only the failure (or
+  disrupted) condition now. Review existing ``accept:* ssh:request_complete``
+  rules and ``request-complete`` firewall policies: a session-admit
+  rule like that silently inverts.
+* Rules cannot reference ``done`` (``request_done`` /
+  ``response_done`` do not load), although the generic hook lists for
+  the completion state are still registered (``ssh:request_done:generic``
+  / ``ssh:response_done:generic``), which is what Lua hooks into. And
+  ``app-layer-state:>request_session`` matches only directions that
+  *failed (or were disrupted, e.g. by a stream gap or depth
+  truncation)* — a successful request direction stops at
+  ``request_session``.
+* ``banner_wait_eol`` used to be clamped to the banner state by the
+  progress accessor, so rules hooking it never matched. It now matches
+  normally when the parser reports it; firewall rules written against
+  the old behaviour — notably a *drop* at this state — become active
+  with this change.
 
 Frames
 ------
