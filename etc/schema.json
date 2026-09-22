@@ -6946,6 +6946,39 @@
                             "description": "Statistics for the DPDK capture module",
                             "additionalProperties": false,
                             "properties": {
+                                "backlog": {
+                                    "type": "object",
+                                    "description":
+                                            "RX backlog statistics, available when ``rx-backlog-size`` YAML setting is nonzero. In totals, ``max`` is the highest value from any single worker; other backlog counters are summed across workers. The ``enqueued``, ``capacity_hits``, and ``drain_budget_hits`` counters are cumulative since startup.",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "capacity_hits": {
+                                            "type": "integer",
+                                            "description":
+                                                    "Number of episodes when a backlog could not receive another batch. Increases indicate that available space limited receiving: consider a larger backlog for short bursts, or address processing capacity if the backlog stays high. A continuously near-full backlog can count as one episode, so also monitor ``current``."
+                                        },
+                                        "current": {
+                                            "type": "integer",
+                                            "description":
+                                                    "Number of packets waiting for processing at the last sample. A worker returning to zero between bursts indicates that it is catching up. A value that stays near its configured capacity signals a sustained overload."
+                                        },
+                                        "drain_budget_hits": {
+                                            "type": "integer",
+                                            "description":
+                                                    "Number of times a worker received the full drain allowance into the backlog. Increases indicate bursty traffic as the NIC received many packets inbetween the drain periods."
+                                        },
+                                        "enqueued": {
+                                            "type": "integer",
+                                            "description":
+                                                    "Total packets placed in the backlog. An increase shows that the backlog is being used."
+                                        },
+                                        "max": {
+                                            "type": "integer",
+                                            "description":
+                                                    "Highest occupancy reached by any single worker since startup. Compare it directly with that worker's ``rx-backlog-size`` YAML option to assess spare capacity."
+                                        }
+                                    }
+                                },
                                 "ierrors": {
                                     "type": "integer",
                                     "description":
