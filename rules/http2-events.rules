@@ -30,3 +30,5 @@ alert http2 any any -> any any (msg:"SURICATA HTTP2 compression bomb"; flow:esta
 alert http2 any any -> any any (msg:"SURICATA HTTP2 headers table overflow"; flow:established; app-layer-event:http2.header_table_overflow; classtype:protocol-command-decode; sid:2290021; rev:1;)
 alert http2 any any -> any any (msg:"SURICATA HTTP2 continuation without headers"; flow:established; app-layer-event:http2.continuation_without_headers; classtype:protocol-command-decode; sid:2290022; rev:1;)
 alert http2 any any -> any any (msg:"SURICATA HTTP2 too long repeated headers"; flow:established; app-layer-event:http2.too_long_repeated_headers; classtype:protocol-command-decode; sid:2290023; rev:1;)
+alert http2 any any -> any any (msg:"SURICATA HTTP2 different hosts"; flow:established,to_server; app-layer-event:http2.different_hosts; classtype:protocol-command-decode; sid:2290024; rev:1;)
+alert http2 any any -> any any (msg:"SURICATA HTTP2 different authorities"; flow:established,to_server; app-layer-event:http2.different_authorities; classtype:protocol-command-decode; sid:2290025; rev:1;)
