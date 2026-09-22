@@ -404,12 +404,13 @@ impl HTTP2Transaction {
                 }
             } else if block.name.as_ref() == b":path" {
                 path = Some(&block.value);
-            } else if block.name.eq_ignore_ascii_case(b":authority") {
+            } else if block.name.eq_ignore_ascii_case(b":authority") && dir == Direction::ToServer {
                 if let Some(ref a) = authority {
                     if Rc::strong_count(&block.value) > 1
-                        && !already_checked_auth.insert(Rc::as_ptr(&block.value) as usize) {
-                            continue;
-                        }
+                        && !already_checked_auth.insert(Rc::as_ptr(&block.value) as usize)
+                    {
+                        continue;
+                    }
                     if !a.eq_ignore_ascii_case(&block.value) {
                         self.set_event(HTTP2Event::DifferentAuthorities);
                     }
@@ -420,12 +421,13 @@ impl HTTP2Transaction {
                     // when in HTTP1 we can have user:password@domain.com
                     self.set_event(HTTP2Event::UserinfoInUri);
                 }
-            } else if block.name.eq_ignore_ascii_case(b"host") {
+            } else if block.name.eq_ignore_ascii_case(b"host") && dir == Direction::ToServer {
                 if let Some(ref h) = host {
                     if Rc::strong_count(&block.value) > 1
-                        && !already_checked_hosts.insert(Rc::as_ptr(&block.value) as usize) {
-                            continue;
-                        }
+                        && !already_checked_hosts.insert(Rc::as_ptr(&block.value) as usize)
+                    {
+                        continue;
+                    }
                     if !h.eq_ignore_ascii_case(&block.value) {
                         self.set_event(HTTP2Event::DifferentHosts);
                     }
