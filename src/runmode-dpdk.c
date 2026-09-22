@@ -110,6 +110,7 @@ static void DPDKDerefConfig(void *conf);
 
 #define DPDK_CONFIG_DEFAULT_THREADS                     "auto"
 #define DPDK_CONFIG_DEFAULT_INTERRUPT_MODE              false
+#define DPDK_CONFIG_DEFAULT_RX_BACKLOG_SIZE             "0"
 #define DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE                "auto"
 #define DPDK_CONFIG_DEFAULT_MEMPOOL_CACHE_SIZE          "auto"
 #define DPDK_CONFIG_DEFAULT_RX_DESCRIPTORS              "auto"
@@ -136,6 +137,7 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
     .vlan_strip_offload = "vlan-strip-offload",
     .rss_hf = "rss-hash-functions",
     .linkup_timeout = "linkup-timeout",
+    .rx_backlog_size = "rx-backlog-size",
     .mempool_size = "mempool-size",
     .mempool_cache_size = "mempool-cache-size",
     .rx_descriptors = "rx-descriptors",
@@ -562,6 +564,31 @@ static int ConfigSetTxQueues(
     SCReturnInt(0);
 }
 
+static int ConfigSetRxBacklogSize(DPDKIfaceConfig *iconf, const char *entry_str)
+{
+    SCEnter();
+    uint32_t size;
+    if (StringParseUint32(&size, 10, 0, entry_str) < 0) {
+        SCLogError("%s: rx-backlog-size requires a non-negative integer - \"%s\"", iconf->iface,
+                entry_str);
+        SCReturnInt(-EINVAL);
+    }
+
+    if (size != 0 && (size < DPDK_RX_BURST_SIZE || !rte_is_power_of_2(size))) {
+        SCLogError("%s: rx-backlog-size must be zero or a power of two of at least %u",
+                iconf->iface, DPDK_RX_BURST_SIZE);
+        SCReturnInt(-ERANGE);
+    }
+
+    if ((uint64_t)size * sizeof(struct rte_mbuf *) > SIZE_MAX) {
+        SCLogError("%s: rx-backlog-size exceeds the supported allocation size", iconf->iface);
+        SCReturnInt(-ERANGE);
+    }
+
+    iconf->rx_backlog_size = size;
+    SCReturnInt(0);
+}
+
 /**
  * \param bond_members number of bond member ports, 0 for a non-bond port or an unknown count
  */
@@ -573,8 +600,8 @@ static int MempoolSizeCalculate(const DPDKIfaceConfig *iconf, uint16_t bond_memb
         descriptors *= bond_members;
     }
 
-    /* The RX burst in flight is held once per worker. */
-    const uint64_t required = descriptors + DPDK_RX_BURST_SIZE;
+    /* The RX burst in flight and the backlog are held once per worker. */
+    const uint64_t required = descriptors + iconf->rx_backlog_size + DPDK_RX_BURST_SIZE;
     /* Add one so that rounding to 2^q - 1 still covers a power-of-two requirement. */
     const uint64_t next_p2 = rte_align64pow2(required + 1);
     if (next_p2 - 1 > UINT32_MAX) {
@@ -1018,6 +1045,14 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     uint16_t bond_members = 0;
     if (strcmp(dev_info.driver_name, "net_bonding") == 0) {
         bond_members = BondingMemberDevCount(&dev_info);
+    }
+
+    retval = SCConfGetChildValueWithDefault(
+                     if_root, if_default, dpdk_yaml.rx_backlog_size, &entry_str) != 1
+                     ? ConfigSetRxBacklogSize(iconf, DPDK_CONFIG_DEFAULT_RX_BACKLOG_SIZE)
+                     : ConfigSetRxBacklogSize(iconf, entry_str);
+    if (retval < 0) {
+        SCReturnInt(retval);
     }
 
     retval = SCConfGetChildValueWithDefault(
@@ -1513,6 +1548,12 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
                                      : iconf->mempool_cache_size;
     SCLogInfo("%s: creating %u packet mempools of size %u, cache size %u, mbuf size %u",
             iconf->iface, iconf->nb_rx_queues, iconf->queue_mempool_size, q_mp_cache_sz, mbuf_size);
+    if (iconf->rx_backlog_size != 0) {
+        SCLogInfo("%s: RX backlog size %" PRIu32 " per queue, RX burst %u, drain budget %u, "
+                  "processing quantum %u",
+                iconf->iface, iconf->rx_backlog_size, DPDK_RX_BURST_SIZE, DPDK_RX_DRAIN_BUDGET,
+                DPDK_BACKLOG_PROCESS_QUANTUM);
+    }
     for (int i = 0; i < iconf->nb_rx_queues; i++) {
         char mempool_name[64];
         snprintf(mempool_name, sizeof(mempool_name), "mp_%d_%.20s", i, iconf->iface);
@@ -2703,7 +2744,103 @@ static int DPDKRunmodeSetMempoolSize08(void)
 }
 
 /**
- * \brief Register DPDK runmode unit tests for threads, mempool size and mempool cache size.
+ * \brief RX backlog size is zero or a power of two of at least one RX burst
+ */
+static int DPDKRunmodeSetRxBacklogSize01(void)
+{
+    DPDKIfaceConfig iconf = { 0 };
+
+    int r = ConfigSetRxBacklogSize(&iconf, "64");
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.rx_backlog_size == 64);
+
+    r = ConfigSetRxBacklogSize(&iconf, "32");
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.rx_backlog_size == 32);
+
+    r = ConfigSetRxBacklogSize(&iconf, "0");
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.rx_backlog_size == 0);
+
+    iconf.rx_backlog_size = 64;
+    r = ConfigSetRxBacklogSize(&iconf, DPDK_CONFIG_DEFAULT_RX_BACKLOG_SIZE);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.rx_backlog_size == 0);
+
+    r = ConfigSetRxBacklogSize(&iconf, "16");
+    FAIL_IF_NOT(r == -ERANGE);
+
+    r = ConfigSetRxBacklogSize(&iconf, "48");
+    FAIL_IF_NOT(r == -ERANGE);
+
+    r = ConfigSetRxBacklogSize(&iconf, "abc");
+    FAIL_IF_NOT(r == -EINVAL);
+
+    PASS;
+}
+
+/**
+ * \brief Mempool size covers the RX backlog of each queue
+ */
+static int DPDKRunmodeSetMempoolSize09(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 1024, 1024);
+    iconf.rx_backlog_size = 64;
+    int r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 4095);
+    FAIL_IF_NOT(MempoolCacheSizeCalculate(iconf.queue_mempool_size) == 455);
+
+    /* 127 without the backlog */
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    iconf.rx_backlog_size = 64;
+    r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 255);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    iconf.rx_backlog_size = 64;
+    r = ConfigSetMempoolSize(&iconf, "127", 0);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    iconf.rx_backlog_size = 64;
+    r = ConfigSetMempoolSize(&iconf, "255", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 255);
+
+    PASS;
+}
+
+/**
+ * \brief Mempool size of a bond port counts the RX backlog once per queue,
+ * not per member port
+ */
+static int DPDKRunmodeSetMempoolSize10(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    iconf.rx_backlog_size = 64;
+    int r = ConfigSetMempoolSize(&iconf, "auto", 3);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 255);
+
+    /* 255 without the backlog, 1023 with a backlog per member port */
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    iconf.rx_backlog_size = 128;
+    r = ConfigSetMempoolSize(&iconf, "auto", 3);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 511);
+
+    PASS;
+}
+
+/**
+ * \brief Register DPDK runmode unit tests for threads, RX backlog size, mempool size and
+ * mempool cache size.
  */
 void RunmodeDpdkRegisterTests(void)
 {
@@ -2729,6 +2866,9 @@ void RunmodeDpdkRegisterTests(void)
     UtRegisterTest("DPDKRunmodeSetMempoolSize06", DPDKRunmodeSetMempoolSize06);
     UtRegisterTest("DPDKRunmodeSetMempoolSize07", DPDKRunmodeSetMempoolSize07);
     UtRegisterTest("DPDKRunmodeSetMempoolSize08", DPDKRunmodeSetMempoolSize08);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize09", DPDKRunmodeSetMempoolSize09);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize10", DPDKRunmodeSetMempoolSize10);
+    UtRegisterTest("DPDKRunmodeSetRxBacklogSize01", DPDKRunmodeSetRxBacklogSize01);
 }
 #endif /* UNITTESTS and HAVE_DPDK */
 

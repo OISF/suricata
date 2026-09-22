@@ -98,6 +98,8 @@ Major Changes
 - ``mempool-size: auto`` for DPDK interfaces now reserves one RX burst (32
   packets) per queue in addition to the RX and TX descriptors, and a manually
   set ``mempool-size`` is validated against the same requirement.
+- DPDK interfaces accept the optional ``rx-backlog-size`` setting, a per-worker
+  packet backlog that absorbs traffic bursts; see :ref:`dpdk-rx-backlog`.
 
 Logging Changes
 ~~~~~~~~~~~~~~~

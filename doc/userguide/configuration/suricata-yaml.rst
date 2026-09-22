@@ -2518,7 +2518,11 @@ manually (to e.g. ``mempool-size: 65536``), the value is divided by the number o
 worker cores of the interface (on 4 worker threads, each worker is assigned
 with a mempool containing 16383 packet objects).
 Both auto sizing and manual minimum validation include each worker's RX and
-TX descriptors and a 32-mbuf in-flight margin.
+TX descriptors, ``rx-backlog-size`` mbufs, and a 32-mbuf in-flight margin.
+The optional :ref:`dpdk-rx-backlog` can help to overcome short-term traffic
+bursts. The backlog is configured per worker/RX queue. Its size must be an
+integer that is a power of two, with a minimum of 32; zero (the default)
+disables it. A good value to start with could be, e.g., ``131072``.
 Memory (in bytes) for interface's memory pools is calculated as:
 ``mempool-size`` * ``mtu``.
 The sum of memory pool requirements divided by the size of one hugepage results
