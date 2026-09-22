@@ -2058,8 +2058,12 @@ static int SigParseBasics(DetectEngineCtx *de_ctx, Signature *s, const char *sig
     while (isspace(*index) || *index == '(') {
         index++;
     }
+    bool closing = false;
     for (size_t i = strlen(index); i > 0; i--) {
-        if (isspace(index[i - 1]) || index[i - 1] == ')') {
+        if (index[i - 1] == ')') {
+            closing = true;
+            index[i - 1] = '\0';
+        } else if (index[i - 1] == ' ') {
             index[i - 1] = '\0';
         } else {
             break;
@@ -2069,6 +2073,10 @@ static int SigParseBasics(DetectEngineCtx *de_ctx, Signature *s, const char *sig
 
     if (scan_only) {
         return 0;
+    }
+
+    if (!closing) {
+        SCLogWarning("Rule missing closing parenthesis");
     }
 
     /* Parse Action */
