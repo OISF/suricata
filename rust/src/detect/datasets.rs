@@ -226,10 +226,13 @@ unsafe fn process_ipv6_set(
 ) -> i32 {
     let ipv6 = match Ipv6Addr::from_str(v[0]) {
         Ok(a) => a,
-        Err(_) => {
-            SCFatalErrorOnInit!("invalid Ipv6 value {} in {}", set_name, filename.display());
-            return -1;
-        }
+        Err(_) => match Ipv4Addr::from_str(v[0]) {
+            Ok(a) => a.to_ipv6_mapped(),
+            Err(_) => {
+                SCFatalErrorOnInit!("invalid Ipv6 value {} in {}", set_name, filename.display());
+                return -1;
+            }
+        },
     };
     let mut fin_ipv6 = ipv6;
 
