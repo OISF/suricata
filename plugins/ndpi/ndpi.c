@@ -209,11 +209,20 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
 
     if (!flowctx->detection_completed && ip_ptr != NULL && ip_len > 0) {
         uint64_t time_ms = ((uint64_t)p->ts.secs) * 1000 + p->ts.usecs / 1000;
+        struct ndpi_flow_input_info input_info;
 
         SCLogDebug("Performing nDPI detection...");
 
+        /* Suricata knows the packet direction, spare nDPI from guessing it.
+         * Whether the flow beginning was seen is left unknown as the flow
+         * API exposes no reliable flag for it. */
+        memset(&input_info, 0, sizeof(input_info));
+        input_info.seen_flow_beginning = NDPI_FLOW_BEGINNING_UNKNOWN;
+        input_info.in_pkt_dir =
+                PKT_IS_TOSERVER(p) ? NDPI_IN_PKT_DIR_C_TO_S : NDPI_IN_PKT_DIR_S_TO_C;
+
         flowctx->detected_l7_protocol = ndpi_detection_process_packet(
-                threadctx->ndpi, flowctx->ndpi_flow, ip_ptr, ip_len, time_ms, NULL);
+                threadctx->ndpi, flowctx->ndpi_flow, ip_ptr, ip_len, time_ms, &input_info);
 
         if (NdpiCompatClassificationFinal(
                     threadctx->ndpi, flowctx->ndpi_flow, &flowctx->detected_l7_protocol)) {
