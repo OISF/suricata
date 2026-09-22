@@ -404,15 +404,9 @@ static int DetectnDPIRiskPacketMatch(
 static DetectnDPIRiskData *DetectnDPIRiskParse(const char *arg, bool negate)
 {
     DetectnDPIRiskData *data;
-    struct ndpi_detection_module_struct *ndpi_struct;
     ndpi_risk risk_mask;
 
     /* convert list of risk names (string) to mask */
-    ndpi_struct = NdpiModuleNew();
-    if (unlikely(ndpi_struct == NULL))
-        return NULL;
-    ndpi_exit_detection_module(ndpi_struct);
-
     if (isdigit(arg[0]))
         risk_mask = atoll(arg);
     else {
