@@ -374,10 +374,10 @@ impl HTTP2Transaction {
     fn handle_headers(
         &mut self, blocks: &[parser::HTTP2FrameHeaderBlock], dir: Direction,
     ) -> Option<Vec<u8>> {
-        let mut authority = None;
+        let mut authority: Option<&[u8]> = None;
         let mut path = None;
         let mut doh = false;
-        let mut host = None;
+        let mut host: Option<&[u8]> = None;
         for block in blocks {
             if block.name.as_ref() == b"content-encoding" {
                 self.decoder.http2_encoding_fromvec(&block.value, dir);
@@ -399,6 +399,11 @@ impl HTTP2Transaction {
             } else if block.name.as_ref() == b":path" {
                 path = Some(&block.value);
             } else if block.name.eq_ignore_ascii_case(b":authority") {
+                if let Some(a) = authority {
+                    if !a.eq_ignore_ascii_case(&block.value) {
+                        self.set_event(HTTP2Event::DifferentAuthorities);
+                    }
+                }
                 authority = Some(&block.value);
                 if block.value.contains(&b'@') {
                     // it is forbidden by RFC 9113 to have userinfo in this field
@@ -406,6 +411,11 @@ impl HTTP2Transaction {
                     self.set_event(HTTP2Event::UserinfoInUri);
                 }
             } else if block.name.eq_ignore_ascii_case(b"host") {
+                if let Some(h) = host {
+                    if !h.eq_ignore_ascii_case(&block.value) {
+                        self.set_event(HTTP2Event::DifferentHosts);
+                    }
+                }
                 host = Some(&block.value);
             }
         }
@@ -425,9 +435,15 @@ impl HTTP2Transaction {
             {
                 self.set_event(HTTP2Event::AuthorityHostMismatch);
             }
+            if !self.last_host.is_empty() && !h.eq_ignore_ascii_case(&self.last_host) {
+                self.set_event(HTTP2Event::DifferentHosts);
+            }
             self.last_host = h.to_vec();
         }
         if let Some(a) = authority {
+            if !self.last_authority.is_empty() && !a.eq_ignore_ascii_case(&self.last_authority) {
+                self.set_event(HTTP2Event::DifferentAuthorities);
+            }
             self.last_authority = a.to_vec();
         }
         if doh && unsafe { ALPROTO_DOH2 } != ALPROTO_UNKNOWN {
@@ -705,6 +721,8 @@ pub enum HTTP2Event {
     DataStreamZero,
     TooManyFrames,
     CompressionBomb,
+    DifferentHosts,
+    DifferentAuthorities,
 }
 
 pub struct HTTP2DynTable {
