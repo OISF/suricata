@@ -2272,7 +2272,7 @@ fi
         exit 1
     ])
 
-    AS_IF([test "x$enable_dpi" = "xyes"], [
+    AS_IF([test "x$enable_ndpi" = "xyes"], [
         if test "x$enable_shared" = "xno"; then
             echo
             echo "   ERROR! ndpi cannot be enabled with --disable-shared"
