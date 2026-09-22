@@ -204,7 +204,8 @@ IDS (none) mode uses no TX descriptors and does not create any TX queues by
 default. IPS and TAP mode uses the same number of TX descriptors as RX
 descriptors.
 The size of each queue's mempool and its cache is then derived from the count
-of descriptors and an allowance for in-flight packets.
+of descriptors, the configured RX backlog, and an allowance for in-flight
+packets.
 
 Rx (and Tx) descriptors are set to the highest possible value to allow more
 buffer room when traffic spikes occur. However, it requires more memory.
@@ -212,6 +213,59 @@ Individual properties can still be set manually if needed.
 
 .. note:: Mellanox ConnectX-4 NICs may not support auto-configuration of
   ``RX /TX descriptors``. Instead it can be set to a fixed value (e.g. 16384).
+
+.. _dpdk-rx-backlog:
+
+Per-worker RX backlog
+---------------------
+
+The optional ``rx-backlog-size`` interface setting allows a worker to drain
+its NIC RX queue into a software first-in-first-out queue before processing
+the packets. This helps absorb traffic bursts while the worker catches up
+with packet processing.
+
+.. code-block:: yaml
+
+  dpdk:
+    interfaces:
+      - interface: 0000:05:00.1
+        rx-backlog-size: 65536
+
+The value is the number of packets (mbufs) **per RX queue / worker**. Zero
+disables the backlog and is the default when the setting is absent from both
+the interface and the default interface configuration. A nonzero value
+must be a power of two of at least 32.
+
+.. note:: TAP and IPS can experience extra forwarding latency in exchange for
+  fewer packet drops during bursts.
+
+Packets waiting in the backlog receive a timestamp when the worker starts
+processing their batch. Their timestamps therefore include time spent in the
+backlog, which can affect correlation with other capture sources during bursts.
+
+Choosing the backlog size
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. Start with a large ``rx-backlog-size`` that fits the sensor's memory budget.
+2. Monitor the backlog counters during representative traffic, including the
+   busiest periods and expected bursts. Use ``capture.dpdk.backlog.max`` to
+   find the highest number of packets queued by any worker since startup.
+   A quiet period alone is not sufficient to size the backlog.
+3. If the maximum stays well below ``rx-backlog-size``, you can reduce the size
+   to save memory. Choose a power of two above the observed peak and leave room
+   for larger bursts. For example, a peak of 40000 packets could justify
+   reducing a backlog of 131072 to 65536. Restart Suricata to apply the change
+   and potentially repeat the measurement.
+4. If the maximum approaches the configured size or ``capacity_hits``
+   increases, check whether the backlog empties between bursts by observing
+   the ``capture.dpdk.backlog.current`` counter. If it does, a larger backlog
+   may help absorb those bursts, otherwise, if a worker's backlog stays near
+   capacity across successive samples, it may not be keeping up with its
+   traffic.
+
+See ``stats.capture.dpdk.backlog`` in the
+:doc:`EVE Index <../appendix/eve-index>` for each counter's interpretation
+and recommended action.
 
 .. _dpdk-link-state-change-timeout:
 
