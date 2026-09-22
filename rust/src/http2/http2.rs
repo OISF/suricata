@@ -398,7 +398,7 @@ impl HTTP2Transaction {
                 }
             } else if block.name.as_ref() == b":path" {
                 path = Some(&block.value);
-            } else if block.name.eq_ignore_ascii_case(b":authority") {
+            } else if block.name.eq_ignore_ascii_case(b":authority") && dir == Direction::ToServer {
                 if let Some(a) = authority {
                     if !a.eq_ignore_ascii_case(&block.value) {
                         self.set_event(HTTP2Event::DifferentAuthorities);
@@ -410,7 +410,7 @@ impl HTTP2Transaction {
                     // when in HTTP1 we can have user:password@domain.com
                     self.set_event(HTTP2Event::UserinfoInUri);
                 }
-            } else if block.name.eq_ignore_ascii_case(b"host") {
+            } else if block.name.eq_ignore_ascii_case(b"host") && dir == Direction::ToServer {
                 if let Some(h) = host {
                     if !h.eq_ignore_ascii_case(&block.value) {
                         self.set_event(HTTP2Event::DifferentHosts);
