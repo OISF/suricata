@@ -140,6 +140,9 @@ impl ConfNode {
 
     pub fn value(&self) -> &str {
         let vptr = unsafe { SCConfGetValueNode(self.conf) };
+        if vptr.is_null() {
+            return "";
+        }
         let value = std::str::from_utf8(unsafe { CStr::from_ptr(vptr).to_bytes() }).unwrap();
         return value;
     }
