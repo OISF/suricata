@@ -2293,6 +2293,18 @@ fi
             CPPFLAGS="${CPPFLAGS} -I$NDPI_HOME/src/include"
             NDPI_LIB="$NDPI_HOME/src/lib/libndpi.a"
             AC_SUBST([NDPI_LIB])
+
+            # see plugins/ndpi/ndpi-compat.h for the supported releases
+            AC_MSG_CHECKING([for nDPI 4.12 or later])
+            AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+                #include "ndpi_define.h"
+                #if NDPI_MAJOR < 4 || (NDPI_MAJOR == 4 && NDPI_MINOR < 12)
+                #error "nDPI too old"
+                #endif
+            ]], [[]])],
+                [AC_MSG_RESULT([yes])],
+                [AC_MSG_RESULT([no])
+                 AC_MSG_ERROR([the nDPI plugin requires nDPI 4.12 or later; make sure the nDPI source tree at $NDPI_HOME has been configured])])
         else
             AC_MSG_RESULT(not found)
             enable_ndpi="no"
