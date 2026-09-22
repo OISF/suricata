@@ -22,6 +22,7 @@
 #include "suricata-common.h"
 #include "suricata-plugin.h"
 
+#include "conf.h"
 #include "detect-engine-helper.h"
 #include "detect-parse.h"
 #include "flow-callbacks.h"
@@ -38,6 +39,7 @@ static FlowStorageId flow_storage_id = { .id = -1 };
 static int ndpi_protocol_keyword_id = -1;
 static int ndpi_risk_keyword_id = -1;
 static struct ndpi_global_context *ndpi_g_ctx = NULL;
+static NdpiCompatLicense ndpi_license = NDPI_COMPAT_LICENSE_NOT_FOR_PROFIT;
 
 struct NdpiThreadContext {
     struct ndpi_detection_module_struct *ndpi;
@@ -83,6 +85,43 @@ static inline struct NdpiFlowContext *NdpiGetFlowContext(const Flow *f)
     return FlowGetStorageById(f, flow_storage_id);
 }
 
+/**
+ * Resolve "ndpi.license". nDPI 6.0 does not load its dual-licensed
+ * dissectors (DHCP, DNS, QUIC and TLS as of 6.0) for for-profit use
+ * without an agreement with ntop. Not-for-profit is the default so the
+ * plugin works out of the box; an invalid value is fatal.
+ */
+static NdpiCompatLicense NdpiResolveLicense(void)
+{
+    const char *license = NULL;
+
+    if (SCConfGet("ndpi.license", &license) != 1 || license == NULL)
+        return NDPI_COMPAT_LICENSE_NOT_FOR_PROFIT;
+
+#if NDPI_COMPAT_HAS_LICENSE
+    if (strcmp(license, "not-for-profit") == 0)
+        return NDPI_COMPAT_LICENSE_NOT_FOR_PROFIT;
+
+    if (strcmp(license, "for-profit") == 0) {
+        SCLogWarning("ndpi.license is \"for-profit\": nDPI will not load its dual-licensed "
+                     "dissectors (DHCP, DNS, QUIC and TLS as of nDPI 6.0)");
+        return NDPI_COMPAT_LICENSE_FOR_PROFIT;
+    }
+
+    if (strcmp(license, "for-profit-dual") == 0)
+        return NDPI_COMPAT_LICENSE_FOR_PROFIT_DUAL;
+
+    FatalError("invalid ndpi.license value \"%s\": expected \"not-for-profit\", "
+               "\"for-profit\" or \"for-profit-dual\"",
+            license);
+#else
+    SCLogWarning("ndpi.license has no effect with nDPI %d.%d, the license declaration was "
+                 "introduced in nDPI 6.0",
+            NDPI_MAJOR, NDPI_MINOR);
+#endif
+    return NDPI_COMPAT_LICENSE_NOT_FOR_PROFIT;
+}
+
 /* nDPI correlates flows through LRU caches (DNS to TLS, STUN to RTP, ...)
  * that are private to a detection module unless made global through a
  * shared context. Suricata spreads a host's flows over all its workers,
@@ -111,7 +150,7 @@ static const char *ndpi_shared_lru_caches[] = {
 static struct ndpi_detection_module_struct *NdpiModuleNew(bool shared_caches)
 {
     struct ndpi_global_context *g_ctx = shared_caches ? ndpi_g_ctx : NULL;
-    struct ndpi_detection_module_struct *ndpi = NdpiCompatInitModule(g_ctx);
+    struct ndpi_detection_module_struct *ndpi = NdpiCompatInitModule(g_ctx, ndpi_license);
     if (ndpi == NULL)
         return NULL;
 
@@ -608,6 +647,8 @@ static void NdpInitRiskKeyword(void)
 static void NdpiInit(void)
 {
     SCLogDebug("Initializing nDPI plugin");
+
+    ndpi_license = NdpiResolveLicense();
 
     /* Global context shared by the worker modules, see NdpiModuleNew().
      * NULL if nDPI was built without global context support. There is

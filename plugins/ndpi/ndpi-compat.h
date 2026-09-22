@@ -35,18 +35,32 @@
 #error "the nDPI plugin requires nDPI 4.12 or later"
 #endif
 
-/**
- * \brief Allocate a detection module.
- *
- * nDPI 6.0 requires the embedding application to declare under which
- * license it uses the library. Not-for-profit use enables every dissector.
- */
-static inline struct ndpi_detection_module_struct *NdpiCompatInitModule(
-        struct ndpi_global_context *g_ctx)
-{
+/* nDPI 6.0 requires the embedding application to declare under which
+ * license it uses the library; earlier releases have no notion of it. */
 #if NDPI_MAJOR >= 6
-    return ndpi_init_detection_module(g_ctx, NDPI_LICENSE_NOT_FOR_PROFIT_LGPL);
+#define NDPI_COMPAT_HAS_LICENSE 1
+typedef enum ndpi_license_type NdpiCompatLicense;
+#define NDPI_COMPAT_LICENSE_NOT_FOR_PROFIT  NDPI_LICENSE_NOT_FOR_PROFIT_LGPL
+#define NDPI_COMPAT_LICENSE_FOR_PROFIT      NDPI_LICENSE_FOR_PROFIT_LGPL
+#define NDPI_COMPAT_LICENSE_FOR_PROFIT_DUAL NDPI_LICENSE_FOR_PROFIT_DUAL_LICENSE
 #else
+#define NDPI_COMPAT_HAS_LICENSE 0
+typedef enum {
+    NDPI_COMPAT_LICENSE_NOT_FOR_PROFIT = 0,
+    NDPI_COMPAT_LICENSE_FOR_PROFIT,
+    NDPI_COMPAT_LICENSE_FOR_PROFIT_DUAL,
+} NdpiCompatLicense;
+#endif
+
+/* Allocate a detection module. The license is ignored on nDPI releases
+ * predating the declaration. */
+static inline struct ndpi_detection_module_struct *NdpiCompatInitModule(
+        struct ndpi_global_context *g_ctx, NdpiCompatLicense license)
+{
+#if NDPI_COMPAT_HAS_LICENSE
+    return ndpi_init_detection_module(g_ctx, license);
+#else
+    (void)license;
     return ndpi_init_detection_module(g_ctx);
 #endif
 }
