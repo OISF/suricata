@@ -290,6 +290,11 @@ pub struct HTTP2Transaction {
     to_drop: bool,
     child_stream_id: u32,
 
+    // keep these to raise AuthorityHostMismatch
+    // in case these headers come in 2 different frames
+    last_authority: Vec<u8>,
+    last_host: Vec<u8>,
+
     pub frames_tc: Vec<HTTP2Frame>,
     pub frames_ts: Vec<HTTP2Frame>,
 
@@ -328,6 +333,8 @@ impl HTTP2Transaction {
             to_drop: false,
             frames_tc: Vec::new(),
             frames_ts: Vec::new(),
+            last_authority: Vec::new(),
+            last_host: Vec::new(),
             decoder: decompression::HTTP2Decoder::new(),
             file_range: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
@@ -405,12 +412,23 @@ impl HTTP2Transaction {
         if let Some(a) = authority {
             if let Some(h) = host {
                 if !a.eq_ignore_ascii_case(h) {
-                    // The event is triggered only if both headers
-                    // are in the same frame to avoid excessive
-                    // complexity at runtime.
                     self.set_event(HTTP2Event::AuthorityHostMismatch);
                 }
+            } else if !self.last_host.is_empty() && !a.eq_ignore_ascii_case(&self.last_host) {
+                self.set_event(HTTP2Event::AuthorityHostMismatch);
             }
+        }
+        if let Some(h) = host {
+            if authority.is_none()
+                && !self.last_authority.is_empty()
+                && !h.eq_ignore_ascii_case(&self.last_authority)
+            {
+                self.set_event(HTTP2Event::AuthorityHostMismatch);
+            }
+            self.last_host = h.to_vec();
+        }
+        if let Some(a) = authority {
+            self.last_authority = a.to_vec();
         }
         if doh && unsafe { ALPROTO_DOH2 } != ALPROTO_UNKNOWN {
             if let Some(p) = path {
