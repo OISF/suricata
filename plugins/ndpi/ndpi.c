@@ -40,6 +40,8 @@ static int ndpi_protocol_keyword_id = -1;
 static int ndpi_risk_keyword_id = -1;
 static struct ndpi_global_context *ndpi_g_ctx = NULL;
 static NdpiCompatLicense ndpi_license = NDPI_COMPAT_LICENSE_NOT_FOR_PROFIT;
+/* EVE objects dropped because nDPI produced malformed JSON */
+static SC_ATOMIC_DECL_AND_INIT_WITH_VAL(unsigned int, ndpi_json_dropped, 0);
 
 struct NdpiThreadContext {
     struct ndpi_detection_module_struct *ndpi;
@@ -574,6 +576,159 @@ static void DetectnDPIRiskFree(DetectEngineCtx *de_ctx, void *ptr)
     SCFree(ptr);
 }
 
+/* Syntax check of the JSON nDPI produces for a flow. It is inserted into
+ * the EVE record as is, so a malformed fragment would take the whole
+ * record down with it, and nDPI has been seen producing one (6.0 corrupts
+ * its output when escaping strings with non printable characters). */
+
+typedef struct NdpiJsonCursor_ {
+    const char *p;
+    const char *end;
+} NdpiJsonCursor;
+
+static bool NdpiJsonValue(NdpiJsonCursor *c, int depth);
+
+static void NdpiJsonSkipSpace(NdpiJsonCursor *c)
+{
+    while (c->p < c->end && (*c->p == ' ' || *c->p == '\t' || *c->p == '\n' || *c->p == '\r'))
+        c->p++;
+}
+
+static bool NdpiJsonString(NdpiJsonCursor *c)
+{
+    if (c->p >= c->end || *c->p != '"')
+        return false;
+    c->p++;
+
+    while (c->p < c->end) {
+        const unsigned char ch = (unsigned char)*c->p++;
+        if (ch == '"')
+            return true;
+        if (ch < 0x20)
+            return false;
+        if (ch != '\\')
+            continue;
+
+        if (c->p >= c->end)
+            return false;
+        switch (*c->p++) {
+            case '"':
+            case '\\':
+            case '/':
+            case 'b':
+            case 'f':
+            case 'n':
+            case 'r':
+            case 't':
+                break;
+            case 'u':
+                for (int i = 0; i < 4; i++, c->p++) {
+                    if (c->p >= c->end || !isxdigit((unsigned char)*c->p))
+                        return false;
+                }
+                break;
+            default:
+                return false;
+        }
+    }
+    return false;
+}
+
+static bool NdpiJsonLiteral(NdpiJsonCursor *c, const char *lit)
+{
+    const size_t len = strlen(lit);
+    if ((size_t)(c->end - c->p) < len || memcmp(c->p, lit, len) != 0)
+        return false;
+    c->p += len;
+    return true;
+}
+
+static bool NdpiJsonNumber(NdpiJsonCursor *c)
+{
+    bool digits = false;
+    while (c->p < c->end && (isdigit((unsigned char)*c->p) || *c->p == '-' || *c->p == '+' ||
+                                    *c->p == '.' || *c->p == 'e' || *c->p == 'E')) {
+        digits |= isdigit((unsigned char)*c->p) != 0;
+        c->p++;
+    }
+    return digits;
+}
+
+/**
+ * Members of an object or elements of an array, up to the closing
+ * bracket, or up to the end of the input for a bare object body.
+ */
+static bool NdpiJsonMembers(NdpiJsonCursor *c, int depth, char closing)
+{
+    NdpiJsonSkipSpace(c);
+    if (closing != '\0' && c->p < c->end && *c->p == closing) {
+        c->p++;
+        return true;
+    }
+
+    for (;;) {
+        if (closing != ']') {
+            if (!NdpiJsonString(c))
+                return false;
+            NdpiJsonSkipSpace(c);
+            if (c->p >= c->end || *c->p++ != ':')
+                return false;
+        }
+        if (!NdpiJsonValue(c, depth))
+            return false;
+
+        NdpiJsonSkipSpace(c);
+        if (c->p >= c->end)
+            return closing == '\0';
+        if (closing != '\0' && *c->p == closing) {
+            c->p++;
+            return true;
+        }
+        if (*c->p++ != ',')
+            return false;
+        NdpiJsonSkipSpace(c);
+    }
+}
+
+static bool NdpiJsonValue(NdpiJsonCursor *c, int depth)
+{
+    if (depth > 32)
+        return false;
+
+    NdpiJsonSkipSpace(c);
+    if (c->p >= c->end)
+        return false;
+
+    switch (*c->p) {
+        case '{':
+            c->p++;
+            return NdpiJsonMembers(c, depth + 1, '}');
+        case '[':
+            c->p++;
+            return NdpiJsonMembers(c, depth + 1, ']');
+        case '"':
+            return NdpiJsonString(c);
+        case 't':
+            return NdpiJsonLiteral(c, "true");
+        case 'f':
+            return NdpiJsonLiteral(c, "false");
+        case 'n':
+            return NdpiJsonLiteral(c, "null");
+        default:
+            return NdpiJsonNumber(c);
+    }
+}
+
+/**
+ * \brief Whether buf holds well formed object members, i.e. the body of
+ *     a JSON object without its braces, as SCJbSetFormatted() expects.
+ */
+static bool NdpiJsonFragmentValid(const char *buf, uint32_t len)
+{
+    NdpiJsonCursor c = { .p = buf, .end = buf + len };
+    return NdpiJsonMembers(&c, 1, '\0');
+}
+
 static void EveCallback(ThreadVars *tv, const Packet *p, Flow *f, SCJsonBuilder *jb, void *data)
 {
     /* Adding ndpi info to EVE requires a flow. */
@@ -608,8 +763,25 @@ static void EveCallback(ThreadVars *tv, const Packet *p, Flow *f, SCJsonBuilder 
     buffer = ndpi_serializer_get_buffer(&serializer, &buffer_len);
 
     if (buffer != NULL && buffer_len > 0) {
-        /* Inject the nDPI JSON to the JsonBuilder */
-        SCJbSetFormatted(jb, buffer);
+        bool valid = NdpiJsonFragmentValid(buffer, buffer_len);
+        if (valid) {
+            /* SCJbSetFormatted() takes a C string and nDPI only terminates
+             * its buffer when there is room left for it */
+            char stack_json[2048];
+            char *json = buffer_len < sizeof(stack_json) ? stack_json : SCMalloc(buffer_len + 1);
+            if (json != NULL) {
+                memcpy(json, buffer, buffer_len);
+                json[buffer_len] = '\0';
+                /* also rejects invalid UTF-8, without inserting anything */
+                valid = SCJbSetFormatted(jb, json);
+                if (json != stack_json)
+                    SCFree(json);
+            }
+        }
+        if (!valid && SC_ATOMIC_ADD(ndpi_json_dropped, 1) == 0) {
+            SCLogWarning("nDPI produced malformed JSON for a flow, dropping its EVE object "
+                         "(only reported once)");
+        }
     }
 
     ndpi_term_serializer(&serializer);
