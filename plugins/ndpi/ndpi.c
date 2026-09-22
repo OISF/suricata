@@ -37,6 +37,7 @@ static ThreadStorageId thread_storage_id = { .id = -1 };
 static FlowStorageId flow_storage_id = { .id = -1 };
 static int ndpi_protocol_keyword_id = -1;
 static int ndpi_risk_keyword_id = -1;
+static struct ndpi_global_context *ndpi_g_ctx = NULL;
 
 struct NdpiThreadContext {
     struct ndpi_detection_module_struct *ndpi;
@@ -82,16 +83,49 @@ static inline struct NdpiFlowContext *NdpiGetFlowContext(const Flow *f)
     return FlowGetStorageById(f, flow_storage_id);
 }
 
+/* nDPI correlates flows through LRU caches (DNS to TLS, STUN to RTP, ...)
+ * that are private to a detection module unless made global through a
+ * shared context. Suricata spreads a host's flows over all its workers,
+ * so without sharing a correlation never leaves the worker that saw the
+ * first flow. */
+static const char *ndpi_shared_lru_caches[] = {
+    "lru.ookla.scope",
+    "lru.bittorrent.scope",
+    "lru.stun.scope",
+    "lru.tls_cert.scope",
+    "lru.mining.scope",
+    "lru.msteams.scope",
+    "lru.fpc_dns.scope",
+    "lru.signal.scope",
+};
+
 /**
  * Allocate and finalize a detection module with every protocol enabled.
+ * Worker modules share their LRU caches through the global context, the
+ * throwaway modules used while parsing rules don't need to.
+ *
+ * nDPI creates a shared cache on the first finalization without locking,
+ * which is fine as thread init callbacks run sequentially from
+ * TmThreadCreate().
  */
-static struct ndpi_detection_module_struct *NdpiModuleNew(void)
+static struct ndpi_detection_module_struct *NdpiModuleNew(bool shared_caches)
 {
-    struct ndpi_detection_module_struct *ndpi = NdpiCompatInitModule(NULL);
+    struct ndpi_global_context *g_ctx = shared_caches ? ndpi_g_ctx : NULL;
+    struct ndpi_detection_module_struct *ndpi = NdpiCompatInitModule(g_ctx);
     if (ndpi == NULL)
         return NULL;
 
     NdpiCompatEnableAllProtocols(ndpi);
+
+    if (g_ctx != NULL) {
+        for (size_t i = 0; i < ARRAY_SIZE(ndpi_shared_lru_caches); i++) {
+            if (ndpi_set_config(ndpi, NULL, ndpi_shared_lru_caches[i], "1") != NDPI_CFG_OK) {
+                SCLogWarning("Failed to share the nDPI \"%s\" cache between threads",
+                        ndpi_shared_lru_caches[i]);
+            }
+        }
+    }
+
     ndpi_finalize_initialization(ndpi);
     return ndpi;
 }
@@ -223,7 +257,7 @@ static void OnThreadInit(ThreadVars *tv, void *_data)
     if (context == NULL) {
         FatalError("Failed to allocate nDPI thread context");
     }
-    context->ndpi = NdpiModuleNew();
+    context->ndpi = NdpiModuleNew(true);
     if (context->ndpi == NULL) {
         FatalError("Failed to initialize nDPI detection module");
     }
@@ -284,7 +318,7 @@ static DetectnDPIProtocolData *DetectnDPIProtocolParse(const char *arg, bool neg
     char *l7_protocol_name = (char *)arg;
 
     /* convert protocol name (string) to ID */
-    ndpi_struct = NdpiModuleNew();
+    ndpi_struct = NdpiModuleNew(false);
     if (unlikely(ndpi_struct == NULL))
         return NULL;
 
@@ -565,6 +599,15 @@ static void NdpInitRiskKeyword(void)
 static void NdpiInit(void)
 {
     SCLogDebug("Initializing nDPI plugin");
+
+    /* Global context shared by the worker modules, see NdpiModuleNew().
+     * NULL if nDPI was built without global context support. There is
+     * no plugin deinit hook, so it is never released. */
+    ndpi_g_ctx = ndpi_global_init();
+    if (ndpi_g_ctx == NULL) {
+        SCLogWarning("Failed to initialize the nDPI global context: "
+                     "per-thread nDPI caches will not be shared");
+    }
 
     /* Register thread storage. */
     thread_storage_id = ThreadStorageRegister("ndpi", sizeof(void *), NULL, ThreadStorageFree);
