@@ -165,7 +165,10 @@ static struct ndpi_detection_module_struct *NdpiModuleNew(bool shared_caches)
         }
     }
 
-    ndpi_finalize_initialization(ndpi);
+    if (ndpi_finalize_initialization(ndpi) != 0) {
+        ndpi_exit_detection_module(ndpi);
+        return NULL;
+    }
     return ndpi;
 }
 
