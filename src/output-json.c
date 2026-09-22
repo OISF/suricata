@@ -1014,8 +1014,12 @@ void OutputJsonBuilderBuffer(
     size_t jslen = SCJbLen(js);
     DEBUG_VALIDATE_BUG_ON(SCJbLen(js) > UINT32_MAX);
     size_t remaining = MEMBUFFER_SIZE(*buffer) - MEMBUFFER_OFFSET(*buffer);
-    if (jslen >= remaining) {
-        size_t expand_by = jslen + 1 - remaining;
+    /* Two bytes on top of the record itself: the newline LogFileWrite()
+     * appends for file outputs, and the NUL byte MemBuffer keeps past the
+     * data it holds. Without the former, MemBufferWriteString() silently
+     * drops the newline and the record is written glued to the next one. */
+    if (jslen + 2 > remaining) {
+        size_t expand_by = jslen + 2 - remaining;
         if (MemBufferExpand(buffer, (uint32_t)expand_by) < 0) {
             if (!ctx->too_large_warning) {
                 /* Log a warning once, and include enough of the log
