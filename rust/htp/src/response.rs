@@ -80,9 +80,9 @@ impl ConnectionParser {
             input.reset_callback_start();
 
             match resp.response_progress {
-                HtpResponseProgress::HEADERS => self.response_receiver_set(header_fn),
                 HtpResponseProgress::TRAILER => self.response_receiver_set(trailer_fn),
-                _ => Ok(()),
+                // response_state == State::Headers can have progress LINE after a 100 continue
+                _ => self.response_receiver_set(header_fn),
             }?;
         }
         // Same comment as in request_handle_state_change(). Below is a copy.
@@ -465,7 +465,6 @@ impl ConnectionParser {
                     let response_tx = self.response_mut().unwrap();
                     // Ignore any response headers seen so far.
                     response_tx.response_headers.elements.clear();
-                    response_tx.response_progress = HtpResponseProgress::LINE;
                     response_tx.seen_100continue = true;
                     return Ok(());
                 }
@@ -729,7 +728,12 @@ impl ConnectionParser {
         self.state_response_line()?;
         // Move on to the next phase.
         self.response_state = State::Headers;
-        self.response_mut().unwrap().response_progress = HtpResponseProgress::HEADERS;
+        let response_tx = self.response_mut().unwrap();
+        // delay progress in case of a 100 continue
+        // so we do not revert progress to line after headers
+        if !response_tx.response_status_number.eq_num(100) {
+            response_tx.response_progress = HtpResponseProgress::HEADERS;
+        }
         Ok(())
     }
 
@@ -1013,7 +1017,8 @@ impl ConnectionParser {
             }
             // We've seen all response headers. At terminator.
             self.response_state =
-                if self.response().unwrap().response_progress == HtpResponseProgress::HEADERS {
+                // we can have response progress LINE in case of 100 continue
+                if self.response().unwrap().response_progress <= HtpResponseProgress::HEADERS {
                     // Response headers.
                     // The next step is to determine if this response has a body.
                     State::BodyDetermine
