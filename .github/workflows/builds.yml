@@ -3129,9 +3129,11 @@ jobs:
       - run: suricatasc -h
 
   debian-13:
-    name: Debian 13 (xdp)
+    name: Debian 13 (xdp, svlive)
     runs-on: ubuntu-latest
-    container: debian:13
+    container:
+      image: debian:13
+      options: --privileged --cgroupns=host
     needs: [prepare-deps]
     steps:
       # Cache Rust stuff.
@@ -3188,7 +3190,17 @@ jobs:
               zlib1g \
               zlib1g-dev \
               clang \
-              libxdp-dev
+              libxdp-dev \
+              podman \
+              hping3 \
+              tcpdump \
+              tcpreplay \
+              ethtool \
+              iproute2 \
+              iptables \
+              iputils-ping \
+              curl \
+              wget
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
@@ -3201,6 +3213,19 @@ jobs:
       - run: ./autogen.sh
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-qa-simulation --enable-ebpf --enable-ebpf-build
       - run: make -j ${{ env.CPUS }}
+      - name: Run suricata-verify live tests
+        id: sv_live
+        run: python3 ./suricata-verify/live/run.py
+      - name: Upload failed suricata-verify live test outputs
+        if: ${{ failure() && steps.sv_live.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: sv-live-output-${{ github.job }}
+          path: |
+            suricata-verify/live/tests/**/output/**
+            !suricata-verify/live/tests/**/output/*.socket
+            !suricata-verify/live/tests/**/output/sur
+          if-no-files-found: ignore
       - run: make check
         # -j2 caused random failures during cargo vendor
       - run: make distcheck
