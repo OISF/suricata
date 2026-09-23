@@ -71,6 +71,12 @@ typedef struct AppLayerGetFileState AppLayerGetFileState;
 
 int AppLayerParserProtoIsRegistered(uint8_t ipproto, AppProto alproto);
 
+/** \brief get the end state (progress) for a transaction.
+ *
+ *  Uses the transaction type specific end state when the parser provides one,
+ *  else the protocol completion status. Tolerates a NULL tx data pointer. */
+uint8_t AppLayerParserGetTxEndState(uint8_t ipproto, AppProto alproto, void *tx, uint8_t flags);
+
 /** progress values need to stay under this. */
 #define APP_LAYER_MAX_PROGRESS 48
 
