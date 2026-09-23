@@ -670,10 +670,15 @@ jobs:
       - run: suricata-update -V
 
   centos-stream9:
-    name: CentOS Stream 9
+    name: CentOS Stream 9 (nDPI ${{ matrix.ndpi }})
     runs-on: ubuntu-latest
     container: quay.io/centos/centos:stream9
     needs: [prepare-deps, ubuntu-22-04-dist]
+    strategy:
+      fail-fast: false
+      matrix:
+        # nDPI releases supported by the plugin
+        ndpi: [ "4.12", "5.0", "6.0" ]
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
@@ -730,18 +735,18 @@ jobs:
         with:
           name: dist
 
-      - name: Build and install nDPI
+      - name: Build nDPI ${{ matrix.ndpi }}
         run: |
-          curl -OL https://github.com/ntop/nDPI/archive/refs/tags/4.12.tar.gz
-          tar xvf 4.12.tar.gz
-          cd nDPI-4.12
+          curl -OL https://github.com/ntop/nDPI/archive/refs/tags/${{ matrix.ndpi }}.tar.gz
+          tar xvf ${{ matrix.ndpi }}.tar.gz
+          cd nDPI-${{ matrix.ndpi }}
           ./autogen.sh
           ./configure
           make -j ${{ env.CPUS }}
 
       - run: tar zxvf suricata-*.tar.gz --strip-components=1
       - name: ./configure
-        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-ndpi --with-ndpi=$(pwd)/nDPI-4.12
+        run: CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-ndpi --with-ndpi=$(pwd)/nDPI-${{ matrix.ndpi }}
       - run: make -j ${{ env.CPUS }}
       - run: make install
       - run: make install-conf

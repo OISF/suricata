@@ -22,6 +22,7 @@
 #include "suricata-common.h"
 #include "suricata-plugin.h"
 
+#include "conf.h"
 #include "detect-engine-helper.h"
 #include "detect-parse.h"
 #include "flow-callbacks.h"
@@ -31,12 +32,16 @@
 #include "thread-storage.h"
 #include "util-debug.h"
 
-#include "ndpi_api.h"
+#include "ndpi-compat.h"
 
 static ThreadStorageId thread_storage_id = { .id = -1 };
 static FlowStorageId flow_storage_id = { .id = -1 };
 static int ndpi_protocol_keyword_id = -1;
 static int ndpi_risk_keyword_id = -1;
+static struct ndpi_global_context *ndpi_g_ctx = NULL;
+static NdpiCompatLicense ndpi_license = NDPI_COMPAT_LICENSE_NOT_FOR_PROFIT;
+/* EVE objects dropped because nDPI produced malformed JSON */
+static SC_ATOMIC_DECL_AND_INIT_WITH_VAL(unsigned int, ndpi_json_dropped, 0);
 
 struct NdpiThreadContext {
     struct ndpi_detection_module_struct *ndpi;
@@ -80,6 +85,93 @@ static inline struct NdpiFlowContext *NdpiGetFlowContext(const Flow *f)
     if (unlikely(f == NULL || flow_storage_id.id < 0 || f->storage == NULL))
         return NULL;
     return FlowGetStorageById(f, flow_storage_id);
+}
+
+/**
+ * Resolve "ndpi.license". nDPI 6.0 does not load its dual-licensed
+ * dissectors (DHCP, DNS, QUIC and TLS as of 6.0) for for-profit use
+ * without an agreement with ntop. Not-for-profit is the default so the
+ * plugin works out of the box; an invalid value is fatal.
+ */
+static NdpiCompatLicense NdpiResolveLicense(void)
+{
+    const char *license = NULL;
+
+    if (SCConfGet("ndpi.license", &license) != 1 || license == NULL)
+        return NDPI_COMPAT_LICENSE_NOT_FOR_PROFIT;
+
+#if NDPI_COMPAT_HAS_LICENSE
+    if (strcmp(license, "not-for-profit") == 0)
+        return NDPI_COMPAT_LICENSE_NOT_FOR_PROFIT;
+
+    if (strcmp(license, "for-profit") == 0) {
+        SCLogWarning("ndpi.license is \"for-profit\": nDPI will not load its dual-licensed "
+                     "dissectors (DHCP, DNS, QUIC and TLS as of nDPI 6.0)");
+        return NDPI_COMPAT_LICENSE_FOR_PROFIT;
+    }
+
+    if (strcmp(license, "for-profit-dual") == 0)
+        return NDPI_COMPAT_LICENSE_FOR_PROFIT_DUAL;
+
+    FatalError("invalid ndpi.license value \"%s\": expected \"not-for-profit\", "
+               "\"for-profit\" or \"for-profit-dual\"",
+            license);
+#else
+    SCLogWarning("ndpi.license has no effect with nDPI %d.%d, the license declaration was "
+                 "introduced in nDPI 6.0",
+            NDPI_MAJOR, NDPI_MINOR);
+#endif
+    return NDPI_COMPAT_LICENSE_NOT_FOR_PROFIT;
+}
+
+/* nDPI correlates flows through LRU caches (DNS to TLS, STUN to RTP, ...)
+ * that are private to a detection module unless made global through a
+ * shared context. Suricata spreads a host's flows over all its workers,
+ * so without sharing a correlation never leaves the worker that saw the
+ * first flow. */
+static const char *ndpi_shared_lru_caches[] = {
+    "lru.ookla.scope",
+    "lru.bittorrent.scope",
+    "lru.stun.scope",
+    "lru.tls_cert.scope",
+    "lru.mining.scope",
+    "lru.msteams.scope",
+    "lru.fpc_dns.scope",
+    "lru.signal.scope",
+};
+
+/**
+ * Allocate and finalize a detection module with every protocol enabled.
+ * Worker modules share their LRU caches through the global context, the
+ * throwaway modules used while parsing rules don't need to.
+ *
+ * nDPI creates a shared cache on the first finalization without locking,
+ * which is fine as thread init callbacks run sequentially from
+ * TmThreadCreate().
+ */
+static struct ndpi_detection_module_struct *NdpiModuleNew(bool shared_caches)
+{
+    struct ndpi_global_context *g_ctx = shared_caches ? ndpi_g_ctx : NULL;
+    struct ndpi_detection_module_struct *ndpi = NdpiCompatInitModule(g_ctx, ndpi_license);
+    if (ndpi == NULL)
+        return NULL;
+
+    NdpiCompatEnableAllProtocols(ndpi);
+
+    if (g_ctx != NULL) {
+        for (size_t i = 0; i < ARRAY_SIZE(ndpi_shared_lru_caches); i++) {
+            if (ndpi_set_config(ndpi, NULL, ndpi_shared_lru_caches[i], "1") != NDPI_CFG_OK) {
+                SCLogWarning("Failed to share the nDPI \"%s\" cache between threads",
+                        ndpi_shared_lru_caches[i]);
+            }
+        }
+    }
+
+    if (ndpi_finalize_initialization(ndpi) != 0) {
+        ndpi_exit_detection_module(ndpi);
+        return NULL;
+    }
+    return ndpi;
 }
 
 static void ThreadStorageFree(void *ptr)
@@ -161,25 +253,34 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
 
     if (!flowctx->detection_completed && ip_ptr != NULL && ip_len > 0) {
         uint64_t time_ms = ((uint64_t)p->ts.secs) * 1000 + p->ts.usecs / 1000;
+        struct ndpi_flow_input_info input_info;
 
         SCLogDebug("Performing nDPI detection...");
 
-        flowctx->detected_l7_protocol = ndpi_detection_process_packet(
-                threadctx->ndpi, flowctx->ndpi_flow, ip_ptr, ip_len, time_ms, NULL);
+        /* Suricata knows the packet direction, spare nDPI from guessing it.
+         * Whether the flow beginning was seen is left unknown as the flow
+         * API exposes no reliable flag for it. */
+        memset(&input_info, 0, sizeof(input_info));
+        input_info.seen_flow_beginning = NDPI_FLOW_BEGINNING_UNKNOWN;
+        input_info.in_pkt_dir =
+                PKT_IS_TOSERVER(p) ? NDPI_IN_PKT_DIR_C_TO_S : NDPI_IN_PKT_DIR_S_TO_C;
 
-        if (ndpi_is_protocol_detected(flowctx->detected_l7_protocol) != 0) {
-            if (!ndpi_is_proto_unknown(flowctx->detected_l7_protocol.proto)) {
-                if (!ndpi_extra_dissection_possible(threadctx->ndpi, flowctx->ndpi_flow))
-                    flowctx->detection_completed = true;
-            }
+        flowctx->detected_l7_protocol = ndpi_detection_process_packet(
+                threadctx->ndpi, flowctx->ndpi_flow, ip_ptr, ip_len, time_ms, &input_info);
+
+        if (NdpiCompatClassificationFinal(
+                    threadctx->ndpi, flowctx->ndpi_flow, &flowctx->detected_l7_protocol)) {
+            flowctx->detection_completed = true;
         } else {
-            uint16_t max_num_pkts = (f->proto == IPPROTO_UDP) ? 8 : 24;
+            /* stop feeding nDPI after a few packets, taking its best guess
+             * for flows it could not classify */
+            const uint16_t max_num_pkts = (f->proto == IPPROTO_UDP) ? 8 : 24;
 
             if ((f->todstpktcnt + f->tosrcpktcnt) > max_num_pkts) {
-                uint8_t proto_guessed;
-
-                flowctx->detected_l7_protocol =
-                        ndpi_detection_giveup(threadctx->ndpi, flowctx->ndpi_flow, &proto_guessed);
+                if (NdpiCompatIsUnclassified(&flowctx->detected_l7_protocol)) {
+                    flowctx->detected_l7_protocol =
+                            NdpiCompatGiveup(threadctx->ndpi, flowctx->ndpi_flow);
+                }
                 flowctx->detection_completed = true;
             }
         }
@@ -209,14 +310,10 @@ static void OnThreadInit(ThreadVars *tv, void *_data)
     if (context == NULL) {
         FatalError("Failed to allocate nDPI thread context");
     }
-    context->ndpi = ndpi_init_detection_module(NULL);
+    context->ndpi = NdpiModuleNew(true);
     if (context->ndpi == NULL) {
         FatalError("Failed to initialize nDPI detection module");
     }
-    NDPI_PROTOCOL_BITMASK protos;
-    NDPI_BITMASK_SET_ALL(protos);
-    ndpi_set_protocol_detection_bitmask2(context->ndpi, &protos);
-    ndpi_finalize_initialization(context->ndpi);
     ThreadSetStorageById(tv, thread_storage_id, context);
 }
 
@@ -272,16 +369,11 @@ static DetectnDPIProtocolData *DetectnDPIProtocolParse(const char *arg, bool neg
     struct ndpi_detection_module_struct *ndpi_struct;
     ndpi_master_app_protocol l7_protocol;
     char *l7_protocol_name = (char *)arg;
-    NDPI_PROTOCOL_BITMASK all;
 
     /* convert protocol name (string) to ID */
-    ndpi_struct = ndpi_init_detection_module(NULL);
+    ndpi_struct = NdpiModuleNew(false);
     if (unlikely(ndpi_struct == NULL))
         return NULL;
-
-    NDPI_BITMASK_SET_ALL(all);
-    ndpi_set_protocol_detection_bitmask2(ndpi_struct, &all);
-    ndpi_finalize_initialization(ndpi_struct);
 
     l7_protocol = ndpi_get_protocol_by_name(ndpi_struct, l7_protocol_name);
     ndpi_exit_detection_module(ndpi_struct);
@@ -399,20 +491,9 @@ static int DetectnDPIRiskPacketMatch(
 static DetectnDPIRiskData *DetectnDPIRiskParse(const char *arg, bool negate)
 {
     DetectnDPIRiskData *data;
-    struct ndpi_detection_module_struct *ndpi_struct;
     ndpi_risk risk_mask;
-    NDPI_PROTOCOL_BITMASK all;
 
     /* convert list of risk names (string) to mask */
-    ndpi_struct = ndpi_init_detection_module(NULL);
-    if (unlikely(ndpi_struct == NULL))
-        return NULL;
-
-    NDPI_BITMASK_SET_ALL(all);
-    ndpi_set_protocol_detection_bitmask2(ndpi_struct, &all);
-    ndpi_finalize_initialization(ndpi_struct);
-    ndpi_exit_detection_module(ndpi_struct);
-
     if (isdigit(arg[0]))
         risk_mask = atoll(arg);
     else {
@@ -495,6 +576,159 @@ static void DetectnDPIRiskFree(DetectEngineCtx *de_ctx, void *ptr)
     SCFree(ptr);
 }
 
+/* Syntax check of the JSON nDPI produces for a flow. It is inserted into
+ * the EVE record as is, so a malformed fragment would take the whole
+ * record down with it, and nDPI has been seen producing one (6.0 corrupts
+ * its output when escaping strings with non printable characters). */
+
+typedef struct NdpiJsonCursor_ {
+    const char *p;
+    const char *end;
+} NdpiJsonCursor;
+
+static bool NdpiJsonValue(NdpiJsonCursor *c, int depth);
+
+static void NdpiJsonSkipSpace(NdpiJsonCursor *c)
+{
+    while (c->p < c->end && (*c->p == ' ' || *c->p == '\t' || *c->p == '\n' || *c->p == '\r'))
+        c->p++;
+}
+
+static bool NdpiJsonString(NdpiJsonCursor *c)
+{
+    if (c->p >= c->end || *c->p != '"')
+        return false;
+    c->p++;
+
+    while (c->p < c->end) {
+        const unsigned char ch = (unsigned char)*c->p++;
+        if (ch == '"')
+            return true;
+        if (ch < 0x20)
+            return false;
+        if (ch != '\\')
+            continue;
+
+        if (c->p >= c->end)
+            return false;
+        switch (*c->p++) {
+            case '"':
+            case '\\':
+            case '/':
+            case 'b':
+            case 'f':
+            case 'n':
+            case 'r':
+            case 't':
+                break;
+            case 'u':
+                for (int i = 0; i < 4; i++, c->p++) {
+                    if (c->p >= c->end || !isxdigit((unsigned char)*c->p))
+                        return false;
+                }
+                break;
+            default:
+                return false;
+        }
+    }
+    return false;
+}
+
+static bool NdpiJsonLiteral(NdpiJsonCursor *c, const char *lit)
+{
+    const size_t len = strlen(lit);
+    if ((size_t)(c->end - c->p) < len || memcmp(c->p, lit, len) != 0)
+        return false;
+    c->p += len;
+    return true;
+}
+
+static bool NdpiJsonNumber(NdpiJsonCursor *c)
+{
+    bool digits = false;
+    while (c->p < c->end && (isdigit((unsigned char)*c->p) || *c->p == '-' || *c->p == '+' ||
+                                    *c->p == '.' || *c->p == 'e' || *c->p == 'E')) {
+        digits |= isdigit((unsigned char)*c->p) != 0;
+        c->p++;
+    }
+    return digits;
+}
+
+/**
+ * Members of an object or elements of an array, up to the closing
+ * bracket, or up to the end of the input for a bare object body.
+ */
+static bool NdpiJsonMembers(NdpiJsonCursor *c, int depth, char closing)
+{
+    NdpiJsonSkipSpace(c);
+    if (closing != '\0' && c->p < c->end && *c->p == closing) {
+        c->p++;
+        return true;
+    }
+
+    for (;;) {
+        if (closing != ']') {
+            if (!NdpiJsonString(c))
+                return false;
+            NdpiJsonSkipSpace(c);
+            if (c->p >= c->end || *c->p++ != ':')
+                return false;
+        }
+        if (!NdpiJsonValue(c, depth))
+            return false;
+
+        NdpiJsonSkipSpace(c);
+        if (c->p >= c->end)
+            return closing == '\0';
+        if (closing != '\0' && *c->p == closing) {
+            c->p++;
+            return true;
+        }
+        if (*c->p++ != ',')
+            return false;
+        NdpiJsonSkipSpace(c);
+    }
+}
+
+static bool NdpiJsonValue(NdpiJsonCursor *c, int depth)
+{
+    if (depth > 32)
+        return false;
+
+    NdpiJsonSkipSpace(c);
+    if (c->p >= c->end)
+        return false;
+
+    switch (*c->p) {
+        case '{':
+            c->p++;
+            return NdpiJsonMembers(c, depth + 1, '}');
+        case '[':
+            c->p++;
+            return NdpiJsonMembers(c, depth + 1, ']');
+        case '"':
+            return NdpiJsonString(c);
+        case 't':
+            return NdpiJsonLiteral(c, "true");
+        case 'f':
+            return NdpiJsonLiteral(c, "false");
+        case 'n':
+            return NdpiJsonLiteral(c, "null");
+        default:
+            return NdpiJsonNumber(c);
+    }
+}
+
+/**
+ * \brief Whether buf holds well formed object members, i.e. the body of
+ *     a JSON object without its braces, as SCJbSetFormatted() expects.
+ */
+static bool NdpiJsonFragmentValid(const char *buf, uint32_t len)
+{
+    NdpiJsonCursor c = { .p = buf, .end = buf + len };
+    return NdpiJsonMembers(&c, 1, '\0');
+}
+
 static void EveCallback(ThreadVars *tv, const Packet *p, Flow *f, SCJsonBuilder *jb, void *data)
 {
     /* Adding ndpi info to EVE requires a flow. */
@@ -529,8 +763,25 @@ static void EveCallback(ThreadVars *tv, const Packet *p, Flow *f, SCJsonBuilder 
     buffer = ndpi_serializer_get_buffer(&serializer, &buffer_len);
 
     if (buffer != NULL && buffer_len > 0) {
-        /* Inject the nDPI JSON to the JsonBuilder */
-        SCJbSetFormatted(jb, buffer);
+        bool valid = NdpiJsonFragmentValid(buffer, buffer_len);
+        if (valid) {
+            /* SCJbSetFormatted() takes a C string and nDPI only terminates
+             * its buffer when there is room left for it */
+            char stack_json[2048];
+            char *json = buffer_len < sizeof(stack_json) ? stack_json : SCMalloc(buffer_len + 1);
+            if (json != NULL) {
+                memcpy(json, buffer, buffer_len);
+                json[buffer_len] = '\0';
+                /* also rejects invalid UTF-8, without inserting anything */
+                valid = SCJbSetFormatted(jb, json);
+                if (json != stack_json)
+                    SCFree(json);
+            }
+        }
+        if (!valid && SC_ATOMIC_ADD(ndpi_json_dropped, 1) == 0) {
+            SCLogWarning("nDPI produced malformed JSON for a flow, dropping its EVE object "
+                         "(only reported once)");
+        }
     }
 
     ndpi_term_serializer(&serializer);
@@ -571,6 +822,17 @@ static void NdpInitRiskKeyword(void)
 static void NdpiInit(void)
 {
     SCLogDebug("Initializing nDPI plugin");
+
+    ndpi_license = NdpiResolveLicense();
+
+    /* Global context shared by the worker modules, see NdpiModuleNew().
+     * NULL if nDPI was built without global context support. There is
+     * no plugin deinit hook, so it is never released. */
+    ndpi_g_ctx = ndpi_global_init();
+    if (ndpi_g_ctx == NULL) {
+        SCLogWarning("Failed to initialize the nDPI global context: "
+                     "per-thread nDPI caches will not be shared");
+    }
 
     /* Register thread storage. */
     thread_storage_id = ThreadStorageRegister("ndpi", sizeof(void *), NULL, ThreadStorageFree);
