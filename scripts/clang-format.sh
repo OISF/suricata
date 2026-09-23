@@ -61,7 +61,7 @@ proper it provides additional functionality such as reformatting of all commits 
 
 Commands used in various situations:
 
-Formatting branch changes (compared to main or SURICATA_BRANCH env variable):
+Formatting branch changes (compared to main-8.0.x or SURICATA_BRANCH env variable):
     branch          Format all changes in branch as additional commit
     rewrite-branch  Format every commit in branch and rewrite history
 
@@ -155,7 +155,7 @@ ${bold}DESCRIPTION${normal}
         Check if all branch changes are correctly formatted.
 
         Note, it does not check every commit's formatting, but rather the
-        overall diff between HEAD and main.
+        overall diff between HEAD and main-8.0.x.
 
         Returns 1 if formatting is off, 0 if it is correct.
 
@@ -215,7 +215,7 @@ ${bold}SYNOPSIS${normal}
         $EXEC rewrite-branch
 
 ${bold}DESCRIPTION${normal}
-        Reformat all commits in branch off main one-by-one. This will ${bold}rewrite
+        Reformat all commits in branch off main-8.0.x one-by-one. This will ${bold}rewrite
         the branch history${normal} using the existing commit metadata!
         It automatically detects all commits on your branch.
 
@@ -334,21 +334,24 @@ function HelpCommand {
     esac
 }
 
-# Return first commit of branch (off main or SURICATA_BRANCH env variable).
+# Return first commit of branch (off main-8.0.x or SURICATA_BRANCH env variable).
 #
-# Use $first_commit^ if you need the commit on main we branched off.
-# Do not compare with main directly as it will diff with the latest commit
-# on main. If our branch has not been rebased on the latest main, this
-# would result in including all new commits on main!
+# Use $first_commit^ if you need the commit on main-8.0.x we branched off.
+# Do not compare with main-8.0.x directly as it will diff with the latest commit
+# on main-8.0.x. If our branch has not been rebased on the latest main-8.0.x, this
+# would result in including all new commits on main-8.0.x!
+# Returns non-zero when baseline doesn't exist
 function FirstCommitOfBranch {
-    start="${SURICATA_BRANCH:-origin/main-8.0.x}"
+    # don't leak a local variable
+    local start="${SURICATA_BRANCH:-origin/main-8.0.x}"
+    git rev-parse --verify --quiet "$start^{commit}" >/dev/null || return 1
     local first_commit=$(git rev-list $start..HEAD | tail -n 1)
     echo $first_commit
 }
 
 # Check if branch formatting is correct.
-# Compares with main branch as baseline which means it's limited to branches
-# other than main.
+# Compares with main-8.0.x branch as baseline which means it's limited to branches
+# other than main-8.0.x.
 # Exits with 1 if not, 0 if ok.
 function CheckBranch {
     # check parameters
@@ -396,14 +399,32 @@ function CheckBranch {
     fi
 
     # Find first commit on branch. Use $first_commit^ if you need the
-    # commit on main we branched off.
-    local first_commit=$(FirstCommitOfBranch)
+    # commit on main-8.0.x we branched off.
+    local first_commit
+    first_commit=$(FirstCommitOfBranch) ||
+        Die "Baseline branch '${SURICATA_BRANCH:-origin/main-8.0.x}' does not exist"
+    # No commits of our own, e.g. when the branch is the baseline itself.
+    if [ -z "$first_commit" ]; then
+        if [ $quiet -ne 1 ]; then
+            echo "no commits on branch"
+        fi
+        return $EXIT_CODE_OK
+    fi
 
     # git-clang-format is a python script that does not like SIGPIPE shut down
     # by "| head" prematurely. Use work-around with writing to tmpfile first.
     local format_changes="$git_clang_format --extensions c,h $first_commit^"
     local tmpfile=$(mktemp /tmp/clang-format.check.XXXXXX)
-    $format_changes > $tmpfile
+    local errfile=$(mktemp /tmp/clang-format.err.XXXXXX)
+    $format_changes > $tmpfile 2> $errfile
+    local format_rc=$?
+    cat $errfile 1>&2
+    rm $errfile
+    # Exit code 1 means formatting changes were found, 2 and up are errors.
+    if [ $format_rc -gt 1 ]; then
+        rm $tmpfile
+        Die "git clang-format failed"
+    fi
     local changes=$(cat $tmpfile | head -1)
     if [ $show_diff -eq 1 -o $show_diffstat -eq 1 ]; then
         cat $tmpfile
@@ -464,12 +485,19 @@ function ReformatBranch {
     fi
 
     # Find first commit on branch. Use $first_commit^ if you need the
-    # commit on main we branched off.
-    local first_commit=$(FirstCommitOfBranch)
+    # commit on main-8.0.x we branched off.
+    local first_commit
+    first_commit=$(FirstCommitOfBranch) ||
+        Die "Baseline branch '${SURICATA_BRANCH:-origin/main-8.0.x}' does not exist"
+    if [ -z "$first_commit" ]; then
+        echo "no commits on branch"
+        ExitWith $EXIT_CODE_OK
+    fi
     echo "First commit on branch: $first_commit"
 
     $GIT_CLANG_FORMAT --style file --extensions c,h $with_unstaged $first_commit^
-    if [ $? -ne 0 ]; then
+    # Exit code 1 means formatting changes were made, 2 and up are errors.
+    if [ $? -gt 1 ]; then
         Die "Cannot reformat branch. git clang-format failed"
     fi
 }
@@ -485,7 +513,8 @@ function ReformatCommit {
     fi
 
     $GIT_CLANG_FORMAT --style file --extensions c,h $commit
-    if [ $? -ne 0 ]; then
+    # Exit code 1 means formatting changes were made, 2 and up are errors.
+    if [ $? -gt 1 ]; then
         Die "Cannot reformat most recent commit. git clang-format failed"
     fi
 }
@@ -509,25 +538,26 @@ function ReformatCached {
     fi
 
     $GIT_CLANG_FORMAT --style file --extensions c,h $with_unstaged
-    if [ $? -ne 0 ]; then
+    # Exit code 1 means formatting changes were made, 2 and up are errors.
+    if [ $? -gt 1 ]; then
         Die "Cannot reformat staging. git clang-format failed"
     fi
 }
 
-# Reformat all commits of a branch (compared with main) and rewrites
+# Reformat all commits of a branch (compared with main-8.0.x) and rewrites
 # the history with the formatted commits one-by-one.
 # This is helpful for quickly reformatting branches with multiple commits,
-# or where the main version of a file has been reformatted.
+# or where the main-8.0.x version of a file has been reformatted.
 #
 # You can achieve the same manually by git checkout -n <commit>, git clang-format
 # for each commit in your branch.
 function ReformatCommitsOnBranch {
-    # Do not allow rewriting of main.
+    # Do not allow rewriting of main-8.0.x.
     # CheckBranch below will also tell us there are no changes compared with
-    # main, but let's make this foolproof and explicit here.
+    # main-8.0.x, but let's make this foolproof and explicit here.
     local current_branch=$(git rev-parse --abbrev-ref HEAD)
-    if [ "$current_branch" == "main" ]; then
-        Die "Must not rewrite main branch history."
+    if [ "$current_branch" == "main-8.0.x" ]; then
+        Die "Must not rewrite main-8.0.x branch history."
     fi
 
     CheckBranch "--quiet"
@@ -540,11 +570,15 @@ function ReformatCommitsOnBranch {
         export FILTER_BRANCH_SQUELCH_WARNING=1
 
         # Find first commit on branch. Use $first_commit^ if you need the
-        # commit on main we branched off.
+        # commit on main-8.0.x we branched off.
+        # CheckBranch above already bailed out on a missing baseline.
         local first_commit=$(FirstCommitOfBranch)
         echo "First commit on branch: $first_commit"
         # Use --force in case it's run a second time on the same branch
-        git filter-branch --force --tree-filter "$GIT_CLANG_FORMAT --extensions c,h $first_commit^" -- $first_commit..HEAD
+        # Tolerate exit code 1, it means the tree filter reformatted files.
+        git filter-branch --force --tree-filter \
+            "$GIT_CLANG_FORMAT --extensions c,h $first_commit^ || [ \$? -le 1 ]" \
+            -- $first_commit^..HEAD
         if [ $? -ne 0 ]; then
             Die "Cannot rewrite branch. git filter-branch failed"
         fi
