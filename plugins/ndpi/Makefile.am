@@ -7,7 +7,7 @@ ndpi_la_LIBADD = @NDPI_LIB@
 # source directory.
 ndpi_la_CFLAGS = -I../../rust/gen -I../../rust/dist
 
-ndpi_la_SOURCES = ndpi.c
+ndpi_la_SOURCES = ndpi.c ndpi-compat.h
 
 install-exec-hook:
 	cd $(DESTDIR)$(pkglibdir) && $(RM) $(pkglib_LTLIBRARIES)
