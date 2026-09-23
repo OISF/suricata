@@ -1259,6 +1259,7 @@ typedef struct SignatureNonPrefilterStore_ {
 /** array of TX inspect rule candidates */
 typedef struct RuleMatchCandidateTx {
     SigIntId id;            /**< internal signature id */
+    bool fw_lte_counted;    /**< counted in the firewall LTE hook coverage */
     uint32_t *flags;        /**< inspect flags ptr */
     union {
         struct {
