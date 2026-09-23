@@ -459,6 +459,9 @@ typedef struct DetectBufferType_ {
     bool mpm;
     bool packet; /**< compat to packet matches */
     bool frame;  /**< is about Frame inspection */
+    /** the buffer's keywords can change as the transaction advances: run
+     *  the inspect engine on every tx update instead of only at its progress. */
+    bool run_always;
     bool supports_transforms;
     bool multi_instance; /**< buffer supports multiple buffer instances per tx */
     void (*SetupCallback)(
@@ -1631,6 +1634,11 @@ typedef struct PrefilterEngineList_ {
     /** Free function for pectx data. If NULL the memory is not freed. */
     void (*Free)(void *pectx);
 
+    /** Run this tx engine on every tx update, regardless of tx progress.
+     *  Only used with Tx Engines. The engine keeps its real tx_min_progress,
+     *  so it still takes part in the progress bookkeeping. */
+    bool run_always;
+
     const char *name;
     /* global id for this prefilter */
     uint32_t gid;
@@ -1658,6 +1666,11 @@ typedef struct PrefilterEngine_ {
 
     bool is_last;
     bool is_last_for_progress;
+
+    /** Tx engine must run on every tx update even once the tx progressed past
+     *  its tx_min_progress. Kept separate from tx_min_progress (-1 is the
+     *  proto-agnostic packet-style sentinel). */
+    bool run_always;
 
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */

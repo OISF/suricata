@@ -1302,6 +1302,10 @@ void *DetectGetInnerTx(void *tx_ptr, AppProto alproto, AppProto engine_alproto, 
  *  \retval  1 sig matched
  *  \retval  0 partial incomplete match
  *  \retval -1 failed to match
+ *  \retval -2 no match yet, but not final: the MPM engine will revisit the
+ *              tx as it progresses. The caller must not apply a hook default
+ *              policy for it: that could decide the packet before the revisit
+ *              can turn it into a match.
  */
 static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Packet *p, Flow *f,

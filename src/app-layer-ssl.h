@@ -217,6 +217,11 @@ typedef struct SSLStateConnp_ {
      * ServerHello completion or a certificate header) with an
      * incomplete chain */
     bool cert_chain_final;
+    /* a hello (including its supported_versions extension) decoded cleanly:
+     * this connp's version is final from here on. A failed hello sets the
+     * legacy version but leaves this clear, so a later record must not turn
+     * a partially decoded hello into a version match */
+    bool hello_decoded;
     int64_t cert0_not_before;
     int64_t cert0_not_after;
     char *cert0_fingerprint;

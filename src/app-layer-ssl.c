@@ -1624,6 +1624,9 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
     if (SC_ATOMIC_GET(ssl_config.enable_ja3) && ssl_state->curr_connp->ja3_hash == NULL) {
         ssl_state->curr_connp->ja3_hash = Ja3GenerateHash(ssl_state->curr_connp->ja3_str);
     }
+    /* the hello, supported_versions included, decoded cleanly: its version
+     * is final for this connp */
+    ssl_state->curr_connp->hello_decoded = true;
     return 0;
 
 fail:

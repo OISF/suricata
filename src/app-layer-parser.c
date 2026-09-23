@@ -165,7 +165,6 @@ struct AppLayerParserState_ {
     FramesContainer *frames;
 };
 
-static inline uint8_t GetTxEndProgress(uint8_t ipproto, AppProto alproto, void *tx, uint8_t flags);
 static inline uint8_t GetTxdEndProgress(uint8_t ipproto, AppProto alproto,
         const AppLayerTxData *txd, uint8_t flags, uint8_t complete);
 
@@ -1173,20 +1172,21 @@ static inline int StateGetProgressCompletionStatus(const AppProto alproto, const
  *  If the TX is supporting sub-states, return the value from the txd.
  *  \param tx pointer to the transaction
  */
-static inline uint8_t GetTxEndProgress(uint8_t ipproto, AppProto alproto, void *tx, uint8_t flags)
+uint8_t AppLayerParserGetTxEndState(uint8_t ipproto, AppProto alproto, void *tx, uint8_t flags)
 {
     const AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
-    DEBUG_VALIDATE_BUG_ON(txd == NULL);
-    uint8_t tx_end_state;
-    if (txd->tx_type == 0) {
-        tx_end_state = (uint8_t)AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
-    } else {
-        if (flags & STREAM_TOSERVER)
-            tx_end_state = txd->tx_type_eop_ts;
-        else
-            tx_end_state = txd->tx_type_eop_tc;
+    if (txd == NULL || txd->tx_type == 0) {
+        return (uint8_t)AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
     }
-    return tx_end_state;
+    const uint8_t eop = (flags & STREAM_TOSERVER) ? txd->tx_type_eop_ts : txd->tx_type_eop_tc;
+    if (unlikely(eop == 0)) {
+        /* a parser with tx types must fill both end-of-phase fields; without
+         * the fallback 0 would make the first state look final in release
+         * builds */
+        DEBUG_VALIDATE_BUG_ON(1);
+        return (uint8_t)AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
+    }
+    return eop;
 }
 
 /** \internal
@@ -1227,7 +1227,7 @@ int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto, void *tx, 
     SCEnter();
     int r;
     if (unlikely(IS_DISRUPTED(flags))) {
-        r = (int)GetTxEndProgress(ipproto, alproto, tx, flags);
+        r = (int)AppLayerParserGetTxEndState(ipproto, alproto, tx, flags);
     } else {
         const uint8_t direction = flags & (STREAM_TOCLIENT | STREAM_TOSERVER);
         r = alp_ctx.ctxs[alproto][FlowGetProtoMapping(ipproto)].StateGetProgress(tx, direction);
