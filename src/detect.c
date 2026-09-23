@@ -2128,11 +2128,16 @@ static void DetectRunTxFirewallApplyAccept(DetectEngineThreadCtx *det_ctx, Packe
                 fw_state->skip_before_progress, BOOL2STR(fw_state->fw_last_for_progress),
                 BOOL2STR(fw_state->fw_next_progress_missing));
         /* if there is no fw rule for the next progress value,
-         * we invoke the defaul policies for the remaining available hooks. */
-        if (fw_state->fw_next_progress_missing) {
+         * we invoke the defaul policies for the remaining available hooks.
+         * Only when the tx walked over this rule's hook: at progress == hook
+         * the sweep range would start above its end. */
+        if (fw_state->fw_next_progress_missing && tx->tx_progress > s->app_progress_hook) {
+            /* only states the packet actually walked over: states beyond the
+             * current progress have not been reached, their defaults must not
+             * decide this packet */
             const uint8_t last_hook = fw_state->last_fw_rule
-                                              ? tx->tx_end_state
-                                              : MIN(tx->tx_end_state, s->app_progress_hook + 1);
+                                              ? tx->tx_progress
+                                              : MIN(tx->tx_progress, s->app_progress_hook + 1);
             enum DetectTxFirewallFlowControl r =
                     DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies, tx, p,
                             s->alproto, direction, s->app_progress_hook + 1, last_hook);
@@ -2314,6 +2319,32 @@ static int DetectRunTxFirewallRuleNoMatch(DetectEngineThreadCtx *det_ctx, const 
         SCLogDebug("fw_last_for_progress policy %02x", policy.action);
         if (policy.action & ACTION_DROP) {
             return 1;
+        }
+        /* an accept with tx or flow scope already carries the verdict. For an
+         * accept:hook (which does not apply to this packet) the states walked
+         * over must still be decided: if the tx progressed beyond this rule's
+         * hook and there is no rule for the states in between, their default
+         * policies must be applied too - same as the match path does.
+         * Without this a packet that crosses two states (e.g. a hello
+         * completing into the certificate phase) would be decided by the
+         * packet default policy even though the app policy for the current
+         * state says accept. */
+        if ((policy.action & ACTION_ACCEPT) && policy.action_scope == ACTION_SCOPE_HOOK &&
+                fw_state->fw_next_progress_missing && tx->tx_progress > s->app_progress_hook) {
+            /* only states the packet actually walked over (see the match
+             * path) */
+            const uint8_t last_hook = fw_state->last_fw_rule
+                                              ? tx->tx_progress
+                                              : MIN(tx->tx_progress, s->app_progress_hook + 1);
+            enum DetectTxFirewallFlowControl r =
+                    DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies, tx, p,
+                            s->alproto, flow_flags, s->app_progress_hook + 1, last_hook);
+            if (r == DETECT_TX_FW_FC_BREAK) {
+                /* the sweep dropped the packet: same as a current-hook
+                 * policy drop, the caller must stop the walk */
+                fw_state->fw_skip_app_filter = true;
+                return 1;
+            }
         }
     }
     return 0;
