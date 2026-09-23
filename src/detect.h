@@ -27,6 +27,7 @@
 #include "suricata-common.h"
 #include "flow.h"
 
+#include "app-layer-parser.h"
 #include "detect-engine-proto.h"
 #include "detect-reference.h"
 #include "detect-metadata.h"
@@ -1258,8 +1259,10 @@ typedef struct SignatureNonPrefilterStore_ {
 
 /** array of TX inspect rule candidates */
 typedef struct RuleMatchCandidateTx {
-    SigIntId id;            /**< internal signature id */
-    uint32_t *flags;        /**< inspect flags ptr */
+    SigIntId id;           /**< internal signature id */
+    bool fw_lte_counted;   /**< counted in the firewall LTE hook coverage */
+    bool fw_lte_header_ok; /**< firewall LTE coverage already passed the rule header check */
+    uint32_t *flags;       /**< inspect flags ptr */
     union {
         struct {
             bool stream_stored;
@@ -1406,6 +1409,11 @@ typedef struct DetectEngineThreadCtx_ {
 
     RuleMatchCandidateTx *tx_candidates;
     uint32_t tx_candidates_size;
+
+    /** Per hook LTE coverage of the current tx walk. Kept here instead of in
+     *  the per-tx firewall state so IDS traffic does not pay to clear it.
+     *  Cleared by the firewall coverage build on first use in a walk. */
+    uint32_t fw_lte_cover[APP_LAYER_MAX_PROGRESS];
 
     MpmThreadCtx mtc; /**< thread ctx for the mpm */
     /* work queue for post-rule matching affecting prefilter */

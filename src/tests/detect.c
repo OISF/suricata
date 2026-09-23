@@ -4629,10 +4629,182 @@ static int DetectAddressYamlParsing04 (void)
     PASS;
 }
 
+/** \internal
+ * \brief fill a synthetic signature with the fields the LTE coverage helpers read.
+ */
+static void DetectFwLteCoverageTestInitSig(
+        Signature *s, const uint32_t id, const uint8_t hook, const bool lte)
+{
+    memset(s, 0, sizeof(*s));
+    s->id = id;
+    s->iid = (SigIntId)id;
+    s->app_progress_hook = hook;
+    s->flags = SIG_FLAG_SRC_ANY | SIG_FLAG_DST_ANY | SIG_FLAG_SP_ANY | SIG_FLAG_DP_ANY;
+    if (lte) {
+        s->flags |= SIG_FLAG_FW_HOOK_LTE;
+    }
+}
+
+/** \test DetectFwBuildLteCoverage/DetectFwOtherLteCoversHook on synthetic rules */
+static int DetectFwLteCoverageTest01(void)
+{
+    struct DetectFirewallAppTxState fw_state = { 0 };
+    DetectEngineThreadCtx det_ctx = { 0 };
+    RuleMatchCandidateTx candidates[3] = { 0 };
+    det_ctx.tx_candidates = candidates;
+
+    Packet p = { 0 };
+    Flow f = { 0 };
+
+    Signature lte_a, lte_b, non_lte;
+    DetectFwLteCoverageTestInitSig(&lte_a, 1, 3, true);
+    DetectFwLteCoverageTestInitSig(&lte_b, 2, 3, true);
+    DetectFwLteCoverageTestInitSig(&non_lte, 3, 2, false);
+
+    candidates[0].s = &lte_a;
+    candidates[0].id = lte_a.iid;
+    candidates[1].s = &lte_b;
+    candidates[1].id = lte_b.iid;
+    candidates[2].s = &non_lte;
+    candidates[2].id = non_lte.iid;
+
+    DetectFwBuildLteCoverage(&det_ctx, &p, &f, &fw_state, 3);
+
+    /* both LTE rules cover their own hook and every prior hook */
+    for (uint16_t h = 0; h <= 3; h++) {
+        FAIL_IF(det_ctx.fw_lte_cover[h] != 2);
+    }
+    FAIL_IF(det_ctx.fw_lte_cover[4] != 0);
+    FAIL_IF_NOT(candidates[0].fw_lte_counted);
+    FAIL_IF_NOT(candidates[1].fw_lte_counted);
+    FAIL_IF(candidates[2].fw_lte_counted);
+
+    /* a non-LTE rule is covered by any pending LTE rule; a counted LTE rule
+     * needs a coverage greater than itself (covered > 1) */
+    FAIL_IF_NOT(DetectFwOtherLteCoversHook(&det_ctx, &fw_state, &non_lte, false));
+    FAIL_IF_NOT(DetectFwOtherLteCoversHook(&det_ctx, &fw_state, &lte_a, true));
+
+    /* an uncounted LTE candidate carries no own count: the other rule alone
+     * already covers the hook */
+    FAIL_IF_NOT(DetectFwOtherLteCoversHook(&det_ctx, &fw_state, &lte_a, false));
+
+    /* a hook covered by exactly one other rule: counted needs 2, uncounted
+     * is already covered */
+    struct DetectFirewallAppTxState one = { 0 };
+    one.fw_lte_cover_active = true;
+    memset(det_ctx.fw_lte_cover, 0, sizeof(det_ctx.fw_lte_cover));
+    det_ctx.fw_lte_cover[3] = 1; /* lte_a's hook */
+    FAIL_IF(DetectFwOtherLteCoversHook(&det_ctx, &one, &lte_a, true));
+    FAIL_IF_NOT(DetectFwOtherLteCoversHook(&det_ctx, &one, &lte_a, false));
+
+    /* out-of-range hook is rejected defensively without crashing */
+    Signature out_of_range;
+    DetectFwLteCoverageTestInitSig(&out_of_range, 4, APP_LAYER_MAX_PROGRESS, true);
+    FAIL_IF(DetectFwOtherLteCoversHook(&det_ctx, &fw_state, &out_of_range, true));
+
+    PASS;
+}
+
+/** \test DetectFwRetireLteRule decrements only its own hook range */
+static int DetectFwLteCoverageTest02(void)
+{
+    struct DetectFirewallAppTxState fw_state = { 0 };
+    DetectEngineThreadCtx det_ctx = { 0 };
+    RuleMatchCandidateTx candidates[2] = { 0 };
+    det_ctx.tx_candidates = candidates;
+
+    Packet p = { 0 };
+    Flow f = { 0 };
+
+    Signature lte_a, lte_b;
+    DetectFwLteCoverageTestInitSig(&lte_a, 1, 1, true);
+    DetectFwLteCoverageTestInitSig(&lte_b, 2, 4, true);
+
+    candidates[0].s = &lte_a;
+    candidates[0].id = lte_a.iid;
+    candidates[1].s = &lte_b;
+    candidates[1].id = lte_b.iid;
+
+    DetectFwBuildLteCoverage(&det_ctx, &p, &f, &fw_state, 2);
+    FAIL_IF(det_ctx.fw_lte_cover[0] != 2);
+    FAIL_IF(det_ctx.fw_lte_cover[1] != 2);
+    FAIL_IF(det_ctx.fw_lte_cover[2] != 1);
+    FAIL_IF(det_ctx.fw_lte_cover[4] != 1);
+    FAIL_IF(det_ctx.fw_lte_cover[5] != 0);
+
+    /* retiring the short rule removes only its contribution */
+    DetectFwRetireLteRule(&det_ctx, &candidates[0]);
+    FAIL_IF(det_ctx.fw_lte_cover[0] != 1);
+    FAIL_IF(det_ctx.fw_lte_cover[1] != 1);
+    FAIL_IF(det_ctx.fw_lte_cover[2] != 1);
+    FAIL_IF(det_ctx.fw_lte_cover[3] != 1);
+    FAIL_IF(det_ctx.fw_lte_cover[4] != 1);
+    /* the retired rule no longer counts as its own coverage: it is covered
+     * by the still pending rule, while the stale counted state would read
+     * the single remaining count as its own */
+    FAIL_IF(candidates[0].fw_lte_counted);
+    FAIL_IF_NOT(
+            DetectFwOtherLteCoversHook(&det_ctx, &fw_state, &lte_a, candidates[0].fw_lte_counted));
+    FAIL_IF(DetectFwOtherLteCoversHook(&det_ctx, &fw_state, &lte_a, true));
+
+    DetectFwRetireLteRule(&det_ctx, &candidates[1]);
+    for (uint16_t h = 0; h <= 4; h++) {
+        FAIL_IF(det_ctx.fw_lte_cover[h] != 0);
+    }
+
+    PASS;
+}
+
+/** \test DetectFwCountAppendedLteRule dedup and counting */
+static int DetectFwLteCoverageTest03(void)
+{
+    struct DetectFirewallAppTxState fw_state = { 0 };
+    DetectEngineThreadCtx det_ctx = { 0 };
+    RuleMatchCandidateTx candidates[2] = { 0 };
+    det_ctx.tx_candidates = candidates;
+
+    Packet p = { 0 };
+    Flow f = { 0 };
+
+    Signature lte_a, lte_c, non_lte;
+    DetectFwLteCoverageTestInitSig(&lte_a, 1, 1, true);
+    DetectFwLteCoverageTestInitSig(&lte_c, 3, 2, true);
+    DetectFwLteCoverageTestInitSig(&non_lte, 4, 1, false);
+
+    /* the rule is already counted earlier in the list: must not count again */
+    candidates[0].s = &lte_a;
+    candidates[0].id = lte_a.iid;
+    candidates[0].fw_lte_counted = true;
+    DetectFwCountAppendedLteRule(&det_ctx, &p, &f, &fw_state, &lte_a, 1);
+    FAIL_IF(det_ctx.fw_lte_cover[0] != 0);
+    FAIL_IF(det_ctx.fw_lte_cover[1] != 0);
+    FAIL_IF(candidates[1].fw_lte_counted);
+
+    /* a non-LTE rule does not increase coverage */
+    DetectFwCountAppendedLteRule(&det_ctx, &p, &f, &fw_state, &non_lte, 1);
+    FAIL_IF(det_ctx.fw_lte_cover[0] != 0);
+
+    /* a new LTE rule covers its own hook and every prior hook */
+    candidates[1].s = &lte_c;
+    candidates[1].id = lte_c.iid;
+    DetectFwCountAppendedLteRule(&det_ctx, &p, &f, &fw_state, &lte_c, 1);
+    FAIL_IF(det_ctx.fw_lte_cover[0] != 1);
+    FAIL_IF(det_ctx.fw_lte_cover[1] != 1);
+    FAIL_IF(det_ctx.fw_lte_cover[2] != 1);
+    FAIL_IF(det_ctx.fw_lte_cover[3] != 0);
+    FAIL_IF_NOT(candidates[1].fw_lte_counted);
+
+    PASS;
+}
+
 void SigRegisterTests(void)
 {
     SigParseRegisterTests();
     IPOnlyRegisterTests();
+
+    UtRegisterTest("DetectFwLteCoverageTest01", DetectFwLteCoverageTest01);
+    UtRegisterTest("DetectFwLteCoverageTest02", DetectFwLteCoverageTest02);
+    UtRegisterTest("DetectFwLteCoverageTest03", DetectFwLteCoverageTest03);
 
     UtRegisterTest("SigTest01", SigTest01);
     UtRegisterTest("SigTest02 -- Offset/Depth match", SigTest02);
