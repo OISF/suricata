@@ -41,6 +41,8 @@ void DetectBufferTypeSupportsMultiInstance(const char *name);
 int DetectBufferTypeMaxId(void);
 void DetectBufferTypeCloseRegistration(void);
 void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc);
+void DetectBufferTypeSetRunAlways(const char *name);
+void DetectEngineBufferTypeSetRunAlways(DetectEngineCtx *de_ctx, const int id);
 void DetectBufferTypeRegisterSetupCallback(const char *name,
         void (*Callback)(const DetectEngineCtx *, Signature *, const DetectBufferType *));
 void DetectBufferTypeRegisterValidateCallback(

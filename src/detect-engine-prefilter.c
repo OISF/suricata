@@ -148,8 +148,9 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
                         tx->tx_progress, engine->ctx.app.tx_min_progress);
 
                 /* if state value is at or beyond engine state, we can skip it. It means we ran at
-                 * least once already. */
-                if (tx->detect_progress > engine->ctx.app.tx_min_progress) {
+                 * least once already. A run-always engine (stateful keyword) is revisited on
+                 * every update, so detect_progress must not skip it. */
+                if (!engine->run_always && tx->detect_progress > engine->ctx.app.tx_min_progress) {
                     SCLogDebug("tx already marked progress as beyond engine: %u > %u",
                             tx->detect_progress, engine->ctx.app.tx_min_progress);
                     goto next;
@@ -739,6 +740,10 @@ struct TxNonPFData {
     uint8_t progress; /**< progress state value to register at */
     int sig_list; /**< special handling: normally 0, but for special cases (app-layer-state,
                      app-layer-event) use the list id to create separate engines */
+    /** the buffer holds a stateful keyword: evaluate its engine on every tx
+     *  update (engine progress -1) so a provisional miss can be revisited as
+     *  the transaction advances. */
+    bool run_always;
     uint32_t sigs_cnt;
     struct PrefilterNonPFDataSig *sigs;
     const char *engine_name; /**< pointer to name owned by DetectEngineCtx::non_pf_engine_names */
@@ -747,7 +752,8 @@ struct TxNonPFData {
 static uint32_t TxNonPFHash(HashListTable *h, void *data, uint16_t _len)
 {
     struct TxNonPFData *d = data;
-    return (d->alproto + d->sub_state + d->progress + d->dir + d->sig_list) % h->array_size;
+    return (d->alproto + d->sub_state + d->progress + d->dir + d->sig_list + d->run_always) %
+           h->array_size;
 }
 
 static char TxNonPFCompare(void *data1, uint16_t _len1, void *data2, uint16_t len2)
@@ -755,7 +761,8 @@ static char TxNonPFCompare(void *data1, uint16_t _len1, void *data2, uint16_t le
     struct TxNonPFData *d1 = data1;
     struct TxNonPFData *d2 = data2;
     return d1->alproto == d2->alproto && d1->sub_state == d2->sub_state &&
-           d1->progress == d2->progress && d1->dir == d2->dir && d1->sig_list == d2->sig_list;
+           d1->progress == d2->progress && d1->dir == d2->dir && d1->sig_list == d2->sig_list &&
+           d1->run_always == d2->run_always;
 }
 
 static void TxNonPFFree(void *data)
@@ -767,7 +774,7 @@ static void TxNonPFFree(void *data)
 
 static int TxNonPFAddSig(DetectEngineCtx *de_ctx, HashListTable *tx_engines_hash,
         const AppProto alproto, const uint8_t sub_state, const int dir, const uint8_t progress,
-        const int sig_list, const char *name, const Signature *s)
+        const int sig_list, const char *name, const Signature *s, const bool run_always)
 {
     const uint32_t max_sids = DetectEngineGetMaxSigId(de_ctx);
 
@@ -777,6 +784,7 @@ static int TxNonPFAddSig(DetectEngineCtx *de_ctx, HashListTable *tx_engines_hash
         .dir = dir,
         .progress = progress,
         .sig_list = sig_list,
+        .run_always = run_always,
         .sigs_cnt = 0,
         .sigs = NULL,
         .engine_name = NULL,
@@ -809,6 +817,7 @@ static int TxNonPFAddSig(DetectEngineCtx *de_ctx, HashListTable *tx_engines_hash
     add->alproto = alproto;
     add->progress = progress;
     add->sig_list = sig_list;
+    add->run_always = run_always;
     add->sigs = SCCalloc(max_sids, sizeof(struct PrefilterNonPFDataSig));
     if (add->sigs == NULL) {
         SCFree(add);
@@ -989,7 +998,7 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                 const int sm_list =
                         DetectEngineAppHookToSmlist(s->alproto, sub_state, state, direction);
                 if (TxNonPFAddSig(de_ctx, tx_engines_hash, s->alproto, sub_state, dir, state,
-                            sm_list, pname, s) != 0) {
+                            sm_list, pname, s, false) != 0) {
                     goto error;
                 }
                 tx_non_pf = true;
@@ -1059,9 +1068,12 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                     int sig_list = 0;
                     if (list_id == app_state_list_id)
                         sig_list = app_state_list_id;
+                    /* buffers marked run-always (stateful keywords) must be
+                     * revisited as the tx advances. */
+                    const bool run_always = buf != NULL && buf->run_always;
                     const uint8_t sub_state = app->sub_state;
                     if (TxNonPFAddSig(de_ctx, tx_engines_hash, app->alproto, sub_state, app->dir,
-                                app->progress, sig_list, buf->name, s) != 0) {
+                                app->progress, sig_list, buf->name, s, run_always) != 0) {
                         goto error;
                     }
                     tx_non_pf = true;
@@ -1083,8 +1095,8 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
             uint8_t sub_state = s->init_data->hook.t.app.sub_state;
             if (TxNonPFAddSig(de_ctx, tx_engines_hash, s->alproto, sub_state, dir,
-                        s->init_data->hook.t.app.app_progress, s->init_data->hook.sm_list, pname,
-                        s) != 0) {
+                        s->init_data->hook.t.app.app_progress, s->init_data->hook.sm_list, pname, s,
+                        false) != 0) {
                 goto error;
             }
             tx_non_pf = true;
@@ -1160,11 +1172,13 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             continue;
         }
 
-        /* register special progress value to indicate we need to run it all the time */
         DEBUG_VALIDATE_BUG_ON(t->progress > INT8_MAX);
         int8_t engine_progress = (int8_t)t->progress;
         if (t->sig_list == app_state_list_id) {
-            SCLogDebug("engine %s for state list", t->engine_name);
+            /* app-layer-state engines use the -1 "run every update" sentinel;
+             * they are proto-agnostic (ALPROTO_UNKNOWN), which that path
+             * requires. */
+            SCLogDebug("engine %s for state list, run always", t->engine_name);
             engine_progress = -1;
         }
 
@@ -1180,6 +1194,15 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                     engine_progress, (void *)data, PrefilterNonPFDataFree, t->engine_name) < 0) {
             SCFree(data);
             goto error;
+        }
+        if (t->run_always) {
+            /* A stateful keyword must be revisited as the tx advances. Keep
+             * its real progress (so the progress bookkeeping runs and the
+             * proto-agnostic -1 invariant holds) and carry an explicit flag. */
+            PrefilterEngineList *tail = sgh->init->tx_engines;
+            while (tail->next != NULL)
+                tail = tail->next;
+            tail->run_always = true;
         }
     }
     HashListTableFree(tx_engines_hash);
@@ -1357,6 +1380,7 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             e->alproto = el->alproto;
             e->ctx.app.tx_min_progress = el->tx_min_progress;
             e->ctx.app.sub_state = el->sub_state;
+            e->run_always = el->run_always;
             e->cb.PrefilterTx = el->PrefilterTx;
             e->pectx = el->pectx;
             el->pectx = NULL; // e now owns the ctx

@@ -76,6 +76,8 @@ void DetectSslStateRegister(void)
     sigmatch_table[DETECT_SSL_STATE].desc = "match the state of the SSL connection";
     sigmatch_table[DETECT_SSL_STATE].url = "/rules/tls-keywords.html#ssl-state";
     sigmatch_table[DETECT_SSL_STATE].AppLayerTxMatch = DetectSslStateMatch;
+    /* the value follows the handshake state */
+    sigmatch_table[DETECT_SSL_STATE].flags |= SIGMATCH_STATEFUL;
     sigmatch_table[DETECT_SSL_STATE].Setup = DetectSslStateSetup;
     sigmatch_table[DETECT_SSL_STATE].Free = DetectSslStateFree;
 #ifdef UNITTESTS

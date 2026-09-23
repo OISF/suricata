@@ -29,6 +29,9 @@
 typedef struct DetectTlsVersionData_ {
     uint16_t ver; /** tls version to match */
     uint8_t flags;
+    /** for hook rules: progress of the hook the rule is attached to. -1 for
+     *  non-hook rules, which inspect the hello state. */
+    int8_t hook_progress;
 } DetectTlsVersionData;
 
 /* prototypes */
