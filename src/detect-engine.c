@@ -2186,7 +2186,30 @@ static bool DetectTxCompleted(
         // the DNS tx from DetectGetInnerTx is always complete
         return true;
     } // else
-    return AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress;
+    const int progress = AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags);
+    if (progress < 0) {
+        return false;
+    }
+    if (progress > engine->progress) {
+        return true;
+    }
+    if (progress < engine->progress) {
+        return false;
+    }
+    /* An engine registered at the completion state has no P + 1; its data is
+     * final once the tx reached that state. For the buffer engines this is the
+     * engine's eof, so absent/bsize are decided; for the firewall checks it is
+     * the point where the verdict can no longer change.
+     * AppLayerParserGetStateProgress() returns the end progress for disrupted
+     * flows, so progress == end stays a valid finality signal there. */
+    const AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
+    uint8_t tx_end_state;
+    if (txd != NULL && txd->tx_type != 0) {
+        tx_end_state = (flags & STREAM_TOSERVER) ? txd->tx_type_eop_ts : txd->tx_type_eop_tc;
+    } else {
+        tx_end_state = AppLayerParserGetStateProgressCompletionStatus(f->alproto, flags);
+    }
+    return progress == tx_end_state;
 }
 
 /**
