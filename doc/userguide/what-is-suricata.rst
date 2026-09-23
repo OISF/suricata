@@ -6,7 +6,7 @@ Suricata is a high-performance, open-source network threat detection engine prov
 Suricata is developed, maintained, and supported by the `Open Information Security Foundation (OISF) <https://oisf.net/>`_ together with a global community of contributors and consortium members.
 
 About the Open Information Security Foundation (OISF)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The Open Information Security Foundation (OISF) is a 501(c)(3) non-profit foundation dedicated to building and sustaining Suricata. Since
 2009, OISF has provided the long-term stewardship an open-source project of Suricata's scale requires: a professional, globally distributed development team, board governance, and the business infrastructure that keeps the project stable, secure, and moving forward.
