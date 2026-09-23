@@ -556,8 +556,8 @@ function ReformatCommitsOnBranch {
     # CheckBranch below will also tell us there are no changes compared with
     # main, but let's make this foolproof and explicit here.
     local current_branch=$(git rev-parse --abbrev-ref HEAD)
-    if [ "$current_branch" == "main" ]; then
-        Die "Must not rewrite main branch history."
+    if [ "$current_branch" == "main-8.0.x" ]; then
+        Die "Must not rewrite main-8.0.x branch history."
     fi
 
     CheckBranch "--quiet"
