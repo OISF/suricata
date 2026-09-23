@@ -31,7 +31,7 @@
 #include "thread-storage.h"
 #include "util-debug.h"
 
-#include "ndpi_api.h"
+#include "ndpi-compat.h"
 
 static ThreadStorageId thread_storage_id = { .id = -1 };
 static FlowStorageId flow_storage_id = { .id = -1 };
@@ -80,6 +80,20 @@ static inline struct NdpiFlowContext *NdpiGetFlowContext(const Flow *f)
     if (unlikely(f == NULL || flow_storage_id.id < 0 || f->storage == NULL))
         return NULL;
     return FlowGetStorageById(f, flow_storage_id);
+}
+
+/**
+ * Allocate and finalize a detection module with every protocol enabled.
+ */
+static struct ndpi_detection_module_struct *NdpiModuleNew(void)
+{
+    struct ndpi_detection_module_struct *ndpi = NdpiCompatInitModule(NULL);
+    if (ndpi == NULL)
+        return NULL;
+
+    NdpiCompatEnableAllProtocols(ndpi);
+    ndpi_finalize_initialization(ndpi);
+    return ndpi;
 }
 
 static void ThreadStorageFree(void *ptr)
@@ -167,19 +181,19 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
         flowctx->detected_l7_protocol = ndpi_detection_process_packet(
                 threadctx->ndpi, flowctx->ndpi_flow, ip_ptr, ip_len, time_ms, NULL);
 
-        if (ndpi_is_protocol_detected(flowctx->detected_l7_protocol) != 0) {
-            if (!ndpi_is_proto_unknown(flowctx->detected_l7_protocol.proto)) {
-                if (!ndpi_extra_dissection_possible(threadctx->ndpi, flowctx->ndpi_flow))
-                    flowctx->detection_completed = true;
-            }
+        if (NdpiCompatClassificationFinal(
+                    threadctx->ndpi, flowctx->ndpi_flow, &flowctx->detected_l7_protocol)) {
+            flowctx->detection_completed = true;
         } else {
-            uint16_t max_num_pkts = (f->proto == IPPROTO_UDP) ? 8 : 24;
+            /* stop feeding nDPI after a few packets, taking its best guess
+             * for flows it could not classify */
+            const uint16_t max_num_pkts = (f->proto == IPPROTO_UDP) ? 8 : 24;
 
             if ((f->todstpktcnt + f->tosrcpktcnt) > max_num_pkts) {
-                uint8_t proto_guessed;
-
-                flowctx->detected_l7_protocol =
-                        ndpi_detection_giveup(threadctx->ndpi, flowctx->ndpi_flow, &proto_guessed);
+                if (NdpiCompatIsUnclassified(&flowctx->detected_l7_protocol)) {
+                    flowctx->detected_l7_protocol =
+                            NdpiCompatGiveup(threadctx->ndpi, flowctx->ndpi_flow);
+                }
                 flowctx->detection_completed = true;
             }
         }
@@ -209,14 +223,10 @@ static void OnThreadInit(ThreadVars *tv, void *_data)
     if (context == NULL) {
         FatalError("Failed to allocate nDPI thread context");
     }
-    context->ndpi = ndpi_init_detection_module(NULL);
+    context->ndpi = NdpiModuleNew();
     if (context->ndpi == NULL) {
         FatalError("Failed to initialize nDPI detection module");
     }
-    NDPI_PROTOCOL_BITMASK protos;
-    NDPI_BITMASK_SET_ALL(protos);
-    ndpi_set_protocol_detection_bitmask2(context->ndpi, &protos);
-    ndpi_finalize_initialization(context->ndpi);
     ThreadSetStorageById(tv, thread_storage_id, context);
 }
 
@@ -272,16 +282,11 @@ static DetectnDPIProtocolData *DetectnDPIProtocolParse(const char *arg, bool neg
     struct ndpi_detection_module_struct *ndpi_struct;
     ndpi_master_app_protocol l7_protocol;
     char *l7_protocol_name = (char *)arg;
-    NDPI_PROTOCOL_BITMASK all;
 
     /* convert protocol name (string) to ID */
-    ndpi_struct = ndpi_init_detection_module(NULL);
+    ndpi_struct = NdpiModuleNew();
     if (unlikely(ndpi_struct == NULL))
         return NULL;
-
-    NDPI_BITMASK_SET_ALL(all);
-    ndpi_set_protocol_detection_bitmask2(ndpi_struct, &all);
-    ndpi_finalize_initialization(ndpi_struct);
 
     l7_protocol = ndpi_get_protocol_by_name(ndpi_struct, l7_protocol_name);
     ndpi_exit_detection_module(ndpi_struct);
@@ -401,16 +406,11 @@ static DetectnDPIRiskData *DetectnDPIRiskParse(const char *arg, bool negate)
     DetectnDPIRiskData *data;
     struct ndpi_detection_module_struct *ndpi_struct;
     ndpi_risk risk_mask;
-    NDPI_PROTOCOL_BITMASK all;
 
     /* convert list of risk names (string) to mask */
-    ndpi_struct = ndpi_init_detection_module(NULL);
+    ndpi_struct = NdpiModuleNew();
     if (unlikely(ndpi_struct == NULL))
         return NULL;
-
-    NDPI_BITMASK_SET_ALL(all);
-    ndpi_set_protocol_detection_bitmask2(ndpi_struct, &all);
-    ndpi_finalize_initialization(ndpi_struct);
     ndpi_exit_detection_module(ndpi_struct);
 
     if (isdigit(arg[0]))
