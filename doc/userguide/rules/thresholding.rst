@@ -9,15 +9,44 @@ Thresholding can be configured per rule and also globally, see
 Thresholds are tracked in a hash table that is sized according to configuration, see:
 :ref:`suricata-yaml-thresholds`.
 
-**IMPORTANT** for both ``threshold`` and ``detection_filter`` keywords
+**IMPORTANT NOTES**
 
 .. note::
 
-  Rules that contain ``flowbits``, ``flowints``, etc will still have those actions performed when the rule
-  contains one of the ``threshold`` keywords. Those actions are not subject to the threshold limits.
+  **For limit, backoff and both**, rule actions ``drop`` (IPS mode) and
+  ``reject`` are applied to each packet (not only the one that meets the limit
+  condition).
+  ``both`` only behaves like that once it has reached its count.
+  ``backoff`` does not have its rule action applied to the first match, when
+  count > 1.
 
-  Rule actions ``drop`` (IPS mode) and ``reject`` are applied to each packet
-  (not only the one that meets the limit condition).
+  **For detection_filter, and types both and threshold** neither the rule
+  action nor its alert are applied before the count limit.
+
+.. note:: for any thresholding mechanism, including threshold.config:
+
+  Keywords that change state are not subject to threshold limits. They are
+  applied on every match, even when the alert is suppressed.
+
+  Post-matching Keywords:
+    - flowbits (set / unset)
+    - flowint (set / += / -=)
+    - xbits (set / unset / toggle)
+    - hostbits (set / unset / toggle)
+    - bypass
+    - config
+    - filestore
+    - tls_store
+    - replace
+    - nfq_set_mark (in NFQ)
+    - pcre (when it captures into a flow variable)
+
+  Applied at Keyword-evaluating time:
+    - dataset (set / unset)
+    - lua scripts setting flowbits, flowvars and flowints
+
+  **Exception:** tag (only applied when an alert is generated).
+
 
 threshold
 ---------
