@@ -26,6 +26,48 @@
 #include "util-dpdk.h"
 #include "util-debug.h"
 #include "util-device-private.h"
+#include "util-dpdk-rte-flow.h"
+
+int DPDKDeviceResourcesInit(DPDKDeviceResources **dpdk_vars, uint16_t mp_cnt)
+{
+    SCEnter();
+    *dpdk_vars = SCCalloc(1, sizeof(*dpdk_vars[0]));
+    if (*dpdk_vars == NULL) {
+        SCLogError("failed to allocate memory for packet mempools structure");
+        SCReturnInt(-ENOMEM);
+    }
+
+    (*dpdk_vars)->pkt_mp = SCCalloc(mp_cnt, sizeof((*dpdk_vars)->pkt_mp[0]));
+    if ((*dpdk_vars)->pkt_mp == NULL) {
+        SCLogError("failed to allocate memory for packet mempools");
+        SCReturnInt(-ENOMEM);
+    }
+    (*dpdk_vars)->pkt_mp_capa = mp_cnt;
+    (*dpdk_vars)->pkt_mp_cnt = 0;
+
+    SCReturnInt(0);
+}
+
+void DPDKDeviceResourcesDeinit(DPDKDeviceResources **dpdk_vars)
+{
+#ifdef HAVE_DPDK
+    if ((*dpdk_vars) != NULL) {
+        if ((*dpdk_vars)->pkt_mp != NULL) {
+            for (int j = 0; j < (*dpdk_vars)->pkt_mp_capa; j++) {
+                if ((*dpdk_vars)->pkt_mp[j] != NULL) {
+                    rte_mempool_free((*dpdk_vars)->pkt_mp[j]);
+                }
+            }
+            SCFree((*dpdk_vars)->pkt_mp);
+            (*dpdk_vars)->pkt_mp_capa = 0;
+            (*dpdk_vars)->pkt_mp_cnt = 0;
+            (*dpdk_vars)->pkt_mp = NULL;
+        }
+        SCFree(*dpdk_vars);
+        *dpdk_vars = NULL;
+    }
+#endif /* HAVE_DPDK */
+}
 
 void DPDKCleanupEAL(void)
 {
@@ -61,6 +103,8 @@ void DPDKFreeDevice(LiveDevice *ldev)
     (void)ldev; // avoid warnings of unused variable
 #ifdef HAVE_DPDK
     if (SCRunmodeGet() == RUNMODE_DPDK) {
+        if (ldev->dpdk_vars->rte_flow_bypass_data != NULL)
+            RteBypassDecRef(&ldev->dpdk_vars->rte_flow_bypass_data);
         SCLogDebug("%s: releasing packet mempools", ldev->dev);
         DPDKDeviceResourcesDeinit(&ldev->dpdk_vars);
     }

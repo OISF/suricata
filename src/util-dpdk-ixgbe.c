@@ -62,7 +62,7 @@ int ixgbeDeviceSetRSS(int port_id, uint16_t nb_rx_queues, char *port_name)
     struct rte_flow_action_rss rss_action_conf =
             DPDKInitRSSAction(rss_conf, nb_rx_queues, queues, RTE_ETH_HASH_FUNCTION_DEFAULT, true);
 
-    int retval = DPDKCreateRSSFlowGeneric(port_id, port_name, rss_action_conf);
+    int retval = DPDKCreateRSSFlowGeneric(port_id, port_name, rss_action_conf, RTE_DEFAULT_GROUP);
     if (retval != 0) {
         retval = rte_flow_flush(port_id, &flush_error);
         if (retval != 0) {

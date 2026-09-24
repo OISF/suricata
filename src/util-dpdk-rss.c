@@ -91,10 +91,11 @@ struct rte_flow_action_rss DPDKInitRSSAction(struct rte_eth_rss_conf rss_conf, i
  * \param port_id The port identifier of the Ethernet device
  * \param port_name The port name of the Ethernet device
  * \param rss_conf RSS configuration
+ * \param group rte_flow group to create the rule in
  * \return int 0 on success, a negative errno value otherwise
  */
 int DPDKCreateRSSFlowGeneric(
-        int port_id, const char *port_name, struct rte_flow_action_rss rss_conf)
+        int port_id, const char *port_name, struct rte_flow_action_rss rss_conf, uint32_t group)
 {
     struct rte_flow_attr attr = { 0 };
     struct rte_flow_action action[] = { { 0 }, { 0 } };
@@ -104,6 +105,9 @@ int DPDKCreateRSSFlowGeneric(
     rss_conf.types = RTE_ETH_RSS_IPV4 | RTE_ETH_RSS_IPV6;
 
     attr.ingress = 1;
+    attr.priority = 1;
+    attr.group = group;
+
     action[0].type = RTE_FLOW_ACTION_TYPE_RSS;
     action[0].conf = &rss_conf;
     action[1].type = RTE_FLOW_ACTION_TYPE_END;
