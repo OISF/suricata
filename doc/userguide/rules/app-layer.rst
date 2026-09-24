@@ -213,3 +213,12 @@ Examples::
 
     app-layer-state:request_headers;
     app-layer-state:>request_body;
+
+A comparison that can never hold is rejected at rule load:
+
+* ``>`` with a state at or beyond the protocol's completion state;
+* ``<`` with the protocol's first state (progress 0).
+
+.. note:: The keyword only resolves on protocols whose parser registers a
+   top-level state table (``get_state_id_by_name``). The ``http2`` and
+   ``doh2`` parsers do not, so ``app-layer-state`` cannot be used on them.
