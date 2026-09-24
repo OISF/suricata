@@ -618,7 +618,10 @@ uint64_t SCParseTimeSizeString (const char *str)
 }
 
 /**
- * \brief Get seconds until a time unit changes.
+ * \brief Calculates remaining seconds from the epoch time until a time unit changes.
+ * For example, if the current time is 12:34:45 UTC (epoch 1672533285)
+ * and the time unit is "minute", the function will return 15,
+ * which is the number of seconds remaining until the next minute.
  *
  * \param str   String containing time type (minute, hour, etc).
  * \param epoch Epoch time.
@@ -632,13 +635,13 @@ uint64_t SCGetSecondsUntil (const char *str, time_t epoch)
     memset(&tm, 0, sizeof(tm));
     struct tm *tp = (struct tm *)SCLocalTime(epoch, &tm);
 
-    if (strcmp(str, "minute") == 0)
+    if (strcmp(str, "minute") == 0) {
         seconds = 60 - tp->tm_sec;
-    else if (strcmp(str, "hour") == 0)
-        seconds = (60 * (60 - tp->tm_min)) + (60 - tp->tm_sec);
-    else if (strcmp(str, "day") == 0)
-        seconds = (3600 * (24 - tp->tm_hour)) + (60 * (60 - tp->tm_min)) +
-                  (60 - tp->tm_sec);
+    } else if (strcmp(str, "hour") == 0) {
+        seconds = 3600 - (60 * tp->tm_min + tp->tm_sec);
+    } else if (strcmp(str, "day") == 0) {
+        seconds = 86400 - (3600 * tp->tm_hour + 60 * tp->tm_min + tp->tm_sec);
+    }
 
     return seconds;
 }
