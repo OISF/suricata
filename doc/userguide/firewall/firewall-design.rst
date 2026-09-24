@@ -417,3 +417,6 @@ defining ``accept:tx`` as a global default policy will fail to start Suricata,
 because ``packet`` policies do not accept ``tx``.
 Cover such hooks with a more specific setting so the incompatible default never
 reaches them.
+
+A ``<`` hook rule at the protocol's first state (progress 0) is rejected, as
+there are no prior states to auto-accept; use the plain hook form instead.

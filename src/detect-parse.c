@@ -2806,6 +2806,14 @@ static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Sign
                     s->id);
             return false;
         }
+        if (s->app_progress_hook == 0) {
+            /* state 0 is the starting state: there are no prior hooks to
+             * auto-accept */
+            SCLogError("rule %u: auto-accept notation (<hook) cannot be used at the first state "
+                       "(state 0 has no prior states to cover)",
+                    s->id);
+            return false;
+        }
     }
 
     return true;

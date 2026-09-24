@@ -164,6 +164,12 @@ More details can be found in :ref:`rule-hooks`.
 
 .. note::
 
+   A ``<`` hook at the protocol's first state (progress 0) is rejected: there are
+   no prior states to auto-accept. Use the plain hook form instead
+   (``http1:request_started`` rather than ``http1:<request_started``).
+
+.. note::
+
    While developed for the firewall usecase, these hooks can be used in IDS/IPS rules as well.
 
 Source and destination
