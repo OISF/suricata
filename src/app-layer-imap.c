@@ -22,9 +22,14 @@
  *
  */
 
-#include "app-layer.h"
+#include "suricata-common.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-imap.h"
+#include "app-layer-protos.h"
+#include "rust.h"
+#include "stream-tcp-private.h"
+#include "stream-tcp-reassemble.h"
+#include "util-debug.h"
 
 static AppProto ImapClientProbingParser(
         const Flow *f, uint8_t direction, const uint8_t *input, uint32_t len, uint8_t *rdir)

@@ -31,6 +31,9 @@
 
 #include "util-misc.h"
 #include "util-unittest.h"
+#include "app-layer-protos.h"
+#include "htp/htp_rs.h"
+#include "util-debug.h"
 
 /** Default XFF header name */
 #define XFF_DEFAULT "X-Forwarded-For"

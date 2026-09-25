@@ -35,6 +35,7 @@
 #include "conf.h"
 #include "util-misc.h"
 #include "util-debug.h"
+#include "util-error.h"
 
 SC_ATOMIC_DECLARE(uint64_t, htp_config_memcap);
 SC_ATOMIC_DECLARE(uint64_t, htp_memuse);
