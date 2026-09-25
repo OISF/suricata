@@ -273,6 +273,30 @@ mod tests {
         }
     }
 
+    /// The protover is 1+ non-dash bytes: nom 8's is_not requires at
+    /// least one byte, so an empty-protover banner (`SSH--<sw>`) is
+    /// rejected by the grammar, not published with an empty protover.
+    /// The parse continuation latch keys off the banner_published
+    /// marker (the publish event) rather than the protover field for
+    /// this reason as well.
+    #[test]
+    fn test_ssh_parse_banner_empty_protover() {
+        for buf in [b"SSH--" as &[u8], b"SSH--1.99-OpenSSH_fake"] {
+            match ssh_parse_banner(buf) {
+                Ok(_) => panic!("empty protover banner should be rejected: {:?}", buf),
+                Err(Err::Error(_)) => {
+                    // expected: the grammar rejects an empty protover
+                }
+                Err(Err::Failure(_)) => {
+                    panic!("unexpected failure: {:?}", buf);
+                }
+                Err(Err::Incomplete(_)) => {
+                    panic!("unexpected incomplete: {:?}", buf);
+                }
+            }
+        }
+    }
+
     #[test]
     fn test_parse_line() {
         let buf = b"SSH-Single\n";
