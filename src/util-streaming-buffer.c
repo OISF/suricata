@@ -926,7 +926,8 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
                     // pre-grow: [nextnextnext]
                     // post-grow [nextnextnextXXX]
                     // post-move [XXXnextnextnext]
-                    memmove(next->buf + next_data_offset, next->buf, prev_buf_size);
+                    SC_MEMMOVE(next->buf + next_data_offset, next->buf_size - next_data_offset,
+                            next->buf, prev_buf_size);
 
                     // move portion of "start" into "next"
                     //
@@ -966,7 +967,7 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
                     // pre:     [xxxxxxxAAA]
                     // post:    [AAAxxxxxxx]
                     SCLogDebug("s %u new_data_size %u", s, new_data_size);
-                    memmove(start->buf, start->buf + s, new_data_size);
+                    SC_MEMMOVE(start->buf, start->buf_size, start->buf + s, new_data_size);
 
                     // copy in "next"
                     // pre:     [AAAxxxxxxx]
@@ -990,7 +991,7 @@ static inline void StreamingBufferSlideToOffsetWithRegions(
 
         just_main:
             SCLogDebug("s %u new_data_size %u", s, new_data_size);
-            memmove(to_shift->buf, to_shift->buf + s, new_data_size);
+            SC_MEMMOVE(to_shift->buf, to_shift->buf_size, to_shift->buf + s, new_data_size);
             /* shrink memory region. If this fails we keep the old */
             void *ptr = REALLOC(cfg, to_shift->buf, to_shift->buf_size, new_mem_size);
             if (ptr != NULL) {
@@ -1051,7 +1052,7 @@ void StreamingBufferSlideToOffset(
                 const uint32_t size = sb->region.buf_size - slide;
                 SCLogDebug("sliding %u forward, size of original buffer left after slide %u", slide,
                         size);
-                memmove(sb->region.buf, sb->region.buf + slide, size);
+                SC_MEMMOVE(sb->region.buf, sb->region.buf_size, sb->region.buf + slide, size);
                 if (sb->region.buf_offset > slide) {
                     sb->region.buf_offset -= slide;
                 } else {
@@ -1067,7 +1068,7 @@ void StreamingBufferSlideToOffset(
                 const uint32_t size = sb->region.buf_offset - slide;
                 SCLogDebug("sliding %u forward, size of original buffer left after slide %u", slide,
                         size);
-                memmove(sb->region.buf, sb->region.buf + slide, size);
+                SC_MEMMOVE(sb->region.buf, sb->region.buf_size, sb->region.buf + slide, size);
                 sb->region.stream_offset = offset;
                 sb->region.buf_offset = size;
             } else {
@@ -1299,7 +1300,7 @@ static StreamingBufferRegion *BufferInsertAtRegionConsolidate(StreamingBuffer *s
     /* validate that the size is exactly what we asked for */
     DEBUG_VALIDATE_BUG_ON(dst_size != dst->buf_size);
     if (dst_copy_offset != 0)
-        memmove(dst->buf + dst_copy_offset, dst->buf, old_size);
+        SC_MEMMOVE(dst->buf + dst_copy_offset, dst->buf_size - dst_copy_offset, dst->buf, old_size);
     if (dst_offset != dst->stream_offset) {
         dst->stream_offset = dst_offset;
         // buf_offset no longer valid, reset.
