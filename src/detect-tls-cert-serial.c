@@ -85,16 +85,16 @@ void DetectTlsSerialRegister(void)
     sigmatch_table[DETECT_TLS_CERT_SERIAL].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("tls.cert_serial", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
-            TLS_STATE_SERVER_CERT_DONE, DetectEngineInspectBufferGeneric, GetData);
+            TLS_STATE_SERVER_CERT, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("tls.cert_serial", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_TLS, TLS_STATE_SERVER_CERT_DONE);
+            GetData, ALPROTO_TLS, TLS_STATE_SERVER_CERT);
 
     DetectAppLayerInspectEngineRegister("tls.cert_serial", ALPROTO_TLS, SIG_FLAG_TOSERVER,
-            TLS_STATE_CLIENT_CERT_DONE, DetectEngineInspectBufferGeneric, GetData);
+            TLS_STATE_CLIENT_CERT, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("tls.cert_serial", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_TLS, TLS_STATE_CLIENT_CERT_DONE);
+            GetData, ALPROTO_TLS, TLS_STATE_CLIENT_CERT);
 
     DetectBufferTypeSetDescriptionByName("tls.cert_serial",
             "TLS certificate serial number");

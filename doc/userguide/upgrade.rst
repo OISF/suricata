@@ -50,6 +50,27 @@ Major Changes
   ``app-layer.protocols.pgsql`` section was absent from suricata.yaml, the
   parser would be enabled. It's now disabled by default. Simply enabling its EVE
   output will no longer suffice, either.
+- The TLS state names used in firewall rules (``accept:hook
+  tls:<state>``, ``alert tls:<state>``) and in the
+  ``firewall.policies.app.tls`` config keys changed from completion
+  milestones to active phases (e.g. ``client_hello_done`` becomes
+  ``client_hello``, ``client_in_progress`` becomes ``client_started``).
+  A rule with an old state name fails to load and is **not enforced**,
+  and a config key that matches a renamed state is reported at load
+  and aborts init when ``engine.init-failure-fatal`` is set (a warning
+  otherwise). See
+  :doc:`firewall/tls-state-migration` for the old-to-new mapping.
+- The firewall's per-packet evaluation of app-layer states is now
+  bounded by the state the packet's parse progress reaches. This
+  applies to every app-layer protocol, not only the renamed TLS
+  states: a state above the packet's current progress can no longer
+  decide the packet (for example, a default policy configured at a
+  later state no longer drops a packet that stops at an earlier
+  state), and on a rule no-match the states between the last rule and
+  the packet's progress are now evaluated. Existing rulesets that
+  relied on a policy at a later state to drop packets in an earlier
+  state need to move that policy to the state the packet actually
+  reaches.
 
 Logging Changes
 ~~~~~~~~~~~~~~~
@@ -71,6 +92,11 @@ Logging Changes
   as an array of key-value pairs like ``[{"key":"mykey", "value":"myvalue"}]``
   under ``properties`` object, instead of as ``{key: value}`` pairs as a part
   of the ``properties`` object itself.
+
+- The ``ts_progress``/``tc_progress`` values in alerts for the renamed
+  TLS firewall states now use the new phase names (e.g.
+  ``client_hello_done`` is now ``client_hello``). See
+  :doc:`firewall/tls-state-migration` for the old-to-new mapping.
 
 Removals
 ~~~~~~~~

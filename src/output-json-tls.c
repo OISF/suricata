@@ -729,10 +729,19 @@ static OutputInitResult OutputTlsLogInitSub(SCConfNode *conf, OutputCtx *parent_
     return result;
 }
 
+static bool TlsTxLogCondition(
+        ThreadVars *tv, const Packet *p, void *state, void *tx, uint64_t tx_id)
+{
+    /* log once the event's content is final, not when both directions
+     * report handshake-done: state completeness is not a logging
+     * dependency (EOF still flushes unlogged txes) */
+    return SSLV3TxLogReady(tx);
+}
+
 void JsonTlsLogRegister (void)
 {
     /* register as child of eve-log */
-    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TX, "eve-log", "JsonTlsLog", "eve-log.tls",
-            OutputTlsLogInitSub, ALPROTO_TLS, JsonTlsLogger, TLS_STATE_SERVER_HANDSHAKE_DONE,
-            TLS_STATE_CLIENT_HANDSHAKE_DONE, JsonTlsLogThreadInit, JsonTlsLogThreadDeinit);
+    OutputRegisterTxSubModuleWithCondition(LOGGER_JSON_TX, "eve-log", "JsonTlsLog", "eve-log.tls",
+            OutputTlsLogInitSub, ALPROTO_TLS, JsonTlsLogger, TlsTxLogCondition,
+            JsonTlsLogThreadInit, JsonTlsLogThreadDeinit);
 }
