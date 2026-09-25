@@ -60,7 +60,6 @@ static void DetectFiledataRegisterTests(void);
 #endif
 static void DetectFiledataSetupCallback(
         const DetectEngineCtx *de_ctx, Signature *s, const DetectBufferType *map);
-static int g_file_data_buffer_id = 0;
 
 /* file API */
 int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
@@ -172,8 +171,6 @@ void DetectFiledataRegister(void)
 
     DetectBufferTypeSetDescriptionByName("file_data", "data from tracked files");
     DetectBufferTypeSupportsMultiInstance("file_data");
-
-    g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
 }
 
 static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
