@@ -31,7 +31,8 @@
 DefragTrackerHashRow *defragtracker_hash;
 DefragConfig defrag_config;
 SC_ATOMIC_DECLARE(uint64_t,defrag_memuse);
-SC_ATOMIC_DECLARE(unsigned int,defragtracker_counter);
+SC_ATOMIC_DECLARE(uint64_t, defrag_tracker_active);
+SC_ATOMIC_DECLARE(uint64_t, defrag_max_fragments);
 SC_ATOMIC_DECLARE(unsigned int,defragtracker_prune_idx);
 
 static DefragTracker *DefragTrackerGetUsedDefragTracker(
@@ -77,6 +78,18 @@ uint64_t DefragTrackerGetMemuse(void)
     return memusecopy;
 }
 
+uint64_t DefragTrackerGetActive(void)
+{
+    uint64_t defragtracker_activecopy = SC_ATOMIC_GET(defrag_tracker_active);
+    return defragtracker_activecopy;
+}
+
+uint64_t DefragTrackerGetMaxFragments(void)
+{
+    uint64_t defrag_max_fragmentscopy = SC_ATOMIC_GET(defrag_max_fragments);
+    return defrag_max_fragmentscopy;
+}
+
 enum ExceptionPolicy DefragGetMemcapExceptionPolicy(void)
 {
     return defrag_config.memcap_policy;
@@ -85,7 +98,7 @@ enum ExceptionPolicy DefragGetMemcapExceptionPolicy(void)
 void DefragTrackerMoveToSpare(DefragTracker *h)
 {
     DefragTrackerEnqueue(&defragtracker_spare_q, h);
-    (void) SC_ATOMIC_SUB(defragtracker_counter, 1);
+    (void)SC_ATOMIC_SUB(defrag_tracker_active, 1);
 }
 
 static DefragTracker *DefragTrackerAlloc(void)
@@ -169,7 +182,10 @@ void DefragInitConfig(bool quiet)
     SCLogDebug("initializing defrag engine...");
 
     memset(&defrag_config, 0, sizeof(defrag_config));
-    SC_ATOMIC_INIT(defragtracker_counter);
+    SC_ATOMIC_INIT(defrag_tracker_active);
+    SC_ATOMIC_SET(defrag_tracker_active, 0);
+    SC_ATOMIC_INIT(defrag_max_fragments);
+    SC_ATOMIC_SET(defrag_max_fragments, 0);
     SC_ATOMIC_INIT(defrag_memuse);
     SC_ATOMIC_INIT(defragtracker_prune_idx);
     SC_ATOMIC_INIT(defrag_config.memcap);
@@ -283,6 +299,9 @@ void DefragInitConfig(bool quiet)
         SCLogConfig("defrag memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(defrag_memuse), SC_ATOMIC_GET(defrag_config.memcap));
     }
+
+    StatsRegisterGlobalCounter("defrag.tracker_active", DefragTrackerGetActive);
+    StatsRegisterGlobalCounter("defrag.max_fragments", DefragTrackerGetMaxFragments);
 }
 
 /** \brief shutdown the flow engine
@@ -511,7 +530,7 @@ static DefragTracker *DefragTrackerGetNew(ThreadVars *tv, DecodeThreadVars *dtv,
         /* tracker is initialized (recycled) but *unlocked* */
     }
 
-    (void) SC_ATOMIC_ADD(defragtracker_counter, 1);
+    (void)SC_ATOMIC_ADD(defrag_tracker_active, 1);
     SCMutexLock(&dt->lock);
     return dt;
 }
