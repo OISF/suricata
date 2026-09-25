@@ -1492,8 +1492,8 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
         goto cleanup;
     }
 
-    // +4 for VLAN header
-    uint16_t mtu_size = iconf->mtu + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN + 4;
+    // two VLAN headers (QinQ), as accounted for by the NIC drivers
+    uint16_t mtu_size = iconf->mtu + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN + 2 * RTE_VLAN_HLEN;
     uint16_t mbuf_size = ROUNDUP(mtu_size, 1024) + RTE_PKTMBUF_HEADROOM;
     uint32_t q_mp_cache_sz = iconf->mempool_cache_size_auto
                                      ? MempoolCacheSizeCalculate(iconf->queue_mempool_size)
