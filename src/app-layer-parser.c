@@ -165,9 +165,6 @@ struct AppLayerParserState_ {
     FramesContainer *frames;
 };
 
-static inline uint8_t GetTxdEndProgress(uint8_t ipproto, AppProto alproto,
-        const AppLayerTxData *txd, uint8_t flags, uint8_t complete);
-
 enum ExceptionPolicy g_applayerparser_error_policy = EXCEPTION_POLICY_NOT_SET;
 
 static void AppLayerConfig(void)
@@ -841,7 +838,6 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
     const int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
     const uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
     uint64_t idx = AppLayerParserGetTransactionInspectId(pstate, flags);
-    const int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->alproto, flags);
     const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
 
@@ -862,8 +858,7 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
         idx = ires.tx_id;
 
         AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
-        const int tx_end_state =
-                GetTxdEndProgress(ipproto, alproto, txd, flags, (uint8_t)state_done_progress);
+        const int tx_end_state = AppLayerParserGetTxEndState(ipproto, alproto, tx, flags);
         int state_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, flags);
         if (state_progress < tx_end_state)
             break;
@@ -903,8 +898,7 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
             idx = ires.tx_id;
 
             AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
-            const int tx_end_state =
-                    GetTxdEndProgress(ipproto, alproto, txd, flags, (uint8_t)state_done_progress);
+            const int tx_end_state = AppLayerParserGetTxEndState(ipproto, alproto, tx, flags);
             const int state_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, flags);
             if (state_progress < tx_end_state)
                 break;
@@ -1005,8 +999,6 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
     const uint64_t min = alparser->min_id;
     const uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
     const LoggerId logger_expectation = AppLayerParserProtocolGetLoggerBits(ipproto, alproto);
-    const int tx_end_state_ts = AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOSERVER);
-    const int tx_end_state_tc = AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOCLIENT);
     const uint8_t ts_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOSERVER);
     const uint8_t tc_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOCLIENT);
 
@@ -1046,15 +1038,13 @@ void AppLayerParserTransactionsCleanup(Flow *f, const uint8_t pkt_dir)
         }
         const int tx_progress_tc =
                 AppLayerParserGetStateProgress(ipproto, alproto, tx, tc_disrupt_flags);
-        const int end_state_tc =
-                GetTxdEndProgress(ipproto, alproto, txd, STREAM_TOCLIENT, (uint8_t)tx_end_state_tc);
+        const int end_state_tc = AppLayerParserGetTxEndState(ipproto, alproto, tx, STREAM_TOCLIENT);
         if (tx_progress_tc < end_state_tc) {
             SCLogDebug("%p/%"PRIu64" skipping: tc parser not done", tx, i);
             skipped = true;
             goto next;
         }
-        const int end_state_ts =
-                GetTxdEndProgress(ipproto, alproto, txd, STREAM_TOSERVER, (uint8_t)tx_end_state_ts);
+        const int end_state_ts = AppLayerParserGetTxEndState(ipproto, alproto, tx, STREAM_TOSERVER);
         const int tx_progress_ts =
                 AppLayerParserGetStateProgress(ipproto, alproto, tx, ts_disrupt_flags);
         if (tx_progress_ts < end_state_ts) {
@@ -1187,34 +1177,6 @@ uint8_t AppLayerParserGetTxEndState(uint8_t ipproto, AppProto alproto, void *tx,
         return (uint8_t)AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
     }
     return eop;
-}
-
-/** \internal
- *  \brief get the end state (progress) for a TX(D)
- *  If the TX is supporting sub-states, return the value from the txd.
- *  \param txd pointer to the transactions txd
- *  \param complete optional final progress for the protocol
- *
- *  `complete` can be passed in as it is often already looked up
- *  outside of the tx loop.
- */
-static inline uint8_t GetTxdEndProgress(uint8_t ipproto, AppProto alproto,
-        const AppLayerTxData *txd, uint8_t flags, uint8_t complete)
-{
-    DEBUG_VALIDATE_BUG_ON(txd == NULL);
-    uint8_t tx_end_state;
-    if (txd->tx_type == 0) {
-        if (complete)
-            tx_end_state = complete;
-        else
-            tx_end_state = (uint8_t)AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
-    } else {
-        if (flags & STREAM_TOSERVER)
-            tx_end_state = txd->tx_type_eop_ts;
-        else
-            tx_end_state = txd->tx_type_eop_tc;
-    }
-    return tx_end_state;
 }
 
 /**
