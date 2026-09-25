@@ -59,8 +59,6 @@
 static int DetectUricontentSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectUricontentFree(DetectEngineCtx *de_ctx, void *);
 
-static int g_http_uri_buffer_id = 0;
-
 /**
  * \brief Registration function for uricontent: keyword
  */
@@ -74,8 +72,6 @@ void DetectUricontentRegister (void)
     sigmatch_table[DETECT_URICONTENT].Free = DetectUricontentFree;
     sigmatch_table[DETECT_URICONTENT].flags = (SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION);
     sigmatch_table[DETECT_URICONTENT].alternative = DETECT_HTTP_URI;
-
-    g_http_uri_buffer_id = DetectBufferTypeRegister("http_uri");
 }
 
 /**

@@ -65,7 +65,6 @@ static int DetectFilenameSetupSticky(DetectEngineCtx *de_ctx, Signature *s, cons
 #ifdef UNITTESTS
 static void DetectFilenameRegisterTests(void);
 #endif
-static int g_file_match_list_id = 0;
 static int g_file_name_buffer_id = 0;
 
 static int PrefilterMpmFilenameRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx,
@@ -105,7 +104,6 @@ void DetectFilenameRegister(void)
 
     DetectBufferTypeSetDescriptionByName("file.name", "file name");
 
-    g_file_match_list_id = DetectBufferTypeRegister("files");
     g_file_name_buffer_id = DetectBufferTypeRegister("file.name");
 
     SCLogDebug("registering filename rule option");

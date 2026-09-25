@@ -27,9 +27,6 @@
 #include "source-lib.h"
 #include "util-device-private.h"
 
-/* Set time to the first packet timestamp when replaying a PCAP. */
-static bool time_set = false;
-
 /** \brief initialize the "Decode" module.
  *
  * \param tv                    Pointer to the per-thread structure.
@@ -65,7 +62,6 @@ static TmEcode DecodeLibThreadDeinit(ThreadVars *tv, void *data)
     if (data != NULL)
         DecodeThreadVarsFree(tv, data);
 
-    time_set = false;
     SCReturnInt(TM_ECODE_OK);
 }
 
