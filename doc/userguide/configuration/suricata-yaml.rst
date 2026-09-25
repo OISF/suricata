@@ -2372,6 +2372,7 @@ encapsulates 2 main subnodes, and those are eal-params and interfaces.
           vlan-strip-offload: true
           linkup-timeout: 10
           mtu: 1500
+          segmented-mbufs: true
           mempool-size: auto
           mempool-cache-size: auto
           rx-descriptors: auto
@@ -2415,7 +2416,8 @@ configured) in the items (interfaces) of the ``dpdk.interfaces`` list.
 At the start of the configuration process, all NIC offloads are disabled to
 prevent any packet modification. According to the configuration, checksum
 validation offload can be enabled to drop invalid packets. Other offloads can
-not currently be enabled.
+not currently be enabled. In the copy modes, the TX offloads are adjusted to
+forward segmented mbufs, see :ref:`dpdk-segmented-mbufs`.
 Additionally, the list items in ``dpdk.interfaces`` contain DPDK specific
 settings such as ``mempool-size`` or ``rx-descriptors``. These settings adjust
 individual parameters of EAL. One of the entries in ``dpdk.interfaces`` is

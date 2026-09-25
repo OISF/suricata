@@ -120,6 +120,10 @@ Other Changes
   like `alert ip`.
 - The ``replace`` keyword now modifies packets in DPDK IPS mode
   (``copy-mode: ips``). Previously, rules with ``replace`` only alerted there.
+- DPDK processes packets received in segmented mbufs, controlled by the new
+  ``segmented-mbufs`` interface setting. In the copy modes, the
+  ``MBUF_FAST_FREE`` TX offload is no longer enabled unless ``segmented-mbufs``
+  is set to ``false``. See :ref:`dpdk-segmented-mbufs`.
 - ``ldap`` has bound the maximum number of responses per transaction
   to 1024 by default.
 

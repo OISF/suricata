@@ -6960,6 +6960,16 @@
                                     "type": "integer",
                                     "description":
                                             "Number of RX packet-buffer allocation failures reported by DPDK"
+                                },
+                                "segmented_drops": {
+                                    "type": "integer",
+                                    "description":
+                                            "Number of packets received in segmented mbufs that were dropped without processing"
+                                },
+                                "segmented_too_large": {
+                                    "type": "integer",
+                                    "description":
+                                            "Number of packets received in segmented mbufs that were dropped as larger than the maximum packet size"
                                 }
                             }
                         },
