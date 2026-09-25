@@ -125,6 +125,12 @@ extern "C"
 #include <ctype.h>
 #endif
 
+#if HAVE_MEMMOVE_S
+#ifndef __STDC_WANT_LIB_EXT1__
+#define __STDC_WANT_LIB_EXT1__ 1
+#endif
+#endif
+
 #if HAVE_STRING_H
 #include <string.h>
 #endif

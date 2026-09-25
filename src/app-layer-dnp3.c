@@ -683,8 +683,8 @@ static void DNP3BufferTrim(DNP3Buffer *buffer)
         DNP3BufferReset(buffer);
     }
     else if (buffer->offset > 0) {
-        memmove(buffer->buffer, buffer->buffer + buffer->offset,
-            buffer->len - buffer->offset);
+        SCMemmove(buffer->buffer, buffer->size, buffer->buffer + buffer->offset,
+                buffer->len - buffer->offset);
         buffer->len = buffer->len - buffer->offset;
         buffer->offset = 0;
     }
