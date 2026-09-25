@@ -22,7 +22,6 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 
 #include "action-globals.h"
 #include "detect.h"
@@ -30,16 +29,14 @@
 #include "conf.h"
 #include "stream.h"
 #include "app-layer-protos.h"
+#include "decode-tcp.h"
+#include "detect-engine-register.h"
 
-#include "threads.h"
 #include "threadvars.h"
-#include "tm-threads.h"
+#include "tm-modules.h"
 
 #include "util-print.h"
-
-#include "pkt-var.h"
-
-#include "util-unittest.h"
+#include "util-var.h"
 
 #include "util-debug.h"
 #include "util-validate.h"
@@ -47,7 +44,6 @@
 
 #include "output.h"
 #include "alert-debuglog.h"
-#include "util-privs.h"
 #include "flow-var.h"
 #include "flow-bit.h"
 #include "util-var-name.h"
