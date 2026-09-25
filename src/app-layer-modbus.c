@@ -38,9 +38,31 @@
 
 #include "util-debug.h"
 
-#include "app-layer-parser.h"
 #include "app-layer-modbus.h"
 #include "rust.h"
+
+#ifdef UNITTESTS
+
+#include "app-layer-parser.h"
+#include "app-layer-protos.h"
+#include "counters.h"
+#include "decode.h"
+#include "flow.h"
+#include "threadvars.h"
+#include "detect.h"
+#include "detect-engine.h"
+#include "detect-parse.h"
+#include "detect-engine-build.h"
+#include "detect-engine-alert.h"
+
+#include "flow-util.h"
+
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
+
+#include "stream-tcp.h"
+#include "stream-tcp-private.h"
+#endif
 
 void ModbusParserRegisterTests(void);
 
@@ -59,21 +81,6 @@ void RegisterModbusParsers(void)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
-#include "detect.h"
-#include "detect-engine.h"
-#include "detect-parse.h"
-#include "detect-engine-build.h"
-#include "detect-engine-alert.h"
-
-#include "flow-util.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-
-#include "stream-tcp.h"
-#include "stream-tcp-private.h"
-
-#include "rust.h"
 
 /* Modbus default stream reassembly depth */
 #define MODBUS_CONFIG_DEFAULT_STREAM_DEPTH 0

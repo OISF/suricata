@@ -29,6 +29,10 @@
 #include "app-layer-htp-range.h"
 #include "app-layer-events.h"
 #include "util-validate.h"
+#include "rust-ffi.h"
+#include "util-debug.h"
+#include "util-file.h"
+#include "util-streaming-buffer.h"
 
 extern StreamingBufferConfig htp_sbcfg;
 
@@ -323,6 +327,7 @@ end:
 }
 
 #ifdef UNITTESTS
+#include "app-layer-protos.h"
 #include "stream-tcp.h"
 #include "app-layer-parser.h"
 #include "util-unittest-helper.h"

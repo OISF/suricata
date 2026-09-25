@@ -28,11 +28,13 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
-#include "app-layer.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
 #include "app-layer-tftp.h"
+#include "app-layer-protos.h"
+#include "rust.h"
+#include "util-debug.h"
 
 /* The default port to probe if not provided in the configuration file. */
 #define TFTP_DEFAULT_PORT "69"

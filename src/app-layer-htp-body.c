@@ -31,7 +31,8 @@
 #include "app-layer-htp-mem.h"
 #include "app-layer-htp-body.h"
 #include "util-streaming-buffer.h"
-#include "util-print.h"
+#include "rust-ffi.h"
+#include "util-debug.h"
 
 extern StreamingBufferConfig htp_sbcfg;
 

@@ -36,23 +36,17 @@
 #include "suricata.h"
 #include "suricata-common.h"
 #include "conf.h"
-#include "decode.h"
 
-#include "util-print.h"
 #include "util-byte.h"
-
-#include "stream-tcp.h"
 
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
-#include "app-layer.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-frames.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-body.h"
 #include "app-layer-htp-file.h"
-#include "app-layer-htp-xff.h"
 #include "app-layer-htp-range.h"
 #include "app-layer-htp-mem.h"
 #include "app-layer-events.h"
@@ -61,18 +55,18 @@
 #include "util-file-decompression.h"
 #include "util-misc.h"
 
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-#include "flow-util.h"
 
-#include "detect-engine.h"
-#include "detect-engine-build.h"
 #include "detect-engine-state.h"
-#include "detect-parse.h"
 
 #include "util-memcmp.h"
 #include "util-random.h"
 #include "util-validate.h"
+#include "flow.h"
+#include "rust-ffi.h"
+#include "stream-tcp-reassemble.h"
+#include "util-enum.h"
+#include "util-radix4-tree.h"
+#include "util-radix6-tree.h"
 
 //#define PRINT
 
@@ -2697,6 +2691,16 @@ void RegisterHTPParsers(void)
 
 #ifdef UNITTESTS
 #include "detect-engine-alert.h"
+#include "app-layer-htp-xff.h"
+#include "counters.h"
+#include "detect-engine.h"
+#include "detect-engine-build.h"
+#include "detect-parse.h"
+#include "flow-util.h"
+#include "stream-tcp.h"
+#include "util-print.h"
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
 
 static HTPCfgRec cfglist_backup;
 
