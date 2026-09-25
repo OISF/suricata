@@ -1,4 +1,4 @@
-/* Copyright (C) 2025 Open Information Security Foundation
+/* Copyright (C) 2025-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -196,4 +196,9 @@ int SCDetectSignatureAddTransform(Signature *s, int transform, void *options)
     SCLogDebug("Added transform #%d [%s]", s->init_data->transforms.cnt, s->sig_str);
 
     SCReturnInt(0);
+}
+
+void SCSignatureSetVarTransform(Signature *s)
+{
+    s->init_data->var_transform = true;
 }

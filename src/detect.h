@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -682,6 +682,12 @@ typedef struct SignatureInitData_ {
 
     /* Signature is a "firewall" rule. */
     bool firewall_rule;
+
+    /* True if a transform on one of this signature's buffers reads its key
+     * material from a runtime byte_extract or byte_math variable. Such a buffer
+     * cannot be precomputed, so the signature is disqualified from
+     * prefilter/MPM. */
+    bool var_transform;
 } SignatureInitData;
 
 /** \brief Signature container */

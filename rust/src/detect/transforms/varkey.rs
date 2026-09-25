@@ -15,14 +15,26 @@
  * 02110-1301, USA.
  */
 
-//! Shared helpers for transforms that read key bytes from a fixed
-//! position within the inspection buffer at transform time.
+//! Shared helpers for transforms whose key is not a literal in the rule.
+//!
+//! Two key sources are supported:
+//!
+//! * a fixed location within the inspection buffer, read at transform time
+//!   ([`VariableKeyLocation`] / [`variable_key_bytes`]); and
+//! * a `byte_extract` or `byte_math` variable, resolved against the signature
+//!   at setup ([`parse_byte_var`] / [`resolve_byte_var`]) and read from the
+//!   thread context at transform time ([`byte_var_key_bytes`]).
 
 use nom8::{
     character::complete::{digit1, multispace1},
     combinator::map_res,
     sequence::separated_pair,
     IResult, Parser,
+};
+use std::ffi::CString;
+use suricata_sys::sys::{
+    DetectEngineThreadCtx, SCDetectByteVarResolve, SCDetectEngineThreadCtxGetByteVar,
+    SCSignatureSetVarTransform, Signature,
 };
 
 /// Location in an inspection buffer from which key bytes are read at
@@ -76,6 +88,127 @@ pub(super) fn parse_key_location(s: &str) -> Option<VariableKeyLocation> {
     }
 }
 
+/// Parsed `var <name> [<nbytes>]` spec, before the variable is resolved
+/// against the signature.
+#[derive(Debug, PartialEq, Eq)]
+pub(super) struct ByteVarSpec {
+    /// The `byte_extract`/`byte_math` variable name.
+    pub(super) name: String,
+    /// Optional explicit key width in bytes; resolved against the variable's
+    /// natural width when omitted.
+    pub(super) width: Option<u8>,
+}
+
+/// A key read from a `byte_extract`/`byte_math` variable at transform time.
+/// `local_id` is the runtime slot; `nbytes` (1-8) selects how many low bytes
+/// of the variable's value form the key, rendered big-endian.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct ByteVarKey {
+    pub(super) local_id: u8,
+    pub(super) nbytes: u8,
+}
+
+/// Parse `<name> [<nbytes>]` for the `var` form (the `var` keyword has already
+/// been stripped by the caller). Logs and returns `None` on malformed input.
+pub(super) fn parse_byte_var(rest: &str) -> Option<ByteVarSpec> {
+    let mut parts = rest.split_whitespace();
+    let name = match parts.next() {
+        Some(n) => n,
+        None => {
+            SCLogError!("transform 'var' requires a variable name");
+            return None;
+        }
+    };
+    // Optional explicit key width (number of bytes of the variable's value to
+    // use). Required for byte_math variables, which have no natural width;
+    // optional for byte_extract, which defaults to its read width.
+    let width = match parts.next() {
+        Some(w) => match w.parse::<u8>() {
+            Ok(n) => Some(n),
+            Err(_) => {
+                SCLogError!("transform 'var' width must be a number");
+                return None;
+            }
+        },
+        None => None,
+    };
+    if parts.next().is_some() {
+        SCLogError!("transform 'var' takes a variable name and optional width");
+        return None;
+    }
+    Some(ByteVarSpec {
+        name: name.to_string(),
+        width,
+    })
+}
+
+/// Resolve a parsed byte-variable spec against signature `s`: look up the
+/// variable, settle the key width, validate it, and mark the signature so it
+/// is kept out of prefilter (the key is only known at inspection time).
+/// Returns the compiled key, or `None` on any error (already logged).
+///
+/// # Safety
+///
+/// `s` must be a valid signature pointer; intended to be called from a
+/// transform's `Setup` callback.
+pub(super) unsafe fn resolve_byte_var(s: *mut Signature, spec: &ByteVarSpec) -> Option<ByteVarKey> {
+    let cname = CString::new(spec.name.as_str()).ok()?;
+    let mut local_id: u8 = 0;
+    let mut natural_nbytes: u8 = 0;
+    if !SCDetectByteVarResolve(s, cname.as_ptr(), &mut local_id, &mut natural_nbytes) {
+        SCLogError!(
+            "transform 'var': unknown byte_extract or byte_math variable '{}'",
+            spec.name
+        );
+        return None;
+    }
+    // Use the explicit width if given, otherwise the variable's natural width.
+    // A byte_math result has no natural width (reported as 0), so an explicit
+    // width is required there.
+    let nbytes = match spec.width {
+        Some(w) => w,
+        None => {
+            if natural_nbytes == 0 {
+                SCLogError!(
+                    "transform 'var': variable '{}' has no inherent width; specify the key width, e.g. 'var <name> <nbytes>'",
+                    spec.name
+                );
+                return None;
+            }
+            natural_nbytes
+        }
+    };
+    if nbytes == 0 || nbytes > 8 {
+        SCLogError!("transform 'var': key width must be 1-8 bytes");
+        return None;
+    }
+    /* The key is only known at inspection time, so the buffer can't be
+     * precomputed: disqualify this signature from prefilter/MPM. */
+    SCSignatureSetVarTransform(s);
+    Some(ByteVarKey { local_id, nbytes })
+}
+
+/// Read the byte-variable key's value from the thread context and render its
+/// low `nbytes` big-endian into `out`, returning the written slice. `out` must
+/// be at least `key.nbytes` (<= 8) bytes long. Returns `None` if `det` is null.
+///
+/// # Safety
+///
+/// `det` must be a valid thread-context pointer or null.
+pub(super) unsafe fn byte_var_key_bytes<'a>(
+    det: *mut DetectEngineThreadCtx, key: &ByteVarKey, out: &'a mut [u8],
+) -> Option<&'a [u8]> {
+    if det.is_null() {
+        return None;
+    }
+    // Render the low `nbytes` bytes of the value big-endian, regardless of the
+    // keyword's own endianness.
+    let value = SCDetectEngineThreadCtxGetByteVar(det, key.local_id);
+    let n = key.nbytes as usize;
+    out[..n].copy_from_slice(&value.to_be_bytes()[8 - n..]);
+    Some(&out[..n])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -83,6 +216,57 @@ mod tests {
     #[test]
     fn test_strip_keyword_prefix_match() {
         assert_eq!(strip_keyword_prefix("var 1 0", "var"), Some("1 0"));
+    }
+
+    #[test]
+    fn test_parse_byte_var_name_only() {
+        // width is resolved later from the variable
+        assert_eq!(
+            parse_byte_var("xkey"),
+            Some(ByteVarSpec {
+                name: "xkey".to_string(),
+                width: None
+            })
+        );
+        // extra whitespace is tolerated
+        assert_eq!(
+            parse_byte_var("  xkey  "),
+            Some(ByteVarSpec {
+                name: "xkey".to_string(),
+                width: None
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_byte_var_explicit_width() {
+        assert_eq!(
+            parse_byte_var("xkey 4"),
+            Some(ByteVarSpec {
+                name: "xkey".to_string(),
+                width: Some(4)
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_byte_var_missing_name() {
+        assert!(parse_byte_var("").is_none());
+        assert!(parse_byte_var("   ").is_none());
+    }
+
+    #[test]
+    fn test_parse_byte_var_bad_width() {
+        // width must be numeric
+        assert!(parse_byte_var("xkey wide").is_none());
+        // width must fit in u8
+        assert!(parse_byte_var("xkey 256").is_none());
+    }
+
+    #[test]
+    fn test_parse_byte_var_trailing_garbage() {
+        // more than a name and a width
+        assert!(parse_byte_var("xkey 1 extra").is_none());
     }
 
     #[test]

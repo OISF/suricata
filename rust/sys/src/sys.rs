@@ -693,6 +693,21 @@ extern "C" {
         det_ctx: *mut DetectEngineThreadCtx, id: ::std::os::raw::c_int,
     ) -> *mut ::std::os::raw::c_void;
 }
+extern "C" {
+    #[doc = " \\brief Flag the signature as carrying a transform whose key comes from a\n  runtime variable; this disqualifies the signature from prefilter/MPM."]
+    pub fn SCSignatureSetVarTransform(s: *mut Signature);
+}
+extern "C" {
+    #[doc = " \\brief Resolve a byte variable (byte_extract or byte_math) by name for use\n        as transform input.\n\n Returns the runtime slot (local_id) for the named variable. For a\n byte_extract variable, nbytes is the natural key width (the number of bytes\n the keyword reads); a byte_math result is a computed value with no inherent\n width, so nbytes is set to 0 and the caller must supply an explicit width.\n\n \\retval true  variable found; local_id set, nbytes is the natural width or 0\n \\retval false no such byte variable"]
+    pub fn SCDetectByteVarResolve(
+        s: *const Signature, name: *const ::std::os::raw::c_char, local_id: *mut u8,
+        nbytes: *mut u8,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = " \\brief Read a byte_* variable's runtime value from the thread context."]
+    pub fn SCDetectEngineThreadCtxGetByteVar(det_ctx: *const DetectEngineThreadCtx, id: u8) -> u64;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct InspectionBuffer {
