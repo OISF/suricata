@@ -51,6 +51,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-inspect-trace.h"
 #include "detect-engine-address.h"
 #include "detect-engine-alert.h"
 #include "detect-engine-port.h"
@@ -2819,6 +2820,10 @@ static void SetupUserMode(SCInstance *suri)
  */
 int PostConfLoadedSetup(SCInstance *suri)
 {
+    /* pick up the detection-engine inspection trace toggle (no-op unless built
+     * with --enable-detect-trace) */
+    DetectTraceInit();
+
     int cnf_firewall_enabled = 0;
     if (SCConfGetBool("firewall.enabled", &cnf_firewall_enabled) == 1) {
         if (cnf_firewall_enabled == 1) {

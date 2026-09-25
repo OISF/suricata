@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -95,6 +95,9 @@ typedef struct DetectParseRegex {
     pcre2_code *regex;
     pcre2_match_context *context;
     struct DetectParseRegex *next;
+#ifdef DETECT_TRACE
+    char *regexstr; /**< source string, kept for inspection tracing only */
+#endif
 } DetectParseRegex;
 
 DetectParseRegex *DetectSetupPCRE2(const char *parse_str, int opts);
