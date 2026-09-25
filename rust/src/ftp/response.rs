@@ -1,4 +1,4 @@
-/* Copyright (C) 2025 Open Information Security Foundation
+/* Copyright (C) 2025-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,14 +19,34 @@ use std::os::raw::c_char;
 use std::ptr;
 use std::slice;
 
+/// The buffers and their lengths are owned by Rust and released by the `Drop`
+/// implementation below. C reads them and writes `truncated`; writing either
+/// length field from C hands the free path a wrong slice length.
 #[repr(C)]
 pub struct FTPResponseLine {
-    code: *mut u8,      // Response code as a string (may be null)
+    code: *mut u8,      // Response code as a string; never null, empty if no code
     response: *mut u8,  // Response string
     length: usize,      // Length of the response string
-    code_length: usize, // Length of the response code string
+    code_length: usize, // Length of the response code string; 0 if no code
     truncated: bool,    // Uses TX/state value.
     total_size: usize,  // Total allocated size in bytes
+}
+
+impl Drop for FTPResponseLine {
+    fn drop(&mut self) {
+        // Both buffers come from `Box::into_raw` on a boxed slice; free them the same way.
+        if !self.code.is_null() {
+            unsafe {
+                let _ = Box::from_raw(ptr::slice_from_raw_parts_mut(self.code, self.code_length));
+            }
+        }
+
+        if !self.response.is_null() {
+            unsafe {
+                let _ = Box::from_raw(ptr::slice_from_raw_parts_mut(self.response, self.length));
+            }
+        }
+    }
 }
 
 /// Parses a single FTP response line and returns an FTPResponseLine struct.
@@ -93,18 +113,7 @@ pub unsafe extern "C" fn SCFTPFreeResponseLine(response: *mut FTPResponseLine) {
         return;
     }
 
-    let response = Box::from_raw(response);
-
-    if !response.response.is_null() {
-        let _ = Vec::from_raw_parts(response.code, response.code_length, response.code_length);
-    }
-
-    if !response.response.is_null() {
-        let _ = Box::from_raw(std::ptr::slice_from_raw_parts_mut(
-            response.response,
-            response.length,
-        ));
-    }
+    drop(Box::from_raw(response));
 }
 
 #[cfg(test)]
@@ -192,6 +201,16 @@ mod tests {
         let response_str = std::str::from_utf8(response_slice).expect("Invalid UTF-8");
         assert_eq!(response_str, "99 Incorrect code");
         assert_eq!(parsed.length, "99 Incorrect code".len());
+    }
+
+    #[test]
+    fn test_free_response_line() {
+        let input = "220 Welcome to FTP\r\n";
+        let parsed = Box::into_raw(Box::new(parse_response_line(input).unwrap()));
+        unsafe {
+            SCFTPFreeResponseLine(parsed);
+            SCFTPFreeResponseLine(ptr::null_mut());
+        }
     }
 
     #[test]
