@@ -38,9 +38,6 @@ pub static mut DCERPC_MAX_STUB_SIZE: u32 = 1048576;
 
 // Constant DCERPC UDP Header length
 pub const DCERPC_HDR_LEN: u16 = 16;
-// FIRST flag set on the packet
-pub const DCERPC_UUID_ENTRY_FLAG_FF: u16 = 0x0001;
-
 // Flag bits in connection-oriented PDU header
 
 // Value to indicate first fragment
@@ -190,6 +187,8 @@ pub struct DCERPCTransaction {
     pub ctxid: u16,
     pub opnum: u16,
     pub first_request_seen: u8,
+    /// A request PDU with PFC_FIRST_FRAG set was seen for this transaction.
+    pub req_first_frag: bool,
     pub min_version: u8,
     pub call_id: u32, // ID to match any request-response pair
     pub frag_cnt_ts: u16,
@@ -257,7 +256,6 @@ pub struct DCERPCUuidEntry {
     pub uuid: Vec<u8>,
     pub version: u16,
     pub versionminor: u16,
-    pub flags: u16,
     pub call_id: u32,
     pub acked: bool,
 }
@@ -538,12 +536,6 @@ impl DCERPCState {
                 uuidentry.ctxid = ctxitem.ctxid;
                 uuidentry.version = ctxitem.version;
                 uuidentry.versionminor = ctxitem.versionminor;
-                let pfcflags = hdr.pfc_flags;
-                // Store the first frag flag in the uuid as pfc_flags will
-                // be overwritten by new packets
-                if pfcflags & PFC_FIRST_FRAG > 0 {
-                    uuidentry.flags |= DCERPC_UUID_ENTRY_FLAG_FF;
-                }
                 for uuid in self.interface_uuids.iter_mut() {
                     if uuid.ctxid == uuidentry.ctxid {
                         *uuid = uuidentry;
@@ -765,6 +757,7 @@ impl DCERPCState {
                         tx.ctxid = request.ctxid;
                         tx.opnum = request.opnum;
                         tx.first_request_seen = request.first_request_seen;
+                        tx.req_first_frag |= hdr.pfc_flags & PFC_FIRST_FRAG != 0;
                     }
                     None => {
                         let mut tx = self.create_tx(hdr);
@@ -772,6 +765,7 @@ impl DCERPCState {
                         tx.ctxid = request.ctxid;
                         tx.opnum = request.opnum;
                         tx.first_request_seen = request.first_request_seen;
+                        tx.req_first_frag = hdr.pfc_flags & PFC_FIRST_FRAG != 0;
                         self.transactions.push_back(tx);
                     }
                 }

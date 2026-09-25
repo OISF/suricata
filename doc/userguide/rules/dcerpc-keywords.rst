@@ -9,9 +9,11 @@ of DCERPC packets over UDP, TCP and SMB.
 dcerpc.iface
 ------------
 
-Match on the value of the interface UUID in a DCERPC header. If `any_frag` option
-is given, the match shall be done on all fragments. If it's not, the match shall
-only happen on the first fragment.
+Match on the interface UUID of a DCERPC request, as negotiated by the BIND and
+accepted by the BIND_ACK. By default only requests with the ``PFC_FIRST_FRAG``
+flag set match, i.e. unfragmented requests and first fragments. With the
+``any_frag`` option all fragments match. The fragment flags of the BIND are
+not considered.
 
 The format of the keyword::
 
