@@ -785,6 +785,12 @@ af-xdp:
     # Note: unaligned chunk mode uses hugepages, so the required number
     # of pages must be available.
     #mem-unaligned: no
+    # UMEM size, expressed in frames of frame-size bytes (power of two)
+    #umem-frames: 4096
+    # Size of one UMEM frame in bytes. A frame holds a single packet, so
+    # it must be large enough for the biggest packet (MTU + headroom).
+    # Valid values are effectively 2048 or 4096: a power of two.
+    #frame-size: 4096
     # The following options configure the prefer-busy-polling socket
     # options. The polling time and budget can be edited here.
     # Possible values are:
