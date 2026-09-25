@@ -629,32 +629,6 @@ uint64_t SCParseTimeSizeString (const char *str)
     return (size * modifier);
 }
 
-/**
- * \brief Get seconds until a time unit changes.
- *
- * \param str   String containing time type (minute, hour, etc).
- * \param epoch Epoch time.
- *
- * \retval seconds.
- */
-uint64_t SCGetSecondsUntil (const char *str, time_t epoch)
-{
-    uint64_t seconds = 0;
-    struct tm tm;
-    memset(&tm, 0, sizeof(tm));
-    struct tm *tp = (struct tm *)SCLocalTime(epoch, &tm);
-
-    if (strcmp(str, "minute") == 0)
-        seconds = 60 - tp->tm_sec;
-    else if (strcmp(str, "hour") == 0)
-        seconds = (60 * (60 - tp->tm_min)) + (60 - tp->tm_sec);
-    else if (strcmp(str, "day") == 0)
-        seconds = (3600 * (24 - tp->tm_hour)) + (60 * (60 - tp->tm_min)) +
-                  (60 - tp->tm_sec);
-
-    return seconds;
-}
-
 uint64_t SCTimespecAsEpochMillis(const struct timespec* ts)
 {
     return ts->tv_sec * 1000L + ts->tv_nsec / 1000000L;
