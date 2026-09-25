@@ -169,6 +169,10 @@
                 "code": {
                     "type": "integer"
                 },
+                "ether_type": {
+                    "type": "integer",
+                    "description": "The unknown ethertype that triggered the event"
+                },
                 "event": {
                     "type": "string"
                 },
