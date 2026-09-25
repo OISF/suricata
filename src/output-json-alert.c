@@ -662,20 +662,35 @@ static void AlertJsonAddFirewall(SCJsonBuilder *jb, const Signature *s)
     const char *hook = NULL;
     char hook_string[256];
     switch (s->detect_table) {
-        case DETECT_TABLE_APP_FILTER:
-            if (s->flags & SIG_FLAG_TOSERVER) {
-                hook = AppLayerParserGetStateNameById(
-                        IPPROTO_TCP, s->alproto, s->app_progress_hook, STREAM_TOSERVER);
-            } else {
-                hook = AppLayerParserGetStateNameById(
-                        IPPROTO_TCP, s->alproto, s->app_progress_hook, STREAM_TOCLIENT);
+        case DETECT_TABLE_APP_FILTER: {
+            const uint8_t dir_flag =
+                    (s->flags & SIG_FLAG_TOSERVER) ? STREAM_TOSERVER : STREAM_TOCLIENT;
+            if (s->sub_state != 0 && AppLayerParserSupportsSubStates(s->alproto)) {
+                /* sub state rules (http2 stream/global): resolve the state in
+                 * the sub state table and keep the sub state in the name */
+                const char *state = AppLayerParserGetSubStateProgressName(
+                        s->alproto, s->sub_state, s->app_progress_hook, dir_flag);
+                const char *sub_state_name =
+                        AppLayerParserGetSubStateName(s->alproto, s->sub_state);
+                if (state != NULL && sub_state_name != NULL) {
+                    snprintf(hook_string, sizeof(hook_string), "%s:%s:%s",
+                            AppProtoToString(s->alproto), sub_state_name, state);
+                    hook = hook_string;
+                }
             }
-            if (hook) {
-                snprintf(hook_string, sizeof(hook_string), "%s:%s", AppProtoToString(s->alproto),
-                        hook);
-                hook = hook_string;
+            if (hook == NULL) {
+                /* no sub state, or the sub state lookup failed: fall back to
+                 * the plain per-protocol state name */
+                hook = AppLayerParserGetStateNameById(
+                        IPPROTO_TCP, s->alproto, s->app_progress_hook, dir_flag);
+                if (hook != NULL) {
+                    snprintf(hook_string, sizeof(hook_string), "%s:%s",
+                            AppProtoToString(s->alproto), hook);
+                    hook = hook_string;
+                }
             }
             break;
+        }
         case DETECT_TABLE_PACKET_FILTER:
             hook = "packet:filter";
             break;

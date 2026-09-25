@@ -727,6 +727,10 @@ typedef struct Signature_ {
 
     /** firewall: progress value for this signature */
     uint8_t app_progress_hook;
+    /** firewall: sub state (transaction type) of the hook on protocols with sub
+     *  states (http2 stream/global, DoH2); 0 when the hook has no sub state.
+     *  Signatures are zero initialized, so unused stays 0. */
+    uint8_t sub_state;
 
     DetectMatchAddressIPv4 *addr_dst_match4;
     DetectMatchAddressIPv4 *addr_src_match4;

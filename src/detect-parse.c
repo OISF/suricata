@@ -1575,6 +1575,8 @@ static int SigParseProtoHookApp(
             s->init_data->hook.t.app.app_progress);
 
     s->app_progress_hook = s->init_data->hook.t.app.app_progress;
+    /* the hook parser only accepts known sub states of the protocol */
+    s->sub_state = s->init_data->hook.t.app.sub_state;
     return 0;
 }
 
@@ -4187,6 +4189,7 @@ static int AddAppPolicySignature(struct DetectFirewallAppPolicy *pol)
         return -1;
     }
     s->app_progress_hook = pol->progress;
+    s->sub_state = pol->sub_state;
     s->action = pol->policy.action;
     s->action_scope = pol->policy.action_scope;
     s->alproto = pol->alproto;
