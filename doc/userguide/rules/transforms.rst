@@ -418,12 +418,12 @@ the buffer.
            end
        end
        local str_len = #input
-       if offset < 0 or offset > str_len then
+       if offset < 0 or str_len < offset then
            print("offset is out of bounds: " .. offset)
            return nil
        end
        str_len = str_len - offset
-       if bytes < 0 or bytes > str_len then
+       if bytes < 0 or str_len < bytes then
            print("invalid bytes " ..  bytes .. " or bytes > length " .. bytes .. " length " .. str_len)
            return nil
        end
