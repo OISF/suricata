@@ -26,6 +26,8 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "rust.h"
+#include "util-debug.h"
+#include "util-validate.h"
 
 AppProto g_alproto_max = ALPROTO_MAX_STATIC;
 #define ARRAY_CAP_STEP 16

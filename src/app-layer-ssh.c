@@ -27,15 +27,6 @@
 
 #include "suricata-common.h"
 #include "decode.h"
-#include "threads.h"
-
-#include "util-print.h"
-#include "util-pool.h"
-
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
-#include "stream-tcp.h"
-#include "stream.h"
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-protos.h"
@@ -45,13 +36,12 @@
 
 #include "conf.h"
 
-#include "util-spm.h"
 #include "util-unittest.h"
 #include "util-debug.h"
-#include "flow-private.h"
 
-#include "util-byte.h"
 #include "util-memcmp.h"
+#include "rust-bindings.h"
+#include "suricata.h"
 
 /* HASSH fingerprints are disabled by default */
 #define SSH_CONFIG_DEFAULT_HASSH false
@@ -138,6 +128,9 @@ void RegisterSSHParsers(void)
 #include "flow-util.h"
 #include "stream-tcp-util.h"
 #include "util-unittest-helper.h"
+#include "stream-tcp-private.h"
+#include "stream-tcp-reassemble.h"
+#include "stream-tcp.h"
 
 static int SSHParserTestUtilCheck(const char *protoexp, const char *softexp, void *tx, uint8_t flags) {
     const uint8_t *protocol = NULL;

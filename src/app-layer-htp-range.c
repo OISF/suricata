@@ -30,6 +30,8 @@
 #include "util-hash-lookup3.h" //hashlittle_safe
 #include "util-validate.h"    //DEBUG_VALIDATE_BUG_ON
 #include "util-byte.h"        //StringParseUint32
+#include "conf.h"
+#include "util-debug.h"
 
 typedef struct ContainerTHashTable {
     THashTableContext *ht;

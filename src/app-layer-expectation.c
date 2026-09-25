@@ -59,8 +59,8 @@
 #include "flow-storage.h"
 
 #include "app-layer-expectation.h"
-
-#include "util-print.h"
+#include "ippair.h"
+#include "util-debug.h"
 
 static SCIPPairStorageId g_ippair_expectation_id = { .id = -1 };
 static SCFlowStorageId g_flow_expectation_id = { .id = -1 };
