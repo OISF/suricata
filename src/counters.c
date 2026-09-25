@@ -57,6 +57,7 @@ enum StatsType {
     STATS_TYPE_MAXIMUM = 3,
     STATS_TYPE_FUNC = 4,
     STATS_TYPE_DERIVE_DIV = 5,
+    STATS_TYPE_RATE = 6,
 };
 
 /**
@@ -84,6 +85,25 @@ typedef struct StatsGlobalContext_ {
 
     StatsPublicThreadContext global_counter_ctx;
 } StatsGlobalContext;
+
+/* Queue of rate counters waiting for registration. Filled by
+ * StatsRegisterRateCounter during startup, drained on first StatsOutput
+ * tick once counters_id_hash is filled with all source counters.
+ * Note: Used only during single-threaded init and from StatsMgmtThread,
+ * so no locking needed. */
+typedef struct PendingRateCounter_ {
+    const char *name;
+    const char *source_name;
+    struct PendingRateCounter_ *next;
+} PendingRateCounter;
+
+static PendingRateCounter *pending_rate_counters = NULL;
+
+/** Moved here so it can be used by StatsFlushPendingRateCounters */
+typedef struct CountersIdType_ {
+    uint16_t id;
+    const char *string;
+} CountersIdType;
 
 static void *stats_thread_data = NULL;
 static StatsGlobalContext *stats_ctx = NULL;
@@ -357,6 +377,16 @@ static void StatsReleaseCtx(void)
         return;
     }
 
+    /* Drain any pending rate-counter registrations that never got flushed
+    * (e.g. shutdown before first output tick). */
+    PendingRateCounter *p = pending_rate_counters;
+    while (p != NULL) {
+        PendingRateCounter *next = p->next;
+        SCFree(p);
+        p = next;
+    }
+    pending_rate_counters = NULL;
+
     StatsThreadStore *sts = NULL;
     StatsThreadStore *temp = NULL;
     sts = stats_ctx->sts;
@@ -590,6 +620,9 @@ static void *StatsWakeupThread(void *arg)
 static void StatsReleaseCounter(StatsCounter *pc)
 {
     if (pc != NULL) {
+        if (pc->type == STATS_TYPE_RATE && pc->rate_state != NULL) {
+            SCFree(pc->rate_state);
+        }
         SCFree(pc);
     }
 }
@@ -684,6 +717,15 @@ static uint16_t StatsRegisterQualifiedCounter(const char *name, StatsPublicThrea
     pc->did1 = did1;
     pc->did2 = did2;
 
+    if (type_q == STATS_TYPE_RATE) {
+        pc->rate_state = SCCalloc(1, sizeof(StatsRateState));
+        if (pc->rate_state == NULL) {
+            SCFree(pc);
+            return 0;
+        }
+    /* prev_ts.tv_sec == 0 signals "first tick so no baseline yet" */
+    }
+
     /* we now add the counter to the list */
     if (prev == NULL)
         *head = pc;
@@ -694,6 +736,78 @@ static uint16_t StatsRegisterQualifiedCounter(const char *name, StatsPublicThrea
 }
 
 /**
+ * \brief Flush pending rate-counter registrations.
+ *
+ * Called once on the first StatsOutput tick, BEFORE
+ * StatsThreadRegister("Global", ...) runs. counters_id_hash is
+ * expected to already exist and contain the source counters; This
+ * is guaranteed because worker threads register their counters
+ * during startup, before the first mgmt tick.
+ *
+ * Rate counters with unreachable source are logged and skipped.
+ */
+static void StatsFlushPendingRateCounters(void)
+{
+    /* If no worker ever registered, the hash doesn't exist yet.
+     * Thus there are no source counters, so nothing to
+     * flush against; Skip and let the queue drain to warnings. */
+    if (stats_ctx->counters_id_hash == NULL) {
+        PendingRateCounter *p = pending_rate_counters;
+        while (p != NULL) {
+            PendingRateCounter *next = p->next;
+            SCLogWarning("rate counter '%s': no counters registered, cannot resolve source '%s'",
+                    p->name, p->source_name);
+            SCFree(p);
+            p = next;
+        }
+        pending_rate_counters = NULL;
+        return;
+    }
+
+    PendingRateCounter *p = pending_rate_counters;
+    while (p != NULL) {
+        PendingRateCounter *next = p->next;
+
+        /* Resolve source name to gid via the shared global hash. */
+        CountersIdType lookup = { 0, p->source_name };
+        CountersIdType *found = HashTableLookup(stats_ctx->counters_id_hash,
+                                                &lookup, sizeof(lookup));
+        if (found == NULL) {
+            SCLogWarning("rate counter '%s': source '%s' not registered, skipping",
+                    p->name, p->source_name);
+            SCFree(p);
+            p = next;
+            continue;
+        }
+        uint16_t source_gid = found->id;
+
+        /* Append the rate counter to global_counter_ctx.head. gid is
+         * assigned later by StatsThreadRegister("Global", ...). */
+        uint16_t local_id = StatsRegisterQualifiedCounter(
+                p->name, &stats_ctx->global_counter_ctx,
+                STATS_TYPE_RATE, NULL, NULL, NULL);
+        if (local_id == 0) {
+            SCLogWarning("rate counter '%s': registration failed", p->name);
+            SCFree(p);
+            p = next;
+            continue;
+        }
+
+        /* Locate the freshly appended counter and stash source_gid on it. */
+        for (StatsCounter *c = stats_ctx->global_counter_ctx.head; c != NULL; c = c->next) {
+            if (c->id == local_id && c->type == STATS_TYPE_RATE) {
+                c->source_gid = source_gid;
+                break;
+            }
+        }
+
+        SCFree(p);
+        p = next;
+    }
+    pending_rate_counters = NULL;
+}
+
+/**
  * \brief The output interface for the Stats API
  */
 static int StatsOutput(ThreadVars *tv)
@@ -701,14 +815,23 @@ static int StatsOutput(ThreadVars *tv)
     const StatsThreadStore *sts = NULL;
     void *td = stats_thread_data;
 
-    if (counters_global_id == 0)
+    if (counters_global_id == 0 && pending_rate_counters == NULL)
         return -1;
 
     if (stats_table.nstats == 0) {
+        /* Flush deferred rate-counter registrations FIRST, so they end up
+        * in global_counter_ctx.head before StatsThreadRegister sizes
+        * pc_array and copy_of_private for that context. */
+        StatsFlushPendingRateCounters();
+
         StatsThreadRegister("Global", &stats_ctx->global_counter_ctx);
 
-        uint32_t nstats = counters_global_id;
+        if (counters_global_id == 0) {
+            /* No counters at all; nothing to output. */
+            return -1;
+        }
 
+        uint32_t nstats = counters_global_id;
         stats_table.nstats = nstats;
         stats_table.stats = SCCalloc(stats_table.nstats, sizeof(StatsRecord));
         if (stats_table.stats == NULL) {
@@ -729,9 +852,8 @@ static int StatsOutput(ThreadVars *tv)
         stats_table.start_time = stats_start_time;
     }
 
+    /* max_id > 0 is guaranteed at this point. */
     const uint16_t max_id = counters_global_id;
-    if (max_id == 0)
-        return -1;
 
     /** temporary local table to merge the per thread counters,
      *  especially needed for the average counters */
@@ -807,6 +929,9 @@ static int StatsOutput(ThreadVars *tv)
                     thread_table[pc->gid].value = thread_table_from_private[pc->did1].v;
                     thread_table[pc->gid].updates = thread_table_from_private[pc->did2].v;
                     break;
+                case STATS_TYPE_RATE:
+                    /* Value computed from aggregated stats_table.stats[]. */
+                    break;
                 default:
                     SCLogDebug("Counter %s (%u:%u) value %" PRIu64, pc->name, pc->id, pc->gid,
                             thread_table_from_private[i].v);
@@ -822,6 +947,9 @@ static int StatsOutput(ThreadVars *tv)
             /* thread only sets type if it has a counter
              * of this type. */
             if (e->type == 0)
+                continue;
+
+            if (e->type == STATS_TYPE_RATE)
                 continue;
 
             switch (e->type) {
@@ -847,6 +975,9 @@ static int StatsOutput(ThreadVars *tv)
             /* thread only sets type if it has a counter
              * of this type. */
             if (e->type == 0)
+                continue;
+
+            if (e->type == STATS_TYPE_RATE)
                 continue;
 
             uint32_t offset = (thread * stats_table.nstats) + c;
@@ -899,6 +1030,67 @@ static int StatsOutput(ThreadVars *tv)
                 table[x].value += m->value;
                 break;
         }
+    }
+
+    /* Sample once per tick; used for all rate counters. */
+    struct timespec now_ts;
+    clock_gettime(CLOCK_MONOTONIC, &now_ts);
+
+    /* Compute rate counters from the fully aggregated stats_table.
+    * Rate counters live on global_counter_ctx and read the aggregated
+    * source value from stats_table.stats[source_gid]. */
+    for (StatsCounter *pc = stats_ctx->global_counter_ctx.head;
+            pc != NULL; pc = pc->next) {
+        if (pc->type != STATS_TYPE_RATE)
+            continue;
+
+        StatsRateState *st = pc->rate_state;
+        if (st == NULL) {
+            /* should not happen; allocated at registration */
+            continue;
+        }
+
+        uint64_t current_value = table[pc->source_gid].value;
+
+        table[pc->gid].tm_name = "Total";
+
+        /* First tick: seed baseline and output 0. tv_sec == 0 is a safe
+        * value because CLOCK_MONOTONIC counts from boot; by the time
+        * stats output runs, many seconds have passed. */
+        if (st->prev_ts.tv_sec == 0) {
+            st->prev_value = current_value;
+            st->prev_ts = now_ts;
+            table[pc->gid].value = 0;
+            continue;
+        }
+
+        /* Elapsed time in nanoseconds. */
+        int64_t elapsed_ns =
+                (int64_t)(now_ts.tv_sec  - st->prev_ts.tv_sec)  * 1000000000LL +
+                (int64_t)(now_ts.tv_nsec - st->prev_ts.tv_nsec);
+        if (elapsed_ns <= 0) {
+            /* Clock anomaly; skip this tick, keep baseline. */
+            table[pc->gid].value = 0;
+            continue;
+        }
+
+        /* Defensive: if source counter decreased (reset), don't underflow.
+        * Re-baseline and output 0 this tick. */
+        if (current_value < st->prev_value) {
+            st->prev_value = current_value;
+            st->prev_ts = now_ts;
+            table[pc->gid].value = 0;
+            continue;
+        }
+
+        uint64_t delta = current_value - st->prev_value;
+        /* Multiply before divide to preserve integer precision. */
+        uint64_t rate = (delta * 1000000000ULL) / (uint64_t)elapsed_ns;
+
+        table[pc->gid].value = rate;
+
+        st->prev_value = current_value;
+        st->prev_ts = now_ts;
     }
 
     /* invoke logger(s) */
@@ -968,6 +1160,9 @@ void StatsInit(void)
     }
 
     StatsPublicThreadContextInit(&stats_ctx->global_counter_ctx);
+
+    StatsRegisterRateCounter("stats.pps", "decoder.pkts");
+    StatsRegisterRateCounter("stats.bps", "decoder.bytes");
 }
 
 void StatsSetupPostConfigPreOutput(void)
@@ -1135,10 +1330,50 @@ StatsCounterDeriveId StatsRegisterDeriveDivCounter(
     return s;
 }
 
-typedef struct CountersIdType_ {
-    uint16_t id;
-    const char *string;
-} CountersIdType;
+/**
+ * \brief Registers a rate counter: value = delta(source_counter) / delta(time)
+ *
+ * Rate counters are attached to the global counter context and computed
+ * by the stats management thread once per output tick. The source counter
+ * must exist by the time the first output tick runs, but does NOT need to
+ * exist at the time of this call. Actual registration is deferred until
+ * the first StatsOutput invocation.
+ *
+ * \param name         Name of this rate counter (e.g. "stats.pps")
+ * \param source_name  Name of the counter to derive the rate from (e.g. "decoder.pkts")
+ *
+ * Both strings must have process lifetime (string literals are fine).
+ *
+ * \retval StatsCounterRateId with id=0 always at this point; the real id is
+ *         assigned during deferred registration.
+ */
+StatsCounterRateId StatsRegisterRateCounter(const char *name, const char *source_name)
+{
+    StatsCounterRateId s = { .id = 0 };
+#if defined(UNITTESTS) || defined(FUZZ)
+    if (stats_ctx == NULL)
+        return s;
+#else
+    BUG_ON(stats_ctx == NULL);
+#endif
+
+    if (name == NULL || source_name == NULL) {
+        SCLogError("rate counter registration: name and source_name required");
+        return s;
+    }
+
+    PendingRateCounter *p = SCCalloc(1, sizeof(*p));
+    if (p == NULL) {
+        SCLogError("rate counter registration: alloc failed");
+        return s;
+    }
+    p->name = name;
+    p->source_name = source_name;
+    p->next = pending_rate_counters;
+    pending_rate_counters = p;
+
+    return s;
+}
 
 static uint32_t CountersIdHashFunc(HashTable *ht, void *data, uint16_t datalen)
 {
