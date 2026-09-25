@@ -19,7 +19,7 @@ use super::smb::ALPROTO_SMB;
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::dcerpc::dcerpc::DCERPC_TYPE_REQUEST;
 use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
-use crate::detect::uint::detect_match_uint;
+use crate::detect::uint::{detect_match_uint, DetectUintData};
 use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use crate::direction::Direction;
 use crate::smb::smb::*;
@@ -119,6 +119,25 @@ pub(crate) unsafe extern "C" fn smb_tx_match_dce_opnum(
                     }
                 }
             }
+        }
+    }
+
+    return 0;
+}
+
+pub(crate) unsafe extern "C" fn smb_tx_match_dce_ptype(
+    tx: *mut c_void, ctx: *const SigMatchCtx, flags: u8,
+) -> u8 {
+    let tx = cast_pointer!(tx, SMBTransaction);
+    let du8 = cast_pointer!(ctx, DetectUintData<u8>);
+
+    if let Some(SMBTransactionTypeData::DCERPC(ref x)) = tx.type_data {
+        if flags & STREAM_TOSERVER != 0 {
+            if x.req_set && detect_match_uint(du8, x.req_cmd) {
+                return 1;
+            }
+        } else if x.res_set && detect_match_uint(du8, x.res_cmd) {
+            return 1;
         }
     }
 
