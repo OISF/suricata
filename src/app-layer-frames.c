@@ -23,13 +23,14 @@
  */
 
 #include "suricata-common.h"
-#include "util-print.h"
 
 #include "flow.h"
 #include "stream-tcp.h"
 #include "rust.h"
 #include "app-layer-frames.h"
 #include "app-layer-parser.h"
+#include "util-debug.h"
+#include "util-validate.h"
 
 struct FrameConfig {
     SC_ATOMIC_DECLARE(uint64_t, types);

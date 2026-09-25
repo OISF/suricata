@@ -25,9 +25,7 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
 
-#include "app-layer.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
@@ -43,6 +41,8 @@
 #include "util-ja3.h"
 #include "util-enum.h"
 #include "util-validate.h"
+#include "rust-ffi.h"
+#include "suricata.h"
 
 static SCEnumCharMap tls_state_client_table[] = {
     {

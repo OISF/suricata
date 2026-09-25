@@ -21,13 +21,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#include "suricata.h"
 #include "suricata-common.h"
-#include "decode.h"
 
-#include "stream-tcp.h"
-
-#include "app-layer.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
@@ -42,18 +37,19 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-memcmp.h"
-#include "flow-util.h"
 
-#include "detect-engine.h"
 #include "detect-engine-state.h"
-#include "detect-engine-build.h"
-#include "detect-parse.h"
 
 #include "conf.h"
 
 #include "util-mem.h"
 #include "util-misc.h"
 #include "util-validate.h"
+#include "detect.h"
+#include "flow.h"
+#include "rust-ffi.h"
+#include "stream-tcp-reassemble.h"
+#include "util-prefilter.h"
 
 /* content-limit default value */
 #define FILEDATA_CONTENT_LIMIT 100000
@@ -2193,6 +2189,14 @@ void SMTPParserCleanup(void)
 
 #ifdef UNITTESTS
 #include "detect-engine-alert.h"
+#include "counters.h"
+#include "decode.h"
+#include "detect-engine.h"
+#include "detect-engine-build.h"
+#include "detect-parse.h"
+#include "flow-util.h"
+#include "stream-tcp.h"
+#include "suricata.h"
 
 static void SMTPTestInitConfig(void)
 {

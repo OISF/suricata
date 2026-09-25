@@ -23,9 +23,10 @@
  */
 
 #include "suricata-common.h"
-#include "rust.h"
 #include "app-layer-events.h"
 #include "util-enum.h"
+#include "detect.h"
+#include "util-debug.h"
 
 int SCAppLayerGetEventIdByName(const char *event_name, SCEnumCharMap *table, uint8_t *event_id)
 {

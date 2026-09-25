@@ -56,6 +56,18 @@
 #include "app-layer-ike.h"
 #include "app-layer-http2.h"
 #include "app-layer-imap.h"
+#include "conf.h"
+#include "decode.h"
+#include "detect.h"
+#include "rust-bindings.h"
+#include "rust.h"
+#include "stream-tcp-reassemble.h"
+#include "suricata.h"
+#include "threadvars.h"
+#include "util-debug.h"
+#include "util-exception-policy.h"
+#include "util-file.h"
+#include "util-var.h"
 
 struct AppLayerParserThreadCtx_ {
     void *(*alproto_local_storage)[FLOW_PROTO_MAX];

@@ -33,8 +33,10 @@
 #include "util-memrchr.h"
 #endif
 
-#include "util-misc.h"
 #include "util-unittest.h"
+#include "app-layer-protos.h"
+#include "htp/htp_rs.h"
+#include "util-debug.h"
 
 /** XFF header value minimal length */
 #define XFF_CHAIN_MINLEN 7

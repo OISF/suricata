@@ -22,18 +22,21 @@
  */
 
 #include "suricata-common.h"
-#include "suricata.h"
 
-#include "app-layer-protos.h"
-#include "app-layer-detect-proto.h"
-#include "app-layer-parser.h"
-
-#include "util-unittest.h"
 
 #include "rust.h"
 #include "app-layer-smb.h"
-#include "util-misc.h"
+#include "rust-bindings.h"
+#include "util-streaming-buffer.h"
 
+#ifdef UNITTESTS
+#include "stream-tcp.h"
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
+#include "app-layer-protos.h"
+#include "app-layer-parser.h"
+#include "flow.h"
+#endif
 
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 static SuricataFileContext sfc = { &sbcfg };
@@ -53,8 +56,6 @@ void RegisterSMBParsers(void)
 }
 
 #ifdef UNITTESTS
-#include "stream-tcp.h"
-#include "util-unittest-helper.h"
 
 /** \test multi transactions and cleanup */
 static int SMBParserTxCleanupTest(void)
