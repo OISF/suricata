@@ -73,6 +73,14 @@ typedef struct LogFileEntry_ {
     TAILQ_ENTRY(LogFileEntry_) entries;
 } LogFileEntry;
 
+typedef enum LogFileRotateUnit_ {
+    LOGFILE_ROTATE_NONE = 0,
+    LOGFILE_ROTATE_ON_FIXED_PERIOD, /* relative interval, e.g. 30s */
+    LOGFILE_ROTATE_ON_NEW_MINUTE,
+    LOGFILE_ROTATE_ON_NEW_HOUR,
+    LOGFILE_ROTATE_ON_NEW_DAY,
+} LogFileRotateUnit;
+
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {
     union {
@@ -126,11 +134,16 @@ typedef struct LogFileCtx_ {
     uint64_t reconn_timer;
 
     /** The next time to rotate log file, if rotate interval is
-        specified. */
+        specified. For calendar units, the next time to check if the
+        local time period changed. */
     time_t rotate_time;
 
     /** The interval to rotate the log file */
     uint64_t rotate_interval;
+
+    LogFileRotateUnit rotate_unit;
+    /** Local time period of the open file, for calendar units */
+    int64_t rotate_period;
 
     /**< Used by some alert loggers like the unified ones that append
      * the date onto the end of files. */
@@ -177,9 +190,6 @@ typedef struct LogFileCtx_ {
 /* Min time (msecs) before trying to reconnect a Unix domain socket */
 #define LOGFILE_RECONN_MIN_TIME     500
 
-/* flags for LogFileCtx */
-#define LOGFILE_ROTATE_INTERVAL 0x04
-
 /* Default EVE output buffering size */
 #define LOGFILE_EVE_BUFFER_SIZE 0
 
@@ -198,5 +208,7 @@ void LogFileRegister(LogFileCtx *ctx);
 void LogFileUnregister(LogFileCtx *ctx);
 void LogFileFlushAll(void);
 void LogFileRotateAll(void);
+
+void LogFileRegisterTests(void);
 
 #endif /* SURICATA_UTIL_LOGOPENFILE_H */
