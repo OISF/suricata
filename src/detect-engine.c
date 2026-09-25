@@ -2125,21 +2125,33 @@ int DetectEngineReloadIsIdle(void)
     return r;
 }
 
-/** \brief Do the content inspection & validation for a signature
+/** \internal
+ *  \brief is the engine's data final for this tx?
  *
- *  \param de_ctx Detection engine context
- *  \param det_ctx Detection engine thread context
- *  \param s Signature to inspect
- *  \param sm SigMatch to inspect
- *  \param f Flow
- *  \param flags app layer flags
- *  \param state App layer state
- *
- *  \retval 0 no match
- *  \retval 1 match
+ *  Past the engine's phase the answer is yes; at or beyond the tx end state it
+ *  is final too, even for engines registered at the completion state (no P+1).
+ *  AppLayerParserGetStateProgress() returns the end progress for disrupted
+ *  flows, so progress == end stays a valid finality signal there.
  */
 static bool DetectTxCompleted(
-        Flow *f, void *txv, uint8_t flags, const DetectEngineAppInspectionEngine *engine);
+        Flow *f, void *txv, uint8_t flags, const DetectEngineAppInspectionEngine *engine)
+{
+    if (f->alproto == ALPROTO_DOH2 && engine->alproto == ALPROTO_DOH2) {
+        // the DNS tx from DetectGetInnerTx is always complete
+        return true;
+    } // else
+    const int progress = AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags);
+    if (progress < 0) {
+        return false;
+    }
+    if (progress > engine->progress) {
+        return true;
+    }
+    if (progress < engine->progress) {
+        return false;
+    }
+    return progress == AppLayerParserGetTxEndState(f->proto, f->alproto, txv, flags);
+}
 
 uint8_t DetectEngineInspectGenericList(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
@@ -2177,39 +2189,6 @@ uint8_t DetectEngineInspectGenericList(DetectEngineCtx *de_ctx, DetectEngineThre
     }
 
     return DETECT_ENGINE_INSPECT_SIG_MATCH;
-}
-
-static bool DetectTxCompleted(
-        Flow *f, void *txv, uint8_t flags, const DetectEngineAppInspectionEngine *engine)
-{
-    if (f->alproto == ALPROTO_DOH2 && engine->alproto == ALPROTO_DOH2) {
-        // the DNS tx from DetectGetInnerTx is always complete
-        return true;
-    } // else
-    const int progress = AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags);
-    if (progress < 0) {
-        return false;
-    }
-    if (progress > engine->progress) {
-        return true;
-    }
-    if (progress < engine->progress) {
-        return false;
-    }
-    /* An engine registered at the completion state has no P + 1; its data is
-     * final once the tx reached that state. For the buffer engines this is the
-     * engine's eof, so absent/bsize are decided; for the firewall checks it is
-     * the point where the verdict can no longer change.
-     * AppLayerParserGetStateProgress() returns the end progress for disrupted
-     * flows, so progress == end stays a valid finality signal there. */
-    const AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
-    uint8_t tx_end_state;
-    if (txd != NULL && txd->tx_type != 0) {
-        tx_end_state = (flags & STREAM_TOSERVER) ? txd->tx_type_eop_ts : txd->tx_type_eop_tc;
-    } else {
-        tx_end_state = AppLayerParserGetStateProgressCompletionStatus(f->alproto, flags);
-    }
-    return progress == tx_end_state;
 }
 
 /**

@@ -128,16 +128,7 @@ end:
         SCLogDebug("DETECT_ENGINE_INSPECT_SIG_MATCH");
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
-        AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, alproto, tx);
-        uint8_t tx_end_state;
-        if (txd->tx_type == 0) {
-            tx_end_state = (uint8_t)AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
-        } else {
-            if (flags & STREAM_TOSERVER)
-                tx_end_state = txd->tx_type_eop_ts;
-            else
-                tx_end_state = txd->tx_type_eop_tc;
-        }
+        const uint8_t tx_end_state = AppLayerParserGetTxEndState(f->proto, alproto, tx, flags);
         if (AppLayerParserGetStateProgress(f->proto, alproto, tx, flags) == tx_end_state) {
             SCLogDebug("DETECT_ENGINE_INSPECT_SIG_CANT_MATCH");
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;

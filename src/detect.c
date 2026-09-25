@@ -1572,18 +1572,16 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
  *  \retval struct filled with relevant info or all nulls/0s
  */
 static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alproto,
-        const uint64_t tx_id, void *tx_ptr, const int tx_end_state, const uint8_t flow_flags)
+        const uint64_t tx_id, void *tx_ptr, const uint8_t flow_flags)
 {
-    DEBUG_VALIDATE_BUG_ON(tx_end_state >= APP_LAYER_MAX_PROGRESS);
-
     AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx_ptr);
     const uint8_t tx_progress =
             (uint8_t)AppLayerParserGetStateProgress(ipproto, alproto, tx_ptr, flow_flags);
     DEBUG_VALIDATE_BUG_ON(tx_progress >= APP_LAYER_MAX_PROGRESS);
 
-    const uint8_t e_tx_end_state = txd->tx_type == 0                ? (uint8_t)tx_end_state
-                                   : (flow_flags & STREAM_TOSERVER) ? txd->tx_type_eop_ts
-                                                                    : txd->tx_type_eop_tc;
+    const uint8_t e_tx_end_state =
+            AppLayerParserGetTxEndState(ipproto, alproto, tx_ptr, flow_flags);
+    DEBUG_VALIDATE_BUG_ON(e_tx_end_state >= APP_LAYER_MAX_PROGRESS);
 
     bool updated = (flow_flags & STREAM_TOSERVER) ? txd->updated_ts : txd->updated_tc;
     if (!updated && tx_progress < e_tx_end_state && ((flow_flags & STREAM_EOF) == 0)) {
@@ -2569,8 +2567,6 @@ static void DetectRunTx(ThreadVars *tv,
 
     const uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
     uint64_t tx_id_min = AppLayerParserGetTransactionInspectId(f->alparser, flow_flags);
-    const int tx_end_state = AppLayerParserGetStateProgressCompletionStatus(alproto, flow_flags);
-
     AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
     AppLayerGetTxIterState state = { 0 };
 
@@ -2590,8 +2586,7 @@ static void DetectRunTx(ThreadVars *tv,
             break;
         }
 
-        DetectTransaction tx =
-                GetDetectTx(ipproto, alproto, ires.tx_id, ires.tx_ptr, tx_end_state, flow_flags);
+        DetectTransaction tx = GetDetectTx(ipproto, alproto, ires.tx_id, ires.tx_ptr, flow_flags);
         if (tx.tx_ptr == NULL) {
             SCLogDebug("%p/%"PRIu64" no transaction to inspect",
                     tx.tx_ptr, tx_id_min);
