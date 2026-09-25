@@ -78,4 +78,13 @@ void SCFreeAlignedFunc(void *ptr);
 
 #endif /* CPPCHECK */
 
+static inline void SCMemmove(void *dest, size_t dest_size, const void *src, size_t len)
+{
+#if HAVE_MEMMOVE_S
+    memmove_s(dest, dest_size, src, len);
+#else
+    memmove(dest, src, len);
+#endif
+}
+
 #endif /* SURICATA_UTIL_MEM_H */
