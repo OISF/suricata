@@ -150,6 +150,10 @@ typedef struct NetmapThreadVars_
     int copy_mode;
     ChecksumValidationMode checksum_mode;
 
+    /* buffer used to join a packet that is split across several netmap slots */
+    uint8_t *coalesce_buf;
+    uint32_t coalesce_size;
+
     /* counters */
     uint64_t pkts;
     uint64_t bytes;
@@ -526,6 +530,14 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, voi
     ntv->checksum_mode = aconf->in.checksum_mode;
     ntv->copy_mode = aconf->in.copy_mode;
 
+    /* room for the biggest packet we can handle, used to join split packets */
+    ntv->coalesce_size = MAX_PAYLOAD_SIZE;
+    ntv->coalesce_buf = SCMalloc(ntv->coalesce_size);
+    if (unlikely(ntv->coalesce_buf == NULL)) {
+        SCLogError("Memory allocation failed");
+        goto error_ntv;
+    }
+
     /* enable zero-copy mode for workers runmode */
     char const *active_runmode = RunmodeGetActive();
     if (strcmp("workers", active_runmode) == 0) {
@@ -588,6 +600,7 @@ error_src:
     NetmapClose(ntv->ifsrc);
 
 error_ntv:
+    SCFree(ntv->coalesce_buf);
     SCFree(ntv);
 
 error:
@@ -663,7 +676,9 @@ static void NetmapReleasePacket(Packet *p)
     PacketFreeOrRelease(p);
 }
 
-static void NetmapProcessPacket(NetmapThreadVars *ntv, const struct nm_pkthdr *ph)
+/* force_copy is set for packets joined in ntv->coalesce_buf. that buffer is
+ * reused for the next packet, so it cannot be handed out zero-copy. */
+static void NetmapProcessPacket(NetmapThreadVars *ntv, const struct nm_pkthdr *ph, bool force_copy)
 {
     if (ntv->bpf_prog.bf_len) {
         struct pcap_pkthdr pkthdr = { {0, 0}, ph->len, ph->len };
@@ -684,7 +699,7 @@ static void NetmapProcessPacket(NetmapThreadVars *ntv, const struct nm_pkthdr *p
     ntv->pkts++;
     ntv->bytes += ph->len;
 
-    if (ntv->flags & NETMAP_FLAG_ZERO_COPY) {
+    if ((ntv->flags & NETMAP_FLAG_ZERO_COPY) && !force_copy) {
         if (PacketSetData(p, (uint8_t *)ph->buf, ph->len) == -1) {
             TmqhOutputPacketpool(ntv->tv, p);
             return;
@@ -705,6 +720,75 @@ static void NetmapProcessPacket(NetmapThreadVars *ntv, const struct nm_pkthdr *p
     (void)TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p);
 }
 
+/* read the packet at ring->cur into hdr and move the ring past the slots it
+ * used. slot buffers are not always next to each other, so a packet spread
+ * over more than one slot is copied into ntv->coalesce_buf and hdr points
+ * there. returns false when the chain is broken or does not fit, the packet
+ * is dropped then. */
+static bool NetmapReadOnePacket(
+        struct netmap_ring *ring, NetmapThreadVars *ntv, struct nm_pkthdr *hdr, bool *force_copy)
+{
+    u_int i = ring->cur;
+    struct netmap_slot *slot = &ring->slot[i];
+
+    memset(hdr, 0, sizeof(*hdr));
+    hdr->ts = ring->ts;
+    hdr->slot = slot;
+    hdr->buf = (u_char *)NETMAP_BUF(ring, slot->buf_idx);
+    hdr->len = hdr->caplen = slot->len;
+    *force_copy = false;
+
+    bool dropped = false;
+
+    if (slot->flags & NS_MOREFRAG) {
+        /* a packet cannot use more slots than we currently own */
+        uint32_t avail = nm_ring_space(ring);
+        uint32_t total = 0;
+        uint32_t nfrags = 0;
+        bool malformed = false;
+
+        /* copy the slots into one buffer. keep walking after a problem so the
+         * whole frame is consumed at once and the ring keeps moving. */
+        for (;;) {
+            uint32_t slen = slot->len;
+            if (!malformed) {
+                if (slen > ntv->coalesce_size - total) {
+                    /* frame is bigger than we can hold */
+                    malformed = true;
+                } else {
+                    memcpy(ntv->coalesce_buf + total, (u_char *)NETMAP_BUF(ring, slot->buf_idx),
+                            slen);
+                    total += slen;
+                }
+            }
+            nfrags++;
+
+            if (!(slot->flags & NS_MOREFRAG))
+                break;
+            if (nfrags >= avail) {
+                /* the chain never ended inside the slots we own */
+                malformed = true;
+                break;
+            }
+            i = nm_ring_next(ring, i);
+            slot = &ring->slot[i];
+        }
+
+        if (malformed) {
+            ntv->drops++;
+            dropped = true;
+        } else {
+            hdr->buf = ntv->coalesce_buf;
+            hdr->len = hdr->caplen = total;
+            *force_copy = true;
+        }
+    }
+
+    /* release the slots we walked back to the kernel */
+    ring->head = ring->cur = nm_ring_next(ring, i);
+    return !dropped;
+}
+
 /**
  * \brief Copy netmap rings data into Packet structures.
  * \param *d nmport_d (or nm_desc) netmap if structure.
@@ -713,12 +797,8 @@ static void NetmapProcessPacket(NetmapThreadVars *ntv, const struct nm_pkthdr *p
  */
 static TmEcode NetmapReadPackets(struct nmport_d *d, int cnt, NetmapThreadVars *ntv)
 {
-    struct nm_pkthdr hdr;
     int last_ring = d->last_rx_ring - d->first_rx_ring + 1;
     int cur_ring, got = 0, cur_rx_ring = d->cur_rx_ring;
-
-    memset(&hdr, 0, sizeof(hdr));
-    hdr.flags = NM_MORE_PKTS;
 
     if (cnt == 0)
         cnt = -1;
@@ -733,52 +813,16 @@ static TmEcode NetmapReadPackets(struct nmport_d *d, int cnt, NetmapThreadVars *
 
         /* cycle through the non-empty ring slots to fetch their data */
         for (; !nm_ring_empty(ring) && cnt != got; got++) {
-            u_int idx, i;
-            u_char *oldbuf;
-            struct netmap_slot *slot;
+            struct nm_pkthdr hdr;
+            bool force_copy;
 
-            if (hdr.buf) { /* from previous round */
-                NetmapProcessPacket(ntv, &hdr);
-            }
-
-            i = ring->cur;
-            slot = &ring->slot[i];
-            idx = slot->buf_idx;
             d->cur_rx_ring = cur_rx_ring;
-            hdr.slot = slot;
-            oldbuf = hdr.buf = (u_char *)NETMAP_BUF(ring, idx);
-            hdr.len = hdr.caplen = slot->len;
-
-            /* loop through the ring slots to get packet data */
-            while (slot->flags & NS_MOREFRAG) {
-                /* packet can be fragmented across multiple slots, */
-                /* so loop until we find the slot with the flag    */
-                /* cleared, signalling the end of the packet data. */
-                u_char *nbuf;
-                u_int oldlen = slot->len;
-                i = nm_ring_next(ring, i);
-                slot = &ring->slot[i];
-                hdr.len += slot->len;
-                nbuf = (u_char *)NETMAP_BUF(ring, slot->buf_idx);
-
-                if (oldbuf != NULL && nbuf - oldbuf == ring->nr_buf_size &&
-                        oldlen == ring->nr_buf_size) {
-                    hdr.caplen += slot->len;
-                    oldbuf = nbuf;
-                } else {
-                    oldbuf = NULL;
-                }
+            if (NetmapReadOnePacket(ring, ntv, &hdr, &force_copy)) {
+                NetmapProcessPacket(ntv, &hdr, force_copy);
             }
-
-            hdr.ts = ring->ts;
-            ring->head = ring->cur = nm_ring_next(ring, i);
         }
     }
 
-    if (hdr.buf) { /* from previous round */
-        hdr.flags = 0;
-        NetmapProcessPacket(ntv, &hdr);
-    }
     return got;
 }
 
@@ -894,6 +938,7 @@ static TmEcode ReceiveNetmapThreadDeinit(ThreadVars *tv, void *data)
         SCBPFFree(&ntv->bpf_prog);
     }
 
+    SCFree(ntv->coalesce_buf);
     SCFree(ntv);
 
     SCReturnInt(TM_ECODE_OK);
@@ -960,6 +1005,10 @@ static TmEcode DecodeNetmapThreadDeinit(ThreadVars *tv, void *data)
     SCReturnInt(TM_ECODE_OK);
 }
 
+#ifdef UNITTESTS
+#include "tests/source-netmap.c"
+#endif
+
 /**
  * \brief Registration Function for ReceiveNetmap.
  */
@@ -972,6 +1021,9 @@ void TmModuleReceiveNetmapRegister(void)
     tmm_modules[TMM_RECEIVENETMAP].ThreadDeinit = ReceiveNetmapThreadDeinit;
     tmm_modules[TMM_RECEIVENETMAP].cap_flags = SC_CAP_NET_RAW;
     tmm_modules[TMM_RECEIVENETMAP].flags = TM_FLAG_RECEIVE_TM;
+#ifdef UNITTESTS
+    tmm_modules[TMM_RECEIVENETMAP].RegisterTests = NetmapRegisterTests;
+#endif
 }
 
 /**
