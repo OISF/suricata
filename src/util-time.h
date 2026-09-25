@@ -139,6 +139,7 @@ SCTime_t TimeGet(void);
 void TimeSet(SCTime_t);
 void TimeSetToCurrentTime(void);
 void TimeSetIncrementTime(uint32_t);
+void SCLocalTimeCacheReset(void);
 #endif
 
 bool TimeModeIsReady(void);

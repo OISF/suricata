@@ -33,6 +33,7 @@
 #include "util-path.h"
 #include "util-misc.h"
 #include "util-time.h"
+#include "util-unittest.h"
 #include "log-maintenance.h"
 
 #if defined(HAVE_SYS_UN_H) && defined(HAVE_SYS_SOCKET_H) && defined(HAVE_SYS_TYPES_H)
@@ -211,6 +212,75 @@ static void SCLogFileFlush(LogFileCtx *log_ctx)
 }
 
 /**
+ * \brief Get a number identifying the local day, hour or minute of tm
+ *
+ * The number is only compared for equality to detect that the local period
+ * changed, it is not a count of elapsed time. Counting 366 days per year keeps
+ * the number unique for every tm_yday (0-365), as with 365, Dec 31 of a leap
+ * year would get the same number as Jan 1 of the next year.
+ */
+static int64_t LogFileRotatePeriod(LogFileRotateUnit unit, const struct tm *tm)
+{
+    const int64_t day = (int64_t)tm->tm_year * 366 + tm->tm_yday;
+    const int64_t hour = day * 24 + tm->tm_hour;
+    const int64_t minute = hour * 60 + tm->tm_min;
+
+    if (unit == LOGFILE_ROTATE_DAY) {
+        return day;
+    }
+    if (unit == LOGFILE_ROTATE_HOUR) {
+        return hour;
+    }
+    return minute;
+}
+
+/**
+ * \brief Record the rotation period of now and schedule the next rotation check
+ *
+ * Calendar units (minute, hour, day) are checked at the start of every local
+ * minute, relative intervals when the interval has passed.
+ */
+static void LogFileRotateArm(LogFileCtx *log_ctx, time_t now)
+{
+    if (log_ctx->rotate_unit == LOGFILE_ROTATE_TIMER) {
+        log_ctx->rotate_time = now + log_ctx->rotate_interval;
+        return;
+    }
+
+    struct tm local_tm;
+    struct tm *tms = SCLocalTime(now, &local_tm);
+    if (tms == NULL) {
+        return;
+    }
+    log_ctx->rotate_time = now + 60 - tms->tm_sec;
+    log_ctx->rotate_period = LogFileRotatePeriod(log_ctx->rotate_unit, tms);
+}
+
+/**
+ * \brief Update the rotation state to now and report if the log file must be rotated
+ *
+ * Calendar units rotate when the local time period changes, so rotation stays
+ * aligned with local midnight across DST transitions.
+ *
+ * \retval true if the log file must be rotated
+ */
+static bool LogFileRotateUpdate(LogFileCtx *log_ctx, time_t now)
+{
+    if (now < log_ctx->rotate_time) {
+        return false;
+    }
+
+    if (log_ctx->rotate_unit == LOGFILE_ROTATE_TIMER) {
+        LogFileRotateArm(log_ctx, now);
+        return true;
+    }
+
+    const int64_t prev_period = log_ctx->rotate_period;
+    LogFileRotateArm(log_ctx, now);
+    return log_ctx->rotate_period != prev_period;
+}
+
+/**
  * \brief Handle log file rotation checks and updates
  * \param log_ctx Log file context
  * \retval true if rotation occurred
@@ -219,16 +289,14 @@ static bool HandleLogRotation(LogFileCtx *log_ctx)
 {
     if (log_ctx->rotation_flag) {
         log_ctx->rotation_flag = 0;
-        SCConfLogReopen(log_ctx);
         if (log_ctx->flags & LOGFILE_ROTATE_INTERVAL) {
-            log_ctx->rotate_time = time(NULL) + log_ctx->rotate_interval;
+            LogFileRotateArm(log_ctx, time(NULL));
         }
+        SCConfLogReopen(log_ctx);
         return true;
     } else if (log_ctx->flags & LOGFILE_ROTATE_INTERVAL) {
-        time_t now = time(NULL);
-        if (now >= log_ctx->rotate_time) {
+        if (LogFileRotateUpdate(log_ctx, time(NULL))) {
             SCConfLogReopen(log_ctx);
-            log_ctx->rotate_time = now + log_ctx->rotate_interval;
             return true;
         }
     }
@@ -538,29 +606,26 @@ int SCConfLogOpenGeneric(
     /* Rotate log file based on time */
     const char *rotate_int = SCConfNodeLookupChildValue(conf, "rotate-interval");
     if (rotate_int != NULL) {
-        time_t now = time(NULL);
         log_ctx->flags |= LOGFILE_ROTATE_INTERVAL;
 
         /* Use a specific time */
         if (strcmp(rotate_int, "minute") == 0) {
-            log_ctx->rotate_time = now + SCGetSecondsUntil(rotate_int, now);
-            log_ctx->rotate_interval = 60;
+            log_ctx->rotate_unit = LOGFILE_ROTATE_MINUTE;
         } else if (strcmp(rotate_int, "hour") == 0) {
-            log_ctx->rotate_time = now + SCGetSecondsUntil(rotate_int, now);
-            log_ctx->rotate_interval = 3600;
+            log_ctx->rotate_unit = LOGFILE_ROTATE_HOUR;
         } else if (strcmp(rotate_int, "day") == 0) {
-            log_ctx->rotate_time = now + SCGetSecondsUntil(rotate_int, now);
-            log_ctx->rotate_interval = 86400;
+            log_ctx->rotate_unit = LOGFILE_ROTATE_DAY;
         }
 
         /* Use a timer */
         else {
+            log_ctx->rotate_unit = LOGFILE_ROTATE_TIMER;
             log_ctx->rotate_interval = SCParseTimeSizeString(rotate_int);
             if (log_ctx->rotate_interval == 0) {
                 FatalError("invalid rotate-interval value");
             }
-            log_ctx->rotate_time = now + log_ctx->rotate_interval;
         }
+        LogFileRotateArm(log_ctx, time(NULL));
     }
 
     filetype = SCConfNodeLookupChildValue(conf, "filetype");
@@ -1138,4 +1203,136 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
 #endif
 
     return 0;
+}
+
+/* the test needs POSIX TZ rules, which Windows does not support */
+#if defined(UNITTESTS) && !defined(OS_WIN32)
+/**
+ * \brief Call the rotation check for the 10 seconds around every quarter hour
+ *        from 1 hour before to 26 hours after the DST switch, as if a log
+ *        record was written each of these seconds, and check that it rotates
+ *        exactly when the filename pattern expands to a new name.
+ *
+ * All timezones in use have UTC offsets in multiples of 15 minutes, so the
+ * switch and every local hour and day start fall on a UTC quarter hour. The
+ * 26 hours reach the first local midnight after the switch, where a day
+ * rotation with a fixed length of 86400 seconds would be off by the DST shift.
+ */
+static int LogFileRotateTestAroundSwitch(
+        LogFileRotateUnit unit, const char *pattern, time_t dst_switch)
+{
+    const time_t start = dst_switch - 3600;
+    const time_t end = dst_switch + 26 * 3600;
+
+    LogFileCtx ctx;
+    memset(&ctx, 0, sizeof(ctx));
+    ctx.rotate_unit = unit;
+    LogFileRotateArm(&ctx, start);
+
+    char file_name[32];
+    FAIL_IF(SCTimeToStringPattern(start, pattern, file_name, sizeof(file_name)) != 0);
+    int rotations = 0;
+
+    for (time_t quarter = start + 900; quarter < end; quarter += 900) {
+        for (time_t now = quarter - 5; now < quarter + 5; now++) {
+            char expected_name[32];
+            FAIL_IF(SCTimeToStringPattern(now, pattern, expected_name, sizeof(expected_name)) != 0);
+            const bool name_changed = strcmp(expected_name, file_name) != 0;
+
+            const bool rotated = LogFileRotateUpdate(&ctx, now);
+            FAIL_IF(rotated != name_changed);
+
+            if (rotated) {
+                strlcpy(file_name, expected_name, sizeof(file_name));
+                rotations++;
+            }
+        }
+    }
+    /* a window without any name change would prove nothing */
+    FAIL_IF(rotations == 0);
+    PASS;
+}
+
+/** \brief Set the timezone of the process, NULL for the system default */
+static void LogFileRotateTestSetTimezone(const char *tz)
+{
+    if (tz != NULL) {
+        setenv("TZ", tz, 1);
+    } else {
+        unsetenv("TZ");
+    }
+    tzset();
+    SCLocalTimeCacheReset();
+}
+
+/** \brief Check the rotation of all units around both DST switches of tz */
+static int LogFileRotateTestTimezone(const char *tz, time_t dst_start, time_t dst_end)
+{
+    const struct {
+        LogFileRotateUnit unit;
+        const char *pattern;
+    } units[] = {
+        { LOGFILE_ROTATE_MINUTE, "%Y-%m-%d-%H:%M" },
+        { LOGFILE_ROTATE_HOUR, "%Y-%m-%d-%H" },
+        { LOGFILE_ROTATE_DAY, "%Y-%m-%d" },
+    };
+
+    LogFileRotateTestSetTimezone(tz);
+    for (size_t u = 0; u < ARRAY_SIZE(units); u++) {
+        FAIL_IF_NOT(LogFileRotateTestAroundSwitch(units[u].unit, units[u].pattern, dst_start) == 1);
+        FAIL_IF_NOT(LogFileRotateTestAroundSwitch(units[u].unit, units[u].pattern, dst_end) == 1);
+    }
+    PASS;
+}
+
+/** \test minute, hour and day rotations follow the local time, also around
+ *        DST transitions of timezones with unusual rules */
+static int LogFileRotateTest01(void)
+{
+    /* POSIX TZ rules of timezones with DST, and their DST switches in 2026 */
+    const struct {
+        const char *tz;
+        time_t dst_start;
+        time_t dst_end;
+    } timezones[] = {
+        /* America/New_York: 2026-03-08 07:00 and 2026-11-01 06:00 UTC */
+        { "EST5EDT,M3.2.0,M11.1.0", 1772953200, 1793512800 },
+        /* America/Havana, DST start skips midnight: 2026-03-08 and 2026-11-01 05:00 UTC */
+        { "CST5CDT,M3.2.0/0,M11.1.0/1", 1772946000, 1793509200 },
+        /* Europe/Prague: 2026-03-29 and 2026-10-25 01:00 UTC */
+        { "CET-1CEST,M3.5.0,M10.5.0/3", 1774746000, 1792890000 },
+        /* Australia/Sydney: 2026-10-03 and 2026-04-04 16:00 UTC */
+        { "AEST-10AEDT,M10.1.0,M4.1.0/3", 1791043200, 1775318400 },
+        /* Australia/Lord_Howe, 30 minute DST: 2026-10-03 15:30 and 2026-04-04 15:00 UTC */
+        { "<+1030>-10:30<+11>-11,M10.1.0,M4.1.0", 1791041400, 1775314800 },
+        /* Pacific/Chatham, switches at 02:45 and 03:45: 2026-09-26 and 2026-04-04 14:00 UTC */
+        { "<+1245>-12:45<+1345>,M9.5.0/2:45,M4.1.0/3:45", 1790431200, 1775311200 },
+    };
+
+    const char *env_tz = getenv("TZ");
+    char *orig_tz = env_tz != NULL ? SCStrdup(env_tz) : NULL;
+    FAIL_IF(env_tz != NULL && orig_tz == NULL);
+
+    int result = 1;
+    for (size_t i = 0; i < ARRAY_SIZE(timezones); i++) {
+        if (LogFileRotateTestTimezone(
+                    timezones[i].tz, timezones[i].dst_start, timezones[i].dst_end) != 1) {
+            result = 0;
+            break;
+        }
+    }
+
+    /* restore the timezone before reporting, also when a check failed */
+    LogFileRotateTestSetTimezone(orig_tz);
+    SCFree(orig_tz);
+    FAIL_IF_NOT(result == 1);
+    PASS;
+}
+#endif /* UNITTESTS && !OS_WIN32 */
+
+void LogFileRegisterTests(void)
+{
+#if defined(UNITTESTS) && !defined(OS_WIN32)
+    UtRegisterTest("LogFileRotateTest01", LogFileRotateTest01);
+#endif
 }

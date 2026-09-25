@@ -430,6 +430,18 @@ void CreateTimeString(const SCTime_t ts, char *str, size_t size)
 
 #endif /* defined(__OpenBSD__) */
 
+#ifdef UNITTESTS
+/** \brief Forget the local times cached by the calling thread, e.g. after the
+ *         timezone was changed */
+void SCLocalTimeCacheReset(void)
+{
+#ifdef TLS
+    memset(last_local_time, 0, sizeof(last_local_time));
+    memset(cached_minute_start, 0, sizeof(cached_minute_start));
+#endif
+}
+#endif
+
 /**
  * \brief Convert broken-down time to seconds since Unix epoch.
  *
