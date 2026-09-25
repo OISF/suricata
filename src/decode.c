@@ -1076,6 +1076,13 @@ static bool VerdictByFirewall(const Packet *p)
     return false;
 }
 
+static bool PacketBypassed(const Packet *p)
+{
+    if ((p->flags & PKT_FW_BYPASSED) != 0)
+        return true;
+    return false;
+}
+
 void CaptureStatsUpdate(ThreadVars *tv, const Packet *p)
 {
     if (!EngineModeIsIPS() || PKT_IS_PSEUDOPKT(p))
@@ -1109,7 +1116,9 @@ void CaptureStatsUpdate(ThreadVars *tv, const Packet *p)
             }
         } else if (PacketCheckAction(p, ACTION_ACCEPT)) {
             StatsCounterIncr(&tv->stats, s->counter_fw_accepted);
-            StatsCounterIncr(&tv->stats, s->counter_ips_accepted);
+            /* A packet bypassed by the firewall isn't seen by IPS */
+            if (!PacketBypassed(p))
+                StatsCounterIncr(&tv->stats, s->counter_ips_accepted);
         }
     } else {
         if (unlikely(PacketCheckAction(p, ACTION_REJECT_ANY))) {
