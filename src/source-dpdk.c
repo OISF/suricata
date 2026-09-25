@@ -122,11 +122,16 @@ typedef struct DPDKThreadVars_ {
     StatsCounterId capture_dpdk_rx_no_mbufs;
     StatsCounterId capture_dpdk_ierrors;
     StatsCounterId capture_dpdk_tx_errs;
+    StatsCounterId capture_dpdk_segmented_drops;
+    StatsCounterId capture_dpdk_segmented_too_large;
+    StatsCounterId capture_dpdk_shared_mbuf_drops;
     unsigned int flags;
     uint16_t threads;
     /* for IPS */
     DpdkCopyModeEnum copy_mode;
     uint16_t out_port_id;
+    uint16_t out_tx_seg_max; // max segments per packet the copy interface can transmit
+    bool tx_segmented_mbufs; // forward packets received in multiple mbufs
     /* Entry in the peers_list */
 
     uint64_t bytes;
@@ -277,8 +282,13 @@ void TmModuleDecodeDPDKRegister(void)
     tmm_modules[TMM_DECODEDPDK].flags = TM_FLAG_DECODE_TM;
 }
 
+/* Modified packets freed at release because their mbuf is shared. A worker releases the packets
+ * it received, but DPDKReleasePacket() has no access to the thread's counters. */
+static thread_local uint64_t shared_mbuf_drops = 0;
+
 static inline void DPDKDumpCounters(DPDKThreadVars *ptv)
 {
+    StatsCounterSetI64(&ptv->tv->stats, ptv->capture_dpdk_shared_mbuf_drops, shared_mbuf_drops);
     /* Some NICs (e.g. Intel) do not support queue statistics and the drops can be fetched only on
      * the port level. Therefore setting it to the first worker to have at least continuous update
      * on the dropped packets. */
@@ -307,6 +317,81 @@ static inline void DPDKDumpCounters(DPDKThreadVars *ptv)
     }
 }
 
+/**
+ * \brief Check that nobody else holds the data of an mbuf segment
+ *
+ * The data of an indirect mbuf (clone) belongs to the mbuf it is attached to,
+ * and extra references to a direct mbuf or to an external buffer make its data
+ * read-only.
+ */
+static inline bool DPDKMbufSegIsPrivate(const struct rte_mbuf *seg)
+{
+    const bool single_ref = rte_mbuf_refcnt_read(seg) == 1;
+    if (single_ref && RTE_MBUF_DIRECT(seg)) {
+        return true;
+    }
+    if (single_ref && RTE_MBUF_HAS_EXTBUF(seg) && rte_mbuf_ext_refcnt_read(seg->shinfo) == 1) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * \brief Check that nobody else holds the data of any segment of an mbuf
+ */
+static inline bool DPDKMbufIsPrivate(const struct rte_mbuf *mbuf)
+{
+    for (const struct rte_mbuf *seg = mbuf; seg != NULL; seg = seg->next) {
+        if (!DPDKMbufSegIsPrivate(seg)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * \brief Drop a modified packet whose mbuf cannot be written to
+ *
+ * Forwarding the mbuf as is would transmit the packet without the
+ * modifications, so the mbuf is freed instead.
+ */
+static void DPDKMbufSharedDrop(Packet *p)
+{
+    static thread_local bool shared_warned = false;
+    if (unlikely(!shared_warned)) {
+        SCLogWarning("Modified packet cannot be written back to a segmented mbuf with shared "
+                     "segments (cloned or referenced elsewhere), dropping such packets, see "
+                     "capture.dpdk.shared_mbuf_drops. Make the primary application hand over "
+                     "mbufs it holds no other reference to");
+        shared_warned = true;
+    }
+
+    shared_mbuf_drops++;
+    rte_pktmbuf_free(p->dpdk_v.mbuf);
+    p->dpdk_v.mbuf = NULL;
+}
+
+/**
+ * \brief Copy the packet data back to the mbuf it was copied from
+ *
+ * Inline stream normalization modifies the packet data in place without
+ * changing the packet length. The caller ensures that no segment is shared,
+ * see DPDKMbufIsPrivate().
+ */
+static inline void DPDKMbufWriteBack(Packet *p)
+{
+    const uint8_t *data = GET_PKT_DATA(p);
+    const uint32_t len = GET_PKT_LEN(p);
+    DEBUG_VALIDATE_BUG_ON(len != rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
+
+    uint32_t offset = 0;
+    for (struct rte_mbuf *seg = p->dpdk_v.mbuf; seg != NULL && offset < len; seg = seg->next) {
+        uint32_t seg_len = MIN(rte_pktmbuf_data_len(seg), len - offset);
+        memcpy(rte_pktmbuf_mtod(seg, uint8_t *), data + offset, seg_len);
+        offset += seg_len;
+    }
+}
+
 static void DPDKReleasePacket(Packet *p)
 {
     int retval;
@@ -314,13 +399,24 @@ static void DPDKReleasePacket(Packet *p)
        where Ethernet header could not be set (and pseudo packet)
        When enabling promiscuous mode on Intel cards, 2 ICMPv6 packets are generated.
        These get into the infinite cycle between the NIC and the switch in some cases */
-    if ((p->dpdk_v.copy_mode == DPDK_COPY_MODE_TAP ||
-                (p->dpdk_v.copy_mode == DPDK_COPY_MODE_IPS && !PacketCheckAction(p, ACTION_DROP)))
+    if (p->dpdk_v.mbuf != NULL &&
+            (p->dpdk_v.copy_mode == DPDK_COPY_MODE_TAP ||
+                    (p->dpdk_v.copy_mode == DPDK_COPY_MODE_IPS &&
+                            !PacketCheckAction(p, ACTION_DROP)))
 #if defined(RTE_LIBRTE_I40E_PMD) || defined(RTE_LIBRTE_IXGBE_PMD) || defined(RTE_LIBRTE_ICE_PMD)
             && !(PacketIsICMPv6(p) && PacketGetICMPv6(p)->type == 143)
 #endif
     ) {
         BUG_ON(PKT_IS_PSEUDOPKT(p));
+        // packets of segmented mbufs are copies, modifications must reach the mbufs
+        if (unlikely((p->flags & PKT_STREAM_MODIFIED) && !(p->flags & PKT_ZERO_COPY))) {
+            if (unlikely(!DPDKMbufIsPrivate(p->dpdk_v.mbuf))) {
+                DPDKMbufSharedDrop(p);
+                PacketFreeOrRelease(p);
+                return;
+            }
+            DPDKMbufWriteBack(p);
+        }
         retval =
                 rte_eth_tx_burst(p->dpdk_v.out_port_id, p->dpdk_v.out_queue_id, &p->dpdk_v.mbuf, 1);
         // rte_eth_tx_burst can return only 0 (failure) or 1 (success) because we are only
@@ -346,6 +442,36 @@ static void DPDKReleasePacket(Packet *p)
     PacketFreeOrRelease(p);
 }
 
+/**
+ * \brief Get the maximum number of segments per packet the copy interface can transmit
+ *
+ * The limit is only complete once the copy interface is configured, e.g. a bond
+ * port inherits it from its members during its first configuration.
+ *
+ * \return true on success, false otherwise
+ */
+static bool DPDKCopyIfaceTxSegMaxSet(DPDKThreadVars *ptv)
+{
+    ptv->out_tx_seg_max = UINT16_MAX;
+    if (ptv->copy_mode == DPDK_COPY_MODE_NONE || !ptv->tx_segmented_mbufs) {
+        return true;
+    }
+
+    struct rte_eth_dev_info out_dev_info;
+    int retval = rte_eth_dev_info_get(ptv->out_port_id, &out_dev_info);
+    if (retval != 0) {
+        SCLogError("%s: failed to get the device info of the copy interface (port %u), needed for "
+                   "its limit of segments per transmitted packet: %s",
+                ptv->livedev->dev, ptv->out_port_id, rte_strerror(-retval));
+        return false;
+    }
+    // 0: the driver reports no limit
+    if (out_dev_info.tx_desc_lim.nb_mtu_seg_max != 0) {
+        ptv->out_tx_seg_max = out_dev_info.tx_desc_lim.nb_mtu_seg_max;
+    }
+    return true;
+}
+
 static TmEcode ReceiveDPDKLoopInit(ThreadVars *tv, DPDKThreadVars *ptv)
 {
     SCEnter();
@@ -356,6 +482,11 @@ static TmEcode ReceiveDPDKLoopInit(ThreadVars *tv, DPDKThreadVars *ptv)
 
     rte_eth_stats_reset(ptv->port_id);
     rte_eth_xstats_reset(ptv->port_id);
+
+    // the copy interface may get configured only after this thread is initialized
+    if (!DPDKCopyIfaceTxSegMaxSet(ptv)) {
+        SCReturnInt(TM_ECODE_FAILED);
+    }
 
     if (ptv->intr_enabled && !InterruptsRXEnable(ptv->port_id, ptv->queue_id))
         SCReturnInt(TM_ECODE_FAILED);
@@ -459,23 +590,19 @@ static inline Packet *PacketInitFromMbuf(DPDKThreadVars *ptv, struct rte_mbuf *m
     return p;
 }
 
-static inline void DPDKSegmentedMbufWarning(struct rte_mbuf *mbuf)
+static inline void DPDKSegmentedMbufWarning(void)
 {
     static thread_local bool segmented_mbufs_warned = false;
-    if (!segmented_mbufs_warned && !rte_pktmbuf_is_contiguous(mbuf)) {
-        char warn_s[] = "Segmented mbufs detected! Redmine Ticket #6012 "
-                        "Check your configuration or report the issue";
+    if (unlikely(!segmented_mbufs_warned)) {
         enum rte_proc_type_t eal_t = rte_eal_process_type();
         if (eal_t == RTE_PROC_SECONDARY) {
-            SCLogWarning("%s. To avoid segmented mbufs, "
-                         "try to increase mbuf size in your primary application",
-                    warn_s);
-        } else if (eal_t == RTE_PROC_PRIMARY) {
-            SCLogWarning("%s. To avoid segmented mbufs, "
-                         "try to increase MTU in your suricata.yaml",
-                    warn_s);
+            SCLogWarning("Segmented mbufs detected! Suricata processes them when possible, but "
+                         "for better performance, try to increase mbuf size in your primary "
+                         "application");
+        } else {
+            SCLogWarning("Segmented mbufs detected! Suricata processes them when possible, but "
+                         "for better performance, try to increase MTU in your suricata.yaml");
         }
-
         segmented_mbufs_warned = true;
     }
 }
@@ -524,6 +651,209 @@ cleanup:
         SCFree(xstats);
     if (xstats_names != NULL)
         SCFree(xstats_names);
+}
+
+static inline void DPDKSegmentedMbufTxDisabledWarning(void)
+{
+    static thread_local bool disabled_warned = false;
+    if (unlikely(!disabled_warned)) {
+        SCLogWarning("Segmented mbufs cannot be forwarded with tx-segmented-mbufs disabled, "
+                     "dropping such packets, see capture.dpdk.segmented_drops");
+        disabled_warned = true;
+    }
+}
+
+static inline void DPDKSegmentedMbufTooLargeWarning(uint32_t pkt_len)
+{
+    static thread_local bool size_warned = false;
+    if (unlikely(!size_warned)) {
+        SCLogWarning("Segmented mbuf larger than the maximum packet size (%u > %d), dropping such "
+                     "packets, see capture.dpdk.segmented_too_large",
+                pkt_len, MAX_PAYLOAD_SIZE);
+        size_warned = true;
+    }
+}
+
+static inline void DPDKSegmentedMbufTooManySegmentsWarning(uint16_t nb_segs, uint16_t seg_max)
+{
+    static thread_local bool segs_warned = false;
+    if (unlikely(!segs_warned)) {
+        SCLogWarning("Segmented mbuf of %u segments exceeds the %u segments the copy interface "
+                     "can transmit, dropping such packets, see capture.dpdk.segmented_drops",
+                nb_segs, seg_max);
+        segs_warned = true;
+    }
+}
+
+static inline void DPDKSegmentedMbufMalformedWarning(void)
+{
+    static thread_local bool malformed_warned = false;
+    if (unlikely(!malformed_warned)) {
+        SCLogWarning("Segmented mbuf whose segments do not match its packet length, dropping "
+                     "such packets, see capture.dpdk.segmented_drops");
+        malformed_warned = true;
+    }
+}
+
+static inline void DPDKSegmentedMbufEmptySegmentWarning(void)
+{
+    static thread_local bool empty_warned = false;
+    if (unlikely(!empty_warned)) {
+        SCLogWarning("Segmented mbuf with an empty segment cannot be forwarded, as some drivers "
+                     "cannot transmit empty segments, dropping such packets, see "
+                     "capture.dpdk.segmented_drops");
+        empty_warned = true;
+    }
+}
+
+static inline void DPDKSegmentedMbufCopyFailedWarning(void)
+{
+    static thread_local bool copy_warned = false;
+    if (unlikely(!copy_warned)) {
+        SCLogWarning("Failed to copy a segmented mbuf into the packet buffer, dropping such "
+                     "packets, see capture.dpdk.segmented_drops");
+        copy_warned = true;
+    }
+}
+
+/**
+ * \brief Check that the segments of a chained mbuf add up to its packet length
+ */
+static inline bool DPDKSegmentedMbufIsValid(const struct rte_mbuf *mbuf)
+{
+    const struct rte_mbuf *seg = mbuf;
+    uint32_t len = 0;
+    for (uint16_t i = 0; i < mbuf->nb_segs; i++) {
+        if (seg == NULL) {
+            return false;
+        }
+        len += rte_pktmbuf_data_len(seg);
+        seg = seg->next;
+    }
+    return seg == NULL && len == rte_pktmbuf_pkt_len(mbuf);
+}
+
+/**
+ * \brief Check whether a chained mbuf has a segment without data
+ *
+ * DPDK treats such chains as valid, e.g. rte_pktmbuf_adj() and
+ * rte_pktmbuf_trim() produce them, but some drivers cannot transmit them.
+ */
+static inline bool DPDKSegmentedMbufHasEmptySegment(const struct rte_mbuf *mbuf)
+{
+    for (const struct rte_mbuf *seg = mbuf; seg != NULL; seg = seg->next) {
+        if (rte_pktmbuf_data_len(seg) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * \brief Decide whether a segmented (chained) mbuf can be processed
+ *
+ * Drops malformed chains. Then tries rte_pktmbuf_linearize() which copies all
+ * segment data into the first segment. If that is not possible (not enough
+ * tailroom, or the first segment is not a direct mbuf with a single
+ * reference), the data is later copied into the packet's buffer,
+ * which holds at most MAX_PAYLOAD_SIZE bytes. In the copy modes, the mbuf chain
+ * itself is forwarded, so tx-segmented-mbufs must be enabled and the chain must
+ * have neither more segments than the copy interface can transmit nor an empty
+ * segment.
+ *
+ * \param ptv Pointer to the thread variables
+ * \param mbuf Pointer to the DPDK mbuf
+ * \return true if the mbuf can be processed, false if it must be dropped
+ */
+static inline bool DPDKSegmentedMbufAccept(DPDKThreadVars *ptv, struct rte_mbuf *mbuf)
+{
+    DPDKSegmentedMbufWarning();
+    if (unlikely(!DPDKSegmentedMbufIsValid(mbuf))) {
+        DPDKSegmentedMbufMalformedWarning();
+        StatsCounterIncr(&ptv->tv->stats, ptv->capture_dpdk_segmented_drops);
+        return false;
+    }
+
+    // linearize writes into the first segment: only into a direct mbuf with a single reference
+    if (RTE_MBUF_DIRECT(mbuf) && rte_mbuf_refcnt_read(mbuf) == 1 &&
+            rte_pktmbuf_linearize(mbuf) == 0) {
+        return true;
+    }
+
+    if (unlikely(rte_pktmbuf_pkt_len(mbuf) > MAX_PAYLOAD_SIZE)) {
+        DPDKSegmentedMbufTooLargeWarning(rte_pktmbuf_pkt_len(mbuf));
+        StatsCounterIncr(&ptv->tv->stats, ptv->capture_dpdk_segmented_too_large);
+        return false;
+    }
+
+    if (ptv->copy_mode != DPDK_COPY_MODE_NONE) {
+        if (!ptv->tx_segmented_mbufs) {
+            DPDKSegmentedMbufTxDisabledWarning();
+            StatsCounterIncr(&ptv->tv->stats, ptv->capture_dpdk_segmented_drops);
+            return false;
+        }
+        if (mbuf->nb_segs > ptv->out_tx_seg_max) {
+            DPDKSegmentedMbufTooManySegmentsWarning(mbuf->nb_segs, ptv->out_tx_seg_max);
+            StatsCounterIncr(&ptv->tv->stats, ptv->capture_dpdk_segmented_drops);
+            return false;
+        }
+        if (DPDKSegmentedMbufHasEmptySegment(mbuf)) {
+            DPDKSegmentedMbufEmptySegmentWarning();
+            StatsCounterIncr(&ptv->tv->stats, ptv->capture_dpdk_segmented_drops);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * \brief Copy the data of a segmented (chained) mbuf into the packet's buffer
+ *
+ * \param p Pointer to the Packet structure
+ * \param mbuf Pointer to the DPDK mbuf
+ * \return 0 on success, -1 on failure
+ */
+static inline int DPDKSegmentedMbufCopy(Packet *p, struct rte_mbuf *mbuf)
+{
+    uint32_t offset = 0;
+    for (struct rte_mbuf *seg = mbuf; seg != NULL; seg = seg->next) {
+        uint32_t seg_len = rte_pktmbuf_data_len(seg);
+        if (PacketCopyDataOffset(p, offset, rte_pktmbuf_mtod(seg, uint8_t *), seg_len) != 0) {
+            return -1;
+        }
+        offset += seg_len;
+    }
+
+    SET_PKT_LEN(p, offset);
+
+    return 0;
+}
+
+/**
+ * \brief Set the data of a packet received in a segmented (chained) mbuf
+ *
+ * \param ptv Pointer to the thread variables
+ * \param p Pointer to the Packet structure
+ * \return true on success, false if the packet must be dropped
+ */
+static inline bool DPDKSegmentedMbufSetData(DPDKThreadVars *ptv, Packet *p)
+{
+    struct rte_mbuf *mbuf = p->dpdk_v.mbuf;
+    if (!DPDKSegmentedMbufAccept(ptv, mbuf)) {
+        return false;
+    }
+
+    if (rte_pktmbuf_is_contiguous(mbuf)) {
+        // linearized
+        PacketSetData(p, rte_pktmbuf_mtod(mbuf, uint8_t *), rte_pktmbuf_pkt_len(mbuf));
+    } else if (DPDKSegmentedMbufCopy(p, mbuf) != 0) {
+        DPDKSegmentedMbufCopyFailedWarning();
+        StatsCounterIncr(&ptv->tv->stats, ptv->capture_dpdk_segmented_drops);
+        return false;
+    }
+
+    return true;
 }
 
 static void HandleShutdown(DPDKThreadVars *ptv)
@@ -597,9 +927,20 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
                 rte_pktmbuf_free(ptv->received_mbufs[i]);
                 continue;
             }
-            DPDKSegmentedMbufWarning(ptv->received_mbufs[i]);
-            PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
-                    rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
+
+            if (likely(rte_pktmbuf_is_contiguous(p->dpdk_v.mbuf))) {
+                PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
+                        rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
+            } else if (!DPDKSegmentedMbufSetData(ptv, p)) {
+                // drop the uninspected packet, freeing the mbuf also keeps TAP mode, which
+                // ignores verdicts, from forwarding it
+                PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_CAPTURE_ERROR);
+                rte_pktmbuf_free(p->dpdk_v.mbuf);
+                p->dpdk_v.mbuf = NULL;
+                TmqhOutputPacketpool(ptv->tv, p);
+                continue;
+            }
+
             if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
                 TmqhOutputPacketpool(ptv->tv, p);
                 DPDKFreeMbufArray(ptv->received_mbufs, nb_rx - i - 1, i + 1);
@@ -656,9 +997,16 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
     ptv->capture_dpdk_imissed = StatsRegisterCounter("capture.dpdk.imissed", &ptv->tv->stats);
     ptv->capture_dpdk_rx_no_mbufs = StatsRegisterCounter("capture.dpdk.no_mbufs", &ptv->tv->stats);
     ptv->capture_dpdk_ierrors = StatsRegisterCounter("capture.dpdk.ierrors", &ptv->tv->stats);
+    ptv->capture_dpdk_segmented_drops =
+            StatsRegisterCounter("capture.dpdk.segmented_drops", &ptv->tv->stats);
+    ptv->capture_dpdk_segmented_too_large =
+            StatsRegisterCounter("capture.dpdk.segmented_too_large", &ptv->tv->stats);
+    ptv->capture_dpdk_shared_mbuf_drops =
+            StatsRegisterCounter("capture.dpdk.shared_mbuf_drops", &ptv->tv->stats);
 
     ptv->copy_mode = dpdk_config->copy_mode;
     ptv->checksum_mode = dpdk_config->checksum_mode;
+    ptv->tx_segmented_mbufs = dpdk_config->tx_segmented_mbufs;
 
     ptv->threads = dpdk_config->threads;
     ptv->intr_enabled = (dpdk_config->flags & DPDK_IRQ_MODE) != 0;

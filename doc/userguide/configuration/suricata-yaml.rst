@@ -2401,6 +2401,7 @@ encapsulates 2 main subnodes, and those are eal-params and interfaces.
           tx-descriptors: auto
           copy-mode: none
           copy-iface: none # or PCIe address of the second interface
+          tx-segmented-mbufs: false
 
 
 The `DPDK arguments
@@ -2442,7 +2443,10 @@ offloads, each only when the NIC supports it:
 - checksum validation, with ``checksum-checks`` and ``checksum-checks-offload``
   enabled;
 - VLAN stripping, with ``vlan-strip-offload`` enabled;
-- ``MBUF_FAST_FREE`` (faster release of transmitted mbufs).
+- multi-segment TX, in the copy modes with ``tx-segmented-mbufs`` enabled, see
+  :ref:`dpdk-segmented-mbufs`;
+- ``MBUF_FAST_FREE`` (faster release of transmitted mbufs), unless
+  ``tx-segmented-mbufs`` is enabled in the copy modes.
 
 With DPDK older than 21.11, an ``mtu`` above 1518 additionally requires the
 jumbo frame offload, which Suricata then enables.

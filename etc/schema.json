@@ -6984,6 +6984,18 @@
                                 "no_mbufs": {
                                     "type": "integer",
                                     "description": "Number of RX packet-buffer allocation failures reported by DPDK"
+                                },
+                                "segmented_drops": {
+                                    "type": "integer",
+                                    "description": "Number of packets received in segmented mbufs that were dropped without processing, excluding those counted in segmented_too_large"
+                                },
+                                "segmented_too_large": {
+                                    "type": "integer",
+                                    "description": "Number of packets received in segmented mbufs that were dropped as larger than the maximum packet size"
+                                },
+                                "shared_mbuf_drops": {
+                                    "type": "integer",
+                                    "description": "Number of modified packets dropped instead of transmitted because their segmented mbuf has shared segments that cannot be written to"
                                 }
                             }
                         },
@@ -8657,6 +8669,10 @@
                                 "applayer_memcap": {
                                     "type": "integer",
                                     "description": "Number of packets dropped due to applayer memcap"
+                                },
+                                "capture_error": {
+                                    "type": "integer",
+                                    "description": "Number of packets the capture method dropped before inspection because it could not receive or forward them in full"
                                 },
                                 "decode_error": {
                                     "type": "integer",
