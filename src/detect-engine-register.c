@@ -332,13 +332,13 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
     if (flags & SIGMATCH_BAN_FIREWALL_RULE) {
         if (prev == 1)
             printf("%c", sep);
-        printf("banned from firewall rules");
+        printf("not supported in firewall rules");
         prev = 1;
     }
     if (flags & SIGMATCH_BAN_FIREWALL_MODE) {
         if (prev == 1)
             printf("%c", sep);
-        printf("banned from firewall mode");
+        printf("not supported in firewall mode");
         prev = 1;
     }
     if (e->Transform) {

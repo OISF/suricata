@@ -1006,12 +1006,12 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     }
 
     if (s->init_data->firewall_rule && (st->flags & SIGMATCH_BAN_FIREWALL_RULE) != 0) {
-        SCLogError("keyword \'%s\' is not allowed with firewall rules", optname);
+        SCLogError("keyword \'%s\' is not supported with firewall rules", optname);
         goto error;
     }
 
     if (EngineModeIsFirewall() && (st->flags & SIGMATCH_BAN_FIREWALL_MODE) != 0) {
-        SCLogError("keyword \'%s\' is not allowed in firewall mode", optname);
+        SCLogError("keyword \'%s\' is not supported in firewall mode", optname);
         goto error;
     }
 
