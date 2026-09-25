@@ -37,7 +37,6 @@
 #include "app-layer-events.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-private.h"
-#include "stream-tcp-inline.h"
 #include "stream-tcp.h"
 #include "flow.h"
 #include "flow-util.h"
@@ -47,9 +46,13 @@
 #include "util-print.h"
 #include "util-profiling.h"
 #include "util-validate.h"
-#include "decode-events.h"
 #include "app-layer-htp-mem.h"
 #include "util-exception-policy.h"
+#include "counters.h"
+#include "decode-tcp.h"
+#include "host.h"
+#include "packet-queue.h"
+#include "util-exception-policy-types.h"
 
 extern bool g_stats_eps_per_app_proto_errors;
 /**
@@ -1396,9 +1399,6 @@ void AppLayerDeSetupCounters(void)
 /***** Unittests *****/
 
 #ifdef UNITTESTS
-#include "pkt-var.h"
-#include "stream-tcp-util.h"
-#include "stream.h"
 #include "util-unittest.h"
 
 #define TEST_START                                                                                 \

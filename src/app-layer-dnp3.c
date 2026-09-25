@@ -23,13 +23,10 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "util-unittest.h"
 
-#include "util-byte.h"
 #include "util-spm-bs.h"
 #include "util-enum.h"
 
-#include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-detect-proto.h"
@@ -37,6 +34,10 @@
 
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
+#include "conf.h"
+#include "rust-ffi.h"
+#include "util-debug.h"
+#include "util-validate.h"
 
 #define DNP3_DEFAULT_PORT "20000"
 
@@ -1694,6 +1695,8 @@ void RegisterDNP3Parsers(void)
 
 #include "flow-util.h"
 #include "stream-tcp.h"
+#include "util-unittest.h"
+#include "threads.h"
 
 /**
  * \brief Utility function to fix CRCs when mangling a frame.

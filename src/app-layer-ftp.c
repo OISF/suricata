@@ -28,7 +28,6 @@
 #include "suricata-common.h"
 
 #include "app-layer-ftp.h"
-#include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-expectation.h"
 #include "app-layer-detect-proto.h"
@@ -36,9 +35,15 @@
 
 #include "rust.h"
 
-#include "util-misc.h"
 #include "util-mpm.h"
 #include "util-validate.h"
+#include "app-layer-protos.h"
+#include "flow-storage.h"
+#include "flow.h"
+#include "util-debug.h"
+#include "util-error.h"
+#include "util-prefilter.h"
+#include "util-streaming-buffer.h"
 
 typedef struct FTPThreadCtx_ {
     MpmThreadCtx *ftp_mpm_thread_ctx;
@@ -424,7 +429,6 @@ static uint32_t CopyCommandLine(uint8_t **dest, FtpLineState *line)
     return line->len + 1;
 }
 
-#include "util-print.h"
 
 /**
  * \brief This function is called to retrieve a ftp request

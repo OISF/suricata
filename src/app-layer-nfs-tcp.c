@@ -27,18 +27,16 @@
  */
 
 #include "suricata-common.h"
-#include "stream.h"
-#include "conf.h"
 
 #include "util-unittest.h"
 
 #include "app-layer-detect-proto.h"
-#include "app-layer-parser.h"
 
 #include "app-layer-nfs-tcp.h"
 
 #include "rust.h"
-
+#include "rust-bindings.h"
+#include "util-streaming-buffer.h"
 
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 static SuricataFileContext sfc = { &sbcfg };

@@ -24,17 +24,18 @@
  */
 
 #include "suricata-common.h"
-#include "stream.h"
-#include "conf.h"
 
 #include "util-unittest.h"
 
 #include "app-layer-detect-proto.h"
-#include "app-layer-parser.h"
 
 #include "app-layer-htp.h"
 #include "app-layer-http2.h"
-#include "rust.h"
+#include "app-layer-protos.h"
+#include "htp/htp_rs.h"
+#include "rust-bindings.h"
+#include "rust-ffi.h"
+#include "util-streaming-buffer.h"
 
 static int HTTP2RegisterPatternsForProtocolDetection(void)
 {

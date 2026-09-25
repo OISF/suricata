@@ -23,24 +23,13 @@
  */
 
 #include "suricata-common.h"
-#include "decode.h"
-#include "threads.h"
-#include "threadvars.h"
-#include "tm-threads.h"
 
 #include "detect.h"
 #include "detect-engine-port.h"
-#include "detect-engine-build.h"
-#include "detect-parse.h"
-#include "detect-engine.h"
 #include "detect-content.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 
-#include "util-print.h"
-#include "util-pool.h"
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
 #include "util-validate.h"
 
 #include "flow.h"
@@ -48,13 +37,9 @@
 #include "flow-private.h"
 
 #include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
-#include "stream.h"
 
-#include "app-layer.h"
 #include "app-layer-protos.h"
-#include "app-layer-parser.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer-expectation.h"
 
@@ -62,8 +47,10 @@
 #include "util-memcmp.h"
 #include "util-spm.h"
 #include "util-debug.h"
-
-#include "runmodes.h"
+#include "rust-ffi.h"
+#include "suricata.h"
+#include "util-mpm.h"
+#include "util-prefilter.h"
 
 typedef struct AppLayerProtoDetectProbingParserElement_ {
     AppProto alproto;
@@ -2191,6 +2178,14 @@ void AppLayerRegisterExpectationProto(uint8_t proto, AppProto alproto)
 
 #include "app-layer-htp.h"
 #include "detect-engine-alert.h"
+#include "app-layer-parser.h"
+#include "counters.h"
+#include "decode.h"
+#include "detect-engine-build.h"
+#include "detect-parse.h"
+#include "detect-engine.h"
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
 
 static AppLayerProtoDetectCtx alpd_ctx_ut;
 
