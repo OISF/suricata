@@ -399,24 +399,25 @@ static TmEcode LogTlsStoreLogThreadInit(ThreadVars *t, const void *initdata, voi
         return TM_ECODE_FAILED;
     }
 
-    struct stat stat_buf;
-    /* coverity[toctou] */
-    if (stat(tls_logfile_base_dir, &stat_buf) != 0) {
-        int ret;
-        /* coverity[toctou] */
-        ret = SCMkDir(tls_logfile_base_dir, S_IRWXU|S_IXGRP|S_IRGRP);
-        if (ret != 0) {
-            int err = errno;
-            if (err != EEXIST) {
-                SCLogError("Cannot create certs drop directory %s: %s", tls_logfile_base_dir,
-                        strerror(err));
+    struct stat stat_buf __attribute__((unused));
+    int ret = SCMkDir(tls_logfile_base_dir, S_IRWXU | S_IXGRP | S_IRGRP);
+    if (ret != 0) {
+        int err = errno;
+        if (err == EEXIST) {
+            /* Directory already exists.  Verify it is a real directory and not a symlink. */
+            if (stat(tls_logfile_base_dir, &stat_buf) != 0 || !S_ISDIR(stat_buf.st_mode)) {
+                SCLogError("Cannot create certs drop directory %s: "
+                           "not a directory or does not exist",
+                        tls_logfile_base_dir);
                 exit(EXIT_FAILURE);
             }
         } else {
-            SCLogInfo("Created certs drop directory %s",
-                    tls_logfile_base_dir);
+            SCLogError("Cannot create certs drop directory %s: %s", tls_logfile_base_dir,
+                    strerror(err));
+            exit(EXIT_FAILURE);
         }
-
+    } else {
+        SCLogInfo("Created certs drop directory %s", tls_logfile_base_dir);
     }
 
     *data = (void *)aft;
