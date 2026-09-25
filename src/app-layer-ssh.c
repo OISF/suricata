@@ -1714,6 +1714,11 @@ static int SSHParserTest28(void)
     FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBanner);
     FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateBanner);
 
+    /* the failure event is published data: the tx is marked updated */
+    struct AppLayerTxData *txdata = AppLayerParserGetTxData(IPPROTO_TCP, ALPROTO_SSH, tx);
+    FAIL_IF_NULL(txdata);
+    FAIL_IF(!txdata->updated_ts);
+
     FLOW_DESTROY(&f);
 
     /* valid banner then invalid record (pkt_len=0) */
@@ -1743,9 +1748,160 @@ static int SSHParserTest28(void)
     tx = SCSshStateGetTx(ssh_state, 0);
     FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
 
+    /* the failure event is published data: the tx is marked updated */
+    txdata = AppLayerParserGetTxData(IPPROTO_TCP, ALPROTO_SSH, tx);
+    FAIL_IF_NULL(txdata);
+    FAIL_IF(!txdata->updated_ts);
+
     FLOW_DESTROY(&f);
     AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/** \test A record reassembly stash and a header fragment mark the tx
+ *  \test updated at parse entry, like a record completion: the flag
+ *  \test is set at the parse entry, as the base parser did, so the
+ *  \test deliveries are swept by the firewall default policy. A
+ *  \test pkt_len=29 record (27 payload bytes after the 6B header,
+ *  \test msg 50) is fed in 3 calls: 16B (header + 10), 4B (pure
+ *  \test stash), 13B (completion); then a 3B header fragment.
+ */
+static int SSHParserTest29(void)
+{
+    Flow f;
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = NULL;
+
+    uint8_t banner[] = "SSH-2.0-Client-1.0\r\n";
+    uint8_t seg2[] = { 0x00, 0x00, 0x00, 29, 0x00, 50, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67,
+        0x68, 0x69, 0x6a };
+    uint8_t seg3[4] = { 0x6b, 0x6c, 0x6d, 0x6e };
+    uint8_t seg4[13] = { 0x6f, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a,
+        0x7b };
+    uint8_t seg5[3] = { 0x7c, 0x7d, 0x7e };
+
+    void *tx = NULL;
+    struct AppLayerTxData *txdata = NULL;
+    int r = 0;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    StreamTcpInitConfig(true);
+    alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, banner, sizeof(banner) - 1);
+    FAIL_IF(r != 0);
+    FAIL_IF_NULL(f.alstate);
+    tx = SCSshStateGetTx(f.alstate, 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
+    txdata = AppLayerParserGetTxData(IPPROTO_TCP, ALPROTO_SSH, tx);
+    FAIL_IF_NULL(txdata);
+    FAIL_IF(!txdata->updated_ts);
+
+    // record header + 10 payload bytes: frames are published
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, seg2, sizeof(seg2));
+    FAIL_IF(r != 0);
+    FAIL_IF(!txdata->updated_ts);
+    txdata->updated_ts = false;
+
+    // the 4B chunk is fully held by the reassembly stash: nothing is
+    // published, but the tx is marked updated at parse entry
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, seg3, sizeof(seg3));
+    FAIL_IF(r != 0);
+    FAIL_IF(!txdata->updated_ts);
+
+    // the final 13B chunk completes the record
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, seg4, sizeof(seg4));
+    FAIL_IF(r != 0);
+    FAIL_IF(!txdata->updated_ts);
+    txdata->updated_ts = false;
+
+    // 3B header fragment: held for the next delivery, the tx is
+    // marked updated at parse entry
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, seg5, sizeof(seg5));
+    FAIL_IF(r != 1);
+    FAIL_IF(!txdata->updated_ts);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/** \test A banner line split over two segments: the open-line segment
+ *  \test publishes nothing but still marks the tx updated at parse
+ *  \test entry; the line completion publishes the banner and takes
+ *  \test the direction to kex. */
+static int SSHParserTest32(void)
+{
+    TcpReassemblyThreadCtx *ra_ctx = NULL;
+    ThreadVars tv;
+    TcpSession ssn;
+    Flow *f = NULL;
+    Packet *p = NULL;
+
+    uint8_t part1[] = "SSH-2.0-TestClient-1.0";
+    uint8_t part2[] = "\r\n";
+    uint32_t part1len = sizeof(part1) - 1;
+    uint32_t part2len = sizeof(part2) - 1;
+
+    memset(&tv, 0x00, sizeof(tv));
+
+    StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
+    StreamTcpUTSetupSession(&ssn);
+    StreamTcpUTSetupStream(&ssn.server, 1);
+    StreamTcpUTSetupStream(&ssn.client, 1);
+
+    f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1234, 2222);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_SSH;
+
+    p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    p->proto = IPPROTO_TCP;
+    p->flow = f;
+
+    uint32_t seqcli = 2;
+    // segment 1: the open banner line; the parse consumes nothing and
+    // publishes nothing, but the tx is marked updated at parse entry
+    FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, seqcli, part1, part1len) ==
+            -1);
+    seqcli += part1len;
+    FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) < 0);
+
+    void *ssh_state = f->alstate;
+    FAIL_IF_NULL(ssh_state);
+    void *tx = SCSshStateGetTx(ssh_state, 0);
+    struct AppLayerTxData *txdata = AppLayerParserGetTxData(IPPROTO_TCP, ALPROTO_SSH, tx);
+    FAIL_IF_NULL(txdata);
+    FAIL_IF(!txdata->updated_ts);
+
+    // segment 2: the end-of-line completes the line; the banner
+    // publishes and the direction advances to kex
+    FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, seqcli, part2, part2len) ==
+            -1);
+    seqcli += part2len;
+    FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) < 0);
+
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
+    FAIL_IF(!txdata->updated_ts);
+
+    UTHFreePacket(p);
+    UTHFreeFlow(f);
+    StreamTcpUTClearSession(&ssn);
+    StreamTcpUTDeinit(ra_ctx);
     PASS;
 }
 
@@ -2023,6 +2179,10 @@ void SSHParserRegisterTests(void)
     UtRegisterTest("SSHParserTest27 - Per-direction session state", SSHParserTest27);
     UtRegisterTest("SSHParserTest28 - failure freezes the failing direction at its state",
             SSHParserTest28);
+    UtRegisterTest(
+            "SSHParserTest29 - stash and fragment deliveries mark the tx updated", SSHParserTest29);
+    UtRegisterTest("SSHParserTest32 - banner continuation marks the tx updated at parse entry",
+            SSHParserTest32);
     UtRegisterTest("SSHParserTest33 - failed peer does not arm no-inspection", SSHParserTest33);
     UtRegisterTest(
             "SSHParserTest35 - split NewKeys arms the no-inspection/bypass flags", SSHParserTest35);
