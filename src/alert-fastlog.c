@@ -53,6 +53,8 @@
 #include "util-optimize.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
+#include "util-landlock.h"
+#include "util-path.h"
 
 #include "action-globals.h"
 
@@ -74,6 +76,33 @@ static void AlertFastLogDeInitCtx(OutputCtx *);
 static bool AlertFastLogCondition(ThreadVars *tv, void *thread_data, const Packet *p);
 int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p);
 
+/** \brief Declare the filesystem access the "fast" output needs.
+ *
+ *  Only an absolute filename needs a grant, a relative one being created in
+ *  the log directory which is already granted. The access is asked for on the
+ *  file itself and truncation is added when append is disabled.
+ */
+static void AlertFastLogLandlockEnableInstance(void *ruleset, SCConfNode *fast_conf)
+{
+    const char *filename = SCConfNodeLookupChildValue(fast_conf, "filename");
+    if (filename == NULL)
+        filename = DEFAULT_LOG_FILENAME;
+    if (!PathIsAbsolute(filename))
+        return;
+
+    uint32_t access = SC_LANDLOCK_FILE_WRITE;
+    const char *append = SCConfNodeLookupChildValue(fast_conf, "append");
+    if (append != NULL && !SCConfValIsTrue(append))
+        access |= SC_LANDLOCK_FILE_TRUNCATE;
+
+    SCLandlockGrantFile(ruleset, filename, access);
+}
+
+static void AlertFastLogLandlockEnable(void *ruleset)
+{
+    SCLandlockForEachOutput(ruleset, "fast", AlertFastLogLandlockEnableInstance);
+}
+
 void AlertFastLogRegister(void)
 {
     OutputPacketLoggerFunctions output_logger_functions = {
@@ -86,6 +115,10 @@ void AlertFastLogRegister(void)
 
     OutputRegisterPacketModule(
             LOGGER_ALERT_FAST, MODULE_NAME, "fast", AlertFastLogInitCtx, &output_logger_functions);
+    OutputModule *module = OutputGetModuleByConfName("fast");
+    if (module != NULL) {
+        module->LandlockEnable = AlertFastLogLandlockEnable;
+    }
     AlertFastLogRegisterTests();
 }
 

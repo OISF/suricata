@@ -47,6 +47,10 @@
 #include "output.h"
 #include "output-json.h"
 
+#include "util-conf.h"
+#include "util-landlock.h"
+#include "util-path.h"
+
 #include "util-byte.h"
 #include "util-print.h"
 #include "util-proto-name.h"
@@ -80,9 +84,82 @@ static size_t traffic_label_prefix_len = 0;
 
 const JsonAddrInfo json_addr_info_zero;
 
+/** \brief Grant write access on the directory containing \a path.
+ *
+ *  Only an absolute path is handled and the log directory is skipped as it is
+ *  already granted.
+ */
+static void EveGrantFileDir(void *ruleset, const char *path)
+{
+    if (path == NULL || !PathIsAbsolute(path))
+        return;
+    char *copy = SCStrdup(path);
+    if (copy == NULL)
+        return;
+    const char *dir = dirname(copy);
+    const char *log_dir = SCConfigGetLogDirectory();
+    if (log_dir == NULL || strcmp(dir, log_dir) != 0) {
+        SCLandlockGrantWritePath(ruleset, dir);
+    }
+    SCFree(copy);
+}
+
+static void EveLandlockEnableInstance(void *ruleset, SCConfNode *eve_conf)
+{
+    const char *filetype = SCConfNodeLookupChildValue(eve_conf, "filetype");
+    if (filetype == NULL)
+        filetype = DEFAULT_LOG_FILETYPE;
+
+    if (strcasecmp(filetype, "regular") == 0 || strcasecmp(filetype, "unix_dgram") == 0 ||
+            strcasecmp(filetype, "unix_stream") == 0) {
+        const char *filename = SCConfNodeLookupChildValue(eve_conf, "filename");
+        if (filename != NULL)
+            EveGrantFileDir(ruleset, filename);
+        return;
+    }
+
+    if (strcasecmp(filetype, "redis") == 0) {
+        SCConfNode *redis_node = SCConfNodeLookupChild(eve_conf, "redis");
+        const char *server = NULL;
+        const char *port_str = NULL;
+        if (redis_node != NULL) {
+            server = SCConfNodeLookupChildValue(redis_node, "server");
+            port_str = SCConfNodeLookupChildValue(redis_node, "port");
+        }
+        if (server != NULL && strchr(server, '/') != NULL) {
+            /* unix socket path */
+            EveGrantFileDir(ruleset, server);
+            return;
+        }
+        uint16_t port = 6379;
+        if (port_str != NULL) {
+            if (StringParseUint16(&port, 10, 0, (const char *)port_str) < 0) {
+                SCLogError("Invalid value for redis port: %s", port_str);
+                return;
+            }
+        }
+        SCLandlockGrantNetConnectTCP(ruleset, port);
+        return;
+    }
+
+    /* syslog opens its socket eagerly via openlog() during eve init, before
+     * landlock is enforced; no permission needed at sandboxing time. Other
+     * filetypes (e.g. nullsink, plugin-provided) are responsible for their
+     * own declarations via SCPlugin.LandlockEnable. */
+}
+
+static void OutputJsonLandlockEnable(void *ruleset)
+{
+    SCLandlockForEachOutput(ruleset, "eve-log", EveLandlockEnableInstance);
+}
+
 void OutputJsonRegister (void)
 {
     OutputRegisterModule(MODULE_NAME, "eve-log", OutputJsonInitCtx);
+    OutputModule *module = OutputGetModuleByConfName("eve-log");
+    if (module != NULL) {
+        module->LandlockEnable = OutputJsonLandlockEnable;
+    }
 
     traffic_id_prefix_len = strlen(TRAFFIC_ID_PREFIX);
     traffic_label_prefix_len = strlen(TRAFFIC_LABEL_PREFIX);

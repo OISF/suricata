@@ -26,6 +26,7 @@
 #include "output-json-file.h"
 
 #include "util-conf.h"
+#include "util-landlock.h"
 #include "util-misc.h"
 #include "util-path.h"
 #include "util-print.h"
@@ -534,11 +535,47 @@ static OutputInitResult OutputFilestoreLogInitCtx(SCConfNode *conf)
     SCReturnCT(result, "OutputInitResult");
 }
 
+static void OutputFilestoreLandlockEnableInstance(void *ruleset, SCConfNode *fs_conf)
+{
+    /* Resolve the same directory OutputFilestoreLogInitCtx() will use. */
+    char dir[PATH_MAX];
+    const char *log_base_dir = SCConfNodeLookupChildValue(fs_conf, "dir");
+    if (log_base_dir == NULL)
+        log_base_dir = default_log_dir;
+    if (PathIsAbsolute(log_base_dir)) {
+        strlcpy(dir, log_base_dir, sizeof(dir));
+    } else {
+        if (PathMerge(dir, sizeof(dir), SCConfigGetLogDirectory(), log_base_dir) < 0)
+            return;
+    }
+    /* The directory is created lazily by OutputFilestoreLogInitCtx()
+     * later, but landlock rules must attach to an existing inode. */
+    if (!SCPathExists(dir)) {
+        if (SCCreateDirectoryTree(dir, true) != 0) {
+            SCLogWarning("Filestore landlock: can't create %s: %s", dir, strerror(errno));
+            return;
+        }
+    }
+    /* Filestore renames files from <dir>/tmp to <dir>/<hex>/, so we
+     * need FS_REFER in addition to the standard write access. */
+    SCLandlockGrantWriteReferPath(ruleset, dir);
+}
+
+static void OutputFilestoreLandlockEnable(void *ruleset)
+{
+    SCLandlockForEachOutput(ruleset, "file-store", OutputFilestoreLandlockEnableInstance);
+}
+
 void OutputFilestoreRegister(void)
 {
     OutputRegisterFiledataModule(LOGGER_FILE_STORE, MODULE_NAME, "file-store",
             OutputFilestoreLogInitCtx, OutputFilestoreLogger, OutputFilestoreLogThreadInit,
             OutputFilestoreLogThreadDeinit);
+
+    OutputModule *module = OutputGetModuleByConfName("file-store");
+    if (module != NULL) {
+        module->LandlockEnable = OutputFilestoreLandlockEnable;
+    }
 
     SC_ATOMIC_INIT(filestore_open_file_cnt);
     SC_ATOMIC_SET(filestore_open_file_cnt, 0);

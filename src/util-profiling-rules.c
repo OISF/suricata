@@ -29,6 +29,7 @@
 
 #include "util-byte.h"
 #include "util-conf.h"
+#include "util-landlock.h"
 #include "util-path.h"
 #include "util-time.h"
 
@@ -153,6 +154,8 @@ void SCProfilingRulesGlobalInit(void)
                     profiling_file_mode = "a";
                 } else {
                     profiling_file_mode = "w";
+                    SCLandlockRegisterFile(profiling_file_name,
+                            SC_LANDLOCK_FILE_WRITE | SC_LANDLOCK_FILE_TRUNCATE);
                 }
 
                 profiling_output_to_file = 1;
