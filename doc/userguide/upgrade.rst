@@ -118,6 +118,8 @@ Other Changes
 
 - `alert pkthdr` is now only available for decoder event rules. Previously it acted
   like `alert ip`.
+- The ``replace`` keyword now modifies packets in DPDK IPS mode
+  (``copy-mode: ips``). Previously, rules with ``replace`` only alerted there.
 - ``ldap`` has bound the maximum number of responses per transaction
   to 1024 by default.
 
