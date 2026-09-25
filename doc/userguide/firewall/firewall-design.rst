@@ -122,6 +122,11 @@ alert
 action in firewall rules. The effect will be the creation of an alert event when the
 firewall rule matches.
 
+For application layer transactions the alert event carries a ``firewall`` object with
+the resolved ``policy`` and, when the protocol registers a state name callback, the
+``hook`` the rule was registered at. Protocols without such a callback (``quic``,
+``modbus``, ``rdp``) omit the ``hook`` key; the policy is still reported.
+
 config
 ~~~~~~
 
