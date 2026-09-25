@@ -433,6 +433,9 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
 
                 if (InitPcapFile(pftv) == TM_ECODE_FAILED) {
                     SCLogWarning("Failed to init pcap file %s, skipping", current_file->filename);
+                    if (CompareTimes(&current_file->modified_time, &last_time_seen) > 0) {
+                        CopyTime(&current_file->modified_time, &last_time_seen);
+                    }
                     CleanupPendingFile(current_file);
                     CleanupPcapFileFileVars(pftv);
                     status = TM_ECODE_OK;
@@ -486,15 +489,6 @@ TmEcode PcapDirectoryDispatch(PcapFileDirectoryVars *ptv)
     struct timespec older_than;
     memset(&older_than, 0, sizeof(struct timespec));
     older_than.tv_sec = LONG_MAX;
-    uint32_t poll_seconds;
-#ifndef OS_WIN32
-    struct tm safe_tm;
-    memset(&safe_tm, 0, sizeof(safe_tm));
-    poll_seconds = (uint32_t)localtime_r(&ptv->poll_interval, &safe_tm)->tm_sec;
-#else
-    /* windows localtime is threadsafe */
-    poll_seconds = (uint32_t)localtime(&ptv->poll_interval)->tm_sec;
-#endif
 
     if (ptv->should_loop) {
         GetTime(&older_than);
@@ -509,7 +503,7 @@ TmEcode PcapDirectoryDispatch(PcapFileDirectoryVars *ptv)
                   (uintmax_t)SCTimespecAsEpochMillis(&older_than));
         status = PcapDirectoryDispatchForTimeRange(ptv, &older_than);
         if (ptv->should_loop && status == TM_ECODE_OK) {
-            sleep(poll_seconds);
+            sleep((unsigned int)ptv->poll_interval);
             //update our status based on suricata control flags or unix command socket
             status = PcapRunStatus(ptv);
             if (status == TM_ECODE_OK) {
