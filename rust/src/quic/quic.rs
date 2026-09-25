@@ -134,6 +134,8 @@ pub struct QuicState {
     crypto_fraglen_ts: u32,
     hello_tc: bool,
     hello_ts: bool,
+    client_scid: Option<Vec<u8>>,
+    client_initial_dcid: Option<Vec<u8>>,
     has_retried: bool,
     transactions: VecDeque<QuicTransaction>,
 }
@@ -150,6 +152,8 @@ impl Default for QuicState {
             crypto_fraglen_ts: 0,
             hello_tc: false,
             hello_ts: false,
+            client_scid: None,
+            client_initial_dcid: None,
             has_retried: false,
             transactions: VecDeque::new(),
         }
@@ -159,6 +163,31 @@ impl Default for QuicState {
 impl QuicState {
     fn new() -> Self {
         Self::default()
+    }
+
+    fn is_new_client_initial(&self, header: &QuicHeader) -> bool {
+        match self.client_scid.as_deref() {
+            None => true,
+            Some(scid) if scid != header.scid => true,
+            Some(scid) if scid.is_empty() => {
+                self.client_initial_dcid.as_deref() != Some(header.dcid.as_slice())
+            }
+            Some(_) => false,
+        }
+    }
+
+    fn reset_for_new_client_initial(&mut self, header: &QuicHeader) {
+        // Forget the previous connection state only after the new Initial has
+        // been successfully decrypted and parsed.
+        self.client_scid = Some(header.scid.clone());
+        self.client_initial_dcid = Some(header.dcid.clone());
+        self.crypto_frag_tc.clear();
+        self.crypto_frag_ts.clear();
+        self.crypto_fraglen_tc = 0;
+        self.crypto_fraglen_ts = 0;
+        self.hello_tc = false;
+        self.hello_ts = false;
+        self.has_retried = false;
     }
 
     // Free a transaction by ID.
@@ -343,7 +372,17 @@ impl QuicState {
         while !buf.is_empty() {
             match QuicHeader::from_bytes(buf, DEFAULT_DCID_LEN) {
                 Ok((rest, header)) => {
-                    if (to_server && self.hello_ts) || (!to_server && self.hello_tc) {
+                    let new_client_initial = to_server
+                        && header.ty == QuicType::Initial
+                        && self.is_new_client_initial(&header);
+                    let candidate_keys = if new_client_initial {
+                        quic_keys_initial(u32::from(header.version), &header.dcid)
+                    } else {
+                        None
+                    };
+                    if ((to_server && self.hello_ts) || (!to_server && self.hello_tc))
+                        && candidate_keys.is_none()
+                    {
                         // payload is encrypted, stop parsing here
                         return true;
                     }
@@ -353,7 +392,10 @@ impl QuicState {
                     }
 
                     // unprotect/decrypt packet
-                    if self.keys.is_none() && header.ty == QuicType::Initial {
+                    if self.keys.is_none()
+                        && header.ty == QuicType::Initial
+                        && candidate_keys.is_none()
+                    {
                         self.keys = quic_keys_initial(u32::from(header.version), &header.dcid);
                     } else if !to_server
                         && self.keys.is_some()
@@ -387,11 +429,25 @@ impl QuicState {
                     }
                     let hlen = buf.len() - rest.len();
                     let mut output;
-                    if self.keys.is_some() && !framebuf.is_empty() {
+                    let mut candidate_previous_keys = None;
+                    if (self.keys.is_some() || candidate_keys.is_some()) && !framebuf.is_empty() {
                         output = Vec::with_capacity(framebuf.len() + 4);
-                        if let Ok(dlen) =
+                        let decrypt_result = if let Some(keys) = candidate_keys {
+                            let previous_keys = self.keys.replace(keys);
+                            let result =
+                                self.decrypt(to_server, &header, framebuf, buf, hlen, &mut output);
+                            if result.is_ok() {
+                                candidate_previous_keys = Some(previous_keys);
+                                result
+                            } else {
+                                self.keys = previous_keys;
+                                output.clear();
+                                self.decrypt(to_server, &header, framebuf, buf, hlen, &mut output)
+                            }
+                        } else {
                             self.decrypt(to_server, &header, framebuf, buf, hlen, &mut output)
-                        {
+                        };
+                        if let Ok(dlen) = decrypt_result {
                             output.resize(dlen, 0);
                         } else {
                             self.set_event_notx(QuicEvent::FailedDecrypt, header, to_server);
@@ -403,28 +459,46 @@ impl QuicState {
 
                     let mut frag = Vec::new();
                     // take the current fragment and reset it in the state
-                    let past_frag = if to_server {
+                    let past_frag = if candidate_previous_keys.is_some() {
+                        &frag
+                    } else if to_server {
                         std::mem::swap(&mut self.crypto_frag_ts, &mut frag);
                         &frag
                     } else {
                         std::mem::swap(&mut self.crypto_frag_tc, &mut frag);
                         &frag
                     };
-                    let past_fraglen = if to_server {
+                    let past_fraglen = if candidate_previous_keys.is_some() {
+                        0
+                    } else if to_server {
                         self.crypto_fraglen_ts
                     } else {
                         self.crypto_fraglen_tc
                     };
-                    if to_server {
-                        self.crypto_fraglen_ts = 0
-                    } else {
-                        self.crypto_fraglen_tc = 0
+                    if candidate_previous_keys.is_none() {
+                        if to_server {
+                            self.crypto_fraglen_ts = 0
+                        } else {
+                            self.crypto_fraglen_tc = 0
+                        }
                     }
                     match QuicData::from_bytes(framebuf, past_frag, past_fraglen) {
                         Ok(data) => {
+                            if candidate_previous_keys.is_some() {
+                                self.reset_for_new_client_initial(&header);
+                            } else if new_client_initial {
+                                // The candidate keys did not decrypt the packet, but the current
+                                // keys did. Keep the connection state and remember its authenticated
+                                // connection IDs so it is not retried as a candidate.
+                                self.client_scid = Some(header.scid.clone());
+                                self.client_initial_dcid = Some(header.dcid.clone());
+                            }
                             self.handle_frames(data, header, to_server, pstate);
                         }
                         Err(_e) => {
+                            if let Some(previous_keys) = candidate_previous_keys {
+                                self.keys = previous_keys;
+                            }
                             self.set_event_notx(QuicEvent::ErrorOnData, header, to_server);
                             return false;
                         }
