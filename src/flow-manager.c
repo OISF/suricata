@@ -1092,6 +1092,25 @@ static void Recycler(ThreadVars *tv, FlowRecyclerThreadData *ftd, Flow *f)
 {
     FLOWLOCK_WRLOCK(f);
 
+#ifdef CAPTURE_OFFLOAD
+    FlowTimeoutCounters counters = {
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    };
+    FlowBypassedTimeout(f, TimeGet(), &counters);
+#endif
+
     (void)OutputFlowLog(tv, ftd->output_thread_data, f);
 
     FlowEndCountersUpdate(tv, &ftd->fec, f);
