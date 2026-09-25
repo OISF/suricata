@@ -111,6 +111,7 @@ static void DPDKDerefConfig(void *conf);
 
 #define DPDK_CONFIG_DEFAULT_THREADS                     "auto"
 #define DPDK_CONFIG_DEFAULT_INTERRUPT_MODE              false
+#define DPDK_CONFIG_DEFAULT_RX_BACKLOG_SIZE             "0"
 #define DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE                "auto"
 #define DPDK_CONFIG_DEFAULT_MEMPOOL_CACHE_SIZE          "auto"
 #define DPDK_CONFIG_DEFAULT_RX_DESCRIPTORS              "auto"
@@ -137,6 +138,7 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
     .vlan_strip_offload = "vlan-strip-offload",
     .rss_hf = "rss-hash-functions",
     .linkup_timeout = "linkup-timeout",
+    .rx_backlog_size = "rx-backlog-size",
     .mempool_size = "mempool-size",
     .mempool_cache_size = "mempool-cache-size",
     .rx_descriptors = "rx-descriptors",
@@ -530,22 +532,50 @@ static int ConfigSetTxQueues(
     SCReturnInt(0);
 }
 
-static uint32_t MempoolSizeCalculateAutosize(
-        const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
+static int ConfigSetRxBacklogSize(DPDKIfaceConfig *iconf, const char *entry_str)
 {
-    uint32_t next_p2 =
-            rte_align32pow2(iconf->nb_rx_desc + iconf->nb_tx_desc +
-                            1); // + 1 in case number of descriptors is already a power of 2
-
-    uint32_t mp_size = next_p2;
-    if (dev_info != NULL) {
-        if (strcmp(dev_info->driver_name, "net_bonding") == 0) {
-            mp_size = BondingMempoolSizeCalculate(iconf->port_id, dev_info, mp_size);
-        }
+    SCEnter();
+    uint32_t size;
+    if (StringParseUint32(&size, 10, 0, entry_str) < 0) {
+        SCLogError("%s: rx-backlog-size requires a non-negative integer - \"%s\"", iconf->iface,
+                entry_str);
+        SCReturnInt(-EINVAL);
     }
 
-    return mp_size -
-           1; // mempool size should be n = (2^q - 1) to have all descriptors available for use
+    if (size != 0 && (size < DPDK_RX_BURST_SIZE || !rte_is_power_of_2(size))) {
+        SCLogError("%s: rx-backlog-size must be zero or a power of two of at least %u",
+                iconf->iface, DPDK_RX_BURST_SIZE);
+        SCReturnInt(-ERANGE);
+    }
+
+    if ((uint64_t)size * sizeof(struct rte_mbuf *) > SIZE_MAX) {
+        SCLogError("%s: rx-backlog-size exceeds the supported allocation size", iconf->iface);
+        SCReturnInt(-ERANGE);
+    }
+
+    iconf->rx_backlog_size = size;
+    SCReturnInt(0);
+}
+
+static int MempoolSizeCalculate(
+        const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info, uint32_t *size)
+{
+    const uint64_t required = (uint64_t)iconf->nb_rx_desc + iconf->nb_tx_desc +
+                              iconf->rx_backlog_size + DPDK_RX_BURST_SIZE;
+    /* Add one so that rounding to 2^q - 1 still covers a power-of-two requirement. */
+    const uint64_t next_p2 = rte_align64pow2(required + 1);
+    if (next_p2 > UINT32_MAX) {
+        SCLogError("%s: mempool requirement exceeds the supported per-queue size", iconf->iface);
+        return -ERANGE;
+    }
+
+    uint32_t mp_size = (uint32_t)next_p2;
+    if (dev_info != NULL && strcmp(dev_info->driver_name, "net_bonding") == 0) {
+        mp_size = BondingMempoolSizeCalculate(iconf->port_id, dev_info, mp_size);
+    }
+
+    *size = mp_size - 1;
+    return 0;
 }
 
 static uint32_t MempoolSizeDistributeToQueues(uint32_t global_mp_size, uint16_t nic_queues)
@@ -559,24 +589,10 @@ static uint32_t MempoolSizeDistributeToQueues(uint32_t global_mp_size, uint16_t 
         return 0;
     }
 
-    uint32_t next_p2 = rte_align32pow2(mp_size_per_queue);
-    return (mp_size_per_queue == next_p2 || mp_size_per_queue == next_p2 - 1)
-                   ? next_p2 - 1
-                   : (next_p2 >> 1) - 1; // we must fit in the globally specified mempool size
-}
-
-static uint32_t MempoolSizeCalculateMinimal(
-        const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
-{
-    uint32_t mp_size =
-            rte_align32pow2(iconf->nb_rx_desc + iconf->nb_tx_desc +
-                            1); // + 1 in case number of descriptors is already a power of 2
-    if (dev_info != NULL) {
-        if (strcmp(dev_info->driver_name, "net_bonding") == 0) {
-            mp_size = BondingMempoolSizeCalculate(iconf->port_id, dev_info, mp_size);
-        }
-    }
-    return mp_size - 1;
+    uint64_t next_p2 = rte_align64pow2(mp_size_per_queue);
+    return (uint32_t)((mp_size_per_queue == next_p2 || mp_size_per_queue == next_p2 - 1)
+                              ? next_p2 - 1
+                              : (next_p2 >> 1) - 1); // fit in the globally specified mempool size
 }
 
 static int ConfigSetMempoolSize(
@@ -584,9 +600,6 @@ static int ConfigSetMempoolSize(
 {
     SCEnter();
     if (entry_str == NULL || entry_str[0] == '\0' || strcmp(entry_str, "auto") == 0) {
-        // calculate the mempool size based on the number of:
-        //   - RX / TX queues
-        //   - RX / TX descriptors
         bool err = false;
         if (iconf->nb_rx_queues == 0) {
             // in IDS mode, we don't need TX queues
@@ -604,8 +617,8 @@ static int ConfigSetMempoolSize(
             SCReturnInt(-EINVAL);
         }
 
-        iconf->queue_mempool_size = MempoolSizeCalculateAutosize(iconf, dev_info);
-        SCReturnInt(0);
+        int retval = MempoolSizeCalculate(iconf, dev_info, &iconf->queue_mempool_size);
+        SCReturnInt(retval);
     }
 
     uint32_t global_mempool_size;
@@ -617,12 +630,17 @@ static int ConfigSetMempoolSize(
 
     iconf->queue_mempool_size =
             MempoolSizeDistributeToQueues(global_mempool_size, iconf->nb_rx_queues);
-    uint32_t required_mp_size = MempoolSizeCalculateMinimal(iconf, dev_info);
+    uint32_t required_mp_size;
+    int retval = MempoolSizeCalculate(iconf, dev_info, &required_mp_size);
+    if (retval < 0) {
+        SCReturnInt(retval);
+    }
+
     if (required_mp_size > iconf->queue_mempool_size) {
-        uint32_t required_global_mp_size =
-                required_mp_size * iconf->nb_rx_queues + iconf->nb_rx_queues - 1;
-        SCLogError("%s: mempool size is likely too small for the number of descriptors and queues, "
-                   "set to \"auto\" or adjust to the value of \"%" PRIu32 "\"",
+        uint64_t required_global_mp_size =
+                (uint64_t)required_mp_size * iconf->nb_rx_queues + iconf->nb_rx_queues - 1;
+        SCLogError("%s: mempool size is too small; set to \"auto\" or adjust "
+                   "to the value of \"%" PRIu64 "\"",
                 iconf->iface, required_global_mp_size);
         SCReturnInt(-ERANGE);
     }
@@ -990,6 +1008,14 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
     }
 
     retval = SCConfGetChildValueWithDefault(
+                     if_root, if_default, dpdk_yaml.rx_backlog_size, &entry_str) != 1
+                     ? ConfigSetRxBacklogSize(iconf, DPDK_CONFIG_DEFAULT_RX_BACKLOG_SIZE)
+                     : ConfigSetRxBacklogSize(iconf, entry_str);
+    if (retval < 0) {
+        SCReturnInt(retval);
+    }
+
+    retval = SCConfGetChildValueWithDefault(
                      if_root, if_default, dpdk_yaml.mempool_size, &entry_str) != 1
                      ? ConfigSetMempoolSize(iconf, DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE, &dev_info)
                      : ConfigSetMempoolSize(iconf, entry_str, &dev_info);
@@ -1331,10 +1357,8 @@ static void DumpRXOffloadCapabilities(const uint64_t rx_offld_capa)
             rx_offld_capa & RTE_ETH_RX_OFFLOAD_OUTER_UDP_CKSUM ? "" : "NOT ");
     SCLogConfig("RTE_ETH_RX_OFFLOAD_RSS_HASH - %savailable",
             rx_offld_capa & RTE_ETH_RX_OFFLOAD_RSS_HASH ? "" : "NOT ");
-#if RTE_VERSION >= RTE_VERSION_NUM(20, 11, 0, 0)
     SCLogConfig("RTE_ETH_RX_OFFLOAD_BUFFER_SPLIT - %savailable",
             rx_offld_capa & RTE_ETH_RX_OFFLOAD_BUFFER_SPLIT ? "" : "NOT ");
-#endif
 }
 
 static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
@@ -1347,28 +1371,12 @@ static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_
         SCReturnInt(-ERANGE);
     }
 
-#if RTE_VERSION < RTE_VERSION_NUM(21, 11, 0, 0)
-    // check if jumbo frames are set and are available
-    if (iconf->mtu > RTE_ETHER_MAX_LEN &&
-            !(dev_info->rx_offload_capa & DEV_RX_OFFLOAD_JUMBO_FRAME)) {
-        SCLogError("%s: jumbo frames not supported, set MTU to 1500", iconf->iface);
-        SCReturnInt(-EINVAL);
-    }
-#endif
-
     SCReturnInt(0);
 }
 
 static void DeviceSetMTU(struct rte_eth_conf *port_conf, uint16_t mtu)
 {
-#if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
     port_conf->rxmode.mtu = mtu;
-#else
-    port_conf->rxmode.max_rx_pkt_len = mtu;
-    if (mtu > RTE_ETHER_MAX_LEN) {
-        port_conf->rxmode.offloads |= DEV_RX_OFFLOAD_JUMBO_FRAME;
-    }
-#endif
 }
 
 static void PortConfSetInterruptMode(const DPDKIfaceConfig *iconf, struct rte_eth_conf *port_conf)
@@ -1500,6 +1508,12 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
                                      : iconf->mempool_cache_size;
     SCLogInfo("%s: creating %u packet mempools of size %u, cache size %u, mbuf size %u",
             iconf->iface, iconf->nb_rx_queues, iconf->queue_mempool_size, q_mp_cache_sz, mbuf_size);
+    if (iconf->rx_backlog_size != 0) {
+        SCLogInfo("%s: RX backlog size %" PRIu32 " per queue, RX burst %u, drain budget %u, "
+                  "processing quantum %u",
+                iconf->iface, iconf->rx_backlog_size, DPDK_RX_BURST_SIZE, DPDK_RX_DRAIN_BUDGET,
+                DPDK_BACKLOG_PROCESS_QUANTUM);
+    }
     for (int i = 0; i < iconf->nb_rx_queues; i++) {
         char mempool_name[64];
         snprintf(mempool_name, sizeof(mempool_name), "mp_%d_%.20s", i, iconf->iface);
