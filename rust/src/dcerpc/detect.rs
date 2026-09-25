@@ -17,12 +17,15 @@
 
 use super::dcerpc::{
     DCERPCState, DCERPCTransaction, ALPROTO_DCERPC, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE,
-    DCERPC_UUID_ENTRY_FLAG_FF,
+    DCERPC_UUID_ENTRY_FLAG_FF, PFCL1_FRAG, PFC_FIRST_FRAG, PFC_LAST_FRAG,
 };
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{detect_match_uint, detect_parse_uint, DetectUintData};
 use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
-use crate::smb::detect::{smb_tx_get_stub_data, smb_tx_match_dce_iface, smb_tx_match_dce_opnum};
+use crate::smb::detect::{
+    smb_tx_get_stub_data, smb_tx_match_dce_iface, smb_tx_match_dce_is_fragmented,
+    smb_tx_match_dce_opnum,
+};
 use crate::smb::smb::ALPROTO_SMB;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_int, c_void};
@@ -393,6 +396,103 @@ unsafe extern "C" fn dcerpc_opnum_free(_de: *mut DetectEngineCtx, ptr: *mut c_vo
     }
 }
 
+#[derive(Debug)]
+pub struct DCERPCIsFragmentedData {
+    pub is_fragmented: bool,
+}
+
+fn parse_is_fragmented(arg: &str) -> Option<bool> {
+    match arg.trim().to_ascii_lowercase().as_str() {
+        "true" => Some(true),
+        "false" => Some(false),
+        _ => None,
+    }
+}
+
+unsafe fn dcerpc_is_fragmented_parse(carg: *const c_char) -> *mut c_void {
+    let arg = match CStr::from_ptr(carg).to_str() {
+        Ok(arg) => arg,
+        Err(_) => {
+            return std::ptr::null_mut();
+        }
+    };
+    match parse_is_fragmented(arg) {
+        Some(is_fragmented) => {
+            Box::into_raw(Box::new(DCERPCIsFragmentedData { is_fragmented })) as *mut c_void
+        }
+        None => std::ptr::null_mut(),
+    }
+}
+
+unsafe fn dcerpc_tx_match_is_fragmented(flags: u8, tx: *mut c_void, ctx: *const SigMatchCtx) -> u8 {
+    let tx = cast_pointer!(tx, DCERPCTransaction);
+    let ctx = cast_pointer!(ctx, DCERPCIsFragmentedData);
+
+    let (frag_cnt, tx_flags) = if flags & STREAM_TOSERVER != 0 {
+        (tx.frag_cnt_ts, tx.req_flags)
+    } else {
+        (tx.frag_cnt_tc, tx.resp_flags)
+    };
+    // hack to tell if it's UDP
+    let fragmented = if !tx.activityuuid.is_empty() {
+        // For UDP, the flags1 fragment bit (0x04) explicitly marks a fragment
+        tx_flags & PFCL1_FRAG as u16 != 0
+    } else {
+        // For TCP, a request/response PDU is a single complete message only
+        // when it sets both PFC_FIRST_FRAG and PFC_LAST_FRAG; any PDU missing
+        // either flag (first, middle or last fragment) is fragmented. The
+        // frag_cnt guard keeps a direction that has seen no PDU from matching.
+        let both = (PFC_FIRST_FRAG | PFC_LAST_FRAG) as u16;
+        frag_cnt > 0 && (tx_flags & both) != both
+    };
+    if fragmented == ctx.is_fragmented {
+        return 1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn dcerpc_is_fragmented_match(
+    _de: *mut DetectEngineThreadCtx, f: *mut crate::flow::Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    if SCFlowGetAppProtocol(f) == ALPROTO_DCERPC {
+        return dcerpc_tx_match_is_fragmented(flags, tx, ctx) as c_int;
+    }
+
+    return smb_tx_match_dce_is_fragmented(flags, tx, ctx) as c_int;
+}
+
+unsafe extern "C" fn dcerpc_is_fragmented_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const libc::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0 {
+        return -1;
+    }
+    let ctx = dcerpc_is_fragmented_parse(raw);
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_DCERPC_IS_FRAGMENTED_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_DCERPC_GENERIC_BUFFER_ID,
+    )
+    .is_null()
+    {
+        dcerpc_is_fragmented_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn dcerpc_is_fragmented_free(_de: *mut DetectEngineCtx, ptr: *mut c_void) {
+    if !ptr.is_null() {
+        std::mem::drop(Box::from_raw(ptr as *mut DCERPCIsFragmentedData));
+    }
+}
+
 unsafe extern "C" fn dcerpc_stub_data_setup(
     de_ctx: *mut DetectEngineCtx, s: *mut Signature, _str: *const c_char,
 ) -> c_int {
@@ -440,6 +540,7 @@ unsafe extern "C" fn dcerpc_tx_get_stub_data(
 }
 
 static mut G_DCERPC_OPNUM_KW_ID: u16 = 0;
+static mut G_DCERPC_IS_FRAGMENTED_KW_ID: u16 = 0;
 static mut G_DCERPC_GENERIC_BUFFER_ID: c_int = 0;
 static mut G_DCERPC_IFACE_KW_ID: u16 = 0;
 static mut G_DCERPC_STUB_BUFFER_ID: c_int = 0;
@@ -473,6 +574,17 @@ pub unsafe extern "C" fn SCDetectDcerpcRegister() {
         G_DCERPC_OPNUM_KW_ID,
         b"dce_opnum\0".as_ptr() as *const libc::c_char,
     );
+
+    let kw = SCSigTableAppLiteElmt {
+        name: b"dcerpc.is_fragmented\0".as_ptr() as *const libc::c_char,
+        desc: b"match if the DCERPC PDU is fragmented\0".as_ptr() as *const libc::c_char,
+        url: b"/rules/dcerpc-keywords.html#dcerpc-is-fragmented\0".as_ptr() as *const libc::c_char,
+        AppLayerTxMatch: Some(dcerpc_is_fragmented_match),
+        Setup: Some(dcerpc_is_fragmented_setup),
+        Free: Some(dcerpc_is_fragmented_free),
+        flags: 0,
+    };
+    G_DCERPC_IS_FRAGMENTED_KW_ID = SCDetectHelperKeywordRegister(&kw);
 
     let kw = SCSigTableAppLiteElmt {
         name: b"dcerpc.iface\0".as_ptr() as *const libc::c_char,

@@ -18,7 +18,9 @@
 use super::smb::ALPROTO_SMB;
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::dcerpc::dcerpc::DCERPC_TYPE_REQUEST;
-use crate::dcerpc::detect::{DCEIfaceData, DCEOpnumData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED};
+use crate::dcerpc::detect::{
+    DCEIfaceData, DCEOpnumData, DCERPCIsFragmentedData, DETECT_DCE_OPNUM_RANGE_UNINITIALIZED,
+};
 use crate::detect::uint::detect_match_uint;
 use crate::detect::{helper_keyword_register_sticky_buffer, SigTableElmtStickyBuffer};
 use crate::direction::Direction;
@@ -119,6 +121,26 @@ pub(crate) unsafe extern "C" fn smb_tx_match_dce_opnum(
                     }
                 }
             }
+        }
+    }
+
+    return 0;
+}
+
+pub(crate) unsafe extern "C" fn smb_tx_match_dce_is_fragmented(
+    flags: u8, tx: *mut c_void, ctx: *const SigMatchCtx,
+) -> u8 {
+    let tx = cast_pointer!(tx, SMBTransaction);
+    let ctx = cast_pointer!(ctx, DCERPCIsFragmentedData);
+
+    if let Some(SMBTransactionTypeData::DCERPC(ref x)) = tx.type_data {
+        let fragmented = if flags & STREAM_TOSERVER != 0 {
+            x.req_is_fragmented
+        } else {
+            x.resp_is_fragmented
+        };
+        if fragmented == ctx.is_fragmented {
+            return 1;
         }
     }
 
