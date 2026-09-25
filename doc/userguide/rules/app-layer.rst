@@ -196,10 +196,14 @@ applayer_proto_detection_skipped
 
 Protocol detection was skipped because of :ref:`proto-detect-bail-out`.
 
+.. _app-layer-state:
+
 app-layer-state
 ---------------
 
-Match on the detected app-layer protocol transaction state.
+Match on the detected app-layer protocol transaction state. ``<`` and
+``>`` are strict comparisons against the current per-direction
+transaction progress.
 
 Syntax::
 

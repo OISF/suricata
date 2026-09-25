@@ -15,65 +15,55 @@
  * 02110-1301, USA.
  */
 
-use super::ssh::{SSHTransaction, SSH_MAX_BANNER_LEN};
+use super::ssh::{SSHError, SSHTransaction, SshHeader, SSH_MAX_BANNER_LEN};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
+
+fn log_ssh_direction(js: &mut JsonBuilder, name: &str, hdr: &SshHeader) -> Result<(), JsonError> {
+    // the direction object exists when it has data or a failure: a
+    // failed direction may have parsed no banner at all
+    if hdr.protover.is_empty() && hdr.error.is_none() {
+        return Ok(());
+    }
+    js.open_object(name)?;
+    if !hdr.protover.is_empty() {
+        js.set_string_from_bytes_limited("proto_version", &hdr.protover, SSH_MAX_BANNER_LEN)?;
+    }
+    if !hdr.swver.is_empty() {
+        js.set_string_from_bytes_limited("software_version", &hdr.swver, SSH_MAX_BANNER_LEN)?;
+    }
+    if let Some(error) = hdr.error {
+        let err_name = match error {
+            SSHError::InvalidBanner => "invalid_banner",
+            SSHError::InvalidRecord => "invalid_record",
+        };
+        js.set_string("error", err_name)?;
+    }
+    if !hdr.hassh.is_empty() || !hdr.hassh_string.is_empty() {
+        js.open_object("hassh")?;
+        if !hdr.hassh.is_empty() {
+            js.set_string_from_bytes("hash", &hdr.hassh)?;
+        }
+        if !hdr.hassh_string.is_empty() {
+            js.set_string_from_bytes("string", &hdr.hassh_string)?;
+        }
+        js.close()?;
+    }
+    js.close()?;
+    Ok(())
+}
 
 fn log_ssh(tx: &SSHTransaction, js: &mut JsonBuilder) -> Result<bool, JsonError> {
     js.open_object("ssh")?;
-    if tx.cli_hdr.protover.is_empty() && tx.srv_hdr.protover.is_empty() {
+    let cli = !tx.cli_hdr.protover.is_empty() || tx.cli_hdr.error.is_some();
+    let srv = !tx.srv_hdr.protover.is_empty() || tx.srv_hdr.error.is_some();
+    if !cli && !srv {
         return Ok(false);
     }
-    if !tx.cli_hdr.protover.is_empty() {
-        js.open_object("client")?;
-        js.set_string_from_bytes_limited(
-            "proto_version",
-            &tx.cli_hdr.protover,
-            SSH_MAX_BANNER_LEN,
-        )?;
-        if !tx.cli_hdr.swver.is_empty() {
-            js.set_string_from_bytes_limited(
-                "software_version",
-                &tx.cli_hdr.swver,
-                SSH_MAX_BANNER_LEN,
-            )?;
-        }
-        if !tx.cli_hdr.hassh.is_empty() || !tx.cli_hdr.hassh_string.is_empty() {
-            js.open_object("hassh")?;
-            if !tx.cli_hdr.hassh.is_empty() {
-                js.set_string_from_bytes("hash", &tx.cli_hdr.hassh)?;
-            }
-            if !tx.cli_hdr.hassh_string.is_empty() {
-                js.set_string_from_bytes("string", &tx.cli_hdr.hassh_string)?;
-            }
-            js.close()?;
-        }
-        js.close()?;
+    if cli {
+        log_ssh_direction(js, "client", &tx.cli_hdr)?;
     }
-    if !tx.srv_hdr.protover.is_empty() {
-        js.open_object("server")?;
-        js.set_string_from_bytes_limited(
-            "proto_version",
-            &tx.srv_hdr.protover,
-            SSH_MAX_BANNER_LEN,
-        )?;
-        if !tx.srv_hdr.swver.is_empty() {
-            js.set_string_from_bytes_limited(
-                "software_version",
-                &tx.srv_hdr.swver,
-                SSH_MAX_BANNER_LEN,
-            )?;
-        }
-        if !tx.srv_hdr.hassh.is_empty() || !tx.srv_hdr.hassh_string.is_empty() {
-            js.open_object("hassh")?;
-            if !tx.srv_hdr.hassh.is_empty() {
-                js.set_string_from_bytes("hash", &tx.srv_hdr.hassh)?;
-            }
-            if !tx.srv_hdr.hassh_string.is_empty() {
-                js.set_string_from_bytes("string", &tx.srv_hdr.hassh_string)?;
-            }
-            js.close()?;
-        }
-        js.close()?;
+    if srv {
+        log_ssh_direction(js, "server", &tx.srv_hdr)?;
     }
     js.close()?;
     return Ok(true);
