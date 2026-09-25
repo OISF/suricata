@@ -290,6 +290,11 @@ pub struct HTTP2Transaction {
     to_drop: bool,
     child_stream_id: u32,
 
+    // keep these to raise AuthorityHostMismatch
+    // in case these headers come in 2 different frames
+    last_authority: Vec<u8>,
+    last_host: Vec<u8>,
+
     pub frames_tc: Vec<HTTP2Frame>,
     pub frames_ts: Vec<HTTP2Frame>,
 
@@ -328,6 +333,8 @@ impl HTTP2Transaction {
             to_drop: false,
             frames_tc: Vec::new(),
             frames_ts: Vec::new(),
+            last_authority: Vec::new(),
+            last_host: Vec::new(),
             decoder: decompression::HTTP2Decoder::new(),
             file_range: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
@@ -367,10 +374,10 @@ impl HTTP2Transaction {
     fn handle_headers(
         &mut self, blocks: &[parser::HTTP2FrameHeaderBlock], dir: Direction,
     ) -> Option<Vec<u8>> {
-        let mut authority = None;
+        let mut authority: Option<&[u8]> = None;
         let mut path = None;
         let mut doh = false;
-        let mut host = None;
+        let mut host: Option<&[u8]> = None;
         for block in blocks {
             if block.name.as_ref() == b"content-encoding" {
                 self.decoder.http2_encoding_fromvec(&block.value, dir);
@@ -391,26 +398,53 @@ impl HTTP2Transaction {
                 }
             } else if block.name.as_ref() == b":path" {
                 path = Some(&block.value);
-            } else if block.name.eq_ignore_ascii_case(b":authority") {
+            } else if block.name.eq_ignore_ascii_case(b":authority") && dir == Direction::ToServer {
+                if let Some(a) = authority {
+                    if !a.eq_ignore_ascii_case(&block.value) {
+                        self.set_event(HTTP2Event::DifferentAuthorities);
+                    }
+                }
                 authority = Some(&block.value);
                 if block.value.contains(&b'@') {
                     // it is forbidden by RFC 9113 to have userinfo in this field
                     // when in HTTP1 we can have user:password@domain.com
                     self.set_event(HTTP2Event::UserinfoInUri);
                 }
-            } else if block.name.eq_ignore_ascii_case(b"host") {
+            } else if block.name.eq_ignore_ascii_case(b"host") && dir == Direction::ToServer {
+                if let Some(h) = host {
+                    if !h.eq_ignore_ascii_case(&block.value) {
+                        self.set_event(HTTP2Event::DifferentHosts);
+                    }
+                }
                 host = Some(&block.value);
             }
         }
         if let Some(a) = authority {
             if let Some(h) = host {
                 if !a.eq_ignore_ascii_case(h) {
-                    // The event is triggered only if both headers
-                    // are in the same frame to avoid excessive
-                    // complexity at runtime.
                     self.set_event(HTTP2Event::AuthorityHostMismatch);
                 }
+            } else if !self.last_host.is_empty() && !a.eq_ignore_ascii_case(&self.last_host) {
+                self.set_event(HTTP2Event::AuthorityHostMismatch);
             }
+        }
+        if let Some(h) = host {
+            if authority.is_none()
+                && !self.last_authority.is_empty()
+                && !h.eq_ignore_ascii_case(&self.last_authority)
+            {
+                self.set_event(HTTP2Event::AuthorityHostMismatch);
+            }
+            if !self.last_host.is_empty() && !h.eq_ignore_ascii_case(&self.last_host) {
+                self.set_event(HTTP2Event::DifferentHosts);
+            }
+            self.last_host = h.to_vec();
+        }
+        if let Some(a) = authority {
+            if !self.last_authority.is_empty() && !a.eq_ignore_ascii_case(&self.last_authority) {
+                self.set_event(HTTP2Event::DifferentAuthorities);
+            }
+            self.last_authority = a.to_vec();
         }
         if doh && unsafe { ALPROTO_DOH2 } != ALPROTO_UNKNOWN {
             if let Some(p) = path {
@@ -687,6 +721,8 @@ pub enum HTTP2Event {
     DataStreamZero,
     TooManyFrames,
     CompressionBomb,
+    DifferentHosts,
+    DifferentAuthorities,
 }
 
 pub struct HTTP2DynTable {
