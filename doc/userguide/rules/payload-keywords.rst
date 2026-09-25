@@ -898,7 +898,8 @@ Example of the rpc keyword in a rule:
 replace
 -------
 
-The replace content modifier can only be used in IPS. It adjusts
+The replace content modifier can only be used in IPS. It is supported
+with NFQ, IPFW and DPDK (``copy-mode: ips``). It adjusts
 network traffic.  It changes the content it follows ('abc') into
 another ('def'), see example:
 
