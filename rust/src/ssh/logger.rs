@@ -42,7 +42,6 @@ fn log_ssh_direction(js: &mut JsonBuilder, name: &str, hdr: &SshHeader) -> Resul
         // must not be mislabelled
         let st_name = match hdr.state {
             SSHConnectionState::SshStateBanner => "banner",
-            SSHConnectionState::SshStateBannerWaitEol => "banner_wait_eol",
             SSHConnectionState::SshStateKex => "kex",
             // a direction that reached session can still fail on a
             // later record (the encryption bypass has not kicked in
