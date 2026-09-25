@@ -24,6 +24,9 @@
 #ifndef SURICATA_ALERT_FASTLOG_H
 #define SURICATA_ALERT_FASTLOG_H
 
+#include "output.h"
+#include "conf.h"
+
 void AlertFastLogRegister(void);
 OutputInitResult AlertFastLogInitCtx(SCConfNode *);
 
