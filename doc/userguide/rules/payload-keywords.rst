@@ -374,6 +374,13 @@ If one or more ``content`` keywords precedes ``bsize``, each occurrence of ``con
 will be inspected and an error will be raised if the content length and the bsize
 value prevent a match.
 
+A buffer may carry more than one ``bsize`` keyword, and the buffer must satisfy
+them all; the tightest (smallest) upper bound is the one applied to content
+inspection. A common use is a lower and an upper bound that together form a
+range, for example ``bsize:>359; bsize:<370``. If the keywords cannot be
+satisfied at once -- two different exact lengths, or a lower bound above an
+upper bound -- no buffer length can ever match and the rule is rejected at load.
+
 Format::
 
   bsize:<number>;
@@ -423,6 +430,31 @@ Examples of ``bsize`` in a rule:
 
 To emphasize how range works: in the example above, a match will occur if
 ``bsize`` is greater than 6 and less than 15.
+
+exact
+-----
+
+The ``exact`` keyword is shorthand for a ``bsize`` equal to the length of the
+preceding ``content``: the content must span the whole buffer. It is equivalent
+to ``bsize:<content-length>`` and, for a lone content, lets the engine anchor
+the match to the start and end of the buffer and prefilter on the buffer length.
+
+``exact`` takes no argument and must follow a ``content``. It cannot be combined
+with ``offset``, a relative keyword (``distance``/``within``) or a negated
+content on that same content.
+
+Like ``bsize``, ``exact`` applies to an application-layer or sticky buffer (for
+example ``dns.query`` or ``http.uri``); it cannot be used on the raw packet
+payload. Use ``dsize`` to constrain the payload length instead.
+
+Example of ``exact`` in a rule:
+
+.. container:: example-rule
+
+   alert dns any any -> any any (msg:"exact buffer match"; dns.query; content:"google.com"; exact; sid:1; rev:1;)
+
+The rule above matches only when the ``dns.query`` buffer is exactly
+``google.com`` -- the same as writing ``content:"google.com"; bsize:10;``.
 
 dsize
 -----
