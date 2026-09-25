@@ -29,6 +29,8 @@ It is also possible to specify the string values for NFSv3 or NFSv4 procedures.
 ``nfs_procedure: getattr`` will match like ``nfs_procedure: 1; nfs.version: <4;``
 or ``nfs_procedure: 9; nfs.version: >=4;``
 
+See ``suricata --list-keywords=json | jq '."nfs_procedure".enum_values'``
+
 Unlike the other keywords, the usage of range is inclusive.
 
 Syntax::

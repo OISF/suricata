@@ -89,6 +89,7 @@ where
     let mut values = Vec::new();
     let mut names = Vec::new();
     let mut names_upper = Vec::new();
+    let mut names_lower = Vec::new();
     let mut fields = Vec::new();
 
     let mut enum_string_style = String::from("");
@@ -105,11 +106,13 @@ where
                     "UPPERCASE" => {
                         names.push(v.ident.to_string().to_ascii_uppercase());
                         names_upper.push(v.ident.to_string().to_ascii_uppercase());
+                        names_lower.push(v.ident.to_string().to_ascii_lowercase());
                     }
                     "LOG_UPPERCASE" => {
                         names.push(v.ident.to_string().to_ascii_uppercase());
                         let fname = transform_name(&v.ident.to_string());
                         let fnameu = fname.to_ascii_uppercase();
+                        names_lower.push(fnameu.to_ascii_lowercase());
                         names_upper.push(fnameu);
                     }
                     "" => {
@@ -117,6 +120,7 @@ where
                         let fname = transform_name(&v.ident.to_string());
                         let fnameu = fname.to_ascii_uppercase();
                         names.push(fname);
+                        names_lower.push(fnameu.to_ascii_lowercase());
                         names_upper.push(fnameu);
                     }
                     _ => {
@@ -179,6 +183,12 @@ where
                     #( #names_upper => Some(#name::#fields) ,)*
                     _ => None
                 }
+            }
+            fn list_values(jsb: &mut #crate_id::jsonbuilder::JsonBuilder) -> Result<(), #crate_id::jsonbuilder::JsonError> {
+                jsb.open_object("enum_values")?;
+                #( jsb.set_uint(#names_lower, #values as u64)?;)*
+                jsb.close()?;
+                Ok(())
             }
         }
     };

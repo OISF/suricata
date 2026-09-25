@@ -64,6 +64,8 @@ Where value is one of:
   * unsolicited_response
   * authenticate_resp
 
+See ``suricata --list-keywords=json | jq .dnp3_func.enum_values``
+
 dnp3_ind
 --------
 

@@ -104,6 +104,8 @@ shutdown_complete 14
 forward_tsn       192
 ================= =====
 
+See ``suricata --list-keywords=json | jq '."sctp.chunk_type".enum_values'``
+
 Named values are case-insensitive and can be negated with ``!``::
 
  sctp.chunk_type:init          # INIT chunk
