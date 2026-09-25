@@ -112,6 +112,7 @@ typedef struct SignatureParser_ {
 /** Valid action scopes per firewall hook class. */
 enum DetectFirewallPolicyClass {
     DETECT_FIREWALL_POLICY_CLASS_PACKET,
+    DETECT_FIREWALL_POLICY_CLASS_PACKET_PRE_FLOW,
     DETECT_FIREWALL_POLICY_CLASS_APP
 };
 
@@ -119,6 +120,10 @@ static const uint8_t fw_packet_hook_scopes[] = {
     ACTION_SCOPE_PACKET,
     ACTION_SCOPE_HOOK,
     ACTION_SCOPE_FLOW,
+};
+static const uint8_t fw_packet_pre_flow_hook_scopes[] = {
+    ACTION_SCOPE_PACKET,
+    ACTION_SCOPE_HOOK,
 };
 static const uint8_t fw_app_hook_scopes[] = {
     ACTION_SCOPE_FLOW,
@@ -4232,6 +4237,10 @@ static bool FirewallScopeValidForClass(uint8_t scope, enum DetectFirewallPolicyC
             set = fw_packet_hook_scopes;
             n = ARRAY_SIZE(fw_packet_hook_scopes);
             break;
+        case DETECT_FIREWALL_POLICY_CLASS_PACKET_PRE_FLOW:
+            set = fw_packet_pre_flow_hook_scopes;
+            n = ARRAY_SIZE(fw_packet_pre_flow_hook_scopes);
+            break;
         case DETECT_FIREWALL_POLICY_CLASS_APP:
             set = fw_app_hook_scopes;
             n = ARRAY_SIZE(fw_app_hook_scopes);
@@ -4259,6 +4268,10 @@ static void FirewallScopeHintForClass(
         case DETECT_FIREWALL_POLICY_CLASS_PACKET:
             set = fw_packet_hook_scopes;
             n = ARRAY_SIZE(fw_packet_hook_scopes);
+            break;
+        case DETECT_FIREWALL_POLICY_CLASS_PACKET_PRE_FLOW:
+            set = fw_packet_pre_flow_hook_scopes;
+            n = ARRAY_SIZE(fw_packet_pre_flow_hook_scopes);
             break;
         case DETECT_FIREWALL_POLICY_CLASS_APP:
             set = fw_app_hook_scopes;
@@ -4477,8 +4490,11 @@ static int DetectFirewallLoadPacketPolicy(struct DetectFirewallPolicies *fw_poli
     /* <prefix>.default-policy */
     FirewallPolicyChainAdd(&chain, "%s.default-policy", prefix);
 
+    const enum DetectFirewallPolicyClass pol_class =
+            (id == DETECT_FIREWALL_POLICY_PRE_FLOW) ? DETECT_FIREWALL_POLICY_CLASS_PACKET_PRE_FLOW
+                                                    : DETECT_FIREWALL_POLICY_CLASS_PACKET;
     struct DetectFirewallPolicy *pol = &fw_policies->pkt[id]; // built-in default
-    int r = ResolveFirewallPolicy(pol, DETECT_FIREWALL_POLICY_CLASS_PACKET, &chain);
+    int r = ResolveFirewallPolicy(pol, pol_class, &chain);
     if (r < 0) {
         return -1;
     }
