@@ -25,14 +25,13 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "stream.h"
-#include "conf.h"
 #include "rust.h"
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 
 #include "app-layer-register.h"
+#include "util-debug.h"
 
 static const char * IpProtoToString(int ip_proto);
 
