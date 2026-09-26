@@ -43,8 +43,9 @@ run()
     fi
 
     ./autogen.sh
-    CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests
+    CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-netmap
     gmake -j "${CPUS}"
+    ./src/suricata --build-info | grep -q 'Netmap support:.*yes v14+'
     ./src/suricata -u -l /tmp/
     python3 ./suricata-verify/run.py -q --debug-failed
 }
