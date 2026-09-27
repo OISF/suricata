@@ -1773,8 +1773,7 @@ static struct DetectFirewallPolicy DetectFirewallApplyDefaultAppPolicy(
         PacketDrop(p, policy->action, PKT_DROP_REASON_FW_DEFAULT_APP_POLICY);
         if (policy->action_scope == ACTION_SCOPE_FLOW) {
             SCLogDebug("dropping flow");
-            p->flow->flags |= FLOW_ACTION_DROP;
-            p->flow->flags |= FLOW_ACTION_BY_FIREWALL;
+            FlowSetDropAction(p->flow, FLOW_ACTION_BY_FIREWALL);
         }
         if (policy->action & ACTION_ALERT) {
             DetectRunAppendDefaultAppPolicyAlert(det_ctx, p, true, tx, ap);
@@ -2251,8 +2250,7 @@ static void DetectRunTxFirewallRuleFullMatch(DetectEngineThreadCtx *det_ctx, con
         PacketDrop(p, s->action, PKT_DROP_REASON_FW_RULES);
         if (s->action_scope == ACTION_SCOPE_FLOW) {
             SCLogDebug("drop flow because of rule with drop action");
-            f->flags |= FLOW_ACTION_DROP;
-            f->flags |= FLOW_ACTION_BY_FIREWALL;
+            FlowSetDropAction(f, FLOW_ACTION_BY_FIREWALL);
         }
         SCLogDebug("append alert");
         AlertQueueAppendAppTx(det_ctx, s, p, tx->tx_id, tx->tx_type, 0);

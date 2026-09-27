@@ -1196,6 +1196,18 @@ uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags)
 void FlowUpdateState(Flow *f, const enum FlowState s)
 {
     if (s != f->flow_state) {
+        /* a bypass ends the app layer without a further update: bypassed
+         * flows get no flow-end packets, so the txs still pending must be
+         * logged once */
+        if ((s == FLOW_STATE_LOCAL_BYPASSED
+#ifdef CAPTURE_OFFLOAD
+                    || s == FLOW_STATE_CAPTURE_BYPASSED
+#endif
+                    ) &&
+                f->alparser != NULL) {
+            f->flags |= FLOW_APP_LAYER_FLUSH_PENDING;
+        }
+
         /* set the state */
         // Explicit cast from the enum type to the compact version
         f->flow_state = (FlowStateType)s;

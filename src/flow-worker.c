@@ -163,8 +163,10 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw, FlowTimeout
         f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT; //TODO emerg
 
         if (f->proto == IPPROTO_TCP) {
-            if (!(f->flags & (FLOW_TIMEOUT_REASSEMBLY_DONE | FLOW_ACTION_DROP)) &&
-                    !FlowIsBypassed(f) && FlowNeedsReassembly(f) && f->ffr != 0) {
+            /* an IDS drop does not end the app layer, so keep the final flush */
+            const bool drop_ends = (f->flags & FLOW_ACTION_DROP) != 0 && EngineModeIsIPS();
+            if (!(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) && !drop_ends && !FlowIsBypassed(f) &&
+                    FlowNeedsReassembly(f) && f->ffr != 0) {
                 /* read detect thread in case we're doing a reload */
                 void *detect_thread = SC_ATOMIC_GET(fw->detect_thread);
                 int cnt = FlowFinish(tv, f, fw, detect_thread);
@@ -673,6 +675,9 @@ pre_flow_drop:
         DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
         if (FlowIsBypassed(p->flow)) {
+            /* the tx loggers already ran for a pending flush (OutputLoggerLog
+             * above): clear the flag and free the app layer */
+            p->flow->flags &= ~FLOW_APP_LAYER_FLUSH_PENDING;
             FlowCleanupAppLayer(p->flow);
             if (p->proto == IPPROTO_TCP) {
                 StreamTcpSessionCleanup(p->flow->protoctx);
