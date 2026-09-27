@@ -127,6 +127,11 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** Flow action issued by exception policy */
 #define FLOW_ACTION_BY_EXCEPTION_POLICY BIT_U64(33)
 
+/** The app layer was disabled mid-flow: run the tx loggers once at the
+ *  next output stage, as no further app-layer update will reach them.
+ *  Consumed by the tx logger. */
+#define FLOW_APP_LAYER_FLUSH_PENDING BIT_U64(34)
+
 /* File flags */
 
 #define FLOWFILE_INIT                   0

@@ -127,7 +127,7 @@ pub struct SshHeader {
     record_left: u32,
     record_left_msg: parser::MessageCode,
 
-    state: SSHConnectionState,
+    pub state: SSHConnectionState,
     pub protover: Vec<u8>,
     pub swver: Vec<u8>,
     pub error: Option<SSHError>,
@@ -763,21 +763,13 @@ pub extern "C" fn SCSshEnableBypass(mode: EncryptionHandling) {
 pub unsafe extern "C" fn SCSshTxGetLogCondition(tx: *mut std::os::raw::c_void) -> bool {
     let tx = cast_pointer!(tx, SSHTransaction);
 
-    // >= rather than ==: a direction at session has necessarily
-    // passed kex, and a single delivery can take a direction
-    // banner -> kex -> session, so a final {session, kex} pair must
-    // still admit the log (done is never assigned, so >= changes
-    // only the kex branch)
-    if SCSshHasshIsEnabled() {
-        if tx.cli_hdr.state >= SSHConnectionState::SshStateSession
-            && tx.srv_hdr.state >= SSHConnectionState::SshStateSession
-        {
-            return true;
-        }
-    } else if tx.cli_hdr.state >= SSHConnectionState::SshStateKex
-        && tx.srv_hdr.state >= SSHConnectionState::SshStateKex
-    {
-        return true;
-    }
-    return false;
+    // Failure-only: the tx logger is one-shot (the engine's logged
+    // bit is never reset), and a successful handshake reaches kex
+    // long before a later failure can occur, so a mid-flow success
+    // condition would consume the log before the failure could be
+    // reported. The failure latches, so the object is emitted
+    // exactly once - at the failure, carrying the error and the
+    // frozen state - and successful flows are logged at the next
+    // EOF-flush delivery, where the engine logs unconditionally.
+    tx.cli_hdr.error.is_some() || tx.srv_hdr.error.is_some()
 }

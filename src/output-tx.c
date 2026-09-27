@@ -367,16 +367,37 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     DEBUG_VALIDATE_BUG_ON(thread_data == NULL);
     if (p->flow == NULL)
         return TM_ECODE_OK;
-    if (!PKT_IS_PSEUDOPKT(p) && p->app_update_direction == 0 &&
+
+    /* A flow whose app layer gets disabled mid-flow (IPS/firewall drop,
+     * parser error, bypass) must still run the tx loggers once: no
+     * further app-layer update will reach them and flow end skips
+     * FLOW_ACTION_DROP flows. The disable path raises
+     * FLOW_APP_LAYER_FLUSH_PENDING; consume it here. */
+    const bool flush_pending = (p->flow->flags & FLOW_APP_LAYER_FLUSH_PENDING) != 0;
+
+    const bool no_app_update =
+            !PKT_IS_PSEUDOPKT(p) && p->app_update_direction == 0 &&
             ((PKT_IS_TOSERVER(p) && (p->flow->flags & FLOW_TS_APP_UPDATED) == 0) ||
-                    (PKT_IS_TOCLIENT(p) && (p->flow->flags & FLOW_TC_APP_UPDATED) == 0))) {
+                    (PKT_IS_TOCLIENT(p) && (p->flow->flags & FLOW_TC_APP_UPDATED) == 0));
+    if (no_app_update && !flush_pending) {
         SCLogDebug("not pseudo, no app update: skip");
         return TM_ECODE_OK;
     }
-    if ((p->flags & PKT_STREAM_EST) == 0 && p->proto == IPPROTO_TCP) {
+    /* The flush is the only reason to run the loggers for this packet:
+     * the packet itself carries no app-layer update, so it is not a
+     * flow end either and the log conditions decide instead of an
+     * unconditional log. */
+    const bool flush_only = flush_pending && no_app_update;
+
+    /* The packet that disables the app layer returns from the stream
+     * engine before it is marked established, so the flush request has
+     * to bypass this check as well. */
+    if ((p->flags & PKT_STREAM_EST) == 0 && p->proto == IPPROTO_TCP && !flush_only) {
         return TM_ECODE_OK;
     }
     SCLogDebug("pseudo, or app update: run output");
+
+    p->flow->flags &= ~FLOW_APP_LAYER_FLUSH_PENDING;
 
     OutputTxLoggerThreadData *op_thread_data = (OutputTxLoggerThreadData *)thread_data;
 
@@ -413,7 +434,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     const bool ts_eof = SCAppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TS) != 0;
     const bool tc_eof = SCAppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF_TC) != 0;
 
-    const bool eof = last_pseudo || (ts_eof && tc_eof);
+    const bool eof = !flush_only && (last_pseudo || (ts_eof && tc_eof));
     SCLogDebug("eof %d last_pseudo %d ts_eof %d tc_eof %d", eof, last_pseudo, ts_eof, tc_eof);
 
     const uint8_t ts_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOSERVER);

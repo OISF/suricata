@@ -452,8 +452,18 @@ void StreamTcpDisableAppLayer(Flow *f)
     StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
     StreamTcpDisableAppLayerReassembly(ssn);
     if (f->alparser) {
-        SCAppLayerParserStateSetFlag(
-                f->alparser, (APP_LAYER_PARSER_EOF_TS | APP_LAYER_PARSER_EOF_TC));
+        const uint16_t eof_flags = APP_LAYER_PARSER_EOF_TS | APP_LAYER_PARSER_EOF_TC;
+        const bool was_eof = SCAppLayerParserStateIssetFlag(f->alparser, eof_flags) == eof_flags;
+        SCAppLayerParserStateSetFlag(f->alparser, eof_flags);
+        /* The app layer is at EOF from here on: no further app-layer
+         * update will reach the tx loggers, while the flow may end up
+         * dropped (flow end skips FLOW_ACTION_DROP flows), so the txs
+         * still pending would never be logged. Ask the next output
+         * stage to run the loggers once. Only on the transition, so
+         * the flush does not repeat per packet. */
+        if (!was_eof) {
+            f->flags |= FLOW_APP_LAYER_FLUSH_PENDING;
+        }
     }
 }
 
