@@ -86,7 +86,7 @@ make -j$(nproc)
 
 date
 
-./src/suricata --list-app-layer-protos | tail -n +2 | while read i; do cp src/fuzz_applayerparserparse $OUT/fuzz_applayerparserparse""_$i; done
+./src/suricata --list-app-layer-protos -c suricata.yaml --set "logging.outputs.0.console.enabled=false" | tail -n +2 | while read i; do cp src/fuzz_applayerparserparse $OUT/fuzz_applayerparserparse""_$i; done
 
 (
 cd src
