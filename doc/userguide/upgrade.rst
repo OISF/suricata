@@ -127,6 +127,11 @@ Logging Changes
   ``client_hello_done`` is now ``client_hello``). See
   :doc:`firewall/tls-state-migration` for the old-to-new mapping.
 
+- NFS eve records are now logged in the flow direction, like SMB, HTTP and
+  DNS records: a record completed on a reply carries the client as
+  ``src_ip``/``src_port`` where 8.x logged the packet's addresses. Filters
+  that matched responses on ``src_port 2049`` need ``dest_port 2049`` now.
+
 Removals
 ~~~~~~~~
 
