@@ -79,7 +79,11 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     if (SCNfsTxLoggingIsFiltered(state, nfstx))
         return TM_ECODE_OK;
 
-    SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_PACKET, "nfs", NULL, thread->ctx);
+    /* Log in the flow (request) direction, as SMB, HTTP and DNS do. A record
+     * is stamped once, when the tx ends, so with the packet direction the same
+     * flow would report its txs in both directions: toclient for the txs a real
+     * reply completed, toserver for the ones the flow-timeout flush ended. */
+    SCJsonBuilder *jb = CreateEveHeader(p, LOG_DIR_FLOW, "nfs", NULL, thread->ctx);
     if (unlikely(jb == NULL)) {
         return TM_ECODE_OK;
     }
