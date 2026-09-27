@@ -34,6 +34,17 @@ also check all the new features that have been added but are not covered by
 this guide. Those features are either not enabled by default or require
 dedicated new configuration.
 
+Upgrading to 8.0.8
+------------------
+
+EVE Changes
+~~~~~~~~~~~
+
+- NFS eve records are now logged in the flow direction, like SMB, HTTP and
+  DNS records: a record completed on a reply carries the client as
+  ``src_ip``/``src_port`` where earlier 8.0.x logged the packet's addresses.
+  Filters that matched responses on ``src_port 2049`` need ``dest_port 2049`` now.
+
 Upgrading to 8.0.7
 ------------------
 
