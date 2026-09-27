@@ -92,6 +92,16 @@ Major Changes
 
 Logging Changes
 ~~~~~~~~~~~~~~~
+- The ssh eve record now carries the per-direction fields
+  ``ssh.client.error`` / ``ssh.client.state`` and
+  ``ssh.server.error`` / ``ssh.server.state`` (``invalid_banner`` or
+  ``invalid_record``, and the state the failure occurred in - the
+  state field is present only alongside the error) for flows that
+  hit an unrecoverable ssh parse error; a failed direction is
+  logged even when it parsed no banner. The object is logged at
+  the failing delivery, carrying the error and the state;
+  successful flows are logged at the flow-end flush.
+
 - The format of IKEv1 proposal attributes has been changed to handle
   duplicate attribute types. See :ref:`IKE logging changes
   <9.0-ike-logging-changes>`
@@ -105,6 +115,7 @@ Logging Changes
 - App-layer stats protocols names replace dash by underscore, meaning
   ``stats.app_layer.*.ftp-data`` becomes ``stats.app_layer.*.ftp_data``,
   and same for bittorrent_dht
+
 
 - MQTT user properties are now logged as a new object called ``user_properties``
   as an array of key-value pairs like ``[{"key":"mykey", "value":"myvalue"}]``
@@ -130,6 +141,20 @@ Keyword Changes
   being split per direction. This means that some rules should match sooner,
   some rules will have less false negatives, and some rules will trigger once per transaction
   instead of twice (one time for each direction)
+
+- The SSH app-layer state hooks have been reworked and renamed:
+  the hooks are now ``request_banner``, ``request_kex`` and
+  ``request_session`` (and the ``response_`` equivalents); rules
+  using the old names fail to load. The completion state is never
+  reported, so ``ssh:request_complete`` and the
+  ``request-complete`` policy key match nothing for ssh except
+  disrupted flows (depth truncation or async reassembly) -
+  session-admit rules or policies no longer fire, review them
+  before upgrading. Failed key exchanges are reported through the
+  ``ssh.invalid_banner`` / ``ssh.invalid_record`` app-layer events
+  and the new ``error`` / ``state`` fields of the ssh eve record.
+  See :doc:`rules/ssh-keywords` for the full state and failure
+  semantics.
 
 Other Changes
 ~~~~~~~~~~~~~

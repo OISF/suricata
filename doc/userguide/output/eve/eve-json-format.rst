@@ -1844,6 +1844,12 @@ Fields
 * "software_version": The software version used by end user
 * "hassh.hash": MD5 of hassh algorithms of client or server
 * "hassh.string": hassh algorithms of client or server
+* "error": (per direction) unrecoverable parse failure: "invalid_banner" or
+  "invalid_record". Present only when the direction failed; a failed
+  direction is logged even when it parsed no banner, so the error field
+  may be the only content of the direction object.
+* "state": (per direction) the state the failure occurred in (banner,
+  kex or session). Present only alongside the error field.
 
 Hassh must be enabled in the Suricata config file (set 'app-layer.protocols.ssh.hassh' to 'yes').
 
