@@ -6296,6 +6296,14 @@
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
+                        "error": {
+                            "type": "string",
+                            "description": "Unrecoverable parse failure in this direction (invalid_banner or invalid_record)"
+                        },
+                        "state": {
+                            "type": "string",
+                            "description": "State the parse failure occurred in (banner, kex or session); present only alongside the error field"
+                        },
                         "hassh": {
                             "type": "object",
                             "additionalProperties": false,
@@ -6320,6 +6328,14 @@
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
+                        "error": {
+                            "type": "string",
+                            "description": "Unrecoverable parse failure in this direction (invalid_banner or invalid_record)"
+                        },
+                        "state": {
+                            "type": "string",
+                            "description": "State the parse failure occurred in (banner, kex or session); present only alongside the error field"
+                        },
                         "hassh": {
                             "type": "object",
                             "additionalProperties": false,

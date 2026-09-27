@@ -1759,6 +1759,18 @@ static int SSHParserTest28(void)
     PASS;
 }
 
+/** \test The eve ssh log condition is failure-only: a direction
+ *  \test that fails at banner (invalid banner) satisfies the
+ *  \test condition (the error field makes the failure observable
+ *  \test in eve), while a flow without failure does not - neither
+ *  \test a banner-only flow nor one with both banners parsed
+ *  \test (both directions at kex): the one-shot tx log must not be
+ *  \test consumed mid-flow before a later failure could be
+ *  \test reported, so successful flows are logged at the flow-end
+ *  \test flush. The failure admits the log on the failing
+ *  \test delivery.
+ */
+
 /** \test A record reassembly stash and a header fragment mark the tx
  *  \test updated at parse entry, like a record completion: the flag
  *  \test is set at the parse entry, as the base parser did, so the
@@ -1838,9 +1850,8 @@ static int SSHParserTest29(void)
 }
 
 /** \test A direction parked in banner_wait_eol that then fails a
- *  \test record freezes it at kex; a >=256B banner without EOL that
- *  \test does not parse as a banner freezes the direction at
- *  \test banner at once.
+ *  \test record jumps to done; a >=256B banner without EOL that does
+ *  \test not parse as a banner jumps to done at once.
  */
 static int SSHParserTest30(void)
 {
@@ -1911,6 +1922,90 @@ static int SSHParserTest30(void)
  *  \test publishes nothing but still marks the tx updated at parse
  *  \test entry; the line completion publishes the banner and takes
  *  \test the direction to kex. */
+static int SSHParserTest31(void)
+{
+    Flow f;
+    uint8_t badbanner[] = "SSH-bogus\r\n";
+    uint32_t badbannerlen = sizeof(badbanner) - 1;
+    uint8_t banner[] = "SSH-2.0-TestClient-1.0\r\n";
+    uint32_t bannerlen = sizeof(banner) - 1;
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    /* invalid banner: the failed direction admits the log condition */
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    StreamTcpInitConfig(true);
+
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, badbanner, badbannerlen);
+    FAIL_IF(r != -1);
+    void *ssh_state = f.alstate;
+    FAIL_IF_NULL(ssh_state);
+    void *tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBanner);
+    FAIL_IF(SCSshTxGetLogCondition(tx) != true);
+
+    FLOW_DESTROY(&f);
+
+    /* no failure yet (client banner only): the condition stays
+     * false - the one-shot tx log is reserved for the failure
+     * or the flow-end flush */
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, banner, bannerlen);
+    FAIL_IF(r != 0);
+    ssh_state = f.alstate;
+    FAIL_IF_NULL(ssh_state);
+    tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetLogCondition(tx) != false);
+
+    FLOW_DESTROY(&f);
+
+    /* both banners parsed (both directions at kex), still no
+     * failure: the condition must stay false - a mid-flow success
+     * log would consume the one-shot tx log before a later failure
+     * could be reported */
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, banner, bannerlen);
+    FAIL_IF(r != 0);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, banner, bannerlen);
+    FAIL_IF(r != 0);
+    ssh_state = f.alstate;
+    FAIL_IF_NULL(ssh_state);
+    tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetLogCondition(tx) != false);
+
+    /* the failure admits the log on the failing delivery */
+    uint8_t badrecord[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, badrecord, sizeof(badrecord));
+    FAIL_IF(r != -1);
+    FAIL_IF(SCSshTxGetLogCondition(tx) != true);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
 static int SSHParserTest32(void)
 {
     TcpReassemblyThreadCtx *ra_ctx = NULL;
@@ -2253,6 +2348,7 @@ void SSHParserRegisterTests(void)
     UtRegisterTest(
             "SSHParserTest29 - stash and fragment deliveries mark the tx updated", SSHParserTest29);
     UtRegisterTest("SSHParserTest30 - wait_eol failure freezes at kex", SSHParserTest30);
+    UtRegisterTest("SSHParserTest31 - failed flow admits the eve log condition", SSHParserTest31);
     UtRegisterTest("SSHParserTest32 - banner continuation marks the tx updated at parse entry",
             SSHParserTest32);
     UtRegisterTest("SSHParserTest33 - failed peer does not arm no-inspection", SSHParserTest33);
