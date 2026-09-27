@@ -86,7 +86,7 @@ make -j$(nproc)
 
 date
 
-./src/suricata --list-app-layer-protos | tail -n +2 | while read i; do cp src/fuzz_applayerparserparse $OUT/fuzz_applayerparserparse""_$i; done
+SC_LOG_OP_IFACE=file SC_LOG_FILE=/dev/null ./src/suricata --list-app-layer-protos | tail -n +2 | while read i; do cp src/fuzz_applayerparserparse $OUT/fuzz_applayerparserparse""_$i; done
 
 (
 cd src
