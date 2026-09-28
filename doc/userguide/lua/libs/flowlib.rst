@@ -15,7 +15,11 @@ Initialization
 ^^^^^^^
 
 Init the flow for use in the script. The flow is the current one the engine is
-processing. ::
+processing. ``flow.get()`` returns the current flow in packet, buffer and
+app-layer rule contexts; in transform contexts, and for packets without a
+flow, it returns ``nil`` and an error message. In output scripts the tx,
+file, alert, packet, flow and streaming loggers set the flow; the stats
+logger does not. ::
 
     f = flow.get()
 
@@ -61,6 +65,10 @@ Ports and Addresses
 
 Using the `tuple` method, the IP version (4 or 6), src IP and dest IP (as
 string), IP protocol (int), and ports (ints) are retrieved.
+
+For a flow with an IP header this returns 6 values. For a packet without
+an IP header it returns 1 value only: the IP version, 0 (the packet is
+neither IPv4 nor IPv6, so there is no IP version).
 
 The protocol value comes from the IP header. See further
 https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml .

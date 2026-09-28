@@ -13,6 +13,10 @@ Initialization
 ^^^^^^^
 
 Init the packet for use in the script. The packet is the current packet the engine is processing.
+``packet.get()`` is only available in packet context; in buffer, app-layer and
+transform contexts it returns ``nil`` and an error message. In output
+scripts the tx, file, alert and packet loggers set the packet; the flow,
+streaming and stats loggers do not.
 
 ::
 
@@ -65,6 +69,9 @@ Ports and Addresses
 ^^^^^^^^^
 
 Using the `tuple` method the IP version (4 or 6), src IP and dest IP (as string), IP protocol (int) and ports (ints) are retrieved.
+
+For a packet with an IP header this returns 6 values. For non-IP packets
+it returns 1 value only: the IP version, 0.
 
 The protocol value comes from the IP header, see further https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
 
