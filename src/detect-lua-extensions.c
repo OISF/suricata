@@ -49,6 +49,7 @@ void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld,
 {
     SCLogDebug("det_ctx %p, f %p", det_ctx, f);
 
+    LuaStateSetThreadVars(lua_state, det_ctx->tv);
     LuaStateSetSignature(lua_state, s);
     LuaStateSetFlow(lua_state, f);
     LuaStateSetDetCtx(lua_state, det_ctx);
