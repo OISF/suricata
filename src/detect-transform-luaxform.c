@@ -208,6 +208,9 @@ static void *DetectLuaxformThreadInit(void *data)
         goto error;
     }
 
+    /* setup calls get a fresh instruction budget so a low max-instructions
+     * bounds per-packet work, not engine start or reload */
+    SCLuaSbResetInstructionCounter(t->luastate);
     /* prime the script (or something) */
     if (lua_pcall(t->luastate, 0, 0, 0) != 0) {
         SCLogError("couldn't prime file: %s", lua_tostring(t->luastate, -1));
@@ -217,6 +220,7 @@ static void *DetectLuaxformThreadInit(void *data)
     /* when present: thread_init call */
     lua_getglobal(t->luastate, "thread_init");
     if (lua_isfunction(t->luastate, -1)) {
+        SCLuaSbResetInstructionCounter(t->luastate);
         if (lua_pcall(t->luastate, 0, 0, 0) != 0) {
             SCLogError("couldn't run script 'thread_init' function: %s",
                     lua_tostring(t->luastate, -1));
