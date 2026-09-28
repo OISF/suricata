@@ -74,6 +74,12 @@ static int LuaFlowId(lua_State *luastate)
     return 1;
 }
 
+static void PushAlprotoString(lua_State *luastate, AppProto alproto)
+{
+    const char *s = AppProtoToString(alproto);
+    lua_pushstring(luastate, s ? s : "unknown");
+}
+
 /** \internal
  *  \brief fill lua stack with AppLayerProto
  *  \param luastate the lua state
@@ -91,11 +97,12 @@ static int LuaFlowAppLayerProto(lua_State *luastate)
     }
 
     Flow *f = s->f;
-    lua_pushstring(luastate, AppProtoToString(f->alproto));
-    lua_pushstring(luastate, AppProtoToString(f->alproto_ts));
-    lua_pushstring(luastate, AppProtoToString(f->alproto_tc));
-    lua_pushstring(luastate, AppProtoToString(f->alproto_orig));
-    lua_pushstring(luastate, AppProtoToString(f->alproto_expect));
+    /* unknown alprotos have no name: report "unknown" as documented */
+    PushAlprotoString(luastate, f->alproto);
+    PushAlprotoString(luastate, f->alproto_ts);
+    PushAlprotoString(luastate, f->alproto_tc);
+    PushAlprotoString(luastate, f->alproto_orig);
+    PushAlprotoString(luastate, f->alproto_expect);
     return 5;
 }
 
