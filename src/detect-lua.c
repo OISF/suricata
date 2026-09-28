@@ -314,8 +314,6 @@ static int DetectLuaMatch (DetectEngineThreadCtx *det_ctx,
      * use. */
     const uint64_t cfg_limit = SCLuaSbResetBytesLimit(tlua->luastate);
 
-    LuaStateSetThreadVars(tlua->luastate, det_ctx->tv);
-
     LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx, p->flow, p, s, flags);
 
     lua_getglobal(tlua->luastate, "match");
