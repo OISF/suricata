@@ -102,7 +102,7 @@ Package Name        Functions
 base                assert, ipairs, next, pairs, print, rawequal, rawlen, select, 
                     tonumber, tostring, type, warn, rawget, rawset, error
 table               concat, insert, move, pack, remove, sort, unpack
-string              byte, char, dump, find, format, gmatch, gsub, len, lower, match, 
+string              byte, char, find, format, gmatch, gsub, len, lower, match, 
                     pack, packsize, rep, reverse, sub, unpack, upper
 math                abs, acos, asin, atan, atan2, ceil, cos, cosh, deg, exp, floor, 
                     fmod, frexp, ldexp, log, log10, max, min, modf, pow, rad, random, 

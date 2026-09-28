@@ -165,7 +165,6 @@ static bool IsAllowed(const char *module, const char *fname)
     static const char *string_allowed[] = {
         "byte",
         "char",
-        "dump",
         "find",
         "format",
         "gmatch",
