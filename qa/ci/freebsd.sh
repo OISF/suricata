@@ -48,6 +48,9 @@ run()
     ./src/suricata --build-info | grep -q 'Netmap support:.*yes v14+'
     ./src/suricata -u -l /tmp/
     python3 ./suricata-verify/run.py -q --debug-failed
+
+    # Live VALE test of netmap packet coalescing; not a Suricata-Verify test.
+    ./qa/ci/issue-8777/test.sh "$(pwd)"
 }
 
 if [ "$#" -eq 0 ]; then
