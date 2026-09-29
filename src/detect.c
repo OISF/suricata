@@ -1041,7 +1041,7 @@ static DetectRunScratchpad DetectRunSetup(const DetectEngineCtx *de_ctx,
     det_ctx->json_content_len = 0;
 
     det_ctx->alert_queue_size = 0;
-    p->alerts.drop.action = 0;
+    PacketAlertDropReset(p);
     p->alerts.firewall_discarded = 0;
 
 #ifdef DEBUG

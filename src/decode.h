@@ -296,8 +296,10 @@ typedef struct PacketAlerts_ {
     PacketAlert drop;
 } PacketAlerts;
 
+struct Packet_;
 PacketAlert *PacketAlertCreate(void);
 void PacketAlertRecycle(PacketAlert *pa_array, uint16_t cnt);
+void PacketAlertDropReset(struct Packet_ *p);
 
 void PacketAlertFree(PacketAlert *pa);
 
