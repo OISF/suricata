@@ -118,8 +118,9 @@ void PacketReinit(Packet *p)
     p->flags = 0;
     p->flowflags = 0;
     p->pkt_src = 0;
-    p->vlan_id[0] = 0;
-    p->vlan_id[1] = 0;
+    for (uint8_t i = 0; i < VLAN_MAX_LAYERS; i++) {
+        p->vlan_id[i] = 0;
+    }
     p->vlan_idx = 0;
     p->ttype = PacketTunnelNone;
     SCTIME_INIT(p->ts);
