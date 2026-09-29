@@ -167,6 +167,29 @@ int EBPFGetMapFDByName(const char *iface, const char *name)
     return -1;
 }
 
+/**
+ * Check that a flow table map has the key and value layouts of this version of
+ * Suricata.
+ */
+static bool EBPFFlowTableIsCompatible(int fd, const char *name, uint32_t key_size)
+{
+    struct bpf_map_info info;
+    uint32_t info_len = sizeof(info);
+
+    memset(&info, 0, sizeof(info));
+    if (bpf_obj_get_info_by_fd(fd, &info, &info_len) != 0) {
+        SCLogError("Unable to get info on %s map: %s", name, strerror(errno));
+        return false;
+    }
+    if (info.key_size != key_size || info.value_size != sizeof(struct pair)) {
+        SCLogError("Incompatible %s map: key size %u and value size %u instead of %u and %zu, "
+                   "the eBPF program must be rebuilt with this version of Suricata",
+                name, info.key_size, info.value_size, key_size, sizeof(struct pair));
+        return false;
+    }
+    return true;
+}
+
 static int EBPFLoadPinnedMapsFile(LiveDevice *livedev, const char *file)
 {
     char pinnedpath[1024];
@@ -203,6 +226,15 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
         if (fd_v6 < 0) {
             SCLogWarning("Found a flow_table_v4 map but no flow_table_v6 map");
             return fd_v6;
+        }
+
+        if (!EBPFFlowTableIsCompatible(fd_v4, "flow_table_v4", sizeof(struct flowv4_keys)) ||
+                !EBPFFlowTableIsCompatible(fd_v6, "flow_table_v6", sizeof(struct flowv6_keys))) {
+            SCLogWarning("%s: not using the pinned maps, they must be removed to be pinned again",
+                    livedev->dev);
+            close(fd_v4);
+            close(fd_v6);
+            return -1;
         }
     }
 
@@ -416,14 +448,14 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
             break;
         }
         if (strcmp(bpf_map__name(map), "flow_table_v4") == 0) {
-            if (bpf_map__key_size(map) != sizeof(struct flowv4_keys)) {
-                SCLogError("Incompatible flow_table_v4");
+            if (!EBPFFlowTableIsCompatible(
+                        bpf_map__fd(map), "flow_table_v4", sizeof(struct flowv4_keys))) {
                 break;
             }
         }
         if (strcmp(bpf_map__name(map), "flow_table_v6") == 0) {
-            if (bpf_map__key_size(map) != sizeof(struct flowv6_keys)) {
-                SCLogError("Incompatible flow_table_v6");
+            if (!EBPFFlowTableIsCompatible(
+                        bpf_map__fd(map), "flow_table_v6", sizeof(struct flowv6_keys))) {
                 break;
             }
         }
