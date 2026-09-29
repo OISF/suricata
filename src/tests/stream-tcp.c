@@ -3402,6 +3402,101 @@ end:
     return ret;
 }
 
+/**
+ *  \brief A direction that stopped reassembling must keep tracking ACK's.
+ *
+ *  Emulates the stream state of a flow that carried 2^31 bytes past the point
+ *  where reassembly depth was reached: base_seq froze there, last_ack is at the
+ *  far edge of the sequence space that base_seq can still compare against, and
+ *  the next ACK of the peer is a regular in-window one. Taking 2^31 bytes of
+ *  traffic to get there is not the point of the test: the arithmetic is what
+ *  matters, so the numbers are set directly.
+ */
+static int StreamTcpTest46(void)
+{
+    TcpSession ssn;
+    memset(&ssn, 0, sizeof(ssn));
+    TcpStream *stream = &ssn.client;
+    stream->isn = 1000;
+    stream->base_seq = stream->isn + 1 + 4096;
+    stream->last_ack = stream->base_seq + (uint32_t)INT32_MAX - 1;
+    stream->next_seq = stream->last_ack + 1;
+    stream->flags = STREAMTCP_STREAM_FLAG_NOREASSEMBLY | STREAMTCP_STREAM_FLAG_DEPTH_REACHED;
+
+    /* what a peer sends: a step forward of one packet, well inside the window */
+    const uint32_t ack = stream->next_seq + 8192;
+    StreamTcpUpdateLastAck((&ssn), stream, ack);
+    FAIL_IF(stream->last_ack != ack);
+    PASS;
+}
+
+/**
+ *  \brief The same ACK must still be refused while the direction is
+ *         reassembling, for base_seq tracks the stream there and an ACK that
+ *         far ahead of it is not a real one (see Redmine #6865).
+ */
+static int StreamTcpTest47(void)
+{
+    TcpSession ssn;
+    memset(&ssn, 0, sizeof(ssn));
+    TcpStream *stream = &ssn.client;
+    stream->isn = 1000;
+    stream->base_seq = stream->isn + 1 + 4096;
+    stream->last_ack = stream->base_seq + (uint32_t)INT32_MAX - 1;
+    stream->next_seq = stream->last_ack + 1;
+
+    const uint32_t prev_last_ack = stream->last_ack;
+    const uint32_t ack = stream->next_seq + 8192;
+    StreamTcpUpdateLastAck((&ssn), stream, ack);
+    FAIL_IF(stream->last_ack != prev_last_ack);
+    PASS;
+}
+
+/**
+ *  \brief the Redmine #6865 shape on a direction that stopped reassembling
+ *
+ *  The bound is dropped there, so this is the state to check: an ACK that is
+ *  ahead of last_ack yet behind base_seq. StreamTcpUpdateLastAck() only ever
+ *  moves last_ack forward, as the first half of its condition is
+ *  SEQ_GT(ack, last_ack), so what is at stake is not a backwards step but
+ *  whether a last_ack behind base_seq is still readable. It is:
+ *  STREAM_LASTACK_GT_BASESEQ() is false for it, so the reassembly side takes
+ *  the base offset as the absolute last_ack and reports no progress rather
+ *  than a negative one. Follow up with a regular ACK to show tracking resumes.
+ */
+static int StreamTcpTest48(void)
+{
+    TcpSession ssn;
+    memset(&ssn, 0, sizeof(ssn));
+    TcpStream *stream = &ssn.client;
+    stream->isn = 1000;
+    stream->base_seq = stream->isn + 1 + 4096;
+    stream->last_ack = stream->base_seq - 8192;
+    stream->next_seq = stream->base_seq;
+    stream->next_win = stream->last_ack + 65535;
+    stream->tcp_flags = TH_ACK;
+    stream->flags = STREAMTCP_STREAM_FLAG_NOREASSEMBLY | STREAMTCP_STREAM_FLAG_DEPTH_REACHED;
+
+    /* ahead of last_ack, behind base_seq: what #6865 refuses on a stream that
+     * is still being reassembled (see StreamTcpTest47) */
+    const uint32_t prev = stream->last_ack;
+    const uint32_t ack = stream->base_seq - 4096;
+    FAIL_IF(!SEQ_GT(ack, prev));
+    FAIL_IF(SEQ_GT(ack, stream->base_seq));
+    StreamTcpUpdateLastAck((&ssn), stream, ack);
+    FAIL_IF(stream->last_ack != ack);
+    FAIL_IF(SEQ_LT(stream->last_ack, prev));
+    FAIL_IF(STREAM_LASTACK_GT_BASESEQ(stream));
+    FAIL_IF(stream->next_win != prev + 65535);
+
+    /* and the next regular ACK, now past base_seq, tracks as usual */
+    const uint32_t next = stream->base_seq + 4096;
+    StreamTcpUpdateLastAck((&ssn), stream, next);
+    FAIL_IF(stream->last_ack != next);
+    FAIL_IF(!STREAM_LASTACK_GT_BASESEQ(stream));
+    PASS;
+}
+
 void StreamTcpRegisterTests(void)
 {
     UtRegisterTest("StreamTcpTest01 -- TCP session allocation", StreamTcpTest01);
@@ -3459,6 +3554,10 @@ void StreamTcpRegisterTests(void)
     UtRegisterTest("StreamTcpTest43 -- SYN/ACK queue", StreamTcpTest43);
     UtRegisterTest("StreamTcpTest44 -- SYN/ACK queue", StreamTcpTest44);
     UtRegisterTest("StreamTcpTest45 -- SYN/ACK queue", StreamTcpTest45);
+
+    UtRegisterTest("StreamTcpTest46 -- ACK tracking past a stale reassembly base", StreamTcpTest46);
+    UtRegisterTest("StreamTcpTest47 -- ACK bound by base_seq while reassembling", StreamTcpTest47);
+    UtRegisterTest("StreamTcpTest48 -- #6865 ack shape on a stopped direction", StreamTcpTest48);
 
     /* set up the reassembly tests as well */
     StreamTcpReassembleRegisterTests();
