@@ -166,6 +166,16 @@ void PacketAlertRecycle(PacketAlert *pa_array, uint16_t cnt)
     }
 }
 
+/** \brief Release the alert context the drop slot owns, then invalidate the slot.
+ *  Not an `alerts[]` entry, so clearing `action` alone leaves it owning the chain;
+ *  `action` is the guard consumers read, so a leaked slot still reads as empty.
+ */
+void PacketAlertDropReset(Packet *p)
+{
+    PacketAlertRecycle(&p->alerts.drop, 1);
+    p->alerts.drop.action = 0;
+}
+
 void PacketAlertFree(PacketAlert *pa_array)
 {
     if (pa_array == NULL)

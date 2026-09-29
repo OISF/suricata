@@ -128,7 +128,7 @@ void PacketReinit(Packet *p)
     p->alerts.discarded = 0;
     p->alerts.firewall_discarded = 0;
     p->alerts.suppressed = 0;
-    p->alerts.drop.action = 0;
+    PacketAlertDropReset(p);
     if (p->alerts.cnt > 0) {
         if (pflags & PKT_ALERT_CTX_USED)
             PacketAlertRecycle(p->alerts.alerts, p->alerts.cnt);
@@ -164,6 +164,7 @@ void PacketDestructor(Packet *p)
     if (p->pktvar != NULL) {
         PktVarFree(p->pktvar);
     }
+    PacketAlertRecycle(&p->alerts.drop, 1);
     PacketAlertFree(p->alerts.alerts);
     PACKET_FREE_EXTDATA(p);
     SCSpinDestroy(&p->persistent.tunnel_lock);
