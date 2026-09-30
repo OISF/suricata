@@ -354,6 +354,19 @@ void FlowSendToLocalThread(Flow *f)
     TmThreadsInjectFlowById(f, (const int)f->thread_id[idx]);
 }
 
+/** \note f->fb must be locked; cannot reuse RemoveFromHash, as that unlinks
+ *  from the row's head list. */
+static inline void RemoveFromEvictedList(FlowBucket *fb, Flow *f, Flow *prev_f)
+{
+    if (prev_f != NULL) {
+        prev_f->next = f->next;
+    } else {
+        fb->evicted = f->next;
+    }
+    f->next = NULL;
+    f->fb = NULL;
+}
+
 /**
  * \internal
  * \brief Remove flows from the hash bucket as they have more work to be done in
@@ -409,6 +422,35 @@ static inline void FlowRemoveHash(void)
             /* next flow in the queue */
             prev_f = f;
             f = f->next;
+        }
+
+        /* MoveToWorkQueue parks TCP flows it must not handle itself on the
+         * row's evicted list for the flow manager to pick up. The manager is
+         * stopped before these sweeps run, so the list is never drained
+         * afterwards: sweep it here or the flows get recycled without their
+         * final reassembly work, losing any app layer tx that only completes
+         * at flow end along with its alerts. */
+        f = fb->evicted;
+        prev_f = NULL;
+        while (f != NULL) {
+            Flow *next_f = f->next;
+
+            FLOWLOCK_WRLOCK(f);
+
+            TcpSession *ssn = (TcpSession *)f->protoctx;
+            if (ssn != NULL && FlowNeedsReassembly(f)) {
+                RemoveFromEvictedList(fb, f, prev_f);
+                f->flow_end_flags |= FLOW_END_FLAG_SHUTDOWN;
+                FlowSendToLocalThread(f);
+                FLOWLOCK_UNLOCK(f);
+                f = next_f;
+                continue;
+            }
+
+            FLOWLOCK_UNLOCK(f);
+
+            prev_f = f;
+            f = next_f;
         }
         FBLOCK_UNLOCK(fb);
     }
