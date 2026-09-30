@@ -1668,6 +1668,17 @@ int SCAppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto, 
     SCReturnInt(r);
 }
 
+bool SCAppLayerProtoDetectGetStreamDataSize(const Flow *f, uint8_t direction, uint32_t *size)
+{
+    TcpSession *ssn = (TcpSession *)f->protoctx;
+    if (f->proto != IPPROTO_TCP || ssn == NULL) {
+        return false;
+    }
+    TcpStream *stream = (direction & STREAM_TOSERVER) ? &ssn->client : &ssn->server;
+    *size = StreamDataAvailableForProtoDetect(stream);
+    return true;
+}
+
 /***** Setup/General Registration *****/
 
 int AppLayerProtoDetectSetup(void)
