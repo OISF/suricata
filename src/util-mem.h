@@ -78,11 +78,17 @@ void SCFreeAlignedFunc(void *ptr);
 
 #endif /* CPPCHECK */
 
+#include "util-validate.h"
+
 static inline void SCMemmove(void *dest, size_t dest_size, const void *src, size_t len)
 {
 #if HAVE_MEMMOVE_S
     memmove_s(dest, dest_size, src, len);
 #else
+    if (len > dest_size) {
+        DEBUG_VALIDATE_BUG_ON(len > dest_size);
+        len = dest_size;
+    }
     memmove(dest, src, len);
 #endif
 }
