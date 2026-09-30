@@ -1327,6 +1327,12 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    #[doc = " \\brief Get the size of the stream data available for protocol detection\n        in the given direction, for use by probing parsers.\n\n \\retval bool false if the flow has no TCP session"]
+    pub fn SCAppLayerProtoDetectGetStreamDataSize(
+        f: *const Flow, direction: u8, size: *mut u32,
+    ) -> bool;
+}
+extern "C" {
     pub fn SCAppLayerRequestProtocolTLSUpgrade(f: *mut Flow) -> bool;
 }
 extern "C" {
@@ -1867,6 +1873,9 @@ extern "C" {
 }
 extern "C" {
     pub fn SCFlowGetAppProtocol(f: *const Flow) -> AppProto;
+}
+extern "C" {
+    pub fn SCFlowGetAppProtocolToClient(f: *const Flow) -> AppProto;
 }
 #[doc = " \\brief Function type for flow initialization callbacks.\n\n Once registered with SCFlowRegisterInitCallback, this function will\n be called every time a flow is initialized, or in other words,\n every time Suricata picks up a flow.\n\n \\param tv The ThreadVars data structure for the thread creating the\n     flow.\n \\param f The newly initialized flow.\n \\param p The packet related to creating the new flow.\n \\param user The user data provided during callback registration."]
 pub type SCFlowInitCallbackFn = ::std::option::Option<
