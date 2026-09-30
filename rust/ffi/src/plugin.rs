@@ -61,6 +61,7 @@ impl Plugin {
             license,
             author,
             Init: Some(self.init),
+            LandlockEnable: None,
         };
 
         Box::into_raw(Box::new(plugin))

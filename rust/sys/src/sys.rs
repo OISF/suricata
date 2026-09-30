@@ -88,7 +88,10 @@ extern "C" {
         alproto: AppProto, proto_name: *const ::std::os::raw::c_char,
     );
 }
-pub const SC_API_VERSION: u64 = 2304;
+pub const SC_API_VERSION: u64 = 2305;
+#[doc = " Callback signature for plugins, output modules and EVE filetypes that need to\n declare additional landlock permissions before the sandbox is enforced.\n\n The ruleset is opaque: implementations must not dereference it and must only\n hand it back to the SCLandlockGrant* helpers declared in util-landlock.h.\n Those helpers are no-ops when landlock is unavailable, so an implementation\n never has to guard its grants."]
+pub type SCLandlockEnableFunc =
+    ::std::option::Option<unsafe extern "C" fn(ruleset: *mut ::std::os::raw::c_void)>;
 #[doc = " Structure to define a Suricata plugin."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -100,6 +103,8 @@ pub struct SCPlugin_ {
     pub license: *const ::std::os::raw::c_char,
     pub author: *const ::std::os::raw::c_char,
     pub Init: ::std::option::Option<unsafe extern "C" fn()>,
+    #[doc = " Optional callback invoked before landlock sandboxing is enforced.\n  The plugin may grant additional filesystem/network access using the\n  SCLandlockGrant* helpers in util-landlock.h. May be NULL."]
+    pub LandlockEnable: SCLandlockEnableFunc,
 }
 impl Default for SCPlugin_ {
     fn default() -> Self {
@@ -341,6 +346,11 @@ extern "C" {
     pub fn SCConfNodeLookupChildValue(
         node: *const SCConfNode, key: *const ::std::os::raw::c_char,
     ) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    pub fn SCConfNodeLookupInSequence(
+        seq: *const SCConfNode, key: *const ::std::os::raw::c_char, prev: *const SCConfNode,
+    ) -> *mut SCConfNode;
 }
 extern "C" {
     pub fn SCConfNodeRemove(arg1: *mut SCConfNode);

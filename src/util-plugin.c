@@ -172,6 +172,21 @@ SCCapturePlugin *SCPluginFindCaptureByName(const char *name)
     return plugin;
 }
 
+/**
+ * \brief Invoke LandlockEnable on every loaded plugin that defines one
+ *
+ * \param ruleset landlock ruleset the plugins declare their accesses on
+ */
+void SCPluginsLandlockEnable(void *ruleset)
+{
+    PluginListNode *node;
+    TAILQ_FOREACH (node, &plugins, entries) {
+        if (node->plugin->LandlockEnable != NULL) {
+            node->plugin->LandlockEnable(ruleset);
+        }
+    }
+}
+
 int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
 {
     AppProto alproto = AppProtoNewProtoFromString(plugin->name);

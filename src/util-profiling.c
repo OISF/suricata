@@ -34,6 +34,7 @@
 #include "conf.h"
 #include "util-unittest.h"
 #include "util-byte.h"
+#include "util-landlock.h"
 #include "util-profiling-locks.h"
 #include "util-conf.h"
 #include "util-path.h"
@@ -190,6 +191,8 @@ SCProfilingInit(void)
                     profiling_packets_file_mode = "a";
                 } else {
                     profiling_packets_file_mode = "w";
+                    SCLandlockRegisterFile(profiling_packets_file_name,
+                            SC_LANDLOCK_FILE_WRITE | SC_LANDLOCK_FILE_TRUNCATE);
                 }
 
                 profiling_packets_output_to_file = 1;
@@ -259,6 +262,8 @@ SCProfilingInit(void)
                     profiling_locks_file_mode = "a";
                 } else {
                     profiling_locks_file_mode = "w";
+                    SCLandlockRegisterFile(profiling_locks_file_name,
+                            SC_LANDLOCK_FILE_WRITE | SC_LANDLOCK_FILE_TRUNCATE);
                 }
 
                 profiling_locks_output_to_file = 1;

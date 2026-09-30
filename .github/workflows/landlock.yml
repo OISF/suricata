@@ -1,0 +1,179 @@
+name: landlock
+
+on:
+  push:
+    paths-ignore:
+      # Don't run this workflow if only files under doc/ have been
+      # modified.
+      - "doc/**"
+      - "etc/schema.json"
+  pull_request:
+    paths-ignore:
+      # Don't run this workflow if only files under doc/ have been
+      # modified.
+      - "doc/**"
+      - "etc/schema.json"
+  workflow_dispatch:
+    inputs:
+      SU_REPO:
+      SU_BRANCH:
+      SV_REPO:
+      SV_BRANCH:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+env:
+  DEFAULT_CFLAGS: "-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
+
+  # Apt sometimes likes to ask for user input, this will prevent that.
+  DEBIAN_FRONTEND: "noninteractive"
+
+  # A recent version of stable Rust that is known to pass build, test and other
+  # verification steps in this workflow. This was added because using "stable"
+  # could cause some steps to fail.
+  RUST_VERSION_KNOWN: "1.95.0"
+
+jobs:
+
+  prepare-deps:
+    name: Prepare dependencies
+    uses: ./.github/workflows/prepare-deps.yml
+
+  # Run suricata-verify with the Landlock sandbox enabled.
+  #
+  # This job deliberately runs directly on the runner instead of in a
+  # container: Landlock is a kernel LSM, so enforcement depends on the host
+  # kernel rather than on the image. The Ubuntu runners ship a kernel with
+  # Landlock available (5.13+, ABI 1+), which is all Suricata needs.
+  landlock:
+    name: Landlock sandbox (suricata-verify)
+    runs-on: ubuntu-24.04
+    needs: [prepare-deps]
+    steps:
+      - name: Determine number of CPUs
+        run: echo CPUS=$(nproc --all) >> $GITHUB_ENV
+
+      - name: Cache ~/.cargo
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt -y install \
+                autoconf \
+                automake \
+                build-essential \
+                cargo \
+                cbindgen \
+                git \
+                jq \
+                libcap-ng-dev \
+                libevent-dev \
+                libhiredis-dev \
+                libjansson-dev \
+                liblz4-dev \
+                liblua5.1-dev \
+                libmagic-dev \
+                libnet1-dev \
+                libnetfilter-queue-dev \
+                libnfnetlink-dev \
+                libpcap-dev \
+                libpcre2-dev \
+                libtool \
+                libyaml-dev \
+                make \
+                python3-yaml \
+                rustc \
+                zlib1g-dev
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      # Landlock is only compiled in when linux/landlock.h is present, and it
+      # is only enforced when the running kernel supports it. If either is
+      # missing Suricata logs an error and carries on unsandboxed, which would
+      # make every test below pass without exercising anything. Fail loudly
+      # instead.
+      - name: Check kernel Landlock support
+        run: |
+          echo "kernel: $(uname -r)"
+          if [ ! -e /sys/kernel/security/lsm ]; then
+            echo "securityfs not mounted, cannot confirm Landlock is active" >&2
+            exit 1
+          fi
+          cat /sys/kernel/security/lsm
+          if ! grep -q landlock /sys/kernel/security/lsm; then
+            echo "Landlock is not among the active LSMs on this kernel" >&2
+            exit 1
+          fi
+
+      # Comes from prepare-deps rather than a plain checkout, so that a pull
+      # request can point at a matching suricata-verify branch or PR from its
+      # body (SV_REPO / SV_BRANCH). Landlock changes usually need paired test
+      # updates, so that override matters here.
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: prep
+          path: prep
+      - run: tar xf prep/suricata-verify.tar.gz
+
+      - run: ./autogen.sh
+      - run: ./configure
+      - run: make -j ${{ env.CPUS }}
+
+      - name: Check Landlock was built in
+        run: |
+          ./src/suricata --build-info | grep -E '^ *Landlock support: +yes$'
+
+      # Confirm the sandbox actually engages before relying on the suite: a
+      # kernel or build without Landlock only logs an error and keeps running,
+      # so a green suite would otherwise prove nothing.
+      # Suricata's exit code is deliberately ignored: run from the build tree
+      # it also complains about the not-yet-installed sysconfdir and rule
+      # directory. Only the sandbox message matters here, the suite below is
+      # what checks Suricata actually behaves.
+      - name: Check the sandbox is enforced
+        run: |
+          mkdir -p landlock-check
+          ./src/suricata -c suricata.yaml -l landlock-check \
+              --set security.landlock.enabled=yes \
+              --set logging.default-log-level=info \
+              -r suricata-verify/tests/datasets/datasets-parent-path/one-packet.pcap \
+              > landlock-check/run.log 2>&1 || true
+          cat landlock-check/run.log
+          grep -q "Sandboxing via landlock is active" landlock-check/run.log
+
+      # SV_LANDLOCK makes the handful of tests that cannot work under the
+      # sandbox skip themselves (see their test.yaml).
+      #
+      # The magic database has to be granted explicitly. Most tests ship their
+      # own suricata.yaml, which replaces the top level one entirely and so
+      # carries no landlock section at all -- the /usr/ read entry from the
+      # default configuration does not apply to them, and any test using the
+      # filemagic keyword then dies with "could not find any valid magic
+      # files".
+      #
+      # /usr is granted wholesale, the same thing the default suricata.yaml
+      # does, rather than guessing at the magic database location: libmagic
+      # picks its own compiled-in path and distributions disagree about it
+      # (/usr/share/misc, /usr/share/file, /usr/lib/file, ...).
+      #
+      # Index 3 is used because --set on a list replaces the entry at that
+      # index instead of appending: 0..2 are taken in the default
+      # suricata.yaml, and overwriting index 0 would silently drop /usr/.
+      - name: Run suricata-verify with Landlock enabled
+        run: |
+          SV_LANDLOCK=1 python3 ./suricata-verify/run.py -q --debug-failed \
+              --set security.landlock.enabled=yes \
+              --set security.landlock.directories.read.3=/usr
+
+      # A run without the sandbox, to make sure a failure above is attributable
+      # to Landlock rather than to something unrelated.
+      - name: Run suricata-verify without Landlock (control)
+        run: python3 ./suricata-verify/run.py -q --debug-failed
