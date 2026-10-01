@@ -2431,6 +2431,7 @@ static struct SSLDecoderResult SSLv2Decode(uint8_t direction, SSLState *ssl_stat
             const uint16_t version = (uint16_t)(input[0] << 8) | input[1];
             SCLogDebug("SSLv2: version %04x", version);
             ssl_state->curr_connp->version = version;
+            ssl_state->curr_connp->hello_decoded = true;
             uint16_t session_id_length = (input[5]) | (uint16_t)(input[4] << 8);
             input += 6;
             input_len -= 6;
@@ -2511,6 +2512,7 @@ static struct SSLDecoderResult SSLv2Decode(uint8_t direction, SSLState *ssl_stat
         case SSLV2_MT_SERVER_HELLO:
             ssl_state->current_flags = SSL_AL_FLAG_STATE_SERVER_HELLO;
             ssl_state->current_flags |= SSL_AL_FLAG_SSL_SERVER_HS;
+            ssl_state->curr_connp->hello_decoded = true;
             UpdateServerState(ssl_state, TLS_STATE_SERVER_HELLO);
 
             break;
