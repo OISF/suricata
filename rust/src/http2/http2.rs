@@ -1627,7 +1627,7 @@ unsafe extern "C" fn http2_getfiles(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> AppLayerGetFileState {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    if let Some(sfcm) = { SURICATA_HTTP2_FILE_CONFIG } {
+    if let Some(sfcm) = SURICATA_HTTP2_FILE_CONFIG {
         if direction & STREAM_TOSERVER != 0 {
             return AppLayerGetFileState {
                 fc: &mut tx.ft_ts.file,
