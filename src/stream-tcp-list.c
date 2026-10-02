@@ -413,8 +413,8 @@ static int DoHandleDataOverlap(TcpStream *stream, const TcpSegment *list,
  *  Walk back from the current segment which is already in the tree.
  *  We walk until we can't possibly overlap anymore.
  */
-static int DoHandleDataCheckBackwards(TcpStream *stream,
-        TcpSegment *seg, uint8_t *buf, Packet *p)
+static int DoHandleDataCheckBackwards(
+        TcpStream *stream, TcpSegment *seg, uint8_t *buf, Packet *p, bool *to_remove)
 {
     int retval = 0;
 
@@ -444,6 +444,11 @@ static int DoHandleDataCheckBackwards(TcpStream *stream,
 
         if (overlap) {
             retval |= DoHandleDataOverlap(stream, tree_seg, seg, buf, p);
+            if (SEQ_GT(SEG_SEQ_RIGHT_EDGE(tree_seg), SEG_SEQ_RIGHT_EDGE(seg))) {
+                // if the new segment starts after, but stops before, remove it,
+                // so that the red and black tree is always sorted for both left and right edges
+                *to_remove = true;
+            }
         }
     }
     return retval;
@@ -458,8 +463,7 @@ static int DoHandleDataCheckBackwards(TcpStream *stream,
  *  \retval 1 data was different
  *  \retval 0 data was the same
  */
-static int DoHandleDataCheckForward(TcpStream *stream,
-        TcpSegment *seg, uint8_t *buf, Packet *p)
+static int DoHandleDataCheckForward(TcpStream *stream, TcpSegment *seg, uint8_t *buf, Packet *p)
 {
     int retval = 0;
 
@@ -488,6 +492,12 @@ static int DoHandleDataCheckForward(TcpStream *stream,
 
         if (overlap) {
             retval |= DoHandleDataOverlap(stream, tree_seg, seg, buf, p);
+            if (SEQ_GT(seg_re, SEG_SEQ_RIGHT_EDGE(tree_seg))) {
+                // if the new segment covers completely one (or more) tree segments,
+                // remove these tree segments
+                TCPSEG_RB_REMOVE(&stream->seg_tree, tree_seg);
+                StreamTcpSegmentReturntoPool(tree_seg);
+            }
         }
     }
     return retval;
@@ -520,18 +530,19 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
     const bool is_head = !(TCPSEG_RB_PREV(handle));
     const bool is_tail = !(TCPSEG_RB_NEXT(handle));
+    bool to_remove = false;
 
     /* new list head  */
     if (is_head && !is_tail) {
         result = DoHandleDataCheckForward(stream, handle, buf, p);
 
-    /* new list tail */
+        /* new list tail */
     } else if (!is_head && is_tail) {
-        result = DoHandleDataCheckBackwards(stream, handle, buf, p);
+        result = DoHandleDataCheckBackwards(stream, handle, buf, p, &to_remove);
 
-    /* middle of the list */
+        /* middle of the list */
     } else if (!is_head && !is_tail) {
-        result = DoHandleDataCheckBackwards(stream, handle, buf, p);
+        result = DoHandleDataCheckBackwards(stream, handle, buf, p, &to_remove);
         result |= DoHandleDataCheckForward(stream, handle, buf, p);
     }
 
@@ -556,6 +567,10 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             DEBUG_VALIDATE_BUG_ON(1);
         }
         return -1;
+    }
+    if (to_remove) {
+        TCPSEG_RB_REMOVE(&stream->seg_tree, seg);
+        StreamTcpSegmentReturntoPool(seg);
     }
 
     return 0;

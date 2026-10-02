@@ -2266,7 +2266,7 @@ static int StreamTcpTest23(void)
 
     TcpSegment *seg = RB_MAX(TCPSEG, &ssn.client.seg_tree);
     FAIL_IF_NULL(seg);
-    FAIL_IF(TCP_SEG_LEN(seg) != 2);
+    FAIL_IF(TCP_SEG_LEN(seg) != 6);
 
     StreamTcpUTClearSession(&ssn);
     PacketFree(p);
