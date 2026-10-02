@@ -1471,8 +1471,14 @@ static int SigParseProtoHookApp(
             SCLogError("sub states currently only supported for http2 and doh2");
             return -1;
         }
-        /* FW hook LTE mode */
+        /* FW hook LTE mode: the lower bound form is firewall only */
         if (*h == '<') {
+            if (!(s->flags & SIG_FLAG_FIREWALL)) {
+                SCLogError("hook '%s': the lower bound form '<' is only allowed for firewall "
+                           "rules",
+                        in_h);
+                return -1;
+            }
             h++;
             SCLogDebug("hook and prior hooks: '%s'", h);
             s->flags |= SIG_FLAG_FW_HOOK_LTE;
@@ -1517,8 +1523,14 @@ static int SigParseProtoHookApp(
             return -1;
         }
 
-        /* FW hook LTE mode */
+        /* FW hook LTE mode: the lower bound form is firewall only */
         if (*h == '<') {
+            if (!(s->flags & SIG_FLAG_FIREWALL)) {
+                SCLogError("hook '%s': the lower bound form '<' is only allowed for firewall "
+                           "rules",
+                        in_h);
+                return -1;
+            }
             h++;
             SCLogDebug("hook and prior hooks: '%s'", h);
             s->flags |= SIG_FLAG_FW_HOOK_LTE;

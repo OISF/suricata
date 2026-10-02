@@ -198,7 +198,8 @@ Rule that has the same effect as the 11 TLS rules above::
 
 Explanation: ``accept:flow`` accepts all of the TLS flow from the moment the rule
 has matched. The ``tls:client_started`` hook is auto-accepted by the use of the
-``<`` modifier in the hook ``tls:<client_hello``.
+``<`` modifier in the hook ``tls:<client_hello``. The ``<`` modifier is only
+valid for firewall rules: a threat detection rule using it fails to load.
 
 TLS SNI with auto-accept logic, plus disabling TD matching
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
