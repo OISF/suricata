@@ -265,6 +265,10 @@ const struct DecodeEvents_ DEvents[] = {
             "decoder.tcp.opt_duplicate",
             TCP_OPT_DUPLICATE,
     },
+    {
+            "decoder.tcp.opt_wscale_over_max",
+            TCP_OPT_WSCALE_OVER_MAX,
+    },
 
     /* UDP EVENTS */
     {

@@ -96,7 +96,12 @@ static void DecodeTCPOptions(Packet *p, const uint8_t *pkt, uint16_t pktlen)
                             if (wscale <= TCP_WSCALE_MAX) {
                                 p->l4.vars.tcp.wscale = wscale;
                             } else {
-                                p->l4.vars.tcp.wscale = 0;
+                                //  RFC 7323 2.3 states
+                                // If a  Window Scale option is received with a shift.cnt value
+                                // larger than 14, the TCP SHOULD log the error but MUST use 14
+                                // instead of the specified value
+                                ENGINE_SET_EVENT(p, TCP_OPT_WSCALE_OVER_MAX);
+                                p->l4.vars.tcp.wscale = TCP_WSCALE_MAX;
                             }
                         }
                     }
@@ -430,7 +435,7 @@ static int TCPGetWscaleTest01(void)
     PASS;
 }
 
-/** \test Get the wscale of 15, so see if return 0 properly */
+/** \test Get the wscale of 15, so see if return TCP_WSCALE_MAX properly */
 static int TCPGetWscaleTest02(void)
 {
     static uint8_t raw_tcp[] = {0xda, 0xc1, 0x00, 0x50, 0xb6, 0x21, 0x7f, 0x58,
@@ -457,7 +462,7 @@ static int TCPGetWscaleTest02(void)
     FAIL_IF_NOT(PacketIsTCP(p));
 
     uint8_t wscale = TCP_GET_WSCALE(p);
-    FAIL_IF(wscale != 0);
+    FAIL_IF(wscale != TCP_WSCALE_MAX);
 
     PacketFree(p);
     FlowShutdown();

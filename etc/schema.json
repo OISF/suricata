@@ -7708,6 +7708,10 @@
                                         "opt_invalid_len": {
                                             "type": "integer"
                                         },
+                                        "opt_wscale_over_max": {
+                                            "description": "TCP option window scale had a value exceeding its maximum (14) and was clamped to it",
+                                            "type": "integer"
+                                        },
                                         "pkt_too_small": {
                                             "type": "integer"
                                         }
