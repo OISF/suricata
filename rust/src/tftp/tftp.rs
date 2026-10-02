@@ -23,6 +23,7 @@ use nom7::IResult;
 use nom7::combinator::map_res;
 use nom7::bytes::streaming::{tag, take_while};
 use nom7::number::streaming::be_u8;
+use crate::direction::Direction;
 
 use crate::applayer::{AppLayerTxData,AppLayerStateData};
 
@@ -63,13 +64,13 @@ impl TFTPState {
 }
 
 impl TFTPTransaction {
-    pub fn new(opcode : u8, filename : String, mode : String) -> TFTPTransaction {
+    pub fn new(opcode : u8, filename : String, mode : String, dir: Direction) -> TFTPTransaction {
         TFTPTransaction {
             opcode,
             filename,
             mode : mode.to_lowercase(),
             id : 0,
-            tx_data: AppLayerTxData::new(),
+            tx_data: AppLayerTxData::for_direction(dir),
         }
     }
     pub fn is_mode_ok(&self) -> bool {
@@ -132,7 +133,7 @@ fn tftp_request(slice: &[u8]) -> IResult<&[u8], TFTPTransaction> {
     let (i, _) = tag([0])(i)?;
     let (i, mode) = getstr(i)?;
     Ok((i,
-        TFTPTransaction::new(opcode, String::from(filename), String::from(mode))
+        TFTPTransaction::new(opcode, String::from(filename), String::from(mode), Direction::ToServer)
        )
       )
 }
@@ -222,7 +223,7 @@ mod test {
             filename: String::from("rfc1350.txt"),
             mode: String::from("octet"),
             id: 0,
-            tx_data: AppLayerTxData::new(),
+            tx_data: AppLayerTxData::for_direction(Direction::ToServer),
         };
 
         let txp = parse_tftp_request(&READ_REQUEST[..]).unwrap();
@@ -236,7 +237,7 @@ mod test {
             filename: String::from("rfc1350.txt"),
             mode: String::from("octet"),
             id: 0,
-            tx_data: AppLayerTxData::new(),
+            tx_data: AppLayerTxData::for_direction(Direction::ToServer),
         };
 
         let txp = parse_tftp_request(&WRITE_REQUEST[..]).unwrap();
