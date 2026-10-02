@@ -155,5 +155,7 @@ alert pkthdr any any -> any any (msg:"SURICATA packet with too many layers"; dec
 # Capture events.
 alert pkthdr any any -> any any (msg:"SURICATA AF-PACKET truncated packet"; decode-event:afpacket.trunc_pkt; classtype:protocol-command-decode; sid:2200122; rev:1;)
 
-# next sid is 2200123
+alert pkthdr any any -> any any (msg:"SURICATA TCP wscale over maximum"; decode-event:tcp.opt_wscale_over_max; classtype:protocol-command-decode; sid:2200130; rev:1;)
+
+# next sid is 2200131
 

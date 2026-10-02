@@ -99,8 +99,9 @@ enum {
     TCP_INVALID_OPTLEN, /**< invalid len in tcp options */
 
     /* TCP OPTIONS */
-    TCP_OPT_INVALID_LEN, /**< tcp option with invalid len */
-    TCP_OPT_DUPLICATE,   /**< duplicated tcp option */
+    TCP_OPT_INVALID_LEN,     /**< tcp option with invalid len */
+    TCP_OPT_DUPLICATE,       /**< duplicated tcp option */
+    TCP_OPT_WSCALE_OVER_MAX, /**< wscale option greater than maximum */
 
     /* UDP EVENTS */
     UDP_PKT_TOO_SMALL,  /**< udp packet smaller than minimum size */
