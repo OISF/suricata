@@ -113,7 +113,7 @@ pub unsafe extern "C" fn SCRegisterMdnsParser() {
         get_tx_iterator: Some(
             crate::applayer::state_get_tx_iterator::<dns::DNSState, dns::DNSTransaction>,
         ),
-        get_tx_data: dns::state_get_tx_data,
+        get_tx_data: dns::SCDnsTxGetTxData,
         get_state_data: dns::dns_get_state_data,
         apply_tx_config: None,
         flags: 0,

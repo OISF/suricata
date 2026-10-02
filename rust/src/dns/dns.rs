@@ -1020,7 +1020,8 @@ pub extern "C" fn SCDnsTxIsResponse(tx: &mut DNSTransaction) -> bool {
     tx.response.is_some()
 }
 
-pub(crate) unsafe extern "C" fn state_get_tx_data(
+#[no_mangle]
+pub unsafe extern "C" fn SCDnsTxGetTxData(
     tx: *mut std::os::raw::c_void,
 ) -> *mut AppLayerTxData {
     let tx = cast_pointer!(tx, DNSTransaction);
@@ -1300,7 +1301,7 @@ pub unsafe extern "C" fn SCRegisterDnsUdpParser() {
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
-        get_tx_data: state_get_tx_data,
+        get_tx_data: SCDnsTxGetTxData,
         get_state_data: dns_get_state_data,
         apply_tx_config: Some(apply_tx_config),
         flags: 0,
@@ -1347,7 +1348,7 @@ pub unsafe extern "C" fn SCRegisterDnsTcpParser() {
         localstorage_free: None,
         get_tx_files: None,
         get_tx_iterator: Some(crate::applayer::state_get_tx_iterator::<DNSState, DNSTransaction>),
-        get_tx_data: state_get_tx_data,
+        get_tx_data: SCDnsTxGetTxData,
         get_state_data: dns_get_state_data,
         apply_tx_config: Some(apply_tx_config),
         flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,

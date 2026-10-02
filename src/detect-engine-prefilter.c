@@ -107,6 +107,7 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
     SCLogDebug("packet %" PRIu64 " tx %p progress %d tx->detect_progress %02x", p->pcap_cnt,
             tx->tx_ptr, tx->tx_progress, tx->detect_progress);
 
+    uint8_t *detect_progress;
     PrefilterEngine *engine = sgh->tx_engines;
     do {
         // based on flow alproto, and engine, we get right tx_ptr
@@ -114,6 +115,16 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         if (tx_ptr == NULL) {
             // incompatible engine->alproto with flow alproto
             goto next;
+        }
+        detect_progress = &tx->detect_progress;
+        if (tx->tx_ptr != tx_ptr) {
+            // only DOH2 case
+            AppLayerTxData *txd = SCDnsTxGetTxData(tx_ptr);
+            if (p->flowflags & FLOW_PKT_TOSERVER) {
+                detect_progress = &txd->detect_progress_ts;
+            } else {
+                detect_progress = &txd->detect_progress_tc;
+            }
         }
 
         if (engine->ctx.tx_min_progress != -1) {
@@ -132,14 +143,14 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
 
                 /* if state value is at or beyond engine state, we can skip it. It means we ran at
                  * least once already. */
-                if (tx->detect_progress > engine->ctx.tx_min_progress) {
+                if (*detect_progress > engine->ctx.tx_min_progress) {
                     SCLogDebug("tx already marked progress as beyond engine: %u > %u",
-                            tx->detect_progress, engine->ctx.tx_min_progress);
+                            *detect_progress, engine->ctx.tx_min_progress);
                     goto next;
                 } else {
                     SCLogDebug("tx->tx_progress %u > engine->ctx.tx_min_progress %d: "
-                               "tx->detect_progress %u",
-                            tx->tx_progress, engine->ctx.tx_min_progress, tx->detect_progress);
+                               "detect_progress %u",
+                            tx->tx_progress, engine->ctx.tx_min_progress, *detect_progress);
                 }
             }
 #ifdef DEBUG
@@ -153,18 +164,16 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
                     engine->ctx.tx_min_progress, AppProtoToString(engine->alproto), pname,
                     det_ctx->pmq.rule_id_array_cnt - old);
 
-            if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress &&
-                    tx->tx_ptr == tx_ptr) {
+            if (tx->tx_progress > engine->ctx.tx_min_progress && engine->is_last_for_progress) {
                 /* track with an offset of one, so that tx->progress 0 complete is tracked
                  * as 1, progress 1 as 2, etc. This is to allow 0 to mean: nothing tracked, even
                  * though a parser may use 0 as a valid value. */
-                // tx->tx_ptr == tx_ptr ensures we do not use a dns engine progress
-                // to update a HTTP2 tx detect_progress in case of DOH2
-                tx->detect_progress = engine->ctx.tx_min_progress + 1;
+                // *detect_progress uses a dns engine progress in case of DOH2
+                *detect_progress = engine->ctx.tx_min_progress + 1;
                 SCLogDebug("tx->tx_progress %d engine->ctx.tx_min_progress %d "
-                           "engine->is_last_for_progress %d => tx->detect_progress updated to %02x",
+                           "engine->is_last_for_progress %d => detect_progress updated to %02x",
                         tx->tx_progress, engine->ctx.tx_min_progress, engine->is_last_for_progress,
-                        tx->detect_progress);
+                        *detect_progress);
             }
         } else {
             PREFILTER_PROFILING_START(det_ctx);
