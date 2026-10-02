@@ -549,7 +549,7 @@ static void SMTPSetEvent(SMTPState *s, uint8_t e)
 
 static SMTPTransaction *SMTPTransactionCreate(SMTPState *state)
 {
-    if (state->tx_cnt > smtp_config.max_tx) {
+    if (state->nb_live_tx >= smtp_config.max_tx) {
         return NULL;
     }
     SMTPTransaction *tx = SCCalloc(1, sizeof(*tx));
@@ -1333,6 +1333,7 @@ static int SMTPProcessRequest(
             return -1;
         state->curr_tx = tx;
         TAILQ_INSERT_TAIL(&state->tx_list, tx, next);
+        state->nb_live_tx++;
         tx->tx_id = state->tx_cnt++;
 
         /* keep track of the start of the tx */
@@ -2009,6 +2010,7 @@ static void SMTPStateTransactionFree (void *state, uint64_t tx_id)
         if (tx == smtp_state->curr_tx)
             smtp_state->curr_tx = NULL;
         TAILQ_REMOVE(&smtp_state->tx_list, tx, next);
+        smtp_state->nb_live_tx--;
         SMTPTransactionFree(tx, state);
         break;
     }
