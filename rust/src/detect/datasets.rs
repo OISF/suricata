@@ -278,14 +278,22 @@ fn read_or_create_file<P>(filename: P, fmode: &str) -> io::Result<io::Lines<io::
 where
     P: AsRef<Path>,
 {
-    let file: File = if fmode == "r" {
-        File::open(filename)?
+    let mut opts = OpenOptions::new();
+    if fmode == "r" {
+        opts.read(true);
     } else {
-        OpenOptions::new()
-            .append(true)
-            .create(true)
-            .read(true)
-            .open(filename)?
+        opts.append(true).create(true).read(true);
     };
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        opts.custom_flags(libc::O_NONBLOCK);
+    }
+    let file = opts.open(filename)?;
+    let metadata = file.metadata()?;
+    if !metadata.file_type().is_file() {
+        return Err(io::Error::other("Can only read from a regular file"));
+    }
+
     Ok(io::BufReader::new(file).lines())
 }
