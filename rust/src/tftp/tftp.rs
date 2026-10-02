@@ -24,6 +24,7 @@ use nom8::IResult;
 use nom8::Parser;
 use std;
 use std::str;
+use suricata_ffi::direction::Direction;
 
 use crate::applayer::{AppLayerStateData, AppLayerTxData};
 
@@ -64,13 +65,13 @@ impl TFTPState {
 }
 
 impl TFTPTransaction {
-    pub fn new(opcode: u8, filename: String, mode: String) -> TFTPTransaction {
+    pub fn new(opcode: u8, filename: String, mode: String, dir: Direction) -> TFTPTransaction {
         TFTPTransaction {
             opcode,
             filename,
             mode: mode.to_lowercase(),
             id: 0,
-            tx_data: AppLayerTxData::new(),
+            tx_data: AppLayerTxData::for_direction(dir),
         }
     }
     pub fn is_mode_ok(&self) -> bool {
@@ -133,7 +134,12 @@ fn tftp_request(slice: &[u8]) -> IResult<&[u8], TFTPTransaction> {
     let (i, mode) = getstr(i)?;
     Ok((
         i,
-        TFTPTransaction::new(opcode, String::from(filename), String::from(mode)),
+        TFTPTransaction::new(
+            opcode,
+            String::from(filename),
+            String::from(mode),
+            Direction::ToServer,
+        ),
     ))
 }
 
@@ -221,7 +227,7 @@ mod test {
             filename: String::from("rfc1350.txt"),
             mode: String::from("octet"),
             id: 0,
-            tx_data: AppLayerTxData::new(),
+            tx_data: AppLayerTxData::for_direction(Direction::ToServer),
         };
 
         let txp = parse_tftp_request(&READ_REQUEST[..]).unwrap();
@@ -235,7 +241,7 @@ mod test {
             filename: String::from("rfc1350.txt"),
             mode: String::from("octet"),
             id: 0,
-            tx_data: AppLayerTxData::new(),
+            tx_data: AppLayerTxData::for_direction(Direction::ToServer),
         };
 
         let txp = parse_tftp_request(&WRITE_REQUEST[..]).unwrap();
