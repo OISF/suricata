@@ -342,7 +342,7 @@ pub(super) unsafe extern "C" fn smb_gettxfiles(
     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
         let tx_dir: u8 = tdf.direction.into();
         if direction & tx_dir != 0 {
-            if let Some(sfcm) = { SURICATA_SMB_FILE_CONFIG } {
+            if let Some(sfcm) = SURICATA_SMB_FILE_CONFIG {
                 return AppLayerGetFileState {
                     fc: &mut tdf.file_tracker.file,
                     cfg: sfcm.files_sbcfg,
