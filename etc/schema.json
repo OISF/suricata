@@ -2056,6 +2056,8 @@
                 },
                 "age": {
                     "type": "integer",
+                    "description":
+                            "Duration of the flow (measured from timestamp of last packet and first packet)",
                     "suricata": {
                         "keywords": [
                             "flow.age"
@@ -2121,7 +2123,9 @@
                     "type": "boolean"
                 },
                 "end": {
-                    "type": "string"
+                    "type": "string",
+                    "description":
+                            "Date of the last packet of the flow, including packets counted by the capture bypass method"
                 },
                 "exception_policy": {
                     "type": "array",
@@ -2166,7 +2170,8 @@
                     "type": "integer"
                 },
                 "start": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Date of start of the flow"
                 },
                 "state": {
                     "type": "string",
@@ -4850,9 +4855,25 @@
                         ]
                     }
                 },
+                "bypassed": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "description": "Bypassed packets and bytes counted by the capture bypass method",
+                    "properties": {
+                        "bytes": {
+                            "type": "integer",
+                            "description": "Number of bypassed bytes"
+                        },
+                        "pkts": {
+                            "type": "integer",
+                            "description": "Number of bypassed packets"
+                        }
+                    }
+                },
                 "bytes": {
                     "type": "integer",
-                    "description": "Total number of bytes transferred to server/client",
+                    "description":
+                            "Total number of bytes transferred to server/client, including bytes counted by the capture bypass method",
                     "suricata": {
                         "keywords": [
                             "flow.bytes",
@@ -4863,7 +4884,8 @@
                 },
                 "end": {
                     "type": "string",
-                    "description": "Date of the end of the flow"
+                    "description":
+                            "Date of the last packet of the flow, including packets counted by the capture bypass method"
                 },
                 "max_ttl": {
                     "type": "integer",
@@ -4875,7 +4897,8 @@
                 },
                 "pkts": {
                     "type": "integer",
-                    "description": "Total number of packets transferred to server,client",
+                    "description":
+                            "Total number of packets transferred to server/client, including packets counted by the capture bypass method",
                     "suricata": {
                         "keywords": [
                             "flow.pkts",

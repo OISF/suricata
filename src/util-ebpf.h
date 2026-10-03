@@ -62,6 +62,7 @@ struct flowv6_keys {
 struct pair {
     uint64_t packets;
     uint64_t bytes;
+    uint64_t time;
 };
 
 typedef struct EBPFBypassData_ {

@@ -1887,7 +1887,8 @@ Fields
 * "bypassed.bytes_toserver": bypassed bytes count to server
 * "bypassed.bytes_toclient": bypassed bytes count to client
 * "start": date of start of the flow
-* "end": date of end of flow (last seen packet)
+* "end": date of end of flow (last seen packet, including packets counted by the
+  capture bypass method)
 * "age": duration of the flow
 * "bypass": if the flow has been bypassed, it is set to "local" (internal bypass) or "capture"
 * "state": display state of the flow (include "new", "established", "closed", "bypassed")
@@ -3363,11 +3364,16 @@ Fields
 ~~~~~~
 
 * "age": duration of the flow (measured from timestamp of last packet and first packet)
-* "bytes": total number of bytes to client
-* "end": date of the end of the flow
+* "bytes": total number of bytes in the direction of the record, including bypassed bytes
+* "bypassed.bytes": bypassed bytes count in the direction of the record (only present if the
+  flow has been bypassed)
+* "bypassed.pkts": number of bypassed packets in the direction of the record (only present if
+  the flow has been bypassed)
+* "end": date of the end of the flow (last seen packet, including packets counted by the capture
+  bypass method)
 * "max_ttl": maximum observed Time-To-Live (TTL) value
 * "min_ttl": minimum observed TTL value
-* "pkts": total number of packets to client
+* "pkts": total number of packets in the direction of the record, including bypassed packets
 * "start": date of start of the flow
 * "tx_cnt": number of transactions seen in the flow (only present if flow has an application layer)
 

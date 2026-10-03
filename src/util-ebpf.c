@@ -166,6 +166,29 @@ int EBPFGetMapFDByName(const char *iface, const char *name)
     return -1;
 }
 
+/**
+ * Check that a flow table map has the key and value layouts of this version of
+ * Suricata.
+ */
+static bool EBPFFlowTableIsCompatible(int fd, const char *name, uint32_t key_size)
+{
+    struct bpf_map_info info;
+    uint32_t info_len = sizeof(info);
+
+    memset(&info, 0, sizeof(info));
+    if (bpf_obj_get_info_by_fd(fd, &info, &info_len) != 0) {
+        SCLogError("Unable to get info on %s map: %s", name, strerror(errno));
+        return false;
+    }
+    if (info.key_size != key_size || info.value_size != sizeof(struct pair)) {
+        SCLogError("Incompatible %s map: key size %u and value size %u instead of %u and %zu, "
+                   "the eBPF program must be rebuilt with this version of Suricata",
+                name, info.key_size, info.value_size, key_size, sizeof(struct pair));
+        return false;
+    }
+    return true;
+}
+
 static int EBPFLoadPinnedMapsFile(LiveDevice *livedev, const char *file)
 {
     char pinnedpath[1024];
@@ -202,6 +225,15 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
         if (fd_v6 < 0) {
             SCLogWarning("Found a flow_table_v4 map but no flow_table_v6 map");
             return fd_v6;
+        }
+
+        if (!EBPFFlowTableIsCompatible(fd_v4, "flow_table_v4", sizeof(struct flowv4_keys)) ||
+                !EBPFFlowTableIsCompatible(fd_v6, "flow_table_v6", sizeof(struct flowv6_keys))) {
+            SCLogWarning("%s: not using the pinned maps, they must be removed to be pinned again",
+                    livedev->dev);
+            close(fd_v4);
+            close(fd_v6);
+            return -1;
         }
     }
 
@@ -415,14 +447,14 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
             break;
         }
         if (strcmp(bpf_map__name(map), "flow_table_v4") == 0) {
-            if (bpf_map__key_size(map) != sizeof(struct flowv4_keys)) {
-                SCLogError("Incompatible flow_table_v4");
+            if (!EBPFFlowTableIsCompatible(
+                        bpf_map__fd(map), "flow_table_v4", sizeof(struct flowv4_keys))) {
                 break;
             }
         }
         if (strcmp(bpf_map__name(map), "flow_table_v6") == 0) {
-            if (bpf_map__key_size(map) != sizeof(struct flowv6_keys)) {
-                SCLogError("Incompatible flow_table_v6");
+            if (!EBPFFlowTableIsCompatible(
+                        bpf_map__fd(map), "flow_table_v6", sizeof(struct flowv6_keys))) {
                 break;
             }
         }
@@ -602,19 +634,75 @@ void EBPFBypassFree(void *data)
 }
 
 /**
+ * Convert the eBPF stamp of the last packet of a half flow to wall clock time.
+ *
+ * The eBPF programs stamp the entries with bpf_ktime_get_ns() which is a
+ * monotonic clock, so get the age of the stamp and subtract it from the current
+ * wall clock time.
+ *
+ * \retval false if there is no usable stamp
+ */
+static bool EBPFGetLastPktTs(uint64_t last_pkt_mono_ns, SCTime_t *last_pkt_ts)
+{
+    struct timespec now_monotonic_clock;
+
+    /* not stamped by the eBPF program, or read before it stamped the entry */
+    if (last_pkt_mono_ns == 0) {
+        return false;
+    }
+    if (clock_gettime(CLOCK_MONOTONIC, &now_monotonic_clock) != 0) {
+        return false;
+    }
+    SCTime_t now_wall_clock = TimeGet();
+
+    /* SCTime_t is a microsecond precision timestamp, the eBPF one a nanosecond one */
+    uint64_t last_pkt_mono_us = last_pkt_mono_ns / 1000;
+    SCTime_t now_monotonic = SCTIME_FROM_TIMESPEC(&now_monotonic_clock);
+    uint64_t now_monotonic_us =
+            SCTIME_SECS(now_monotonic) * 1000000ULL + SCTIME_USECS(now_monotonic);
+    uint64_t now_wall_clock_us =
+            SCTIME_SECS(now_wall_clock) * 1000000ULL + SCTIME_USECS(now_wall_clock);
+
+    /* reject stamps from the future, e.g. taken with another clock */
+    if (last_pkt_mono_us > now_monotonic_us) {
+        return false;
+    }
+    uint64_t age_pkt_us = now_monotonic_us - last_pkt_mono_us;
+    uint64_t last_pkt_us = now_wall_clock_us - age_pkt_us;
+    *last_pkt_ts = (SCTime_t){ .secs = last_pkt_us / 1000000, .usecs = last_pkt_us % 1000000 };
+    return true;
+}
+
+/**
+ * Update the flow's last seen time with the time of the last packet of a half
+ * flow, or with the time of the check if the eBPF program provided no usable stamp.
+ */
+static void EBPFUpdateFlowLastTs(Flow *f, uint64_t last_pkt_mono_ns, time_t tsec)
+{
+    SCTime_t last_pkt_ts;
+
+    if (!EBPFGetLastPktTs(last_pkt_mono_ns, &last_pkt_ts)) {
+        last_pkt_ts = SCTIME_FROM_SECS(tsec);
+    }
+    if (SCTIME_CMP_GT(last_pkt_ts, f->lastts)) {
+        f->lastts = last_pkt_ts;
+    }
+}
+
+/**
  *
  * Compare eBPF half flow to Flow
  *
  * \return true if entries have activity, false if not
  */
 
-static bool EBPFBypassCheckHalfFlow(Flow *f, FlowBypassInfo *fc,
-                                    EBPFBypassData *eb, void *key,
-                                    int index)
+static bool EBPFBypassCheckHalfFlow(
+        Flow *f, FlowBypassInfo *fc, EBPFBypassData *eb, void *key, int index, time_t tsec)
 {
     int i;
     uint64_t pkts_cnt = 0;
     uint64_t bytes_cnt = 0;
+    uint64_t last_pkt_ns = 0;
     /* We use a per CPU structure so we will get a array of values. But if nr_cpus
      * is 1 then we have a global hash. */
     BPF_DECLARE_PERCPU(struct pair, values_array, eb->cpus_count);
@@ -631,17 +719,23 @@ static bool EBPFBypassCheckHalfFlow(Flow *f, FlowBypassInfo *fc,
                 BPF_PERCPU(values_array, i).bytes);
         pkts_cnt += BPF_PERCPU(values_array, i).packets;
         bytes_cnt += BPF_PERCPU(values_array, i).bytes;
+        // Keeping info on CPU who last seen pkt
+        if (BPF_PERCPU(values_array, i).time > last_pkt_ns) {
+            last_pkt_ns = BPF_PERCPU(values_array, i).time;
+        }
     }
     if (index == 0) {
         if (pkts_cnt != fc->todstpktcnt) {
             fc->todstpktcnt = pkts_cnt;
             fc->todstbytecnt = bytes_cnt;
+            EBPFUpdateFlowLastTs(f, last_pkt_ns, tsec);
             return true;
         }
     } else {
         if (pkts_cnt != fc->tosrcpktcnt) {
             fc->tosrcpktcnt = pkts_cnt;
             fc->tosrcbytecnt = bytes_cnt;
+            EBPFUpdateFlowLastTs(f, last_pkt_ns, tsec);
             return true;
         }
     }
@@ -664,8 +758,8 @@ bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
     if (fc == NULL) {
         return false;
     }
-    bool activity = EBPFBypassCheckHalfFlow(f, fc, eb, eb->key[0], 0);
-    activity |= EBPFBypassCheckHalfFlow(f, fc, eb, eb->key[1], 1);
+    bool activity = EBPFBypassCheckHalfFlow(f, fc, eb, eb->key[0], 0, tsec);
+    activity |= EBPFBypassCheckHalfFlow(f, fc, eb, eb->key[1], 1, tsec);
     if (!activity) {
         SCLogDebug("Delete entry: %u (%" PRIu64 ")", FLOW_IS_IPV6(f), FlowGetId(f));
         /* delete the entries if no time update */
@@ -673,7 +767,6 @@ bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
         EBPFDeleteKey(eb->mapfd, eb->key[1]);
         SCLogDebug("Done delete entry: %u", FLOW_IS_IPV6(f));
     } else {
-        f->lastts = SCTIME_FROM_SECS(tsec);
         return true;
     }
     return false;
