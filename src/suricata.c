@@ -2882,6 +2882,10 @@ int PostConfLoadedSetup(SCInstance *suri)
     MacSetRegisterFlowStorage();
     FlowRateRegisterFlowStorage();
 
+    if (IsRunModeOffline(suri->run_mode)) {
+        RegisterFlowPcapFileVars();
+    }
+
     SigTableInit();
 
 #ifdef HAVE_PLUGINS
