@@ -176,6 +176,13 @@ Anomalies are reported by and configured by type:
 - Stream
 - Application layer
 
+The ``decoder.ethernet.unknown_ethertype`` decode anomaly event includes the
+ethertype value that could not be decoded in the ``anomaly.ether_type`` field.
+With nested headers, e.g., VLAN, this is the innermost ethertype that could
+not be decoded rather than the ethertype of the outer header. This event is
+also raised (alongside ``decoder.vlan.unknown_type`` and the E-Tag/VN-Tag
+equivalents) when the unrecognized ethertype follows a tag.
+
 Metadata::
 
     - anomaly:

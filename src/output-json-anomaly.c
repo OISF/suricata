@@ -131,6 +131,9 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
                 JB_SET_STRING(js, "type", "stream");
             }
             SCJbSetString(js, "event", event);
+            if (event_code == ETHERNET_UNKNOWN_ETHERTYPE) {
+                SCJbSetUint(js, "ether_type", p->l2.unknown_ethertype);
+            }
         } else {
             JB_SET_STRING(js, "type", "unknown");
             SCJbSetUint(js, "code", event_code);
