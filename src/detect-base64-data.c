@@ -15,6 +15,19 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file
+ *
+ * `base64_data` keyword. Takes no options. It must follow a
+ * `base64_decode`, and switches the rule's active list so that the
+ * content matches after it inspect the decoded data:
+ *
+ *   base64_decode; base64_data; content:"foo";
+ *
+ * The keyword itself matches nothing; it only changes where later
+ * keywords are added.
+ */
+
 #include "suricata-common.h"
 #include "detect.h"
 #include "detect-engine.h"
@@ -45,12 +58,18 @@ void DetectBase64DataRegister(void)
     sigmatch_table[DETECT_BASE64_DATA].flags |= SIGMATCH_NOOPT;
 }
 
+/**
+ * \brief Make the base64 decoded buffer as the active list for the
+ *        keywords that follow. No sigmatch is added.
+ *
+ * \retval 0 ok, -1 no `base64_decode` earlier in the rule
+ */
 static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
     const char *str)
 {
     SigMatch *pm = NULL;
 
-    /* Check for a preceding base64_decode. */
+    /* Require a base64_decode earlier in the rule, in any list. */
     pm = SCDetectGetLastSMFromLists(s, DETECT_BASE64_DECODE, -1);
     if (pm == NULL) {
         SCLogError("\"base64_data\" keyword seen without preceding base64_decode.");
@@ -63,8 +82,13 @@ static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
 
 #ifdef UNITTESTS
 
+/* set at test registration, not used by the current tests */
 static int g_file_data_buffer_id = 0;
 
+/**
+ * \test base64_decode stays in the payload list, and the content after
+ *       base64_data goes to the base64 data list.
+ */
 static int DetectBase64DataSetupTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -86,8 +110,8 @@ static int DetectBase64DataSetupTest01(void)
 }
 
 /**
- * \test Test that the list can be changed to post-detection lists
- *     after the base64 keyword.
+ * \test A post-match keyword (tag) is still accepted after base64_data,
+ *       with base64_decode inside a file_data buffer.
  */
 static int DetectBase64DataSetupTest04(void)
 {
