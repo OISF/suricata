@@ -78,6 +78,13 @@ static TmEcode LuaLogThreadDeinit(ThreadVars *t, void *data);
  *
  * NOTE: The flow (f) also referenced by p->flow is locked.
  */
+static bool LuaTlsTxLogCondition(
+        ThreadVars *tv, const Packet *p, void *state, void *tx, uint64_t tx_id)
+{
+    /* keep in sync with the json-tls logger gate */
+    return SSLV3TxLogReady(tx);
+}
+
 static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
 {
     SCEnter();
@@ -793,8 +800,7 @@ static OutputInitResult OutputLuaLogInit(SCConfNode *conf)
         } else if (opts.alproto == ALPROTO_TLS) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_TLS;
-            om->tc_log_progress = TLS_STATE_SERVER_HANDSHAKE_DONE;
-            om->ts_log_progress = TLS_STATE_CLIENT_HANDSHAKE_DONE;
+            om->TxLogCondition = LuaTlsTxLogCondition;
             SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
         } else if (opts.alproto == ALPROTO_DNS) {
             om->TxLogFunc = LuaTxLogger;

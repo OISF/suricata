@@ -128,16 +128,7 @@ end:
         SCLogDebug("DETECT_ENGINE_INSPECT_SIG_MATCH");
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
-        AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, alproto, tx);
-        uint8_t tx_end_state;
-        if (txd->tx_type == 0) {
-            tx_end_state = (uint8_t)AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
-        } else {
-            if (flags & STREAM_TOSERVER)
-                tx_end_state = txd->tx_type_eop_ts;
-            else
-                tx_end_state = txd->tx_type_eop_tc;
-        }
+        const uint8_t tx_end_state = AppLayerParserGetTxEndState(f->proto, alproto, tx, flags);
         if (AppLayerParserGetStateProgress(f->proto, alproto, tx, flags) == tx_end_state) {
             SCLogDebug("DETECT_ENGINE_INSPECT_SIG_CANT_MATCH");
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
@@ -199,6 +190,7 @@ static int DetectAppLayerStateSetup(DetectEngineCtx *de_ctx, Signature *s, const
     }
 
     int progress = 0;
+    uint8_t dir_flag = STREAM_TOSERVER;
     const char *h = arg;
     const int progress_ts =
             AppLayerParserGetStateIdByName(IPPROTO_TCP /* TODO */, s->alproto, h, STREAM_TOSERVER);
@@ -213,8 +205,24 @@ static int DetectAppLayerStateSetup(DetectEngineCtx *de_ctx, Signature *s, const
         }
         s->flags |= SIG_FLAG_TOCLIENT;
         progress = progress_tc;
+        dir_flag = STREAM_TOCLIENT;
     }
 
+    const uint8_t direction = dir_flag;
+    const uint8_t end_state = AppLayerParserGetStateProgressCompletionStatus(s->alproto, direction);
+
+    /* the tx progress can never exceed the completion state */
+    if (mode > 0 && progress >= end_state) {
+        SCLogError("app-layer-state: state '%s' is not below the completion state for mode '>'", h);
+        return -1;
+    }
+    /* the progress can never be below the starting state */
+    if (mode < 0 && progress == 0) {
+        SCLogError("app-layer-state: state '%s' is the starting state, it can never match for "
+                   "mode '<'",
+                h);
+        return -1;
+    }
     DetectAppLayerStateData *data = SCCalloc(1, sizeof(*data));
     if (data == NULL)
         return -1;

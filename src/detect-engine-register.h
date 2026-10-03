@@ -350,6 +350,10 @@ extern int DETECT_TBLSIZE_IDX;
 #define SIGMATCH_INFO_MULTI_UINT (1UL << (18))
 /** keyword is an uint with enumeration stringer */
 #define SIGMATCH_INFO_ENUM_UINT (1UL << (19))
+/** keyword matches mutable state that can change as the transaction advances
+ *  (e.g. ssl_state): a no match must stay revisitable instead of becoming
+ *  final at P + 1. */
+#define SIGMATCH_STATEFUL (1UL << (23))
 /** keyword is an uint with bitflags */
 #define SIGMATCH_INFO_BITFLAGS_UINT (1UL << (20))
 /** keyword cannot be used in firewall rules */

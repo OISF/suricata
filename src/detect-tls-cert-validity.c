@@ -124,7 +124,7 @@ void DetectTlsValidityRegister (void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
-    g_tls_validity_buffer_id = DetectBufferTypeGetByName("tls:server_cert_done:generic");
+    g_tls_validity_buffer_id = DetectBufferTypeGetByName("tls:server_cert:generic");
 }
 
 /**

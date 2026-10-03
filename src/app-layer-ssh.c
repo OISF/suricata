@@ -200,7 +200,7 @@ static int SSHParserTest01(void)
 
     void *tx = SCSshStateGetTx(ssh_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBannerDone);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
     FLOW_DESTROY(&f);
@@ -244,7 +244,7 @@ static int SSHParserTest02(void)
     }
     void *tx = SCSshStateGetTx(ssh_state, 0);
 
-    if (SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBannerDone) {
+    if (SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -295,7 +295,7 @@ static int SSHParserTest03(void)
     }
     void *tx = SCSshStateGetTx(ssh_state, 0);
 
-    if (SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) == SshStateBannerDone) {
+    if (SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) == SshStateKex) {
         printf("Client version string parsed? It's not a valid string: ");
         goto end;
     }
@@ -348,7 +348,7 @@ static int SSHParserTest04(void)
     }
     void *tx = SCSshStateGetTx(ssh_state, 0);
 
-    if (SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateBannerDone) {
+    if (SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateKex) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -399,7 +399,7 @@ static int SSHParserTest05(void)
     }
     void *tx = SCSshStateGetTx(ssh_state, 0);
 
-    if (SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateBannerDone) {
+    if (SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateKex) {
         printf("Client version string not parsed: ");
         goto end;
     }
@@ -450,7 +450,7 @@ static int SSHParserTest06(void)
     }
     void *tx = SCSshStateGetTx(ssh_state, 0);
 
-    if (SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) == SshStateBannerDone) {
+    if (SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) == SshStateKex) {
         printf("Client version string parsed? It's not a valid string: ");
         goto end;
     }
@@ -511,7 +511,7 @@ static int SSHParserTest07(void)
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBannerDone);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
@@ -562,7 +562,7 @@ static int SSHParserTest08(void)
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBannerDone);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
@@ -612,7 +612,7 @@ static int SSHParserTest09(void)
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateBannerDone);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateKex);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT));
 
@@ -663,7 +663,7 @@ static int SSHParserTest10(void)
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateBannerDone);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateKex);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT));
 
@@ -714,7 +714,7 @@ static int SSHParserTest11(void)
         goto end;
     }
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    if (SCSshTxGetFlags(tx, STREAM_TOSERVER) != SshStateFinished) {
+    if (SCSshTxGetFlags(tx, STREAM_TOSERVER) != SshStateSession) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -778,7 +778,7 @@ static int SSHParserTest12(void)
         goto end;
     }
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    if (SCSshTxGetFlags(tx, STREAM_TOSERVER) != SshStateFinished) {
+    if (SCSshTxGetFlags(tx, STREAM_TOSERVER) != SshStateSession) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -839,7 +839,7 @@ static int SSHParserTest13(void)
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOSERVER) != SshStateFinished);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOSERVER) != SshStateSession);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
@@ -898,7 +898,7 @@ static int SSHParserTest14(void)
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOSERVER) != SshStateFinished);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOSERVER) != SshStateSession);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
@@ -956,7 +956,7 @@ static int SSHParserTest15(void)
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOSERVER) != SshStateFinished);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOSERVER) != SshStateSession);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOSERVER));
 
@@ -1012,7 +1012,7 @@ static int SSHParserTest16(void)
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateFinished);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateSession);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT));
 
@@ -1069,7 +1069,7 @@ static int SSHParserTest17(void)
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateFinished);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateSession);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "MySSHClient-0.5.1", tx, STREAM_TOCLIENT));
 
@@ -1136,7 +1136,7 @@ static int SSHParserTest18(void)
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateFinished);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateSession);
 
     FAIL_IF(!(SCAppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_NO_INSPECTION)));
 
@@ -1202,7 +1202,7 @@ static int SSHParserTest19(void)
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateFinished);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateSession);
 
     sshbuf3[sizeof(sshbuf3) - 2] = 0;
     FAIL_IF(SSHParserTestUtilCheck("2.0", (char *)sshbuf3, tx, STREAM_TOCLIENT));
@@ -1271,7 +1271,7 @@ static int SSHParserTest20(void)
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateFinished);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateSession);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", NULL, tx, STREAM_TOCLIENT));
 
@@ -1338,7 +1338,7 @@ static int SSHParserTest21(void)
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateFinished);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateSession);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", NULL, tx, STREAM_TOCLIENT));
 
@@ -1429,7 +1429,7 @@ static int SSHParserTest22(void)
     void *ssh_state = f->alstate;
     FAIL_IF_NULL(ssh_state);
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateFinished);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateSession);
 
     FAIL_IF(SSHParserTestUtilCheck("2.0", "libssh", tx, STREAM_TOCLIENT));
 
@@ -1507,7 +1507,7 @@ static int SSHParserTest24(void)
         goto end;
     }
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    if (SCSshTxGetFlags(tx, STREAM_TOSERVER) != SshStateBannerDone) {
+    if (SCSshTxGetFlags(tx, STREAM_TOSERVER) != SshStateKex) {
         printf("Didn't detect the msg code of new keys (ciphered data starts): ");
         goto end;
     }
@@ -1549,7 +1549,7 @@ static int SSHParserTest25(void)
     void *ssh_state = f.alstate;
     FAIL_IF_NULL(ssh_state);
     void *tx = SCSshStateGetTx(ssh_state, 0);
-    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOSERVER) == SshStateBannerDone);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOSERVER) == SshStateKex);
     const uint8_t *dummy = NULL;
     uint32_t dummy_len = 0;
     FAIL_IF(SCSshTxGetSoftware(tx, STREAM_TOCLIENT, &dummy, &dummy_len) != 0);
@@ -1560,6 +1560,759 @@ static int SSHParserTest25(void)
     PASS;
 }
 
+/** \test State name table: the four phase names, the rejected legacy
+ *  names (no backward-compat aliases), the unhookable completion
+ *  state, unknown names and the id-to-name mapping. */
+static int SSHParserTest26(void)
+{
+    /* new names */
+    FAIL_IF(AppLayerParserGetStateIdByName(
+                    IPPROTO_TCP, ALPROTO_SSH, "request_banner", STREAM_TOSERVER) != SshStateBanner);
+    FAIL_IF(AppLayerParserGetStateIdByName(
+                    IPPROTO_TCP, ALPROTO_SSH, "request_kex", STREAM_TOSERVER) != SshStateKex);
+    FAIL_IF(AppLayerParserGetStateIdByName(IPPROTO_TCP, ALPROTO_SSH, "request_session",
+                    STREAM_TOSERVER) != SshStateSession);
+    FAIL_IF(AppLayerParserGetStateIdByName(IPPROTO_TCP, ALPROTO_SSH, "response_banner",
+                    STREAM_TOCLIENT) != SshStateBanner);
+    FAIL_IF(AppLayerParserGetStateIdByName(IPPROTO_TCP, ALPROTO_SSH, "response_session",
+                    STREAM_TOCLIENT) != SshStateSession);
+
+    /* legacy names are rejected: no backward-compat aliases
+     * (pre-production — breaking changes are allowed) */
+    FAIL_IF(AppLayerParserGetStateIdByName(
+                    IPPROTO_TCP, ALPROTO_SSH, "request_in_progress", STREAM_TOSERVER) != -1);
+    FAIL_IF(AppLayerParserGetStateIdByName(
+                    IPPROTO_TCP, ALPROTO_SSH, "request_banner_done", STREAM_TOSERVER) != -1);
+    FAIL_IF(AppLayerParserGetStateIdByName(
+                    IPPROTO_TCP, ALPROTO_SSH, "request_finished", STREAM_TOSERVER) != -1);
+    FAIL_IF(AppLayerParserGetStateIdByName(
+                    IPPROTO_TCP, ALPROTO_SSH, "response_finished", STREAM_TOCLIENT) != -1);
+
+    /* the completion state is registered but not hookable */
+    FAIL_IF(AppLayerParserGetStateIdByName(
+                    IPPROTO_TCP, ALPROTO_SSH, "request_done", STREAM_TOSERVER) != -1);
+    FAIL_IF(AppLayerParserGetStateIdByName(
+                    IPPROTO_TCP, ALPROTO_SSH, "response_done", STREAM_TOCLIENT) != -1);
+
+    /* unknown names (including banner_wait_eol) and wrong direction
+     * prefix */
+    FAIL_IF(AppLayerParserGetStateIdByName(
+                    IPPROTO_TCP, ALPROTO_SSH, "request_nosuchstate", STREAM_TOSERVER) != -1);
+    FAIL_IF(AppLayerParserGetStateIdByName(
+                    IPPROTO_TCP, ALPROTO_SSH, "request_banner_wait_eol", STREAM_TOSERVER) != -1);
+    FAIL_IF(AppLayerParserGetStateIdByName(
+                    IPPROTO_TCP, ALPROTO_SSH, "response_banner", STREAM_TOSERVER) != -1);
+
+    /* id to name */
+    FAIL_IF(strcmp(AppLayerParserGetStateNameById(
+                           IPPROTO_TCP, ALPROTO_SSH, SshStateBanner, STREAM_TOSERVER),
+                    "request_banner") != 0);
+    FAIL_IF(strcmp(AppLayerParserGetStateNameById(
+                           IPPROTO_TCP, ALPROTO_SSH, SshStateKex, STREAM_TOSERVER),
+                    "request_kex") != 0);
+    FAIL_IF(strcmp(AppLayerParserGetStateNameById(
+                           IPPROTO_TCP, ALPROTO_SSH, SshStateSession, STREAM_TOSERVER),
+                    "request_session") != 0);
+    /* the completion state is out of the id-to-name table: the hook
+     * listing and the policy key walk must not offer it */
+    FAIL_IF(AppLayerParserGetStateNameById(
+                    IPPROTO_TCP, ALPROTO_SSH, SshStateDone, STREAM_TOSERVER) != NULL);
+    FAIL_IF(AppLayerParserGetStateNameById(
+                    IPPROTO_TCP, ALPROTO_SSH, SshStateDone, STREAM_TOCLIENT) != NULL);
+    FAIL_IF(AppLayerParserGetStateNameById(IPPROTO_TCP, ALPROTO_SSH, 9, STREAM_TOSERVER) != NULL);
+
+    PASS;
+}
+
+/** \test Per-direction session state: the toserver direction reports
+ *  session after its own NewKeys while the toclient direction has not
+ *  seen anything yet. */
+static int SSHParserTest27(void)
+{
+    Flow f;
+    uint8_t sshbuf1[] = "SSH-2.0-MySSHClient-0.5.1\r\n";
+    uint32_t sshlen1 = sizeof(sshbuf1) - 1;
+    uint8_t sshbuf2[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00 };
+    uint32_t sshlen2 = sizeof(sshbuf2);
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    StreamTcpInitConfig(true);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
+    FAIL_IF(r != 0);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
+    FAIL_IF(r != 0);
+
+    void *ssh_state = f.alstate;
+    FAIL_IF_NULL(ssh_state);
+    void *tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateSession);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateBanner);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/** \test Unrecoverable parse failure freezes the failing direction
+ *  in the state it failed in: an invalid banner leaves it at
+ *  banner, an invalid record at kex. The other direction is
+ *  unaffected, and post-failure data does not advance the failed
+ *  direction (the parse entry short-circuits on the error flag).
+ *  The parse call reports -1. */
+static int SSHParserTest28(void)
+{
+    Flow f;
+    uint8_t badbanner[] = "SSH-bogus\r\n";
+    uint32_t badbannerlen = sizeof(badbanner) - 1;
+    uint8_t banner[] = "SSH-2.0-TestClient-1.0\r\n";
+    uint32_t bannerlen = sizeof(banner) - 1;
+    uint8_t badrecord[] = { 0x00, 0x00, 0x00, 0x00, 0x08, 0x21, 0x00, 0x00 };
+    uint32_t badrecordlen = sizeof(badrecord);
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    /* invalid banner */
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    StreamTcpInitConfig(true);
+
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, badbanner, badbannerlen);
+    FAIL_IF(r != -1);
+    void *ssh_state = f.alstate;
+    FAIL_IF_NULL(ssh_state);
+    void *tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBanner);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateBanner);
+
+    /* the failed direction is frozen: a valid banner does not advance it */
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, banner, bannerlen);
+    FAIL_IF(r != 0);
+    tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBanner);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateBanner);
+
+    /* the failure event is published data: the tx is marked updated */
+    struct AppLayerTxData *txdata = AppLayerParserGetTxData(IPPROTO_TCP, ALPROTO_SSH, tx);
+    FAIL_IF_NULL(txdata);
+    FAIL_IF(!txdata->updated_ts);
+
+    FLOW_DESTROY(&f);
+
+    /* valid banner then invalid record (pkt_len=0) */
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, banner, bannerlen);
+    FAIL_IF(r != 0);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, badrecord, badrecordlen);
+    FAIL_IF(r != -1);
+    ssh_state = f.alstate;
+    FAIL_IF_NULL(ssh_state);
+    tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
+
+    /* the failed direction is frozen: a valid newkeys record does not
+     * advance it to session */
+    uint8_t newkeys[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00 };
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, newkeys, sizeof(newkeys));
+    FAIL_IF(r != 0);
+    tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
+
+    /* the failure event is published data: the tx is marked updated */
+    txdata = AppLayerParserGetTxData(IPPROTO_TCP, ALPROTO_SSH, tx);
+    FAIL_IF_NULL(txdata);
+    FAIL_IF(!txdata->updated_ts);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/** \test The eve ssh log condition is failure-only: a direction
+ *  \test that fails at banner (invalid banner) satisfies the
+ *  \test condition (the error field makes the failure observable
+ *  \test in eve), while a flow without failure does not - neither
+ *  \test a banner-only flow nor one with both banners parsed
+ *  \test (both directions at kex): the one-shot tx log must not be
+ *  \test consumed mid-flow before a later failure could be
+ *  \test reported, so successful flows are logged at the flow-end
+ *  \test flush. The failure admits the log on the failing
+ *  \test delivery.
+ */
+
+/** \test A record reassembly stash and a header fragment mark the tx
+ *  \test updated at parse entry, like a record completion: the flag
+ *  \test is set at the parse entry, as the base parser did, so the
+ *  \test deliveries are swept by the firewall default policy. A
+ *  \test pkt_len=29 record (27 payload bytes after the 6B header,
+ *  \test msg 50) is fed in 3 calls: 16B (header + 10), 4B (pure
+ *  \test stash), 13B (completion); then a 3B header fragment.
+ */
+static int SSHParserTest29(void)
+{
+    Flow f;
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = NULL;
+
+    uint8_t banner[] = "SSH-2.0-Client-1.0\r\n";
+    uint8_t seg2[] = { 0x00, 0x00, 0x00, 29, 0x00, 50, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67,
+        0x68, 0x69, 0x6a };
+    uint8_t seg3[4] = { 0x6b, 0x6c, 0x6d, 0x6e };
+    uint8_t seg4[13] = { 0x6f, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a,
+        0x7b };
+    uint8_t seg5[3] = { 0x7c, 0x7d, 0x7e };
+
+    void *tx = NULL;
+    struct AppLayerTxData *txdata = NULL;
+    int r = 0;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    StreamTcpInitConfig(true);
+    alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, banner, sizeof(banner) - 1);
+    FAIL_IF(r != 0);
+    FAIL_IF_NULL(f.alstate);
+    tx = SCSshStateGetTx(f.alstate, 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
+    txdata = AppLayerParserGetTxData(IPPROTO_TCP, ALPROTO_SSH, tx);
+    FAIL_IF_NULL(txdata);
+    FAIL_IF(!txdata->updated_ts);
+
+    // record header + 10 payload bytes: frames are published
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, seg2, sizeof(seg2));
+    FAIL_IF(r != 0);
+    FAIL_IF(!txdata->updated_ts);
+    txdata->updated_ts = false;
+
+    // the 4B chunk is fully held by the reassembly stash: nothing is
+    // published, but the tx is marked updated at parse entry
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, seg3, sizeof(seg3));
+    FAIL_IF(r != 0);
+    FAIL_IF(!txdata->updated_ts);
+
+    // the final 13B chunk completes the record
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, seg4, sizeof(seg4));
+    FAIL_IF(r != 0);
+    FAIL_IF(!txdata->updated_ts);
+    txdata->updated_ts = false;
+
+    // 3B header fragment: held for the next delivery, the tx is
+    // marked updated at parse entry
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, seg5, sizeof(seg5));
+    FAIL_IF(r != 1);
+    FAIL_IF(!txdata->updated_ts);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/** \test A long banner (>=256B without EOL) keeps the direction in
+ *  \test the banner phase with the line consumed greedily; the line
+ *  \test completion moves it to kex, and a record that then fails
+ *  \test freezes the direction at kex. A >=256B line without EOL that
+ *  \test does not parse as a banner freezes the direction at banner
+ *  \test at once.
+ */
+static int SSHParserTest30(void)
+{
+    Flow f;
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = NULL;
+    uint8_t longbanner[300];
+    uint8_t junk[300];
+    uint8_t badrecord[] = { 0x00, 0x00, 0x00, 0x00, 0x08, 0x21, 0x00, 0x00 };
+    void *tx;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    StreamTcpInitConfig(true);
+    alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    // phase 1: 300B banner without EOL -> the direction stays in the
+    // banner phase (the line is still open); the line completion
+    // moves it to kex; the following record is invalid -> the
+    // direction freezes at kex
+    memset(longbanner, 'A', sizeof(longbanner));
+    memcpy(longbanner, "SSH-2.0-", 8);
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, longbanner, sizeof(longbanner));
+    FAIL_IF(r != 0);
+    FAIL_IF_NULL(f.alstate);
+    tx = SCSshStateGetTx(f.alstate, 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBanner);
+
+    // line completion -> kex
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, (const uint8_t *)"\r\n", 2);
+    FAIL_IF(r != 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, badrecord, sizeof(badrecord));
+    FAIL_IF(r != -1);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateBanner);
+
+    // phase 2: 300B of junk without EOL (>= 256, not a valid banner)
+    // -> frozen at banner at once
+    FLOW_DESTROY(&f);
+    memset(&ssn, 0, sizeof(ssn));
+    memset(&f, 0, sizeof(f));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+    memset(junk, 'X', sizeof(junk));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, junk, sizeof(junk));
+    FAIL_IF(r != -1);
+    FAIL_IF_NULL(f.alstate);
+    tx = SCSshStateGetTx(f.alstate, 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBanner);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateBanner);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/** \test A banner line split over two segments: the open-line segment
+ *  \test publishes nothing but still marks the tx updated at parse
+ *  \test entry; the line completion publishes the banner and takes
+ *  \test the direction to kex. */
+static int SSHParserTest31(void)
+{
+    Flow f;
+    uint8_t badbanner[] = "SSH-bogus\r\n";
+    uint32_t badbannerlen = sizeof(badbanner) - 1;
+    uint8_t banner[] = "SSH-2.0-TestClient-1.0\r\n";
+    uint32_t bannerlen = sizeof(banner) - 1;
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    /* invalid banner: the failed direction admits the log condition */
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    StreamTcpInitConfig(true);
+
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, badbanner, badbannerlen);
+    FAIL_IF(r != -1);
+    void *ssh_state = f.alstate;
+    FAIL_IF_NULL(ssh_state);
+    void *tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateBanner);
+    FAIL_IF(SCSshTxGetLogCondition(tx) != true);
+
+    FLOW_DESTROY(&f);
+
+    /* no failure yet (client banner only): the condition stays
+     * false - the one-shot tx log is reserved for the failure
+     * or the flow-end flush */
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, banner, bannerlen);
+    FAIL_IF(r != 0);
+    ssh_state = f.alstate;
+    FAIL_IF_NULL(ssh_state);
+    tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetLogCondition(tx) != false);
+
+    FLOW_DESTROY(&f);
+
+    /* both banners parsed (both directions at kex), still no
+     * failure: the condition must stay false - a mid-flow success
+     * log would consume the one-shot tx log before a later failure
+     * could be reported */
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, banner, bannerlen);
+    FAIL_IF(r != 0);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, banner, bannerlen);
+    FAIL_IF(r != 0);
+    ssh_state = f.alstate;
+    FAIL_IF_NULL(ssh_state);
+    tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetLogCondition(tx) != false);
+
+    /* the failure admits the log on the failing delivery */
+    uint8_t badrecord[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, badrecord, sizeof(badrecord));
+    FAIL_IF(r != -1);
+    FAIL_IF(SCSshTxGetLogCondition(tx) != true);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+static int SSHParserTest32(void)
+{
+    TcpReassemblyThreadCtx *ra_ctx = NULL;
+    ThreadVars tv;
+    TcpSession ssn;
+    Flow *f = NULL;
+    Packet *p = NULL;
+
+    uint8_t part1[] = "SSH-2.0-TestClient-1.0";
+    uint8_t part2[] = "\r\n";
+    uint32_t part1len = sizeof(part1) - 1;
+    uint32_t part2len = sizeof(part2) - 1;
+
+    memset(&tv, 0x00, sizeof(tv));
+
+    StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
+    StreamTcpUTSetupSession(&ssn);
+    StreamTcpUTSetupStream(&ssn.server, 1);
+    StreamTcpUTSetupStream(&ssn.client, 1);
+
+    f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1234, 2222);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_SSH;
+
+    p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    p->proto = IPPROTO_TCP;
+    p->flow = f;
+
+    uint32_t seqcli = 2;
+    // segment 1: the open banner line; the parse consumes nothing and
+    // publishes nothing, but the tx is marked updated at parse entry
+    FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, seqcli, part1, part1len) ==
+            -1);
+    seqcli += part1len;
+    FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) < 0);
+
+    void *ssh_state = f->alstate;
+    FAIL_IF_NULL(ssh_state);
+    void *tx = SCSshStateGetTx(ssh_state, 0);
+    struct AppLayerTxData *txdata = AppLayerParserGetTxData(IPPROTO_TCP, ALPROTO_SSH, tx);
+    FAIL_IF_NULL(txdata);
+    FAIL_IF(!txdata->updated_ts);
+
+    // segment 2: the end-of-line completes the line; the banner
+    // publishes and the direction advances to kex
+    FAIL_IF(StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.client, seqcli, part2, part2len) ==
+            -1);
+    seqcli += part2len;
+    FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) < 0);
+
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
+    FAIL_IF(!txdata->updated_ts);
+
+    UTHFreePacket(p);
+    UTHFreeFlow(f);
+    StreamTcpUTClearSession(&ssn);
+    StreamTcpUTDeinit(ra_ctx);
+    PASS;
+}
+
+/** \test NewKeys while the peer direction failed: the peer never
+ *  \test actually switched keys, so it is not terminal for the
+ *  \test no-inspection decision (encryption bypass stays armed-able
+ *  \test only when the peer's own NewKeys was observed). */
+static int SSHParserTest33(void)
+{
+    Flow f;
+    uint8_t badbanner[] = "SSH-bogus\r\n";
+    uint32_t badbannerlen = sizeof(badbanner) - 1;
+    uint8_t banner[] = "SSH-2.0-TestClient-1.0\r\n";
+    uint32_t bannerlen = sizeof(banner) - 1;
+    uint8_t newkeys[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00 };
+    uint32_t newkeyslen = sizeof(newkeys);
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    StreamTcpInitConfig(true);
+
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, badbanner, badbannerlen);
+    FAIL_IF(r != -1);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, banner, bannerlen);
+    FAIL_IF(r != 0);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, newkeys, newkeyslen);
+    FAIL_IF(r != 0);
+
+    void *ssh_state = f.alstate;
+    FAIL_IF_NULL(ssh_state);
+    void *tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOSERVER) != SshStateBanner);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateSession);
+    FAIL_IF(SCAppLayerParserStateIssetFlag(f.alparser, APP_LAYER_PARSER_NO_INSPECTION));
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/** \test a NewKeys record split across two parser calls (segment
+ *  \test boundary after the 6-byte record header) arms the
+ *  \test no-inspection/bypass flags like a complete record: the
+ *  \test arming runs on the session transition itself, shared by
+ *  \test the complete-record and incomplete-header arms. The peer
+ *  \test direction completes its NewKeys record in one call first;
+ *  \test the split direction then delivers the record header (the
+ *  \test body byte is stashed) and the arming must happen on that
+ *  \test delivery. Also pins BYPASS_READY in bypass mode.
+ */
+static int SSHParserTest34(void)
+{
+    TcpReassemblyThreadCtx *ra_ctx = NULL;
+    ThreadVars tv;
+    TcpSession ssn;
+    Flow *f = NULL;
+    Packet *p = NULL;
+
+    uint8_t cli_banner[] = "SSH-2.0-TestClient-1.0\r\n";
+    uint32_t cli_bannerlen = sizeof(cli_banner) - 1;
+    uint8_t srv_banner[] = "SSH-2.0-TestServer-1.0\r\n";
+    uint32_t srv_bannerlen = sizeof(srv_banner) - 1;
+    uint8_t badrecord[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    uint32_t badrecordlen = sizeof(badrecord);
+    uint8_t newkeys[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00 };
+    uint32_t newkeyslen = sizeof(newkeys);
+
+    memset(&tv, 0x00, sizeof(tv));
+
+    StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
+    StreamTcpUTSetupSession(&ssn);
+    StreamTcpUTSetupStream(&ssn.server, 1);
+    StreamTcpUTSetupStream(&ssn.client, 1);
+
+    f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1234, 2222);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_SSH;
+
+    p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    p->proto = IPPROTO_TCP;
+    p->flow = f;
+
+    // the server banner is buffered, not yet delivered to the parser
+    uint32_t seqsrv = 2;
+    FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                    &tv, ra_ctx, &ssn.server, seqsrv, srv_banner, srv_bannerlen) == -1);
+    seqsrv += srv_bannerlen;
+
+    uint32_t seqcli = 2;
+    // the client banner is delivered and parsed: the direction
+    // advances to kex
+    FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                    &tv, ra_ctx, &ssn.client, seqcli, cli_banner, cli_bannerlen) == -1);
+    seqcli += cli_bannerlen;
+    FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) < 0);
+
+    void *ssh_state = f->alstate;
+    FAIL_IF_NULL(ssh_state);
+    void *tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
+
+    // an invalid record in the client direction: the engine ends
+    // app-layer parsing for the whole flow
+    FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                    &tv, ra_ctx, &ssn.client, seqcli, badrecord, badrecordlen) == -1);
+    seqcli += badrecordlen;
+    FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) < 0);
+
+    // the engine ended app-layer parsing for the whole flow
+    FAIL_IF(!StreamTcpAppLayerIsDisabled(f));
+    // the failing direction is frozen at kex, still readable
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
+    // the failure event published: the tx is marked updated, so the
+    // engine evaluates it (not only at the flow-end flush)
+    struct AppLayerTxData *txdata = AppLayerParserGetTxData(IPPROTO_TCP, ALPROTO_SSH, tx);
+    FAIL_IF_NULL(txdata);
+    FAIL_IF(!txdata->updated_ts);
+
+    // further data in either direction does not reach the parser -
+    // neither directly nor via the flow-end flush: the disable flag
+    // is checked at the reassembly entry, so the buffered
+    // pre-failure server banner is not delivered at EOF
+    p->flags |= PKT_PSEUDO_STREAM_END;
+    FAIL_IF(StreamTcpUTAddSegmentWithPayload(
+                    &tv, ra_ctx, &ssn.client, seqcli, newkeys, newkeyslen) == -1);
+    seqcli += newkeyslen;
+    FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.client, p, UPDATE_DIR_PACKET) < 0);
+    FAIL_IF(StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET) < 0);
+
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOSERVER) != SshStateKex);
+    FAIL_IF(SCSshTxGetAlStateProgress(tx, STREAM_TOCLIENT) != SshStateBanner);
+
+    UTHFreePacket(p);
+    UTHFreeFlow(f);
+    StreamTcpUTClearSession(&ssn);
+    StreamTcpUTDeinit(ra_ctx);
+    PASS;
+}
+
+static int SSHParserTest35(void)
+{
+    Flow f;
+    uint8_t banner[] = "SSH-2.0-TestClient-1.0\r\n";
+    uint32_t bannerlen = sizeof(banner) - 1;
+    uint8_t newkeys[] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21, 0x00 };
+    uint8_t newkeys_hdr[6] = { 0x00, 0x00, 0x00, 0x03, 0x01, 21 };
+    uint8_t newkeys_body[1] = { 0x00 };
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    StreamTcpInitConfig(true);
+
+    int r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, banner, bannerlen);
+    FAIL_IF(r != 0);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, banner, bannerlen);
+    FAIL_IF(r != 0);
+
+    /* peer direction: complete NewKeys record in one call -> session */
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, newkeys, sizeof(newkeys));
+    FAIL_IF(r != 0);
+    void *ssh_state = f.alstate;
+    FAIL_IF_NULL(ssh_state);
+    void *tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOCLIENT) != SshStateSession);
+
+    /* split direction: the record header only (the body byte is
+     * stashed and arrives in the next call) */
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, newkeys_hdr, sizeof(newkeys_hdr));
+    FAIL_IF(r != 0);
+    tx = SCSshStateGetTx(ssh_state, 0);
+    FAIL_IF(SCSshTxGetFlags(tx, STREAM_TOSERVER) != SshStateSession);
+    /* the session transition armed the flags despite the split */
+    FAIL_IF(!SCAppLayerParserStateIssetFlag(f.alparser, APP_LAYER_PARSER_NO_INSPECTION));
+
+    /* the stashed body byte completes the record */
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, newkeys_body, sizeof(newkeys_body));
+    FAIL_IF(r != 0);
+    FAIL_IF(!SCAppLayerParserStateIssetFlag(f.alparser, APP_LAYER_PARSER_NO_INSPECTION));
+
+    FLOW_DESTROY(&f);
+
+    /* bypass mode: the transition also arms BYPASS_READY */
+    SCSshEnableBypass(ENCRYPTION_HANDLING_BYPASS);
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SSH;
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, banner, bannerlen);
+    FAIL_IF(r != 0);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, banner, bannerlen);
+    FAIL_IF(r != 0);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, newkeys, sizeof(newkeys));
+    FAIL_IF(r != 0);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, newkeys_hdr, sizeof(newkeys_hdr));
+    FAIL_IF(r != 0);
+    FAIL_IF(!SCAppLayerParserStateIssetFlag(f.alparser, APP_LAYER_PARSER_BYPASS_READY));
+    SCSshEnableBypass(ENCRYPTION_HANDLING_TRACK_ONLY);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/** \test a parse failure ends app-layer parsing for the whole flow
+ *  \test (engine path): the failure site returns a parse error, so
+ *  \test StreamTcpDisableAppLayer runs and no further data in either
+ *  \test direction reaches the parser - mid-flow or at the flow-end
+ *  \test flush (the disable flag is checked at the reassembly
+ *  \test entry, so even pre-failure buffered bytes are not
+ *  \test delivered at EOF); the failing direction's state stays
+ *  \test where the error occurred, readable for the progress
+ *  \test accessor, and the failure event marks the tx updated. */
 #endif /* UNITTESTS */
 
 void SSHParserRegisterTests(void)
@@ -1590,6 +2343,22 @@ void SSHParserRegisterTests(void)
     UtRegisterTest("SSHParserTest23", SSHParserTest23);
     UtRegisterTest("SSHParserTest24", SSHParserTest24);
     UtRegisterTest("SSHParserTest25", SSHParserTest25);
+    UtRegisterTest("SSHParserTest26 - State name table", SSHParserTest26);
+    UtRegisterTest("SSHParserTest27 - Per-direction session state", SSHParserTest27);
+    UtRegisterTest("SSHParserTest28 - failure freezes the failing direction at its state",
+            SSHParserTest28);
+    UtRegisterTest(
+            "SSHParserTest29 - stash and fragment deliveries mark the tx updated", SSHParserTest29);
+    UtRegisterTest(
+            "SSHParserTest30 - long-banner continuation failure freezes at kex", SSHParserTest30);
+    UtRegisterTest("SSHParserTest31 - failed flow admits the eve log condition", SSHParserTest31);
+    UtRegisterTest("SSHParserTest32 - banner continuation marks the tx updated at parse entry",
+            SSHParserTest32);
+    UtRegisterTest("SSHParserTest33 - failed peer does not arm no-inspection", SSHParserTest33);
+    UtRegisterTest("SSHParserTest34 - failure ends the flow's app-layer parsing (engine path)",
+            SSHParserTest34);
+    UtRegisterTest(
+            "SSHParserTest35 - split NewKeys arms the no-inspection/bypass flags", SSHParserTest35);
 #endif /* UNITTESTS */
 }
 

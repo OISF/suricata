@@ -1558,6 +1558,26 @@ void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc)
     strlcpy(exists->description, desc, sizeof(exists->description));
 }
 
+void DetectBufferTypeSetRunAlways(const char *name)
+{
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    if (!exists) {
+        return;
+    }
+    exists->run_always = true;
+}
+
+void DetectEngineBufferTypeSetRunAlways(DetectEngineCtx *de_ctx, const int id)
+{
+    const char *name = DetectEngineBufferTypeGetNameById(de_ctx, id);
+    if (name == NULL) {
+        return;
+    }
+    DetectBufferType *exists = DetectEngineBufferTypeLookupByName(de_ctx, name);
+    BUG_ON(!exists);
+    exists->run_always = true;
+}
+
 const char *DetectEngineBufferTypeGetDescriptionById(const DetectEngineCtx *de_ctx, const int id)
 {
     const DetectBufferType *exists = DetectEngineBufferTypeGetById(de_ctx, id);
@@ -2105,19 +2125,34 @@ int DetectEngineReloadIsIdle(void)
     return r;
 }
 
-/** \brief Do the content inspection & validation for a signature
+/** \internal
+ *  \brief is the engine's data final for this tx?
  *
- *  \param de_ctx Detection engine context
- *  \param det_ctx Detection engine thread context
- *  \param s Signature to inspect
- *  \param sm SigMatch to inspect
- *  \param f Flow
- *  \param flags app layer flags
- *  \param state App layer state
- *
- *  \retval 0 no match
- *  \retval 1 match
+ *  Past the engine's phase the answer is yes; at or beyond the tx end state it
+ *  is final too, even for engines registered at the completion state (no P+1).
+ *  AppLayerParserGetStateProgress() returns the end progress for disrupted
+ *  flows, so progress == end stays a valid finality signal there.
  */
+static bool DetectTxCompleted(
+        Flow *f, void *txv, uint8_t flags, const DetectEngineAppInspectionEngine *engine)
+{
+    if (f->alproto == ALPROTO_DOH2 && engine->alproto == ALPROTO_DOH2) {
+        // the DNS tx from DetectGetInnerTx is always complete
+        return true;
+    } // else
+    const int progress = AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags);
+    if (progress < 0) {
+        return false;
+    }
+    if (progress > engine->progress) {
+        return true;
+    }
+    if (progress < engine->progress) {
+        return false;
+    }
+    return progress == AppLayerParserGetTxEndState(f->proto, f->alproto, txv, flags);
+}
+
 uint8_t DetectEngineInspectGenericList(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const struct DetectEngineAppInspectionEngine_ *engine, const Signature *s, Flow *f,
         uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
@@ -2131,8 +2166,18 @@ uint8_t DetectEngineInspectGenericList(DetectEngineCtx *de_ctx, DetectEngineThre
             match = sigmatch_table[smd->type].
                 AppLayerTxMatch(det_ctx, f, flags, alstate, txv, s, smd->ctx);
             KEYWORD_PROFILING_END(det_ctx, smd->type, (match == 1));
-            if (match == 0)
-                return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            if (match == 0) {
+                /* like the buffer engines, a no match is final once the tx
+                 * moved past the phase the engine is registered at (P + 1).
+                 * stateful keywords read live tx state, so they stay
+                 * revisitable. */
+                if ((sigmatch_table[smd->type].flags & SIGMATCH_STATEFUL) != 0) {
+                    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+                }
+                return DetectTxCompleted(f, txv, flags, engine)
+                               ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH
+                               : DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            }
             if (match == 2) {
                 return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
             }
@@ -2144,16 +2189,6 @@ uint8_t DetectEngineInspectGenericList(DetectEngineCtx *de_ctx, DetectEngineThre
     }
 
     return DETECT_ENGINE_INSPECT_SIG_MATCH;
-}
-
-static bool DetectTxCompleted(
-        Flow *f, void *txv, uint8_t flags, const DetectEngineAppInspectionEngine *engine)
-{
-    if (f->alproto == ALPROTO_DOH2 && engine->alproto == ALPROTO_DOH2) {
-        // the DNS tx from DetectGetInnerTx is always complete
-        return true;
-    } // else
-    return AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress;
 }
 
 /**
@@ -5653,9 +5688,25 @@ static int DetectEngineThreadCtxInitKeywordFailTest(void)
 
 #endif
 
+#ifdef UNITTESTS
+/** \test SIGMATCH_STATEFUL uses a unique bit and only stateful keywords set it */
+static int DetectEngineStatefulFlagTest01(void)
+{
+    FAIL_IF((SIGMATCH_STATEFUL & SIGMATCH_INFO_BITFLAGS_UINT) != 0);
+    FAIL_IF((SIGMATCH_STATEFUL & SIGMATCH_BAN_FIREWALL_RULE) != 0);
+    FAIL_IF((SIGMATCH_STATEFUL & SIGMATCH_BAN_FIREWALL_MODE) != 0);
+
+    FAIL_IF((sigmatch_table[DETECT_SSL_STATE].flags & SIGMATCH_STATEFUL) == 0);
+    FAIL_IF((sigmatch_table[DETECT_DNP3IND].flags & SIGMATCH_STATEFUL) != 0);
+
+    PASS;
+}
+#endif
+
 void DetectEngineRegisterTests(void)
 {
 #ifdef UNITTESTS
+    UtRegisterTest("DetectEngineStatefulFlagTest01", DetectEngineStatefulFlagTest01);
     UtRegisterTest("DetectEngineTest01", DetectEngineTest01);
     UtRegisterTest("DetectEngineTest02", DetectEngineTest02);
     UtRegisterTest("DetectEngineTest03", DetectEngineTest03);

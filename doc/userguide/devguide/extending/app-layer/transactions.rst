@@ -120,6 +120,12 @@ This is controlled by implementing progress states. In Suricata, those will be e
 progresses. A state will start at 0. The higher its value, the closer the transaction would be to completion. Due to how
 the engine tracks detection across states, there is an upper limit of 48 to the state progress (it must be < 48).
 
+Entering a state does not imply that the state's data is present: a state is entered when the unit it names starts
+being parsed, and the data (buffers, extracted fields) exists only once the unit has been fully parsed. Keywords
+reading that data must tolerate the unit still arriving - buffer keywords bail out when the buffer's GetData
+callback reports the buffer unavailable, and keywords reading extracted fields must gate on the field being
+present rather than assume the state implies the data.
+
 The engine interacts with transactions' state using a set of callbacks the parser registers. State is defined per flow direction (``STREAM_TOSERVER`` / ``STREAM_TOCLIENT``).
 
 In Summary - Transactions and State
@@ -142,10 +148,10 @@ Code snippet from: rust/src/ssh/ssh.rs:
 .. code-block:: rust
 
     pub enum SSHConnectionState {
-        SshStateInProgress = 0,
-        SshStateBannerWaitEol = 1,
-        SshStateBannerDone = 2,
-        SshStateFinished = 3,
+        SshStateBanner = 0,
+        SshStateKex = 1,
+        SshStateSession = 2,
+        SshStateDone = 3,
     }
 
 From src/app-layer-ftp.h:
@@ -211,8 +217,8 @@ rust/src/ssh/ssh.rs:
 
 .. code-block:: rust
 
-    tx_comp_st_ts: SSHConnectionState::SshStateFinished as i32,
-    tx_comp_st_tc: SSHConnectionState::SshStateFinished as i32,
+    tx_comp_st_ts: SSHConnectionState::SshStateDone as i32,
+    tx_comp_st_tc: SSHConnectionState::SshStateDone as i32,
 
 In C, callback usage would be as follows:
 
