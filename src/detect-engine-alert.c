@@ -373,6 +373,42 @@ static inline int PacketAlertSetContext(
 }
 
 /** \internal
+ * \brief Free the alert context a PacketAlert owns and clear the reference.
+ */
+static void PacketAlertContextRelease(PacketAlert *pa)
+{
+    struct PacketContextData *json = pa->json_info;
+    while (json != NULL) {
+        struct PacketContextData *next = json->next;
+        SCFree(json->json_string);
+        SCFree(json);
+        json = next;
+    }
+    pa->json_info = NULL;
+}
+
+/** \internal
+ * \brief Release the alert context the queue entries still own.
+ *
+ * PacketAlertSetContext() gives every queued alert its own copy of the pcre
+ * `alert:` captures, so ownership of that copy travels with the PacketAlert
+ * value: copying an alert into `p->alerts.alerts` hands it to the packet, which
+ * releases it when the packet is recycled (PacketAlertRecycle), and the queue
+ * entry is cleared to record the hand-off. Whatever a queue entry still owns
+ * once the queue has been processed belongs to an alert that never made it into
+ * the packet, so release it here.
+ */
+static void AlertQueueReleaseContext(DetectEngineThreadCtx *det_ctx)
+{
+    for (uint16_t i = 0; i < det_ctx->alert_queue_size; i++) {
+        PacketAlert *pa = &det_ctx->alert_queue[i];
+        if (pa->json_info != NULL) {
+            PacketAlertContextRelease(pa);
+        }
+    }
+}
+
+/** \internal
  */
 static inline PacketAlert PacketAlertSet(DetectEngineThreadCtx *det_ctx, const Signature *s,
         uint64_t tx_id, const uint8_t sub_state, uint8_t alert_flags)
@@ -592,6 +628,7 @@ static struct DetectFirewallPolicy HandleFirewallRule(
         if (s->action & ACTION_ALERT) {
             if (p->alerts.cnt < packet_alert_max) {
                 p->alerts.alerts[p->alerts.cnt++] = *pa;
+                pa->json_info = NULL; // ownership moved to the packet
             } else {
                 p->alerts.firewall_discarded++;
             }
@@ -763,6 +800,7 @@ static inline void PacketAlertFinalizeProcessQueue(
             p->alerts.suppressed++;
         } else if (p->alerts.cnt < packet_alert_max) {
             p->alerts.alerts[p->alerts.cnt++] = *pa;
+            pa->json_info = NULL; // ownership moved to the packet
             SCLogDebug("appending sid %" PRIu32 " alert to Packet::alerts at pos %u; action:%02x",
                     s->id, i, pa->action);
 
@@ -788,6 +826,10 @@ static inline void PacketAlertFinalizeProcessQueue(
     }
 
 fw_dropped:
+    /* release the context of the alerts we did not hand over to the packet:
+     * suppressed, discarded, skipped or simply never reached. */
+    AlertQueueReleaseContext(det_ctx);
+
     /* after threat detection has been handled, see if the fw intended to accept (drop is handled
      * immediately by the fw), as fw accept can be overruled by td drop. */
     if (have_fw_rules) {
