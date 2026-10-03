@@ -82,6 +82,28 @@ static int DetectHttpRawUriSetupSticky(DetectEngineCtx *de_ctx, Signature *s, co
 static int g_http_raw_uri_buffer_id = 0;
 static int g_http_uri_buffer_id = 0;
 
+static InspectionBuffer *GetRawData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
+        const int list_id)
+{
+    SCEnter();
+
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
+    if (!buffer->initialized) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        if (SCHttp2TxGetRawUri(txv, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        SCInspectionBufferSetupAndApplyTransforms(det_ctx, list_id, buffer, b, b_len, transforms);
+    }
+
+    return buffer;
+}
+
 /**
  * \brief Registration function for keywords: http_uri and http.uri
  */
@@ -150,12 +172,11 @@ void DetectHttpUriRegister (void)
     DetectAppLayerMpmRegister("http_raw_uri", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             GetRawData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_LINE);
 
-    // no difference between raw and decoded uri for HTTP2
     DetectAppLayerInspectEngineRegisterSubState("http_raw_uri", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
-            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetData2);
+            HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetRawData2);
 
     DetectAppLayerMpmRegisterSubState("http_raw_uri", SIG_FLAG_TOSERVER, 2,
-            PrefilterGenericMpmRegister, GetData2, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            PrefilterGenericMpmRegister, GetRawData2, ALPROTO_HTTP2, HTTP2TxTypeStream,
             HTTP2ProgHeaders);
 
     DetectBufferTypeSetDescriptionByName("http_raw_uri",
