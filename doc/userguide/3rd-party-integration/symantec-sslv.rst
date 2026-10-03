@@ -1,5 +1,5 @@
 Symantec SSL Visibility (BlueCoat)
-==================================
+##################################
 
 As Suricata itself cannot decrypt SSL/TLS traffic, some organizations use
 a decryption product to handle this. This document will offer some advice
