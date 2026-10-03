@@ -285,6 +285,11 @@ In the above example the host buffer would contain `suricata.io`.
 .. note:: ``http.host`` can have additional formatting/normalization applied
   to buffer contents, see :ref:`http.normalization` for additional details.
 
+.. note:: For HTTP/2, the ``http.host`` buffer is populated from the pseudo-header
+  ``:authority`` if present, otherwise it is populated from the ``Host`` header if present.
+  If both are present, and have different values, the event ``http2.authority_host_mismatch`` is raised.
+  See RFC 9113 section 8.3.1
+
 .. _http.host.raw:
 
 http.host.raw
