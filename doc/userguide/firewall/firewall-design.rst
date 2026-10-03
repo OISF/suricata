@@ -122,6 +122,11 @@ alert
 action in firewall rules. The effect will be the creation of an alert event when the
 firewall rule matches.
 
+For application layer transactions the alert event carries a ``firewall`` object with
+the resolved ``policy`` and, when the protocol registers a state name callback, the
+``hook`` the rule was registered at. Protocols without such a callback (``quic``,
+``modbus``, ``rdp``) omit the ``hook`` key; the policy is still reported.
+
 config
 ~~~~~~
 
@@ -138,7 +143,7 @@ by one or more secondary actions.
 
 Example::
 
-    accept:flow,pass:flow,alert tls:client_hello_done ... tls.sni; ...
+    accept:flow,pass:flow,alert tls:client_hello ... tls.sni; ...
 
 In this example the first action ``accept:flow`` is the primary firewall action. When the
 rule matches, the flow will be accepted. The secondary actions ``pass:flow`` and ``alert`` are
@@ -232,19 +237,27 @@ Available states:
 
 Request (``to_server``) side:
 
-* ``client_in_progress``
-* ``client_hello_done``
-* ``client_cert_done``
-* ``client_handshake_done``
+* ``client_started``
+* ``client_hello``
+* ``client_cert``
+* ``client_data``
 * ``client_finished``
+
+The ``client_hello`` state names the ClientHello message being parsed:
+it is entered when the message starts, so the fragments of a hello split
+over several TLS records are all decided at ``client_hello``. The hello
+data (SNI, version, ...) is available once the final fragment completes
+the message, which moves the state to ``client_cert``; rules evaluated
+on the earlier fragments see the buffers still empty, the same way a
+split HTTP request line is in ``request_line`` before the line is
+complete.
 
 Response (``to_client``) side:
 
-* ``server_in_progress``
+* ``server_started``
 * ``server_hello``
-* ``server_cert_done``
-* ``server_hello_done``
-* ``server_handshake_done``
+* ``server_cert``
+* ``server_data``
 * ``server_finished``
 
 ssh
@@ -260,13 +273,14 @@ a rule accept not just the hook it matches in, but also the hooks before it.
 
 Example::
 
-    accept:flow tls:<client_hello_done ... tls.sni; content:"suricata.io"; ...
+    accept:flow tls:<client_hello ... tls.sni; content:"suricata.io"; ...
 
-The main matching logic here is in the ``tls:client_hello_done`` hook. The state before it,
-``tls:client_in_progress`` is also accepted, as if the ruleset was actually::
+The main matching logic here is in the ``tls:client_hello`` hook. The
+state before it, ``tls:client_started``, is also accepted, as if the
+ruleset was actually::
 
-    accept:hook tls:client_in_progress ...
-    accept:flow tls:client_hello_done ... tls.sni; content:"suricata.io"; ...
+    accept:hook tls:client_started ...
+    accept:flow tls:client_hello ... tls.sni; content:"suricata.io"; ...
 
 This logic only applies to the ``app:filter`` table.
 
@@ -408,3 +422,6 @@ defining ``accept:tx`` as a global default policy will fail to start Suricata,
 because ``packet`` policies do not accept ``tx``.
 Cover such hooks with a more specific setting so the incompatible default never
 reaches them.
+
+A ``<`` hook rule at the protocol's first state (progress 0) is accepted and is
+equivalent to the plain hook form, as there are no prior states to auto-accept.

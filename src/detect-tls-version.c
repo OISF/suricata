@@ -65,7 +65,11 @@ static int DetectTlsVersionSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsVersionRegisterTests(void);
 #endif
 static void DetectTlsVersionFree(DetectEngineCtx *, void *);
-static int g_tls_generic_list_id = 0;
+
+/** buffer for the version keywords, registered at the hello states: the
+ *  version is only final once the hello has been decoded (a hello can span
+ *  several records, so the record layer version may be seen first). */
+static int g_tls_version_list_id = 0;
 
 /**
  * \brief Registration function for keyword: tls.version
@@ -78,14 +82,25 @@ void DetectTlsVersionRegister (void)
     sigmatch_table[DETECT_TLS_VERSION].AppLayerTxMatch = DetectTlsVersionMatch;
     sigmatch_table[DETECT_TLS_VERSION].Setup = DetectTlsVersionSetup;
     sigmatch_table[DETECT_TLS_VERSION].Free = DetectTlsVersionFree;
-    sigmatch_table[DETECT_TLS_VERSION].flags = SIGMATCH_SUPPORT_FIREWALL;
+    /* the negotiated version is not final until the hello is decoded (a hello
+     * can span records, and TLS 1.3 reveals the version in supported_versions),
+     * so a no match must stay revisitable until then. */
+    sigmatch_table[DETECT_TLS_VERSION].flags = SIGMATCH_SUPPORT_FIREWALL | SIGMATCH_STATEFUL;
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TLS_VERSION].RegisterTests = DetectTlsVersionRegisterTests;
 #endif
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 
-    g_tls_generic_list_id = DetectBufferTypeRegister("tls_generic");
+    g_tls_version_list_id = DetectBufferTypeRegister("tls_version");
+    DetectBufferTypeSetDescriptionByName("tls_version", "generic tls version inspection");
+    /* the negotiated version is only final once the hello decoded, so the
+     * keyword's engine must be revisited as the tx advances. */
+    DetectBufferTypeSetRunAlways("tls_version");
+    DetectAppLayerInspectEngineRegister("tls_version", ALPROTO_TLS, SIG_FLAG_TOSERVER,
+            TLS_STATE_CLIENT_HELLO, DetectEngineInspectGenericList, NULL);
+    DetectAppLayerInspectEngineRegister("tls_version", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            TLS_STATE_SERVER_HELLO, DetectEngineInspectGenericList, NULL);
 }
 
 /**
@@ -96,8 +111,9 @@ void DetectTlsVersionRegister (void)
  * \param p pointer to the current packet
  * \param m pointer to the sigmatch that we will cast into DetectTlsVersionData
  *
- * \retval 0 no match
+ * \retval 0 no match, version not decoded yet (revisitable)
  * \retval 1 match
+ * \retval 2 no match, version decoded and different (final)
  */
 static int DetectTlsVersionMatch (DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, void *state, void *txv,
@@ -113,15 +129,42 @@ static int DetectTlsVersionMatch (DetectEngineThreadCtx *det_ctx,
     }
 
     uint16_t version = 0;
+    bool decoded = false;
     SCLogDebug("looking for tls_data->ver 0x%02X (flags 0x%02X)", tls_data->ver, flags);
 
     if (flags & STREAM_TOCLIENT) {
         version = ssl_state->server_connp.version;
-        SCLogDebug("server (toclient) version is 0x%02X", version);
+        /* the version is final only once the hello (including
+         * supported_versions) decoded: the phase can advance on a later
+         * app-data record or EOF even when the hello never decoded */
+        decoded = ssl_state->server_connp.hello_decoded;
+        SCLogDebug("server (toclient) version is 0x%02X decoded %s", version, BOOL2STR(decoded));
     } else if (flags & STREAM_TOSERVER) {
-        version =  ssl_state->client_connp.version;
-        SCLogDebug("client (toserver) version is 0x%02X", version);
+        version = ssl_state->client_connp.version;
+        decoded = ssl_state->client_connp.hello_decoded;
+        SCLogDebug("client (toserver) version is 0x%02X decoded %s", version, BOOL2STR(decoded));
     }
+
+    if (!decoded) {
+        /* the hello (or its supported_versions) is not decoded yet: the
+         * version seen so far (record layer or legacy hello field) is not
+         * final, so the miss must stay revisitable. */
+        SCReturnInt(0);
+    }
+
+    /* The rule's phase: hook rules use the hook's progress, non-hook rules
+     * inspect the direction's hello state. A rule must not match before its
+     * phase. */
+    const uint8_t engine_progress =
+            (tls_data->hook_progress >= 0)
+                    ? (uint8_t)tls_data->hook_progress
+                    : ((flags & STREAM_TOCLIENT) ? (uint8_t)TLS_STATE_SERVER_HELLO
+                                                 : (uint8_t)TLS_STATE_CLIENT_HELLO);
+    const int progress = AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags);
+    if (progress < 0)
+        SCReturnInt(0);
+    if (progress < engine_progress)
+        SCReturnInt(0);
 
     if ((tls_data->flags & DETECT_TLS_VERSION_FLAG_RAW) == 0) {
         /* Match all TLSv1.3 drafts as TLSv1.3 */
@@ -130,7 +173,17 @@ static int DetectTlsVersionMatch (DetectEngineThreadCtx *det_ctx,
         }
     }
 
-    SCReturnInt((tls_data->ver == version));
+    if (tls_data->ver == version)
+        SCReturnInt(1);
+
+    /* Decoded but a different version: the mismatch is final only once the
+     * transaction moved past the rule's phase (or reached its end state), so
+     * a rule hooked at a state keeps the same decision point it had before. */
+    if (progress > engine_progress ||
+            progress == AppLayerParserGetTxEndState(f->proto, f->alproto, txv, flags)) {
+        SCReturnInt(2);
+    }
+    SCReturnInt(0);
 }
 
 /**
@@ -235,11 +288,19 @@ static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const c
         return -1;
 
     /* keyword supports multiple hooks, so attach to the hook specified in the rule. */
-    int list = g_tls_generic_list_id;
+    int list = g_tls_version_list_id;
+    tls->hook_progress = -1;
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
     if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
         list = s->init_data->hook.sm_list;
+        tls->hook_progress = (int8_t)s->init_data->hook.t.app.app_progress;
+        /* A hook at the first state (e.g. tls:client_started) is evaluated
+         * before the hello decoded and would not be revisited once the tx
+         * advances: run its engine on every update. Later hooks are revisited
+         * by the normal P+1 evaluation. */
+        if (tls->hook_progress == 0)
+            DetectEngineBufferTypeSetRunAlways(de_ctx, list);
     }
 
     if (SCSigMatchAppendSMToList(de_ctx, s, DETECT_TLS_VERSION, (SigMatchCtx *)tls, list) == NULL) {

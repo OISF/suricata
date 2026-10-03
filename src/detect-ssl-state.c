@@ -76,6 +76,8 @@ void DetectSslStateRegister(void)
     sigmatch_table[DETECT_SSL_STATE].desc = "match the state of the SSL connection";
     sigmatch_table[DETECT_SSL_STATE].url = "/rules/tls-keywords.html#ssl-state";
     sigmatch_table[DETECT_SSL_STATE].AppLayerTxMatch = DetectSslStateMatch;
+    /* the value follows the handshake state */
+    sigmatch_table[DETECT_SSL_STATE].flags |= SIGMATCH_STATEFUL;
     sigmatch_table[DETECT_SSL_STATE].Setup = DetectSslStateSetup;
     sigmatch_table[DETECT_SSL_STATE].Free = DetectSslStateFree;
 #ifdef UNITTESTS
@@ -88,6 +90,11 @@ void DetectSslStateRegister(void)
 
     DetectBufferTypeSetDescriptionByName("tls_generic",
             "generic ssl/tls inspection");
+
+    /* ssl_state reads live handshake state, so its engine must be revisited
+     * as the transaction advances (a miss at the started state must not be
+     * final): run it on every update. */
+    DetectBufferTypeSetRunAlways("tls_generic");
 
     DetectAppLayerInspectEngineRegister(
             "tls_generic", ALPROTO_TLS, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);

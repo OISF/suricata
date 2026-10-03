@@ -46,6 +46,35 @@ fn encryption_bypass_mode() -> EncryptionHandling {
     unsafe { ENCRYPTION_BYPASS_ENABLED }
 }
 
+// Arms the no-inspection/bypass flags on the session transition,
+// shared by the complete-record and incomplete-header arms: a
+// NewKeys record whose body arrives in a later parser call must
+// reach the same decision - the record header already identifies
+// the key switch. The peer check keeps a merely-failed peer from
+// arming the flags.
+fn ssh_arm_session_flags(ohdr_state: SSHConnectionState, pstate: *mut AppLayerParserState) {
+    if ohdr_state < SSHConnectionState::SshStateSession {
+        return;
+    }
+    let mut flags = 0;
+    match encryption_bypass_mode() {
+        EncryptionHandling::ENCRYPTION_HANDLING_BYPASS => {
+            flags |= APP_LAYER_PARSER_NO_INSPECTION
+                | APP_LAYER_PARSER_NO_REASSEMBLY
+                | APP_LAYER_PARSER_BYPASS_READY;
+        }
+        EncryptionHandling::ENCRYPTION_HANDLING_TRACK_ONLY => {
+            flags |= APP_LAYER_PARSER_NO_INSPECTION;
+        }
+        _ => {}
+    }
+    if flags != 0 {
+        unsafe {
+            SCAppLayerParserStateSetFlag(pstate, flags);
+        }
+    }
+}
+
 #[derive(AppLayerFrameType)]
 pub enum SshFrameType {
     RecordHdr,
@@ -61,14 +90,32 @@ pub enum SSHEvent {
     LongKexRecord,
 }
 
+/// Unrecoverable parse failure per direction. Set at the failure
+/// sites alongside the failure event; never cleared. The failed
+/// direction is frozen in the state the error occurred in.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum SSHError {
+    InvalidBanner,
+    InvalidRecord,
+}
+
+/// Per-direction phases; the value doubles as the detection progress
+/// (progress changes when the processing of the next state begins).
+/// SshStateDone is the registered completion state and is never
+/// reported: a successful direction tops out at SshStateSession, and
+/// a failed direction is frozen in the state the unrecoverable parse
+/// error occurred in (the parse entry guards on the error flag). It
+/// stays out of both name tables (not hookable, not listed, not a
+/// firewall policy key); the failure is exposed via app-layer
+/// events.
 #[repr(u8)]
 #[derive(AppLayerState, Copy, Clone, PartialOrd, PartialEq, Eq)]
 #[suricata(alstate_strip_prefix = "SshState")]
 pub enum SSHConnectionState {
-    SshStateInProgress = 0,
-    SshStateBannerWaitEol = 1,
-    SshStateBannerDone = 2,
-    SshStateFinished = 3,
+    SshStateBanner = 0,
+    SshStateKex = 1,
+    SshStateSession = 2,
+    SshStateDone = 3,
 }
 
 pub const SSH_MAX_BANNER_LEN: usize = 256;
@@ -79,9 +126,14 @@ pub struct SshHeader {
     record_left: u32,
     record_left_msg: parser::MessageCode,
 
-    flags: SSHConnectionState,
+    pub state: SSHConnectionState,
+    // explicit latch for the continuation path: set the moment the
+    // banner first parses; the latch keys off the publish event
+    // rather than a data field
+    banner_published: bool,
     pub protover: Vec<u8>,
     pub swver: Vec<u8>,
+    pub error: Option<SSHError>,
 
     pub hassh: Vec<u8>,
     pub hassh_string: Vec<u8>,
@@ -99,9 +151,11 @@ impl SshHeader {
             record_left: 0,
             record_left_msg: parser::MessageCode::Undefined(0),
 
-            flags: SSHConnectionState::SshStateInProgress,
+            state: SSHConnectionState::SshStateBanner,
+            banner_published: false,
             protover: Vec::new(),
             swver: Vec::new(),
+            error: None,
 
             hassh: Vec::new(),
             hassh_string: Vec::new(),
@@ -142,34 +196,33 @@ impl SSHState {
             (&mut self.transaction.srv_hdr, &self.transaction.cli_hdr)
         };
         let il = input.len();
-        //first skip record left bytes
+        // first skip record left bytes; a buffer shorter than the
+        // pending record is absorbed into the stash. The parse entry
+        // does not pre-check this case (nor the leading header
+        // fragment, handled by the Incomplete arm below): both return
+        // the same AppLayerResult as the entry short-circuit would,
+        // and only this site must stay in sync with the record_left
+        // arithmetic
         if hdr.record_left > 0 {
-            //should we check for overflow ?
             let ilen = input.len() as u32;
-            if hdr.record_left > ilen {
-                hdr.record_left -= ilen;
+            if stash_record_bytes(&mut hdr.record_left, ilen) {
                 return AppLayerResult::ok();
-            } else {
-                let start = hdr.record_left as usize;
-                match hdr.record_left_msg {
-                    // parse reassembled tcp segments
-                    parser::MessageCode::Kexinit if hassh_is_enabled() => {
-                        if let Ok((_rem, key_exchange)) =
-                            parser::ssh_parse_key_exchange(&input[..start])
-                        {
-                            key_exchange.generate_hassh(
-                                &mut hdr.hassh_string,
-                                &mut hdr.hassh,
-                                &resp,
-                            );
-                        }
-                        hdr.record_left_msg = parser::MessageCode::Undefined(0);
-                    }
-                    _ => {}
-                }
-                input = &input[start..];
-                hdr.record_left = 0;
             }
+            let start = hdr.record_left as usize;
+            match hdr.record_left_msg {
+                // parse reassembled tcp segments
+                parser::MessageCode::Kexinit if hassh_is_enabled() => {
+                    if let Ok((_rem, key_exchange)) =
+                        parser::ssh_parse_key_exchange(&input[..start])
+                    {
+                        key_exchange.generate_hassh(&mut hdr.hassh_string, &mut hdr.hassh, &resp);
+                    }
+                    hdr.record_left_msg = parser::MessageCode::Undefined(0);
+                }
+                _ => {}
+            }
+            input = &input[start..];
+            hdr.record_left = 0;
         }
         //parse records out of input
         while !input.is_empty() {
@@ -201,6 +254,8 @@ impl SSHState {
                     );
                     SCLogDebug!("SSH valid record {}", head);
                     match head.msg_code {
+                        // a failed direction never gets here: it is
+                        // frozen in the state it failed in
                         parser::MessageCode::Kexinit if hassh_is_enabled() => {
                             //let endkex = SSH_RECORD_HEADER_LEN + head.pkt_len - 2;
                             let endkex = input.len() - rem.len();
@@ -215,28 +270,8 @@ impl SSHState {
                             }
                         }
                         parser::MessageCode::NewKeys => {
-                            hdr.flags = SSHConnectionState::SshStateFinished;
-                            if ohdr.flags >= SSHConnectionState::SshStateFinished {
-                                let mut flags = 0;
-
-                                match encryption_bypass_mode() {
-                                    EncryptionHandling::ENCRYPTION_HANDLING_BYPASS => {
-                                        flags |= APP_LAYER_PARSER_NO_INSPECTION
-                                            | APP_LAYER_PARSER_NO_REASSEMBLY
-                                            | APP_LAYER_PARSER_BYPASS_READY;
-                                    }
-                                    EncryptionHandling::ENCRYPTION_HANDLING_TRACK_ONLY => {
-                                        flags |= APP_LAYER_PARSER_NO_INSPECTION;
-                                    }
-                                    _ => {}
-                                }
-
-                                if flags != 0 {
-                                    unsafe {
-                                        SCAppLayerParserStateSetFlag(pstate, flags);
-                                    }
-                                }
-                            }
+                            hdr.state = SSHConnectionState::SshStateSession;
+                            ssh_arm_session_flags(ohdr.state, pstate);
                         }
                         _ => {}
                     }
@@ -278,7 +313,8 @@ impl SSHState {
                             //header with rem as incomplete data
                             match head.msg_code {
                                 parser::MessageCode::NewKeys => {
-                                    hdr.flags = SSHConnectionState::SshStateFinished;
+                                    hdr.state = SSHConnectionState::SshStateSession;
+                                    ssh_arm_session_flags(ohdr.state, pstate);
                                 }
                                 parser::MessageCode::Kexinit if hassh_is_enabled() => {
                                     // check if buffer is bigger than maximum reassembled packet size
@@ -306,9 +342,16 @@ impl SSHState {
                             return AppLayerResult::ok();
                         }
                         Err(Err::Incomplete(_)) => {
-                            //we may have consumed data from previous records
+                            // the buffer ran out between records in
+                            // this call; do not trust nom's
+                            // incomplete value. The header parser only
+                            // reports Incomplete when fewer than
+                            // SSH_RECORD_HEADER_LEN bytes remain, so
+                            // this asserts the arm's branch
+                            // precondition (a later parse change that
+                            // makes it reachable with a full header
+                            // aborts debug builds)
                             debug_validate_bug_on!(input.len() >= SSH_RECORD_HEADER_LEN);
-                            //do not trust nom incomplete value
                             return AppLayerResult::incomplete(
                                 (il - input.len()) as u32,
                                 SSH_RECORD_HEADER_LEN as u32,
@@ -316,6 +359,7 @@ impl SSHState {
                         }
                         Err(_e) => {
                             SCLogDebug!("SSH invalid record header {}", _e);
+                            hdr.error = Some(SSHError::InvalidRecord);
                             self.set_event(SSHEvent::InvalidRecord);
                             return AppLayerResult::err();
                         }
@@ -323,6 +367,7 @@ impl SSHState {
                 }
                 Err(_e) => {
                     SCLogDebug!("SSH invalid record {}", _e);
+                    hdr.error = Some(SSHError::InvalidRecord);
                     self.set_event(SSHEvent::InvalidRecord);
                     return AppLayerResult::err();
                 }
@@ -340,9 +385,15 @@ impl SSHState {
         } else {
             &mut self.transaction.srv_hdr
         };
-        if hdr.flags == SSHConnectionState::SshStateBannerWaitEol {
+        // A banner already parsed with the line still open: the
+        // published latch keeps the continuation from re-parsing the
+        // banner.
+        if hdr.banner_published {
             match parser::ssh_parse_line(input) {
                 Ok((rem, _)) => {
+                    // line complete: the banner data was published at
+                    // entry, this only takes the direction to kex
+                    hdr.state = SSHConnectionState::SshStateKex;
                     let mut r = self.parse_record(rem, resp, pstate, flow, stream_slice);
                     if r.is_incomplete() {
                         //adds bytes consumed by banner to incomplete result
@@ -363,6 +414,7 @@ impl SSHState {
                 }
                 Err(_e) => {
                     SCLogDebug!("SSH invalid banner {}", _e);
+                    hdr.error = Some(SSHError::InvalidBanner);
                     self.set_event(SSHEvent::InvalidBanner);
                     return AppLayerResult::err();
                 }
@@ -375,9 +427,11 @@ impl SSHState {
                     if !banner.swver.is_empty() {
                         hdr.swver.extend(banner.swver);
                     }
-                    hdr.flags = SSHConnectionState::SshStateBannerDone;
+                    hdr.banner_published = true;
+                    hdr.state = SSHConnectionState::SshStateKex;
                 } else {
                     SCLogDebug!("SSH invalid banner");
+                    hdr.error = Some(SSHError::InvalidBanner);
                     self.set_event(SSHEvent::InvalidBanner);
                     return AppLayerResult::err();
                 }
@@ -419,10 +473,11 @@ impl SSHState {
                         if !banner.swver.is_empty() {
                             hdr.swver.extend(banner.swver);
                         }
-                        hdr.flags = SSHConnectionState::SshStateBannerWaitEol;
+                        hdr.banner_published = true;
                         self.set_event(SSHEvent::LongBanner);
                         return AppLayerResult::ok();
                     } else {
+                        hdr.error = Some(SSHError::InvalidBanner);
                         self.set_event(SSHEvent::InvalidBanner);
                         return AppLayerResult::err();
                     }
@@ -430,6 +485,7 @@ impl SSHState {
             }
             Err(_e) => {
                 SCLogDebug!("SSH invalid banner {}", _e);
+                hdr.error = Some(SSHError::InvalidBanner);
                 self.set_event(SSHEvent::InvalidBanner);
                 return AppLayerResult::err();
             }
@@ -458,6 +514,17 @@ extern "C" fn ssh_state_tx_free(_state: *mut std::os::raw::c_void, _tx_id: u64) 
     //do nothing
 }
 
+/// Absorb `ilen` bytes into the pending-record stash. True if the
+/// whole chunk was stashed (nothing was parsed).
+fn stash_record_bytes(record_left: &mut u32, ilen: u32) -> bool {
+    if *record_left > ilen {
+        *record_left -= ilen;
+        true
+    } else {
+        false
+    }
+}
+
 unsafe extern "C" fn ssh_parse_request(
     flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
@@ -465,12 +532,27 @@ unsafe extern "C" fn ssh_parse_request(
     let state = &mut cast_pointer!(state, SSHState);
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.cli_hdr;
-    state.transaction.tx_data.0.updated_ts = true;
-    if hdr.flags < SSHConnectionState::SshStateBannerDone {
-        return state.parse_banner(buf, false, pstate, flow, &stream_slice);
-    } else {
-        return state.parse_record(buf, false, pstate, flow, &stream_slice);
+
+    // A failed direction is frozen in the state it failed in: the
+    // failure is unrecoverable, so no further parsing, no state
+    // change. The end state the progress accessor reports is the
+    // state it failed in.
+    if hdr.error.is_some() {
+        return AppLayerResult::ok();
     }
+    // Mark the tx updated at parse entry, as the base parser did:
+    // every delivery - including the short-circuits below that
+    // publish nothing - is decided by the state rules and the
+    // firewall default-policy sweep rather than the firewall
+    // default-accept.
+    state.transaction.tx_data.0.updated_ts = true;
+
+    let r = if hdr.state < SSHConnectionState::SshStateKex {
+        state.parse_banner(buf, false, pstate, flow, &stream_slice)
+    } else {
+        state.parse_record(buf, false, pstate, flow, &stream_slice)
+    };
+    return r;
 }
 
 unsafe extern "C" fn ssh_parse_response(
@@ -480,12 +562,20 @@ unsafe extern "C" fn ssh_parse_response(
     let state = &mut cast_pointer!(state, SSHState);
     let buf = stream_slice.as_slice();
     let hdr = &mut state.transaction.srv_hdr;
-    state.transaction.tx_data.0.updated_tc = true;
-    if hdr.flags < SSHConnectionState::SshStateBannerDone {
-        return state.parse_banner(buf, true, pstate, flow, &stream_slice);
-    } else {
-        return state.parse_record(buf, true, pstate, flow, &stream_slice);
+
+    // See ssh_parse_request for the failure freeze and the updated
+    // flag.
+    if hdr.error.is_some() {
+        return AppLayerResult::ok();
     }
+    state.transaction.tx_data.0.updated_tc = true;
+
+    let r = if hdr.state < SSHConnectionState::SshStateKex {
+        state.parse_banner(buf, true, pstate, flow, &stream_slice)
+    } else {
+        state.parse_record(buf, true, pstate, flow, &stream_slice)
+    };
+    return r;
 }
 
 #[no_mangle]
@@ -506,9 +596,9 @@ pub unsafe extern "C" fn SCSshTxGetFlags(
 ) -> SSHConnectionState {
     let tx = cast_pointer!(tx, SSHTransaction);
     if direction == u8::from(Direction::ToServer) {
-        return tx.cli_hdr.flags;
+        return tx.cli_hdr.state;
     } else {
-        return tx.srv_hdr.flags;
+        return tx.srv_hdr.state;
     }
 }
 
@@ -517,22 +607,78 @@ pub unsafe extern "C" fn SCSshTxGetAlStateProgress(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, SSHTransaction);
+    // per-direction: each direction reports its own phase. No direction
+    // reports the completion state (maximum is session; a failed
+    // direction is frozen in the state it failed in), so a live tx
+    // stays inspectable until flow end
+    let progress = if direction == u8::from(Direction::ToServer) {
+        tx.cli_hdr.state
+    } else {
+        tx.srv_hdr.state
+    };
+    return progress as i32;
+}
 
-    if tx.cli_hdr.flags >= SSHConnectionState::SshStateFinished
-        && tx.srv_hdr.flags >= SSHConnectionState::SshStateFinished
-    {
-        return SSHConnectionState::SshStateFinished as i32;
+// State name tables for rule hooks. "done" is intentionally absent
+// from both name tables: no direction ever reports it (success
+// tops out at session; failure keeps the state the error occurred
+// in - banner, kex, or session), so a hook on it would be dead
+// configuration; the hook listing, the firewall policy key walk
+// and the rule-engine lookups must all agree it is not a state
+// name (the id-to-name lookup returns null for it).
+unsafe extern "C" fn ssh_state_id_by_name(
+    name: *const std::os::raw::c_char, dir: u8,
+) -> std::os::raw::c_int {
+    if name.is_null() {
+        return -1;
     }
-
-    if direction == u8::from(Direction::ToServer) {
-        if tx.cli_hdr.flags >= SSHConnectionState::SshStateBannerDone {
-            return SSHConnectionState::SshStateBannerDone as i32;
+    let Ok(s) = std::ffi::CStr::from_ptr(name).to_str() else {
+        return -1;
+    };
+    let s2 = match Direction::from(dir) {
+        Direction::ToServer => {
+            if !s.starts_with("request_") {
+                return -1;
+            }
+            &s["request_".len()..]
         }
-    } else if tx.srv_hdr.flags >= SSHConnectionState::SshStateBannerDone {
-        return SSHConnectionState::SshStateBannerDone as i32;
+        Direction::ToClient => {
+            if !s.starts_with("response_") {
+                return -1;
+            }
+            &s["response_".len()..]
+        }
+    };
+    match s2 {
+        "banner" => SSHConnectionState::SshStateBanner as i32,
+        "kex" => SSHConnectionState::SshStateKex as i32,
+        "session" => SSHConnectionState::SshStateSession as i32,
+        _ => -1,
     }
+}
 
-    return SSHConnectionState::SshStateInProgress as i32;
+extern "C" fn ssh_state_name_by_id(
+    id: std::os::raw::c_int, dir: u8,
+) -> *const std::os::raw::c_char {
+    // process-lifetime statics
+    static NAMES_TS: [&[u8]; 3] = [b"request_banner\0", b"request_kex\0", b"request_session\0"];
+    static NAMES_TC: [&[u8]; 3] = [
+        b"response_banner\0",
+        b"response_kex\0",
+        b"response_session\0",
+    ];
+    let names = if dir == u8::from(Direction::ToServer) {
+        &NAMES_TS
+    } else {
+        &NAMES_TC
+    };
+    // the completion state stays out of the id-to-name table as well,
+    // so the hook listing and the firewall policy key walk see the
+    // same surface as the name-to-id table
+    match id {
+        0..=2 => names[id as usize].as_ptr() as *const std::os::raw::c_char,
+        _ => std::ptr::null(),
+    }
 }
 
 // Parser name as a C style string.
@@ -556,8 +702,8 @@ pub unsafe extern "C" fn SCRegisterSshParser() {
         parse_tc: ssh_parse_response,
         get_tx_count: ssh_state_get_tx_count,
         get_tx: SCSshStateGetTx,
-        tx_comp_st_ts: SSHConnectionState::SshStateFinished as i32,
-        tx_comp_st_tc: SSHConnectionState::SshStateFinished as i32,
+        tx_comp_st_ts: SSHConnectionState::SshStateDone as i32,
+        tx_comp_st_tc: SSHConnectionState::SshStateDone as i32,
         tx_get_progress: SCSshTxGetAlStateProgress,
         get_eventinfo: Some(SSHEvent::get_event_info),
         get_eventinfo_byid: Some(SSHEvent::get_event_info_by_id),
@@ -571,8 +717,8 @@ pub unsafe extern "C" fn SCRegisterSshParser() {
         flags: 0,
         get_frame_id_by_name: Some(SshFrameType::ffi_id_from_name),
         get_frame_name_by_id: Some(SshFrameType::ffi_name_from_id),
-        get_state_id_by_name: Some(SSHConnectionState::ffi_id_from_name),
-        get_state_name_by_id: Some(SSHConnectionState::ffi_name_from_id),
+        get_state_id_by_name: Some(ssh_state_id_by_name),
+        get_state_name_by_id: Some(ssh_state_name_by_id),
     };
 
     let ip_proto_str = CString::new("tcp").unwrap();
@@ -618,16 +764,13 @@ pub extern "C" fn SCSshEnableBypass(mode: EncryptionHandling) {
 pub unsafe extern "C" fn SCSshTxGetLogCondition(tx: *mut std::os::raw::c_void) -> bool {
     let tx = cast_pointer!(tx, SSHTransaction);
 
-    if SCSshHasshIsEnabled() {
-        if tx.cli_hdr.flags == SSHConnectionState::SshStateFinished
-            && tx.srv_hdr.flags == SSHConnectionState::SshStateFinished
-        {
-            return true;
-        }
-    } else if tx.cli_hdr.flags == SSHConnectionState::SshStateBannerDone
-        && tx.srv_hdr.flags == SSHConnectionState::SshStateBannerDone
-    {
-        return true;
-    }
-    return false;
+    // Failure-only: the tx logger is one-shot (the engine's logged
+    // bit is never reset), and a successful handshake reaches kex
+    // long before a later failure can occur, so a mid-flow success
+    // condition would consume the log before the failure could be
+    // reported. The failure latches, so the object is emitted
+    // exactly once - at the failure, carrying the error and the
+    // frozen state - and successful flows are logged at the next
+    // EOF-flush delivery, where the engine logs unconditionally.
+    tx.cli_hdr.error.is_some() || tx.srv_hdr.error.is_some()
 }

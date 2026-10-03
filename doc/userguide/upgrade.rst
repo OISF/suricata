@@ -50,9 +50,58 @@ Major Changes
   ``app-layer.protocols.pgsql`` section was absent from suricata.yaml, the
   parser would be enabled. It's now disabled by default. Simply enabling its EVE
   output will no longer suffice, either.
+- The TLS state names used in firewall rules (``accept:hook
+  tls:<state>``, ``alert tls:<state>``) and in the
+  ``firewall.policies.app.tls`` config keys changed from completion
+  milestones to active phases (e.g. ``client_hello_done`` becomes
+  ``client_hello``, ``client_in_progress`` becomes ``client_started``).
+  A rule with an old state name fails to load and is **not enforced**,
+  and a config key that matches a renamed state is reported at load
+  and aborts init when ``engine.init-failure-fatal`` is set (a warning
+  otherwise). The certificate phase states (``client_cert``,
+  ``server_cert``) are entered when the hello completes, before any
+  certificate data exists: migrated certificate content rules must be
+  paired with a plain accept at the cert state (or a drop-based cert
+  check plus that accept). See
+  :doc:`firewall/tls-state-migration` for the old-to-new mapping.
+- The firewall's per-packet evaluation of app-layer states is now
+  bounded by the state the packet's parse progress reaches. This
+  applies to every app-layer protocol, not only the renamed TLS
+  states: a state above the packet's current progress can no longer
+  decide the packet (for example, a default policy configured at a
+  later state no longer drops a packet that stops at an earlier
+  state), and on a rule no-match the states between the last rule and
+  the packet's progress are now evaluated. Existing rulesets that
+  relied on a policy at a later state to drop packets in an earlier
+  state need to move that policy to the state the packet actually
+  reaches.
+- A ClientHello that carries no SNI extension is decided at the
+  certificate state (the state the hello-completing record reaches)
+  instead of at the hello-completion milestone: it matches no
+  ``tls.sni`` rule (the buffer only exists once the message is fully
+  parsed) and, without an accept at the certificate state, falls on the
+  implicit default policy (drop:flow) - the same drop the base release
+  gave it at the milestone. A plain accept at the certificate state
+  (the remedy for migrated certificate rules) changes that: it also
+  decides the hello-completing record, so a SNI-less hello is accepted
+  by it. If your ruleset accepts SNI-less hellos, that is a relaxation
+  over the base behaviour - pair the certificate-state accept with an
+  explicit rule that catches the SNI-less case if you want to keep the
+  drop (the reference SNI example in :doc:`firewall/firewall-example`
+  keeps the drop by having no certificate-state accept).
 
 Logging Changes
 ~~~~~~~~~~~~~~~
+- The ssh eve record now carries the per-direction fields
+  ``ssh.client.error`` / ``ssh.client.state`` and
+  ``ssh.server.error`` / ``ssh.server.state`` (``invalid_banner`` or
+  ``invalid_record``, and the state the failure occurred in - the
+  state field is present only alongside the error) for flows that
+  hit an unrecoverable ssh parse error; a failed direction is
+  logged even when it parsed no banner. The object is logged at
+  the failing delivery, carrying the error and the state;
+  successful flows are logged at the next EOF-flush delivery.
+
 - The format of IKEv1 proposal attributes has been changed to handle
   duplicate attribute types. See :ref:`IKE logging changes
   <9.0-ike-logging-changes>`
@@ -67,10 +116,16 @@ Logging Changes
   ``stats.app_layer.*.ftp-data`` becomes ``stats.app_layer.*.ftp_data``,
   and same for bittorrent_dht
 
+
 - MQTT user properties are now logged as a new object called ``user_properties``
   as an array of key-value pairs like ``[{"key":"mykey", "value":"myvalue"}]``
   under ``properties`` object, instead of as ``{key: value}`` pairs as a part
   of the ``properties`` object itself.
+
+- The ``ts_progress``/``tc_progress`` values in alerts for the renamed
+  TLS firewall states now use the new phase names (e.g.
+  ``client_hello_done`` is now ``client_hello``). See
+  :doc:`firewall/tls-state-migration` for the old-to-new mapping.
 
 Removals
 ~~~~~~~~
@@ -86,6 +141,20 @@ Keyword Changes
   being split per direction. This means that some rules should match sooner,
   some rules will have less false negatives, and some rules will trigger once per transaction
   instead of twice (one time for each direction)
+
+- The SSH app-layer state hooks have been reworked and renamed:
+  the hooks are now ``request_banner``, ``request_kex`` and
+  ``request_session`` (and the ``response_`` equivalents); rules
+  using the old names fail to load. The completion state is never
+  reported, so ``ssh:request_complete`` and the
+  ``request-complete`` policy key match nothing for ssh except
+  disrupted flows (depth truncation or async reassembly) -
+  session-admit rules or policies no longer fire, review them
+  before upgrading. Failed key exchanges are reported through the
+  ``ssh.invalid_banner`` / ``ssh.invalid_record`` app-layer events
+  and the new ``error`` / ``state`` fields of the ssh eve record.
+  See :doc:`rules/ssh-keywords` for the full state and failure
+  semantics.
 
 Other Changes
 ~~~~~~~~~~~~~

@@ -23,6 +23,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 #include "conf.h"
 #include "threadvars.h"
 #include "tm-threads.h"
@@ -303,8 +304,10 @@ static uint32_t ProcessAsideQueue(FlowManagerTimeoutThread *td, FlowTimeoutCount
     while ((f = FlowQueuePrivateGetFromTop(&td->aside_queue)) != NULL) {
         /* flow is still locked */
 
-        if (f->proto == IPPROTO_TCP &&
-                !(f->flags & (FLOW_TIMEOUT_REASSEMBLY_DONE | FLOW_ACTION_DROP)) &&
+        /* An IPS drop ends the flow; an IDS drop is an alert and the app
+         * layer keeps running, so the final flush still applies. */
+        const bool drop_ends = (f->flags & FLOW_ACTION_DROP) != 0 && EngineModeIsIPS();
+        if (f->proto == IPPROTO_TCP && !(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) && !drop_ends &&
                 !FlowIsBypassed(f) && FlowNeedsReassembly(f)) {
             /* Send the flow to its thread */
             FlowSendToLocalThread(f);

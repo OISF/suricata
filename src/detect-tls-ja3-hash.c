@@ -92,10 +92,10 @@ void DetectTlsJa3HashRegister(void)
 
 #ifdef HAVE_JA3
     DetectAppLayerInspectEngineRegister("ja3.hash", ALPROTO_TLS, SIG_FLAG_TOSERVER,
-            TLS_STATE_CLIENT_HELLO_DONE, DetectEngineInspectBufferGeneric, GetData);
+            TLS_STATE_CLIENT_HELLO, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("ja3.hash", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_TLS, TLS_STATE_CLIENT_HELLO_DONE);
+            GetData, ALPROTO_TLS, TLS_STATE_CLIENT_HELLO);
 
     DetectAppLayerMpmRegister("ja3.hash", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
             Ja3DetectGetHash, ALPROTO_QUIC, 1);

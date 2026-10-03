@@ -181,9 +181,7 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f, const bool fw
          * firewall rules. */
         if (f->flags & FLOW_ACTION_ACCEPT) {
             f->flags &= ~(FLOW_ACTION_ACCEPT | FLOW_ACTION_BY_FIREWALL);
-            f->flags |= FLOW_ACTION_DROP;
-            if (fw_rule)
-                f->flags |= FLOW_ACTION_BY_FIREWALL;
+            FlowSetDropAction(f, fw_rule ? FLOW_ACTION_BY_FIREWALL : 0);
             SCLogDebug("replaced FLOW_ACTION_ACCEPT with FLOW_ACTION_DROP");
         }
         if (f->flags & (FLOW_ACTION_DROP | FLOW_ACTION_PASS)) {
@@ -192,7 +190,7 @@ static inline void RuleActionToFlow(const uint8_t action, Flow *f, const bool fw
                     (action & ACTION_PASS) ? "pass" : "drop",
                     (f->flags & FLOW_ACTION_DROP) ? "drop" : "pass");
         } else {
-            f->flags |= FLOW_ACTION_DROP;
+            FlowSetDropAction(f, 0);
             SCLogDebug("setting flow action drop");
         }
     }
@@ -575,7 +573,7 @@ static struct DetectFirewallPolicy HandleFirewallRule(
                 }
                 PacketDrop(p, pol.action, drop_reason);
                 if (p->flow && pol.action_scope == ACTION_SCOPE_FLOW) {
-                    p->flow->flags |= FLOW_ACTION_DROP | FLOW_ACTION_BY_FIREWALL;
+                    FlowSetDropAction(p->flow, FLOW_ACTION_BY_FIREWALL);
                     SCLogDebug("packet %" PRIu64 ": FLOW_ACTION_DROP set by firewall by sid %u",
                             PcapPacketCntGet(p), s->id);
                 }

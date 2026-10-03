@@ -27,6 +27,7 @@
 #include "suricata-common.h"
 #include "flow.h"
 
+#include "app-layer-parser.h"
 #include "detect-engine-proto.h"
 #include "detect-reference.h"
 #include "detect-metadata.h"
@@ -458,6 +459,9 @@ typedef struct DetectBufferType_ {
     bool mpm;
     bool packet; /**< compat to packet matches */
     bool frame;  /**< is about Frame inspection */
+    /** the buffer's keywords can change as the transaction advances: run
+     *  the inspect engine on every tx update instead of only at its progress. */
+    bool run_always;
     bool supports_transforms;
     bool multi_instance; /**< buffer supports multiple buffer instances per tx */
     void (*SetupCallback)(
@@ -723,6 +727,10 @@ typedef struct Signature_ {
 
     /** firewall: progress value for this signature */
     uint8_t app_progress_hook;
+    /** firewall: sub state (transaction type) of the hook on protocols with sub
+     *  states (http2 stream/global, DoH2); 0 when the hook has no sub state.
+     *  Signatures are zero initialized, so unused stays 0. */
+    uint8_t sub_state;
 
     DetectMatchAddressIPv4 *addr_dst_match4;
     DetectMatchAddressIPv4 *addr_src_match4;
@@ -1258,8 +1266,10 @@ typedef struct SignatureNonPrefilterStore_ {
 
 /** array of TX inspect rule candidates */
 typedef struct RuleMatchCandidateTx {
-    SigIntId id;            /**< internal signature id */
-    uint32_t *flags;        /**< inspect flags ptr */
+    SigIntId id;           /**< internal signature id */
+    bool fw_lte_counted;   /**< counted in the firewall LTE hook coverage */
+    bool fw_lte_header_ok; /**< firewall LTE coverage already passed the rule header check */
+    uint32_t *flags;       /**< inspect flags ptr */
     union {
         struct {
             bool stream_stored;
@@ -1406,6 +1416,11 @@ typedef struct DetectEngineThreadCtx_ {
 
     RuleMatchCandidateTx *tx_candidates;
     uint32_t tx_candidates_size;
+
+    /** Per hook LTE coverage of the current tx walk. Kept here instead of in
+     *  the per-tx firewall state so IDS traffic does not pay to clear it.
+     *  Cleared by the firewall coverage build on first use in a walk. */
+    uint32_t fw_lte_cover[APP_LAYER_MAX_PROGRESS];
 
     MpmThreadCtx mtc; /**< thread ctx for the mpm */
     /* work queue for post-rule matching affecting prefilter */
@@ -1623,6 +1638,11 @@ typedef struct PrefilterEngineList_ {
     /** Free function for pectx data. If NULL the memory is not freed. */
     void (*Free)(void *pectx);
 
+    /** Run this tx engine on every tx update, regardless of tx progress.
+     *  Only used with Tx Engines. The engine keeps its real tx_min_progress,
+     *  so it still takes part in the progress bookkeeping. */
+    bool run_always;
+
     const char *name;
     /* global id for this prefilter */
     uint32_t gid;
@@ -1650,6 +1670,11 @@ typedef struct PrefilterEngine_ {
 
     bool is_last;
     bool is_last_for_progress;
+
+    /** Tx engine must run on every tx update even once the tx progressed past
+     *  its tx_min_progress. Kept separate from tx_min_progress (-1 is the
+     *  proto-agnostic packet-style sentinel). */
+    bool run_always;
 
     /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
      *  for other engines. */
