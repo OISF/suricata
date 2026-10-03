@@ -295,16 +295,16 @@ no-match does not apply the default policy of its own state.
 
 A sub-state's buffers can also grow after the transaction moved past the rule's
 hook: a http2 trailer HEADERS frame updates the header buffer above the
-``request_headers`` hook. Engine data is therefore only final once the sub-
-state completed, and the rule stays revisitable until then. The default
-policies of the states it covers stay deferred with it.
+``request_headers`` hook. The fast pattern at the hook decides regardless: above
+it the group is retired, so the rule is not run again there. The default
+policies of the states it covers are deferred by the window at the hook only.
 
 The bound is the transaction's end state. For a parser with per-direction sub-
 states that can be later than the direction's own close - a http2 stream
 completes when both sides closed, while its request buffers are final once the
-client sent END_STREAM - so the rule stays revisitable longer than strictly
-needed. That is deliberate: the tighter bound needs a per-direction completion
-the parsers do not expose yet.
+client sent END_STREAM - so a window can open where that direction's own buffers
+are final already. That is deliberate: the tighter bound needs a per-direction
+completion the parsers do not expose yet.
 
 Firewall pipeline
 -----------------
@@ -456,3 +456,44 @@ reaches them::
 
 A ``<`` hook rule at the protocol's first state (progress 0) is accepted and is
 equivalent to the plain hook form, as there are no prior states to auto-accept.
+
+The pending window
+------------------
+
+Two words for two sets of rules, both rebuilt on every update of a transaction:
+
+* the *group* of a hook: the LTE rules registered for one progress state of the
+  transaction, held as a list of rule ids in one prefilter engine.
+* the *pending window*: the rules of that group the fast pattern did not add as
+  candidates at the hook state. It is a set of rules, not a range of progress states;
+  the states only say when the set is filled and when it is dropped.
+
+An LTE rule has no say below its hook, and at its hook the fast pattern decides which
+of them are worth inspecting. The rules the pattern did not add hold the hook open:
+they are not candidates, so the walk cannot decide them, but the default policy cannot
+resolve the hook either.
+
+::
+
+    progress   0 ............ H (hook) C (a miss becomes final)
+               |              |        |
+    window     | empty        | filled | emptied here
+    (a set of  |              |        |
+     rules)    |              |        |
+               v              v        v
+    policy     while the window is not empty the hook is left unresolved, so a match
+               anywhere else takes it and only an empty outcome falls through to the
+               default policy
+
+Two moments, for the rules of a group hooked at ``H``:
+
+* at ``H``: the pattern runs; matches go to the candidate list, the rules it did not
+  add are the window and the hook stays pending.
+* at ``C``: a miss is final. The window contributes its last rule only, so that any
+  other match still wins the state and the policy decides when nothing does.
+
+``C`` is ``H + 1``, whatever the protocol: a hook buffer that fills in above ``H``
+(an http2 header buffer frame by frame, a stream buffer across segments) does
+not reopen the window. A transaction that ends at or below ``H`` never opens a
+window: its end state decides, and a window opens only for a tx that keeps
+going past ``H``.

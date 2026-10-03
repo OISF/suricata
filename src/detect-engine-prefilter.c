@@ -1388,6 +1388,7 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             e->local_id = local_id++;
             e->alproto = el->alproto;
             e->ctx.app.tx_min_progress = el->tx_min_progress;
+            e->ctx.app.tx_max_progress = el->tx_max_progress;
             e->ctx.app.sub_state = el->sub_state;
             e->run_always = el->run_always;
             e->cb.PrefilterTx = el->PrefilterTx;
