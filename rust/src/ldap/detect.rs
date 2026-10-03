@@ -23,18 +23,19 @@ use crate::detect::uint::{
     SCDetectU32Parse, SCDetectU8Free, SCDetectU8Parse,
 };
 use crate::detect::{
-    helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer,
+    helper_keyword_register_multi_buffer, helper_keyword_register_sticky_buffer, EnumString,
     SigTableElmtStickyBuffer, SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_MULTI_UINT,
     SIGMATCH_INFO_UINT32, SIGMATCH_INFO_UINT8,
 };
+use crate::jsonbuilder::JsonBuilder;
 use crate::ldap::types::*;
 use ldap_parser::ldap::{AuthenticationChoice, LdapMessage, ProtocolOp};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
     SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister,
-    SCDetectHelperKeywordRegister, SCDetectHelperMultiBufferMpmRegister,
-    SCDetectSignatureSetAppProto, SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx,
-    Signature,
+    SCDetectHelperKeywordJsonInfoRegister, SCDetectHelperKeywordRegister,
+    SCDetectHelperMultiBufferMpmRegister, SCDetectSignatureSetAppProto, SCJsonBuilder,
+    SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
 };
 
 use std::ffi::CStr;
@@ -668,6 +669,16 @@ unsafe extern "C" fn ldap_tx_get_resp_attribute_type(
     return false;
 }
 
+unsafe extern "C" fn ldap_operation_list_values(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = ProtocolOpCode::list_values(jsb);
+}
+
+unsafe extern "C" fn ldap_result_code_list_values(jsb: *mut SCJsonBuilder) {
+    let jsb = cast_pointer!(jsb, JsonBuilder);
+    let _ = LdapResultCode::list_values(jsb);
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectLdapRegister() {
     let kw = SCSigTableAppLiteElmt {
@@ -680,6 +691,11 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT,
     };
     G_LDAP_REQUEST_OPERATION_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordJsonInfoRegister(
+        G_LDAP_REQUEST_OPERATION_KW_ID,
+        Some(ldap_operation_list_values),
+    );
+
     G_LDAP_REQUEST_OPERATION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"ldap.request.operation\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
@@ -759,6 +775,11 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT,
     };
     G_LDAP_RESPONSES_OPERATION_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordJsonInfoRegister(
+        G_LDAP_RESPONSES_OPERATION_KW_ID,
+        Some(ldap_operation_list_values),
+    );
+
     G_LDAP_RESPONSES_OPERATION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"ldap.responses.operation\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
@@ -820,6 +841,11 @@ pub unsafe extern "C" fn SCDetectLdapRegister() {
         flags: SIGMATCH_INFO_UINT32 | SIGMATCH_INFO_MULTI_UINT | SIGMATCH_INFO_ENUM_UINT,
     };
     G_LDAP_RESPONSES_RESULT_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    SCDetectHelperKeywordJsonInfoRegister(
+        G_LDAP_RESPONSES_RESULT_CODE_KW_ID,
+        Some(ldap_result_code_list_values),
+    );
+
     G_LDAP_RESPONSES_RESULT_CODE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
         b"ldap.responses.result_code\0".as_ptr() as *const libc::c_char,
         ALPROTO_LDAP,
