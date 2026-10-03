@@ -430,6 +430,18 @@ void CreateTimeString(const SCTime_t ts, char *str, size_t size)
 
 #endif /* defined(__OpenBSD__) */
 
+#ifdef UNITTESTS
+/** \brief Forget the local times cached by the calling thread, e.g. after the
+ *         timezone was changed */
+void SCLocalTimeCacheReset(void)
+{
+#ifdef TLS
+    memset(last_local_time, 0, sizeof(last_local_time));
+    memset(cached_minute_start, 0, sizeof(cached_minute_start));
+#endif
+}
+#endif
+
 /**
  * \brief Convert broken-down time to seconds since Unix epoch.
  *
@@ -615,32 +627,6 @@ uint64_t SCParseTimeSizeString (const char *str)
     }
 
     return (size * modifier);
-}
-
-/**
- * \brief Get seconds until a time unit changes.
- *
- * \param str   String containing time type (minute, hour, etc).
- * \param epoch Epoch time.
- *
- * \retval seconds.
- */
-uint64_t SCGetSecondsUntil (const char *str, time_t epoch)
-{
-    uint64_t seconds = 0;
-    struct tm tm;
-    memset(&tm, 0, sizeof(tm));
-    struct tm *tp = (struct tm *)SCLocalTime(epoch, &tm);
-
-    if (strcmp(str, "minute") == 0)
-        seconds = 60 - tp->tm_sec;
-    else if (strcmp(str, "hour") == 0)
-        seconds = (60 * (60 - tp->tm_min)) + (60 - tp->tm_sec);
-    else if (strcmp(str, "day") == 0)
-        seconds = (3600 * (24 - tp->tm_hour)) + (60 * (60 - tp->tm_min)) +
-                  (60 - tp->tm_sec);
-
-    return seconds;
 }
 
 uint64_t SCTimespecAsEpochMillis(const struct timespec* ts)
