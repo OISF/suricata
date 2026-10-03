@@ -150,6 +150,16 @@ typedef struct AppLayerParserProtoCtx_
     /* max value of a sub state
      * only set for FLOW_PROTO_DEFAULT */
     uint8_t max_sub_state;
+    /* progress value at which the sub-state's buffers are final, indexed by
+     * the sub state id
+     * only set for FLOW_PROTO_DEFAULT */
+    uint8_t sub_state_completion[APP_LAYER_MAX_SUB_STATES];
+    /* per direction (0: to server, 1: to client) progress from which that
+     * direction's buffers can no longer change; the completion above stays the
+     * sub-state's last state, which can come later (http2: request_complete
+     * needs both sides closed)
+     * only set for FLOW_PROTO_DEFAULT */
+    uint8_t sub_state_final[APP_LAYER_MAX_SUB_STATES][2];
 } AppLayerParserProtoCtx;
 
 typedef struct AppLayerParserCtx_ {
@@ -618,13 +628,24 @@ void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
 
 void SCAppLayerParserRegisterGetTxSubStateFuncs(AppProto alproto, const uint8_t sub_state,
         AppLayerParserGetStateIdByNameFn GetIdByNameFunc,
-        AppLayerParserGetStateNameByIdFn GetNameByIdFunc)
+        AppLayerParserGetStateNameByIdFn GetNameByIdFunc, const uint8_t completion,
+        const uint8_t final_ts, const uint8_t final_tc)
 {
     SCEnter();
     /* validate input */
     BUG_ON(sub_state == 0);
     BUG_ON(GetIdByNameFunc == NULL);
     BUG_ON(GetNameByIdFunc == NULL);
+    if (completion == 0 || sub_state >= APP_LAYER_MAX_SUB_STATES) {
+        /* 0 would make the first state look final, so it must not reach the
+         * end state helper */
+        FatalError("invalid sub state %u (completion %u) for %s", sub_state, completion,
+                AppProtoToString(alproto));
+    }
+    if (final_ts > completion || final_tc > completion) {
+        FatalError("invalid sub state %u final progress %u/%u above completion %u for %s",
+                sub_state, final_ts, final_tc, completion, AppProtoToString(alproto));
+    }
 
     AppLayerParserProtoCtx *p = &alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT];
     /* double registration not allowed */
@@ -640,6 +661,10 @@ void SCAppLayerParserRegisterGetTxSubStateFuncs(AppProto alproto, const uint8_t 
     m->GetStateNameById = GetNameByIdFunc;
     m->next = p->sub_state_mappings;
     p->sub_state_mappings = m;
+    p->sub_state_completion[sub_state] = completion;
+    /* 0: the direction's buffers are only final at the completion */
+    p->sub_state_final[sub_state][0] = final_ts ? final_ts : completion;
+    p->sub_state_final[sub_state][1] = final_tc ? final_tc : completion;
 
     p->max_sub_state = MAX(p->max_sub_state, sub_state);
     SCLogDebug("alproto %u:%s, sub_state:%u max:%u %p:%p", alproto, AppProtoToString(alproto),
@@ -1180,15 +1205,16 @@ uint8_t AppLayerParserGetTxEndState(uint8_t ipproto, AppProto alproto, void *tx,
     if (txd == NULL || txd->tx_type == 0) {
         return (uint8_t)AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
     }
-    const uint8_t eop = (flags & STREAM_TOSERVER) ? txd->tx_type_eop_ts : txd->tx_type_eop_tc;
-    if (unlikely(eop == 0)) {
-        /* a parser with tx types must fill both end-of-phase fields; without
-         * the fallback 0 would make the first state look final in release
-         * builds */
+    /* the tx type is the sub-state the parser registered; its completion is
+     * the tx's end state */
+    const uint8_t completion = AppLayerParserGetSubStateCompletion(alproto, txd->tx_type);
+    if (unlikely(completion == 0)) {
+        /* a parser with tx types must register the sub-state's completion:
+         * without the fallback 0 would make the first state look final */
         DEBUG_VALIDATE_BUG_ON(1);
         return (uint8_t)AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
     }
-    return eop;
+    return completion;
 }
 
 /**
@@ -1300,6 +1326,30 @@ const char *AppLayerParserGetSubStateProgressName(const AppProto alproto, const 
     return NULL;
 }
 
+/** \brief progress from which a tx's buffers in this direction can no longer change
+ *
+ *  For a tx without sub-states that is its end state. A sub-state can register
+ *  an earlier value per direction: an http2 stream's request buffers are final
+ *  at the request's END_STREAM (closed), while the stream only completes once
+ *  the response closed too. */
+uint8_t AppLayerParserGetTxBuffersFinal(
+        uint8_t ipproto, AppProto alproto, void *tx, const uint8_t flags)
+{
+    const AppLayerTxData *txd = AppLayerParserGetTxData(ipproto, alproto, tx);
+    if (txd == NULL || txd->tx_type == 0) {
+        return AppLayerParserGetTxEndState(ipproto, alproto, tx, flags);
+    }
+    const AppProto a = (alproto == ALPROTO_DOH2) ? ALPROTO_HTTP2 : alproto;
+    const AppLayerParserProtoCtx *p = &alp_ctx.ctxs[a][FLOW_PROTO_DEFAULT];
+    if (likely(txd->tx_type < APP_LAYER_MAX_SUB_STATES)) {
+        const uint8_t v = p->sub_state_final[txd->tx_type][(flags & STREAM_TOSERVER) ? 0 : 1];
+        if (v != 0) {
+            return v;
+        }
+    }
+    return AppLayerParserGetTxEndState(ipproto, alproto, tx, flags);
+}
+
 uint8_t AppLayerParserGetSubStateCompletion(const AppProto alproto, const uint8_t sub_state)
 {
     if (!AppLayerParserIsEnabled(alproto))
@@ -1308,18 +1358,16 @@ uint8_t AppLayerParserGetSubStateCompletion(const AppProto alproto, const uint8_
     if (alproto == ALPROTO_DOH2)
         return AppLayerParserGetSubStateCompletion(ALPROTO_HTTP2, sub_state);
 
-    BUG_ON(alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].max_sub_state == 0);
+    const AppLayerParserProtoCtx *p = &alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT];
 
-    /* TODO hard coded for now */
-    BUG_ON(alproto != ALPROTO_HTTP2);
-
-    if (sub_state == 1) {
-        return 4;
-    } else if (sub_state == 2) {
-        return 1;
-    } else {
-        BUG_ON(1);
+    /* no max_sub_state guard here on purpose: an unregistered protocol lands on
+     * the fallback below, which is what a recovery path wants */
+    if (likely(sub_state < APP_LAYER_MAX_SUB_STATES && p->sub_state_completion[sub_state] != 0)) {
+        return p->sub_state_completion[sub_state];
     }
+    /* a tx type without a registered sub-state is a parser bug: the caller
+     * falls back to the protocol's completion status */
+    DEBUG_VALIDATE_BUG_ON(1);
     return 0;
 }
 

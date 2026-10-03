@@ -1517,12 +1517,8 @@ pub struct AppLayerTxData {
     #[doc = " detection engine progress tracking for use by detection engine\n Reflects the \"progress\" of prefilter engines into this TX, where\n the value is offset by 1. So if for progress state 0 the engines\n are done, the value here will be 1. So a value of 0 means, no\n progress tracked yet.\n"]
     pub detect_progress_ts: u8,
     pub detect_progress_tc: u8,
-    #[doc = " Type of transaction. Meaning is defined by the parser. Used to\n select a state machine. 0 means it is not used."]
+    #[doc = " Type of transaction. Meaning is defined by the parser. Used to\n select a state machine. 0 means it is not used. A non-zero value is\n also the sub-state id registered by the parser, whose completion is\n the tx's end state."]
     pub tx_type: u8,
-    #[doc = " End of TX progress values\n\n toserver end of tx progress value"]
-    pub tx_type_eop_ts: u8,
-    #[doc = " toclient end of tx progress value"]
-    pub tx_type_eop_tc: u8,
     pub de_state: *mut DetectEngineState,
     pub events: *mut AppLayerDecoderEvents,
     pub txbits: *mut GenericVar,
@@ -1570,7 +1566,8 @@ extern "C" {
     #[doc = " \\brief register state<>name funcs for a substate"]
     pub fn SCAppLayerParserRegisterGetTxSubStateFuncs(
         alproto: AppProto, sub_state: u8, GetIdByNameFunc: AppLayerParserGetStateIdByNameFn,
-        GetNameByIdFunc: AppLayerParserGetStateNameByIdFn,
+        GetNameByIdFunc: AppLayerParserGetStateNameByIdFn, completion: u8, final_ts: u8,
+        final_tc: u8,
     );
 }
 extern "C" {
