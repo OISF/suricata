@@ -48,6 +48,8 @@ static inline PktPool *GetThreadPacketPool(void)
     return &thread_pkt_pool;
 }
 
+static PacketQueueNoLock TmqhInputPacketpool(ThreadVars *);
+
 /**
  * \brief TmqhPacketpoolRegister
  * \initonly
@@ -297,9 +299,11 @@ void PacketPoolDestroy(void)
 #endif /* DEBUG_VALIDATION */
 }
 
-Packet *TmqhInputPacketpool(ThreadVars *tv)
+static PacketQueueNoLock TmqhInputPacketpool(ThreadVars *tv)
 {
-    return PacketPoolGetPacket();
+    Packet *p = PacketPoolGetPacket();
+    PacketQueueNoLock pq = { .top = p, .bot = p, .len = (p != NULL) };
+    return pq;
 }
 
 void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
