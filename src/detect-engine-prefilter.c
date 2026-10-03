@@ -2146,4 +2146,187 @@ void PostRuleMatchWorkQueueAppend(
 }
 
 #ifdef UNITTESTS
+static struct PrefilterNonPFDataTx *LteWindowTestData(const uint32_t *iids, uint32_t cnt)
+{
+    struct PrefilterNonPFDataTx *data = SCCalloc(1, sizeof(*data) + cnt * sizeof(data->array[0]));
+    if (data == NULL)
+        return NULL;
+    data->size = cnt;
+    for (uint32_t i = 0; i < cnt; i++)
+        data->array[i] = iids[i];
+    return data;
+}
+
+/** \test the pending rule of a LTE window the fast pattern did not add */
+static int PrefilterLteWindowTest01(void)
+{
+    const uint32_t iids[] = { 2, 5, 9, 13 };
+    struct PrefilterNonPFDataTx *data = LteWindowTestData(iids, 4);
+    FAIL_IF(data == NULL);
+
+    /* the pattern added nothing: the lowest rule of the window is pending */
+    FAIL_IF(LteWindowFirstMissing(data, NULL, 0, 0) != 2);
+
+    /* a rule of the window matched, but it is not the lowest one */
+    RuleMatchCandidateTx cands[1] = { { .id = 5 } };
+    FAIL_IF(LteWindowFirstMissing(data, cands, 1, 0) != 2);
+
+    /* the lowest rule matched, so the miss is the next one */
+    cands[0].id = 2;
+    FAIL_IF(LteWindowFirstMissing(data, cands, 1, 0) != 5);
+
+    RuleMatchCandidateTx more[3] = { { .id = 2 }, { .id = 5 }, { .id = 9 } };
+    FAIL_IF(LteWindowFirstMissing(data, more, 3, 0) != 13);
+
+    /* the window is fully matched: nothing is pending */
+    RuleMatchCandidateTx all[4] = { { .id = 2 }, { .id = 5 }, { .id = 9 }, { .id = 13 } };
+    FAIL_IF(LteWindowFirstMissing(data, all, 4, 0) != UINT32_MAX);
+
+    /* the candidates also hold rules of other groups, before, between and after */
+    RuleMatchCandidateTx mix[5] = { { .id = 1 }, { .id = 2 }, { .id = 6 }, { .id = 9 },
+        { .id = 40 } };
+    FAIL_IF(LteWindowFirstMissing(data, mix, 5, 0) != 5);
+
+    SCFree(data);
+    PASS;
+}
+
+/** \test empty and single entry windows */
+static int PrefilterLteWindowTest02(void)
+{
+    struct PrefilterNonPFDataTx *empty = LteWindowTestData(NULL, 0);
+    FAIL_IF(empty == NULL);
+    FAIL_IF(LteWindowFirstMissing(empty, NULL, 0, 0) != UINT32_MAX);
+    SCFree(empty);
+
+    const uint32_t iids[] = { 7 };
+    struct PrefilterNonPFDataTx *one = LteWindowTestData(iids, 1);
+    FAIL_IF(one == NULL);
+    FAIL_IF(LteWindowFirstMissing(one, NULL, 0, 0) != 7);
+    FAIL_IF(LteWindowFirstMissing(one, NULL, 0, 8) != UINT32_MAX);
+    RuleMatchCandidateTx cand = { .id = 7 };
+    FAIL_IF(LteWindowFirstMissing(one, &cand, 1, 0) != UINT32_MAX);
+    SCFree(one);
+    PASS;
+}
+
+/** \test DetectPrefilterLtePendingIid over several windows */
+static int PrefilterLteWindowTest03(void)
+{
+    DetectEngineThreadCtx det_ctx = { 0 };
+    Signature sigs[6] = { { 0 } };
+    for (uint32_t i = 0; i < 6; i++)
+        sigs[i].iid = i;
+
+    const uint32_t a[] = { 1, 3, 5 }, b[] = { 0, 2, 4 };
+    struct PrefilterNonPFDataTx *wa = LteWindowTestData(a, 3);
+    struct PrefilterNonPFDataTx *wb = LteWindowTestData(b, 3);
+    FAIL_IF(wa == NULL || wb == NULL);
+    FAIL_IF(wa == wb);
+
+    RuleMatchCandidateTx cands[2] = { { .id = 0 }, { .id = 3 } };
+    const void *windows[2] = { wa, wb };
+    det_ctx.tx_candidates = cands;
+    det_ctx.fw_lte_windows = windows;
+    det_ctx.fw_lte_window_size = 2;
+    det_ctx.fw_lte_window_cnt = 2;
+
+    /* window b has rule 0, so its first miss is 2; window a misses at 1 */
+    FAIL_IF(DetectPrefilterLtePendingIid(&det_ctx, 2, 0) != sigs[1].iid);
+    /* the caller takes the next one when a rule turns out to be out of scope */
+    FAIL_IF(DetectPrefilterLtePendingIid(&det_ctx, 2, 2) != 2);
+    FAIL_IF(DetectPrefilterLtePendingIid(&det_ctx, 2, 3) != 4);
+    FAIL_IF(DetectPrefilterLtePendingIid(&det_ctx, 2, 6) != UINT32_MAX);
+
+    /* nothing pending: every rule of every window made the list */
+    det_ctx.fw_lte_window_cnt = 0;
+    FAIL_IF(DetectPrefilterLtePendingIid(&det_ctx, 2, 0) != UINT32_MAX);
+
+    SCFree(wa);
+    SCFree(wb);
+    PASS;
+}
+
+/** \test more windows than the initial array holds: they all stay tracked */
+static int PrefilterLteWindowTest04(void)
+{
+    DetectEngineThreadCtx det_ctx = { 0 };
+    Signature sigs[16] = { { 0 } };
+    for (uint32_t i = 0; i < 16; i++)
+        sigs[i].iid = i;
+
+    const uint32_t pending[] = { 4, 9 };
+    const uint32_t matched[] = { 12 };
+    struct PrefilterNonPFDataTx *w0 = LteWindowTestData(pending, 2);
+    struct PrefilterNonPFDataTx *w[16] = { 0 };
+    FAIL_IF(w0 == NULL);
+    PrefilterLteWindowAdd(&det_ctx, w0);
+    for (uint32_t i = 0; i < 16; i++) {
+        /* distinct sets: the array has to grow past its initial 8 entries */
+        w[i] = LteWindowTestData(matched, 1);
+        FAIL_IF(w[i] == NULL);
+        PrefilterLteWindowAdd(&det_ctx, w[i]);
+    }
+    FAIL_IF(det_ctx.fw_lte_window_cnt != 17);
+    FAIL_IF(det_ctx.fw_lte_window_size != 32);
+    /* a window already tracked is not tracked twice: the engines of a group share it */
+    PrefilterLteWindowAdd(&det_ctx, w[3]);
+    FAIL_IF(det_ctx.fw_lte_window_cnt != 17);
+
+    /* the windows that are fully matched give no pending rule, window 0 misses at 9 */
+    RuleMatchCandidateTx cands[2] = { { .id = 4 }, { .id = 12 } };
+    det_ctx.tx_candidates = cands;
+    FAIL_IF(DetectPrefilterLtePendingIid(&det_ctx, 2, 0) != sigs[9].iid);
+
+    DetectPrefilterLteWindowFree(&det_ctx);
+    FAIL_IF(det_ctx.fw_lte_windows != NULL);
+    FAIL_IF(det_ctx.fw_lte_window_cnt != 0);
+    for (uint32_t i = 0; i < 16; i++) {
+        SCFree(w[i]);
+    }
+    SCFree(w0);
+    PASS;
+}
+
+/** \test a large window entered at any cursor answers as a linear scan would
+ *  (the search enters both arrays where the cursor lies, not at index 0)
+ */
+static int PrefilterLteWindowTest05(void)
+{
+    enum { WIN = 256, CAND = 128 };
+    uint32_t iids[WIN];
+    for (uint32_t i = 0; i < WIN; i++)
+        iids[i] = i * 2 + 1;
+    struct PrefilterNonPFDataTx *data = LteWindowTestData(iids, WIN);
+    FAIL_IF_NULL(data);
+    RuleMatchCandidateTx cands[CAND];
+    for (uint32_t i = 0; i < CAND; i++)
+        cands[i].id = i * 4 + 1;
+    for (uint32_t cursor = 0; cursor <= WIN * 2; cursor += 7) {
+        uint32_t want = UINT32_MAX;
+        for (uint32_t i = 0; i < WIN; i++) {
+            if (iids[i] < cursor)
+                continue;
+            bool in_cands = false;
+            for (uint32_t j = 0; j < CAND; j++)
+                in_cands |= cands[j].id == iids[i];
+            if (!in_cands) {
+                want = iids[i];
+                break;
+            }
+        }
+        FAIL_IF(LteWindowFirstMissing(data, cands, CAND, cursor) != want);
+    }
+    SCFree(data);
+    PASS;
+}
+
+void DetectPrefilterRegisterTests(void)
+{
+    UtRegisterTest("PrefilterLteWindowTest01", PrefilterLteWindowTest01);
+    UtRegisterTest("PrefilterLteWindowTest02", PrefilterLteWindowTest02);
+    UtRegisterTest("PrefilterLteWindowTest03", PrefilterLteWindowTest03);
+    UtRegisterTest("PrefilterLteWindowTest04", PrefilterLteWindowTest04);
+    UtRegisterTest("PrefilterLteWindowTest05", PrefilterLteWindowTest05);
+}
 #endif /* UNITTESTS */

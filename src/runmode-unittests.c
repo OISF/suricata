@@ -28,6 +28,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-alert.h"
+#include "detect-engine-prefilter.h"
 #include "detect-engine-address.h"
 #include "detect-engine-proto.h"
 #include "detect-engine-port.h"
@@ -206,6 +207,7 @@ static void RegisterUnittests(void)
     DetectProtoTests();
     DetectPortTests();
     DetectEngineAlertRegisterTests();
+    DetectPrefilterRegisterTests();
     SCAtomicRegisterTests();
     AppLayerUnittestsRegister();
     StreamingBufferRegisterTests();
