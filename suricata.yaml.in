@@ -852,6 +852,7 @@ dpdk:
       checksum-checks-offload: true
       mtu: 1500
       vlan-strip-offload: false
+      segmented-mbufs: true
       rss-hash-functions: auto
       linkup-timeout: 0
       mempool-size: auto
