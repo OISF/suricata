@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1185,6 +1185,15 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
 
     if (s->init_data->mpm_sm != NULL)
         return;
+
+    /* A transform that derives its key from a runtime byte_extract or byte_math
+     * variable cannot have its buffer precomputed at load time, so the content
+     * of such a buffer is unusable as a fast_pattern. Disqualify the whole
+     * signature from prefilter; it falls back to full inspection. */
+    if (s->init_data->var_transform) {
+        SCLogDebug("sid %u uses a variable-key transform; skipping fast_pattern", s->id);
+        return;
+    }
 
     const int nlists = s->init_data->max_content_list_id + 1;
     DEBUG_VALIDATE_BUG_ON(nlists > UINT16_MAX);
