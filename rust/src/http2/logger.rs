@@ -125,6 +125,11 @@ fn log_http2_frames(frames: &[HTTP2Frame], js: &mut JsonBuilder) -> Result<bool,
     let mut has_settings = false;
     for frame in frames {
         if let HTTP2FrameTypeData::SETTINGS(set) = &frame.data {
+            if set.is_empty() {
+                /* an empty SETTINGS frame (e.g. an ACK) has no entries and
+                 * must not open an empty settings array */
+                continue;
+            }
             if !has_settings {
                 js.open_array("settings")?;
                 has_settings = true;
