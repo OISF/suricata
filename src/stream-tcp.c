@@ -1059,6 +1059,30 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
 }
 
 /**
+ *  \brief check if the reassembly base of a stream can still bound an ACK
+ *
+ *  The base_seq of a direction is the sequence number of the first byte the
+ *  reassembly buffer holds, and it only moves when StreamTcpPruneSession()
+ *  slides that buffer. A direction that is done reassembling (reassembly depth
+ *  reached, or app-layer and raw both finished) never slides again, so its
+ *  base_seq stays behind while the sequence numbers of the stream keep
+ *  advancing. Since SEQ_GT() only compares within half the sequence space, such
+ *  a stale anchor reads as "ahead of the ACK" once 2^31 bytes went by, which
+ *  would freeze last_ack (and with it next_win) until the sequence space came
+ *  all the way round again 2^32 bytes later. Nothing is inserted in that
+ *  direction anymore, so the bound has nothing to protect there.
+ *
+ *  \param stream stream to check
+ *  \retval true base_seq still tracks the stream, so it can bound an ACK
+ *  \retval false base_seq went stale, do not bound the ACK with it
+ */
+static inline bool StreamTcpBaseSeqBoundsAck(const TcpStream *stream)
+{
+    return (stream->flags &
+                   (STREAMTCP_STREAM_FLAG_NOREASSEMBLY | STREAMTCP_STREAM_FLAG_DEPTH_REACHED)) == 0;
+}
+
+/**
  *  \brief macro to update last_ack only if the new value is higher
  *
  *  \param ssn session
@@ -1067,7 +1091,8 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
  */
 #define StreamTcpUpdateLastAck(ssn, stream, ack)                                                   \
     {                                                                                              \
-        if (SEQ_GT((ack), (stream)->last_ack) && SEQ_GT(ack, (stream)->base_seq)) {                \
+        if (SEQ_GT((ack), (stream)->last_ack) &&                                                   \
+                (!StreamTcpBaseSeqBoundsAck(stream) || SEQ_GT(ack, (stream)->base_seq))) {         \
             SCLogDebug("ssn %p: last_ack set to %" PRIu32 ", moved %u forward", (ssn), (ack),      \
                     (ack) - (stream)->last_ack);                                                   \
             if ((SEQ_LEQ((stream)->last_ack, (stream)->next_seq) &&                                \
