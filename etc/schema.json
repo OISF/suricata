@@ -154,6 +154,9 @@
                         }
                     }
                 },
+                "tenant_id": {
+                    "type": "integer"
+                },
                 "xff": {
                     "type": "string"
                 }
@@ -9188,6 +9191,9 @@
                 }
             }
         },
+        "tenant_id": {
+            "type": "integer"
+        },
         "tftp": {
             "type": "object",
             "additionalProperties": false,
@@ -9599,8 +9605,16 @@
                 },
                 "src_port": {
                     "type": "integer"
+                },
+                "tunnel_id": {
+                    "type": "integer",
+                    "description": "If any, the tunnel identifier defined in suricata.yaml decoder.tunnels section"
                 }
             }
+        },
+        "tunnel_id": {
+            "type": "integer",
+            "description": "if any, the tunnel identifier defined in suricata.yaml decoder.tunnels section"
         },
         "tx_guessed": {
             "type": "boolean",
