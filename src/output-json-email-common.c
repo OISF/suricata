@@ -33,7 +33,6 @@
 #include "threads.h"
 #include "threadvars.h"
 #include "tm-threads.h"
-#include "tm-threads-common.h"
 
 #include "util-print.h"
 #include "util-unittest.h"

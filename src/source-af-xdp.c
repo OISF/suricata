@@ -39,7 +39,6 @@
 #include "tm-queuehandlers.h"
 #include "tm-modules.h"
 #include "tm-threads.h"
-#include "tm-threads-common.h"
 #include "conf.h"
 #include "util-cpu.h"
 #include "util-datalink.h"
