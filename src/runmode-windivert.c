@@ -35,7 +35,6 @@
 #include "util-debug.h"
 #include "util-device-private.h"
 #include "util-runmodes.h"
-#include "util-time.h"
 
 const char *RunModeIpsWinDivertGetDefaultMode(void)
 {

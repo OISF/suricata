@@ -32,7 +32,6 @@
 #include "app-layer-ssl.h"
 #include "app-layer-ssh.h"
 #include "app-layer-parser.h"
-#include "util-time.h"
 #include "util-path.h"
 #include "util-lua.h"
 #include "util-lua-common.h"

@@ -47,7 +47,6 @@
 #include "util-buffer.h"
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
-#include "util-time.h"
 #include "output-json.h"
 #include "output-json-alert.h"
 #include "output-json-http.h"

@@ -41,7 +41,6 @@
 #include "decode-ipv6.h"
 #include "util-hashlist.h"
 #include "util-pool.h"
-#include "util-time.h"
 #include "util-print.h"
 #include "util-debug.h"
 #include "util-fix_checksum.h"

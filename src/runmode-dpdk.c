@@ -47,7 +47,6 @@
 #include "util-dpdk-ice.h"
 #include "util-dpdk-ixgbe.h"
 #include "util-dpdk-rss.h"
-#include "util-time.h"
 #include "util-conf.h"
 #include "suricata.h"
 #include "util-affinity.h"

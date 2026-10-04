@@ -31,7 +31,6 @@
 #include "detect-engine-prefilter.h"
 #include "util-conf.h"
 #include "util-path.h"
-#include "util-time.h"
 
 typedef struct SCProfilePrefilterData_ {
     uint64_t called;
