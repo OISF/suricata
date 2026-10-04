@@ -37,7 +37,6 @@
 #include "util-ip.h"
 #include "util-path.h"
 #include "util-print.h"
-#include "util-unittest.h"
 #include "util-validate.h"
 #include "util-radix4-tree.h"
 #include "util-radix6-tree.h"

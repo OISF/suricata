@@ -38,7 +38,6 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 #include "queue.h"
-#include "util-unittest.h"
 #include "util-memcpy.h"
 #ifdef BUILD_HYPERSCAN
 #include "hs.h"

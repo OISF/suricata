@@ -34,7 +34,6 @@
 #include "app-layer-parser.h"
 #include "app-layer-protos.h"
 #include "flow.h"
-#include "util-unittest.h"
 #include "stream-tcp.h"
 #include "util-unittest-helper.h"
 #include "flow-util.h"

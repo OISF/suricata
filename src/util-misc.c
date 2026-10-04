@@ -25,7 +25,6 @@
 #include "suricata.h"
 #include "util-byte.h"
 #include "util-debug.h"
-#include "util-unittest.h"
 #include "util-misc.h"
 #include "util-validate.h"
 

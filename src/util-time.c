@@ -65,7 +65,6 @@
 #include "tm-threads.h"
 #include "util-debug.h"
 #include "util-time.h"
-#include "util-unittest.h"
 
 #ifdef UNITTESTS
 static struct timeval current_time = { 0, 0 };

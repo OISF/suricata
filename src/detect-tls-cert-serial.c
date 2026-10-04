@@ -50,7 +50,6 @@
 #include "app-layer-ssl.h"
 #include "detect-tls-cert-serial.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 static int DetectTlsSerialSetup(DetectEngineCtx *, Signature *, const char *);

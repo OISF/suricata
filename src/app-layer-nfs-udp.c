@@ -25,7 +25,6 @@
 
 #include "suricata-common.h"
 
-#include "util-unittest.h"
 
 
 #include "app-layer-nfs-udp.h"

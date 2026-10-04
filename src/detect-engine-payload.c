@@ -44,7 +44,6 @@
 #include "util-debug.h"
 #include "util-print.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-validate.h"
 #include "util-profiling.h"

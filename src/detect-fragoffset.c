@@ -37,7 +37,6 @@
 #include "detect-fragoffset.h"
 
 #include "util-byte.h"
-#include "util-unittest.h"
 #include "util-debug.h"
 
 static int DetectFragOffsetMatch(DetectEngineThreadCtx *,

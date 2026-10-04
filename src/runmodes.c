@@ -44,7 +44,6 @@
 #include "runmode-pcap-file.h"
 #include "runmode-unix-socket.h"
 #include "runmode-windivert.h"
-#include "util-unittest.h"
 #include "util-misc.h"
 #include "util-plugin.h"
 

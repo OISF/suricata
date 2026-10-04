@@ -40,7 +40,6 @@
 #include "detect.h"
 #include "util-var.h"
 #include "util-debug.h"
-#include "util-unittest.h"
 
 /* get the flowbit with idx from the flow */
 static FlowBit *FlowBitGet(Flow *f, uint32_t idx)

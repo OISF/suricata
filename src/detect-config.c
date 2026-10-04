@@ -40,7 +40,6 @@
 
 #include "util-debug.h"
 #include "util-spm-bm.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 #include "app-layer.h"

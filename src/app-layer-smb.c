@@ -31,7 +31,6 @@
 
 #ifdef UNITTESTS
 #include "stream-tcp.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"

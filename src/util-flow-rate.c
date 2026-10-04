@@ -31,7 +31,6 @@
 #include "util-misc.h"
 #include "util-byte.h"
 #include "util-flow-rate.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 SCFlowStorageId g_flowrate_storage_id = { .id = -1 };

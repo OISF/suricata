@@ -49,7 +49,6 @@
 
 #include "util-debug.h"
 #include "util-spm-bm.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-file-decompression.h"
 #include "util-profiling.h"

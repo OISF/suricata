@@ -32,7 +32,6 @@
 #include "util-print.h"
 
 #include "util-validate.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 /**

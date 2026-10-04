@@ -44,7 +44,6 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
 
 #include "conf.h"
 

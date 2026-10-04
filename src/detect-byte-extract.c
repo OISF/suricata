@@ -40,7 +40,6 @@
 
 #include "util-byte.h"
 #include "util-debug.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 /* the base to be used if string mode is specified.  These options would be

@@ -32,7 +32,6 @@
 #include "app-layer-parser.h"
 #include "app-layer-detect-proto.h"
 #include "util-debug.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 #ifdef UNITTESTS

@@ -50,7 +50,6 @@
 #include "detect-engine-prefilter.h"
 #include "detect-tls-sni.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 static int DetectTlsSniSetup(DetectEngineCtx *, Signature *, const char *);

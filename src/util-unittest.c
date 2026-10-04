@@ -34,7 +34,6 @@
 
 #include "suricata-common.h"
 #include "runmodes.h"
-#include "util-unittest.h"
 #include "util-debug.h"
 #include "conf.h"
 

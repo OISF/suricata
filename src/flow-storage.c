@@ -28,7 +28,6 @@
 #include "suricata-common.h"
 #include "flow-storage.h"
 #include "util-storage.h"
-#include "util-unittest.h"
 
 unsigned int SCFlowStorageSize(void)
 {

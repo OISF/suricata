@@ -45,7 +45,6 @@
 #include "flow.h"
 #include "flow-util.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-profiling.h"
 

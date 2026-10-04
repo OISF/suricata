@@ -248,7 +248,6 @@
 #include "util-classification-config.h"
 #include "util-threshold-config.h"
 #include "util-print.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 #include "util-hashlist.h"

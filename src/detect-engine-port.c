@@ -32,7 +32,6 @@
 #include "flow-var.h"
 
 #include "util-cidr.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-rule-vars.h"
 

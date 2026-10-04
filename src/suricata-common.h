@@ -531,7 +531,9 @@ typedef struct lua_State lua_State;
 #include "util-time.h"
 #include "util-mem.h"
 #include "util-atomic.h"
+#ifdef UNITTESTS
 #include "util-unittest.h"
+#endif
 
 #ifndef HAVE_STRLCAT
 size_t strlcat(char *, const char *src, size_t siz);

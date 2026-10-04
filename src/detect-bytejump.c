@@ -38,7 +38,6 @@
 #include "detect-uricontent.h"
 
 #include "util-byte.h"
-#include "util-unittest.h"
 #include "util-debug.h"
 #include "util-validate.h"
 #include "detect-pcre.h"

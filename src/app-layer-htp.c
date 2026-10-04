@@ -2699,7 +2699,6 @@ void RegisterHTPParsers(void)
 #include "flow-util.h"
 #include "stream-tcp.h"
 #include "util-print.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 static HTPCfgRec cfglist_backup;

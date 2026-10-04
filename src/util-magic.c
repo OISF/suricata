@@ -29,7 +29,6 @@
 
 #include "suricata-common.h"
 #include "conf.h"
-#include "util-unittest.h"
 #include "util-magic.h"
 #include "util-debug.h"
 

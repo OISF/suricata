@@ -17,7 +17,6 @@
 
 #include "suricata-common.h"
 #include "util-streaming-buffer.h"
-#include "util-unittest.h"
 #include "util-print.h"
 #include "util-validate.h"
 #include "util-debug.h"

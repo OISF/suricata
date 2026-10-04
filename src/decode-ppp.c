@@ -37,7 +37,6 @@
 #include "flow.h"
 
 #include "util-validate.h"
-#include "util-unittest.h"
 #include "util-debug.h"
 
 static int DecodePPPCompressedProto(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,

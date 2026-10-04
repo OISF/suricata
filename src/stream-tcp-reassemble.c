@@ -41,7 +41,6 @@
 #include "tm-threads.h"
 
 #include "util-pool.h"
-#include "util-unittest.h"
 #include "util-print.h"
 #include "util-host-os-info.h"
 #include "util-unittest-helper.h"

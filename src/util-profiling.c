@@ -32,7 +32,6 @@
 #ifdef PROFILING
 #include "tm-threads.h"
 #include "conf.h"
-#include "util-unittest.h"
 #include "util-byte.h"
 #include "util-profiling-locks.h"
 #include "util-conf.h"

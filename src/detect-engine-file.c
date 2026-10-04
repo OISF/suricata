@@ -43,7 +43,6 @@
 #include "app-layer-htp.h"
 #include "app-layer-smtp.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-profiling.h"
 #include "util-validate.h"

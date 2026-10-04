@@ -33,7 +33,6 @@
 #include "util-memcmp.h"
 #include "util-print.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "ippair.h"
 

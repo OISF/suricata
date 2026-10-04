@@ -26,7 +26,6 @@
 #include "app-layer-parser.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
-#include "util-unittest.h"
 #include "util-debug.h"
 #include "conf-yaml-loader.h"
 #include "util-running-modes.h"

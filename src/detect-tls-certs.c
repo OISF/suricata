@@ -53,7 +53,6 @@
 #include "app-layer-ssl.h"
 
 #include "util-profiling.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 static int DetectTlsCertsSetup(DetectEngineCtx *, Signature *, const char *);

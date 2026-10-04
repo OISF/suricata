@@ -36,7 +36,6 @@
 #include "host-storage.h"
 #include "flow-storage.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "flow-util.h"
 #include "stream-tcp-private.h"

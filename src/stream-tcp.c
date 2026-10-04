@@ -45,7 +45,6 @@
 #include "util-pool.h"
 #include "util-pool-thread.h"
 #include "util-checksum.h"
-#include "util-unittest.h"
 #include "util-print.h"
 #include "util-debug.h"
 #include "util-device-private.h"

@@ -36,7 +36,6 @@
 #include "detect-content.h"
 #include "detect-dsize.h"
 
-#include "util-unittest.h"
 #include "util-debug.h"
 #include "util-byte.h"
 
