@@ -15,8 +15,8 @@ clap = { workspace = true }
 
 once_cell = { workspace = true }
 
-# Held at 14 to support Rust 1.75.0.
-rustyline = { version = "14.0.0" }
+# Held at 17 as rustyline 18 requires home 0.5.12, which requires Rust 1.88.
+rustyline = { version = "17.0.2" }
 rustyline-derive = { version = "~0.11.1" }
 
 thiserror = { version = "1.0.69" }
