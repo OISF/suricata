@@ -32,7 +32,6 @@
 #include "util-var-name.h"
 #include "util-macset.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 #include "detect-engine.h"

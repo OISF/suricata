@@ -26,7 +26,6 @@
 #include "suricata-common.h"
 #include "app-layer-protos.h"
 #include "app-layer-htp.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-misc.h"
 

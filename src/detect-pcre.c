@@ -46,7 +46,6 @@
 #include "util-var-name.h"
 #include "util-unittest-helper.h"
 #include "util-debug.h"
-#include "util-unittest.h"
 #include "util-print.h"
 #include "util-pool.h"
 

@@ -28,7 +28,6 @@
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-ip.h"
-#include "util-unittest.h"
 #include "util-memcmp.h"
 #include "util-print.h"
 #include "util-byte.h"

@@ -41,7 +41,6 @@
 #include "app-layer.h"
 
 #include "util-byte.h"
-#include "util-unittest.h"
 #include "util-debug.h"
 #include "detect-pcre.h"
 

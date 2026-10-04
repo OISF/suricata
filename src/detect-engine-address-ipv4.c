@@ -30,7 +30,6 @@
 #include "flow-var.h"
 
 #include "util-cidr.h"
-#include "util-unittest.h"
 
 #include "detect-engine-address.h"
 #include "detect-engine-address-ipv4.h"

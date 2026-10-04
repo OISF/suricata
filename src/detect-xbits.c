@@ -51,7 +51,6 @@
 #include "tx-bit.h"
 
 #include "util-var-name.h"
-#include "util-unittest.h"
 #include "util-debug.h"
 
 /*

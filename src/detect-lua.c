@@ -43,7 +43,6 @@
 
 #include "util-byte.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 #include "app-layer.h"

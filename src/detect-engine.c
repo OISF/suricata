@@ -74,7 +74,6 @@
 #include "util-hash.h"
 #include "util-byte.h"
 #include "util-debug.h"
-#include "util-unittest.h"
 #include "util-action.h"
 #include "util-magic.h"
 #include "util-signal.h"

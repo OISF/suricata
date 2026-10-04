@@ -35,7 +35,6 @@
 #include "util-error.h"
 #include "util-ioctl.h"
 #include "util-privs.h"
-#include "util-unittest.h"
 
 #include "runmodes.h"
 

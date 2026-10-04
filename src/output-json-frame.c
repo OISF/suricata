@@ -36,7 +36,6 @@
 
 #include "util-logopenfile.h"
 #include "util-misc.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 #include "detect-parse.h"

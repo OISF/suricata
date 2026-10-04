@@ -2184,7 +2184,6 @@ void AppLayerRegisterExpectationProto(uint8_t proto, AppProto alproto)
 #include "detect-engine-build.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 static AppLayerProtoDetectCtx alpd_ctx_ut;

@@ -384,7 +384,6 @@ void DetectDNP3Register(void)
 
 #ifdef UNITTESTS
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "app-layer-parser.h"
 #include "flow-util.h"

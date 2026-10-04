@@ -45,7 +45,6 @@
 #include "util-debug.h"
 #include "util-enum.h"
 #include "util-profiling.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "stream-tcp-util.h"
 

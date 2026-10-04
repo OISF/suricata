@@ -40,7 +40,6 @@
 
 #include "util-byte.h"
 #include "util-debug.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 #define PARSE_REGEX  "^\\s*(!?\\s*[0-9]{1,3}|!?\\s*[xX][0-9a-fA-F]{1,2})\\s*$"

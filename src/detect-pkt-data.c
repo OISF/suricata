@@ -39,7 +39,6 @@
 
 #include "util-debug.h"
 #include "util-spm-bm.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 static int DetectPktDataSetup (DetectEngineCtx *, Signature *, const char *);

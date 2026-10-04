@@ -36,7 +36,6 @@
 #include "decode-events.h"
 
 #include "util-validate.h"
-#include "util-unittest.h"
 #include "util-debug.h"
 
 int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,

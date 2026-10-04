@@ -31,7 +31,6 @@
 #include "detect-engine.h"
 #include "detect-engine-sigorder.h"
 
-#include "util-unittest.h"
 #include "util-action.h"
 #include "util-unittest-helper.h"
 #include "util-debug.h"

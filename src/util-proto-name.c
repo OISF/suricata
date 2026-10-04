@@ -30,7 +30,6 @@
 #include "util-debug.h"
 
 #ifdef UNITTESTS
-#include "util-unittest.h"
 #endif
 
 /** Lookup array to hold the information related to known protocol

@@ -25,7 +25,6 @@
 
 #include "suricata-common.h"
 #include "util-memcmp.h"
-#include "util-unittest.h"
 
 /* code is implemented in util-memcmp.h as it's all inlined */
 

@@ -34,7 +34,6 @@
 #include "detect-mark.h"
 #include "detect-parse.h"
 
-#include "util-unittest.h"
 #include "util-byte.h"
 #include "util-debug.h"
 

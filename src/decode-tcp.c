@@ -34,7 +34,6 @@
 #include "decode-tcp.h"
 #include "decode.h"
 #include "decode-events.h"
-#include "util-unittest.h"
 #include "util-debug.h"
 #include "flow.h"
 

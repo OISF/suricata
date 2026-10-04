@@ -33,7 +33,6 @@
 #include "util-byte.h"
 #include "util-debug.h"
 #include "util-dpdk.h"
-#include "util-unittest.h"
 
 ThreadsAffinityType thread_affinity[MAX_CPU_SET] = {
     {

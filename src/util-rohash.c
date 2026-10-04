@@ -36,7 +36,6 @@
 
 #include "suricata-common.h"
 #include "util-hash.h"
-#include "util-unittest.h"
 #include "util-memcmp.h"
 #include "util-hash-lookup3.h"
 #include "util-rohash.h"

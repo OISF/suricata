@@ -51,7 +51,6 @@
 #include "detect-engine-address.h"
 #include "detect-engine-build.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-byte.h"
 #include "util-debug.h"

@@ -28,7 +28,6 @@
 #include "stream-tcp-private.h"
 
 #include "util-debug.h"
-#include "util-unittest.h"
 
 #include "detect-tcp-session.h"
 
@@ -236,7 +235,6 @@ void DetectTcpSessionRegister(void)
 }
 
 #ifdef UNITTESTS
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "detect-engine.h"
 #include "detect-flow.h"

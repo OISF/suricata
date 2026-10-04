@@ -31,7 +31,6 @@
 #include "util-byte.h"
 #include "util-debug.h"
 #include "util-error.h"
-#include "util-unittest.h"
 
 static int DetectSidSetup (DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

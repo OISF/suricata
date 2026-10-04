@@ -30,7 +30,6 @@
 #include "app-layer-htp-xff.h"
 
 #include "util-misc.h"
-#include "util-unittest.h"
 #include "app-layer-protos.h"
 #include "htp/htp_rs.h"
 #include "util-debug.h"

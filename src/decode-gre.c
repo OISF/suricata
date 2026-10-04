@@ -37,7 +37,6 @@
 #include "decode-gre.h"
 
 #include "util-validate.h"
-#include "util-unittest.h"
 #include "util-debug.h"
 
 /**

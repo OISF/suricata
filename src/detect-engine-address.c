@@ -29,7 +29,6 @@
 #include "flow-var.h"
 
 #include "util-cidr.h"
-#include "util-unittest.h"
 #include "util-rule-vars.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"

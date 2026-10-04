@@ -34,7 +34,6 @@
 
 #include "detect-gid.h"
 #include "util-byte.h"
-#include "util-unittest.h"
 #include "util-debug.h"
 
 static int DetectGidSetup (DetectEngineCtx *, Signature *, const char *);

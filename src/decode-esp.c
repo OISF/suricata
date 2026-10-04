@@ -85,7 +85,6 @@ int DecodeESP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
 
 #ifdef UNITTESTS
 
-#include "util-unittest.h"
 
 /** \test Successful decoding */
 static int DecodeESPTest01(void)
