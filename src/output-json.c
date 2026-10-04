@@ -29,7 +29,6 @@
 #include "conf.h"
 
 #include "util-debug.h"
-#include "util-time.h"
 #include "util-var-name.h"
 #include "util-macset.h"
 

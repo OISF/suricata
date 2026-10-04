@@ -40,7 +40,6 @@
 #include "util-proto-name.h"
 #include "util-optimize.h"
 #include "util-logopenfile.h"
-#include "util-time.h"
 #include "suricata.h"
 
 #include "action-globals.h"

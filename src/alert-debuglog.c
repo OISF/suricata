@@ -49,7 +49,6 @@
 #include "util-var-name.h"
 #include "util-optimize.h"
 #include "util-logopenfile.h"
-#include "util-time.h"
 
 #include "stream-tcp-reassemble.h"
 

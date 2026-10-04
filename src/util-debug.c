@@ -34,7 +34,6 @@
 #include "util-enum.h"
 #include "util-path.h"
 #include "util-syslog.h"
-#include "util-time.h"
 
 // clang-format off
 /* holds the string-enum mapping for the enums held in the table SCLogLevel */

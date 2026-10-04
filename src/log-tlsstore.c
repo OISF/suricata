@@ -38,7 +38,6 @@
 
 #include "util-conf.h"
 #include "util-path.h"
-#include "util-time.h"
 #include "util-print.h"
 
 #define MODULE_NAME "LogTlsStoreLog"

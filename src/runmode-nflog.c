@@ -34,7 +34,6 @@
 #include "source-nflog.h"
 
 #ifdef HAVE_NFLOG
-#include "util-time.h"
 
 static void NflogDerefConfig(void *data)
 {

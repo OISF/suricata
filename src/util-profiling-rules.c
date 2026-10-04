@@ -30,7 +30,6 @@
 #include "util-byte.h"
 #include "util-conf.h"
 #include "util-path.h"
-#include "util-time.h"
 
 #ifdef PROFILE_RULES
 

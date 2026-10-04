@@ -42,7 +42,6 @@
 #include "util-optimize.h"
 #include "util-checksum.h"
 #include "util-ioctl.h"
-#include "util-time.h"
 #include "tmqh-packetpool.h"
 
 #define PCAP_STATE_DOWN 0

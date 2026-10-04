@@ -32,7 +32,6 @@
 #include "util-conf.h"
 #include "util-path.h"
 #include "util-misc.h"
-#include "util-time.h"
 #include "log-maintenance.h"
 
 #if defined(HAVE_SYS_UN_H) && defined(HAVE_SYS_SOCKET_H) && defined(HAVE_SYS_TYPES_H)

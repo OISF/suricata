@@ -46,7 +46,6 @@
 #include "detect-engine-address-ipv6.h"
 
 #include "util-misc.h"
-#include "util-time.h"
 #include "util-error.h"
 #include "util-debug.h"
 #include "action-globals.h"

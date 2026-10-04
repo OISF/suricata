@@ -41,7 +41,6 @@
 #include "flow-callbacks.h"
 #include "app-layer-parser.h"
 
-#include "util-time.h"
 #include "util-debug.h"
 #include "util-device-private.h"
 

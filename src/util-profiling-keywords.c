@@ -33,7 +33,6 @@
 #include "tm-threads.h"
 #include "util-conf.h"
 #include "util-path.h"
-#include "util-time.h"
 
 /**
  * Extra data for rule profiling.

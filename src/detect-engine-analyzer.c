@@ -48,7 +48,6 @@
 #include "detect-tcp-seq.h"
 #include "feature.h"
 #include "util-print.h"
-#include "util-time.h"
 #include "util-validate.h"
 #include "util-conf.h"
 #include "detect-flowbits.h"
