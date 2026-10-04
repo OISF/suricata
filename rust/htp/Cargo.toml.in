@@ -1,7 +1,8 @@
 [package]
 name = "suricata-htp"
-version = "@PACKAGE_VERSION@"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 autobins = false
 license-file = "LICENSE"
 description = "Security Aware HTP Protocol parsing library"

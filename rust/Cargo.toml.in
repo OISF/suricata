@@ -1,10 +1,10 @@
 [package]
 name = "suricata"
-version = "@PACKAGE_VERSION@"
-license = "GPL-2.0-only"
+version.workspace = true
+license.workspace = true
 description = "Suricata Rust components"
-edition = "2021"
-rust-version = "1.85.0"
+edition.workspace = true
+rust-version.workspace = true
 
 [workspace]
 members = [
@@ -22,6 +22,12 @@ default-members = [
     "suricatactl",
     "suricatasc",
 ]
+
+[workspace.package]
+version = "@PACKAGE_VERSION@"
+license = "GPL-2.0-only"
+edition = "2021"
+rust-version = "1.85.0"
 
 [lib]
 crate-type = ["staticlib", "rlib"]
