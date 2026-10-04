@@ -30,7 +30,6 @@
 #define SURICATA_UTIL_MEMCMP_H
 
 #include "suricata-common.h"
-#include "util-optimize.h"
 
 /** \brief compare two patterns, converting the 2nd to lowercase
  *  \warning *ONLY* the 2nd pattern is converted to lowercase

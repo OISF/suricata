@@ -44,7 +44,6 @@
 #include "util-print.h"
 #include "util-proto-name.h"
 #include "util-syslog.h"
-#include "util-optimize.h"
 #include "util-logopenfile.h"
 #include "util-enum.h"
 #include "action-globals.h"

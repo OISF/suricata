@@ -32,7 +32,6 @@ typedef struct SCFlowStorageId SCFlowStorageId;
 #include "util-exception-policy.h"
 #include "util-exception-policy-types.h"
 #include "util-var.h"
-#include "util-optimize.h"
 #include "util-validate.h"
 #include "app-layer-protos.h"
 #include "flow-bindgen.h"

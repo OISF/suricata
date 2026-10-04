@@ -47,7 +47,6 @@
 #include "util-ebpf.h"
 #include "util-error.h"
 #include "util-privs.h"
-#include "util-optimize.h"
 #include "util-checksum.h"
 #include "util-ioctl.h"
 #include "util-host-info.h"

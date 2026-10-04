@@ -38,7 +38,6 @@
 
 #include "util-print.h"
 #include "util-proto-name.h"
-#include "util-optimize.h"
 #include "util-logopenfile.h"
 #include "suricata.h"
 

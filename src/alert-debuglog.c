@@ -47,7 +47,6 @@
 #include "flow-var.h"
 #include "flow-bit.h"
 #include "util-var-name.h"
-#include "util-optimize.h"
 #include "util-logopenfile.h"
 
 #include "stream-tcp-reassemble.h"
