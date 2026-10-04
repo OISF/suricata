@@ -26,7 +26,6 @@
 #include "source-pcap-file-directory-helper.h"
 #include "suricata.h"
 #include "runmode-unix-socket.h"
-#include "util-mem.h"
 #include "util-path.h"
 #include "source-pcap-file.h"
 

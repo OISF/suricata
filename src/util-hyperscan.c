@@ -27,7 +27,6 @@
 #include "suricata.h"
 
 #include "util-debug.h"
-#include "util-mem.h"
 
 #ifdef BUILD_HYPERSCAN
 #include "util-hyperscan.h"
