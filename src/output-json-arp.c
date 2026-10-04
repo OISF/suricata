@@ -47,7 +47,6 @@
 #include "util-print.h"
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
-#include "util-time.h"
 #include "util-buffer.h"
 
 static const char *OpcodeToString(uint16_t opcode)

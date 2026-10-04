@@ -42,7 +42,6 @@
 #include "util-buffer.h"
 
 #include "util-logopenfile.h"
-#include "util-time.h"
 
 #define DEFAULT_LOG_FILENAME "stats.log"
 #define MODULE_NAME "LogStatsLog"

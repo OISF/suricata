@@ -27,7 +27,6 @@
 #include "suricata.h"
 #include "runmode-unix-socket.h"
 #include "util-mem.h"
-#include "util-time.h"
 #include "util-path.h"
 #include "source-pcap-file.h"
 

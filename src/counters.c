@@ -36,7 +36,6 @@
 #include "util-byte.h"
 #include "util-conf.h"
 #include "util-hash.h"
-#include "util-time.h"
 
 #include "tm-threads.h"
 #include "util-privs.h"

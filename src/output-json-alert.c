@@ -37,7 +37,6 @@
 
 #include "util-logopenfile.h"
 #include "util-misc.h"
-#include "util-time.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"

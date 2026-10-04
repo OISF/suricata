@@ -46,7 +46,6 @@
 #include "util-debug.h"
 #include "util-atomic.h"
 #include "util-file.h"
-#include "util-time.h"
 #include "util-buffer.h"
 #include "util-byte.h"
 #include "util-validate.h"

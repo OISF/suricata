@@ -38,7 +38,6 @@
 #include "util-runmodes.h"
 #include "util-ioctl.h"
 #include "util-byte.h"
-#include "util-time.h"
 
 #ifdef HAVE_NETMAP
 #define NETMAP_WITH_LIBS

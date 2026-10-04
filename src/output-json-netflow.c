@@ -44,7 +44,6 @@
 #include "util-device-private.h"
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
-#include "util-time.h"
 #include "output-json.h"
 #include "output-json-netflow.h"
 

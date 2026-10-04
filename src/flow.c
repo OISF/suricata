@@ -33,7 +33,6 @@
 #include "threadvars.h"
 
 #include "util-random.h"
-#include "util-time.h"
 
 #include "flow.h"
 #include "flow-queue.h"

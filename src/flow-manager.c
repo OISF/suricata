@@ -29,7 +29,6 @@
 #include "tm-threads.h"
 #include "runmodes.h"
 
-#include "util-time.h"
 
 #include "flow.h"
 #include "flow-queue.h"

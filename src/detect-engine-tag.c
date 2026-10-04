@@ -29,7 +29,6 @@
 #include "detect-engine.h"
 #include "util-hash.h"
 #include "util-atomic.h"
-#include "util-time.h"
 #include "util-hashlist.h"
 #include "detect-engine-tag.h"
 #include "detect-engine-build.h"

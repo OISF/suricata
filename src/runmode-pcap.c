@@ -22,7 +22,6 @@
 
 #include "util-conf.h"
 #include "util-debug.h"
-#include "util-time.h"
 #include "util-cpu.h"
 #include "util-device-private.h"
 #include "util-runmodes.h"

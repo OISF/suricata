@@ -35,7 +35,6 @@
 #include "threadvars.h"
 #include "util-debug.h"
 #include "util-ja3.h"
-#include "util-time.h"
 
 #define LOG_TLS_FIELD_VERSION          BIT_U64(0)
 #define LOG_TLS_FIELD_SUBJECT          BIT_U64(1)

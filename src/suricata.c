@@ -141,7 +141,6 @@
 #include "util-proto-name.h"
 #include "util-running-modes.h"
 #include "util-signal.h"
-#include "util-time.h"
 #include "util-validate.h"
 #include "util-var-name.h"
 #ifdef SYSTEMD_NOTIFY
