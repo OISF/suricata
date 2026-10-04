@@ -42,7 +42,6 @@
 
 #include "conf.h"
 
-#include "util-mem.h"
 #include "util-misc.h"
 #include "util-validate.h"
 #include "detect.h"

@@ -30,7 +30,6 @@
 
 #include "util-byte.h"
 #include "util-debug.h"
-#include "util-mem.h"
 #include "app-layer-parser.h"
 #include "output.h"
 #include "decode.h"
