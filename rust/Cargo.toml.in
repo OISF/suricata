@@ -54,8 +54,9 @@ time = "=0.3.45"
 zstd = { version = "~0.13.3", default-features = false, features = ["arrays", "zdict_builder"] }
 
 once_cell = "1.21.3"
-# clap 4.5.58 requires clap_lex 1 which requires edition2024
-clap = { version = "=4.5.57", default-features = false, features = ["std", "derive", "help", "usage"] }
+# Held at a release known to support Rust 1.85; clap may raise its MSRV in
+# minor releases.
+clap = { version = "=4.6.7", default-features = false, features = ["std", "derive", "help", "usage"] }
 
 [lib]
 crate-type = ["staticlib", "rlib"]
