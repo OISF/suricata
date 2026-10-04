@@ -39,7 +39,6 @@
 #include "util-privs.h"
 #include "util-datalink.h"
 #include "util-device-private.h"
-#include "util-optimize.h"
 #include "util-checksum.h"
 #include "util-ioctl.h"
 #include "tmqh-packetpool.h"

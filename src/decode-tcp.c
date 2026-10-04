@@ -36,7 +36,6 @@
 #include "decode-events.h"
 #include "util-unittest.h"
 #include "util-debug.h"
-#include "util-optimize.h"
 #include "flow.h"
 
 static inline uint16_t DecodeTCPGetU16(const uint8_t *d)

@@ -61,7 +61,6 @@
 #include "output-json-frame.h"
 
 #include "util-print.h"
-#include "util-optimize.h"
 #include "util-buffer.h"
 #include "util-reference-config.h"
 #include "util-validate.h"

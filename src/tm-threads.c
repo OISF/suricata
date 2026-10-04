@@ -42,7 +42,6 @@
 #include "util-debug.h"
 #include "util-privs.h"
 #include "util-cpu.h"
-#include "util-optimize.h"
 #include "util-profiling.h"
 #include "util-signal.h"
 #include "queue.h"
