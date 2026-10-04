@@ -36,6 +36,7 @@
 #include "rust.h"
 
 #include "util-mpm.h"
+#include "util-memcmp.h"
 #include "util-validate.h"
 #include "app-layer-protos.h"
 #include "flow-storage.h"
