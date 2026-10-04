@@ -34,7 +34,6 @@
 #include "datasets-reputation.h"
 #include "datasets-context-json.h"
 #include "util-conf.h"
-#include "util-mem.h"
 #include "util-thash.h"
 #include "util-print.h"
 #include "util-byte.h"

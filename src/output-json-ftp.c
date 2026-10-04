@@ -35,7 +35,6 @@
 #include "util-unittest.h"
 #include "util-buffer.h"
 #include "util-debug.h"
-#include "util-mem.h"
 
 #include "output.h"
 #include "output-json.h"
