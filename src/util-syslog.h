@@ -27,6 +27,10 @@
 
 #include "util-enum.h"
 
+#ifdef OS_WIN32
+#include "win32-syslog.h"
+#endif /* OS_WIN32 */
+
 SCEnumCharMap *SCSyslogGetFacilityMap(void);
 SCEnumCharMap *SCSyslogGetLogLevelMap(void);
 
