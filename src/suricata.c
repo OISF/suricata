@@ -30,7 +30,9 @@
 #if HAVE_SIGNAL_H
 #include <signal.h>
 #endif
-#ifndef OS_WIN32
+#ifdef OS_WIN32
+#include "win32-service.h"
+#else
 #ifdef HAVE_SYS_RESOURCE_H
 // setrlimit
 #include <sys/resource.h>

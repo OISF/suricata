@@ -30,6 +30,10 @@
 #include "util-path.h"
 #include "util-print.h"
 
+#ifdef OS_WIN32
+#include "win32-misc.h"
+#endif /* OS_WIN32 */
+
 #define MODULE_NAME "OutputFilestore"
 
 /* Create a filestore specific PATH_MAX that is less than the system
