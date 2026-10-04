@@ -530,7 +530,6 @@ typedef struct lua_State lua_State;
 #include "util-optimize.h"
 #include "util-time.h"
 #include "util-mem.h"
-#include "util-memcmp.h"
 #include "util-atomic.h"
 #include "util-unittest.h"
 
