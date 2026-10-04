@@ -50,7 +50,6 @@
 #include "util-debug.h"
 #include "util-validate.h"
 #include "util-cidr.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-memcmp.h"
 

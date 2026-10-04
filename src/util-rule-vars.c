@@ -36,7 +36,6 @@
 #include "util-rule-vars.h"
 #include "util-enum.h"
 #include "util-debug.h"
-#include "util-unittest.h"
 
 /** An enum-string map, that maps the different vars type in the yaml conf
  *  type with the mapping path in the yaml conf file */

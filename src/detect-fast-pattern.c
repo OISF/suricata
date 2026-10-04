@@ -36,7 +36,6 @@
 #include "util-error.h"
 #include "util-byte.h"
 #include "util-debug.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 #define PARSE_REGEX "^(\\s*only\\s*)|\\s*([0-9]+)\\s*,\\s*([0-9]+)\\s*$"

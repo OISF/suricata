@@ -57,7 +57,6 @@
 
 #include "flow-util.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 #include "stream-tcp.h"

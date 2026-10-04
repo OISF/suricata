@@ -24,7 +24,6 @@
  */
 
 #include "suricata-common.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 #include "detect.h"

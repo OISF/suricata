@@ -35,7 +35,6 @@
 #include "detect.h"
 #include "util-var.h"
 #include "util-debug.h"
-#include "util-unittest.h"
 #include "ippair-storage.h"
 
 static SCIPPairStorageId g_ippair_bit_storage_id = { .id = -1 }; /**< IPPair storage id for bits */

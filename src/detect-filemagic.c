@@ -46,7 +46,6 @@
 #include "util-magic.h"
 #include "util-print.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-profiling.h"
 

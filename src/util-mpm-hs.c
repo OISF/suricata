@@ -35,7 +35,6 @@
 #include "conf.h"
 #include "util-conf.h"
 #include "util-debug.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-memcmp.h"
 #include "util-mpm-hs.h"

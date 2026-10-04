@@ -1695,7 +1695,6 @@ void RegisterDNP3Parsers(void)
 
 #include "flow-util.h"
 #include "stream-tcp.h"
-#include "util-unittest.h"
 #include "threads.h"
 
 /**

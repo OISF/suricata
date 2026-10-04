@@ -48,7 +48,6 @@
 #include "flow-util.h"
 
 #include "util-debug.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-spm.h"
 

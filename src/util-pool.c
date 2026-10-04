@@ -41,7 +41,6 @@
 #include "suricata-common.h"
 #include "util-pool.h"
 #include "util-pool-thread.h"
-#include "util-unittest.h"
 #include "util-debug.h"
 #include "util-validate.h"
 

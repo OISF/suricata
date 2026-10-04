@@ -18,7 +18,6 @@
 #include "suricata-common.h"
 #include "thread-storage.h"
 #include "util-storage.h"
-#include "util-unittest.h"
 
 const StorageEnum storage_type = STORAGE_THREAD;
 

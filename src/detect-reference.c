@@ -39,7 +39,6 @@
 #include "util-reference-config.h"
 #include "detect-reference.h"
 
-#include "util-unittest.h"
 #include "util-byte.h"
 #include "util-debug.h"
 

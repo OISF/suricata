@@ -22,7 +22,6 @@
 
 #include "suricata-common.h"
 #include "runmode-unittests.h"
-#include "util-unittest.h"
 
 #include "util-debug.h"
 #ifdef UNITTESTS

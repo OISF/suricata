@@ -31,7 +31,6 @@
 
 #include "detect-csum.h"
 
-#include "util-unittest.h"
 #include "util-debug.h"
 
 #include "pkt-var.h"

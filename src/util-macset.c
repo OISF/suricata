@@ -31,7 +31,6 @@
 #include "flow-private.h"
 #include "flow-storage.h"
 #include "util-macset.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "conf.h"
 

@@ -27,7 +27,6 @@
 #include "detect.h"
 #include "util-classification-config.h"
 #include "util-debug.h"
-#include "util-unittest.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"

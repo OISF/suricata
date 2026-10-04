@@ -30,7 +30,6 @@
 #include "detect-parse.h"
 
 #include "detect-ipopts.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 static int DetectIpOptsMatch (DetectEngineThreadCtx *, Packet *,

@@ -42,7 +42,6 @@
 #include "util-debug.h"
 #include "detect-pcre.h"
 #include "detect-within.h"
-#include "util-unittest.h"
 
 static int DetectWithinSetup(DetectEngineCtx *, Signature *, const char *);
 #ifdef UNITTESTS

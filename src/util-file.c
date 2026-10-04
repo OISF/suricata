@@ -1194,7 +1194,6 @@ static void FileEndSha256(File *ff)
 }
 
 #ifdef UNITTESTS
-#include "util-unittest.h"
 
 /**
  * \test the inspect window guard must not wrap around

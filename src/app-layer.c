@@ -1399,7 +1399,6 @@ void AppLayerDeSetupCounters(void)
 /***** Unittests *****/
 
 #ifdef UNITTESTS
-#include "util-unittest.h"
 
 #define TEST_START                                                                                 \
     Packet *p = PacketGetFromAlloc();                                                              \

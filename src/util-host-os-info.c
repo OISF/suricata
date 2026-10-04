@@ -38,7 +38,6 @@
 #include "conf-yaml-loader.h"
 
 #include "util-enum.h"
-#include "util-unittest.h"
 
 /** Enum map for the various OS flavours */
 SCEnumCharMap sc_hinfo_os_policy_map[ ] = {

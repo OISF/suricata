@@ -41,7 +41,6 @@
 #include "stream.h"
 
 #include "util-print.h"
-#include "util-unittest.h"
 #include "util-privs.h"
 #include "util-debug.h"
 #include "util-file.h"

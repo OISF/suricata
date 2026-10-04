@@ -49,7 +49,6 @@
 
 #include "util-debug.h"
 #include "util-error.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-spm.h"
 #include "util-print.h"

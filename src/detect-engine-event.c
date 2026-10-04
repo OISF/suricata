@@ -42,7 +42,6 @@
 /* Need to get the DEvents[] array */
 
 #include "detect-engine-event.h"
-#include "util-unittest.h"
 
 #define PARSE_REGEX "\\S[0-9A-z_]+[.][A-z0-9_+.]+$"
 

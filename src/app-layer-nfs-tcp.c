@@ -28,7 +28,6 @@
 
 #include "suricata-common.h"
 
-#include "util-unittest.h"
 
 #include "app-layer-detect-proto.h"
 

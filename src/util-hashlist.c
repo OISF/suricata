@@ -28,7 +28,6 @@
 
 #include "suricata-common.h"
 #include "util-hashlist.h"
-#include "util-unittest.h"
 #include "util-debug.h"
 #include "util-memcmp.h"
 

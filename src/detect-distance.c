@@ -44,7 +44,6 @@
 
 #include "util-byte.h"
 #include "util-debug.h"
-#include "util-unittest.h"
 #include "detect-bytejump.h"
 #include "util-unittest-helper.h"
 
