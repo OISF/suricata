@@ -49,7 +49,6 @@
 #include "util-byte.h"
 #include "util-print.h"
 #include "util-proto-name.h"
-#include "util-optimize.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 #include "util-log-redis.h"

@@ -255,7 +255,6 @@
 #include "util-privs.h"
 #include "util-profiling.h"
 #include "util-validate.h"
-#include "util-optimize.h"
 #include "util-path.h"
 #include "util-mpm-ac.h"
 #include "runmodes.h"
