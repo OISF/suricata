@@ -24,6 +24,7 @@
 #ifndef SURICATA_TM_QUEUES_H
 #define SURICATA_TM_QUEUES_H
 
+#include "queue.h"
 #include "packet-queue.h"
 
 typedef struct Tmq_ {

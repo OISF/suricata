@@ -24,6 +24,7 @@
 #ifndef SURICATA_DEFRAG_H
 #define SURICATA_DEFRAG_H
 
+#include "tree.h"
 #include "threads.h"
 #include "util-pool.h"
 #include "threadvars.h"

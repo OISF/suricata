@@ -24,6 +24,8 @@
 #ifndef SURICATA_UTIL_ROHASH_H
 #define SURICATA_UTIL_ROHASH_H
 
+#include "queue.h"
+
 typedef struct ROHashTable_ {
     uint8_t locked;
     uint8_t hash_bits;
