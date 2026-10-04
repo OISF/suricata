@@ -2453,7 +2453,9 @@ static void DetectRunTxFirewallRuleFullMatch(DetectEngineThreadCtx *det_ctx, con
  *
  * A default accept is appended. TD has a chance to override this accept.
  *
- * \retval 1 accept partial, caller must break loop
+ * \retval 1 partial accept handled: the caller breaks, unless the rule is an
+ *           LTE rule the tx has moved past its hook - then it skips the rule's
+ *           hook and the ones below it and continues with the higher hooks
  * \retval 0 ok, caller must continue as normal
  */
 static int DetectRunTxFirewallRulePartialMatch(
@@ -2863,7 +2865,21 @@ static void DetectRunTx(ThreadVars *tv,
             } else if (r == 0) {
                 SCLogDebug("sid %u partial match", s->id);
                 if (DetectRunTxFirewallRulePartialMatch(det_ctx, s, &tx, p) == 1) {
-                    break;
+                    /* partial matches are only produced for LTE rules today;
+                     * keep the check as defence in case that changes */
+                    if ((s->flags & SIG_FLAG_FW_HOOK_LTE) == 0 ||
+                            tx.tx_progress <= s->app_progress_hook) {
+                        break;
+                    }
+                    /* The tx moved past the pending rule's hook: a rule hooked
+                     * above it still has to run, as a match there covers the
+                     * pending rule and its policy decides the flow. Skip this
+                     * hook and the ones below it, like an accept:hook does.
+                     * The states above the hook are not swept while the rule is
+                     * pending: they are decided when it resolves, so a higher
+                     * state's default cannot preempt the pending rule's own. */
+                    fw_state.skip_fw_hook = true;
+                    fw_state.skip_before_progress = s->app_progress_hook;
                 }
             } else if (r == -1) {
                 if ((s->flags & SIG_FLAG_FIREWALL) != 0 &&
