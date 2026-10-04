@@ -27,8 +27,6 @@
 #include "flow-hash.h"
 #include "flow-queue.h"
 
-#include "util-atomic.h"
-
 /* global flow flags */
 
 /** Flow engine is in emergency mode. This means it doesn't have enough spare

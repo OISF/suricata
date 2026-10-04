@@ -44,7 +44,6 @@
 #include "util-unittest.h"
 #include "util-privs.h"
 #include "util-debug.h"
-#include "util-atomic.h"
 #include "util-file.h"
 #include "util-buffer.h"
 #include "util-byte.h"
