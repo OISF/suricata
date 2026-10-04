@@ -534,10 +534,6 @@ typedef struct lua_State lua_State;
 #include "util-atomic.h"
 #include "util-unittest.h"
 
-// pseudo system headers
-#include "queue.h"
-#include "tree.h"
-
 #ifndef HAVE_STRLCAT
 size_t strlcat(char *, const char *src, size_t siz);
 #endif
