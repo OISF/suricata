@@ -29,6 +29,33 @@ license = "GPL-2.0-only"
 edition = "2021"
 rust-version = "1.85.0"
 
+# Dependencies shared by more than one workspace member. Members pull
+# these in with `{ workspace = true }` and may add features on top.
+[workspace.dependencies]
+suricata-derive = { path = "derive", version = "@PACKAGE_VERSION@" }
+suricata-sys = { path = "sys", version = "@PACKAGE_VERSION@" }
+suricata-ffi = { path = "ffi", version = "@PACKAGE_VERSION@" }
+htp = { package = "suricata-htp", path = "htp", version = "@PACKAGE_VERSION@" }
+
+nom = "8.0"
+nom8 = { version = "8.0", package = "nom" }
+base64 = "~0.22.1"
+brotli = "~8.0.1"
+# The zlib backend is selected explicitly by each member using flate2.
+flate2 = { version = "~1.0.35", default-features = false }
+lazy_static = "~1.5.0"
+libc = "~0.2.172"
+lzma-rs = { version = "~0.2.0", features = ["stream"] }
+regex = "~1.5.6"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+time = "=0.3.41"
+zstd = { version = "~0.13.3", default-features = false, features = ["arrays", "zdict_builder"] }
+
+once_cell = "1.21.3"
+# clap 4.5.58 requires clap_lex 1 which requires edition2024
+clap = { version = "=4.5.57", default-features = false, features = ["std", "derive", "help", "usage"] }
+
 [lib]
 crate-type = ["staticlib", "rlib"]
 name = "suricata"
@@ -45,20 +72,20 @@ ja4 = []
 
 [dependencies]
 nom7 = { version="7.1", package="nom" }
-nom8 = { version="8.0", package="nom" }
+nom8 = { workspace = true }
 bitflags = "~1.3.2"
 byteorder = "~1.4.3"
 uuid = { version = "~0.8.2", features = ["serde"] }
 crc = "~1.8.1"
-lzma-rs = { version = "~0.2.0", features = ["stream"] }
+lzma-rs = { workspace = true }
 memchr = "~2.7.4"
 num = "~0.2.1"
 num-derive = "~0.4.2"
 num-traits = "~0.2.19"
 widestring = "~0.4.3"
-flate2 = { version = "~1.0.35", features = ["zlib"] }
-brotli = "~8.0.1"
-zstd = { version = "~0.13.3", default-features = false, features = ["arrays", "zdict_builder"] }
+flate2 = { workspace = true, default-features = true, features = ["zlib"] }
+brotli = { workspace = true }
+zstd = { workspace = true }
 hkdf = "~0.12.4"
 aes = "~0.8.4"
 aes-gcm = "~0.10.3"
@@ -75,14 +102,14 @@ ipsec-parser = "~0.7.0"
 snmp-parser = "~0.10.0"
 tls-parser = "~0.11.0"
 x509-parser = "~0.16.0"
-libc = "~0.2.172"
+libc = { workspace = true }
 sha2 = "~0.10.9"
 digest = "~0.10.7"
 sha1 = "~0.10.6"
 md-5 = "~0.10.6"
-regex = "~1.5.6"
-lazy_static = "~1.5.0"
-base64 = "~0.22.1"
+regex = { workspace = true }
+lazy_static = { workspace = true }
+base64 = { workspace = true }
 bendy = { version = "~0.3.3", default-features = false }
 asn1-rs = { version = "~0.6.2" }
 humantime = "~2.3.0"
@@ -90,18 +117,18 @@ ldap-parser = { version = "~0.5.1" }
 hex = "~0.4.3"
 psl = "2"
 
-time = "=0.3.41"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+time = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 
-suricata-derive = { path = "./derive", version = "@PACKAGE_VERSION@" }
-suricata-sys = { path = "./sys", version = "@PACKAGE_VERSION@" }
-suricata-ffi = { path = "./ffi", version = "@PACKAGE_VERSION@" }
+suricata-derive = { workspace = true }
+suricata-sys = { workspace = true }
+suricata-ffi = { workspace = true }
 
 suricata-lua-sys = { version = "5.4.8002" }
 
-htp = { package = "suricata-htp", path = "./htp", version = "@PACKAGE_VERSION@" }
+htp = { workspace = true }
 
 [dev-dependencies]
 test-case = "~3.3.1"
-suricata-ffi = { path = "./ffi", version = "@PACKAGE_VERSION@", features = ["testing"] }
+suricata-ffi = { workspace = true, features = ["testing"] }

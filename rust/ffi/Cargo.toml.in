@@ -7,7 +7,7 @@ license.workspace = true
 description = "Nice wrappers around Suricata C interface"
 
 [dependencies]
-suricata-sys = { path = "../sys", version = "@PACKAGE_VERSION@" }
+suricata-sys = { workspace = true }
 
 [features]
 debug = []
