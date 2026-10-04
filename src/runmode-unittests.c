@@ -81,7 +81,6 @@
 #include "util-affinity.h"
 
 #include "reputation.h"
-#include "util-atomic.h"
 #include "util-spm.h"
 #include "util-hash.h"
 #include "util-hashlist.h"
