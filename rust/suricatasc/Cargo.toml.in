@@ -24,8 +24,8 @@ thiserror = { version = "1.0.69" }
 serde = { workspace = true }
 serde_json = { workspace = true, features = ["preserve_order"] }
 
-# Pinned back to support Rust 1.75.0. Not used directly by us, but by rustyline.
-home = { version = "=0.5.9" }
+# Pinned to support Rust 1.85. Not used directly by us, but by rustyline.
+home = { version = "=0.5.11" }
 
 # Pinned to support Rust 1.85. Not used directly by us, but by rustyline.
 unicode-segmentation = { version = "=1.13.3" }
