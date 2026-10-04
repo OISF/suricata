@@ -26,7 +26,9 @@ serde_json = { workspace = true, features = ["preserve_order"] }
 
 # Pinned back to support Rust 1.75.0. Not used directly by us, but by rustyline.
 home = { version = "=0.5.9" }
-unicode-segmentation = { version = "=1.12.0" }
+
+# Pinned to support Rust 1.85. Not used directly by us, but by rustyline.
+unicode-segmentation = { version = "=1.13.3" }
 
 # Pinned to support Rust 1.85. Not used directly by us, but by serde_json.
 indexmap = { version = "=2.14.2" }
