@@ -485,6 +485,12 @@ Eve-log can be configured to rotate based on time.
 
 The example above creates a new log file each minute, where the filename contains
 a timestamp. Other supported ``rotate-interval`` values are ``hour`` and ``day``.
+These values rotate the log file when the minute, hour or date of the local time
+changes. For example, ``day`` rotates at local midnight, also across daylight
+saving time changes, or at the first local time of the new date where such a
+change skips midnight. When the clock is set back at the end of daylight saving
+time, the repeated hour is part of the same hour period, so with ``hour`` a
+single file holds both passes of that hour.
 
 In addition to this, it is also possible to specify the ``rotate-interval`` as a
 relative value. One example is to rotate the log file each X seconds.
@@ -498,7 +504,9 @@ relative value. One example is to rotate the log file each X seconds.
 
 The example above rotates eve-log each 30 seconds. This could be replaced with
 ``30m`` to rotate every 30 minutes, ``30h`` to rotate every 30 hours, ``30d``
-to rotate every 30 days, or ``30w`` to rotate every 30 weeks.
+to rotate every 30 days, or ``30w`` to rotate every 30 weeks. Relative values
+are counted from startup and are not aligned to the local time, so e.g. ``24h``
+or ``1d`` do not rotate at local midnight like ``day`` does.
 
 .. _multiple-eve-instances:
 

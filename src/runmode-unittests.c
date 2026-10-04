@@ -70,6 +70,7 @@
 #include "util-coredump-config.h"
 #include "util-unittest-helper.h"
 #include "util-time.h"
+#include "util-logopenfile.h"
 #include "util-rule-vars.h"
 #include "util-classification-config.h"
 #include "util-threshold-config.h"
@@ -136,6 +137,7 @@ static void RegisterUnittests(void)
 {
     UTHRegisterTests();
     SCTimeRegisterTests();
+    LogFileRegisterTests();
     StreamTcpRegisterTests();
     SigRegisterTests();
     SCReputationRegisterTests();

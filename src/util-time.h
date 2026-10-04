@@ -139,6 +139,7 @@ SCTime_t TimeGet(void);
 void TimeSet(SCTime_t);
 void TimeSetToCurrentTime(void);
 void TimeSetIncrementTime(uint32_t);
+void SCLocalTimeCacheReset(void);
 #endif
 
 bool TimeModeIsReady(void);
@@ -156,8 +157,7 @@ int SCStringPatternToTime(char *string, const char **patterns,
                            int num_patterns, struct tm *time);
 int SCTimeToStringPattern (time_t epoch, const char *pattern, char *str,
                            size_t size);
-uint64_t SCParseTimeSizeString (const char *str);
-uint64_t SCGetSecondsUntil (const char *str, time_t epoch);
+uint64_t SCParseTimeSizeString(const char *str);
 uint64_t SCTimespecAsEpochMillis(const struct timespec *ts);
 uint64_t TimeDifferenceMicros(struct timeval t0, struct timeval t1);
 
