@@ -27,7 +27,6 @@
 #include "tm-queues.h"
 #include "counters.h"
 #include "packet-queue.h"
-#include "util-atomic.h"
 #include "util-storage.h"
 
 struct TmSlot_;
