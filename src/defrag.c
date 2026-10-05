@@ -3118,6 +3118,419 @@ static int DefragBsdMissingFragmentIpv6Test(void)
     for (int i = 0; i < 5; i++) {
         SCFree(packets[i]);
     }
+    DefragDestroy();
+    PASS;
+}
+
+/**
+ * \test A BSD-preferred fragment that starts within an earlier fragment
+ *     and fully covers a later fragment. A subsequent fragment then
+ *     overlaps the end of the preferred fragment and must be trimmed.
+ *
+ *     Arrival:
+ *       A: 0..16
+ *       B: 24..40
+ *       C: 48..56 (last)
+ *       D: 8..40  (stored as 16..40, fully covers B)
+ *       E: 32..48 (must be trimmed to 40..48)
+ *
+ *     Expected: A*16 D*24 E*8 C*8
+ */
+static int DefragBsdOverlapAfterCoveredStartsInsidePrevIpv4Test(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[5];
+
+    packets[0] = BuildIpv4TestPacket(IPPROTO_ICMP, 54, 0, 1, 'A', 16);
+    packets[1] = BuildIpv4TestPacket(IPPROTO_ICMP, 54, 24 >> 3, 1, 'B', 16);
+    packets[2] = BuildIpv4TestPacket(IPPROTO_ICMP, 54, 48 >> 3, 0, 'C', 8);
+    packets[3] = BuildIpv4TestPacket(IPPROTO_ICMP, 54, 8 >> 3, 1, 'D', 32);
+    packets[4] = BuildIpv4TestPacket(IPPROTO_ICMP, 54, 32 >> 3, 1, 'E', 16);
+
+    Packet *rp = Defrag(&test_tv, &test_dtv, packets[0]);
+    FAIL_IF_NOT_NULL(rp);
+
+    rp = Defrag(&test_tv, &test_dtv, packets[1]);
+    FAIL_IF_NOT_NULL(rp);
+
+    rp = Defrag(&test_tv, &test_dtv, packets[2]);
+    FAIL_IF_NOT_NULL(rp);
+
+    rp = Defrag(&test_tv, &test_dtv, packets[3]);
+    FAIL_IF_NOT_NULL(rp);
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(packets[3], IPV4_FRAG_OVERLAP));
+
+    rp = Defrag(&test_tv, &test_dtv, packets[4]);
+    FAIL_IF_NULL(rp);
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(packets[4], IPV4_FRAG_OVERLAP));
+
+    // clang-format off
+    const uint8_t expected[] = {
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+        'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+        'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+        'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+        'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+    };
+    // clang-format on
+
+    FAIL_IF(GET_PKT_LEN(rp) != 20 + sizeof(expected));
+    if (memcmp(expected, GET_PKT_DATA(rp) + 20, sizeof(expected)) != 0) {
+        printf("Expected:\n");
+        PrintRawDataFp(stdout, expected, sizeof(expected));
+        printf("Got:\n");
+        PrintRawDataFp(stdout, GET_PKT_DATA(rp) + 20, GET_PKT_LEN(rp) - 20);
+        FAIL;
+    }
+
+    /* Make sure all frags were returned back to the pool. */
+    FAIL_IF(defrag_context->frag_pool->outstanding != 0);
+
+    for (int i = 0; i < 5; i++) {
+        PacketFree(packets[i]);
+    }
+    PacketFree(rp);
+    DefragDestroy();
+    PASS;
+}
+
+/** IPv6 variant of DefragBsdOverlapAfterCoveredStartsInsidePrevIpv4Test. */
+static int DefragBsdOverlapAfterCoveredStartsInsidePrevIpv6Test(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[5];
+
+    packets[0] = BuildIpv6TestPacket(IPPROTO_ICMP, 54, 0, 1, 'A', 16);
+    packets[1] = BuildIpv6TestPacket(IPPROTO_ICMP, 54, 24 >> 3, 1, 'B', 16);
+    packets[2] = BuildIpv6TestPacket(IPPROTO_ICMP, 54, 48 >> 3, 0, 'C', 8);
+    packets[3] = BuildIpv6TestPacket(IPPROTO_ICMP, 54, 8 >> 3, 1, 'D', 32);
+    packets[4] = BuildIpv6TestPacket(IPPROTO_ICMP, 54, 32 >> 3, 1, 'E', 16);
+
+    Packet *rp = Defrag(&test_tv, &test_dtv, packets[0]);
+    FAIL_IF_NOT_NULL(rp);
+
+    rp = Defrag(&test_tv, &test_dtv, packets[1]);
+    FAIL_IF_NOT_NULL(rp);
+
+    rp = Defrag(&test_tv, &test_dtv, packets[2]);
+    FAIL_IF_NOT_NULL(rp);
+
+    rp = Defrag(&test_tv, &test_dtv, packets[3]);
+    FAIL_IF_NOT_NULL(rp);
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(packets[3], IPV6_FRAG_OVERLAP));
+
+    rp = Defrag(&test_tv, &test_dtv, packets[4]);
+    FAIL_IF_NULL(rp);
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(packets[4], IPV6_FRAG_OVERLAP));
+
+    // clang-format off
+    const uint8_t expected[] = {
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+        'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+        'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+        'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+        'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+    };
+    // clang-format on
+
+    FAIL_IF(GET_PKT_LEN(rp) != 40 + sizeof(expected));
+    if (memcmp(expected, GET_PKT_DATA(rp) + 40, sizeof(expected)) != 0) {
+        printf("Expected:\n");
+        PrintRawDataFp(stdout, expected, sizeof(expected));
+        printf("Got:\n");
+        PrintRawDataFp(stdout, GET_PKT_DATA(rp) + 40, GET_PKT_LEN(rp) - 40);
+        FAIL;
+    }
+
+    /* Make sure all frags were returned back to the pool. */
+    FAIL_IF(defrag_context->frag_pool->outstanding != 0);
+
+    for (int i = 0; i < 5; i++) {
+        PacketFree(packets[i]);
+    }
+    PacketFree(rp);
+    DefragDestroy();
+    PASS;
+}
+
+/**
+ * \test A BSD-preferred fragment that starts before an earlier fragment
+ *     and fully covers a later fragment. A subsequent fragment then
+ *     overlaps the end of the preferred fragment and must be trimmed.
+ *
+ *     Arrival:
+ *       A: 0..16
+ *       B: 24..32
+ *       C: 40..56
+ *       D: 64..72 (last)
+ *       E: 16..56 (fully covers B and C)
+ *       F: 48..64 (must be trimmed to 56..64)
+ *
+ *     Expected: A*16 E*40 F*8 D*8
+ */
+static int DefragBsdOverlapAfterCoveredStartsBeforeIpv4Test(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[6];
+
+    packets[0] = BuildIpv4TestPacket(IPPROTO_ICMP, 55, 0, 1, 'A', 16);
+    packets[1] = BuildIpv4TestPacket(IPPROTO_ICMP, 55, 24 >> 3, 1, 'B', 8);
+    packets[2] = BuildIpv4TestPacket(IPPROTO_ICMP, 55, 40 >> 3, 1, 'C', 16);
+    packets[3] = BuildIpv4TestPacket(IPPROTO_ICMP, 55, 64 >> 3, 0, 'D', 8);
+    packets[4] = BuildIpv4TestPacket(IPPROTO_ICMP, 55, 16 >> 3, 1, 'E', 40);
+    packets[5] = BuildIpv4TestPacket(IPPROTO_ICMP, 55, 48 >> 3, 1, 'F', 16);
+
+    Packet *rp = Defrag(&test_tv, &test_dtv, packets[0]);
+    FAIL_IF_NOT_NULL(rp);
+
+    rp = Defrag(&test_tv, &test_dtv, packets[1]);
+    FAIL_IF_NOT_NULL(rp);
+
+    rp = Defrag(&test_tv, &test_dtv, packets[2]);
+    FAIL_IF_NOT_NULL(rp);
+
+    rp = Defrag(&test_tv, &test_dtv, packets[3]);
+    FAIL_IF_NOT_NULL(rp);
+
+    rp = Defrag(&test_tv, &test_dtv, packets[4]);
+    FAIL_IF_NOT_NULL(rp);
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(packets[4], IPV4_FRAG_OVERLAP));
+
+    rp = Defrag(&test_tv, &test_dtv, packets[5]);
+    FAIL_IF_NULL(rp);
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(packets[5], IPV4_FRAG_OVERLAP));
+
+    // clang-format off
+    const uint8_t expected[] = {
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+        'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+        'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+        'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+        'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+        'F', 'F', 'F', 'F', 'F', 'F', 'F', 'F',
+        'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+    };
+    // clang-format on
+
+    FAIL_IF(GET_PKT_LEN(rp) != 20 + sizeof(expected));
+    if (memcmp(expected, GET_PKT_DATA(rp) + 20, sizeof(expected)) != 0) {
+        printf("Expected:\n");
+        PrintRawDataFp(stdout, expected, sizeof(expected));
+        printf("Got:\n");
+        PrintRawDataFp(stdout, GET_PKT_DATA(rp) + 20, GET_PKT_LEN(rp) - 20);
+        FAIL;
+    }
+
+    /* Make sure all frags were returned back to the pool. */
+    FAIL_IF(defrag_context->frag_pool->outstanding != 0);
+
+    for (int i = 0; i < 6; i++) {
+        PacketFree(packets[i]);
+    }
+    PacketFree(rp);
+    DefragDestroy();
+    PASS;
+}
+
+/** IPv6 variant of DefragBsdOverlapAfterCoveredStartsBeforeIpv4Test. */
+static int DefragBsdOverlapAfterCoveredStartsBeforeIpv6Test(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[6];
+
+    packets[0] = BuildIpv6TestPacket(IPPROTO_ICMP, 55, 0, 1, 'A', 16);
+    packets[1] = BuildIpv6TestPacket(IPPROTO_ICMP, 55, 24 >> 3, 1, 'B', 8);
+    packets[2] = BuildIpv6TestPacket(IPPROTO_ICMP, 55, 40 >> 3, 1, 'C', 16);
+    packets[3] = BuildIpv6TestPacket(IPPROTO_ICMP, 55, 64 >> 3, 0, 'D', 8);
+    packets[4] = BuildIpv6TestPacket(IPPROTO_ICMP, 55, 16 >> 3, 1, 'E', 40);
+    packets[5] = BuildIpv6TestPacket(IPPROTO_ICMP, 55, 48 >> 3, 1, 'F', 16);
+
+    Packet *rp = Defrag(&test_tv, &test_dtv, packets[0]);
+    FAIL_IF_NOT_NULL(rp);
+
+    rp = Defrag(&test_tv, &test_dtv, packets[1]);
+    FAIL_IF_NOT_NULL(rp);
+
+    rp = Defrag(&test_tv, &test_dtv, packets[2]);
+    FAIL_IF_NOT_NULL(rp);
+
+    rp = Defrag(&test_tv, &test_dtv, packets[3]);
+    FAIL_IF_NOT_NULL(rp);
+
+    rp = Defrag(&test_tv, &test_dtv, packets[4]);
+    FAIL_IF_NOT_NULL(rp);
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(packets[4], IPV6_FRAG_OVERLAP));
+
+    rp = Defrag(&test_tv, &test_dtv, packets[5]);
+    FAIL_IF_NULL(rp);
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(packets[5], IPV6_FRAG_OVERLAP));
+
+    // clang-format off
+    const uint8_t expected[] = {
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+        'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+        'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+        'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+        'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E',
+        'F', 'F', 'F', 'F', 'F', 'F', 'F', 'F',
+        'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+    };
+    // clang-format on
+
+    FAIL_IF(GET_PKT_LEN(rp) != 40 + sizeof(expected));
+    if (memcmp(expected, GET_PKT_DATA(rp) + 40, sizeof(expected)) != 0) {
+        printf("Expected:\n");
+        PrintRawDataFp(stdout, expected, sizeof(expected));
+        printf("Got:\n");
+        PrintRawDataFp(stdout, GET_PKT_DATA(rp) + 40, GET_PKT_LEN(rp) - 40);
+        FAIL;
+    }
+
+    /* Make sure all frags were returned back to the pool. */
+    FAIL_IF(defrag_context->frag_pool->outstanding != 0);
+
+    for (int i = 0; i < 6; i++) {
+        PacketFree(packets[i]);
+    }
+    PacketFree(rp);
+    DefragDestroy();
+    PASS;
+}
+
+/**
+ * \test A BSD fragment must only trim the fragments that start after
+ *     it. E follows D in the fragment tree, but D starts before E and
+ *     must be left alone.
+ *
+ *     Arrival:
+ *       A: 0..32
+ *       B: 16..56 (stored as 32..56)
+ *       C: 24..40 (stored as 32..40, trims B to 40..56)
+ *       D: 0..40  (stored as 32..40, fully covers C)
+ *       E: 40..56 (fully covered by B, must not trim D)
+ *       F: 56..64 (last)
+ *
+ *     Expected: A*32 D*8 B*16 F*8
+ */
+static int DefragBsdFollowingStartsBeforeNewIpv4Test(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[6];
+
+    packets[0] = BuildIpv4TestPacket(IPPROTO_ICMP, 56, 0, 1, 'A', 32);
+    packets[1] = BuildIpv4TestPacket(IPPROTO_ICMP, 56, 16 >> 3, 1, 'B', 40);
+    packets[2] = BuildIpv4TestPacket(IPPROTO_ICMP, 56, 24 >> 3, 1, 'C', 16);
+    packets[3] = BuildIpv4TestPacket(IPPROTO_ICMP, 56, 0, 1, 'D', 40);
+    packets[4] = BuildIpv4TestPacket(IPPROTO_ICMP, 56, 40 >> 3, 1, 'E', 16);
+    packets[5] = BuildIpv4TestPacket(IPPROTO_ICMP, 56, 56 >> 3, 0, 'F', 8);
+
+    for (int i = 0; i < 5; i++) {
+        Packet *rp = Defrag(&test_tv, &test_dtv, packets[i]);
+        FAIL_IF_NOT_NULL(rp);
+    }
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(packets[4], IPV4_FRAG_OVERLAP));
+
+    Packet *rp = Defrag(&test_tv, &test_dtv, packets[5]);
+    FAIL_IF_NULL(rp);
+
+    // clang-format off
+    const uint8_t expected[] = {
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+        'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B',
+        'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B',
+        'F', 'F', 'F', 'F', 'F', 'F', 'F', 'F',
+    };
+    // clang-format on
+
+    FAIL_IF(GET_PKT_LEN(rp) != 20 + sizeof(expected));
+    if (memcmp(expected, GET_PKT_DATA(rp) + 20, sizeof(expected)) != 0) {
+        printf("Expected:\n");
+        PrintRawDataFp(stdout, expected, sizeof(expected));
+        printf("Got:\n");
+        PrintRawDataFp(stdout, GET_PKT_DATA(rp) + 20, GET_PKT_LEN(rp) - 20);
+        FAIL;
+    }
+
+    /* Make sure all frags were returned back to the pool. */
+    FAIL_IF(defrag_context->frag_pool->outstanding != 0);
+
+    for (int i = 0; i < 6; i++) {
+        PacketFree(packets[i]);
+    }
+    PacketFree(rp);
+    DefragDestroy();
+    PASS;
+}
+
+/** IPv6 variant of DefragBsdFollowingStartsBeforeNewIpv4Test. */
+static int DefragBsdFollowingStartsBeforeNewIpv6Test(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[6];
+
+    packets[0] = BuildIpv6TestPacket(IPPROTO_ICMP, 56, 0, 1, 'A', 32);
+    packets[1] = BuildIpv6TestPacket(IPPROTO_ICMP, 56, 16 >> 3, 1, 'B', 40);
+    packets[2] = BuildIpv6TestPacket(IPPROTO_ICMP, 56, 24 >> 3, 1, 'C', 16);
+    packets[3] = BuildIpv6TestPacket(IPPROTO_ICMP, 56, 0, 1, 'D', 40);
+    packets[4] = BuildIpv6TestPacket(IPPROTO_ICMP, 56, 40 >> 3, 1, 'E', 16);
+    packets[5] = BuildIpv6TestPacket(IPPROTO_ICMP, 56, 56 >> 3, 0, 'F', 8);
+
+    for (int i = 0; i < 5; i++) {
+        Packet *rp = Defrag(&test_tv, &test_dtv, packets[i]);
+        FAIL_IF_NOT_NULL(rp);
+    }
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(packets[4], IPV6_FRAG_OVERLAP));
+
+    Packet *rp = Defrag(&test_tv, &test_dtv, packets[5]);
+    FAIL_IF_NULL(rp);
+
+    // clang-format off
+    const uint8_t expected[] = {
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+        'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B',
+        'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B',
+        'F', 'F', 'F', 'F', 'F', 'F', 'F', 'F',
+    };
+    // clang-format on
+
+    FAIL_IF(GET_PKT_LEN(rp) != 40 + sizeof(expected));
+    if (memcmp(expected, GET_PKT_DATA(rp) + 40, sizeof(expected)) != 0) {
+        printf("Expected:\n");
+        PrintRawDataFp(stdout, expected, sizeof(expected));
+        printf("Got:\n");
+        PrintRawDataFp(stdout, GET_PKT_DATA(rp) + 40, GET_PKT_LEN(rp) - 40);
+        FAIL;
+    }
+
+    /* Make sure all frags were returned back to the pool. */
+    FAIL_IF(defrag_context->frag_pool->outstanding != 0);
+
+    for (int i = 0; i < 6; i++) {
+        PacketFree(packets[i]);
+    }
+    PacketFree(rp);
 
     DefragDestroy();
 
@@ -3176,5 +3589,17 @@ void DefragRegisterTests(void)
             DefragBsdSubsequentOverlapsStartOfOriginalIpv6Test_2);
     UtRegisterTest("DefragBsdMissingFragmentIpv4Test", DefragBsdMissingFragmentIpv4Test);
     UtRegisterTest("DefragBsdMissingFragmentIpv6Test", DefragBsdMissingFragmentIpv6Test);
+    UtRegisterTest("DefragBsdOverlapAfterCoveredStartsInsidePrevIpv4Test",
+            DefragBsdOverlapAfterCoveredStartsInsidePrevIpv4Test);
+    UtRegisterTest("DefragBsdOverlapAfterCoveredStartsInsidePrevIpv6Test",
+            DefragBsdOverlapAfterCoveredStartsInsidePrevIpv6Test);
+    UtRegisterTest("DefragBsdOverlapAfterCoveredStartsBeforeIpv4Test",
+            DefragBsdOverlapAfterCoveredStartsBeforeIpv4Test);
+    UtRegisterTest("DefragBsdOverlapAfterCoveredStartsBeforeIpv6Test",
+            DefragBsdOverlapAfterCoveredStartsBeforeIpv6Test);
+    UtRegisterTest(
+            "DefragBsdFollowingStartsBeforeNewIpv4Test", DefragBsdFollowingStartsBeforeNewIpv4Test);
+    UtRegisterTest(
+            "DefragBsdFollowingStartsBeforeNewIpv6Test", DefragBsdFollowingStartsBeforeNewIpv6Test);
 #endif /* UNITTESTS */
 }
