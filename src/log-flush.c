@@ -74,8 +74,17 @@ static void *LogFlusherWakeupThread(void *arg)
 
     int wait_count = 0;
     uint64_t worker_flush_count = 0;
+    bool completed_slice = false;
     bool run = TmThreadsWaitForUnpause(tv_local);
     while (run) {
+        /* killed before completing the first slice: skip it - the fixed
+         * sleep would only delay shutdown, no flush can happen on this
+         * pass. A kill arriving later keeps the normal behaviour: the
+         * current slice still runs its flush. */
+        if (!completed_slice && TmThreadsCheckFlag(tv_local, THV_KILL)) {
+            break;
+        }
+
         SleepMsec(log_flush_sleep_time);
 
         if (++wait_count == flush_wait_count) {
@@ -83,6 +92,8 @@ static void *LogFlusherWakeupThread(void *arg)
             LogFileFlushAll();
             wait_count = 0;
         }
+
+        completed_slice = true;
 
         if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
             break;

@@ -299,8 +299,12 @@ bool SCTmThreadsSlotPacketLoopFinish(ThreadVars *tv);
  * Check if a thread should wait to be unpaused and wait if so, or
  * until the thread kill flag is set.
  *
- * \returns true if the thread was unpaused, false if killed.
+ * \returns true normally, and for mgmt threads killed while still in
+ * the initial pause (their main loop runs one final pass). Other thread
+ * types return false in that case and skip the main loop, as before.
  */
 bool TmThreadsWaitForUnpause(ThreadVars *tv);
+
+void TmThreadsRegisterTests(void);
 
 #endif /* SURICATA_TM_THREADS_H */
