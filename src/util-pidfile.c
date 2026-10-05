@@ -29,6 +29,9 @@
 #include "suricata-common.h"
 #include "util-pidfile.h"
 #include "util-debug.h"
+#ifdef OS_WIN32
+#include "win32-misc.h"
+#endif /* OS_WIN32 */
 
 /**
  * \brief Write a pid file (used at the startup)
