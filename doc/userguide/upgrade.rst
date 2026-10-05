@@ -156,6 +156,17 @@ Keyword Changes
   See :doc:`rules/ssh-keywords` for the full state and failure
   semantics.
 
+- Rules whose ``bsize`` keywords can't all be satisfied are now rejected at
+  load. This covers a buffer with ``bsize`` keywords that no buffer length
+  satisfies together, such as ``bsize:15; bsize:27`` or
+  ``bsize:>20; bsize:<10``, and a ``content`` longer than the smallest upper
+  bound when a buffer has more than one ``bsize``. Previously such rules loaded
+  and never matched. A ``content`` longer than a ``bsize:<=N`` bound is rejected
+  as well.
+
+- The new ``exact`` keyword states that the preceding ``content`` spans the
+  whole buffer. See :doc:`rules/payload-keywords`.
+
 Other Changes
 ~~~~~~~~~~~~~
 - ``engine-analysis`` output has been changed for keywords that now use the generic integers framework
