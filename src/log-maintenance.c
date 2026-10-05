@@ -81,8 +81,17 @@ static void *LogMaintenanceThread(void *arg)
     int flush_counter = 0;
     uint64_t rotation_check_count = 0;
     uint64_t worker_flush_count = 0;
+    bool completed_slice = false;
     bool run = TmThreadsWaitForUnpause(tv_local);
     while (run) {
+        /* killed before completing the first slice: skip it - the fixed
+         * sleep would only delay shutdown, no rotation or flush can
+         * happen on this pass. A kill arriving later keeps the normal
+         * behaviour: the current slice still runs its rotation/flush. */
+        if (!completed_slice && TmThreadsCheckFlag(tv_local, THV_KILL)) {
+            break;
+        }
+
         SleepMsec(maintenance_sleep_time);
 
         /* Check rotation every 1 second */
@@ -98,6 +107,8 @@ static void *LogMaintenanceThread(void *arg)
             LogFileFlushAll();
             flush_counter = 0;
         }
+
+        completed_slice = true;
 
         if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
             break;

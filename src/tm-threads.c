@@ -359,7 +359,14 @@ error:
 }
 
 /**
- * Also returns if the kill flag is set.
+ * Wait for the thread to be unpaused.
+ *
+ * A thread killed while still in the initial pause skips its main loop,
+ * except mgmt threads (TVT_MGMT): they run one pass to do final work
+ * (e.g. the last stats output) - their loops test THV_KILL and exit
+ * after the pass. RX/worker loops have no top KILL test and would do
+ * real work during teardown (a pcap-file pass dispatches into a pipeline
+ * being torn down), so they keep skipping.
  */
 bool TmThreadsWaitForUnpause(ThreadVars *tv)
 {
@@ -369,8 +376,10 @@ bool TmThreadsWaitForUnpause(ThreadVars *tv)
         while (TmThreadsCheckFlag(tv, THV_PAUSE)) {
             SleepUsec(100);
 
-            if (TmThreadsCheckFlag(tv, THV_KILL))
-                return false;
+            if (TmThreadsCheckFlag(tv, THV_KILL)) {
+                TmThreadsUnsetFlag(tv, THV_PAUSED);
+                return tv->type == TVT_MGMT;
+            }
         }
 
         TmThreadsUnsetFlag(tv, THV_PAUSED);
