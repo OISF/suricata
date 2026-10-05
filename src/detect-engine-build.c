@@ -224,8 +224,7 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
             return 0;
         /* we have enabled flowbits to be compatible with ip only sigs, as long
          * as the sig only has a "set" flowbits */
-        if (sm->type == DETECT_FLOWBITS &&
-                (((DetectFlowbitsData *)sm->ctx)->cmd != DETECT_FLOWBITS_CMD_SET)) {
+        if (sm->type == DETECT_FLOWBITS) {
             return 0;
         }
     }
