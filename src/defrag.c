@@ -689,7 +689,10 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                         ltrim = prev_end - frag_offset;
 
                         if ((next != NULL) && (frag_end > next->offset)) {
-                            next->ltrim = frag_end - next->offset;
+                            uint16_t next_ltrim = frag_end - next->offset;
+                            if (next_ltrim > next->ltrim) {
+                                next->ltrim = next_ltrim;
+                            }
                         }
 
                         goto insert;
@@ -711,7 +714,10 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                     }
 
                     if ((next != NULL) && (frag_end > next->offset)) {
-                        next->ltrim = frag_end - next->offset;
+                        uint16_t next_ltrim = frag_end - next->offset;
+                        if (next_ltrim > next->ltrim) {
+                            next->ltrim = next_ltrim;
+                        }
                     }
 
                     goto insert;
@@ -3557,6 +3563,130 @@ static int DefragBsdFollowingStartsBeforeNewIpv6Test(void)
 }
 
 /**
+ * \test A later BSD overlap must not lower the left trim already set on the
+ *     next fragment.
+ *
+ * 'B' (16..48) starts before 'A' (24..56) and trims it to 48..56. 'C' (0..40)
+ * then starts before 'B' and must not lower the trim of 'A' back to 40, or
+ * 'A' overwrites the 40..48 bytes preferred from 'B'.
+ *
+ * |0       |8       |16      |24      |32      |40      |48      |56      |
+ * |========|========|========|========|========|========|========|========|
+ * |        |        |        |AAAAAAAA|AAAAAAAA|AAAAAAAA|AAAAAAAA|        |
+ * |        |        |BBBBBBBB|BBBBBBBB|BBBBBBBB|BBBBBBBB|        |        |
+ * |CCCCCCCC|CCCCCCCC|CCCCCCCC|CCCCCCCC|CCCCCCCC|        |        |        |
+ * |        |        |        |        |        |        |        |DDDDDDDD|
+ *
+ * |CCCCCCCC|CCCCCCCC|CCCCCCCC|CCCCCCCC|CCCCCCCC|BBBBBBBB|AAAAAAAA|DDDDDDDD|
+ */
+static int DefragBsdNextLtrimNotLoweredIpv4Test(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[4];
+
+    packets[0] = BuildIpv4TestPacket(IPPROTO_ICMP, 53, 24 >> 3, 1, 'A', 32);
+    packets[1] = BuildIpv4TestPacket(IPPROTO_ICMP, 53, 16 >> 3, 1, 'B', 32);
+    packets[2] = BuildIpv4TestPacket(IPPROTO_ICMP, 53, 0, 1, 'C', 40);
+    packets[3] = BuildIpv4TestPacket(IPPROTO_ICMP, 53, 56 >> 3, 0, 'D', 8);
+
+    Packet *r = Defrag(&test_tv, &test_dtv, packets[0]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(&test_tv, &test_dtv, packets[1]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(&test_tv, &test_dtv, packets[2]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(&test_tv, &test_dtv, packets[3]);
+    FAIL_IF_NULL(r);
+
+    // clang-format off
+    const uint8_t expected[] = {
+        'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+        'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+        'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+        'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+        'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+        'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B',
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+    };
+    // clang-format on
+
+    FAIL_IF(GET_PKT_LEN(r) != 20 + sizeof(expected));
+    if (memcmp(expected, GET_PKT_DATA(r) + 20, sizeof(expected)) != 0) {
+        printf("Expected:\n");
+        PrintRawDataFp(stdout, expected, sizeof(expected));
+        printf("Got:\n");
+        PrintRawDataFp(stdout, GET_PKT_DATA(r) + 20, GET_PKT_LEN(r) - 20);
+        FAIL;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        PacketFree(packets[i]);
+    }
+    PacketFree(r);
+    DefragDestroy();
+    PASS;
+}
+
+/** IPv6 variant of DefragBsdNextLtrimNotLoweredIpv4Test. */
+static int DefragBsdNextLtrimNotLoweredIpv6Test(void)
+{
+    DefragInit();
+    default_policy = DEFRAG_POLICY_BSD;
+    Packet *packets[4];
+
+    packets[0] = BuildIpv6TestPacket(IPPROTO_ICMP, 53, 24 >> 3, 1, 'A', 32);
+    packets[1] = BuildIpv6TestPacket(IPPROTO_ICMP, 53, 16 >> 3, 1, 'B', 32);
+    packets[2] = BuildIpv6TestPacket(IPPROTO_ICMP, 53, 0, 1, 'C', 40);
+    packets[3] = BuildIpv6TestPacket(IPPROTO_ICMP, 53, 56 >> 3, 0, 'D', 8);
+
+    Packet *r = Defrag(&test_tv, &test_dtv, packets[0]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(&test_tv, &test_dtv, packets[1]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(&test_tv, &test_dtv, packets[2]);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(&test_tv, &test_dtv, packets[3]);
+    FAIL_IF_NULL(r);
+
+    // clang-format off
+    const uint8_t expected[] = {
+        'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+        'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+        'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+        'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+        'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C',
+        'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B',
+        'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A',
+        'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D',
+    };
+    // clang-format on
+
+    FAIL_IF(GET_PKT_LEN(r) != 40 + sizeof(expected));
+    if (memcmp(expected, GET_PKT_DATA(r) + 40, sizeof(expected)) != 0) {
+        printf("Expected:\n");
+        PrintRawDataFp(stdout, expected, sizeof(expected));
+        printf("Got:\n");
+        PrintRawDataFp(stdout, GET_PKT_DATA(r) + 40, GET_PKT_LEN(r) - 40);
+        FAIL;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        PacketFree(packets[i]);
+    }
+    PacketFree(r);
+    DefragDestroy();
+    PASS;
+}
+
+/**
  * \test Reassemble a datagram where the fragment at offset 0 comes in last,
  *     with the other fragments already in the tree. This is the RB_NFIND
  *     search key case from ticket 8232.
@@ -3731,6 +3861,8 @@ void DefragRegisterTests(void)
             "DefragBsdFollowingStartsBeforeNewIpv4Test", DefragBsdFollowingStartsBeforeNewIpv4Test);
     UtRegisterTest(
             "DefragBsdFollowingStartsBeforeNewIpv6Test", DefragBsdFollowingStartsBeforeNewIpv6Test);
+    UtRegisterTest("DefragBsdNextLtrimNotLoweredIpv4Test", DefragBsdNextLtrimNotLoweredIpv4Test);
+    UtRegisterTest("DefragBsdNextLtrimNotLoweredIpv6Test", DefragBsdNextLtrimNotLoweredIpv6Test);
     UtRegisterTest("DefragOutOfOrderFirstFragmentTest", DefragOutOfOrderFirstFragmentTest);
     UtRegisterTest("DefragSameOffsetPrecedingOverlapTest", DefragSameOffsetPrecedingOverlapTest);
 #endif /* UNITTESTS */
