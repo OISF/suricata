@@ -50,6 +50,9 @@ Major Changes
   also covers FTP-DATA file buffering. An invalid value also keeps the 64 MiB
   default. Set it to ``0`` to remove the limit.
 - LLMNR protocol parser, logger and sticky buffers are implemented.
+- ERSPAN Type III (GRE protocol type ``0x22EB``) is now decoded. Only
+  Ethernet frames are supported; other frame types set the
+  ``erspan.unsupported_encapsulation`` decoder event.
 - ``pgsql`` is no longer enabled by default. Previously, if the
   ``app-layer.protocols.pgsql`` section was absent from suricata.yaml, the
   parser would be enabled. It's now disabled by default. Simply enabling its EVE
