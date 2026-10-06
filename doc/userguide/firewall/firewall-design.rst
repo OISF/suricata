@@ -284,6 +284,28 @@ ruleset was actually::
 
 This logic only applies to the ``app:filter`` table.
 
+While such a rule is still pending - it ran the states before its hook without
+matching, but a buffer of its hook can still grow - a rule hooked at a higher
+state is still evaluated once the transaction has moved past the pending rule's
+hook; while the transaction is at or before that hook the walk stops, so no
+higher state's policy can decide the flow early. A higher-hook rule inspects
+the buffers of every state below its own hook, so its match covers the pending
+rule and its action decides the flow: when it matches, the pending rule's later
+no-match does not apply the default policy of its own state.
+
+A sub-state's buffers can also grow after the transaction moved past the rule's
+hook: a http2 trailer HEADERS frame updates the header buffer above the
+``request_headers`` hook. Engine data is therefore only final once the sub-
+state completed, and the rule stays revisitable until then. The default
+policies of the states it covers stay deferred with it.
+
+The bound is the transaction's end state. For a parser with per-direction sub-
+states that can be later than the direction's own close - a http2 stream
+completes when both sides closed, while its request buffers are final once the
+client sent END_STREAM - so the rule stays revisitable longer than strictly
+needed. That is deliberate: the tighter bound needs a per-direction completion
+the parsers do not expose yet.
+
 Firewall pipeline
 -----------------
 
