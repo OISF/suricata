@@ -442,6 +442,7 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
                     status = PcapFileDispatch(pftv);
 
                     CleanupPcapFileFileVars(pftv);
+                    pv->current_file = NULL;
 
                     if (status == TM_ECODE_FAILED) {
                         CleanupPendingFile(current_file);
@@ -457,7 +458,6 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
                     }
 
                     CleanupPendingFile(current_file);
-                    pv->current_file = NULL;
 
                     status = PcapRunStatus(pv);
                 }
