@@ -23,6 +23,10 @@ Keyword
 
 The `config` rule keyword provides the setting and the scope of the change.
 
+.. note::
+
+   Currently, the ``config`` keyword is not supported in Firewall mode,   for Threat Detection rules.
+
 Syntax::
 
   config:<subsys> <action>, type <type>, scope <scope>;
