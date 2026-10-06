@@ -42,6 +42,7 @@
 #include "flow-manager.h"
 #include "flow-var.h"
 #include "flow-bit.h"
+#include "tm-threads.h"
 #include "pkt-var.h"
 
 #include "host.h"
@@ -200,6 +201,7 @@ static void RegisterUnittests(void)
     MagicRegisterTests();
     UtilMiscRegisterTests();
     ThreadingAffinityRegisterTests();
+    TmThreadsRegisterTests();
     DetectAddressTests();
     DetectProtoTests();
     DetectPortTests();
