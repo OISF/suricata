@@ -24,7 +24,11 @@
 #ifndef SURICATA_APP_LAYER_FRAMES_H
 #define SURICATA_APP_LAYER_FRAMES_H
 
-#include "decode.h"
+#include "app-layer-protos.h"
+
+typedef struct Flow_ Flow;
+typedef struct Packet_ Packet;
+typedef struct StreamSlice StreamSlice;
 
 /** special value for matching any type */
 #define FRAME_ANY_TYPE 62
