@@ -1215,12 +1215,16 @@ install-headers:
 	for header in $(noinst_HEADERS); do \
 		$(INSTALL_DATA) $$header "$(DESTDIR)${includedir}/suricata"; \
 	done
-	if test -e ../rust/dist; then \
+	if test -e ../rust/dist/rust-bindings.h; then \
 		$(INSTALL_DATA) ../rust/dist/rust-bindings.h "$(DESTDIR)${includedir}/suricata"; \
+	fi
+	if test -e ../rust/gen/rust-bindings.h; then \
+		$(INSTALL_DATA) ../rust/gen/rust-bindings.h "$(DESTDIR)${includedir}/suricata"; \
+	fi
+	if test -e ../rust/dist/rust-config.h; then \
 		$(INSTALL_DATA) ../rust/dist/rust-config.h "$(DESTDIR)${includedir}/suricata"; \
 	fi
-	if test -e ../rust/gen; then \
-		$(INSTALL_DATA) ../rust/gen/rust-bindings.h "$(DESTDIR)${includedir}/suricata"; \
+	if test -e ../rust/gen/rust-config.h; then \
 		$(INSTALL_DATA) ../rust/gen/rust-config.h "$(DESTDIR)${includedir}/suricata"; \
 	fi
 	if test -e ../rust/dist/rust-ffi.h; then \
