@@ -618,6 +618,8 @@ int SCConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
 
 #ifdef UNITTESTS
 
+#include "util-unittest-helper.h"
+
 static int
 ConfYamlSequenceTest(void)
 {
@@ -1064,6 +1066,430 @@ static int ConfYamlNull(void)
     PASS;
 }
 
+/**
+ * Load a configuration string into a fresh configuration context and run
+ * the checks. The context is always restored, even if a check fails, so a
+ * failure doesn't break later tests.
+ */
+static int ConfYamlLoadStringAndCheck(const char *config, int (*check)(void))
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    int result = SCConfYamlLoadString(config, strlen(config)) == 0 && check();
+
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+
+    return result;
+}
+
+/**
+ * Write a configuration file and an include file, load the configuration
+ * file into a fresh configuration context and run the checks. The context
+ * is always restored and the files removed, even if a check fails.
+ */
+static int ConfYamlLoadFilesAndCheck(const char *config_filename, const char *config,
+        const char *include_filename, const char *include, int (*check)(void))
+{
+    int result = 0;
+
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    /* Reset conf_dirname. */
+    if (conf_dirname != NULL) {
+        SCFree(conf_dirname);
+        conf_dirname = NULL;
+    }
+
+    if (TestHelperBufferToFile(config_filename, (const uint8_t *)config, strlen(config)) == 0 &&
+            TestHelperBufferToFile(include_filename, (const uint8_t *)include, strlen(include)) ==
+                    0) {
+        result = SCConfYamlLoadFile(config_filename) == 0 && check();
+    }
+
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+
+    unlink(config_filename);
+    unlink(include_filename);
+
+    return result;
+}
+
+static int ConfYamlDottedOverrideSequenceCheck(void)
+{
+    const char *value;
+
+    SCConfNode *outputs = SCConfGetNode("outputs");
+    FAIL_IF_NULL(outputs);
+    FAIL_IF_NOT(SCConfNodeIsSequence(outputs));
+
+    /* The first entry is untouched. */
+    FAIL_IF_NOT(SCConfGet("outputs.0", &value));
+    FAIL_IF(strcmp(value, "fast") != 0);
+    FAIL_IF_NOT(SCConfGet("outputs.0.fast.enabled", &value));
+    FAIL_IF(strcmp(value, "yes") != 0);
+
+    /* The second entry has the overridden value and keeps its siblings. */
+    FAIL_IF_NOT(SCConfGet("outputs.1", &value));
+    FAIL_IF(strcmp(value, "eve-log") != 0);
+    FAIL_IF_NOT(SCConfGet("outputs.1.eve-log.enabled", &value));
+    FAIL_IF(strcmp(value, "no") != 0);
+    FAIL_IF_NOT(SCConfGet("outputs.1.eve-log.filetype", &value));
+    FAIL_IF(strcmp(value, "regular") != 0);
+
+    PASS;
+}
+
+/**
+ * Test that a dotted key can override a value inside a sequence entry
+ * by index without replacing the sequence.
+ */
+static int ConfYamlDottedOverrideSequenceTest(void)
+{
+    const char config[] = "%YAML 1.1\n"
+                          "---\n"
+                          "outputs:\n"
+                          "  - fast:\n"
+                          "      enabled: yes\n"
+                          "  - eve-log:\n"
+                          "      enabled: yes\n"
+                          "      filetype: regular\n"
+                          "outputs.1.eve-log.enabled: no\n";
+
+    FAIL_IF_NOT(ConfYamlLoadStringAndCheck(config, ConfYamlDottedOverrideSequenceCheck));
+    PASS;
+}
+
+static int ConfYamlDottedOverrideMappingMergeCheck(void)
+{
+    const char *value;
+
+    FAIL_IF_NOT(SCConfGet("vars.address-groups.HOME_NET", &value));
+    FAIL_IF(strcmp(value, "10.10.10.10/32") != 0);
+    FAIL_IF_NOT(SCConfGet("vars.address-groups.EXTERNAL_NET", &value));
+    FAIL_IF(strcmp(value, "!$HOME_NET") != 0);
+
+    PASS;
+}
+
+/**
+ * Test that a dotted key with a mapping value merges into the existing
+ * mapping rather than replacing it.
+ */
+static int ConfYamlDottedOverrideMappingMergeTest(void)
+{
+    const char config[] = "%YAML 1.1\n"
+                          "---\n"
+                          "vars:\n"
+                          "  address-groups:\n"
+                          "    HOME_NET: \"[192.168.0.0/16]\"\n"
+                          "    EXTERNAL_NET: \"!$HOME_NET\"\n"
+                          "vars.address-groups:\n"
+                          "  HOME_NET: \"10.10.10.10/32\"\n";
+
+    FAIL_IF_NOT(ConfYamlLoadStringAndCheck(config, ConfYamlDottedOverrideMappingMergeCheck));
+    PASS;
+}
+
+static int ConfYamlIncludeAfterDottedOverrideCheck(void)
+{
+    const char *value;
+
+    /* The include came last, so its vars mapping replaces everything
+     * before it, including the dotted override. */
+    FAIL_IF_NOT(SCConfGet("vars.address-groups.HOME_NET", &value));
+    FAIL_IF(strcmp(value, "3.3.3.3") != 0);
+    FAIL_IF_NOT_NULL(SCConfGetNode("vars.address-groups.EXTERNAL_NET"));
+
+    PASS;
+}
+
+/**
+ * Test that an included mapping replaces a dotted override that came
+ * before the include.
+ */
+static int ConfYamlIncludeAfterDottedOverrideTest(void)
+{
+    const char config_filename[] = "ConfYamlIncludeAfterDottedOverrideTest-config.yaml";
+    const char config[] = "%YAML 1.1\n"
+                          "---\n"
+                          "vars:\n"
+                          "  address-groups:\n"
+                          "    HOME_NET: \"1.1.1.1\"\n"
+                          "    EXTERNAL_NET: any\n"
+                          "vars.address-groups.HOME_NET: \"2.2.2.2\"\n"
+                          "include: ConfYamlIncludeAfterDottedOverrideTest-include.yaml\n";
+
+    const char include_filename[] = "ConfYamlIncludeAfterDottedOverrideTest-include.yaml";
+    const char include[] = "%YAML 1.1\n"
+                           "---\n"
+                           "vars:\n"
+                           "  address-groups:\n"
+                           "    HOME_NET: \"3.3.3.3\"\n";
+
+    FAIL_IF_NOT(ConfYamlLoadFilesAndCheck(config_filename, config, include_filename, include,
+            ConfYamlIncludeAfterDottedOverrideCheck));
+    PASS;
+}
+
+static int ConfYamlIncludeDottedOverrideOrderCheck(void)
+{
+    const char *value;
+
+    /* The dotted override in the include came last, so it wins. */
+    FAIL_IF_NOT(SCConfGet("vars.address-groups.HOME_NET", &value));
+    FAIL_IF(strcmp(value, "3.3.3.3") != 0);
+
+    PASS;
+}
+
+/**
+ * Test that a dotted override from an include is applied after the
+ * values that came before the include, even when the same dotted key
+ * was also used earlier.
+ */
+static int ConfYamlIncludeDottedOverrideOrderTest(void)
+{
+    const char config_filename[] = "ConfYamlIncludeDottedOverrideOrderTest-config.yaml";
+    const char config[] = "%YAML 1.1\n"
+                          "---\n"
+                          "vars.address-groups.HOME_NET: \"1.1.1.1\"\n"
+                          "vars:\n"
+                          "  address-groups:\n"
+                          "    HOME_NET: \"2.2.2.2\"\n"
+                          "include: ConfYamlIncludeDottedOverrideOrderTest-include.yaml\n";
+
+    const char include_filename[] = "ConfYamlIncludeDottedOverrideOrderTest-include.yaml";
+    const char include[] = "%YAML 1.1\n"
+                           "---\n"
+                           "vars.address-groups.HOME_NET: \"3.3.3.3\"\n";
+
+    FAIL_IF_NOT(ConfYamlLoadFilesAndCheck(config_filename, config, include_filename, include,
+            ConfYamlIncludeDottedOverrideOrderCheck));
+    PASS;
+}
+
+#define NESTED_INCLUDE_DIR    "ConfYamlNestedIncludeTest-dir"
+#define NESTED_INCLUDE_CONFIG "ConfYamlNestedIncludeTest-config.yaml"
+#define NESTED_INCLUDE_ONE    NESTED_INCLUDE_DIR "/one.yaml"
+#define NESTED_INCLUDE_TWO    NESTED_INCLUDE_DIR "/two.yaml"
+#define NESTED_INCLUDE_TAGGED NESTED_INCLUDE_DIR "/tagged.yaml"
+
+/**
+ * Write a top-level configuration file and a set of files in a
+ * subdirectory that include each other by paths relative to the
+ * top-level configuration directory. Then load the configuration file
+ * into a fresh configuration context, optionally include an additional
+ * file like --include does, and run the checks. The context is always
+ * restored and the files removed, even if a check fails.
+ */
+static int ConfYamlNestedIncludeLoadAndCheck(
+        const char *config, const char *additional, int (*check)(void))
+{
+    /* The include paths are relative to the top-level configuration
+     * directory, not to the directory of the including file. */
+    const char one[] = "%YAML 1.1\n"
+                       "---\n"
+                       "from-one: one\n"
+                       "from-tag: !include " NESTED_INCLUDE_TAGGED "\n"
+                       "include: " NESTED_INCLUDE_TWO "\n";
+    const char two[] = "%YAML 1.1\n"
+                       "---\n"
+                       "from-two: two\n";
+    const char tagged[] = "%YAML 1.1\n"
+                          "---\n"
+                          "source: nested-tag\n";
+    int result = 0;
+
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    /* Reset conf_dirname. */
+    if (conf_dirname != NULL) {
+        SCFree(conf_dirname);
+        conf_dirname = NULL;
+    }
+
+    if ((SCDefaultMkDir(NESTED_INCLUDE_DIR) == 0 || errno == EEXIST) &&
+            TestHelperBufferToFile(
+                    NESTED_INCLUDE_CONFIG, (const uint8_t *)config, strlen(config)) == 0 &&
+            TestHelperBufferToFile(NESTED_INCLUDE_ONE, (const uint8_t *)one, strlen(one)) == 0 &&
+            TestHelperBufferToFile(NESTED_INCLUDE_TWO, (const uint8_t *)two, strlen(two)) == 0 &&
+            TestHelperBufferToFile(
+                    NESTED_INCLUDE_TAGGED, (const uint8_t *)tagged, strlen(tagged)) == 0) {
+        result = SCConfYamlLoadFile(NESTED_INCLUDE_CONFIG) == 0 &&
+                 (additional == NULL ||
+                         SCConfYamlHandleInclude(SCConfGetRootNode(), additional) == 0) &&
+                 check();
+    }
+
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+
+    unlink(NESTED_INCLUDE_CONFIG);
+    unlink(NESTED_INCLUDE_ONE);
+    unlink(NESTED_INCLUDE_TWO);
+    unlink(NESTED_INCLUDE_TAGGED);
+    rmdir(NESTED_INCLUDE_DIR);
+
+    return result;
+}
+
+static int ConfYamlNestedIncludeCheck(void)
+{
+    const char *value;
+
+    FAIL_IF_NOT(SCConfGet("base", &value));
+    FAIL_IF(strcmp(value, "root") != 0);
+    FAIL_IF_NOT(SCConfGet("from-one", &value));
+    FAIL_IF(strcmp(value, "one") != 0);
+    FAIL_IF_NOT(SCConfGet("from-two", &value));
+    FAIL_IF(strcmp(value, "two") != 0);
+    FAIL_IF_NOT(SCConfGet("from-tag.source", &value));
+    FAIL_IF(strcmp(value, "nested-tag") != 0);
+
+    PASS;
+}
+
+/**
+ * Test that includes in an included file are resolved relative to the
+ * directory of the top-level configuration file, not to the directory
+ * of the included file.
+ */
+static int ConfYamlNestedIncludeTest(void)
+{
+    const char config[] = "%YAML 1.1\n"
+                          "---\n"
+                          "base: root\n"
+                          "include: " NESTED_INCLUDE_ONE "\n";
+
+    FAIL_IF_NOT(ConfYamlNestedIncludeLoadAndCheck(config, NULL, ConfYamlNestedIncludeCheck));
+    PASS;
+}
+
+/**
+ * Test that includes in an additional configuration file (--include) are
+ * resolved relative to the directory of the top-level configuration
+ * file, not to the directory of the additional file.
+ */
+static int ConfYamlHandleIncludeNestedTest(void)
+{
+    const char config[] = "%YAML 1.1\n"
+                          "---\n"
+                          "base: root\n";
+
+    FAIL_IF_NOT(ConfYamlNestedIncludeLoadAndCheck(
+            config, NESTED_INCLUDE_ONE, ConfYamlNestedIncludeCheck));
+    PASS;
+}
+
+/**
+ * Load a configuration string into a fresh configuration context and
+ * return the result of loading it. The context is always restored.
+ */
+static int ConfYamlLoadStringResult(const char *config)
+{
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    int ret = SCConfYamlLoadString(config, strlen(config));
+
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+
+    return ret;
+}
+
+/**
+ * Build a configuration with depth levels of nested mappings, counting
+ * the root mapping, like "key: {a: {a: 1}}" for a depth of 3. The value
+ * 1 is at "key" followed by depth - 1 times ".a".
+ */
+static char *ConfYamlNestedMappings(int depth)
+{
+    const size_t len = 32 + (size_t)depth * 5;
+    char *config = SCCalloc(1, len);
+    if (config == NULL) {
+        return NULL;
+    }
+
+    strlcpy(config, "%YAML 1.1\n---\nkey: ", len);
+    for (int i = 1; i < depth; i++) {
+        strlcat(config, "{a: ", len);
+    }
+    strlcat(config, "1", len);
+    for (int i = 1; i < depth; i++) {
+        strlcat(config, "}", len);
+    }
+    strlcat(config, "\n", len);
+
+    return config;
+}
+
+static int ConfYamlNestingLimitCheck(void)
+{
+    char name[16 + 128 * 2];
+    const char *value;
+
+    strlcpy(name, "key", sizeof(name));
+    for (int i = 1; i < 128; i++) {
+        strlcat(name, ".a", sizeof(name));
+    }
+    FAIL_IF_NOT(SCConfGet(name, &value));
+    FAIL_IF(strcmp(value, "1") != 0);
+
+    PASS;
+}
+
+/**
+ * Test that a configuration nested 128 levels deep, counting the root
+ * mapping, loads, and that one nested 129 levels deep fails to load.
+ */
+static int ConfYamlNestingLimitTest(void)
+{
+    char *config = ConfYamlNestedMappings(128);
+    FAIL_IF_NULL(config);
+    int ret = ConfYamlLoadStringAndCheck(config, ConfYamlNestingLimitCheck);
+    SCFree(config);
+    FAIL_IF_NOT(ret);
+
+    config = ConfYamlNestedMappings(129);
+    FAIL_IF_NULL(config);
+    ret = ConfYamlLoadStringResult(config);
+    SCFree(config);
+    FAIL_IF(ret == 0);
+
+    PASS;
+}
+
+/**
+ * Test that a configuration nested far beyond the limit fails to load
+ * cleanly.
+ */
+static int ConfYamlDeepNestingTest(void)
+{
+    const int depth = 1000;
+    const size_t len = 32 + (size_t)depth * 2;
+    char *config = SCCalloc(1, len);
+    FAIL_IF_NULL(config);
+
+    /* Compact nested sequences: "key:\n  - - - x\n". */
+    strlcpy(config, "%YAML 1.1\n---\nkey:\n  ", len);
+    for (int i = 0; i < depth; i++) {
+        strlcat(config, "- ", len);
+    }
+    strlcat(config, "x\n", len);
+
+    int ret = ConfYamlLoadStringResult(config);
+    SCFree(config);
+    FAIL_IF(ret == 0);
+
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void SCConfYamlRegisterTests(void)
@@ -1079,5 +1505,16 @@ void SCConfYamlRegisterTests(void)
     UtRegisterTest("ConfYamlOverrideTest", ConfYamlOverrideTest);
     UtRegisterTest("ConfYamlOverrideFinalTest", ConfYamlOverrideFinalTest);
     UtRegisterTest("ConfYamlNull", ConfYamlNull);
+    UtRegisterTest("ConfYamlDottedOverrideSequenceTest", ConfYamlDottedOverrideSequenceTest);
+    UtRegisterTest(
+            "ConfYamlDottedOverrideMappingMergeTest", ConfYamlDottedOverrideMappingMergeTest);
+    UtRegisterTest(
+            "ConfYamlIncludeAfterDottedOverrideTest", ConfYamlIncludeAfterDottedOverrideTest);
+    UtRegisterTest(
+            "ConfYamlIncludeDottedOverrideOrderTest", ConfYamlIncludeDottedOverrideOrderTest);
+    UtRegisterTest("ConfYamlNestedIncludeTest", ConfYamlNestedIncludeTest);
+    UtRegisterTest("ConfYamlHandleIncludeNestedTest", ConfYamlHandleIncludeNestedTest);
+    UtRegisterTest("ConfYamlNestingLimitTest", ConfYamlNestingLimitTest);
+    UtRegisterTest("ConfYamlDeepNestingTest", ConfYamlDeepNestingTest);
 #endif /* UNITTESTS */
 }
