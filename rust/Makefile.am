@@ -115,7 +115,7 @@ check-bindgen-bindings:
 if HAVE_BINDGEN
 	if test "$(top_srcdir)" = "$(top_builddir)"; then \
 		cp sys/src/sys.rs sys/src/sys.rs.orig; \
-		$(MAKE) update-bindings; \
+		$(MAKE) update-bindings || exit 1; \
 		if diff sys/src/sys.rs sys/src/sys.rs.orig > /dev/null 2>&1; then \
 			rm -f sys/src/sys.rs.orig; \
 		else \
