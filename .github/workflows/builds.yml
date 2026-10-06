@@ -3506,8 +3506,8 @@ jobs:
           python3 $(which suricata-update) -V
       - run: suricatasc -h
 
-  freebsd-15-0:
-    name: FreeBSD 15.0
+  freebsd-15-1:
+    name: FreeBSD 15.1
     runs-on: ubuntu-latest
     needs: [prepare-deps]
     steps:
@@ -3519,7 +3519,7 @@ jobs:
           path: prep
       - uses: vmactions/freebsd-vm@a2f9a41fa97f6848b8c3b791087dfcdaa5b473ff
         with:
-          release: "15.0"
+          release: "15.1"
           arch: x86_64
           usesh: true
           sync: rsync
