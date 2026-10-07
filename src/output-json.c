@@ -1207,7 +1207,8 @@ OutputInitResult OutputJsonInitCtx(SCConfNode *conf)
         }
 
         const SCConfNode *compress_ipv6 = SCConfNodeLookupChild(conf, "ipv6-compress");
-        if (compress_ipv6 && compress_ipv6->val && SCConfValIsTrue(compress_ipv6->val)) {
+        if (compress_ipv6 && SCConfNodeValue(compress_ipv6) &&
+                SCConfValIsTrue(SCConfNodeValue(compress_ipv6))) {
             SCLogConfig("Will compress IPv6 addresses in EVE output per RFC 5952");
             json_ctx->cfg.compress_ipv6 = true;
         } else {
@@ -1228,7 +1229,7 @@ OutputInitResult OutputJsonInitCtx(SCConfNode *conf)
 
         /* Threaded file output */
         const SCConfNode *threaded = SCConfNodeLookupChild(conf, "threaded");
-        if (threaded && threaded->val && SCConfValIsTrue(threaded->val)) {
+        if (threaded && SCConfNodeValue(threaded) && SCConfValIsTrue(SCConfNodeValue(threaded))) {
             SCLogConfig("Threaded EVE logging configured");
             json_ctx->file_ctx->threaded = true;
         } else {
@@ -1249,7 +1250,7 @@ OutputInitResult OutputJsonInitCtx(SCConfNode *conf)
 
         /* Check if top-level metadata should be logged. */
         const SCConfNode *metadata = SCConfNodeLookupChild(conf, "metadata");
-        if (metadata && metadata->val && SCConfValIsFalse(metadata->val)) {
+        if (metadata && SCConfNodeValue(metadata) && SCConfValIsFalse(SCConfNodeValue(metadata))) {
             SCLogConfig("Disabling eve metadata logging.");
             json_ctx->cfg.include_metadata = false;
         } else {
@@ -1258,7 +1259,7 @@ OutputInitResult OutputJsonInitCtx(SCConfNode *conf)
 
         /* Check if ethernet information should be logged. */
         const SCConfNode *ethernet = SCConfNodeLookupChild(conf, "ethernet");
-        if (ethernet && ethernet->val && SCConfValIsTrue(ethernet->val)) {
+        if (ethernet && SCConfNodeValue(ethernet) && SCConfValIsTrue(SCConfNodeValue(ethernet))) {
             SCLogConfig("Enabling Ethernet MAC address logging.");
             json_ctx->cfg.include_ethernet = true;
         } else {
@@ -1266,7 +1267,7 @@ OutputInitResult OutputJsonInitCtx(SCConfNode *conf)
         }
 
         const SCConfNode *suriver = SCConfNodeLookupChild(conf, "suricata-version");
-        if (suriver && suriver->val && SCConfValIsTrue(suriver->val)) {
+        if (suriver && SCConfNodeValue(suriver) && SCConfValIsTrue(SCConfNodeValue(suriver))) {
             SCLogConfig("Enabling Suricata version logging.");
             json_ctx->cfg.include_suricata_version = true;
         } else {
@@ -1275,7 +1276,8 @@ OutputInitResult OutputJsonInitCtx(SCConfNode *conf)
 
         /* See if we want to enable the community id */
         const SCConfNode *community_id = SCConfNodeLookupChild(conf, "community-id");
-        if (community_id && community_id->val && SCConfValIsTrue(community_id->val)) {
+        if (community_id && SCConfNodeValue(community_id) &&
+                SCConfValIsTrue(SCConfNodeValue(community_id))) {
             SCLogConfig("Enabling eve community_id logging.");
             json_ctx->cfg.include_community_id = true;
         } else {

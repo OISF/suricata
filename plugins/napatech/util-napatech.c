@@ -718,42 +718,44 @@ static uint32_t CountWorkerThreads(void)
 
     if (root != NULL) {
 
-        TAILQ_FOREACH (affinity, &root->head, next) {
-            if (strcmp(affinity->val, "decode-cpu-set") == 0 ||
-                    strcmp(affinity->val, "stream-cpu-set") == 0 ||
-                    strcmp(affinity->val, "reject-cpu-set") == 0 ||
-                    strcmp(affinity->val, "output-cpu-set") == 0) {
+        for (affinity = SCConfGetFirstNode(root); affinity != NULL;
+                affinity = SCConfGetNextNode(affinity)) {
+            if (strcmp(SCConfNodeValue(affinity), "decode-cpu-set") == 0 ||
+                    strcmp(SCConfNodeValue(affinity), "stream-cpu-set") == 0 ||
+                    strcmp(SCConfNodeValue(affinity), "reject-cpu-set") == 0 ||
+                    strcmp(SCConfNodeValue(affinity), "output-cpu-set") == 0) {
                 continue;
             }
 
-            if (strcmp(affinity->val, "worker-cpu-set") == 0) {
-                SCConfNode *node = SCConfNodeLookupChild(affinity->head.tqh_first, "cpu");
+            if (strcmp(SCConfNodeValue(affinity), "worker-cpu-set") == 0) {
+                SCConfNode *node = SCConfNodeLookupChild(SCConfGetFirstNode(affinity), "cpu");
                 SCConfNode *lnode;
 
                 enum CONFIG_SPECIFIER cpu_spec = CONFIG_SPECIFIER_UNDEFINED;
 
-                TAILQ_FOREACH (lnode, &node->head, next) {
+                for (lnode = SCConfGetFirstNode(node); lnode != NULL;
+                        lnode = SCConfGetNextNode(lnode)) {
                     uint8_t start, end;
-                    char *end_str;
-                    if (strncmp(lnode->val, "all", 4) == 0) {
+                    const char *end_str;
+                    if (strncmp(SCConfNodeValue(lnode), "all", 4) == 0) {
                         /* check that the sting in the config file is correctly specified */
                         if (cpu_spec != CONFIG_SPECIFIER_UNDEFINED) {
                             FatalError("Only one Napatech port specifier type allowed.");
                         }
                         cpu_spec = CONFIG_SPECIFIER_RANGE;
                         worker_count = UtilCpuGetNumProcessorsConfigured();
-                    } else if ((end_str = strchr(lnode->val, '-'))) {
+                    } else if ((end_str = strchr(SCConfNodeValue(lnode), '-'))) {
                         /* check that the sting in the config file is correctly specified */
                         if (cpu_spec != CONFIG_SPECIFIER_UNDEFINED) {
                             FatalError("Only one Napatech port specifier type allowed.");
                         }
                         cpu_spec = CONFIG_SPECIFIER_RANGE;
 
-                        if (StringParseUint8(&start, 10, end_str - lnode->val,
-                                    (const char *)lnode->val) < 0) {
+                        if (StringParseUint8(&start, 10, end_str - SCConfNodeValue(lnode),
+                                    SCConfNodeValue(lnode)) < 0) {
                             FatalError("Napatech invalid"
                                        " worker range start: '%s'",
-                                    lnode->val);
+                                    SCConfNodeValue(lnode));
                         }
                         if (StringParseUint8(&end, 10, 0, (const char *)(end_str + 1)) < 0) {
                             FatalError("Napatech invalid"
@@ -890,14 +892,15 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
             enum CONFIG_SPECIFIER stream_spec = CONFIG_SPECIFIER_UNDEFINED;
             instance_cnt = 0;
 
-            TAILQ_FOREACH (stream, &ntstreams->head, next) {
+            for (stream = SCConfGetFirstNode(ntstreams); stream != NULL;
+                    stream = SCConfGetNextNode(stream)) {
 
                 if (stream == NULL) {
                     SCLogError("Couldn't Parse Stream Configuration");
                     return -1;
                 }
 
-                char *end_str = strchr(stream->val, '-');
+                const char *end_str = strchr(SCConfNodeValue(stream), '-');
                 if (end_str) {
                     if (stream_spec != CONFIG_SPECIFIER_UNDEFINED) {
                         SCLogError("Only one Napatech stream range specifier allowed.");
@@ -905,11 +908,11 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
                     }
                     stream_spec = CONFIG_SPECIFIER_RANGE;
 
-                    if (StringParseUint8(
-                                &start, 10, end_str - stream->val, (const char *)stream->val) < 0) {
+                    if (StringParseUint8(&start, 10, end_str - SCConfNodeValue(stream),
+                                SCConfNodeValue(stream)) < 0) {
                         FatalError("Napatech invalid "
                                    "stream id start: '%s'",
-                                stream->val);
+                                SCConfNodeValue(stream));
                     }
                     if (StringParseUint8(&end, 10, 0, (const char *)(end_str + 1)) < 0) {
                         FatalError("Napatech invalid "
@@ -922,10 +925,10 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
                     }
                     stream_spec = CONFIG_SPECIFIER_INDIVIDUAL;
                     if (StringParseUint8(&stream_config[instance_cnt].stream_id, 10, 0,
-                                (const char *)stream->val) < 0) {
+                                SCConfNodeValue(stream)) < 0) {
                         FatalError("Napatech invalid "
                                    "stream id: '%s'",
-                                stream->val);
+                                SCConfNodeValue(stream));
                     }
                     start = stream_config[instance_cnt].stream_id;
                     end = stream_config[instance_cnt].stream_id;
@@ -1429,25 +1432,26 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
         SCLogInfo("Listening on the following Napatech ports:");
     }
     /* Build the NTPL command using values in the config file. */
-    TAILQ_FOREACH (port, &ntports->head, next) {
+    for (port = SCConfGetFirstNode(ntports); port != NULL; port = SCConfGetNextNode(port)) {
         if (port == NULL) {
             FatalError("Couldn't Parse Port Configuration");
         }
 
         if (NapatechUseHWBypass()) {
 #ifdef NAPATECH_ENABLE_BYPASS
-            if (strchr(port->val, '-')) {
+            if (strchr(SCConfNodeValue(port), '-')) {
                 stream_spec = CONFIG_SPECIFIER_RANGE;
 
-                if (ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val) == -1) {
+                if (ByteExtractStringUint8(
+                            &ports_spec.first[iteration], 10, 0, SCConfNodeValue(port)) == -1) {
                     FatalError("Invalid value '%s' in napatech.ports specification in conf file.",
-                            port->val);
+                            SCConfNodeValue(port));
                 }
 
                 if (ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0,
-                            strchr(port->val, '-') + 1) == -1) {
+                            strchr(SCConfNodeValue(port), '-') + 1) == -1) {
                     FatalError("Invalid value '%s' in napatech.ports specification in conf file.",
-                            port->val);
+                            SCConfNodeValue(port));
                 }
 
                 if (ports_spec.first[iteration] == ports_spec.second[iteration]) {
@@ -1514,7 +1518,7 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
             }
 #endif
         } else { // !NapatechUseHWBypass()
-            if (strncmp(port->val, "all", 3) == 0) {
+            if (strncmp(SCConfNodeValue(port), "all", 3) == 0) {
                 /* check that the sting in the config file is correctly specified */
                 if (stream_spec != CONFIG_SPECIFIER_UNDEFINED) {
                     FatalError("Only one Napatech port specifier type is allowed.");
@@ -1523,7 +1527,7 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
 
                 ports_spec.all = true;
                 snprintf(ports_spec.str, sizeof(ports_spec.str), "all");
-            } else if (strchr(port->val, '-')) {
+            } else if (strchr(SCConfNodeValue(port), '-')) {
                 /* check that the sting in the config file is correctly specified */
                 if (stream_spec != CONFIG_SPECIFIER_UNDEFINED) {
                     FatalError("Only one Napatech port specifier is allowed when hardware bypass "
@@ -1531,15 +1535,16 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
                 }
                 stream_spec = CONFIG_SPECIFIER_RANGE;
 
-                if (ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val) == -1) {
+                if (ByteExtractStringUint8(
+                            &ports_spec.first[iteration], 10, 0, SCConfNodeValue(port)) == -1) {
                     FatalError("Invalid value '%s' in napatech.ports specification in conf file.",
-                            port->val);
+                            SCConfNodeValue(port));
                 }
 
                 if (ByteExtractStringUint8(&ports_spec.second[iteration], 10, 0,
-                            strchr(port->val, '-') + 1) == -1) {
+                            strchr(SCConfNodeValue(port), '-') + 1) == -1) {
                     FatalError("Invalid value '%s' in napatech.ports specification in conf file.",
-                            port->val);
+                            SCConfNodeValue(port));
                 }
 
                 snprintf(ports_spec.str, sizeof(ports_spec.str), "(%d..%d)",
@@ -1552,22 +1557,23 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
                 }
                 stream_spec = CONFIG_SPECIFIER_INDIVIDUAL;
 
-                if (ByteExtractStringUint8(&ports_spec.first[iteration], 10, 0, port->val) == -1) {
+                if (ByteExtractStringUint8(
+                            &ports_spec.first[iteration], 10, 0, SCConfNodeValue(port)) == -1) {
                     FatalError("Invalid value '%s' in napatech.ports specification in conf file.",
-                            port->val);
+                            SCConfNodeValue(port));
                 }
 
                 /* Determine the ports to use on the NTPL assign statement*/
                 if (iteration == 0) {
-                    snprintf(ports_spec.str, sizeof(ports_spec.str), "%s", port->val);
+                    snprintf(ports_spec.str, sizeof(ports_spec.str), "%s", SCConfNodeValue(port));
                 } else {
                     strlcat(ports_spec.str, ",", sizeof(ports_spec.str));
-                    strlcat(ports_spec.str, port->val, sizeof(ports_spec.str));
+                    strlcat(ports_spec.str, SCConfNodeValue(port), sizeof(ports_spec.str));
                 }
             }
         } // if !NapatechUseHWBypass()
         ++iteration;
-    } /* TAILQ_FOREACH */
+    }
 
 #ifdef NAPATECH_ENABLE_BYPASS
     if (bypass_supported) {

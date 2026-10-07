@@ -229,7 +229,7 @@ int BuildCpusetWithCallback(
 {
     SCConfNode *lnode;
     for (lnode = SCConfGetFirstNode(node); lnode != NULL; lnode = SCConfGetNextNode(lnode)) {
-        char *sep = NULL;
+        const char *sep = NULL;
         uint32_t i;
         uint32_t a, b;
         uint32_t stop = 0;
@@ -237,21 +237,25 @@ int BuildCpusetWithCallback(
         if (max > 0) {
             max--;
         }
-        if (!strcmp(lnode->val, "all")) {
+        if (!strcmp(SCConfNodeValue(lnode), "all")) {
             a = 0;
             b = max;
             stop = 1;
-        } else if ((sep = strchr(lnode->val, '-')) != NULL) {
-            if (StringParseUint32(&a, 10, sep - lnode->val, lnode->val) <= 0) {
-                SCLogError("%s: invalid cpu range (start invalid): \"%s\"", name, lnode->val);
+        } else if ((sep = strchr(SCConfNodeValue(lnode), '-')) != NULL) {
+            if (StringParseUint32(&a, 10, sep - SCConfNodeValue(lnode), SCConfNodeValue(lnode)) <=
+                    0) {
+                SCLogError("%s: invalid cpu range (start invalid): \"%s\"", name,
+                        SCConfNodeValue(lnode));
                 return -1;
             }
             if (StringParseUint32(&b, 10, strlen(sep) - 1, sep + 1) <= 0) {
-                SCLogError("%s: invalid cpu range (end invalid): \"%s\"", name, lnode->val);
+                SCLogError("%s: invalid cpu range (end invalid): \"%s\"", name,
+                        SCConfNodeValue(lnode));
                 return -1;
             }
             if (a > b) {
-                SCLogError("%s: invalid cpu range (bad order): \"%s\"", name, lnode->val);
+                SCLogError(
+                        "%s: invalid cpu range (bad order): \"%s\"", name, SCConfNodeValue(lnode));
                 return -1;
             }
             if (b > max) {
@@ -260,8 +264,10 @@ int BuildCpusetWithCallback(
                 return -1;
             }
         } else {
-            if (StringParseUint32(&a, 10, strlen(lnode->val), lnode->val) <= 0) {
-                SCLogError("%s: invalid cpu range (not an integer): \"%s\"", name, lnode->val);
+            if (StringParseUint32(&a, 10, strlen(SCConfNodeValue(lnode)), SCConfNodeValue(lnode)) <=
+                    0) {
+                SCLogError("%s: invalid cpu range (not an integer): \"%s\"", name,
+                        SCConfNodeValue(lnode));
                 return -1;
             }
             b = a;
@@ -346,18 +352,18 @@ static int SetupDefaultPriority(
         return 0;
     }
 
-    if (strcmp(default_node->val, "low") == 0) {
+    if (strcmp(SCConfNodeValue(default_node), "low") == 0) {
         taf->prio = PRIO_LOW;
-    } else if (strcmp(default_node->val, "medium") == 0) {
+    } else if (strcmp(SCConfNodeValue(default_node), "medium") == 0) {
         taf->prio = PRIO_MEDIUM;
-    } else if (strcmp(default_node->val, "high") == 0) {
+    } else if (strcmp(SCConfNodeValue(default_node), "high") == 0) {
         taf->prio = PRIO_HIGH;
     } else {
-        SCLogError("Unknown default CPU affinity priority: %s", default_node->val);
+        SCLogError("Unknown default CPU affinity priority: %s", SCConfNodeValue(default_node));
         return -1;
     }
 
-    SCLogConfig("Using default priority '%s' for set %s", default_node->val, setname);
+    SCLogConfig("Using default priority '%s' for set %s", SCConfNodeValue(default_node), setname);
     return 0;
 }
 
@@ -393,12 +399,12 @@ static int SetupAffinityMode(ThreadsAffinityType *taf, SCConfNode *affinity)
         return 0;
     }
 
-    if (strcmp(mode_node->val, "exclusive") == 0) {
+    if (strcmp(SCConfNodeValue(mode_node), "exclusive") == 0) {
         taf->mode_flag = EXCLUSIVE_AFFINITY;
-    } else if (strcmp(mode_node->val, "balanced") == 0) {
+    } else if (strcmp(SCConfNodeValue(mode_node), "balanced") == 0) {
         taf->mode_flag = BALANCED_AFFINITY;
     } else {
-        SCLogError("Unknown CPU affinity mode: %s", mode_node->val);
+        SCLogError("Unknown CPU affinity mode: %s", SCConfNodeValue(mode_node));
         return -1;
     }
     return 0;
@@ -415,8 +421,9 @@ static int SetupAffinityThreads(ThreadsAffinityType *taf, SCConfNode *affinity)
         return 0;
     }
 
-    if (StringParseUint32(&taf->nb_threads, 10, 0, threads_node->val) < 0 || taf->nb_threads == 0) {
-        SCLogError("Invalid thread count: %s", threads_node->val);
+    if (StringParseUint32(&taf->nb_threads, 10, 0, SCConfNodeValue(threads_node)) < 0 ||
+            taf->nb_threads == 0) {
+        SCLogError("Invalid thread count: %s", SCConfNodeValue(threads_node));
         return -1;
     }
     return 0;
@@ -497,8 +504,8 @@ static int SetupSingleIfaceAffinity(ThreadsAffinityType *taf, SCConfNode *iface_
     const char *interface_name = NULL;
     for (child_node = SCConfGetFirstNode(iface_node); child_node != NULL;
             child_node = SCConfGetNextNode(child_node)) {
-        if (strcmp(child_node->name, "interface") == 0) {
-            interface_name = child_node->val;
+        if (strcmp(SCConfNodeName(child_node), "interface") == 0) {
+            interface_name = SCConfNodeValue(child_node);
             break;
         }
     }
@@ -541,12 +548,12 @@ static int SetupPerIfaceAffinity(ThreadsAffinityType *taf, SCConfNode *affinity)
     SCConfNode *iface_node;
     for (iface_node = SCConfGetFirstNode(per_iface_node); iface_node != NULL;
             iface_node = SCConfGetNextNode(iface_node)) {
-        if (strcmp(iface_node->val, "interface") == 0) {
+        if (strcmp(SCConfNodeValue(iface_node), "interface") == 0) {
             if (SetupSingleIfaceAffinity(taf, iface_node) < 0) {
                 return -1;
             }
         } else {
-            SCLogWarning("Unknown node in %s: %s", if_af, iface_node->name);
+            SCLogWarning("Unknown node in %s: %s", if_af, SCConfNodeName(iface_node));
         }
     }
     return 0;
@@ -578,7 +585,7 @@ static bool AffinityConfigIsLegacy(void)
         // If a child does not contain "-cpu-set", then the conf is legacy
         // Names in the legacy format (list of *-cpu-sets) contain
         // list item IDs - "0" : "management-cpu-set", "1" : "worker-cpu-set"
-        if (strstr(affinity->name, "-cpu-set") == NULL) {
+        if (strstr(SCConfNodeName(affinity), "-cpu-set") == NULL) {
             is_using_legacy_affinity_format = true;
             return is_using_legacy_affinity_format;
         }
@@ -610,7 +617,8 @@ void AffinitySetupLoadFromConfig(void)
     SCConfNode *affinity;
     for (affinity = SCConfGetFirstNode(root); affinity != NULL;
             affinity = SCConfGetNextNode(affinity)) {
-        char *v = AffinityConfigIsLegacy() ? affinity->val : affinity->name;
+        const char *v =
+                AffinityConfigIsLegacy() ? SCConfNodeValue(affinity) : SCConfNodeName(affinity);
         const char *setname = GetAffinitySetName(v);
         if (setname == NULL) {
             continue;

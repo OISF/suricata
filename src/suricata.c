@@ -2568,7 +2568,7 @@ static void SetupDelayedDetect(SCInstance *suri)
             if (decnf != NULL) {
                 for (denode = SCConfGetFirstNode(decnf); denode != NULL;
                         denode = SCConfGetNextNode(denode)) {
-                    if (strcmp(denode->val, "delayed-detect") == 0) {
+                    if (strcmp(SCConfNodeValue(denode), "delayed-detect") == 0) {
                         (void)SCConfGetChildValueBool(
                                 denode, "delayed-detect", &suri->delayed_detect);
                     }

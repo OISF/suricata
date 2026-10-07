@@ -665,12 +665,12 @@ static OutputInitResult OutputLuaLogInitSub(SCConfNode *conf, OutputCtx *parent_
     const char *dir = mc->script_dir;
     char path[PATH_MAX] = "";
     if (strlen(dir) > 0) {
-        if (PathMerge(path, sizeof(path), dir, conf->val) < 0) {
+        if (PathMerge(path, sizeof(path), dir, SCConfNodeValue(conf)) < 0) {
             SCLogError("failed to construct lua script path");
             goto error;
         }
     } else {
-        strlcpy(path, conf->val, sizeof(path));
+        strlcpy(path, SCConfNodeValue(conf), sizeof(path));
     }
     SCLogDebug("script full path %s", path);
 
@@ -757,12 +757,13 @@ static OutputInitResult OutputLuaLogInit(SCConfNode *conf)
     /* check the enables scripts and set them up as submodules */
     SCConfNode *script;
     for (script = SCConfGetFirstNode(scripts); script != NULL; script = SCConfGetNextNode(script)) {
-        SCLogInfo("enabling script %s", script->val);
+        SCLogInfo("enabling script %s", SCConfNodeValue(script));
         LogLuaScriptOptions opts;
         memset(&opts, 0x00, sizeof(opts));
 
         char path[PATH_MAX] = "";
-        snprintf(path, sizeof(path),"%s%s%s", dir, strlen(dir) ? "/" : "", script->val);
+        snprintf(
+                path, sizeof(path), "%s%s%s", dir, strlen(dir) ? "/" : "", SCConfNodeValue(script));
         SCLogDebug("script full path %s", path);
 
         int r = LuaScriptInit(path, &opts, master_config);
@@ -780,7 +781,7 @@ static OutputInitResult OutputLuaLogInit(SCConfNode *conf)
         }
 
         om->name = MODULE_NAME;
-        om->conf_name = script->val;
+        om->conf_name = SCConfNodeValue(script);
         om->InitSubFunc = OutputLuaLogInitSub;
         om->ThreadInit = LuaLogThreadInit;
         om->ThreadDeinit = LuaLogThreadDeinit;

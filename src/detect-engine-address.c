@@ -1233,7 +1233,7 @@ int DetectAddressTestConfVars(void)
     SCConfNode *seq_node;
     for (seq_node = SCConfGetFirstNode(address_vars_node); seq_node != NULL;
             seq_node = SCConfGetNextNode(seq_node)) {
-        SCLogDebug("Testing %s - %s", seq_node->name, seq_node->val);
+        SCLogDebug("Testing %s - %s", SCConfNodeName(seq_node), SCConfNodeValue(seq_node));
 
         gh = DetectAddressHeadInit();
         if (gh == NULL) {
@@ -1244,23 +1244,23 @@ int DetectAddressTestConfVars(void)
             goto error;
         }
 
-        if (seq_node->val == NULL) {
+        if (SCConfNodeValue(seq_node) == NULL) {
             SCLogError("Address var \"%s\" probably has a sequence(something "
                        "in brackets) value set without any quotes. Please "
                        "quote it using \"..\".",
-                    seq_node->name);
+                    SCConfNodeName(seq_node));
             goto error;
         }
 
-        int r = DetectAddressParse2(
-                NULL, gh, ghn, seq_node->val, /* start with negate no */ 0, &var_list, 0);
+        int r = DetectAddressParse2(NULL, gh, ghn, SCConfNodeValue(seq_node),
+                /* start with negate no */ 0, &var_list, 0);
 
         CleanVariableResolveList(&var_list);
 
         if (r < 0) {
             SCLogError("failed to parse address var \"%s\" with value \"%s\". "
                        "Please check its syntax",
-                    seq_node->name, seq_node->val);
+                    SCConfNodeName(seq_node), SCConfNodeValue(seq_node));
             goto error;
         }
 
@@ -1269,7 +1269,7 @@ int DetectAddressTestConfVars(void)
                        "with its value \"%s\".  Rule address range is NIL. "
                        "Probably have a !any or an address range that supplies "
                        "a NULL address range",
-                    seq_node->name, seq_node->val);
+                    SCConfNodeName(seq_node), SCConfNodeValue(seq_node));
             goto error;
         }
 

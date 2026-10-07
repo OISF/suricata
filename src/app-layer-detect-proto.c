@@ -1600,9 +1600,9 @@ int SCAppLayerProtoDetectPPParseConfPorts(const char *ipproto_name, uint8_t ippr
     if (port_node == NULL)
         port_node = SCConfNodeLookupChild(node, "toserver");
 
-    if (port_node != NULL && port_node->val != NULL) {
-        SCAppLayerProtoDetectPPRegister(ipproto, port_node->val, alproto, min_depth, max_depth,
-                STREAM_TOSERVER, /* to indicate dp */
+    if (port_node != NULL && SCConfNodeValue(port_node) != NULL) {
+        SCAppLayerProtoDetectPPRegister(ipproto, SCConfNodeValue(port_node), alproto, min_depth,
+                max_depth, STREAM_TOSERVER, /* to indicate dp */
                 ProbingParserTs, ProbingParserTc);
     }
 
@@ -1611,9 +1611,9 @@ int SCAppLayerProtoDetectPPParseConfPorts(const char *ipproto_name, uint8_t ippr
     if (port_node == NULL)
         port_node = SCConfNodeLookupChild(node, "toclient");
 
-    if (port_node != NULL && port_node->val != NULL) {
-        SCAppLayerProtoDetectPPRegister(ipproto, port_node->val, alproto, min_depth, max_depth,
-                STREAM_TOCLIENT, /* to indicate sp */
+    if (port_node != NULL && SCConfNodeValue(port_node) != NULL) {
+        SCAppLayerProtoDetectPPRegister(ipproto, SCConfNodeValue(port_node), alproto, min_depth,
+                max_depth, STREAM_TOCLIENT, /* to indicate sp */
                 ProbingParserTc, ProbingParserTs);
     }
 
@@ -1934,12 +1934,12 @@ int SCAppLayerProtoDetectConfProtoDetectionEnabledDefault(
     SCLogDebug("Looking for %s", param);
 
     i_proto = SCConfGetNode(param);
-    if (i_proto && i_proto->val) {
-        if (SCConfValIsTrue(i_proto->val)) {
+    if (i_proto && SCConfNodeValue(i_proto)) {
+        if (SCConfValIsTrue(SCConfNodeValue(i_proto))) {
             i_enabled = true;
-        } else if (SCConfValIsFalse(i_proto->val)) {
+        } else if (SCConfValIsFalse(SCConfNodeValue(i_proto))) {
             i_enabled = false;
-        } else if (strcasecmp(i_proto->val, "detection-only") == 0) {
+        } else if (strcasecmp(SCConfNodeValue(i_proto), "detection-only") == 0) {
             i_enabled = true;
         } else {
             FatalError("Invalid value found for %s.", param);
@@ -1955,12 +1955,12 @@ int SCAppLayerProtoDetectConfProtoDetectionEnabledDefault(
 
     SCLogDebug("Looking for %s", param);
     g_proto = SCConfGetNode(param);
-    if (g_proto && g_proto->val) {
-        if (SCConfValIsTrue(g_proto->val)) {
+    if (g_proto && SCConfNodeValue(g_proto)) {
+        if (SCConfValIsTrue(SCConfNodeValue(g_proto))) {
             g_enabled = true;
-        } else if (SCConfValIsFalse(g_proto->val)) {
+        } else if (SCConfValIsFalse(SCConfNodeValue(g_proto))) {
             g_enabled = false;
-        } else if (strcasecmp(g_proto->val, "detection-only") == 0) {
+        } else if (strcasecmp(SCConfNodeValue(g_proto), "detection-only") == 0) {
             g_enabled = true;
         } else {
             FatalError("Invalid value found for %s", param);

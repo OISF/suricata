@@ -561,8 +561,8 @@ static OutputInitResult OutputHttpLogInitSub(SCConfNode *conf, OutputCtx *parent
                     field = SCConfGetNextNode(field)) {
                 HttpField f;
                 for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++) {
-                    if ((strcmp(http_fields[f].config_field, field->val) == 0) ||
-                            (strcasecmp(http_fields[f].htp_field, field->val) == 0)) {
+                    if ((strcmp(http_fields[f].config_field, SCConfNodeValue(field)) == 0) ||
+                            (strcasecmp(http_fields[f].htp_field, SCConfNodeValue(field)) == 0)) {
                         http_ctx->fields |= (1ULL << f);
                         break;
                     }

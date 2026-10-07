@@ -3501,15 +3501,16 @@ void RegisterSSLParsers(void)
 #endif /* UNITTESTS */
 
         SCConfNode *enc_handle = SCConfGetNode("app-layer.protocols.tls.encryption-handling");
-        if (enc_handle != NULL && enc_handle->val != NULL) {
-            SCLogDebug("have app-layer.protocols.tls.encryption-handling = %s", enc_handle->val);
-            if (strcmp(enc_handle->val, "full") == 0) {
+        if (enc_handle != NULL && SCConfNodeValue(enc_handle) != NULL) {
+            SCLogDebug("have app-layer.protocols.tls.encryption-handling = %s",
+                    SCConfNodeValue(enc_handle));
+            if (strcmp(SCConfNodeValue(enc_handle), "full") == 0) {
                 ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_FULL;
-            } else if (strcmp(enc_handle->val, "bypass") == 0) {
+            } else if (strcmp(SCConfNodeValue(enc_handle), "bypass") == 0) {
                 ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_BYPASS;
-            } else if (strcmp(enc_handle->val, "track-only") == 0) {
+            } else if (strcmp(SCConfNodeValue(enc_handle), "track-only") == 0) {
                 ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_TRACK_ONLY;
-            } else if (strcmp(enc_handle->val, "default") == 0) {
+            } else if (strcmp(SCConfNodeValue(enc_handle), "default") == 0) {
                 SCLogWarning("app-layer.protocols.tls.encryption-handling = default is deprecated "
                              "and will be removed in Suricata 9, use \"track-only\" instead, "
                              "(see ticket #7642)");

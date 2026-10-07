@@ -113,8 +113,8 @@ void DecodeTeredoConfig(void)
     }
     if (g_teredo_enabled) {
         SCConfNode *node = SCConfGetNode("decoder.teredo.ports");
-        if (node && node->val) {
-            DecodeTeredoConfigPorts(node->val);
+        if (node && SCConfNodeValue(node)) {
+            DecodeTeredoConfigPorts(SCConfNodeValue(node));
         }
     }
 }

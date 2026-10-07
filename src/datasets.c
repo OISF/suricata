@@ -647,7 +647,7 @@ int DatasetsInit(void)
         int list_pos = 0;
         SCConfNode *iter = NULL;
         for (iter = SCConfGetFirstNode(datasets); iter != NULL; iter = SCConfGetNextNode(iter)) {
-            if (iter->name == NULL) {
+            if (SCConfNodeName(iter) == NULL) {
                 list_pos++;
                 continue;
             }
@@ -657,7 +657,7 @@ int DatasetsInit(void)
             uint64_t memcap = 0;
             uint32_t hashsize = 0;
 
-            const char *set_name = iter->name;
+            const char *set_name = SCConfNodeName(iter);
             if (strlen(set_name) > DATASET_NAME_MAX_LEN) {
                 FatalErrorOnInit(
                         "set name '%s' too long, max %d chars", set_name, DATASET_NAME_MAX_LEN);
@@ -672,39 +672,39 @@ int DatasetsInit(void)
 
             SCConfNode *set_save = SCConfNodeLookupChild(iter, "state");
             if (set_save) {
-                DatasetGetPath(set_save->val, save, sizeof(save), TYPE_STATE);
+                DatasetGetPath(SCConfNodeValue(set_save), save, sizeof(save), TYPE_STATE);
                 strlcpy(load, save, sizeof(load));
             } else {
                 SCConfNode *set_load = SCConfNodeLookupChild(iter, "load");
                 if (set_load) {
-                    DatasetGetPath(set_load->val, load, sizeof(load), TYPE_LOAD);
+                    DatasetGetPath(SCConfNodeValue(set_load), load, sizeof(load), TYPE_LOAD);
                 }
             }
 
             SCConfNode *set_memcap = SCConfNodeLookupChild(iter, "memcap");
             if (set_memcap) {
-                if (ParseSizeStringU64(set_memcap->val, &memcap) < 0) {
+                if (ParseSizeStringU64(SCConfNodeValue(set_memcap), &memcap) < 0) {
                     SCLogWarning("memcap value cannot be"
                                  " deduced: %s, resetting to default",
-                            set_memcap->val);
+                            SCConfNodeValue(set_memcap));
                     memcap = 0;
                 }
             }
             SCConfNode *set_hashsize = SCConfNodeLookupChild(iter, "hashsize");
             if (set_hashsize) {
-                if (ParseSizeStringU32(set_hashsize->val, &hashsize) < 0) {
+                if (ParseSizeStringU32(SCConfNodeValue(set_hashsize), &hashsize) < 0) {
                     SCLogWarning("hashsize value cannot be"
                                  " deduced: %s, resetting to default",
-                            set_hashsize->val);
+                            SCConfNodeValue(set_hashsize));
                     hashsize = 0;
                 }
             }
             char conf_str[1024];
             snprintf(conf_str, sizeof(conf_str), "datasets.%d.%s", list_pos, set_name);
 
-            SCLogDebug("set %s type %s. Conf %s", set_name, set_type->val, conf_str);
+            SCLogDebug("set %s type %s. Conf %s", set_name, SCConfNodeValue(set_type), conf_str);
 
-            if (strcmp(set_type->val, "md5") == 0) {
+            if (strcmp(SCConfNodeValue(set_type), "md5") == 0) {
                 Dataset *dset = DatasetGet(set_name, DATASET_TYPE_MD5, save, load,
                         memcap > 0 ? memcap : default_memcap,
                         hashsize > 0 ? hashsize : default_hashsize);
@@ -712,10 +712,11 @@ int DatasetsInit(void)
                     FatalErrorOnInit("failed to setup dataset for %s", set_name);
                     continue;
                 }
-                SCLogDebug("dataset %s: id %u type %s", set_name, dset->id, set_type->val);
+                SCLogDebug(
+                        "dataset %s: id %u type %s", set_name, dset->id, SCConfNodeValue(set_type));
                 dset->from_yaml = true;
 
-            } else if (strcmp(set_type->val, "sha256") == 0) {
+            } else if (strcmp(SCConfNodeValue(set_type), "sha256") == 0) {
                 Dataset *dset = DatasetGet(set_name, DATASET_TYPE_SHA256, save, load,
                         memcap > 0 ? memcap : default_memcap,
                         hashsize > 0 ? hashsize : default_hashsize);
@@ -723,10 +724,11 @@ int DatasetsInit(void)
                     FatalErrorOnInit("failed to setup dataset for %s", set_name);
                     continue;
                 }
-                SCLogDebug("dataset %s: id %u type %s", set_name, dset->id, set_type->val);
+                SCLogDebug(
+                        "dataset %s: id %u type %s", set_name, dset->id, SCConfNodeValue(set_type));
                 dset->from_yaml = true;
 
-            } else if (strcmp(set_type->val, "string") == 0) {
+            } else if (strcmp(SCConfNodeValue(set_type), "string") == 0) {
                 Dataset *dset = DatasetGet(set_name, DATASET_TYPE_STRING, save, load,
                         memcap > 0 ? memcap : default_memcap,
                         hashsize > 0 ? hashsize : default_hashsize);
@@ -734,10 +736,11 @@ int DatasetsInit(void)
                     FatalErrorOnInit("failed to setup dataset for %s", set_name);
                     continue;
                 }
-                SCLogDebug("dataset %s: id %u type %s", set_name, dset->id, set_type->val);
+                SCLogDebug(
+                        "dataset %s: id %u type %s", set_name, dset->id, SCConfNodeValue(set_type));
                 dset->from_yaml = true;
 
-            } else if (strcmp(set_type->val, "ipv4") == 0) {
+            } else if (strcmp(SCConfNodeValue(set_type), "ipv4") == 0) {
                 Dataset *dset = DatasetGet(set_name, DATASET_TYPE_IPV4, save, load,
                         memcap > 0 ? memcap : default_memcap,
                         hashsize > 0 ? hashsize : default_hashsize);
@@ -745,10 +748,11 @@ int DatasetsInit(void)
                     FatalErrorOnInit("failed to setup dataset for %s", set_name);
                     continue;
                 }
-                SCLogDebug("dataset %s: id %u type %s", set_name, dset->id, set_type->val);
+                SCLogDebug(
+                        "dataset %s: id %u type %s", set_name, dset->id, SCConfNodeValue(set_type));
                 dset->from_yaml = true;
 
-            } else if (strcmp(set_type->val, "ip") == 0) {
+            } else if (strcmp(SCConfNodeValue(set_type), "ip") == 0) {
                 Dataset *dset = DatasetGet(set_name, DATASET_TYPE_IPV6, save, load,
                         memcap > 0 ? memcap : default_memcap,
                         hashsize > 0 ? hashsize : default_hashsize);
@@ -756,7 +760,8 @@ int DatasetsInit(void)
                     FatalErrorOnInit("failed to setup dataset for %s", set_name);
                     continue;
                 }
-                SCLogDebug("dataset %s: id %u type %s", set_name, dset->id, set_type->val);
+                SCLogDebug(
+                        "dataset %s: id %u type %s", set_name, dset->id, SCConfNodeValue(set_type));
                 dset->from_yaml = true;
             }
 

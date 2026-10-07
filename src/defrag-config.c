@@ -113,17 +113,17 @@ static void DefragParseParameters(SCConfNode *n)
     uint64_t timeout = 0;
 
     for (si = SCConfGetFirstNode(n); si != NULL; si = SCConfGetNextNode(si)) {
-        if (strcasecmp("timeout", si->name) == 0) {
-            SCLogDebug("timeout value  %s", si->val);
-            if (ParseSizeStringU64(si->val, &timeout) < 0) {
+        if (strcasecmp("timeout", SCConfNodeName(si)) == 0) {
+            SCLogDebug("timeout value  %s", SCConfNodeValue(si));
+            if (ParseSizeStringU64(SCConfNodeValue(si), &timeout) < 0) {
                 SCLogError("Error parsing timeout "
                            "from conf file");
             }
         }
-        if (strcasecmp("address", si->name) == 0) {
+        if (strcasecmp("address", SCConfNodeName(si)) == 0) {
             SCConfNode *pval;
             for (pval = SCConfGetFirstNode(si); pval != NULL; pval = SCConfGetNextNode(pval)) {
-                DefragPolicyAddHostInfo(pval->val, timeout);
+                DefragPolicyAddHostInfo(SCConfNodeValue(pval), timeout);
             }
         }
     }
@@ -152,7 +152,7 @@ void DefragPolicyLoadFromConfig(void)
         SCConfNode *p = NULL;
 
         for (p = SCConfGetFirstNode(sc); p != NULL; p = SCConfGetNextNode(p)) {
-            SCLogDebug("parsing configuration for %s", p->name);
+            SCLogDebug("parsing configuration for %s", SCConfNodeName(p));
             DefragParseParameters(p);
         }
     }

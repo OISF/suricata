@@ -680,16 +680,16 @@ static void RunModeInitializeEveOutput(
         int sub_count = 0;
         char subname[256];
 
-        if (strcmp(type->val, "ikev2") == 0) {
+        if (strcmp(SCConfNodeValue(type), "ikev2") == 0) {
             SCLogWarning("eve module 'ikev2' has been replaced by 'ike'");
             strlcpy(subname, "eve-log.ike", sizeof(subname));
         } else {
-            snprintf(subname, sizeof(subname), "eve-log.%s", type->val);
+            snprintf(subname, sizeof(subname), "eve-log.%s", SCConfNodeValue(type));
         }
 
-        SCLogConfig("enabling 'eve-log' module '%s'", type->val);
+        SCLogConfig("enabling 'eve-log' module '%s'", SCConfNodeValue(type));
 
-        SCConfNode *sub_output_config = SCConfNodeLookupChild(type, type->val);
+        SCConfNode *sub_output_config = SCConfNodeLookupChild(type, SCConfNodeValue(type));
         if (sub_output_config != NULL) {
             const char *enabled = SCConfNodeLookupChildValue(sub_output_config, "enabled");
             if (enabled != NULL && !SCConfValIsTrue(enabled)) {
@@ -748,8 +748,8 @@ static void RunModeInitializeLuaOutput(
         SCConfNode *script = NULL;
         for (script = SCConfGetFirstNode(scripts); script != NULL;
                 script = SCConfGetNextNode(script)) {
-            SCLogDebug("script %s", script->val);
-            if (strcmp(script->val, m->conf_name) == 0) {
+            SCLogDebug("script %s", SCConfNodeValue(script));
+            if (strcmp(SCConfNodeValue(script), m->conf_name) == 0) {
                 break;
             }
         }
@@ -790,13 +790,13 @@ void RunModeInitializeOutputs(void)
     memset(logger_bits, 0, g_alproto_max * sizeof(LoggerId));
     for (output = SCConfGetFirstNode(outputs); output != NULL; output = SCConfGetNextNode(output)) {
 
-        output_config = SCConfNodeLookupChild(output, output->val);
+        output_config = SCConfNodeLookupChild(output, SCConfNodeValue(output));
         if (output_config == NULL) {
             /* Shouldn't happen. */
-            FatalError("Failed to lookup configuration child node: %s", output->val);
+            FatalError("Failed to lookup configuration child node: %s", SCConfNodeValue(output));
         }
 
-        if (strcmp(output->val, "tls-store") == 0) {
+        if (strcmp(SCConfNodeValue(output), "tls-store") == 0) {
             tls_store_present = 1;
         }
 
@@ -805,32 +805,32 @@ void RunModeInitializeOutputs(void)
             continue;
         }
 
-        if (strcmp(output->val, "file-log") == 0) {
+        if (strcmp(SCConfNodeValue(output), "file-log") == 0) {
             SCLogWarning("file-log is no longer supported,"
                          " use eve.files instead "
                          "(see ticket #2376"
                          " for an explanation)");
             continue;
-        } else if (strncmp(output->val, "unified-", sizeof("unified-") - 1) == 0) {
+        } else if (strncmp(SCConfNodeValue(output), "unified-", sizeof("unified-") - 1) == 0) {
             SCLogWarning("Unified1 is no longer supported,"
                          " use Unified2 instead "
                          "(see ticket #353"
                          " for an explanation)");
             continue;
-        } else if (strncmp(output->val, "unified2-", sizeof("unified2-") - 1) == 0) {
+        } else if (strncmp(SCConfNodeValue(output), "unified2-", sizeof("unified2-") - 1) == 0) {
             SCLogWarning("Unified2 is no longer supported.");
             continue;
-        } else if (strcmp(output->val, "dns-log") == 0) {
+        } else if (strcmp(SCConfNodeValue(output), "dns-log") == 0) {
             SCLogWarning("dns-log is not longer available as of Suricata 5.0");
             continue;
-        } else if (strcmp(output->val, "tls-log") == 0) {
+        } else if (strcmp(SCConfNodeValue(output), "tls-log") == 0) {
             tls_log_enabled = 1;
         }
 
         OutputModule *module;
         int count = 0;
         TAILQ_FOREACH(module, &output_modules, entries) {
-            if (strcmp(module->conf_name, output->val) != 0) {
+            if (strcmp(module->conf_name, SCConfNodeValue(output)) != 0) {
                 continue;
             }
 
@@ -840,7 +840,7 @@ void RunModeInitializeOutputs(void)
             if (module->InitFunc != NULL) {
                 OutputInitResult r = module->InitFunc(output_config);
                 if (!r.ok) {
-                    FatalErrorOnInit("output module \"%s\": setup failed", output->val);
+                    FatalErrorOnInit("output module \"%s\": setup failed", SCConfNodeValue(output));
                     continue;
                 } else if (r.ctx == NULL) {
                     continue;
@@ -852,14 +852,14 @@ void RunModeInitializeOutputs(void)
             }
 
             // TODO if module == parent, find it's children
-            if (strcmp(output->val, "eve-log") == 0) {
+            if (strcmp(SCConfNodeValue(output), "eve-log") == 0) {
                 RunModeInitializeEveOutput(output_config, output_ctx, logger_bits);
 
                 /* add 'eve-log' to free list as it's the owner of the
                  * main output ctx from which the sub-modules share the
                  * LogFileCtx */
                 AddOutputToFreeList(module, output_ctx);
-            } else if (strcmp(output->val, "lua") == 0) {
+            } else if (strcmp(SCConfNodeValue(output), "lua") == 0) {
                 SCLogDebug("handle lua");
                 if (output_ctx == NULL)
                     continue;
@@ -871,7 +871,7 @@ void RunModeInitializeOutputs(void)
             }
         }
         if (count == 0) {
-            FatalErrorOnInit("No output module named %s", output->val);
+            FatalErrorOnInit("No output module named %s", SCConfNodeValue(output));
             continue;
         }
     }
@@ -884,9 +884,9 @@ void RunModeInitializeOutputs(void)
 
         for (output = SCConfGetFirstNode(outputs); output != NULL;
                 output = SCConfGetNextNode(output)) {
-            output_config = SCConfNodeLookupChild(output, output->val);
+            output_config = SCConfNodeLookupChild(output, SCConfNodeValue(output));
 
-            if (strcmp(output->val, "tls-log") == 0) {
+            if (strcmp(SCConfNodeValue(output), "tls-log") == 0) {
 
                 OutputModule *module = OutputGetModuleByConfName("tls-store");
                 if (module == NULL) {

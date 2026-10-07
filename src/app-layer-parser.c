@@ -405,12 +405,12 @@ int SCAppLayerParserConfParserEnabled(const char *ipproto, const char *alproto_n
     SCLogDebug("Looking for %s", param);
 
     i_proto = SCConfGetNode(param);
-    if (i_proto && i_proto->val) {
-        if (SCConfValIsTrue(i_proto->val)) {
+    if (i_proto && SCConfNodeValue(i_proto)) {
+        if (SCConfValIsTrue(SCConfNodeValue(i_proto))) {
             i_enabled = true;
-        } else if (SCConfValIsFalse(i_proto->val)) {
+        } else if (SCConfValIsFalse(SCConfNodeValue(i_proto))) {
             i_enabled = false;
-        } else if (strcasecmp(i_proto->val, "detection-only") == 0) {
+        } else if (strcasecmp(SCConfNodeValue(i_proto), "detection-only") == 0) {
             i_enabled = false;
         } else {
             FatalError("Invalid value found for %s.", param);
@@ -426,12 +426,12 @@ int SCAppLayerParserConfParserEnabled(const char *ipproto, const char *alproto_n
 
     SCLogDebug("Looking for %s", param);
     g_proto = SCConfGetNode(param);
-    if (g_proto && g_proto->val) {
-        if (SCConfValIsTrue(g_proto->val)) {
+    if (g_proto && SCConfNodeValue(g_proto)) {
+        if (SCConfValIsTrue(SCConfNodeValue(g_proto))) {
             g_enabled = true;
-        } else if (SCConfValIsFalse(g_proto->val)) {
+        } else if (SCConfValIsFalse(SCConfNodeValue(g_proto))) {
             g_enabled = false;
-        } else if (strcasecmp(g_proto->val, "detection-only") == 0) {
+        } else if (strcasecmp(SCConfNodeValue(g_proto), "detection-only") == 0) {
             g_enabled = false;
         } else {
             FatalError("Invalid value found for %s", param);

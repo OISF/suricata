@@ -111,7 +111,8 @@ SCConfNode *SCConfNodeGetNodeOrCreate(SCConfNode *parent, const char *name, int 
 
 SCConfNode *SCConfGetFirstNode(const SCConfNode *parent);
 SCConfNode *SCConfGetNextNode(const SCConfNode *node);
-const char *SCConfGetValueNode(const SCConfNode *node);
+const char *SCConfNodeName(const SCConfNode *node);
+const char *SCConfNodeValue(const SCConfNode *node);
 
 #ifdef __cplusplus
 }

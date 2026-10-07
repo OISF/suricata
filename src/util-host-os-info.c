@@ -289,12 +289,13 @@ void SCHInfoLoadFromConfig(void)
         SCConfNode *host;
         for (host = SCConfGetFirstNode(policy); host != NULL; host = SCConfGetNextNode(host)) {
             int is_ipv4 = 1;
-            if (host->val != NULL && strchr(host->val, ':') != NULL)
+            if (SCConfNodeValue(host) != NULL && strchr(SCConfNodeValue(host), ':') != NULL)
                 is_ipv4 = 0;
-            if (SCHInfoAddHostOSInfo(policy->name, host->val, is_ipv4) == -1) {
+            if (SCHInfoAddHostOSInfo(SCConfNodeName(policy), SCConfNodeValue(host), is_ipv4) ==
+                    -1) {
                 FatalError("Failed to add host \"%s\" with policy \"%s\" to host "
                            "info database",
-                        host->val, policy->name);
+                        SCConfNodeValue(host), SCConfNodeName(policy));
             }
         }
     }
@@ -1272,23 +1273,23 @@ host-os-policy:\n\
     for (policy = SCConfGetFirstNode(root); policy != NULL; policy = SCConfGetNextNode(policy)) {
         switch (count) {
             case 0:
-                if (strcmp("one-two", policy->name) != 0)
+                if (strcmp("one-two", SCConfNodeName(policy)) != 0)
                     goto end;
                 break;
             case 1:
-                if (strcmp("one-two-three", policy->name) != 0)
+                if (strcmp("one-two-three", SCConfNodeName(policy)) != 0)
                     goto end;
                 break;
             case 2:
-                if (strcmp("four-five", policy->name) != 0)
+                if (strcmp("four-five", SCConfNodeName(policy)) != 0)
                     goto end;
                 break;
             case 3:
-                if (strcmp("six-seven-eight", policy->name) != 0)
+                if (strcmp("six-seven-eight", SCConfNodeName(policy)) != 0)
                     goto end;
                 break;
             case 4:
-                if (strcmp("nine-ten-eleven", policy->name) != 0)
+                if (strcmp("nine-ten-eleven", SCConfNodeName(policy)) != 0)
                     goto end;
                 break;
         }
@@ -1337,7 +1338,7 @@ host-os-policy:\n\
 
     SCConfNode *policy;
     for (policy = SCConfGetFirstNode(root); policy != NULL; policy = SCConfGetNextNode(policy)) {
-        if (SCMapEnumNameToValue(policy->name, sc_hinfo_os_policy_map) == -1) {
+        if (SCMapEnumNameToValue(SCConfNodeName(policy), sc_hinfo_os_policy_map) == -1) {
             printf("Invalid enum map inside\n");
             goto end;
         }
@@ -1384,7 +1385,7 @@ host-os-policy:\n\
 
     SCConfNode *policy;
     for (policy = SCConfGetFirstNode(root); policy != NULL; policy = SCConfGetNextNode(policy)) {
-        if (SCMapEnumNameToValue(policy->name, sc_hinfo_os_policy_map) == -1) {
+        if (SCMapEnumNameToValue(SCConfNodeName(policy), sc_hinfo_os_policy_map) == -1) {
             printf("Invalid enum map inside\n");
             goto end;
         }

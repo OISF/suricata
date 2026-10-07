@@ -224,8 +224,9 @@ void OutputEmailInitConf(SCConfNode *conf, OutputJsonEmailCtx *email_ctx)
                     field = SCConfGetNextNode(field)) {
                 int f = 0;
                 while (email_fields[f].config_field) {
-                    if ((strcmp(email_fields[f].config_field, field->val) == 0) ||
-                            (strcasecmp(email_fields[f].email_field, field->val) == 0)) {
+                    if ((strcmp(email_fields[f].config_field, SCConfNodeValue(field)) == 0) ||
+                            (strcasecmp(email_fields[f].email_field, SCConfNodeValue(field)) ==
+                                    0)) {
                         email_ctx->fields |= (1ULL << f);
                         break;
                     }
@@ -240,11 +241,11 @@ void OutputEmailInitConf(SCConfNode *conf, OutputJsonEmailCtx *email_ctx)
             SCConfNode *field;
             for (field = SCConfGetFirstNode(md5_conf); field != NULL;
                     field = SCConfGetNextNode(field)) {
-                if (strcmp("body", field->val) == 0) {
+                if (strcmp("body", SCConfNodeValue(field)) == 0) {
                     SCLogInfo("Going to log the md5 sum of email body");
                     email_ctx->flags |= LOG_EMAIL_BODY_MD5;
                 }
-                if (strcmp("subject", field->val) == 0) {
+                if (strcmp("subject", SCConfNodeValue(field)) == 0) {
                     SCLogInfo("Going to log the md5 sum of email subject");
                     email_ctx->flags |= LOG_EMAIL_SUBJECT_MD5;
                 }

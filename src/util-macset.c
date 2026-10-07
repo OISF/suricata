@@ -66,7 +66,7 @@ void MacSetRegisterFlowStorage(void)
        has the ethernet setting enabled */
     if (root != NULL) {
         for (node = SCConfGetFirstNode(root); node != NULL; node = SCConfGetNextNode(node)) {
-            if (node->val && strcmp(node->val, "eve-log") == 0) {
+            if (SCConfNodeValue(node) && strcmp(SCConfNodeValue(node), "eve-log") == 0) {
                 const char *enabled =
                         SCConfNodeLookupChildValue(SCConfGetFirstNode(node), "enabled");
                 if (enabled != NULL && SCConfValIsTrue(enabled)) {

@@ -114,21 +114,21 @@ void DecodeVXLANConfig(void)
 
     if (g_vxlan_enabled) {
         SCConfNode *node = SCConfGetNode("decoder.vxlan.ports");
-        if (node && node->val) {
-            DecodeVXLANConfigPorts(node->val);
+        if (node && SCConfNodeValue(node)) {
+            DecodeVXLANConfigPorts(SCConfNodeValue(node));
         } else {
             DecodeVXLANConfigPorts(VXLAN_DEFAULT_PORT_S);
         }
 
         node = SCConfGetNode("decoder.vxlan.reserved-bits-check");
-        if (node && node->val) {
-            if (strcasecmp(node->val, "strict") == 0) {
+        if (node && SCConfNodeValue(node)) {
+            if (strcasecmp(SCConfNodeValue(node), "strict") == 0) {
                 g_vxlan_reserved_check_mode = VXLAN_RES_CHECK_STRICT;
-            } else if (strcasecmp(node->val, "permissive") == 0) {
+            } else if (strcasecmp(SCConfNodeValue(node), "permissive") == 0) {
                 g_vxlan_reserved_check_mode = VXLAN_RES_CHECK_PERMISSIVE;
             } else {
-                SCLogWarning(
-                        "Invalid VXLAN reserved-bits-check mode '%s', using 'strict'", node->val);
+                SCLogWarning("Invalid VXLAN reserved-bits-check mode '%s', using 'strict'",
+                        SCConfNodeValue(node));
                 g_vxlan_reserved_check_mode = VXLAN_RES_CHECK_STRICT;
             }
         }

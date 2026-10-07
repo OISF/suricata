@@ -138,8 +138,8 @@ void DecodeGeneveConfig(void)
 
     if (g_geneve_enabled) {
         SCConfNode *node = SCConfGetNode("decoder.geneve.ports");
-        if (node && node->val) {
-            DecodeGeneveConfigPorts(node->val);
+        if (node && SCConfNodeValue(node)) {
+            DecodeGeneveConfigPorts(SCConfNodeValue(node));
         } else {
             DecodeGeneveConfigPorts(GENEVE_DEFAULT_PORT_S);
         }

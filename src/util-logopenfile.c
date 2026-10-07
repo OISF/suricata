@@ -673,7 +673,7 @@ int SCConfLogOpenGeneric(
         SCLogError("Invalid entry for "
                    "%s.filetype.  Expected \"regular\" (default), \"unix_stream\", "
                    "or \"unix_dgram\"",
-                conf->name);
+                SCConfNodeName(conf));
     }
     log_ctx->filename = SCStrdup(log_path);
     if (unlikely(log_ctx->filename == NULL)) {
@@ -688,8 +688,7 @@ int SCConfLogOpenGeneric(
         log_ctx->send_flags |= MSG_DONTWAIT;
     }
 #endif
-    SCLogInfo("%s output device (%s) initialized: %s", conf->name, filetype,
-              filename);
+    SCLogInfo("%s output device (%s) initialized: %s", SCConfNodeName(conf), filetype, filename);
 
     return 0;
 }

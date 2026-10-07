@@ -641,15 +641,15 @@ static OutputTlsCtx *OutputTlsInitCtx(SCConfNode *conf)
             bool valid = false;
             TlsFields *valid_fields = tls_fields;
             for ( ; valid_fields->name != NULL; valid_fields++) {
-                if (strcasecmp(field->val, valid_fields->name) == 0) {
+                if (strcasecmp(SCConfNodeValue(field), valid_fields->name) == 0) {
                     tls_ctx->fields |= valid_fields->flag;
-                    SCLogDebug("enabled %s", field->val);
+                    SCLogDebug("enabled %s", SCConfNodeValue(field));
                     valid = true;
                     break;
                 }
             }
             if (!valid) {
-                SCLogWarning("eve.tls: unknown 'custom' field '%s'", field->val);
+                SCLogWarning("eve.tls: unknown 'custom' field '%s'", SCConfNodeValue(field));
             }
         }
     }

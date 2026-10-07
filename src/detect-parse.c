@@ -4233,8 +4233,8 @@ static int DoParsePolicy(const char *policy_name, struct DetectFirewallPolicy *p
     SCConfNode *paction = NULL;
     for (paction = SCConfGetFirstNode(policy_actions); paction != NULL;
             paction = SCConfGetNextNode(paction)) {
-        SCLogDebug("fw: %s => %s", policy_name, paction->val);
-        if (SigParseActionDo(paction->val, idx, true, &action, &action_scope) < 0)
+        SCLogDebug("fw: %s => %s", policy_name, SCConfNodeValue(paction));
+        if (SigParseActionDo(SCConfNodeValue(paction), idx, true, &action, &action_scope) < 0)
             return -1;
         idx++;
     }
@@ -4674,10 +4674,10 @@ static bool FirewallPolicyNodeIsMapping(const SCConfNode *node)
     SCConfNode *c;
 
     for (c = SCConfGetFirstNode(node); c != NULL; c = SCConfGetNextNode(c)) {
-        if (c->name == NULL) {
+        if (SCConfNodeName(c) == NULL) {
             continue;
         }
-        for (const char *p = c->name; *p; p++) {
+        for (const char *p = SCConfNodeName(c); *p; p++) {
             if (*p < '0' || *p > '9') {
                 return true;
             }
@@ -4696,10 +4696,10 @@ static bool FirewallPolicyNodeIsList(const SCConfNode *node)
         return false;
     }
     for (c = SCConfGetFirstNode(node); c != NULL; c = SCConfGetNextNode(c)) {
-        if (c->name == NULL) {
+        if (SCConfNodeName(c) == NULL) {
             return false;
         }
-        for (const char *p = c->name; *p; p++) {
+        for (const char *p = SCConfNodeName(c); *p; p++) {
             if (*p < '0' || *p > '9') {
                 return false;
             }
@@ -4739,7 +4739,7 @@ static int WarnUnmatchedFirewallPolicyStateKeys(
     SCConfNode *c;
     int known_wrong_keys = 0;
     for (c = SCConfGetFirstNode(node); c != NULL; c = SCConfGetNextNode(c)) {
-        if (c->name == NULL) {
+        if (SCConfNodeName(c) == NULL) {
             continue;
         }
 
@@ -4758,7 +4758,7 @@ static int WarnUnmatchedFirewallPolicyStateKeys(
                     }
                     char dash[FW_POLICY_YAML_PATH_NAME_MAX + 1];
                     FirewallHookNameConvertUnderscoreToDash(sn, dash, sizeof(dash));
-                    if (strcmp(dash, c->name) == 0)
+                    if (strcmp(dash, SCConfNodeName(c)) == 0)
                         is_sub_state_section = true;
                 }
             }
@@ -4775,15 +4775,15 @@ static int WarnUnmatchedFirewallPolicyStateKeys(
          * the loader for default-policy: state names and the generic
          * hook aliases are read under the sub-state sections only */
         const bool consulted = (sub_state_name != NULL || !AppLayerParserSupportsSubStates(a) ||
-                                strcmp(c->name, "default-policy") == 0);
-        if (consulted && FwPolicyStateKeyIsKnown(a, sub_state_name, c->name)) {
+                                strcmp(SCConfNodeName(c), "default-policy") == 0);
+        if (consulted && FwPolicyStateKeyIsKnown(a, sub_state_name, SCConfNodeName(c))) {
             continue;
         }
 
         const char *hint = NULL;
         for (size_t i = 0; i < ARRAY_SIZE(g_fw_policy_state_rename_hints); i++) {
             if (g_fw_policy_state_rename_hints[i].proto == a &&
-                    strcmp(c->name, g_fw_policy_state_rename_hints[i].old_name) == 0) {
+                    strcmp(SCConfNodeName(c), g_fw_policy_state_rename_hints[i].old_name) == 0) {
                 hint = g_fw_policy_state_rename_hints[i].new_name;
                 break;
             }
@@ -4794,12 +4794,12 @@ static int WarnUnmatchedFirewallPolicyStateKeys(
             SCLogError("firewall policy: key '%s' under %s matches no %s state: "
                        "a state previously named '%s' was renamed to '%s' "
                        "in this release - use the new name",
-                    c->name, path, proto, c->name, hint);
+                    SCConfNodeName(c), path, proto, SCConfNodeName(c), hint);
             known_wrong_keys++;
         } else {
             SCLogWarning("firewall policy: key '%s' under %s matches no %s state "
                          "and is ignored",
-                    c->name, path, proto);
+                    SCConfNodeName(c), path, proto);
         }
     }
     SCFree(path);
@@ -4889,9 +4889,9 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
                                  * directly by the loader, possibly with a
                                  * mapping value, and are not sub-state
                                  * sections either */
-                                if (sc->name == NULL || !SCConfNodeHasChildren(sc) ||
+                                if (SCConfNodeName(sc) == NULL || !SCConfNodeHasChildren(sc) ||
                                         FirewallPolicyNodeIsList(sc) ||
-                                        FwPolicyKeyIsNonState(sc->name)) {
+                                        FwPolicyKeyIsNonState(SCConfNodeName(sc))) {
                                     continue;
                                 }
                                 bool known_section = false;
@@ -4902,7 +4902,7 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
                                     }
                                     char dash[FW_POLICY_YAML_PATH_NAME_MAX + 1];
                                     FirewallHookNameConvertUnderscoreToDash(sn, dash, sizeof(dash));
-                                    if (strcmp(dash, sc->name) == 0) {
+                                    if (strcmp(dash, SCConfNodeName(sc)) == 0) {
                                         known_section = true;
                                         break;
                                     }
@@ -4911,7 +4911,7 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
                                     SCLogWarning("firewall policy: sub-state section '%s' "
                                                  "under %s matches no %s sub-state and is "
                                                  "ignored",
-                                            sc->name, proto_path, proto_name);
+                                            SCConfNodeName(sc), proto_path, proto_name);
                                 }
                             }
                         }

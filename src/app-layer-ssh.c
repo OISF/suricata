@@ -113,12 +113,12 @@ void RegisterSSHParsers(void)
 
         EncryptionHandling encryption_bypass = SSH_CONFIG_DEFAULT_ENCRYPTION_BYPASS;
         SCConfNode *encryption_node = SCConfGetNode("app-layer.protocols.ssh.encryption-handling");
-        if (encryption_node != NULL && encryption_node->val != NULL) {
-            if (strcmp(encryption_node->val, "full") == 0) {
+        if (encryption_node != NULL && SCConfNodeValue(encryption_node) != NULL) {
+            if (strcmp(SCConfNodeValue(encryption_node), "full") == 0) {
                 encryption_bypass = ENCRYPTION_HANDLING_FULL;
-            } else if (strcmp(encryption_node->val, "track-only") == 0) {
+            } else if (strcmp(SCConfNodeValue(encryption_node), "track-only") == 0) {
                 encryption_bypass = ENCRYPTION_HANDLING_TRACK_ONLY;
-            } else if (strcmp(encryption_node->val, "bypass") == 0) {
+            } else if (strcmp(SCConfNodeValue(encryption_node), "bypass") == 0) {
                 encryption_bypass = ENCRYPTION_HANDLING_BYPASS;
             } else {
                 encryption_bypass = SSH_CONFIG_DEFAULT_ENCRYPTION_BYPASS;

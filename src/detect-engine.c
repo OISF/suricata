@@ -3037,14 +3037,14 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     if (de_ctx_custom != NULL) {
         for (opt = SCConfGetFirstNode(de_ctx_custom); opt != NULL; opt = SCConfGetNextNode(opt)) {
             if (de_ctx_profile == NULL) {
-                if (opt->val && strcmp(opt->val, "profile") == 0) {
-                    de_ctx_profile = SCConfGetFirstNode(opt)->val;
+                if (SCConfNodeValue(opt) && strcmp(SCConfNodeValue(opt), "profile") == 0) {
+                    de_ctx_profile = SCConfNodeValue(SCConfGetFirstNode(opt));
                 }
             }
 
             if (sgh_mpm_context == NULL) {
-                if (opt->val && strcmp(opt->val, "sgh-mpm-context") == 0) {
-                    sgh_mpm_context = SCConfGetFirstNode(opt)->val;
+                if (SCConfNodeValue(opt) && strcmp(SCConfNodeValue(opt), "sgh-mpm-context") == 0) {
+                    sgh_mpm_context = SCConfNodeValue(SCConfGetFirstNode(opt));
                 }
             }
         }
@@ -3122,7 +3122,8 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             if (de_ctx_custom != NULL) {
                 for (opt = SCConfGetFirstNode(de_ctx_custom); opt != NULL;
                         opt = SCConfGetNextNode(opt)) {
-                    if (opt->val && strcmp(opt->val, "custom-values") == 0) {
+                    if (SCConfNodeValue(opt) &&
+                            strcmp(SCConfNodeValue(opt), "custom-values") == 0) {
                         if (max_uniq_toclient_groups_str == NULL) {
                             max_uniq_toclient_groups_str = (char *)SCConfNodeLookupChildValue(
                                     SCConfGetFirstNode(opt), "toclient-sp-groups");
@@ -3192,30 +3193,32 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     /* fall back to old config parsing */
     } else {
         SCConfNode *insp_recursion_limit_node = NULL;
-        char *insp_recursion_limit = NULL;
+        const char *insp_recursion_limit = NULL;
 
         if (de_ctx_custom != NULL) {
             opt = NULL;
             for (opt = SCConfGetFirstNode(de_ctx_custom); opt != NULL;
                     opt = SCConfGetNextNode(opt)) {
-                if (opt->val && strcmp(opt->val, "inspection-recursion-limit") != 0)
+                if (SCConfNodeValue(opt) &&
+                        strcmp(SCConfNodeValue(opt), "inspection-recursion-limit") != 0)
                     continue;
 
-                insp_recursion_limit_node = SCConfNodeLookupChild(opt, opt->val);
+                insp_recursion_limit_node = SCConfNodeLookupChild(opt, SCConfNodeValue(opt));
                 if (insp_recursion_limit_node == NULL) {
                     SCLogError("Error retrieving conf "
                                "entry for detect-engine:inspection-recursion-limit");
                     break;
                 }
-                insp_recursion_limit = insp_recursion_limit_node->val;
+                insp_recursion_limit = SCConfNodeValue(insp_recursion_limit_node);
                 SCLogDebug("Found detect-engine.inspection-recursion-limit - %s:%s",
-                        insp_recursion_limit_node->name, insp_recursion_limit_node->val);
+                        SCConfNodeName(insp_recursion_limit_node),
+                        SCConfNodeValue(insp_recursion_limit_node));
                 break;
             }
 
             if (insp_recursion_limit != NULL) {
-                if (StringParseInt32(&de_ctx->inspection_recursion_limit, 10,
-                                     0, (const char *)insp_recursion_limit) < 0) {
+                if (StringParseInt32(
+                            &de_ctx->inspection_recursion_limit, 10, 0, insp_recursion_limit) < 0) {
                     SCLogWarning("Invalid value for "
                                  "detect-engine.inspection-recursion-limit: %s "
                                  "resetting to %d",
@@ -4495,15 +4498,15 @@ static int DetectEngineMultiTenantSetupLoadLivedevMappings(
                 goto bad_mapping;
 
             uint32_t tenant_id = 0;
-            if (StringParseUint32(&tenant_id, 10, (uint16_t)strlen(tenant_id_node->val),
-                        tenant_id_node->val) < 0) {
+            if (StringParseUint32(&tenant_id, 10, (uint16_t)strlen(SCConfNodeValue(tenant_id_node)),
+                        SCConfNodeValue(tenant_id_node)) < 0) {
                 SCLogError("tenant-id  "
                            "of %s is invalid",
-                        tenant_id_node->val);
+                        SCConfNodeValue(tenant_id_node));
                 goto bad_mapping;
             }
 
-            const char *dev = device_node->val;
+            const char *dev = SCConfNodeValue(device_node);
             LiveDevice *ld = LiveGetDevice(dev);
             if (ld == NULL) {
                 SCLogWarning("device %s not found", dev);
@@ -4555,26 +4558,26 @@ static int DetectEngineMultiTenantSetupLoadVlanMappings(
                 goto bad_mapping;
 
             uint32_t tenant_id = 0;
-            if (StringParseUint32(&tenant_id, 10, (uint16_t)strlen(tenant_id_node->val),
-                        tenant_id_node->val) < 0) {
+            if (StringParseUint32(&tenant_id, 10, (uint16_t)strlen(SCConfNodeValue(tenant_id_node)),
+                        SCConfNodeValue(tenant_id_node)) < 0) {
                 SCLogError("tenant-id  "
                            "of %s is invalid",
-                        tenant_id_node->val);
+                        SCConfNodeValue(tenant_id_node));
                 goto bad_mapping;
             }
 
             uint16_t vlan_id = 0;
-            if (StringParseUint16(
-                        &vlan_id, 10, (uint16_t)strlen(vlan_id_node->val), vlan_id_node->val) < 0) {
+            if (StringParseUint16(&vlan_id, 10, (uint16_t)strlen(SCConfNodeValue(vlan_id_node)),
+                        SCConfNodeValue(vlan_id_node)) < 0) {
                 SCLogError("vlan-id  "
                            "of %s is invalid",
-                        vlan_id_node->val);
+                        SCConfNodeValue(vlan_id_node));
                 goto bad_mapping;
             }
             if (vlan_id == 0 || vlan_id >= 4095) {
                 SCLogError("vlan-id  "
                            "of %s is invalid. Valid range 1-4094.",
-                        vlan_id_node->val);
+                        SCConfNodeValue(vlan_id_node));
                 goto bad_mapping;
             }
 
@@ -4701,7 +4704,7 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
             const char *path = NULL;
             SCConfNode *path_node = SCConfGetNode("multi-detect.config-path");
             if (path_node) {
-                path = path_node->val;
+                path = SCConfNodeValue(path_node);
                 SCLogConfig("tenants config path: %s", path);
             }
 
@@ -4717,21 +4720,21 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
                 }
 
                 uint32_t tenant_id = 0;
-                if (StringParseUint32(
-                            &tenant_id, 10, (uint16_t)strlen(id_node->val), id_node->val) < 0) {
+                if (StringParseUint32(&tenant_id, 10, (uint16_t)strlen(SCConfNodeValue(id_node)),
+                            SCConfNodeValue(id_node)) < 0) {
                     SCLogError("tenant_id  "
                                "of %s is invalid",
-                            id_node->val);
+                            SCConfNodeValue(id_node));
                     goto bad_tenant;
                 }
-                SCLogDebug("tenant id: %u, %s", tenant_id, yaml_node->val);
+                SCLogDebug("tenant id: %u, %s", tenant_id, SCConfNodeValue(yaml_node));
 
                 char yaml_path[PATH_MAX] = "";
                 if (path) {
-                    if (PathMerge(yaml_path, PATH_MAX, path, yaml_node->val) < 0)
+                    if (PathMerge(yaml_path, PATH_MAX, path, SCConfNodeValue(yaml_node)) < 0)
                         goto bad_tenant;
                 } else {
-                    size_t r = strlcpy(yaml_path, yaml_node->val, sizeof(yaml_path));
+                    size_t r = strlcpy(yaml_path, SCConfNodeValue(yaml_node), sizeof(yaml_path));
                     if (r >= sizeof(yaml_path))
                         goto bad_tenant;
                 }

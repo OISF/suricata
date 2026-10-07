@@ -446,7 +446,10 @@ extern "C" {
     pub fn SCConfGetNextNode(node: *const SCConfNode) -> *mut SCConfNode;
 }
 extern "C" {
-    pub fn SCConfGetValueNode(node: *const SCConfNode) -> *const ::std::os::raw::c_char;
+    pub fn SCConfNodeName(node: *const SCConfNode) -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    pub fn SCConfNodeValue(node: *const SCConfNode) -> *const ::std::os::raw::c_char;
 }
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]

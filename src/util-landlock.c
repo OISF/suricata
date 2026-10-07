@@ -271,7 +271,7 @@ void LandlockSandboxing(SCInstance *suri)
             SCConfNode *directory;
             for (directory = SCConfGetFirstNode(read_dirs); directory != NULL;
                     directory = SCConfGetNextNode(directory)) {
-                LandlockSandboxingReadPath(ruleset, directory->val);
+                LandlockSandboxingReadPath(ruleset, SCConfNodeValue(directory));
             }
         }
     }
@@ -284,7 +284,7 @@ void LandlockSandboxing(SCInstance *suri)
             SCConfNode *directory;
             for (directory = SCConfGetFirstNode(write_dirs); directory != NULL;
                     directory = SCConfGetNextNode(directory)) {
-                LandlockSandboxingWritePath(ruleset, directory->val);
+                LandlockSandboxingWritePath(ruleset, SCConfNodeValue(directory));
             }
         }
     }

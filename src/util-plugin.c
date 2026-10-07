@@ -135,7 +135,7 @@ void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_a
         SCConfNode *plugin = NULL;
         for (plugin = SCConfGetFirstNode(conf); plugin != NULL;
                 plugin = SCConfGetNextNode(plugin)) {
-            LoadPluginsFromPath(plugin->val);
+            LoadPluginsFromPath(SCConfNodeValue(plugin));
         }
     }
 

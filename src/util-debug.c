@@ -1476,7 +1476,7 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
         const char *format;
         const char *level_s;
 
-        output = SCConfNodeLookupChild(seq_node, seq_node->val);
+        output = SCConfNodeLookupChild(seq_node, SCConfNodeValue(seq_node));
         if (output == NULL)
             continue;
 
@@ -1510,10 +1510,9 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
         /* Increase the level of extra verbosity was requested. */
         level = MAX(min_level, level);
 
-        if (strcmp(output->name, "console") == 0) {
+        if (strcmp(SCConfNodeName(output), "console") == 0) {
             op_iface_ctx = SCLogInitConsoleOPIface(format, level, type);
-        }
-        else if (strcmp(output->name, "file") == 0) {
+        } else if (strcmp(SCConfNodeName(output), "file") == 0) {
             if (format == NULL) {
                 format = SC_LOG_DEF_FILE_FORMAT;
             }
@@ -1533,8 +1532,7 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
             have_logging = 1;
             op_iface_ctx = SCLogInitFileOPIface(path, userid, groupid, format, level, type);
             SCFree(path);
-        }
-        else if (strcmp(output->name, "syslog") == 0) {
+        } else if (strcmp(SCConfNodeName(output), "syslog") == 0) {
             int facility = SC_LOG_DEF_SYSLOG_FACILITY;
             const char *facility_s = SCConfNodeLookupChildValue(output, "facility");
             if (facility_s != NULL) {
@@ -1550,9 +1548,8 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
             SCLogDebug("Initializing syslog logging with format \"%s\"", format);
             have_logging = 1;
             op_iface_ctx = SCLogInitSyslogOPIface(facility, format, level, type);
-        }
-        else {
-            SCLogWarning("invalid logging method: %s, ignoring", output->name);
+        } else {
+            SCLogWarning("invalid logging method: %s, ignoring", SCConfNodeName(output));
         }
         if (op_iface_ctx != NULL) {
             SCLogAppendOPIfaceCtx(op_iface_ctx, sc_lid);

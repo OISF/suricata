@@ -508,7 +508,7 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
  *  \param sig_file The name of the file
  *  \retval str Pointer to the string path + sig_file
  */
-static char *SRepCompleteFilePath(char *file)
+static char *SRepCompleteFilePath(const char *file)
 {
     const char *defaultpath = NULL;
     char *path = NULL;
@@ -612,7 +612,7 @@ int SRepInit(DetectEngineCtx *de_ctx)
     /* ok, let's load reputation files from the general config */
     if (files != NULL) {
         for (file = SCConfGetFirstNode(files); file != NULL; file = SCConfGetNextNode(file)) {
-            char *sfile = SRepCompleteFilePath(file->val);
+            char *sfile = SRepCompleteFilePath(SCConfNodeValue(file));
             if (sfile) {
                 SCLogInfo("Loading reputation file: %s", sfile);
 

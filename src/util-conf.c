@@ -129,8 +129,8 @@ SCConfNode *ConfFindDeviceConfig(SCConfNode *node, const char *iface)
     for (if_node = SCConfGetFirstNode(node); if_node != NULL;
             if_node = SCConfGetNextNode(if_node)) {
         for (item = SCConfGetFirstNode(if_node); item != NULL; item = SCConfGetNextNode(item)) {
-            if (strcmp(item->name, "interface") == 0 &&
-                strcmp(item->val, iface) == 0) {
+            if (strcmp(SCConfNodeName(item), "interface") == 0 &&
+                    strcmp(SCConfNodeValue(item), iface) == 0) {
                 return if_node;
             }
         }

@@ -1070,7 +1070,7 @@ int DetectPortTestConfVars(void)
     SCConfNode *seq_node;
     for (seq_node = SCConfGetFirstNode(port_vars_node); seq_node != NULL;
             seq_node = SCConfGetNextNode(seq_node)) {
-        SCLogDebug("Testing %s - %s\n", seq_node->name, seq_node->val);
+        SCLogDebug("Testing %s - %s\n", SCConfNodeName(seq_node), SCConfNodeValue(seq_node));
 
         DetectPort *gh =  DetectPortInit();
         if (gh == NULL) {
@@ -1078,17 +1078,17 @@ int DetectPortTestConfVars(void)
         }
         DetectPort *ghn = NULL;
 
-        if (seq_node->val == NULL) {
+        if (SCConfNodeValue(seq_node) == NULL) {
             SCLogError("Port var \"%s\" probably has a sequence(something "
                        "in brackets) value set without any quotes. Please "
                        "quote it using \"..\".",
-                    seq_node->name);
+                    SCConfNodeName(seq_node));
             DetectPortCleanupList(NULL, gh);
             goto error;
         }
 
-        int r = DetectPortParseDo(NULL, &gh, &ghn, seq_node->val,
-                /* start with negate no */0, &var_list, 0);
+        int r = DetectPortParseDo(NULL, &gh, &ghn, SCConfNodeValue(seq_node),
+                /* start with negate no */ 0, &var_list, 0);
 
         CleanVariableResolveList(&var_list);
 
@@ -1096,7 +1096,7 @@ int DetectPortTestConfVars(void)
             DetectPortCleanupList(NULL, gh);
             SCLogError("failed to parse port var \"%s\" with value \"%s\". "
                        "Please check its syntax",
-                    seq_node->name, seq_node->val);
+                    SCConfNodeName(seq_node), SCConfNodeValue(seq_node));
             goto error;
         }
 
@@ -1105,7 +1105,7 @@ int DetectPortTestConfVars(void)
                        "with its value \"%s\".  Port space range is NIL. "
                        "Probably have a !any or a port range that supplies "
                        "a NULL port range",
-                    seq_node->name, seq_node->val);
+                    SCConfNodeName(seq_node), SCConfNodeValue(seq_node));
             DetectPortCleanupList(NULL, gh);
             DetectPortCleanupList(NULL, ghn);
             goto error;

@@ -310,12 +310,11 @@ int LiveBuildDeviceListCustom(const char *runmode, const char *itemname)
         SCConfNode *subchild;
         for (subchild = SCConfGetFirstNode(child); subchild != NULL;
                 subchild = SCConfGetNextNode(subchild)) {
-            if ((!strcmp(subchild->name, itemname))) {
-                if (!strcmp(subchild->val, "default"))
+            if ((!strcmp(SCConfNodeName(subchild), itemname))) {
+                if (!strcmp(SCConfNodeValue(subchild), "default"))
                     break;
-                SCLogConfig("Adding %s %s from config file",
-                          itemname, subchild->val);
-                LiveRegisterDeviceName(subchild->val);
+                SCLogConfig("Adding %s %s from config file", itemname, SCConfNodeValue(subchild));
+                LiveRegisterDeviceName(SCConfNodeValue(subchild));
                 i++;
             }
         }

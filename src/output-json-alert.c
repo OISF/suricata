@@ -1038,7 +1038,7 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx, SCCon
         /* Check for metadata to enable/disable. */
         SCConfNode *metadata = SCConfNodeLookupChild(conf, "metadata");
         if (metadata != NULL) {
-            if (metadata->val != NULL && SCConfValIsFalse(metadata->val)) {
+            if (SCConfNodeValue(metadata) != NULL && SCConfValIsFalse(SCConfNodeValue(metadata))) {
                 flags &= ~METADATA_DEFAULTS;
             } else if (SCConfNodeHasChildren(metadata)) {
                 SCConfNode *rule_metadata = SCConfNodeLookupChild(metadata, "rule");

@@ -214,7 +214,19 @@ SCConfNode *SCConfGetNextNode(const SCConfNode *node)
     return TAILQ_NEXT(node, next);
 }
 
-const char *SCConfGetValueNode(const SCConfNode *node)
+/**
+ * \brief Get the name of a node, the key in a mapping or the index in a
+ *     sequence.
+ */
+const char *SCConfNodeName(const SCConfNode *node)
+{
+    return node->name;
+}
+
+/**
+ * \brief Get the value of a node, NULL if the node has no value.
+ */
+const char *SCConfNodeValue(const SCConfNode *node)
 {
     return node->val;
 }

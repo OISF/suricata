@@ -483,10 +483,11 @@ static int StreamTcpReassemblyConfig(bool quiet)
     SCConfNode *seg = SCConfGetNode("stream.reassembly.segment-prealloc");
     if (seg) {
         uint32_t prealloc = 0;
-        if (StringParseUint32(&prealloc, 10, (uint16_t)strlen(seg->val), seg->val) < 0) {
+        if (StringParseUint32(&prealloc, 10, (uint16_t)strlen(SCConfNodeValue(seg)),
+                    SCConfNodeValue(seg)) < 0) {
             SCLogError("segment-prealloc of "
                        "%s is invalid",
-                    seg->val);
+                    SCConfNodeValue(seg));
             return -1;
         }
         segment_prealloc = prealloc;
@@ -508,8 +509,9 @@ static int StreamTcpReassemblyConfig(bool quiet)
     SCConfNode *mr = SCConfGetNode("stream.reassembly.max-regions");
     if (mr) {
         uint16_t max_r = 0;
-        if (StringParseUint16(&max_r, 10, (uint16_t)strlen(mr->val), mr->val) < 0) {
-            SCLogError("max-regions %s is invalid", mr->val);
+        if (StringParseUint16(
+                    &max_r, 10, (uint16_t)strlen(SCConfNodeValue(mr)), SCConfNodeValue(mr)) < 0) {
+            SCLogError("max-regions %s is invalid", SCConfNodeValue(mr));
             return -1;
         }
         max_regions = max_r;

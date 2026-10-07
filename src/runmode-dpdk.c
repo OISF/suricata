@@ -305,14 +305,14 @@ static void InitEal(void)
 
     for (param = SCConfGetFirstNode(eal_params); param != NULL; param = SCConfGetNextNode(param)) {
         if (SCConfNodeIsSequence(param)) {
-            const char *key = param->name;
+            const char *key = SCConfNodeName(param);
             SCConfNode *val;
             for (val = SCConfGetFirstNode(param); val != NULL; val = SCConfGetNextNode(val)) {
-                ArgumentsAddOptionAndArgument(&args, key, (const char *)val->val);
+                ArgumentsAddOptionAndArgument(&args, key, SCConfNodeValue(val));
             }
             continue;
         }
-        ArgumentsAddOptionAndArgument(&args, param->name, param->val);
+        ArgumentsAddOptionAndArgument(&args, SCConfNodeName(param), SCConfNodeValue(param));
     }
 
     // creating a shallow copy for cleanup because rte_eal_init changes array contents

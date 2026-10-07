@@ -241,14 +241,14 @@ OutputInitResult LogTcpDataLogInitCtx(SCConfNode *conf)
     tcpdatalog_ctx->file_ctx = file_ctx;
 
     if (conf) {
-        if (conf->name) {
-            if (strcmp(conf->name, "tcp-data") == 0) {
+        if (SCConfNodeName(conf)) {
+            if (strcmp(SCConfNodeName(conf), "tcp-data") == 0) {
                 tcpdatalog_ctx->type = STREAMING_TCP_DATA;
-                snprintf(filename, sizeof(filename), "%s.log", conf->name);
+                snprintf(filename, sizeof(filename), "%s.log", SCConfNodeName(conf));
                 strlcpy(dirname, "tcp", sizeof(dirname));
-            } else if (strcmp(conf->name, "http-body-data") == 0) {
+            } else if (strcmp(SCConfNodeName(conf), "http-body-data") == 0) {
                 tcpdatalog_ctx->type = STREAMING_HTTP_BODIES;
-                snprintf(filename, sizeof(filename), "%s.log", conf->name);
+                snprintf(filename, sizeof(filename), "%s.log", SCConfNodeName(conf));
                 strlcpy(dirname, "http", sizeof(dirname));
             }
         }

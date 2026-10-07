@@ -2016,43 +2016,46 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct 
 
     /* Default Parameters */
     for (p = SCConfGetFirstNode(s); p != NULL; p = SCConfGetNextNode(p)) {
-        if (strcasecmp("address", p->name) == 0) {
+        if (strcasecmp("address", SCConfNodeName(p)) == 0) {
             SCConfNode *pval;
             /* Addresses */
             for (pval = SCConfGetFirstNode(p); pval != NULL; pval = SCConfGetNextNode(pval)) {
-                SCLogDebug("LIBHTP server %s: %s=%s", s->name, p->name, pval->val);
+                SCLogDebug("LIBHTP server %s: %s=%s", SCConfNodeName(s), SCConfNodeName(p),
+                        SCConfNodeValue(pval));
                 /* IPV6 or IPV4? */
-                if (strchr(pval->val, ':') != NULL) {
-                    SCLogDebug("LIBHTP adding ipv6 server %s at %s: %p",
-                               s->name, pval->val, cfg_prec->cfg);
+                if (strchr(SCConfNodeValue(pval), ':') != NULL) {
+                    SCLogDebug("LIBHTP adding ipv6 server %s at %s: %p", SCConfNodeName(s),
+                            SCConfNodeValue(pval), cfg_prec->cfg);
                     if (!SCRadix6AddKeyIPV6String(
-                                &tree->ipv6, &htp_radix6_cfg, pval->val, cfg_prec)) {
-                        SCLogWarning("LIBHTP failed to add ipv6 server %s, ignoring", pval->val);
+                                &tree->ipv6, &htp_radix6_cfg, SCConfNodeValue(pval), cfg_prec)) {
+                        SCLogWarning("LIBHTP failed to add ipv6 server %s, ignoring",
+                                SCConfNodeValue(pval));
                     }
                 } else {
-                    SCLogDebug("LIBHTP adding ipv4 server %s at %s: %p",
-                               s->name, pval->val, cfg_prec->cfg);
+                    SCLogDebug("LIBHTP adding ipv4 server %s at %s: %p", SCConfNodeName(s),
+                            SCConfNodeValue(pval), cfg_prec->cfg);
                     if (!SCRadix4AddKeyIPV4String(
-                                &tree->ipv4, &htp_radix4_cfg, pval->val, cfg_prec)) {
-                        SCLogWarning("LIBHTP failed to add ipv4 server %s, ignoring", pval->val);
+                                &tree->ipv4, &htp_radix4_cfg, SCConfNodeValue(pval), cfg_prec)) {
+                        SCLogWarning("LIBHTP failed to add ipv4 server %s, ignoring",
+                                SCConfNodeValue(pval));
                     }
                 } /* else - if (strchr(pval->val, ':') != NULL) */
             } /* for (pval = SCConfGetFirstNode(p); pval != NULL; pval = SCConfGetNextNode(pval)) */
 
-        } else if (strcasecmp("personality", p->name) == 0) {
+        } else if (strcasecmp("personality", SCConfNodeName(p)) == 0) {
             /* Personalities */
-            int personality = HTPLookupPersonality(p->val);
-            SCLogDebug("LIBHTP default: %s = %s", p->name, p->val);
-            SCLogDebug("LIBHTP default: %s = %s", p->name, p->val);
+            int personality = HTPLookupPersonality(SCConfNodeValue(p));
+            SCLogDebug("LIBHTP default: %s = %s", SCConfNodeName(p), SCConfNodeValue(p));
+            SCLogDebug("LIBHTP default: %s = %s", SCConfNodeName(p), SCConfNodeValue(p));
 
             if (personality >= 0) {
-                SCLogDebug("LIBHTP default: %s=%s (%d)", p->name, p->val,
-                           personality);
+                SCLogDebug("LIBHTP default: %s=%s (%d)", SCConfNodeName(p), SCConfNodeValue(p),
+                        personality);
                 if (htp_config_set_server_personality(cfg_prec->cfg, personality) ==
                         HTP_STATUS_ERROR) {
                     SCLogWarning("LIBHTP Failed adding "
                                  "personality \"%s\", ignoring",
-                            p->val);
+                            SCConfNodeValue(p));
                 } else {
                     SCLogDebug("LIBHTP personality set to %s",
                                HTPLookupPersonalityString(personality));
@@ -2065,100 +2068,106 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct 
             } else {
                 SCLogWarning("LIBHTP Unknown personality "
                              "\"%s\", ignoring",
-                        p->val);
+                        SCConfNodeValue(p));
                 continue;
             }
 
-        } else if (strcasecmp("request-body-limit", p->name) == 0 ||
-                   strcasecmp("request_body_limit", p->name) == 0) {
-            if (ParseSizeStringU32(p->val, &cfg_prec->request.body_limit) < 0) {
+        } else if (strcasecmp("request-body-limit", SCConfNodeName(p)) == 0 ||
+                   strcasecmp("request_body_limit", SCConfNodeName(p)) == 0) {
+            if (ParseSizeStringU32(SCConfNodeValue(p), &cfg_prec->request.body_limit) < 0) {
                 SCLogError("Error parsing request-body-limit "
                            "from conf file - %s.  Killing engine",
-                        p->val);
+                        SCConfNodeValue(p));
                 exit(EXIT_FAILURE);
             }
 
-        } else if (strcasecmp("response-body-limit", p->name) == 0) {
-            if (ParseSizeStringU32(p->val, &cfg_prec->response.body_limit) < 0) {
+        } else if (strcasecmp("response-body-limit", SCConfNodeName(p)) == 0) {
+            if (ParseSizeStringU32(SCConfNodeValue(p), &cfg_prec->response.body_limit) < 0) {
                 SCLogError("Error parsing response-body-limit "
                            "from conf file - %s.  Killing engine",
-                        p->val);
+                        SCConfNodeValue(p));
                 exit(EXIT_FAILURE);
             }
 
-        } else if (strcasecmp("request-body-minimal-inspect-size", p->name) == 0) {
-            if (ParseSizeStringU32(p->val, &cfg_prec->request.inspect_min_size) < 0) {
+        } else if (strcasecmp("request-body-minimal-inspect-size", SCConfNodeName(p)) == 0) {
+            if (ParseSizeStringU32(SCConfNodeValue(p), &cfg_prec->request.inspect_min_size) < 0) {
                 SCLogError("Error parsing request-body-minimal-inspect-size "
                            "from conf file - %s.  Killing engine",
-                        p->val);
+                        SCConfNodeValue(p));
                 exit(EXIT_FAILURE);
             }
 
-        } else if (strcasecmp("request-body-inspect-window", p->name) == 0) {
-            if (ParseSizeStringU32(p->val, &cfg_prec->request.inspect_window) < 0) {
+        } else if (strcasecmp("request-body-inspect-window", SCConfNodeName(p)) == 0) {
+            if (ParseSizeStringU32(SCConfNodeValue(p), &cfg_prec->request.inspect_window) < 0) {
                 SCLogError("Error parsing request-body-inspect-window "
                            "from conf file - %s.  Killing engine",
-                        p->val);
+                        SCConfNodeValue(p));
                 exit(EXIT_FAILURE);
             }
 
-        } else if (strcasecmp("double-decode-query", p->name) == 0) {
-            htp_config_set_double_decode_normalized_query(cfg_prec->cfg, SCConfValIsTrue(p->val));
-        } else if (strcasecmp("double-decode-path", p->name) == 0) {
-            htp_config_set_double_decode_normalized_path(cfg_prec->cfg, SCConfValIsTrue(p->val));
-        } else if (strcasecmp("response-body-minimal-inspect-size", p->name) == 0) {
-            if (ParseSizeStringU32(p->val, &cfg_prec->response.inspect_min_size) < 0) {
+        } else if (strcasecmp("double-decode-query", SCConfNodeName(p)) == 0) {
+            htp_config_set_double_decode_normalized_query(
+                    cfg_prec->cfg, SCConfValIsTrue(SCConfNodeValue(p)));
+        } else if (strcasecmp("double-decode-path", SCConfNodeName(p)) == 0) {
+            htp_config_set_double_decode_normalized_path(
+                    cfg_prec->cfg, SCConfValIsTrue(SCConfNodeValue(p)));
+        } else if (strcasecmp("response-body-minimal-inspect-size", SCConfNodeName(p)) == 0) {
+            if (ParseSizeStringU32(SCConfNodeValue(p), &cfg_prec->response.inspect_min_size) < 0) {
                 SCLogError("Error parsing response-body-minimal-inspect-size "
                            "from conf file - %s.  Killing engine",
-                        p->val);
+                        SCConfNodeValue(p));
                 exit(EXIT_FAILURE);
             }
 
-        } else if (strcasecmp("response-body-inspect-window", p->name) == 0) {
-            if (ParseSizeStringU32(p->val, &cfg_prec->response.inspect_window) < 0) {
+        } else if (strcasecmp("response-body-inspect-window", SCConfNodeName(p)) == 0) {
+            if (ParseSizeStringU32(SCConfNodeValue(p), &cfg_prec->response.inspect_window) < 0) {
                 SCLogError("Error parsing response-body-inspect-window "
                            "from conf file - %s.  Killing engine",
-                        p->val);
+                        SCConfNodeValue(p));
                 exit(EXIT_FAILURE);
             }
 
-        } else if (strcasecmp("response-body-decompress-layer-limit", p->name) == 0) {
+        } else if (strcasecmp("response-body-decompress-layer-limit", SCConfNodeName(p)) == 0) {
             uint32_t value = 2;
-            if (ParseSizeStringU32(p->val, &value) < 0) {
+            if (ParseSizeStringU32(SCConfNodeValue(p), &value) < 0) {
                 SCLogError("Error parsing response-body-inspect-window "
                            "from conf file - %s.  Killing engine",
-                        p->val);
+                        SCConfNodeValue(p));
                 exit(EXIT_FAILURE);
             }
             htp_config_set_decompression_layer_limit(cfg_prec->cfg, value);
-        } else if (strcasecmp("path-convert-backslash-separators", p->name) == 0) {
-            htp_config_set_backslash_convert_slashes(cfg_prec->cfg, SCConfValIsTrue(p->val));
-        } else if (strcasecmp("path-bestfit-replacement-char", p->name) == 0) {
-            if (strlen(p->val) == 1) {
-                htp_config_set_bestfit_replacement_byte(cfg_prec->cfg, p->val[0]);
+        } else if (strcasecmp("path-convert-backslash-separators", SCConfNodeName(p)) == 0) {
+            htp_config_set_backslash_convert_slashes(
+                    cfg_prec->cfg, SCConfValIsTrue(SCConfNodeValue(p)));
+        } else if (strcasecmp("path-bestfit-replacement-char", SCConfNodeName(p)) == 0) {
+            if (strlen(SCConfNodeValue(p)) == 1) {
+                htp_config_set_bestfit_replacement_byte(cfg_prec->cfg, SCConfNodeValue(p)[0]);
             } else {
                 SCLogError("Invalid entry "
                            "for libhtp param path-bestfit-replacement-char");
             }
-        } else if (strcasecmp("path-convert-lowercase", p->name) == 0) {
-            htp_config_set_convert_lowercase(cfg_prec->cfg, SCConfValIsTrue(p->val));
-        } else if (strcasecmp("path-nul-encoded-terminates", p->name) == 0) {
-            htp_config_set_nul_encoded_terminates(cfg_prec->cfg, SCConfValIsTrue(p->val));
-        } else if (strcasecmp("path-nul-raw-terminates", p->name) == 0) {
-            htp_config_set_nul_raw_terminates(cfg_prec->cfg, SCConfValIsTrue(p->val));
-        } else if (strcasecmp("path-separators-compress", p->name) == 0) {
-            htp_config_set_path_separators_compress(cfg_prec->cfg, SCConfValIsTrue(p->val));
-        } else if (strcasecmp("path-separators-decode", p->name) == 0) {
-            htp_config_set_path_separators_decode(cfg_prec->cfg, SCConfValIsTrue(p->val));
-        } else if (strcasecmp("path-u-encoding-decode", p->name) == 0) {
-            htp_config_set_u_encoding_decode(cfg_prec->cfg, SCConfValIsTrue(p->val));
-        } else if (strcasecmp("path-url-encoding-invalid-handling", p->name) == 0) {
+        } else if (strcasecmp("path-convert-lowercase", SCConfNodeName(p)) == 0) {
+            htp_config_set_convert_lowercase(cfg_prec->cfg, SCConfValIsTrue(SCConfNodeValue(p)));
+        } else if (strcasecmp("path-nul-encoded-terminates", SCConfNodeName(p)) == 0) {
+            htp_config_set_nul_encoded_terminates(
+                    cfg_prec->cfg, SCConfValIsTrue(SCConfNodeValue(p)));
+        } else if (strcasecmp("path-nul-raw-terminates", SCConfNodeName(p)) == 0) {
+            htp_config_set_nul_raw_terminates(cfg_prec->cfg, SCConfValIsTrue(SCConfNodeValue(p)));
+        } else if (strcasecmp("path-separators-compress", SCConfNodeName(p)) == 0) {
+            htp_config_set_path_separators_compress(
+                    cfg_prec->cfg, SCConfValIsTrue(SCConfNodeValue(p)));
+        } else if (strcasecmp("path-separators-decode", SCConfNodeName(p)) == 0) {
+            htp_config_set_path_separators_decode(
+                    cfg_prec->cfg, SCConfValIsTrue(SCConfNodeValue(p)));
+        } else if (strcasecmp("path-u-encoding-decode", SCConfNodeName(p)) == 0) {
+            htp_config_set_u_encoding_decode(cfg_prec->cfg, SCConfValIsTrue(SCConfNodeValue(p)));
+        } else if (strcasecmp("path-url-encoding-invalid-handling", SCConfNodeName(p)) == 0) {
             enum htp_url_encoding_handling_t handling;
-            if (strcasecmp(p->val, "preserve_percent") == 0) {
+            if (strcasecmp(SCConfNodeValue(p), "preserve_percent") == 0) {
                 handling = HTP_URL_ENCODING_HANDLING_PRESERVE_PERCENT;
-            } else if (strcasecmp(p->val, "remove_percent") == 0) {
+            } else if (strcasecmp(SCConfNodeValue(p), "remove_percent") == 0) {
                 handling = HTP_URL_ENCODING_HANDLING_REMOVE_PERCENT;
-            } else if (strcasecmp(p->val, "decode_invalid") == 0) {
+            } else if (strcasecmp(SCConfNodeValue(p), "decode_invalid") == 0) {
                 handling = HTP_URL_ENCODING_HANDLING_PROCESS_INVALID;
             } else {
                 SCLogError("Invalid entry "
@@ -2166,19 +2175,21 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct 
                 return;
             }
             htp_config_set_url_encoding_invalid_handling(cfg_prec->cfg, handling);
-        } else if (strcasecmp("path-utf8-convert-bestfit", p->name) == 0) {
-            htp_config_set_utf8_convert_bestfit(cfg_prec->cfg, SCConfValIsTrue(p->val));
-        } else if (strcasecmp("uri-include-all", p->name) == 0) {
-            htp_config_set_normalized_uri_include_all(cfg_prec->cfg, SCConfValIsTrue(p->val));
-            SCLogDebug("uri-include-all %s", SCConfValIsTrue(p->val) ? "enabled" : "disabled");
-        } else if (strcasecmp("query-plusspace-decode", p->name) == 0) {
-            htp_config_set_plusspace_decode(cfg_prec->cfg, SCConfValIsTrue(p->val));
-        } else if (strcasecmp("meta-field-limit", p->name) == 0) {
+        } else if (strcasecmp("path-utf8-convert-bestfit", SCConfNodeName(p)) == 0) {
+            htp_config_set_utf8_convert_bestfit(cfg_prec->cfg, SCConfValIsTrue(SCConfNodeValue(p)));
+        } else if (strcasecmp("uri-include-all", SCConfNodeName(p)) == 0) {
+            htp_config_set_normalized_uri_include_all(
+                    cfg_prec->cfg, SCConfValIsTrue(SCConfNodeValue(p)));
+            SCLogDebug("uri-include-all %s",
+                    SCConfValIsTrue(SCConfNodeValue(p)) ? "enabled" : "disabled");
+        } else if (strcasecmp("query-plusspace-decode", SCConfNodeName(p)) == 0) {
+            htp_config_set_plusspace_decode(cfg_prec->cfg, SCConfValIsTrue(SCConfNodeValue(p)));
+        } else if (strcasecmp("meta-field-limit", SCConfNodeName(p)) == 0) {
             uint32_t limit = 0;
-            if (ParseSizeStringU32(p->val, &limit) < 0) {
+            if (ParseSizeStringU32(SCConfNodeValue(p), &limit) < 0) {
                 SCLogError("Error meta-field-limit "
                            "from conf file - %s.  Killing engine",
-                        p->val);
+                        SCConfNodeValue(p));
                 exit(EXIT_FAILURE);
             }
             if (limit == 0) {
@@ -2187,12 +2198,12 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct 
             }
             /* set default soft-limit with our new hard limit */
             htp_config_set_field_limit(cfg_prec->cfg, (size_t)limit);
-        } else if (strcasecmp("lzma-memlimit", p->name) == 0) {
+        } else if (strcasecmp("lzma-memlimit", SCConfNodeName(p)) == 0) {
             uint32_t limit = 0;
-            if (ParseSizeStringU32(p->val, &limit) < 0) {
+            if (ParseSizeStringU32(SCConfNodeValue(p), &limit) < 0) {
                 FatalError("failed to parse 'lzma-memlimit' "
                            "from conf file - %s.",
-                        p->val);
+                        SCConfNodeValue(p));
             }
             if (limit == 0) {
                 FatalError("'lzma-memlimit' "
@@ -2201,25 +2212,25 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct 
             /* set default soft-limit with our new hard limit */
             SCLogConfig("Setting HTTP LZMA memory limit to %"PRIu32" bytes", limit);
             htp_config_set_lzma_memlimit(cfg_prec->cfg, (size_t)limit);
-        } else if (strcasecmp("lzma-enabled", p->name) == 0) {
-            if (SCConfValIsTrue(p->val)) {
+        } else if (strcasecmp("lzma-enabled", SCConfNodeName(p)) == 0) {
+            if (SCConfValIsTrue(SCConfNodeValue(p))) {
                 htp_config_set_lzma_layers(cfg_prec->cfg, 1);
-            } else if (!SCConfValIsFalse(p->val)) {
+            } else if (!SCConfValIsFalse(SCConfNodeValue(p))) {
                 int8_t limit;
-                if (StringParseInt8(&limit, 10, 0, (const char *)p->val) < 0) {
+                if (StringParseInt8(&limit, 10, 0, SCConfNodeValue(p)) < 0) {
                     FatalError("failed to parse 'lzma-enabled' "
                                "from conf file - %s.",
-                            p->val);
+                            SCConfNodeValue(p));
                 }
                 SCLogConfig("Setting HTTP LZMA decompression layers to %" PRIu32 "", (int)limit);
                 htp_config_set_lzma_layers(cfg_prec->cfg, limit);
             }
-        } else if (strcasecmp("compression-bomb-count", p->name) == 0) {
+        } else if (strcasecmp("compression-bomb-count", SCConfNodeName(p)) == 0) {
             uint8_t limit = 0;
-            if (ParseSizeStringU8(p->val, &limit) < 0) {
+            if (ParseSizeStringU8(SCConfNodeValue(p), &limit) < 0) {
                 FatalError("failed to parse 'compression-bomb-count' "
                            "from conf file - %s.",
-                        p->val);
+                        SCConfNodeValue(p));
             }
             if (limit == 0) {
                 FatalError("'compression-bomb-count' "
@@ -2228,12 +2239,12 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct 
             /* set default soft-limit with our new hard limit */
             SCLogConfig("Setting HTTP compression bomb count limit to %" PRIu8, limit);
             htp_config_set_max_nb_compression_bombs(cfg_prec->cfg, (size_t)limit);
-        } else if (strcasecmp("compression-bomb-limit", p->name) == 0) {
+        } else if (strcasecmp("compression-bomb-limit", SCConfNodeName(p)) == 0) {
             uint32_t limit = 0;
-            if (ParseSizeStringU32(p->val, &limit) < 0) {
+            if (ParseSizeStringU32(SCConfNodeValue(p), &limit) < 0) {
                 FatalError("failed to parse 'compression-bomb-limit' "
                            "from conf file - %s.",
-                        p->val);
+                        SCConfNodeValue(p));
             }
             if (limit == 0) {
                 FatalError("'compression-bomb-limit' "
@@ -2242,58 +2253,57 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct 
             /* set default soft-limit with our new hard limit */
             SCLogConfig("Setting HTTP compression bomb limit to %"PRIu32" bytes", limit);
             htp_config_set_compression_bomb_limit(cfg_prec->cfg, (size_t)limit);
-        } else if (strcasecmp("decompression-time-limit", p->name) == 0) {
+        } else if (strcasecmp("decompression-time-limit", SCConfNodeName(p)) == 0) {
             uint32_t limit = 0;
             // between 1 usec and 1 second
-            if (StringParseU32RangeCheck(&limit, 10, 0, p->val, 1, 1000000) < 0) {
+            if (StringParseU32RangeCheck(&limit, 10, 0, SCConfNodeValue(p), 1, 1000000) < 0) {
                 FatalError("failed to parse 'decompression-time-limit' "
                            "from conf file - %s.",
-                        p->val);
+                        SCConfNodeValue(p));
             }
             SCLogConfig("Setting HTTP decompression time limit to %" PRIu32 " usec", limit);
             htp_config_set_compression_time_limit(cfg_prec->cfg, limit);
-        } else if (strcasecmp("max-tx", p->name) == 0) {
+        } else if (strcasecmp("max-tx", SCConfNodeName(p)) == 0) {
             uint32_t limit = 0;
-            if (ParseSizeStringU32(p->val, &limit) < 0) {
+            if (ParseSizeStringU32(SCConfNodeValue(p), &limit) < 0) {
                 FatalError("failed to parse 'max-tx' "
                            "from conf file - %s.",
-                        p->val);
+                        SCConfNodeValue(p));
             }
             /* set default soft-limit with our new hard limit */
             SCLogConfig("Setting HTTP max-tx limit to %" PRIu32 " bytes", limit);
             htp_config_set_max_tx(cfg_prec->cfg, limit);
-        } else if (strcasecmp("headers-limit", p->name) == 0) {
+        } else if (strcasecmp("headers-limit", SCConfNodeName(p)) == 0) {
             uint32_t limit = 0;
-            if (ParseSizeStringU32(p->val, &limit) < 0) {
+            if (ParseSizeStringU32(SCConfNodeValue(p), &limit) < 0) {
                 FatalError("failed to parse 'headers-limit' "
                            "from conf file - %s.",
-                        p->val);
+                        SCConfNodeValue(p));
             }
             SCLogConfig("Setting HTTP headers limit to %" PRIu32, limit);
             htp_config_set_number_headers_limit(cfg_prec->cfg, limit);
-        } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
+        } else if (strcasecmp("randomize-inspection-sizes", SCConfNodeName(p)) == 0) {
             if (!g_disable_randomness) {
-                cfg_prec->randomize = SCConfValIsTrue(p->val);
+                cfg_prec->randomize = SCConfValIsTrue(SCConfNodeValue(p));
             }
-        } else if (strcasecmp("randomize-inspection-range", p->name) == 0) {
+        } else if (strcasecmp("randomize-inspection-range", SCConfNodeName(p)) == 0) {
             uint32_t range;
-            if (StringParseU32RangeCheck(&range, 10, 0,
-                                         (const char *)p->val, 0, 100) < 0) {
+            if (StringParseU32RangeCheck(&range, 10, 0, SCConfNodeValue(p), 0, 100) < 0) {
                 SCLogError("Invalid value for randomize"
                            "-inspection-range setting from conf file - \"%s\"."
                            " It should be a valid integer less than or equal to 100."
                            " Killing engine",
-                        p->val);
+                        SCConfNodeValue(p));
                 exit(EXIT_FAILURE);
             }
             cfg_prec->randomize_range = range;
-        } else if (strcasecmp("http-body-inline", p->name) == 0) {
-            if (SCConfValIsTrue(p->val)) {
+        } else if (strcasecmp("http-body-inline", SCConfNodeName(p)) == 0) {
+            if (SCConfValIsTrue(SCConfNodeValue(p))) {
                 cfg_prec->http_body_inline = 1;
-            } else if (SCConfValIsFalse(p->val)) {
+            } else if (SCConfValIsFalse(SCConfNodeValue(p))) {
                 cfg_prec->http_body_inline = 0;
             } else {
-                if (strcmp("auto", p->val) != 0) {
+                if (strcmp("auto", SCConfNodeValue(p)) != 0) {
                     WarnInvalidConfEntry("http_body_inline", "%s", "auto");
                 }
                 if (EngineModeIsIPS()) {
@@ -2302,58 +2312,60 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct 
                     cfg_prec->http_body_inline = 0;
                 }
             }
-        } else if (strcasecmp("swf-decompression", p->name) == 0) {
+        } else if (strcasecmp("swf-decompression", SCConfNodeName(p)) == 0) {
             SCConfNode *pval;
 
             for (pval = SCConfGetFirstNode(p); pval != NULL; pval = SCConfGetNextNode(pval)) {
-                if (strcasecmp("enabled", pval->name) == 0) {
-                    if (SCConfValIsTrue(pval->val)) {
+                if (strcasecmp("enabled", SCConfNodeName(pval)) == 0) {
+                    if (SCConfValIsTrue(SCConfNodeValue(pval))) {
                         cfg_prec->swf_decompression_enabled = 1;
-                    } else if (SCConfValIsFalse(pval->val)) {
+                    } else if (SCConfValIsFalse(SCConfNodeValue(pval))) {
                         cfg_prec->swf_decompression_enabled = 0;
                     } else {
                         WarnInvalidConfEntry("swf-decompression.enabled", "%s", "no");
                     }
-                } else if (strcasecmp("type", pval->name) == 0) {
-                    if (strcasecmp("no", pval->val) == 0) {
+                } else if (strcasecmp("type", SCConfNodeName(pval)) == 0) {
+                    if (strcasecmp("no", SCConfNodeValue(pval)) == 0) {
                         cfg_prec->swf_compression_type = HTTP_SWF_COMPRESSION_NONE;
-                    } else if (strcasecmp("deflate", pval->val) == 0) {
+                    } else if (strcasecmp("deflate", SCConfNodeValue(pval)) == 0) {
                         cfg_prec->swf_compression_type = HTTP_SWF_COMPRESSION_ZLIB;
-                    } else if (strcasecmp("lzma", pval->val) == 0) {
+                    } else if (strcasecmp("lzma", SCConfNodeValue(pval)) == 0) {
                         cfg_prec->swf_compression_type = HTTP_SWF_COMPRESSION_LZMA;
-                    } else if (strcasecmp("both", pval->val) == 0) {
+                    } else if (strcasecmp("both", SCConfNodeValue(pval)) == 0) {
                         cfg_prec->swf_compression_type = HTTP_SWF_COMPRESSION_BOTH;
                     } else {
                         SCLogError("Invalid entry for "
                                    "swf-decompression.type: %s - "
                                    "Killing engine",
-                                pval->val);
+                                SCConfNodeValue(pval));
                         exit(EXIT_FAILURE);
                     }
-                } else if (strcasecmp("compress-depth", pval->name) == 0) {
-                    if (ParseSizeStringU32(pval->val, &cfg_prec->swf_compress_depth) < 0 ||
+                } else if (strcasecmp("compress-depth", SCConfNodeName(pval)) == 0) {
+                    if (ParseSizeStringU32(SCConfNodeValue(pval), &cfg_prec->swf_compress_depth) <
+                                    0 ||
                             cfg_prec->swf_compress_depth > MAX_SWF_COMPRESS_DEPTH) {
                         SCLogError("Invalid swf-decompression.compress-depth value %s: the "
                                    "maximum is %u bytes. Killing engine",
-                                pval->val, MAX_SWF_COMPRESS_DEPTH);
+                                SCConfNodeValue(pval), MAX_SWF_COMPRESS_DEPTH);
                         exit(EXIT_FAILURE);
                     }
-                } else if (strcasecmp("decompress-depth", pval->name) == 0) {
-                    if (ParseSizeStringU32(pval->val, &cfg_prec->swf_decompress_depth) < 0 ||
+                } else if (strcasecmp("decompress-depth", SCConfNodeName(pval)) == 0) {
+                    if (ParseSizeStringU32(SCConfNodeValue(pval), &cfg_prec->swf_decompress_depth) <
+                                    0 ||
                             cfg_prec->swf_decompress_depth > MAX_SWF_DECOMPRESS_DEPTH) {
                         SCLogError("Invalid swf-decompression.decompress-depth value %s: the "
                                    "maximum is %u bytes. Killing engine",
-                                pval->val, MAX_SWF_DECOMPRESS_DEPTH);
+                                SCConfNodeValue(pval), MAX_SWF_DECOMPRESS_DEPTH);
                         exit(EXIT_FAILURE);
                     }
                 } else {
-                    SCLogWarning("Ignoring unknown param %s", pval->name);
+                    SCLogWarning("Ignoring unknown param %s", SCConfNodeName(pval));
                 }
             }
         } else {
             SCLogWarning("LIBHTP Ignoring unknown "
                          "default config: %s",
-                    p->name);
+                    SCConfNodeName(p));
         }
     } /* for (p = SCConfGetFirstNode(default_config); p != NULL; p = SCConfGetNextNode(p)) */
 }
@@ -2406,7 +2418,7 @@ void HTPConfigure(void)
             continue;
         }
 
-        SCLogDebug("LIBHTP server %s", s->name);
+        SCLogDebug("LIBHTP server %s", SCConfNodeName(s));
 
         HTPCfgRec *nextrec = cfglist.next;
         HTPCfgRec *htprec = SCCalloc(1, sizeof(HTPCfgRec));
@@ -2423,7 +2435,7 @@ void HTPConfigure(void)
 
         HTPConfigSetDefaultsPhase1(htprec);
         HTPConfigParseParameters(htprec, s, &cfgtree);
-        HTPConfigSetDefaultsPhase2(s->name, htprec);
+        HTPConfigSetDefaultsPhase2(SCConfNodeName(s), htprec);
     }
 
     SCReturn;
@@ -3681,17 +3693,17 @@ libhtp:\n\
 
     SCConfNode *node = SCConfGetFirstNode(outputs);
     FAIL_IF_NULL(node);
-    FAIL_IF(strcmp(node->name, "0") != 0);
+    FAIL_IF(strcmp(SCConfNodeName(node), "0") != 0);
     node = SCConfGetFirstNode(node);
     FAIL_IF_NULL(node);
-    FAIL_IF(strcmp(node->name, "apache-tomcat") != 0);
+    FAIL_IF(strcmp(SCConfNodeName(node), "apache-tomcat") != 0);
 
     int i = 0;
     SCConfNode *n;
 
     SCConfNode *node2 = SCConfNodeLookupChild(node, "personality");
     FAIL_IF_NULL(node2);
-    FAIL_IF(strcmp(node2->val, "Tomcat_6_0") != 0);
+    FAIL_IF(strcmp(SCConfNodeValue(node2), "Tomcat_6_0") != 0);
 
     node = SCConfNodeLookupChild(node, "address");
     FAIL_IF_NULL(node);
@@ -3700,16 +3712,16 @@ libhtp:\n\
         FAIL_IF_NULL(n);
         switch(i) {
             case 0:
-                FAIL_IF(strcmp(n->name, "0") != 0);
-                FAIL_IF(strcmp(n->val, "192.168.1.0/24") != 0);
+                FAIL_IF(strcmp(SCConfNodeName(n), "0") != 0);
+                FAIL_IF(strcmp(SCConfNodeValue(n), "192.168.1.0/24") != 0);
                 break;
             case 1:
-                FAIL_IF(strcmp(n->name, "1") != 0);
-                FAIL_IF(strcmp(n->val, "127.0.0.0/8") != 0);
+                FAIL_IF(strcmp(SCConfNodeName(n), "1") != 0);
+                FAIL_IF(strcmp(SCConfNodeValue(n), "127.0.0.0/8") != 0);
                 break;
             case 2:
-                FAIL_IF(strcmp(n->name, "2") != 0);
-                FAIL_IF(strcmp(n->val, "::1") != 0);
+                FAIL_IF(strcmp(SCConfNodeName(n), "2") != 0);
+                FAIL_IF(strcmp(SCConfNodeValue(n), "::1") != 0);
                 break;
             default:
                 FAIL;
@@ -3722,14 +3734,14 @@ libhtp:\n\
     node = SCConfGetFirstNode(outputs);
     node = SCConfGetNextNode(node);
     FAIL_IF_NULL(node);
-    FAIL_IF(strcmp(node->name, "1") != 0);
+    FAIL_IF(strcmp(SCConfNodeName(node), "1") != 0);
     node = SCConfGetFirstNode(node);
     FAIL_IF_NULL(node);
-    FAIL_IF(strcmp(node->name, "iis7") != 0);
+    FAIL_IF(strcmp(SCConfNodeName(node), "iis7") != 0);
 
     node2 = SCConfNodeLookupChild(node, "personality");
     FAIL_IF_NULL(node2);
-    FAIL_IF(strcmp(node2->val, "IIS_7_0") != 0);
+    FAIL_IF(strcmp(SCConfNodeValue(node2), "IIS_7_0") != 0);
 
     node = SCConfNodeLookupChild(node, "address");
     FAIL_IF_NULL(node);
@@ -3740,12 +3752,12 @@ libhtp:\n\
 
         switch(i) {
             case 0:
-                FAIL_IF(strcmp(n->name, "0") != 0);
-                FAIL_IF(strcmp(n->val, "192.168.0.0/24") != 0);
+                FAIL_IF(strcmp(SCConfNodeName(n), "0") != 0);
+                FAIL_IF(strcmp(SCConfNodeValue(n), "192.168.0.0/24") != 0);
                 break;
             case 1:
-                FAIL_IF(strcmp(n->name, "1") != 0);
-                FAIL_IF(strcmp(n->val, "192.168.10.0/24") != 0);
+                FAIL_IF(strcmp(SCConfNodeName(n), "1") != 0);
+                FAIL_IF(strcmp(SCConfNodeValue(n), "192.168.10.0/24") != 0);
                 break;
             default:
                 FAIL;

@@ -432,14 +432,15 @@ static void SMTPConfigure(void) {
 
             for (scheme = SCConfGetFirstNode(extract_urls_schemes); scheme != NULL;
                     scheme = SCConfGetNextNode(scheme)) {
-                size_t scheme_len = strlen(scheme->val);
+                size_t scheme_len = strlen(SCConfNodeValue(scheme));
                 if (scheme_len > UINT8_MAX - SCHEME_SUFFIX_LEN) {
-                    FatalError("extract-urls-schemes entry '%s' is too long", scheme->val);
+                    FatalError(
+                            "extract-urls-schemes entry '%s' is too long", SCConfNodeValue(scheme));
                 }
-                if (scheme->val[scheme_len - 1] != '/') {
+                if (SCConfNodeValue(scheme)[scheme_len - 1] != '/') {
                     scheme_len += SCHEME_SUFFIX_LEN;
                     char tmp[256];
-                    int r = snprintf(tmp, sizeof(tmp), "%s://", scheme->val);
+                    int r = snprintf(tmp, sizeof(tmp), "%s://", SCConfNodeValue(scheme));
                     if (r != (int)scheme_len) {
                         FatalError("snprintf failure for SMTP url extraction scheme.");
                     }
@@ -448,7 +449,7 @@ static void SMTPConfigure(void) {
                     }
                     continue;
                 }
-                int r = SCMimeSmtpConfigExtractUrlsSchemeAdd(scheme->val);
+                int r = SCMimeSmtpConfigExtractUrlsSchemeAdd(SCConfNodeValue(scheme));
                 if (r < 0) {
                     FatalError("Failed to add smtp extract url scheme");
                 }
@@ -482,25 +483,25 @@ static void SMTPConfigure(void) {
 
     if (t != NULL) {
         for (p = SCConfGetFirstNode(t); p != NULL; p = SCConfGetNextNode(p)) {
-            if (strcasecmp("content-limit", p->name) == 0) {
-                if (ParseSizeStringU32(p->val, &content_limit) < 0) {
-                    SCLogWarning("parsing content-limit %s failed", p->val);
+            if (strcasecmp("content-limit", SCConfNodeName(p)) == 0) {
+                if (ParseSizeStringU32(SCConfNodeValue(p), &content_limit) < 0) {
+                    SCLogWarning("parsing content-limit %s failed", SCConfNodeValue(p));
                     content_limit = FILEDATA_CONTENT_LIMIT;
                 }
                 smtp_config.content_limit = content_limit;
             }
 
-            if (strcasecmp("content-inspect-min-size", p->name) == 0) {
-                if (ParseSizeStringU32(p->val, &content_inspect_min_size) < 0) {
-                    SCLogWarning("parsing content-inspect-min-size %s failed", p->val);
+            if (strcasecmp("content-inspect-min-size", SCConfNodeName(p)) == 0) {
+                if (ParseSizeStringU32(SCConfNodeValue(p), &content_inspect_min_size) < 0) {
+                    SCLogWarning("parsing content-inspect-min-size %s failed", SCConfNodeValue(p));
                     content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE;
                 }
                 smtp_config.content_inspect_min_size = content_inspect_min_size;
             }
 
-            if (strcasecmp("content-inspect-window", p->name) == 0) {
-                if (ParseSizeStringU32(p->val, &content_inspect_window) < 0) {
-                    SCLogWarning("parsing content-inspect-window %s failed", p->val);
+            if (strcasecmp("content-inspect-window", SCConfNodeName(p)) == 0) {
+                if (ParseSizeStringU32(SCConfNodeValue(p), &content_inspect_window) < 0) {
+                    SCLogWarning("parsing content-inspect-window %s failed", SCConfNodeValue(p));
                     content_inspect_window = FILEDATA_CONTENT_INSPECT_WINDOW;
                 }
                 smtp_config.content_inspect_window = content_inspect_window;

@@ -261,7 +261,7 @@ static SCConfNode *GetConfig(void)
     SCConfNode *node = NULL;
     if (root != NULL) {
         for (node = SCConfGetFirstNode(root); node != NULL; node = SCConfGetNextNode(node)) {
-            if (strcmp(node->val, "stats") == 0) {
+            if (strcmp(SCConfNodeValue(node), "stats") == 0) {
                 return SCConfGetFirstNode(node);
             }
         }

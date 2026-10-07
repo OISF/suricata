@@ -78,7 +78,7 @@ static char *DetectLoadCompleteSigPathWithKey(
         default_rule_path = SCConfGetNode(varname);
     }
     if (default_rule_path) {
-        defaultpath = default_rule_path->val;
+        defaultpath = SCConfNodeValue(default_rule_path);
     }
 
     /* Path not specified */
@@ -351,7 +351,8 @@ static int LoadFirewallRuleFiles(DetectEngineCtx *de_ctx)
         int32_t bad_sigs = 0;
         int32_t skipped_sigs = 0;
 
-        char *sfile = DetectLoadCompleteSigPathWithKey(de_ctx, "firewall.rule-path", file->val);
+        char *sfile = DetectLoadCompleteSigPathWithKey(
+                de_ctx, "firewall.rule-path", SCConfNodeValue(file));
         SCLogNotice("fw: rule file full path \"%s\"", sfile);
 
         int ret = DetectLoadSigFile(de_ctx, sfile, &good_sigs, &bad_sigs, &skipped_sigs, true);
@@ -365,9 +366,9 @@ static int LoadFirewallRuleFiles(DetectEngineCtx *de_ctx)
         }
 
         if (good_sigs == 0) {
-            SCLogNotice("fw: No rules loaded from %s.", file->val);
+            SCLogNotice("fw: No rules loaded from %s.", SCConfNodeValue(file));
         } else {
-            SCLogNotice("fw: %d rules loaded from %s.", good_sigs, file->val);
+            SCLogNotice("fw: %d rules loaded from %s.", good_sigs, SCConfNodeValue(file));
             de_ctx->sig_stat.good_sigs_total += good_sigs;
         }
     }
@@ -429,7 +430,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
             } else {
                 for (file = SCConfGetFirstNode(rule_files); file != NULL;
                         file = SCConfGetNextNode(file)) {
-                    sfile = DetectLoadCompleteSigPath(de_ctx, file->val);
+                    sfile = DetectLoadCompleteSigPath(de_ctx, SCConfNodeValue(file));
                     good_sigs = bad_sigs = skipped_sigs = 0;
                     ret = ProcessSigFiles(
                             de_ctx, sfile, sig_stat, &good_sigs, &bad_sigs, &skipped_sigs);
@@ -442,7 +443,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
                     }
 
                     if (good_sigs == 0) {
-                        SCLogConfig("No rules loaded from %s.", file->val);
+                        SCLogConfig("No rules loaded from %s.", SCConfNodeValue(file));
                     }
                 }
             }

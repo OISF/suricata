@@ -121,14 +121,14 @@ int ActionInitConfig(void)
     else {
         for (action = SCConfGetFirstNode(action_order); action != NULL;
                 action = SCConfGetNextNode(action)) {
-            SCLogDebug("Loading action order : %s", action->val);
-            action_flag = ActionAsciiToFlag(action->val);
+            SCLogDebug("Loading action order : %s", SCConfNodeValue(action));
+            action_flag = ActionAsciiToFlag(SCConfNodeValue(action));
             if (action_flag == 0) {
                 SCLogError("action-order, invalid action: \"%s\". Please, use"
                            " \"pass\",\"drop\",\"alert\",\"reject\". You have"
                            " to specify all of them, without quotes and without"
                            " capital letters",
-                        action->val);
+                        SCConfNodeValue(action));
                 goto error;
             }
 
@@ -137,7 +137,7 @@ int ActionInitConfig(void)
                            " use \"pass\",\"drop\",\"alert\",\"reject\". You"
                            " have to specify all of them, without quotes and"
                            " without capital letters",
-                        action->val);
+                        SCConfNodeValue(action));
                 goto error;
             }
 
@@ -147,7 +147,7 @@ int ActionInitConfig(void)
                            "\"drop\",\"alert\",\"reject\". You have to specify"
                            " all of them, without quotes and without capital"
                            " letters",
-                        action->val);
+                        SCConfNodeValue(action));
                 goto error;
             }
             actions_used |= action_flag;
