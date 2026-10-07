@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -316,6 +316,32 @@ static int DetectEngineContentInspectionTest17(void)
     TEST_FOOTER;
 }
 
+/** \brief byte_test with 0 bytes and string stops at the end of the buffer
+ *
+ *  The test passes a length shorter than the digits, so the digits past the
+ *  end of the buffer are in memory but must not be converted. */
+static int DetectEngineContentInspectionTest18(void)
+{
+    TEST_HEADER;
+    TEST_RUN("12345", 2, "byte_test:0,=,12,0,string,dec;", true, 1);
+    TEST_RUN("12345", 2, "byte_test:0,=,12345,0,string,dec;", false, 1);
+    TEST_RUN("ff12", 2, "byte_test:0,=,255,0,string,hex;", true, 1);
+    /* leading zeros do not count toward the 23 byte limit */
+    TEST_RUN("00000000000000000000000099999", 29, "byte_test:0,>,1000,0,string,dec;", true, 1);
+    /* nothing left to convert at the end of the buffer */
+    TEST_RUN("12345", 2, "byte_test:0,=,345,2,string,dec;", false, 1);
+    /* 0 bytes from a byte_extract variable */
+    TEST_RUN("X012345", 4,
+            "content:\"X\"; byte_extract:1,0,n,relative,string,dec; "
+            "byte_test:n,=,12,0,relative,string,dec;",
+            true, 3);
+    TEST_RUN("X012345", 4,
+            "content:\"X\"; byte_extract:1,0,n,relative,string,dec; "
+            "byte_test:n,=,12345,0,relative,string,dec;",
+            false, 3);
+    TEST_FOOTER;
+}
+
 void DetectEngineContentInspectionRegisterTests(void)
 {
     UtRegisterTest("DetectEngineContentInspectionTest01",
@@ -348,6 +374,8 @@ void DetectEngineContentInspectionRegisterTests(void)
             DetectEngineContentInspectionTest14);
     UtRegisterTest("DetectEngineContentInspectionTest17 negative distance",
             DetectEngineContentInspectionTest17);
+    UtRegisterTest("DetectEngineContentInspectionTest18 byte_test string 0 bytes",
+            DetectEngineContentInspectionTest18);
 }
 
 #undef TEST_HEADER
