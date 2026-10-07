@@ -443,12 +443,10 @@ static void SMTPConfigure(void) {
                     if (r != (int)scheme_len) {
                         FatalError("snprintf failure for SMTP url extraction scheme.");
                     }
-                    char *new_val = SCStrdup(tmp);
-                    if (unlikely(new_val == NULL)) {
-                        FatalError("extract-urls-schemes entry SCStrdup failure.");
+                    if (SCMimeSmtpConfigExtractUrlsSchemeAdd(tmp) < 0) {
+                        FatalError("Failed to add smtp extract url scheme");
                     }
-                    SCFree(scheme->val);
-                    scheme->val = new_val;
+                    continue;
                 }
                 int r = SCMimeSmtpConfigExtractUrlsSchemeAdd(scheme->val);
                 if (r < 0) {
