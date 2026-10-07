@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -189,6 +189,83 @@ int ByteExtractString(uint64_t *res, int base, size_t len, const char *str, bool
 int ByteExtractStringUint64(uint64_t *res, int base, size_t len, const char *str)
 {
     return ByteExtractString(res, base, len, str, false);
+}
+
+/* Base 0 is resolved before this function runs. Any base other than 8,
+ * 10 and 16 is read as base 10 here. A combined base (dec and hex is 26)
+ * therefore uses base 10 digits when the count is 0. */
+static bool ByteIsDigit(const char c, const int base)
+{
+    switch (base) {
+        case 8:
+            return c >= '0' && c <= '7';
+        case 16:
+            return isxdigit((unsigned char)c);
+        default:
+            return isdigit((unsigned char)c);
+    }
+}
+
+int ByteExtractStringUint64Bounded(
+        uint64_t *res, int base, size_t len, size_t avail, const char *str)
+{
+    *res = 0;
+
+    if (len != 0) {
+        if (len > avail) {
+            return -1;
+        }
+        return ByteExtractStringUint64(res, base, len, str);
+    }
+
+    /* Find the end of the number the way strtoull() does, without reading
+     * past str + avail. */
+    size_t i = 0;
+    while (i < avail && isspace((unsigned char)str[i])) {
+        i++;
+    }
+    char sign = 0;
+    if (i < avail && (str[i] == '+' || str[i] == '-')) {
+        sign = str[i++];
+    }
+    if ((base == 0 || base == 16) && i + 2 < avail && str[i] == '0' &&
+            (str[i + 1] == 'x' || str[i + 1] == 'X') && isxdigit((unsigned char)str[i + 2])) {
+        i += 2;
+        base = 16;
+    } else if (base == 0) {
+        base = (i < avail && str[i] == '0') ? 8 : 10;
+    }
+    const size_t start = i;
+    const size_t max_digits = sign != 0 ? 22 : 23;
+    size_t first = start;
+    bool significant = false;
+    while (i < avail && ByteIsDigit(str[i], base)) {
+        if (!significant) {
+            /* Leading zeros do not change the value. Keep the last zero. */
+            first = i;
+            significant = str[i] != '0';
+        } else if (i - first >= max_digits) {
+            SCLogDebug("numeric value out of range");
+            *res = UINT64_MAX;
+            return -1;
+        }
+        i++;
+    }
+    if (i == start) {
+        SCLogDebug("no numeric value");
+        return -1;
+    }
+
+    char num[24];
+    size_t n = 0;
+    if (sign != 0) {
+        num[n++] = sign;
+    }
+    memcpy(num + n, str + first, i - first);
+    n += i - first;
+
+    int ret = ByteExtractString(res, base, n, num, false);
+    return ret <= 0 ? ret : (int)i;
 }
 
 int ByteExtractStringUint32(uint32_t *res, int base, size_t len, const char *str)
@@ -1022,6 +1099,73 @@ static int ByteTest16 (void)
     return 0;
 }
 
+/** \test a length of 0 converts no more than avail bytes */
+static int ByteTest17(void)
+{
+    uint64_t val = 0;
+
+    /* a length converts that many bytes */
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 2, 5, "12345") == 2);
+    FAIL_IF_NOT(val == 12);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 3, 2, "12345") == -1);
+
+    /* 0 converts the number inside avail and no further */
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 0, 2, "12345") == 2);
+    FAIL_IF_NOT(val == 12);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 0, 0, "12345") == -1);
+    FAIL_IF_NOT(val == 0);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 0, 3, "x12") == -1);
+    FAIL_IF_NOT(val == 0);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 0, 3, "   1") == -1);
+    FAIL_IF_NOT(val == 0);
+
+    /* leading whitespace and zeros do not count toward 23 bytes */
+    FAIL_IF_NOT(
+            ByteExtractStringUint64Bounded(&val, 10, 0, 28, "0000000000000000000000999991") == 28);
+    FAIL_IF_NOT(val == 999991);
+    FAIL_IF_NOT(
+            ByteExtractStringUint64Bounded(&val, 10, 0, 26, "                         79") == 26);
+    FAIL_IF_NOT(val == 7);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 0, 4, "0000") == 4);
+    FAIL_IF_NOT(val == 0);
+
+    /* a value past uint64_t is an error */
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 0, 21, "184467440737095516160") == -1);
+    FAIL_IF_NOT(val == UINT64_MAX);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 0, 20, "18446744073709551615") == 20);
+    FAIL_IF_NOT(val == UINT64_MAX);
+
+    /* bases, prefixes and signs follow strtoull() */
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 16, 0, 4, "0x1fz") == 4);
+    FAIL_IF_NOT(val == 0x1f);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 16, 0, 2, "0x1f") == 1);
+    FAIL_IF_NOT(val == 0);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 16, 0, 3, "0xz") == 1);
+    FAIL_IF_NOT(val == 0);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 8, 0, 3, "0179") == 3);
+    FAIL_IF_NOT(val == 017);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 0, 0, 4, "0x1f") == 4);
+    FAIL_IF_NOT(val == 0x1f);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 0, 0, 4, "0017") == 4);
+    FAIL_IF_NOT(val == 017);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 0, 0, 2, "17") == 2);
+    FAIL_IF_NOT(val == 17);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 0, 3, "-05") == 3);
+    FAIL_IF_NOT(val == (uint64_t)-5);
+
+    /* more than 23 significant digits is an error, with or without a sign */
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 0, 24, "123456789012345678901234") == -1);
+    FAIL_IF_NOT(val == UINT64_MAX);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 0, 24, "-12345678901234567890123") == -1);
+    FAIL_IF_NOT(val == UINT64_MAX);
+
+    /* leading zeros do not count toward the 23 digit limit */
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 0, 23, "00009999999999999999999") == 23);
+    FAIL_IF_NOT(val == 9999999999999999999ULL);
+
+    PASS;
+}
+
 void ByteRegisterTests(void)
 {
     UtRegisterTest("ByteTest01", ByteTest01);
@@ -1040,6 +1184,7 @@ void ByteRegisterTests(void)
     UtRegisterTest("ByteTest14", ByteTest14);
     UtRegisterTest("ByteTest15", ByteTest15);
     UtRegisterTest("ByteTest16", ByteTest16);
+    UtRegisterTest("ByteTest17", ByteTest17);
 }
 #endif /* UNITTESTS */
 
