@@ -55,3 +55,8 @@ Action
 Config rules can, but don't have to, use the `config` rule action. The `config`
 rule action won't generate an alert when the rule matches, but the rule actions
 will still be applied. It is equivalent to `alert ... (noalert; ...)`.
+
+.. note::
+
+   Currently, the ``config`` action is not supported in Firewall mode,
+   for Threat Detection rules.
