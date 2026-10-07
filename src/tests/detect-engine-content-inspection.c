@@ -371,6 +371,23 @@ static int DetectEngineContentInspectionTest19(void)
     TEST_FOOTER;
 }
 
+/** \brief byte_extract with 0 bytes and string stops at the end of the buffer */
+static int DetectEngineContentInspectionTest20(void)
+{
+    TEST_HEADER;
+    /* the value is 12 and the read position is the end of the buffer */
+    TEST_RUN("12345", 2, "byte_extract:0,0,v,string,dec; byte_test:2,=,v,-2,relative,string,dec;",
+            true, 2);
+    /* leading zeros do not count toward the 23 byte limit */
+    TEST_RUN("000000000000000000000000012", 27,
+            "byte_extract:0,0,v,string,dec; isdataat:!1,relative; "
+            "byte_test:2,=,v,-2,relative,string,dec;",
+            true, 3);
+    /* nothing left to convert at the end of the buffer */
+    TEST_RUN("12345", 2, "byte_extract:0,2,v,string,dec; isdataat:1;", false, 1);
+    TEST_FOOTER;
+}
+
 void DetectEngineContentInspectionRegisterTests(void)
 {
     UtRegisterTest("DetectEngineContentInspectionTest01",
@@ -407,6 +424,8 @@ void DetectEngineContentInspectionRegisterTests(void)
             DetectEngineContentInspectionTest18);
     UtRegisterTest("DetectEngineContentInspectionTest19 byte_jump string 0 bytes",
             DetectEngineContentInspectionTest19);
+    UtRegisterTest("DetectEngineContentInspectionTest20 byte_extract string 0 bytes",
+            DetectEngineContentInspectionTest20);
 }
 
 #undef TEST_HEADER
