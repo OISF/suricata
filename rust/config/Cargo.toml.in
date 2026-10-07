@@ -7,3 +7,11 @@ description = "Suricata configuration tooling"
 rust-version = "1.85.0"
 
 [dependencies]
+indexmap = { version = "=2.11.4" }
+saphyr = { version = "0.0.6" }
+saphyr-parser = { version = "0.0.6" }
+thiserror = { version = "2.0.21" }
+
+# Indirect dependencies pinned back for MSRV.
+ordered-float = { version = "=5.3.0" }
+encoding_rs = { version = "=0.8.35" }

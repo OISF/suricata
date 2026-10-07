@@ -1,0 +1,3 @@
+from-one: one
+from-tag: !include nested/tagged.yaml
+include: nested/two.yaml

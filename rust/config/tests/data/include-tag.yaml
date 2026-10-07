@@ -1,0 +1,17 @@
+af-packet: !include include-tag-af-packet.yaml
+existing:
+  keep: 1
+existing: !include include-tag-scalars.yaml
+merged:
+  keep: 1
+merged.sub: !include include-tag-scalars.yaml
+merged: !include include-tag-scalars.yaml
+dotted.merge:
+  keep: 1
+dotted.merge: !include include-tag-scalars.yaml
+scalar: !include include-tag-scalar.yaml
+empty: !include include-tag-empty.yaml
+null-include: !include ~
+in-list:
+  - !include include-tag-scalars.yaml
+  - plain
