@@ -1053,11 +1053,55 @@ static int DetectAbsentTestParse04(void)
     PASS;
 }
 
+/** \test fast_pattern is not taken from a buffer with absent when a repeated
+ *        buffer shares its list id */
+static int DetectAbsentTestParse05(void)
+{
+    const char *sigs[] = {
+        "alert http any any -> any any (http.request_header; content:\"Host\"; "
+        "http.request_header; absent: or_else; content:\"a-much-longer-pattern\"; sid:1;)",
+        "alert http any any -> any any (http.request_header; absent: or_else; "
+        "content:\"a-much-longer-pattern\"; http.request_header; content:\"Host\"; sid:2;)",
+        "alert http any any -> any any (http.request_header; to_lowercase; content:\"host\"; "
+        "http.request_header; to_lowercase; absent: or_else; "
+        "content:\"a-much-longer-pattern\"; sid:3;)",
+    };
+
+    for (size_t i = 0; i < ARRAY_SIZE(sigs); i++) {
+        DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+        FAIL_IF_NULL(de_ctx);
+        de_ctx->flags |= DE_QUIET;
+
+        Signature *s = DetectEngineAppendSig(de_ctx, sigs[i]);
+        FAIL_IF_NULL(s);
+        FAIL_IF_NOT(s->init_data->buffer_index == 2);
+        FAIL_IF_NOT(s->init_data->buffers[0].id == s->init_data->buffers[1].id);
+
+        int mpm_cnt = 0;
+        for (uint32_t x = 0; x < s->init_data->buffer_index; x++) {
+            for (SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
+                if (sm->type != DETECT_CONTENT)
+                    continue;
+                const DetectContentData *cd = (const DetectContentData *)sm->ctx;
+                if (cd->flags & DETECT_CONTENT_MPM) {
+                    FAIL_IF_NOT(cd->content_len == 4);
+                    mpm_cnt++;
+                }
+            }
+        }
+        FAIL_IF_NOT(mpm_cnt == 1);
+
+        DetectEngineCtxFree(de_ctx);
+    }
+    PASS;
+}
+
 void DetectAbsentRegisterTests(void)
 {
     UtRegisterTest("DetectAbsentTestParse01", DetectAbsentTestParse01);
     UtRegisterTest("DetectAbsentTestParse02", DetectAbsentTestParse02);
     UtRegisterTest("DetectAbsentTestParse03", DetectAbsentTestParse03);
     UtRegisterTest("DetectAbsentTestParse04", DetectAbsentTestParse04);
+    UtRegisterTest("DetectAbsentTestParse05", DetectAbsentTestParse05);
 }
 #endif
