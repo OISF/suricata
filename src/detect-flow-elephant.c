@@ -36,15 +36,15 @@ static int DetectFlowElephantMatchAux(Packet *p, const DetectFlowDir *fdir)
 {
     switch (*fdir) {
         case DETECT_FLOW_TOSERVER:
-            return (p->flow->flags & FLOW_IS_ELEPHANT_TOSERVER);
+            return (p->flow->aux_flags & FLOW_AUX_IS_ELEPHANT_TOSERVER) != 0;
         case DETECT_FLOW_TOCLIENT:
-            return (p->flow->flags & FLOW_IS_ELEPHANT_TOCLIENT);
+            return (p->flow->aux_flags & FLOW_AUX_IS_ELEPHANT_TOCLIENT) != 0;
         case DETECT_FLOW_TOEITHER:
-            return ((p->flow->flags & FLOW_IS_ELEPHANT_TOSERVER) ||
-                    (p->flow->flags & FLOW_IS_ELEPHANT_TOCLIENT));
+            return (p->flow->flags & FLOW_IS_ELEPHANT) != 0;
         case DETECT_FLOW_TOBOTH:
-            return ((p->flow->flags & (FLOW_IS_ELEPHANT_TOSERVER | FLOW_IS_ELEPHANT_TOCLIENT)) ==
-                    (FLOW_IS_ELEPHANT_TOSERVER | FLOW_IS_ELEPHANT_TOCLIENT));
+            return ((p->flow->aux_flags &
+                            (FLOW_AUX_IS_ELEPHANT_TOSERVER | FLOW_AUX_IS_ELEPHANT_TOCLIENT)) ==
+                    (FLOW_AUX_IS_ELEPHANT_TOSERVER | FLOW_AUX_IS_ELEPHANT_TOCLIENT));
     }
 
     DEBUG_VALIDATE_BUG_ON(1);

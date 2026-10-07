@@ -55,12 +55,15 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** next packet in toclient direction will act on updated app-layer state */
 #define FLOW_TC_APP_UPDATE_NEXT BIT_U32(2)
 
-/** Flow is marked an elephant flow */
-#define FLOW_IS_ELEPHANT_TOSERVER BIT_U32(3)
-#define FLOW_IS_ELEPHANT_TOCLIENT BIT_U32(4)
+/** Flow is marked an elephant flow, in either direction. The direction(s)
+ *  are tracked in aux_flags: FLOW_AUX_IS_ELEPHANT_TOSERVER and
+ *  FLOW_AUX_IS_ELEPHANT_TOCLIENT. */
+#define FLOW_IS_ELEPHANT BIT_U32(3)
 
 /** All packets in this flow should be accepted */
-#define FLOW_ACTION_ACCEPT BIT_U32(5)
+#define FLOW_ACTION_ACCEPT BIT_U32(4)
+
+// vacancy bit 5
 
 /** Packet payloads belonging to this flow should not be inspected */
 #define FLOW_NOPAYLOAD_INSPECTION       BIT_U32(6)
@@ -127,6 +130,10 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_AUX_ACTION_BY_FIREWALL BIT_U8(0)
 /** Flow action issued by exception policy */
 #define FLOW_AUX_ACTION_BY_EXCEPTION_POLICY BIT_U8(1)
+/** Flow is marked an elephant flow in the toserver direction */
+#define FLOW_AUX_IS_ELEPHANT_TOSERVER BIT_U8(2)
+/** Flow is marked an elephant flow in the toclient direction */
+#define FLOW_AUX_IS_ELEPHANT_TOCLIENT BIT_U8(3)
 
 /* File flags */
 
