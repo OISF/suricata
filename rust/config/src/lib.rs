@@ -26,6 +26,12 @@ pub type Config = YamlOwned;
 /// or sequence. This is the same limit as the C loader had.
 pub const MAX_NESTING_DEPTH: usize = 128;
 
+/// Maximum number of nodes all aliases of a configuration may expand to
+/// together. An alias copies its anchored node, so without a limit a small
+/// document with aliases of aliases could expand to an enormous one. The C
+/// loader did not support aliases.
+pub const MAX_ALIAS_NODES: usize = 100_000;
+
 /// Errors returned while parsing a configuration document.
 #[derive(Debug, Error)]
 pub enum ParseError {
@@ -35,6 +41,8 @@ pub enum ParseError {
     MultipleDocuments(usize),
     #[error("maximum nesting depth exceeded ({limit}) at line {line}")]
     NestingLimit { limit: usize, line: usize },
+    #[error("aliases expand to more than {limit} nodes at line {line}")]
+    AliasLimit { limit: usize, line: usize },
 }
 
 /// Parse a Suricata YAML configuration document.
@@ -43,7 +51,8 @@ pub enum ParseError {
 /// configuration mapping.
 ///
 /// Parsing is not recursive, and a document nested deeper than
-/// [`MAX_NESTING_DEPTH`] fails to parse.
+/// [`MAX_NESTING_DEPTH`], or with aliases expanding to more than
+/// [`MAX_ALIAS_NODES`] nodes, fails to parse.
 pub fn parse_yaml(input: &str) -> Result<Config, ParseError> {
     let mut docs = load_documents(input)?;
 
@@ -68,62 +77,101 @@ pub fn parse_yaml(input: &str) -> Result<Config, ParseError> {
 //
 // The parser's own load() recurses for each level of nesting, so the
 // events are passed to the loader here instead, checking the nesting
-// depth on the way.
+// depth and the alias expansion on the way.
 fn load_documents(input: &str) -> Result<Vec<Config>, ParseError> {
     let mut loader = YamlLoader::<YamlOwned>::default();
-    let mut nesting = NestingCheck::default();
+    let mut limits = LimitCheck::default();
 
     for event in Parser::new_from_str(input) {
         let (event, span) = event?;
-        nesting.check(&event, span)?;
+        limits.check(&event, span)?;
         loader.on_event(event, span);
     }
 
     Ok(loader.into_documents())
 }
 
-// Tracks the nesting depth while parsing.
+// Tracks the nesting depth and the alias expansion while parsing.
 //
-// An alias copies its anchored node, so the height of each anchored node
-// is recorded, and an alias nests as deep as its anchored node.
+// The loader copies the anchored node for an alias, so the height and size
+// of each anchored node are recorded. An alias nests as deep as its
+// anchored node, and adds the size of its anchored node to the nodes all
+// aliases expand to. This is checked before the loader sees the alias.
 #[derive(Default)]
-struct NestingCheck {
+struct LimitCheck {
     // The open mappings and sequences.
     open: Vec<OpenNode>,
-    // The height of each anchored node by anchor ID.
-    anchors: HashMap<usize, usize>,
+    // The anchored nodes by anchor ID.
+    anchors: HashMap<usize, NodeSize>,
+    // The number of nodes all aliases so far expand to.
+    alias_nodes: usize,
 }
 
 struct OpenNode {
     anchor: usize,
-    // The height of the highest child seen so far.
-    height: usize,
+    // The height of the highest child, and the size including the
+    // children, seen so far.
+    size: NodeSize,
 }
 
-impl NestingCheck {
+#[derive(Clone, Copy)]
+struct NodeSize {
+    // The height of the node, 0 for a scalar.
+    height: usize,
+    // The number of nodes, including the node itself and the nodes its
+    // aliases expand to.
+    nodes: usize,
+}
+
+impl NodeSize {
+    // A single node without children.
+    const SINGLE: Self = Self {
+        height: 0,
+        nodes: 1,
+    };
+}
+
+impl LimitCheck {
     fn check(&mut self, event: &Event, span: Span) -> Result<(), ParseError> {
         match event {
             Event::MappingStart(anchor, _) | Event::SequenceStart(anchor, _) => {
                 self.open.push(OpenNode {
                     anchor: *anchor,
-                    height: 0,
+                    size: NodeSize::SINGLE,
                 });
                 self.check_depth(0, span)
             }
             Event::MappingEnd | Event::SequenceEnd => {
                 if let Some(node) = self.open.pop() {
-                    self.add_node(node.anchor, node.height + 1);
+                    let size = NodeSize {
+                        height: node.size.height + 1,
+                        ..node.size
+                    };
+                    self.add_node(node.anchor, size);
                 }
                 Ok(())
             }
             Event::Scalar(_, _, anchor, _) => {
-                self.add_node(*anchor, 0);
+                self.add_node(*anchor, NodeSize::SINGLE);
                 Ok(())
             }
             Event::Alias(anchor) => {
-                let height = self.anchors.get(anchor).copied().unwrap_or(0);
-                self.check_depth(height, span)?;
-                self.add_node(0, height);
+                // An alias of an anchored node that is not complete yet
+                // becomes a single bad value.
+                let size = self
+                    .anchors
+                    .get(anchor)
+                    .copied()
+                    .unwrap_or(NodeSize::SINGLE);
+                self.check_depth(size.height, span)?;
+                self.alias_nodes = self.alias_nodes.saturating_add(size.nodes);
+                if self.alias_nodes > MAX_ALIAS_NODES {
+                    return Err(ParseError::AliasLimit {
+                        limit: MAX_ALIAS_NODES,
+                        line: span.start.line(),
+                    });
+                }
+                self.add_node(0, size);
                 Ok(())
             }
             _ => Ok(()),
@@ -142,14 +190,14 @@ impl NestingCheck {
         Ok(())
     }
 
-    // Record a complete node of the given height in its parent, and its
-    // anchor if it has one.
-    fn add_node(&mut self, anchor: usize, height: usize) {
+    // Record a complete node in its parent, and its anchor if it has one.
+    fn add_node(&mut self, anchor: usize, size: NodeSize) {
         if anchor > 0 {
-            self.anchors.insert(anchor, height);
+            self.anchors.insert(anchor, size);
         }
         if let Some(parent) = self.open.last_mut() {
-            parent.height = parent.height.max(height);
+            parent.size.height = parent.size.height.max(size.height);
+            parent.size.nodes = parent.size.nodes.saturating_add(size.nodes);
         }
     }
 }
@@ -683,6 +731,45 @@ tagged.path: !leaf final
             input.push_str(&format!("a{i}: &a{i} [*a{}]\n", i - 1));
         }
         assert_nesting_limit(load_string(&input));
+    }
+
+    fn assert_alias_limit<T: std::fmt::Debug>(result: Result<T, LoadError>) {
+        let err = result.expect_err("config over the alias limit should fail to load");
+        assert!(
+            err.to_string().contains("aliases expand to more than"),
+            "unexpected error: {err}"
+        );
+    }
+
+    // Aliases copy their anchored node.
+    #[test]
+    fn test_alias() {
+        let config = load_string("a: &a {b: 1, c: [x]}\nd: *a\n").expect("alias should load");
+        assert_eq!(config["d"]["b"].as_integer(), Some(1));
+        assert_eq!(config["d"]["c"][0].as_str(), Some("x"));
+    }
+
+    // All aliases together may expand to MAX_ALIAS_NODES nodes.
+    #[test]
+    fn test_alias_limit() {
+        let aliases = |count: usize| format!("a: &a x\nb: [{}]\n", vec!["*a"; count].join(", "));
+
+        let config = load_string(&aliases(MAX_ALIAS_NODES)).expect("limit should load");
+        assert_eq!(config["b"].as_vec().map(Vec::len), Some(MAX_ALIAS_NODES));
+
+        assert_alias_limit(load_string(&aliases(MAX_ALIAS_NODES + 1)));
+    }
+
+    // Aliases of aliases expand exponentially, and fail before the loader
+    // copies the nodes ("billion laughs").
+    #[test]
+    fn test_alias_limit_nested() {
+        let mut input = String::from("a0: &a0 [x, x, x, x, x, x, x, x, x, x]\n");
+        for i in 1..10 {
+            let alias = format!("*a{}", i - 1);
+            input.push_str(&format!("a{i}: &a{i} [{}]\n", vec![alias; 10].join(", ")));
+        }
+        assert_alias_limit(load_string(&input));
     }
 
     // An included file is nested at the depth of the include.
