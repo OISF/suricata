@@ -4691,7 +4691,7 @@ static bool FirewallPolicyNodeIsList(const SCConfNode *node)
 {
     SCConfNode *c;
 
-    if (TAILQ_EMPTY(&node->head)) {
+    if (!SCConfNodeHasChildren(node)) {
         return false;
     }
     TAILQ_FOREACH (c, &node->head, next) {
@@ -4749,7 +4749,7 @@ static int WarnUnmatchedFirewallPolicyStateKeys(
              * app.http2.stream: accept) is never consulted by the loader
              * and must fall through to the warning below */
             bool is_sub_state_section = false;
-            if (c->head.tqh_first != NULL) {
+            if (SCConfNodeHasChildren(c)) {
                 for (uint8_t s = 1; s <= AppLayerParserGetMaxSubState(a); s++) {
                     const char *sn = AppLayerParserGetSubStateName(a, s);
                     if (sn == NULL) {
@@ -4887,7 +4887,7 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
                                  * directly by the loader, possibly with a
                                  * mapping value, and are not sub-state
                                  * sections either */
-                                if (sc->name == NULL || sc->head.tqh_first == NULL ||
+                                if (sc->name == NULL || !SCConfNodeHasChildren(sc) ||
                                         FirewallPolicyNodeIsList(sc) ||
                                         FwPolicyKeyIsNonState(sc->name)) {
                                     continue;

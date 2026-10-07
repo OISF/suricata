@@ -67,10 +67,11 @@ void MacSetRegisterFlowStorage(void)
     if (root != NULL) {
         TAILQ_FOREACH (node, &root->head, next) {
             if (node->val && strcmp(node->val, "eve-log") == 0) {
-                const char *enabled = SCConfNodeLookupChildValue(node->head.tqh_first, "enabled");
+                const char *enabled =
+                        SCConfNodeLookupChildValue(SCConfGetFirstNode(node), "enabled");
                 if (enabled != NULL && SCConfValIsTrue(enabled)) {
                     const char *ethernet =
-                            SCConfNodeLookupChildValue(node->head.tqh_first, "ethernet");
+                            SCConfNodeLookupChildValue(SCConfGetFirstNode(node), "ethernet");
                     if (ethernet != NULL && SCConfValIsTrue(ethernet)) {
                         g_macset_storage_id =
                                 SCFlowStorageRegister("macset", (void (*)(void *))MacSetFree);

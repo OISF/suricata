@@ -2400,7 +2400,7 @@ void HTPConfigure(void)
     /* Server Nodes */
     TAILQ_FOREACH(si, &server_config->head, next) {
         /* Need the named node, not the index */
-        SCConfNode *s = TAILQ_FIRST(&si->head);
+        SCConfNode *s = SCConfGetFirstNode(si);
         if (NULL == s) {
             SCLogDebug("LIBHTP s NULL");
             continue;
@@ -3679,10 +3679,10 @@ libhtp:\n\
     outputs = SCConfGetNode("libhtp.server-config");
     FAIL_IF_NULL(outputs);
 
-    SCConfNode *node = TAILQ_FIRST(&outputs->head);
+    SCConfNode *node = SCConfGetFirstNode(outputs);
     FAIL_IF_NULL(node);
     FAIL_IF(strcmp(node->name, "0") != 0);
-    node = TAILQ_FIRST(&node->head);
+    node = SCConfGetFirstNode(node);
     FAIL_IF_NULL(node);
     FAIL_IF(strcmp(node->name, "apache-tomcat") != 0);
 
@@ -3719,11 +3719,11 @@ libhtp:\n\
 
     outputs = SCConfGetNode("libhtp.server-config");
     FAIL_IF_NULL(outputs);
-    node = TAILQ_FIRST(&outputs->head);
-    node = TAILQ_NEXT(node, next);
+    node = SCConfGetFirstNode(outputs);
+    node = SCConfGetNextNode(node);
     FAIL_IF_NULL(node);
     FAIL_IF(strcmp(node->name, "1") != 0);
-    node = TAILQ_FIRST(&node->head);
+    node = SCConfGetFirstNode(node);
     FAIL_IF_NULL(node);
     FAIL_IF(strcmp(node->name, "iis7") != 0);
 

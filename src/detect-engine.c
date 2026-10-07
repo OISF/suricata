@@ -3038,13 +3038,13 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         TAILQ_FOREACH(opt, &de_ctx_custom->head, next) {
             if (de_ctx_profile == NULL) {
                 if (opt->val && strcmp(opt->val, "profile") == 0) {
-                    de_ctx_profile = opt->head.tqh_first->val;
+                    de_ctx_profile = SCConfGetFirstNode(opt)->val;
                 }
             }
 
             if (sgh_mpm_context == NULL) {
                 if (opt->val && strcmp(opt->val, "sgh-mpm-context") == 0) {
-                    sgh_mpm_context = opt->head.tqh_first->val;
+                    sgh_mpm_context = SCConfGetFirstNode(opt)->val;
                 }
             }
         }
@@ -3124,19 +3124,19 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
                     if (opt->val && strcmp(opt->val, "custom-values") == 0) {
                         if (max_uniq_toclient_groups_str == NULL) {
                             max_uniq_toclient_groups_str = (char *)SCConfNodeLookupChildValue(
-                                    opt->head.tqh_first, "toclient-sp-groups");
+                                    SCConfGetFirstNode(opt), "toclient-sp-groups");
                         }
                         if (max_uniq_toclient_groups_str == NULL) {
                             max_uniq_toclient_groups_str = (char *)SCConfNodeLookupChildValue(
-                                    opt->head.tqh_first, "toclient-groups");
+                                    SCConfGetFirstNode(opt), "toclient-groups");
                         }
                         if (max_uniq_toserver_groups_str == NULL) {
                             max_uniq_toserver_groups_str = (char *)SCConfNodeLookupChildValue(
-                                    opt->head.tqh_first, "toserver-dp-groups");
+                                    SCConfGetFirstNode(opt), "toserver-dp-groups");
                         }
                         if (max_uniq_toserver_groups_str == NULL) {
                             max_uniq_toserver_groups_str = (char *)SCConfNodeLookupChildValue(
-                                    opt->head.tqh_first, "toserver-groups");
+                                    SCConfGetFirstNode(opt), "toserver-groups");
                         }
                     }
                 }

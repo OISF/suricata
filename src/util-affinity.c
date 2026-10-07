@@ -620,7 +620,8 @@ void AffinitySetupLoadFromConfig(void)
 
         SCLogConfig("Found CPU affinity definition for \"%s\"", setname);
 
-        SCConfNode *aff_query_node = AffinityConfigIsLegacy() ? affinity->head.tqh_first : affinity;
+        SCConfNode *aff_query_node =
+                AffinityConfigIsLegacy() ? SCConfGetFirstNode(affinity) : affinity;
         SetupCpuSets(taf, aff_query_node, setname);
         if (SetupAffinityPriority(taf, aff_query_node, setname) < 0) {
             SCLogError("Failed to setup priority for CPU affinity type: %s", setname);
