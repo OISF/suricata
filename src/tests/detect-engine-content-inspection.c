@@ -342,6 +342,35 @@ static int DetectEngineContentInspectionTest18(void)
     TEST_FOOTER;
 }
 
+/** \brief byte_jump with 0 bytes and string stops at the end of the buffer */
+static int DetectEngineContentInspectionTest19(void)
+{
+    TEST_HEADER;
+    TEST_RUN("AB1000", 3, "byte_jump:0,2,string,dec,from_beginning; content:\"B\"; within:1;", true,
+            2);
+    /* nothing left to convert at the end of the buffer */
+    TEST_RUN("AB1", 2, "byte_jump:0,2,string,dec,from_beginning;", false, 1);
+    /* relative: nothing left to convert */
+    TEST_RUN("120", 2, "content:\"12\"; byte_jump:0,0,relative,string,dec,post_offset -1;", false,
+            2);
+    /* relative: the jump steps over the 2 digits inside the buffer */
+    TEST_RUN("X011", 3,
+            "content:\"X\"; byte_jump:0,0,relative,string,dec,post_offset -1; "
+            "byte_test:2,=,1,-2,relative,string,dec;",
+            true, 3);
+    /* relative: leading zeros do not count toward the 23 byte limit */
+    TEST_RUN("X00000000000000000000000001", 27,
+            "content:\"X\"; byte_jump:0,0,relative,string,dec,post_offset -1; "
+            "isdataat:!1,relative;",
+            true, 3);
+    /* 0 bytes from a byte_extract variable */
+    TEST_RUN("AX01000", 4,
+            "content:\"X\"; byte_extract:1,0,n,relative,string,dec; "
+            "byte_jump:n,0,relative,string,dec,from_beginning; content:\"X\"; within:1;",
+            true, 4);
+    TEST_FOOTER;
+}
+
 void DetectEngineContentInspectionRegisterTests(void)
 {
     UtRegisterTest("DetectEngineContentInspectionTest01",
@@ -376,6 +405,8 @@ void DetectEngineContentInspectionRegisterTests(void)
             DetectEngineContentInspectionTest17);
     UtRegisterTest("DetectEngineContentInspectionTest18 byte_test string 0 bytes",
             DetectEngineContentInspectionTest18);
+    UtRegisterTest("DetectEngineContentInspectionTest19 byte_jump string 0 bytes",
+            DetectEngineContentInspectionTest19);
 }
 
 #undef TEST_HEADER

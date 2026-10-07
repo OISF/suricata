@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2020 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -192,7 +192,8 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
 
     /* Extract the byte data */
     if (flags & DETECT_BYTEJUMP_STRING) {
-        extbytes = ByteExtractStringUint64(&val, data->base, nbytes, (const char *)ptr);
+        extbytes = ByteExtractStringUint64Bounded(
+                &val, data->base, nbytes, (size_t)len, (const char *)ptr);
         if(extbytes <= 0) {
             SCLogDebug("error extracting %d bytes of string data: %d", nbytes, extbytes);
             SCReturnBool(false);
