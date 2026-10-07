@@ -1,0 +1,3 @@
+x: 1
+value: !include control-chars-nul.yaml
+y: 2

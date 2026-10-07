@@ -1,0 +1,10 @@
+%YAML 1.1
+---
+before: 1
+vars:
+  address-groups:
+    HOME_NET: "[192.168.0.0/16]"
+    EXTERNAL_NET: "!$HOME_NET"
+override-me: original
+include: include-included.yaml
+after: 1
