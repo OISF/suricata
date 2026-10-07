@@ -1047,8 +1047,6 @@ typedef struct DecodeThreadVars_
     uint16_t counter_flow_icmp6;
     uint16_t counter_flow_tcp_reuse;
     uint16_t counter_flow_elephant;
-    uint16_t counter_flow_elephant_toserver;
-    uint16_t counter_flow_elephant_toclient;
     uint16_t counter_flow_get_used;
     uint16_t counter_flow_get_used_eval;
     uint16_t counter_flow_get_used_eval_reject;
@@ -1065,6 +1063,10 @@ typedef struct DecodeThreadVars_
     /* thread data for flow logging api: only used at forced
      * flow recycle during lookups */
     void *output_flow_thread_data;
+
+    /* Added at the end of the struct to preserve ABI. */
+    uint16_t counter_flow_elephant_toserver;
+    uint16_t counter_flow_elephant_toclient;
 
 } DecodeThreadVars;
 
