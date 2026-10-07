@@ -1018,6 +1018,12 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
                 optname);
         goto error;
     }
+
+    if (s->action & ACTION_CONFIG) {
+        SCLogError(
+                "action \'config\' is not supported in threat detection rules with firewall mode");
+        goto error;
+    }
     int setup_ret = 0;
 
     /* Validate double quoting, trimming trailing white space along the way. */
