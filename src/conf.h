@@ -24,29 +24,15 @@
 #ifndef SURICATA_CONF_H
 #define SURICATA_CONF_H
 
+/**
+ * A configuration node, opaque outside of conf.c and the YAML loader.
+ */
+typedef struct SCConfNode_ SCConfNode;
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-#include "queue.h"
-
-/**
- * Structure of a configuration parameter.
- */
-typedef struct SCConfNode_ {
-    char *name;
-    char *val;
-
-    int is_seq;
-
-    /**< Flag that sets this nodes value as final. */
-    int final;
-
-    struct SCConfNode_ *parent;
-    TAILQ_HEAD(, SCConfNode_) head;
-    TAILQ_ENTRY(SCConfNode_) next;
-} SCConfNode;
 
 /**
  * The default log directory.

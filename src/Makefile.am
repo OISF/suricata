@@ -53,6 +53,7 @@ noinst_HEADERS = \
 	bindgen.h \
 	build-info.h \
 	capture-hooks.h \
+	conf-private.h \
 	conf-yaml-loader.h \
 	conf.h \
 	counters.h \

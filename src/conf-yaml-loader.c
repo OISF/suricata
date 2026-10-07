@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "conf.h"
+#include "conf-private.h"
 #include "conf-yaml-loader.h"
 #include <yaml.h>
 #include "util-path.h"

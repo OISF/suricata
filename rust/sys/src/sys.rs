@@ -200,59 +200,13 @@ pub type SCAppLayerPlugin = SCAppLayerPlugin_;
 extern "C" {
     pub fn SCPluginRegisterAppLayer(arg1: *mut SCAppLayerPlugin) -> ::std::os::raw::c_int;
 }
-#[doc = " Structure of a configuration parameter."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone)]
 pub struct SCConfNode_ {
-    pub name: *mut ::std::os::raw::c_char,
-    pub val: *mut ::std::os::raw::c_char,
-    pub is_seq: ::std::os::raw::c_int,
-    pub final_: ::std::os::raw::c_int,
-    pub parent: *mut SCConfNode_,
-    pub head: SCConfNode___bindgen_ty_1,
-    pub next: SCConfNode___bindgen_ty_2,
+    _unused: [u8; 0],
 }
-#[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct SCConfNode___bindgen_ty_1 {
-    pub tqh_first: *mut SCConfNode_,
-    pub tqh_last: *mut *mut SCConfNode_,
-}
-impl Default for SCConfNode___bindgen_ty_1 {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct SCConfNode___bindgen_ty_2 {
-    pub tqe_next: *mut SCConfNode_,
-    pub tqe_prev: *mut *mut SCConfNode_,
-}
-impl Default for SCConfNode___bindgen_ty_2 {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-impl Default for SCConfNode_ {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[doc = " Structure of a configuration parameter."]
-pub type SCConfNode = [u64; 8usize];
+#[doc = " A configuration node, opaque outside of conf.c and the YAML loader."]
+pub type SCConfNode = u8;
 extern "C" {
     pub fn SCConfInit();
 }

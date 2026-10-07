@@ -38,6 +38,7 @@
 
 #include "suricata-common.h"
 #include "conf.h"
+#include "conf-private.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "util-path.h"
