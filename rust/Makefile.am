@@ -1,6 +1,7 @@
 SUBDIRS =	ffi \
 		htp \
 		sys \
+		config \
 		suricatasc \
 		suricatactl
 
@@ -16,6 +17,7 @@ EXTRA_DIST =	.cargo/config.toml.in \
 		ffi \
 		htp \
 		src \
+		config \
 		suricatactl \
 		suricatasc \
 		sys \

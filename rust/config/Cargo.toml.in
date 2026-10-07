@@ -1,0 +1,9 @@
+[package]
+name = "suricata-config"
+version = "@PACKAGE_VERSION@"
+edition = "2021"
+license = "GPL-2.0-only"
+description = "Suricata configuration tooling"
+rust-version = "1.85.0"
+
+[dependencies]
