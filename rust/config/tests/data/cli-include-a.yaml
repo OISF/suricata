@@ -1,0 +1,5 @@
+from-a: 1
+shared: from-a
+mapping:
+  c: 3
+final: from-a

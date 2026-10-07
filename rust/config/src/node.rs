@@ -90,6 +90,50 @@ impl Node {
     }
 }
 
+/// Walk a path below a mapping and return the node at the end of the
+/// path, for setting it. Used for dotted keys and command line
+/// overrides.
+///
+/// Missing nodes are created as null, and a node along the path that is
+/// neither a mapping nor a sequence is replaced with a mapping. A number
+/// selects an item of a sequence, the length of the sequence appends an
+/// item, anything beyond is an error.
+pub(crate) fn path_node_mut<'a>(
+    mapping: &'a mut Mapping, segments: &[String],
+) -> Result<&'a mut Node, String> {
+    let Some((first, rest)) = segments.split_first() else {
+        return Err("empty key".into());
+    };
+
+    let mut node = mapping.entry(first.clone()).or_default();
+    for segment in rest {
+        if !node.is_mapping() && !node.is_sequence() {
+            *node = Node::Mapping(Mapping::new());
+        }
+        node = match node {
+            Node::Mapping(mapping) => mapping.entry(segment.clone()).or_default(),
+            Node::Sequence(items) => {
+                let len = items.len();
+                match segment.parse::<usize>() {
+                    Ok(index) if index < len => &mut items[index],
+                    Ok(index) if index == len => {
+                        items.push(Node::Null);
+                        &mut items[index]
+                    }
+                    _ => {
+                        return Err(format!(
+                            "{segment:?} is not a valid index for a sequence of length {len}"
+                        ))
+                    }
+                }
+            }
+            Node::Null | Node::Scalar(_) => unreachable!(),
+        };
+    }
+
+    Ok(node)
+}
+
 impl Index<&str> for Node {
     type Output = Node;
 
