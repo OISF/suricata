@@ -69,6 +69,12 @@ struct ConfigPrintArgs {
         help = "additional configuration file, may be used more than once"
     )]
     include: Vec<PathBuf>,
+    #[arg(
+        long,
+        value_name = "PATH=VALUE",
+        help = "override a configuration value, may be used more than once"
+    )]
+    set: Vec<String>,
     #[arg(long, value_enum, default_value_t = ConfigFormat::Yaml, help = "output format")]
     format: ConfigFormat,
 }
