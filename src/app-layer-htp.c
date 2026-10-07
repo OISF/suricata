@@ -2015,11 +2015,11 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct 
     SCConfNode *p = NULL;
 
     /* Default Parameters */
-    TAILQ_FOREACH (p, &s->head, next) {
+    for (p = SCConfGetFirstNode(s); p != NULL; p = SCConfGetNextNode(p)) {
         if (strcasecmp("address", p->name) == 0) {
             SCConfNode *pval;
             /* Addresses */
-            TAILQ_FOREACH(pval, &p->head, next) {
+            for (pval = SCConfGetFirstNode(p); pval != NULL; pval = SCConfGetNextNode(pval)) {
                 SCLogDebug("LIBHTP server %s: %s=%s", s->name, p->name, pval->val);
                 /* IPV6 or IPV4? */
                 if (strchr(pval->val, ':') != NULL) {
@@ -2037,7 +2037,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct 
                         SCLogWarning("LIBHTP failed to add ipv4 server %s, ignoring", pval->val);
                     }
                 } /* else - if (strchr(pval->val, ':') != NULL) */
-            } /* TAILQ_FOREACH(pval, &p->head, next) */
+            } /* for (pval = SCConfGetFirstNode(p); pval != NULL; pval = SCConfGetNextNode(pval)) */
 
         } else if (strcasecmp("personality", p->name) == 0) {
             /* Personalities */
@@ -2305,7 +2305,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct 
         } else if (strcasecmp("swf-decompression", p->name) == 0) {
             SCConfNode *pval;
 
-            TAILQ_FOREACH(pval, &p->head, next) {
+            for (pval = SCConfGetFirstNode(p); pval != NULL; pval = SCConfGetNextNode(pval)) {
                 if (strcasecmp("enabled", pval->name) == 0) {
                     if (SCConfValIsTrue(pval->val)) {
                         cfg_prec->swf_decompression_enabled = 1;
@@ -2355,7 +2355,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct 
                          "default config: %s",
                     p->name);
         }
-    } /* TAILQ_FOREACH(p, &default_config->head, next) */
+    } /* for (p = SCConfGetFirstNode(default_config); p != NULL; p = SCConfGetNextNode(p)) */
 }
 
 void HTPConfigure(void)
@@ -2398,7 +2398,7 @@ void HTPConfigure(void)
 
     SCConfNode *si;
     /* Server Nodes */
-    TAILQ_FOREACH(si, &server_config->head, next) {
+    for (si = SCConfGetFirstNode(server_config); si != NULL; si = SCConfGetNextNode(si)) {
         /* Need the named node, not the index */
         SCConfNode *s = SCConfGetFirstNode(si);
         if (NULL == s) {
@@ -3696,7 +3696,7 @@ libhtp:\n\
     node = SCConfNodeLookupChild(node, "address");
     FAIL_IF_NULL(node);
 
-    TAILQ_FOREACH (n, &node->head, next) {
+    for (n = SCConfGetFirstNode(node); n != NULL; n = SCConfGetNextNode(n)) {
         FAIL_IF_NULL(n);
         switch(i) {
             case 0:
@@ -3735,7 +3735,7 @@ libhtp:\n\
     FAIL_IF_NULL(node);
 
     i = 0;
-    TAILQ_FOREACH(n, &node->head, next) {
+    for (n = SCConfGetFirstNode(node); n != NULL; n = SCConfGetNextNode(n)) {
         FAIL_IF_NULL(n);
 
         switch(i) {

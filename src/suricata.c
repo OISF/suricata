@@ -2566,7 +2566,8 @@ static void SetupDelayedDetect(SCInstance *suri)
             SCConfNode *denode = NULL;
             SCConfNode *decnf = SCConfGetNode("detect-engine");
             if (decnf != NULL) {
-                TAILQ_FOREACH(denode, &decnf->head, next) {
+                for (denode = SCConfGetFirstNode(decnf); denode != NULL;
+                        denode = SCConfGetNextNode(denode)) {
                     if (strcmp(denode->val, "delayed-detect") == 0) {
                         (void)SCConfGetChildValueBool(
                                 denode, "delayed-detect", &suri->delayed_detect);

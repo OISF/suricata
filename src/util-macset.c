@@ -65,7 +65,7 @@ void MacSetRegisterFlowStorage(void)
     /* we only need to register if at least one enabled 'eve-log' output
        has the ethernet setting enabled */
     if (root != NULL) {
-        TAILQ_FOREACH (node, &root->head, next) {
+        for (node = SCConfGetFirstNode(root); node != NULL; node = SCConfGetNextNode(node)) {
             if (node->val && strcmp(node->val, "eve-log") == 0) {
                 const char *enabled =
                         SCConfNodeLookupChildValue(SCConfGetFirstNode(node), "enabled");

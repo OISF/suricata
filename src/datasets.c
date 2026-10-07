@@ -646,7 +646,7 @@ int DatasetsInit(void)
 
         int list_pos = 0;
         SCConfNode *iter = NULL;
-        TAILQ_FOREACH(iter, &datasets->head, next) {
+        for (iter = SCConfGetFirstNode(datasets); iter != NULL; iter = SCConfGetNextNode(iter)) {
             if (iter->name == NULL) {
                 list_pos++;
                 continue;

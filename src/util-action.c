@@ -119,7 +119,8 @@ int ActionInitConfig(void)
         return 0;
     }
     else {
-        TAILQ_FOREACH(action, &action_order->head, next) {
+        for (action = SCConfGetFirstNode(action_order); action != NULL;
+                action = SCConfGetNextNode(action)) {
             SCLogDebug("Loading action order : %s", action->val);
             action_flag = ActionAsciiToFlag(action->val);
             if (action_flag == 0) {

@@ -3035,7 +3035,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     SCConfNode *opt = NULL;
 
     if (de_ctx_custom != NULL) {
-        TAILQ_FOREACH(opt, &de_ctx_custom->head, next) {
+        for (opt = SCConfGetFirstNode(de_ctx_custom); opt != NULL; opt = SCConfGetNextNode(opt)) {
             if (de_ctx_profile == NULL) {
                 if (opt->val && strcmp(opt->val, "profile") == 0) {
                     de_ctx_profile = SCConfGetFirstNode(opt)->val;
@@ -3120,7 +3120,8 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             (void)SCConfGet("detect.custom-values.toserver-groups", &max_uniq_toserver_groups_str);
 
             if (de_ctx_custom != NULL) {
-                TAILQ_FOREACH(opt, &de_ctx_custom->head, next) {
+                for (opt = SCConfGetFirstNode(de_ctx_custom); opt != NULL;
+                        opt = SCConfGetNextNode(opt)) {
                     if (opt->val && strcmp(opt->val, "custom-values") == 0) {
                         if (max_uniq_toclient_groups_str == NULL) {
                             max_uniq_toclient_groups_str = (char *)SCConfNodeLookupChildValue(
@@ -3195,7 +3196,8 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 
         if (de_ctx_custom != NULL) {
             opt = NULL;
-            TAILQ_FOREACH(opt, &de_ctx_custom->head, next) {
+            for (opt = SCConfGetFirstNode(de_ctx_custom); opt != NULL;
+                    opt = SCConfGetNextNode(opt)) {
                 if (opt->val && strcmp(opt->val, "inspection-recursion-limit") != 0)
                     continue;
 
@@ -4483,7 +4485,8 @@ static int DetectEngineMultiTenantSetupLoadLivedevMappings(
 
     int mapping_cnt = 0;
     if (mappings_root_node != NULL) {
-        TAILQ_FOREACH(mapping_node, &mappings_root_node->head, next) {
+        for (mapping_node = SCConfGetFirstNode(mappings_root_node); mapping_node != NULL;
+                mapping_node = SCConfGetNextNode(mapping_node)) {
             SCConfNode *tenant_id_node = SCConfNodeLookupChild(mapping_node, "tenant-id");
             if (tenant_id_node == NULL)
                 goto bad_mapping;
@@ -4542,7 +4545,8 @@ static int DetectEngineMultiTenantSetupLoadVlanMappings(
 
     int mapping_cnt = 0;
     if (mappings_root_node != NULL) {
-        TAILQ_FOREACH(mapping_node, &mappings_root_node->head, next) {
+        for (mapping_node = SCConfGetFirstNode(mappings_root_node); mapping_node != NULL;
+                mapping_node = SCConfGetNextNode(mapping_node)) {
             SCConfNode *tenant_id_node = SCConfNodeLookupChild(mapping_node, "tenant-id");
             if (tenant_id_node == NULL)
                 goto bad_mapping;
@@ -4701,7 +4705,8 @@ int DetectEngineMultiTenantSetup(const bool unix_socket)
                 SCLogConfig("tenants config path: %s", path);
             }
 
-            TAILQ_FOREACH(tenant_node, &tenants_root_node->head, next) {
+            for (tenant_node = SCConfGetFirstNode(tenants_root_node); tenant_node != NULL;
+                    tenant_node = SCConfGetNextNode(tenant_node)) {
                 SCConfNode *id_node = SCConfNodeLookupChild(tenant_node, "id");
                 if (id_node == NULL) {
                     goto bad_tenant;

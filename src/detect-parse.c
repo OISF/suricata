@@ -4231,7 +4231,8 @@ static int DoParsePolicy(const char *policy_name, struct DetectFirewallPolicy *p
     uint8_t action_scope = 0;
     int idx = 0;
     SCConfNode *paction = NULL;
-    TAILQ_FOREACH (paction, &policy_actions->head, next) {
+    for (paction = SCConfGetFirstNode(policy_actions); paction != NULL;
+            paction = SCConfGetNextNode(paction)) {
         SCLogDebug("fw: %s => %s", policy_name, paction->val);
         if (SigParseActionDo(paction->val, idx, true, &action, &action_scope) < 0)
             return -1;
@@ -4672,7 +4673,7 @@ static bool FirewallPolicyNodeIsMapping(const SCConfNode *node)
 {
     SCConfNode *c;
 
-    TAILQ_FOREACH (c, &node->head, next) {
+    for (c = SCConfGetFirstNode(node); c != NULL; c = SCConfGetNextNode(c)) {
         if (c->name == NULL) {
             continue;
         }
@@ -4694,7 +4695,7 @@ static bool FirewallPolicyNodeIsList(const SCConfNode *node)
     if (!SCConfNodeHasChildren(node)) {
         return false;
     }
-    TAILQ_FOREACH (c, &node->head, next) {
+    for (c = SCConfGetFirstNode(node); c != NULL; c = SCConfGetNextNode(c)) {
         if (c->name == NULL) {
             return false;
         }
@@ -4737,7 +4738,7 @@ static int WarnUnmatchedFirewallPolicyStateKeys(
 
     SCConfNode *c;
     int known_wrong_keys = 0;
-    TAILQ_FOREACH (c, &node->head, next) {
+    for (c = SCConfGetFirstNode(node); c != NULL; c = SCConfGetNextNode(c)) {
         if (c->name == NULL) {
             continue;
         }
@@ -4879,7 +4880,8 @@ int DetectFirewallLoadDefaultPolicies(DetectEngineCtx *de_ctx)
                         SCConfNode *proto_node = SCConfGetNode(proto_path);
                         if (proto_node != NULL) {
                             SCConfNode *sc;
-                            TAILQ_FOREACH (sc, &proto_node->head, next) {
+                            for (sc = SCConfGetFirstNode(proto_node); sc != NULL;
+                                    sc = SCConfGetNextNode(sc)) {
                                 /* leaf keys and list values (e.g. the
                                  * default-policy list) are not sections;
                                  * the consulted non-state keys (default-policy,

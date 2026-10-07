@@ -260,7 +260,7 @@ static SCConfNode *GetConfig(void)
     SCConfNode *root = SCConfGetNode("outputs");
     SCConfNode *node = NULL;
     if (root != NULL) {
-        TAILQ_FOREACH(node, &root->head, next) {
+        for (node = SCConfGetFirstNode(root); node != NULL; node = SCConfGetNextNode(node)) {
             if (strcmp(node->val, "stats") == 0) {
                 return SCConfGetFirstNode(node);
             }

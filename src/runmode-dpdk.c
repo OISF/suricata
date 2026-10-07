@@ -303,11 +303,11 @@ static void InitEal(void)
     ArgumentsInit(&args, EAL_ARGS);
     ArgumentsAdd(&args, AllocAndSetArgument("suricata"));
 
-    TAILQ_FOREACH (param, &eal_params->head, next) {
+    for (param = SCConfGetFirstNode(eal_params); param != NULL; param = SCConfGetNextNode(param)) {
         if (SCConfNodeIsSequence(param)) {
             const char *key = param->name;
             SCConfNode *val;
-            TAILQ_FOREACH (val, &param->head, next) {
+            for (val = SCConfGetFirstNode(param); val != NULL; val = SCConfGetNextNode(val)) {
                 ArgumentsAddOptionAndArgument(&args, key, (const char *)val->val);
             }
             continue;

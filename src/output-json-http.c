@@ -557,7 +557,8 @@ static OutputInitResult OutputHttpLogInitSub(SCConfNode *conf, OutputCtx *parent
                 SCLogWarning("No need for custom as dump-all-headers is already present");
             }
             SCConfNode *field;
-            TAILQ_FOREACH (field, &custom->head, next) {
+            for (field = SCConfGetFirstNode(custom); field != NULL;
+                    field = SCConfGetNextNode(field)) {
                 HttpField f;
                 for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++) {
                     if ((strcmp(http_fields[f].config_field, field->val) == 0) ||

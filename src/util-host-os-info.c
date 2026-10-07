@@ -285,9 +285,9 @@ void SCHInfoLoadFromConfig(void)
         return;
 
     SCConfNode *policy;
-    TAILQ_FOREACH(policy, &root->head, next) {
+    for (policy = SCConfGetFirstNode(root); policy != NULL; policy = SCConfGetNextNode(policy)) {
         SCConfNode *host;
-        TAILQ_FOREACH(host, &policy->head, next) {
+        for (host = SCConfGetFirstNode(policy); host != NULL; host = SCConfGetNextNode(host)) {
             int is_ipv4 = 1;
             if (host->val != NULL && strchr(host->val, ':') != NULL)
                 is_ipv4 = 0;
@@ -1269,7 +1269,7 @@ host-os-policy:\n\
     int count = 0;
 
     SCConfNode *policy;
-    TAILQ_FOREACH(policy, &root->head, next) {
+    for (policy = SCConfGetFirstNode(root); policy != NULL; policy = SCConfGetNextNode(policy)) {
         switch (count) {
             case 0:
                 if (strcmp("one-two", policy->name) != 0)
@@ -1336,7 +1336,7 @@ host-os-policy:\n\
         goto end;
 
     SCConfNode *policy;
-    TAILQ_FOREACH(policy, &root->head, next) {
+    for (policy = SCConfGetFirstNode(root); policy != NULL; policy = SCConfGetNextNode(policy)) {
         if (SCMapEnumNameToValue(policy->name, sc_hinfo_os_policy_map) == -1) {
             printf("Invalid enum map inside\n");
             goto end;
@@ -1383,7 +1383,7 @@ host-os-policy:\n\
         goto end;
 
     SCConfNode *policy;
-    TAILQ_FOREACH(policy, &root->head, next) {
+    for (policy = SCConfGetFirstNode(root); policy != NULL; policy = SCConfGetNextNode(policy)) {
         if (SCMapEnumNameToValue(policy->name, sc_hinfo_os_policy_map) == -1) {
             printf("Invalid enum map inside\n");
             goto end;

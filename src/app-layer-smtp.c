@@ -430,7 +430,8 @@ static void SMTPConfigure(void) {
         if (extract_urls_schemes) {
             SCConfNode *scheme = NULL;
 
-            TAILQ_FOREACH (scheme, &extract_urls_schemes->head, next) {
+            for (scheme = SCConfGetFirstNode(extract_urls_schemes); scheme != NULL;
+                    scheme = SCConfGetNextNode(scheme)) {
                 size_t scheme_len = strlen(scheme->val);
                 if (scheme_len > UINT8_MAX - SCHEME_SUFFIX_LEN) {
                     FatalError("extract-urls-schemes entry '%s' is too long", scheme->val);
@@ -482,7 +483,7 @@ static void SMTPConfigure(void) {
     SCConfNode *p = NULL;
 
     if (t != NULL) {
-        TAILQ_FOREACH(p, &t->head, next) {
+        for (p = SCConfGetFirstNode(t); p != NULL; p = SCConfGetNextNode(p)) {
             if (strcasecmp("content-limit", p->name) == 0) {
                 if (ParseSizeStringU32(p->val, &content_limit) < 0) {
                     SCLogWarning("parsing content-limit %s failed", p->val);

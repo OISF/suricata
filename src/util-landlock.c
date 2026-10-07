@@ -269,7 +269,8 @@ void LandlockSandboxing(SCInstance *suri)
                          "expected a list of directory names.");
         } else {
             SCConfNode *directory;
-            TAILQ_FOREACH (directory, &read_dirs->head, next) {
+            for (directory = SCConfGetFirstNode(read_dirs); directory != NULL;
+                    directory = SCConfGetNextNode(directory)) {
                 LandlockSandboxingReadPath(ruleset, directory->val);
             }
         }
@@ -281,7 +282,8 @@ void LandlockSandboxing(SCInstance *suri)
                          "expected a list of directory names.");
         } else {
             SCConfNode *directory;
-            TAILQ_FOREACH (directory, &write_dirs->head, next) {
+            for (directory = SCConfGetFirstNode(write_dirs); directory != NULL;
+                    directory = SCConfGetNextNode(directory)) {
                 LandlockSandboxingWritePath(ruleset, directory->val);
             }
         }

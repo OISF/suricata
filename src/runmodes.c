@@ -676,7 +676,7 @@ static void RunModeInitializeEveOutput(
     }
 
     SCConfNode *type = NULL;
-    TAILQ_FOREACH(type, &types->head, next) {
+    for (type = SCConfGetFirstNode(types); type != NULL; type = SCConfGetNextNode(type)) {
         int sub_count = 0;
         char subname[256];
 
@@ -746,7 +746,8 @@ static void RunModeInitializeLuaOutput(
         SCLogDebug("m %p %s:%s", m, m->name, m->conf_name);
 
         SCConfNode *script = NULL;
-        TAILQ_FOREACH(script, &scripts->head, next) {
+        for (script = SCConfGetFirstNode(scripts); script != NULL;
+                script = SCConfGetNextNode(script)) {
             SCLogDebug("script %s", script->val);
             if (strcmp(script->val, m->conf_name) == 0) {
                 break;
@@ -787,7 +788,7 @@ void RunModeInitializeOutputs(void)
     // g_alproto_max is set to its final value
     LoggerId logger_bits[g_alproto_max];
     memset(logger_bits, 0, g_alproto_max * sizeof(LoggerId));
-    TAILQ_FOREACH(output, &outputs->head, next) {
+    for (output = SCConfGetFirstNode(outputs); output != NULL; output = SCConfGetNextNode(output)) {
 
         output_config = SCConfNodeLookupChild(output, output->val);
         if (output_config == NULL) {
@@ -881,7 +882,8 @@ void RunModeInitializeOutputs(void)
          * to be started using 'tls-log' config as own config */
         SCLogWarning("Please use 'tls-store' in YAML to configure TLS storage");
 
-        TAILQ_FOREACH(output, &outputs->head, next) {
+        for (output = SCConfGetFirstNode(outputs); output != NULL;
+                output = SCConfGetNextNode(output)) {
             output_config = SCConfNodeLookupChild(output, output->val);
 
             if (strcmp(output->val, "tls-log") == 0) {

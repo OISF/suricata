@@ -228,7 +228,7 @@ int BuildCpusetWithCallback(
         const char *name, SCConfNode *node, void (*Callback)(int i, void *data), void *data)
 {
     SCConfNode *lnode;
-    TAILQ_FOREACH(lnode, &node->head, next) {
+    for (lnode = SCConfGetFirstNode(node); lnode != NULL; lnode = SCConfGetNextNode(lnode)) {
         char *sep = NULL;
         uint32_t i;
         uint32_t a, b;
@@ -495,7 +495,8 @@ static int SetupSingleIfaceAffinity(ThreadsAffinityType *taf, SCConfNode *iface_
     // offload to Setup function
     SCConfNode *child_node;
     const char *interface_name = NULL;
-    TAILQ_FOREACH (child_node, &iface_node->head, next) {
+    for (child_node = SCConfGetFirstNode(iface_node); child_node != NULL;
+            child_node = SCConfGetNextNode(child_node)) {
         if (strcmp(child_node->name, "interface") == 0) {
             interface_name = child_node->val;
             break;
@@ -538,7 +539,8 @@ static int SetupPerIfaceAffinity(ThreadsAffinityType *taf, SCConfNode *affinity)
     }
 
     SCConfNode *iface_node;
-    TAILQ_FOREACH (iface_node, &per_iface_node->head, next) {
+    for (iface_node = SCConfGetFirstNode(per_iface_node); iface_node != NULL;
+            iface_node = SCConfGetNextNode(iface_node)) {
         if (strcmp(iface_node->val, "interface") == 0) {
             if (SetupSingleIfaceAffinity(taf, iface_node) < 0) {
                 return -1;
@@ -571,7 +573,8 @@ static bool AffinityConfigIsLegacy(void)
     }
 
     SCConfNode *affinity;
-    TAILQ_FOREACH (affinity, &root->head, next) {
+    for (affinity = SCConfGetFirstNode(root); affinity != NULL;
+            affinity = SCConfGetNextNode(affinity)) {
         // If a child does not contain "-cpu-set", then the conf is legacy
         // Names in the legacy format (list of *-cpu-sets) contain
         // list item IDs - "0" : "management-cpu-set", "1" : "worker-cpu-set"
@@ -605,7 +608,8 @@ void AffinitySetupLoadFromConfig(void)
     }
 
     SCConfNode *affinity;
-    TAILQ_FOREACH(affinity, &root->head, next) {
+    for (affinity = SCConfGetFirstNode(root); affinity != NULL;
+            affinity = SCConfGetNextNode(affinity)) {
         char *v = AffinityConfigIsLegacy() ? affinity->val : affinity->name;
         const char *setname = GetAffinitySetName(v);
         if (setname == NULL) {

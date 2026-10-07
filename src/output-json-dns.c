@@ -536,7 +536,7 @@ static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, SCConfNode *conf,
     if ((custom = SCConfNodeLookupChild(conf, answer_types_key)) != NULL) {
         dnslog_ctx->flags &= ~LOG_ALL_RRTYPES;
         SCConfNode *field;
-        TAILQ_FOREACH (field, &custom->head, next) {
+        for (field = SCConfGetFirstNode(custom); field != NULL; field = SCConfGetNextNode(field)) {
             DnsRRTypes f;
             for (f = DNS_RRTYPE_A; f < DNS_RRTYPE_MAX; f++) {
                 if (strcasecmp(dns_rrtype_fields[f].config_rrtype, field->val) == 0) {
@@ -621,7 +621,8 @@ static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, SCConfNode *conf)
             if ((format = SCConfNodeLookupChild(conf, "formats")) != NULL) {
                 uint64_t flags = 0;
                 SCConfNode *field;
-                TAILQ_FOREACH (field, &format->head, next) {
+                for (field = SCConfGetFirstNode(format); field != NULL;
+                        field = SCConfGetNextNode(field)) {
                     if (strcasecmp(field->val, "detailed") == 0) {
                         flags |= LOG_FORMAT_DETAILED;
                     } else if (strcasecmp(field->val, "grouped") == 0) {

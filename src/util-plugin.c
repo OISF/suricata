@@ -133,7 +133,8 @@ void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_a
     SCConfNode *conf = SCConfGetNode("plugins");
     if (conf != NULL) {
         SCConfNode *plugin = NULL;
-        TAILQ_FOREACH (plugin, &conf->head, next) {
+        for (plugin = SCConfGetFirstNode(conf); plugin != NULL;
+                plugin = SCConfGetNextNode(plugin)) {
             LoadPluginsFromPath(plugin->val);
         }
     }

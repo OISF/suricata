@@ -112,7 +112,7 @@ static void DefragParseParameters(SCConfNode *n)
     SCConfNode *si;
     uint64_t timeout = 0;
 
-    TAILQ_FOREACH(si, &n->head, next) {
+    for (si = SCConfGetFirstNode(n); si != NULL; si = SCConfGetNextNode(si)) {
         if (strcasecmp("timeout", si->name) == 0) {
             SCLogDebug("timeout value  %s", si->val);
             if (ParseSizeStringU64(si->val, &timeout) < 0) {
@@ -122,7 +122,7 @@ static void DefragParseParameters(SCConfNode *n)
         }
         if (strcasecmp("address", si->name) == 0) {
             SCConfNode *pval;
-            TAILQ_FOREACH(pval, &si->head, next) {
+            for (pval = SCConfGetFirstNode(si); pval != NULL; pval = SCConfGetNextNode(pval)) {
                 DefragPolicyAddHostInfo(pval->val, timeout);
             }
         }
@@ -148,10 +148,10 @@ void DefragPolicyLoadFromConfig(void)
     SCLogDebug("configuring host config %p", server_config);
     SCConfNode *sc;
 
-    TAILQ_FOREACH(sc, &server_config->head, next) {
+    for (sc = SCConfGetFirstNode(server_config); sc != NULL; sc = SCConfGetNextNode(sc)) {
         SCConfNode *p = NULL;
 
-        TAILQ_FOREACH(p, &sc->head, next) {
+        for (p = SCConfGetFirstNode(sc); p != NULL; p = SCConfGetNextNode(p)) {
             SCLogDebug("parsing configuration for %s", p->name);
             DefragParseParameters(p);
         }

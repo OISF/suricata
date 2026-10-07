@@ -1068,7 +1068,8 @@ int DetectPortTestConfVars(void)
     }
 
     SCConfNode *seq_node;
-    TAILQ_FOREACH(seq_node, &port_vars_node->head, next) {
+    for (seq_node = SCConfGetFirstNode(port_vars_node); seq_node != NULL;
+            seq_node = SCConfGetNextNode(seq_node)) {
         SCLogDebug("Testing %s - %s\n", seq_node->name, seq_node->val);
 
         DetectPort *gh =  DetectPortInit();

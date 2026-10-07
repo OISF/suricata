@@ -346,7 +346,7 @@ static int LoadFirewallRuleFiles(DetectEngineCtx *de_ctx)
     }
 
     SCConfNode *file = NULL;
-    TAILQ_FOREACH (file, &rule_files->head, next) {
+    for (file = SCConfGetFirstNode(rule_files); file != NULL; file = SCConfGetNextNode(file)) {
         int32_t good_sigs = 0;
         int32_t bad_sigs = 0;
         int32_t skipped_sigs = 0;
@@ -427,7 +427,8 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, bool sig_file_exc
                 SCLogWarning("Invalid rule-files configuration section: "
                              "expected a list of filenames.");
             } else {
-                TAILQ_FOREACH(file, &rule_files->head, next) {
+                for (file = SCConfGetFirstNode(rule_files); file != NULL;
+                        file = SCConfGetNextNode(file)) {
                     sfile = DetectLoadCompleteSigPath(de_ctx, file->val);
                     good_sigs = bad_sigs = skipped_sigs = 0;
                     ret = ProcessSigFiles(

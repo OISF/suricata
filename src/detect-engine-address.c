@@ -1231,7 +1231,8 @@ int DetectAddressTestConfVars(void)
     DetectAddressHead *ghn = NULL;
 
     SCConfNode *seq_node;
-    TAILQ_FOREACH(seq_node, &address_vars_node->head, next) {
+    for (seq_node = SCConfGetFirstNode(address_vars_node); seq_node != NULL;
+            seq_node = SCConfGetNextNode(seq_node)) {
         SCLogDebug("Testing %s - %s", seq_node->name, seq_node->val);
 
         gh = DetectAddressHeadInit();

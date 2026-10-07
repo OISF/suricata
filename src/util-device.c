@@ -306,9 +306,10 @@ int LiveBuildDeviceListCustom(const char *runmode, const char *itemname)
     if (base == NULL)
         return 0;
 
-    TAILQ_FOREACH(child, &base->head, next) {
+    for (child = SCConfGetFirstNode(base); child != NULL; child = SCConfGetNextNode(child)) {
         SCConfNode *subchild;
-        TAILQ_FOREACH(subchild, &child->head, next) {
+        for (subchild = SCConfGetFirstNode(child); subchild != NULL;
+                subchild = SCConfGetNextNode(subchild)) {
             if ((!strcmp(subchild->name, itemname))) {
                 if (!strcmp(subchild->val, "default"))
                     break;

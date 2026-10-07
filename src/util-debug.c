@@ -1469,7 +1469,8 @@ void SCLogLoadConfig(int daemon, int verbose, uint32_t userid, uint32_t groupid)
     (void)SCConfGet("logging.default-output-filter", &sc_lid->op_filter);
 
     SCConfNode *seq_node, *output;
-    TAILQ_FOREACH(seq_node, &outputs->head, next) {
+    for (seq_node = SCConfGetFirstNode(outputs); seq_node != NULL;
+            seq_node = SCConfGetNextNode(seq_node)) {
         SCLogLevel level = sc_lid->global_log_level;
         SCLogOPIfaceCtx *op_iface_ctx = NULL;
         const char *format;
