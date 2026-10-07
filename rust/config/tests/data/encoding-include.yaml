@@ -1,0 +1,2 @@
+include: encoding-utf16be.yaml
+value: !include encoding-utf16le.yaml

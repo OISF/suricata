@@ -1,0 +1,18 @@
+include: include-lists-a.yaml
+include:
+  - ~
+  - include-lists-b.yaml
+  -
+outer:
+  own: 1
+  include: include-lists-a.yaml
+  after-include: 2
+list:
+  - name: first
+    include: include-lists-b.yaml
+  - include: include-lists-a.yaml
+    own: yes
+deeper:
+  level:
+    include: [include-lists-a.yaml, include-lists-b.yaml]
+include: ~

@@ -1,0 +1,7 @@
+a: 1
+map:
+  x: 1
+  y: 2
+vars:
+  address-groups:
+    HOME_NET: any
