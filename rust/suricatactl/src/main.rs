@@ -113,7 +113,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         Level::INFO
     };
-    tracing_subscriber::fmt().with_max_level(log_level).init();
+    tracing_subscriber::fmt()
+        .with_max_level(log_level)
+        .with_writer(std::io::stderr)
+        .init();
 
     match cli.command {
         Commands::Config(config) => match config.command {
