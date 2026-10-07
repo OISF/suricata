@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -153,6 +153,30 @@ int WARN_UNUSED ByteExtractString(
  * \return -1 On error
  */
 int WARN_UNUSED ByteExtractStringUint64(uint64_t *res, int base, size_t len, const char *str);
+
+/**
+ * Extract unsigned integer value as uint64_t from a buffer that is not NUL
+ * terminated.
+ *
+ * With len set, this converts len bytes as ByteExtractStringUint64() does.
+ * With len 0, it converts the number at the start of str the way strtoull()
+ * does for bases 8, 10 and 16, but never reads past str + avail. Leading
+ * whitespace and zeros do not count toward the 23 byte limit, but a sign does.
+ * Every number that fits in a uint64_t converts in full.
+ *
+ * \param res Stores result
+ * \param base Base of the number to extract, or 0 to detect it as strtoull()
+ *        does
+ * \param len Number of bytes to extract (23 max), or 0 for the number at str
+ * \param avail Number of bytes that can be read at str
+ * \param str Buffer to extract from
+ *
+ * \return n Number of bytes consumed on success
+ * \return -1 On error; *res is 0 when there is no number at str, and
+ *        UINT64_MAX when the number does not fit in a uint64_t
+ */
+int WARN_UNUSED ByteExtractStringUint64Bounded(
+        uint64_t *res, int base, size_t len, size_t avail, const char *str);
 
 /**
  * Extract unsigned integer value from a string as uint32_t.
