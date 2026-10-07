@@ -50,6 +50,7 @@ use saphyr_parser::ScalarStyle;
 use saphyr_parser::ScanError;
 use saphyr_parser::Tag;
 
+use crate::node::path_node_mut;
 use crate::node::Mapping;
 use crate::node::Node;
 use crate::Config;
@@ -623,7 +624,7 @@ impl Loader {
                     map.insert(key, node);
                 }
                 Some(Key::Dotted(segments)) => {
-                    let slot = dotted_path_node(map, &segments)
+                    let slot = path_node_mut(map, &segments)
                         .map_err(|reason| invalid_dotted_key(location, &segments, reason))?;
                     // A null value leaves an existing node as is.
                     if !node.is_null() {
@@ -708,7 +709,7 @@ impl Loader {
                 // A mapping is merged into an existing mapping, which is
                 // taken out and put back when complete.
                 let map = if kind == Kind::Mapping {
-                    let slot = dotted_path_node(map, &segments)
+                    let slot = path_node_mut(map, &segments)
                         .map_err(|reason| invalid_dotted_key(location, &segments, reason))?;
                     match slot {
                         Node::Mapping(existing) => std::mem::take(existing),
@@ -761,7 +762,7 @@ impl Loader {
                 map.insert(key, node);
             }
             (Dest::Path(segments), Some(Frame::Mapping { map, .. })) => {
-                let slot = dotted_path_node(map, &segments)
+                let slot = path_node_mut(map, &segments)
                     .map_err(|reason| invalid_dotted_key(location, &segments, reason))?;
                 *slot = node;
             }
@@ -818,45 +819,4 @@ fn invalid_dotted_key(location: Location, segments: &[String], reason: String) -
         location,
         message: format!("invalid dotted key {:?}: {reason}", segments.join(".")),
     }
-}
-
-// Walk a dotted key path below a mapping and return the node at the end
-// of the path. Missing nodes are created as null, and a node along the
-// path that is neither a mapping nor a sequence is replaced with a
-// mapping. A number selects an item of a sequence, the length of the
-// sequence appends an item.
-fn dotted_path_node<'a>(
-    mapping: &'a mut Mapping, segments: &[String],
-) -> Result<&'a mut Node, String> {
-    let Some((first, rest)) = segments.split_first() else {
-        return Err("empty key".into());
-    };
-
-    let mut node = mapping.entry(first.clone()).or_default();
-    for segment in rest {
-        if !node.is_mapping() && !node.is_sequence() {
-            *node = Node::Mapping(Mapping::new());
-        }
-        node = match node {
-            Node::Mapping(mapping) => mapping.entry(segment.clone()).or_default(),
-            Node::Sequence(items) => {
-                let len = items.len();
-                match segment.parse::<usize>() {
-                    Ok(index) if index < len => &mut items[index],
-                    Ok(index) if index == len => {
-                        items.push(Node::Null);
-                        &mut items[index]
-                    }
-                    _ => {
-                        return Err(format!(
-                            "{segment:?} is not a valid index for a sequence of length {len}"
-                        ))
-                    }
-                }
-            }
-            Node::Null | Node::Scalar(_) => unreachable!(),
-        };
-    }
-
-    Ok(node)
 }

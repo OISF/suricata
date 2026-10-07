@@ -31,13 +31,8 @@ pub(crate) fn print(args: ConfigPrintArgs) -> Result<(), Box<dyn std::error::Err
         suricata_config::merge_file(&mut config, include, include_dir)?;
     }
 
-    // Applying the overrides to the configuration is not implemented yet.
-    if !overrides.is_empty() {
-        tracing::warn!(
-            "{} --set override(s) collected but not applied",
-            overrides.len()
-        );
-    }
+    // The command line wins over everything loaded from files.
+    suricata_config::apply_overrides(&mut config, &overrides)?;
 
     let output = match args.format {
         ConfigFormat::Yaml => suricata_config::print_yaml(&config)?,
