@@ -19,6 +19,8 @@ Settings:
 
 * `enabled`: yes/no -> is multi-tenancy support enabled
 * `selector`: direct (for unix socket pcap processing, see below), VLAN, tunnel or device
+* `default`: yes/no (default: no) -> inspect traffic not matching any mapping with the
+  rules of the master configuration, see :ref:`multi-tenant-default`
 * `loaders`: number of `loader` threads, for parallel tenant loading at startup
 * `tenants`: list of tenants
 * `config-path`: path from where the tenant yamls are loaded
@@ -148,6 +150,28 @@ Example of tunnel mapping::
       tenant-id: 1
     - tunnel-id: 2
       tenant-id: 3
+
+.. _multi-tenant-default:
+
+Traffic not matching any mapping
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Traffic the selector cannot map to a tenant, e.g. untagged traffic, an unmapped
+VLAN id or device, traffic from a tunnel not defined in ``decoder.tunnels`` or
+the outer packets of a defined tunnel, is still decoded, tracked in flows and
+logged. Only its inspection depends on ``default``:
+
+* ``default: no`` (default): no rule inspects it. The rule files of the master
+  configuration, including the ones passed with ``-S``, are not loaded.
+* ``default: yes``: the rules of the master configuration inspect it. Its alerts
+  have no ``tenant_id``.
+
+::
+
+  multi-detect:
+    enabled: yes
+    selector: vlan
+    default: yes
 
 
 Per tenant settings
