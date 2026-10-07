@@ -1,0 +1,12 @@
+winner: main
+from-main: 1
+section:
+  a: main
+  b: main
+include: mixed-precedence-inc-key.yaml
+include:
+  - mixed-precedence-inc-list-1.yaml
+  - mixed-precedence-inc-list-2.yaml
+tagged: !include mixed-precedence-inc-tag.yaml
+after-includes: 1
+section.b: main-dotted
