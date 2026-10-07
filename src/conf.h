@@ -104,6 +104,7 @@ int SCConfGetChildValueIntWithDefault(
 int SCConfGetChildValueBoolWithDefault(
         const SCConfNode *base, const SCConfNode *dflt, const char *name, int *val);
 int SCConfNodeIsSequence(const SCConfNode *node);
+bool SCConfNodeIsFinal(const SCConfNode *node);
 SCConfNode *SCConfSetIfaceNode(const char *ifaces_node_name, const char *iface);
 int SCConfSetRootAndDefaultNodes(const char *ifaces_node_name, const char *iface,
         SCConfNode **if_root, SCConfNode **if_default);

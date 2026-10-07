@@ -73,7 +73,8 @@ static char *DetectLoadCompleteSigPathWithKey(
      * is not marked as final, as that means it was provided on the command line with
      * a --set. */
     SCConfNode *default_rule_path = SCConfGetNode(default_key);
-    if ((!default_rule_path || !default_rule_path->final) && strlen(de_ctx->config_prefix) > 0) {
+    if ((!default_rule_path || !SCConfNodeIsFinal(default_rule_path)) &&
+            strlen(de_ctx->config_prefix) > 0) {
         snprintf(varname, sizeof(varname), "%s.%s", de_ctx->config_prefix, default_key);
         default_rule_path = SCConfGetNode(varname);
     }

@@ -1014,6 +1014,14 @@ int SCConfNodeIsSequence(const SCConfNode *node)
 }
 
 /**
+ * \brief Check if a node is final, set from the command line.
+ */
+bool SCConfNodeIsFinal(const SCConfNode *node)
+{
+    return node->final != 0;
+}
+
+/**
  * @brief Finds an interface from the list of interfaces.
  * @param ifaces_node_name - name of the node which holds a list of interfaces
  * @param iface - interfaces name

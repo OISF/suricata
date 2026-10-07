@@ -424,6 +424,9 @@ extern "C" {
     pub fn SCConfNodeIsSequence(node: *const SCConfNode) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn SCConfNodeIsFinal(node: *const SCConfNode) -> bool;
+}
+extern "C" {
     pub fn SCConfSetIfaceNode(
         ifaces_node_name: *const ::std::os::raw::c_char, iface: *const ::std::os::raw::c_char,
     ) -> *mut SCConfNode;
