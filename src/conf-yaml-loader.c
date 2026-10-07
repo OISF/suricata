@@ -235,8 +235,11 @@ static int ConfYamlSetNodeValue(SCConfNode *node, const char *value, bool mangle
 
 /**
  * \brief Return an existing node or create a new one for a child name.
+ *
+ * \param merge if true, merge into an existing node like for a dotted key,
+ *        otherwise prune an existing node to replace it.
  */
-static SCConfNode *ConfYamlGetNodeForName(SCConfNode *parent, const char *name)
+static SCConfNode *ConfYamlGetNodeForName(SCConfNode *parent, const char *name, bool merge)
 {
     if (strchr(name, '.') != NULL) {
         return SCConfNodeGetNodeOrCreate(parent, name, 0);
@@ -249,14 +252,16 @@ static SCConfNode *ConfYamlGetNodeForName(SCConfNode *parent, const char *name)
 
     SCConfNode *node = SCConfNodeLookupChild(parent, normalized_name);
     if (node != NULL) {
-        if (!node->final) {
-            SCLogInfo("Configuration node '%s' redefined.", node->name);
-            SCConfNodePrune(node);
-        }
+        if (!merge) {
+            if (!node->final) {
+                SCLogInfo("Configuration node '%s' redefined.", node->name);
+                SCConfNodePrune(node);
+            }
 
-        if (parent->is_seq && ConfYamlNodeNameIsIndex(normalized_name)) {
-            TAILQ_REMOVE(&parent->head, node, next);
-            TAILQ_INSERT_TAIL(&parent->head, node, next);
+            if (parent->is_seq && ConfYamlNodeNameIsIndex(normalized_name)) {
+                TAILQ_REMOVE(&parent->head, node, next);
+                TAILQ_INSERT_TAIL(&parent->head, node, next);
+            }
         }
 
         SCFree(normalized_name);
@@ -289,20 +294,28 @@ static int ConfYamlMergeRustNode(SCConfNode *parent, const SCConfigNode *source)
         return -1;
     }
 
-    SCConfNode *node = ConfYamlGetNodeForName(parent, name);
+    /* A mapping that only exists through dotted keys, like "vars" for
+     * "vars.address-groups.HOME_NET", is merged into an existing node,
+     * which keeps its value and type, like the legacy parser did. This
+     * matters when merging into an already loaded configuration, like
+     * with --include. */
+    const bool merge = SCConfigNodeIsMerge(source);
+    SCConfNode *node = ConfYamlGetNodeForName(parent, name, merge);
     if (unlikely(node == NULL)) {
         SCLogError("Failed to create configuration node for '%s'", name);
         return -1;
     }
 
     const size_t child_count = SCConfigNodeChildrenCount(source);
-    node->is_seq = SCConfigNodeIsSequence(source) ? 1 : 0;
+    if (!merge) {
+        node->is_seq = SCConfigNodeIsSequence(source) ? 1 : 0;
 
-    const bool mangle_seq_key =
-            node->is_seq && child_count > 0 && ConfYamlNodeNameIsIndex(node->name);
-    if (ConfYamlSetNodeValue(node, SCConfigNodeValue(source), mangle_seq_key) != 0) {
-        SCLogError("Failed to set configuration node value for '%s'", node->name);
-        return -1;
+        const bool mangle_seq_key =
+                node->is_seq && child_count > 0 && ConfYamlNodeNameIsIndex(node->name);
+        if (ConfYamlSetNodeValue(node, SCConfigNodeValue(source), mangle_seq_key) != 0) {
+            SCLogError("Failed to set configuration node value for '%s'", node->name);
+            return -1;
+        }
     }
 
     for (size_t i = 0; i < child_count; i++) {
@@ -1161,6 +1174,116 @@ static int ConfYamlIncludeDottedOverrideOrderTest(void)
     PASS;
 }
 
+/**
+ * Write a configuration file and an additional configuration file, load
+ * the configuration file into a fresh configuration context, include the
+ * additional file like --include does and run the checks. The context is
+ * always restored and the files removed, even if a check fails.
+ */
+static int ConfYamlLoadAndIncludeAndCheck(const char *config_filename, const char *config,
+        const char *additional_filename, const char *additional, int (*check)(void))
+{
+    int result = 0;
+
+    SCConfCreateContextBackup();
+    SCConfInit();
+
+    /* Reset conf_dirname. */
+    if (conf_dirname != NULL) {
+        SCFree(conf_dirname);
+        conf_dirname = NULL;
+    }
+
+    if (TestHelperBufferToFile(config_filename, (const uint8_t *)config, strlen(config)) == 0 &&
+            TestHelperBufferToFile(
+                    additional_filename, (const uint8_t *)additional, strlen(additional)) == 0) {
+        result = SCConfYamlLoadFile(config_filename) == 0 &&
+                 SCConfYamlHandleInclude(SCConfGetRootNode(), additional_filename) == 0 && check();
+    }
+
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+
+    unlink(config_filename);
+    unlink(additional_filename);
+
+    return result;
+}
+
+static int ConfYamlHandleIncludeDottedOverrideCheck(void)
+{
+    const char *value;
+
+    /* Only the values set by the dotted keys changed. */
+    FAIL_IF_NOT(SCConfGet("vars.address-groups.HOME_NET", &value));
+    FAIL_IF(strcmp(value, "10.0.0.0/8") != 0);
+    FAIL_IF_NOT(SCConfGet("vars.address-groups.EXTERNAL_NET", &value));
+    FAIL_IF(strcmp(value, "!$HOME_NET") != 0);
+    FAIL_IF_NOT(SCConfGet("vars.port-groups.HTTP_PORTS", &value));
+    FAIL_IF(strcmp(value, "80") != 0);
+
+    /* The outputs are still a sequence, in the same order and with the
+     * same entry names. */
+    SCConfNode *outputs = SCConfGetNode("outputs");
+    FAIL_IF_NULL(outputs);
+    FAIL_IF_NOT(SCConfNodeIsSequence(outputs));
+    SCConfNode *first = TAILQ_FIRST(&outputs->head);
+    FAIL_IF_NULL(first);
+    FAIL_IF(strcmp(first->name, "0") != 0);
+
+    FAIL_IF_NOT(SCConfGet("outputs.0", &value));
+    FAIL_IF(strcmp(value, "fast") != 0);
+    FAIL_IF_NOT(SCConfGet("outputs.0.fast.enabled", &value));
+    FAIL_IF(strcmp(value, "yes") != 0);
+    FAIL_IF_NOT(SCConfGet("outputs.0.fast.filename", &value));
+    FAIL_IF(strcmp(value, "fast.log") != 0);
+
+    FAIL_IF_NOT(SCConfGet("outputs.1", &value));
+    FAIL_IF(strcmp(value, "eve-log") != 0);
+    FAIL_IF_NOT(SCConfGet("outputs.1.eve-log.enabled", &value));
+    FAIL_IF(strcmp(value, "no") != 0);
+    FAIL_IF_NOT(SCConfGet("outputs.1.eve-log.filetype", &value));
+    FAIL_IF(strcmp(value, "regular") != 0);
+
+    PASS;
+}
+
+/**
+ * Test that dotted keys in an additional configuration file (--include)
+ * set values in the already loaded configuration without replacing the
+ * mappings and sequences along the path.
+ */
+static int ConfYamlHandleIncludeDottedOverrideTest(void)
+{
+    const char config_filename[] = "ConfYamlHandleIncludeDottedOverrideTest-config.yaml";
+    const char config[] = "%YAML 1.1\n"
+                          "---\n"
+                          "vars:\n"
+                          "  address-groups:\n"
+                          "    HOME_NET: \"[192.168.0.0/16]\"\n"
+                          "    EXTERNAL_NET: \"!$HOME_NET\"\n"
+                          "  port-groups:\n"
+                          "    HTTP_PORTS: \"80\"\n"
+                          "outputs:\n"
+                          "  - fast:\n"
+                          "      enabled: yes\n"
+                          "  - eve-log:\n"
+                          "      enabled: yes\n"
+                          "      filetype: regular\n";
+
+    const char additional_filename[] = "ConfYamlHandleIncludeDottedOverrideTest-additional.yaml";
+    const char additional[] = "%YAML 1.1\n"
+                              "---\n"
+                              "vars.address-groups.HOME_NET: \"10.0.0.0/8\"\n"
+                              "outputs.0.fast:\n"
+                              "  filename: fast.log\n"
+                              "outputs.1.eve-log.enabled: no\n";
+
+    FAIL_IF_NOT(ConfYamlLoadAndIncludeAndCheck(config_filename, config, additional_filename,
+            additional, ConfYamlHandleIncludeDottedOverrideCheck));
+    PASS;
+}
+
 #define NESTED_INCLUDE_DIR    "ConfYamlNestedIncludeTest-dir"
 #define NESTED_INCLUDE_CONFIG "ConfYamlNestedIncludeTest-config.yaml"
 #define NESTED_INCLUDE_ONE    NESTED_INCLUDE_DIR "/one.yaml"
@@ -1401,6 +1524,8 @@ void SCConfYamlRegisterTests(void)
             "ConfYamlIncludeAfterDottedOverrideTest", ConfYamlIncludeAfterDottedOverrideTest);
     UtRegisterTest(
             "ConfYamlIncludeDottedOverrideOrderTest", ConfYamlIncludeDottedOverrideOrderTest);
+    UtRegisterTest(
+            "ConfYamlHandleIncludeDottedOverrideTest", ConfYamlHandleIncludeDottedOverrideTest);
     UtRegisterTest("ConfYamlNestedIncludeTest", ConfYamlNestedIncludeTest);
     UtRegisterTest("ConfYamlHandleIncludeNestedTest", ConfYamlHandleIncludeNestedTest);
     UtRegisterTest("ConfYamlNestingLimitTest", ConfYamlNestingLimitTest);

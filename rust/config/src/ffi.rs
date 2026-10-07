@@ -14,6 +14,7 @@ use std::ptr;
 use saphyr::ScalarOwned;
 use saphyr::YamlOwned;
 
+use crate::loader::take_merge_mark;
 use crate::Config;
 
 thread_local! {
@@ -28,6 +29,9 @@ pub struct SCConfigNode {
     name: CString,
     value: Option<CString>,
     is_sequence: bool,
+    // A mapping that only exists through dotted keys, merged into an
+    // existing node instead of replacing it.
+    merge: bool,
     children: Vec<SCConfigNode>,
 }
 
@@ -43,6 +47,7 @@ impl SCConfigNode {
             name,
             value,
             is_sequence,
+            merge: false,
             children: Vec::new(),
         })
     }
@@ -108,9 +113,11 @@ fn yaml_key_to_string(node: YamlOwned) -> Result<Option<String>, String> {
 }
 
 fn build_mapping_child(name: String, node: YamlOwned) -> Result<Option<SCConfigNode>, String> {
+    let (node, merge) = take_merge_mark(node);
     match node {
         YamlOwned::Mapping(mapping) => {
             let mut child = SCConfigNode::new(name, None, false)?;
+            child.merge = merge;
             for (key, value) in mapping {
                 let Some(key_name) = yaml_key_to_string(key)? else {
                     continue;
@@ -143,9 +150,11 @@ fn build_mapping_child(name: String, node: YamlOwned) -> Result<Option<SCConfigN
 fn build_sequence_child(index: usize, node: YamlOwned) -> Result<Option<SCConfigNode>, String> {
     let name = index.to_string();
 
+    let (node, merge) = take_merge_mark(node);
     match node {
         YamlOwned::Mapping(mapping) => {
             let mut child = SCConfigNode::new(name, None, true)?;
+            child.merge = merge;
 
             for (key, value) in mapping {
                 let Some(key_name) = yaml_key_to_string(key)? else {
@@ -219,18 +228,19 @@ fn build_config_tree(config: Config) -> Result<SCConfig, String> {
 
 fn load_file_as_tree(path: &str, include_dir: Option<&str>) -> Result<SCConfig, String> {
     let path = Path::new(path);
-    let config = match include_dir {
-        Some(include_dir) => crate::load_file_with_include_dir(path, Path::new(include_dir)),
-        None => crate::load_file(path),
-    }
-    .map_err(|err| err.to_string())?;
+    let include_dir = match include_dir {
+        Some(include_dir) => Path::new(include_dir),
+        None => path.parent().unwrap_or_else(|| Path::new(".")),
+    };
+    let config =
+        crate::loader::load_file_for_merge(path, include_dir).map_err(|err| err.to_string())?;
     build_config_tree(config)
 }
 
 fn load_string_as_tree(input: &[u8]) -> Result<SCConfig, String> {
     let input =
         std::str::from_utf8(input).map_err(|err| format!("config is not valid utf-8: {err}"))?;
-    let config = crate::load_string(input).map_err(|err| err.to_string())?;
+    let config = crate::loader::load_string_for_merge(input).map_err(|err| err.to_string())?;
     build_config_tree(config)
 }
 
@@ -405,6 +415,22 @@ pub unsafe extern "C" fn SCConfigNodeIsSequence(node: *const SCConfigNode) -> bo
     (*node).is_sequence
 }
 
+/// Return true when the node is a mapping that only exists through dotted
+/// keys, like "vars" and "address-groups" for
+/// "vars.address-groups.HOME_NET: any". Such a node is merged into an
+/// existing node of the same name, while any other node replaces it.
+///
+/// # Safety
+/// - `node` must be either NULL or a valid pointer to an `SCConfigNode` from this API.
+#[no_mangle]
+pub unsafe extern "C" fn SCConfigNodeIsMerge(node: *const SCConfigNode) -> bool {
+    if node.is_null() {
+        return false;
+    }
+
+    (*node).merge
+}
+
 /// Return the number of child nodes attached to this node.
 ///
 /// # Safety
@@ -462,6 +488,88 @@ mod tests {
             entry.value.as_ref().map(|s| s.to_str().unwrap()),
             Some("eve-log")
         );
+    }
+
+    // Find a child node by name.
+    fn child<'a>(node: &'a SCConfigNode, name: &str) -> &'a SCConfigNode {
+        node.children
+            .iter()
+            .find(|child| child.name.to_str() == Ok(name))
+            .unwrap_or_else(|| panic!("no child node {name:?}"))
+    }
+
+    // Mappings that only exist through dotted keys are marked to be
+    // merged into an existing configuration.
+    #[test]
+    fn test_dotted_key_merge() {
+        let tree = load_string_as_tree(
+            br#"vars.address-groups.HOME_NET: any
+outputs.0.fast:
+  enabled: yes
+plain:
+  child.key: 1
+replaced.a: 1
+replaced:
+  b: 2
+merged:
+  a: 1
+merged.b: 2
+"#,
+        )
+        .expect("tree should build");
+        let root = &tree.root;
+
+        let vars = child(root, "vars");
+        assert!(vars.merge);
+        let groups = child(vars, "address-groups");
+        assert!(groups.merge);
+        assert!(!child(groups, "HOME_NET").merge);
+
+        // A mapping value of a new node is merged, its entries replace.
+        let outputs = child(root, "outputs");
+        assert!(outputs.merge);
+        let fast = child(child(outputs, "0"), "fast");
+        assert!(fast.merge);
+        assert!(!child(fast, "enabled").merge);
+
+        let plain = child(root, "plain");
+        assert!(!plain.merge);
+        assert!(child(plain, "child").merge);
+
+        // A plain key replaces a mapping set through dotted keys.
+        let replaced = child(root, "replaced");
+        assert!(!replaced.merge);
+        assert_eq!(replaced.children.len(), 1);
+
+        // A dotted key merges into a mapping set by a plain key, which
+        // still replaces.
+        let merged = child(root, "merged");
+        assert!(!merged.merge);
+        assert_eq!(merged.children.len(), 2);
+    }
+
+    // A dotted key into a sequence entry, or appending one, marks the new
+    // mappings only.
+    #[test]
+    fn test_dotted_key_merge_sequence() {
+        let tree = load_string_as_tree(
+            br#"outputs:
+  - fast:
+      enabled: yes
+outputs.0.fast.enabled: no
+outputs.1.eve-log.enabled: yes
+"#,
+        )
+        .expect("tree should build");
+
+        let outputs = child(&tree.root, "outputs");
+        assert!(!outputs.merge);
+        assert!(outputs.is_sequence);
+        assert!(!child(outputs, "0").merge);
+        assert!(!child(child(outputs, "0"), "fast").merge);
+        let entry = child(outputs, "1");
+        assert!(entry.merge);
+        assert!(child(entry, "eve-log").merge);
     }
 
     #[test]

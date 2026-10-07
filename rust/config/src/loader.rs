@@ -48,15 +48,46 @@ pub fn load_file(path: &Path) -> Result<Config, LoadError> {
 /// resolved from `include_dir`. This matches the C loader, which resolves
 /// all includes from the directory of the top-level configuration file.
 pub fn load_file_with_include_dir(path: &Path, include_dir: &Path) -> Result<Config, LoadError> {
+    load_file_for_merge(path, include_dir).map(unwrap_tagged_values)
+}
+
+/// Parse a configuration string and apply transformations (includes, etc).
+pub fn load_string(input: &str) -> Result<Config, LoadError> {
+    load_string_for_merge(input).map(unwrap_tagged_values)
+}
+
+/// Like [`load_file_with_include_dir`], for merging the configuration into
+/// an existing one. Mappings that only exist through dotted keys are
+/// marked, see [`take_merge_mark`].
+pub(crate) fn load_file_for_merge(path: &Path, include_dir: &Path) -> Result<Config, LoadError> {
     let config = load_yaml_file(path)?;
 
     finalize_config(config, include_dir)
 }
 
-/// Parse a configuration string and apply transformations (includes, etc).
-pub fn load_string(input: &str) -> Result<Config, LoadError> {
+/// Like [`load_string`], for merging the configuration into an existing
+/// one. Mappings that only exist through dotted keys are marked, see
+/// [`take_merge_mark`].
+pub(crate) fn load_string_for_merge(input: &str) -> Result<Config, LoadError> {
     let config = crate::parse_yaml(input)?;
     finalize_config(config, Path::new("."))
+}
+
+/// Remove the mark from a mapping that only exists through dotted keys,
+/// and return whether it was marked.
+///
+/// A dotted key, like `vars.address-groups.HOME_NET`, sets a value without
+/// replacing the existing nodes along the path, while any other key
+/// replaces the existing node. The loader resolves this within a
+/// configuration, but when the configuration is merged into an existing
+/// one, like a file loaded with --include, the marked mappings must be
+/// merged into the existing nodes of the same name instead of replacing
+/// them.
+pub(crate) fn take_merge_mark(node: YamlOwned) -> (YamlOwned, bool) {
+    match node {
+        YamlOwned::Tagged(tag, node) if is_merge_tag(&tag) => (*node, true),
+        node => (node, false),
+    }
 }
 
 // Apply all post-parse loader transformations to a parsed config tree.
@@ -76,8 +107,10 @@ enum Dest {
     Root,
     // Insert or replace the entry for a key in the parent mapping.
     Key(YamlOwned),
-    // Replace the node at a dotted key path in the parent mapping.
-    Path(Vec<String>),
+    // Replace the node at a dotted key path in the parent mapping. If
+    // `merge` is set, a mapping is marked as only existing through dotted
+    // keys.
+    Path { segments: Vec<String>, merge: bool },
     // Append to the parent sequence.
     Push,
 }
@@ -147,6 +180,9 @@ enum Step {
 ///   needed, and merges the value into the node found there. Numeric
 ///   path segments index into sequences.
 /// - Any other key replaces an existing value.
+///
+/// Mappings created by dotted keys are marked as merged, see
+/// [`take_merge_mark`], until a plain key replaces them.
 ///
 /// This is not recursive. The mappings and sequences being resolved are
 /// kept on a stack, and the nesting depth of the result, including
@@ -284,9 +320,13 @@ impl<'a> Resolver<'a> {
             (Dest::Key(key), Some(Frame::Mapping { target, .. })) => {
                 upsert_mapping_entry(target, key, value);
             }
-            (Dest::Path(segments), Some(Frame::Mapping { target, .. })) => {
-                *dotted_path_node(target, &segments)
-                    .map_err(|err| invalid_dotted_key(&segments, err))? = value;
+            (Dest::Path { segments, merge }, Some(Frame::Mapping { target, .. })) => {
+                let (node, _) = dotted_path_node(target, &segments)
+                    .map_err(|err| invalid_dotted_key(&segments, err))?;
+                *node = match value {
+                    YamlOwned::Mapping(mapping) if merge => merge_mark(mapping),
+                    value => value,
+                };
             }
             (Dest::Push, Some(Frame::Sequence { items, .. })) => items.push(value),
             _ => unreachable!("resolved value does not match its parent"),
@@ -342,24 +382,31 @@ impl<'a> Resolver<'a> {
 
         let value = strip_tags(value);
         let (target, _) = self.target_mapping();
-        let node = dotted_path_node(target, &segments)
+        let (node, created) = dotted_path_node(target, &segments)
             .map_err(|err| invalid_dotted_key(&segments, err))?;
 
-        // A mapping merged into a mapping is applied entry by entry,
-        // anything else replaces the node.
-        match (node, value) {
-            (YamlOwned::Mapping(existing), YamlOwned::Mapping(entries)) => {
+        // A mapping merged into a mapping is applied entry by entry, and
+        // stays marked if it was. Anything else replaces the node, and a
+        // mapping for a new node is marked.
+        match (mapping_mut(node), value) {
+            (Some((existing, merge)), YamlOwned::Mapping(entries)) => {
                 let existing = std::mem::take(existing);
                 self.push_mapping(
                     existing,
                     entries,
-                    Dest::Path(segments),
+                    Dest::Path { segments, merge },
                     parent_depth + 1,
                     include_depth,
                 )
             }
             (_, value) => {
-                self.start_value(value, Dest::Path(segments), parent_depth, include_depth)
+                let merge = created && value.is_mapping();
+                self.start_value(
+                    value,
+                    Dest::Path { segments, merge },
+                    parent_depth,
+                    include_depth,
+                )
             }
         }
     }
@@ -421,6 +468,36 @@ fn invalid_dotted_key(segments: &[String], reason: String) -> LoadError {
     LoadError::InvalidDottedKey {
         key: segments.join("."),
         reason,
+    }
+}
+
+// The tag marking a mapping that only exists through dotted keys. Tags
+// in a document are removed while resolving it, so they can't be confused
+// with this one.
+const MERGE_TAG_SUFFIX: &str = "suricata-merge";
+
+fn is_merge_tag(tag: &Tag) -> bool {
+    tag.handle.is_empty() && tag.suffix == MERGE_TAG_SUFFIX
+}
+
+// Mark a mapping as only existing through dotted keys.
+fn merge_mark(mapping: MappingOwned) -> YamlOwned {
+    let tag = Tag {
+        handle: String::new(),
+        suffix: MERGE_TAG_SUFFIX.into(),
+    };
+    YamlOwned::Tagged(tag, Box::new(YamlOwned::Mapping(mapping)))
+}
+
+// The mapping of a node, marked or not, and whether it is marked.
+fn mapping_mut(node: &mut YamlOwned) -> Option<(&mut MappingOwned, bool)> {
+    match node {
+        YamlOwned::Mapping(mapping) => Some((mapping, false)),
+        YamlOwned::Tagged(tag, node) if is_merge_tag(tag) => match node.as_mut() {
+            YamlOwned::Mapping(mapping) => Some((mapping, true)),
+            _ => None,
+        },
+        _ => None,
     }
 }
 
@@ -564,66 +641,71 @@ fn dotted_key_segments(key: &YamlOwned) -> Option<Vec<&str>> {
 }
 
 // Walk a dotted key path below a mapping and return the node at the end
-// of the path, creating missing nodes along the way. Errors are returned
-// as a reason string.
+// of the path, and whether it was created. Missing nodes are created along
+// the way. Errors are returned as a reason string.
 //
 // Like the C configuration tree, a numeric segment selects a sequence
-// entry. An index one past the end appends a new entry. A node that is
-// neither a mapping nor a sequence is replaced with a mapping.
+// entry. An index one past the end appends a new entry. A mapping created
+// along the path is marked as only existing through dotted keys. A node
+// that is neither a mapping nor a sequence is replaced with a mapping.
 fn dotted_path_node<'a, S: AsRef<str>>(
     mapping: &'a mut MappingOwned, segments: &[S],
-) -> Result<&'a mut YamlOwned, String> {
+) -> Result<(&'a mut YamlOwned, bool), String> {
     let Some((first, rest)) = segments.split_first() else {
         return Err("empty key".into());
     };
 
-    let mut node = dotted_mapping_child(mapping, first.as_ref())?;
+    let (mut node, mut created) = dotted_mapping_child(mapping, first.as_ref())?;
     for segment in rest {
         let segment = segment.as_ref();
 
-        if !matches!(node, YamlOwned::Mapping(_) | YamlOwned::Sequence(_)) {
+        if created {
+            *node = merge_mark(MappingOwned::new());
+        } else if !node.is_sequence() && mapping_mut(node).is_none() {
             *node = YamlOwned::Mapping(MappingOwned::new());
         }
 
-        node = match node {
-            YamlOwned::Mapping(mapping) => dotted_mapping_child(mapping, segment)?,
-            YamlOwned::Sequence(sequence) => {
-                let Some(index) = segment
-                    .parse::<usize>()
-                    .ok()
-                    .filter(|index| *index <= sequence.len())
-                else {
-                    return Err(format!(
-                        "{segment:?} is not a valid index for a sequence of length {}",
-                        sequence.len()
-                    ));
-                };
-                if index == sequence.len() {
-                    sequence.push(YamlOwned::Value(ScalarOwned::Null));
-                }
-                &mut sequence[index]
+        (node, created) = if let YamlOwned::Sequence(sequence) = node {
+            let Some(index) = segment
+                .parse::<usize>()
+                .ok()
+                .filter(|index| *index <= sequence.len())
+            else {
+                return Err(format!(
+                    "{segment:?} is not a valid index for a sequence of length {}",
+                    sequence.len()
+                ));
+            };
+            let created = index == sequence.len();
+            if created {
+                sequence.push(YamlOwned::Value(ScalarOwned::Null));
             }
-            _ => {
-                return Err(format!("cannot descend into {segment:?}"));
-            }
+            (&mut sequence[index], created)
+        } else if let Some((mapping, _)) = mapping_mut(node) {
+            dotted_mapping_child(mapping, segment)?
+        } else {
+            return Err(format!("cannot descend into {segment:?}"));
         };
     }
 
-    Ok(node)
+    Ok((node, created))
 }
 
-// Return the child of a mapping for a dotted-path segment, inserting a
-// null child if missing. Existing entries keep their position.
+// Return the child of a mapping for a dotted-path segment, and whether it
+// was created. A missing child is inserted as null. Existing entries keep
+// their position.
 fn dotted_mapping_child<'a>(
     mapping: &'a mut MappingOwned, segment: &str,
-) -> Result<&'a mut YamlOwned, String> {
+) -> Result<(&'a mut YamlOwned, bool), String> {
     let key = dotted_segment_key(segment);
-    if !mapping.contains_key(&key) {
+    let created = !mapping.contains_key(&key);
+    if created {
         mapping.insert(key.clone(), YamlOwned::Value(ScalarOwned::Null));
     }
-    mapping
+    let node = mapping
         .get_mut(&key)
-        .ok_or_else(|| format!("failed to insert {segment:?}"))
+        .ok_or_else(|| format!("failed to insert {segment:?}"))?;
+    Ok((node, created))
 }
 
 // Build a YAML string key node for a dotted-path segment.
