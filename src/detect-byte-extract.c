@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -125,10 +125,10 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData 
     uint64_t val = 0;
     int extbytes;
     if (data->flags & DETECT_BYTE_EXTRACT_FLAG_STRING) {
-        extbytes = ByteExtractStringUint64(&val, data->base,
-                                           data->nbytes, (const char *)ptr);
+        extbytes = ByteExtractStringUint64Bounded(
+                &val, data->base, data->nbytes, (size_t)len, (const char *)ptr);
         if (extbytes <= 0) {
-            /* ByteExtractStringUint64() set val to 0 if there is no numeric value in data string */
+            /* ByteExtractStringUint64Bounded() sets val to 0 if there is no numeric value */
             if (val == 0) {
                 SCLogDebug("No Numeric value");
                 return 0;
