@@ -1734,6 +1734,7 @@ dependencies = [
  "clap",
  "once_cell",
  "regex",
+ "suricata-config",
  "tracing",
  "tracing-subscriber",
 ]
