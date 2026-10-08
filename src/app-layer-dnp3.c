@@ -45,6 +45,11 @@
 #define DNP3_START_BYTE0  0x05
 #define DNP3_START_BYTE1  0x64
 
+/* app-layer.protocols.dnp3.resync-on-bad-start: when yes, octets that are not
+ * a start sequence are skipped (like a bad CRC) instead of ending DNP3
+ * inspection of the flow. Default: no. */
+static int dnp3_resync_on_bad_start = 0;
+
 /* Minimum length for a DNP3 frame. */
 #define DNP3_MIN_LEN      5
 
@@ -109,6 +114,8 @@ SCEnumCharMap dnp3_decoder_event_table[] = {
     { "TOO_MANY_POINTS", DNP3_DECODER_EVENT_TOO_MANY_POINTS },
     { "TOO_MANY_OBJECTS", DNP3_DECODER_EVENT_TOO_MANY_OBJECTS },
     { "TOO_LONG_REASSEMBLY", DNP3_DECODER_EVENT_TOO_LONG_REASS },
+    { "BAD_START_BYTES", DNP3_DECODER_EVENT_BAD_START_BYTES },
+    { "POLICY_DIVERGENCE", DNP3_DECODER_EVENT_POLICY_DIVERGENCE },
     { NULL, -1 },
 };
 
@@ -313,6 +320,20 @@ static uint16_t DNP3ProbingParser(
 
     /* Verify start value (from AN2013-004b). */
     if (!DNP3CheckStartBytes(hdr)) {
+        if (dnp3_resync_on_bad_start) {
+            /* Resynchronizing mode: the device may skip these octets, so look
+             * for a start sequence with a valid header CRC further in; wait for
+             * more data if none yet. */
+            for (uint32_t i = 1; i + 1 < len; i++) {
+                if (input[i] == DNP3_START_BYTE0 && input[i + 1] == DNP3_START_BYTE1) {
+                    if (len - i < sizeof(DNP3LinkHeader))
+                        return ALPROTO_UNKNOWN;
+                    if (DNP3CheckLinkHeaderCRC((const DNP3LinkHeader *)(input + i)))
+                        return ALPROTO_DNP3;
+                }
+            }
+            return len < 256 ? ALPROTO_UNKNOWN : ALPROTO_FAILED;
+        }
         SCLogDebug("Invalid start bytes.");
         return ALPROTO_FAILED;
     }
@@ -1104,12 +1125,19 @@ static int DNP3HandleRequestLinkLayer(
         DNP3LinkHeader *header = (DNP3LinkHeader *)input;
 
         if (!DNP3CheckStartBytes(header)) {
-            /* Terminal error condition. */
-            SCReturnInt(-1);
+            if (!dnp3_resync_on_bad_start) {
+                /* Terminal error condition. */
+                SCReturnInt(-1);
+            }
+            DNP3SetEvent(dnp3, true, DNP3_DECODER_EVENT_BAD_START_BYTES);
+            dnp3->link_error[0] = 1;
+            DNP3Resync(&input, &input_len, &processed);
+            continue;
         }
 
         if (!DNP3CheckLinkHeaderCRC(header)) {
             DNP3SetEvent(dnp3, true, DNP3_DECODER_EVENT_BAD_LINK_CRC);
+            dnp3->link_error[0] = 1;
             DNP3Resync(&input, &input_len, &processed);
             continue;
         }
@@ -1117,6 +1145,7 @@ static int DNP3HandleRequestLinkLayer(
         uint16_t frame_len = DNP3CalculateLinkLength(header->len);
         if (frame_len == 0) {
             DNP3SetEvent(dnp3, true, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
+            dnp3->link_error[0] = 1;
             DNP3Resync(&input, &input_len, &processed);
             continue;
         }
@@ -1140,10 +1169,24 @@ static int DNP3HandleRequestLinkLayer(
         if (!DNP3CheckUserDataCRCs(input + sizeof(DNP3LinkHeader),
                 frame_len - sizeof(DNP3LinkHeader))) {
             DNP3SetEvent(dnp3, true, DNP3_DECODER_EVENT_BAD_TRANSPORT_CRC);
+            dnp3->link_error[0] = 1;
+            if (dnp3_resync_on_bad_start) {
+                /* Like the endpoints: search for the next start sequence from
+                 * the next octet, rather than trusting the LENGTH of a frame
+                 * whose body failed its checksums. */
+                DNP3Resync(&input, &input_len, &processed);
+                continue;
+            }
             goto next;
         }
 
         DNP3HandleUserDataRequest(f, dnp3, input, frame_len);
+        if (dnp3->link_error[0]) {
+            /* A well-formed frame behind a link-layer error: a stop-on-error
+             * receiver never sees it, a resynchronizing one processes it. Which
+             * the device does depends on a setting the wire does not carry. */
+            DNP3SetEvent(dnp3, true, DNP3_DECODER_EVENT_POLICY_DIVERGENCE);
+        }
 
     next:
         /* Advance the input buffer. */
@@ -1238,12 +1281,19 @@ static int DNP3HandleResponseLinkLayer(
         DNP3LinkHeader *header = (DNP3LinkHeader *)input;
 
         if (!DNP3CheckStartBytes(header)) {
-            /* Terminal error condition. */
-            SCReturnInt(-1);
+            if (!dnp3_resync_on_bad_start) {
+                /* Terminal error condition. */
+                SCReturnInt(-1);
+            }
+            DNP3SetEvent(dnp3, false, DNP3_DECODER_EVENT_BAD_START_BYTES);
+            dnp3->link_error[1] = 1;
+            DNP3Resync(&input, &input_len, &processed);
+            continue;
         }
 
         if (!DNP3CheckLinkHeaderCRC(header)) {
             DNP3SetEvent(dnp3, false, DNP3_DECODER_EVENT_BAD_LINK_CRC);
+            dnp3->link_error[1] = 1;
             DNP3Resync(&input, &input_len, &processed);
             continue;
         }
@@ -1252,6 +1302,7 @@ static int DNP3HandleResponseLinkLayer(
         uint16_t frame_len = DNP3CalculateLinkLength(header->len);
         if (frame_len == 0) {
             DNP3SetEvent(dnp3, false, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
+            dnp3->link_error[1] = 1;
             DNP3Resync(&input, &input_len, &processed);
             continue;
         }
@@ -1275,10 +1326,24 @@ static int DNP3HandleResponseLinkLayer(
         if (!DNP3CheckUserDataCRCs(input + sizeof(DNP3LinkHeader),
                 frame_len - sizeof(DNP3LinkHeader))) {
             DNP3SetEvent(dnp3, false, DNP3_DECODER_EVENT_BAD_TRANSPORT_CRC);
+            dnp3->link_error[1] = 1;
+            if (dnp3_resync_on_bad_start) {
+                /* Like the endpoints: search for the next start sequence from
+                 * the next octet, rather than trusting the LENGTH of a frame
+                 * whose body failed its checksums. */
+                DNP3Resync(&input, &input_len, &processed);
+                continue;
+            }
             goto next;
         }
 
         DNP3HandleUserDataResponse(f, dnp3, input, frame_len);
+        if (dnp3->link_error[1]) {
+            /* A well-formed frame behind a link-layer error: a stop-on-error
+             * receiver never sees it, a resynchronizing one processes it. Which
+             * the device does depends on a setting the wire does not carry. */
+            DNP3SetEvent(dnp3, false, DNP3_DECODER_EVENT_POLICY_DIVERGENCE);
+        }
 
     next:
         /* Advance the input buffer. */
@@ -1661,6 +1726,10 @@ void RegisterDNP3Parsers(void)
 
         /* Parse max-tx configuration. */
         intmax_t value = 0;
+        int bval = 0;
+        if (SCConfGetBool("app-layer.protocols.dnp3.resync-on-bad-start", &bval)) {
+            dnp3_resync_on_bad_start = bval;
+        }
         if (SCConfGetInt("app-layer.protocols.dnp3.max-tx", &value)) {
             dnp3_max_tx = (uint64_t)value;
         }
