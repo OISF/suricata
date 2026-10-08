@@ -121,6 +121,7 @@ static void DPDKDerefConfig(void *conf);
 #define DPDK_CONFIG_DEFAULT_CHECKSUM_VALIDATION         1
 #define DPDK_CONFIG_DEFAULT_CHECKSUM_VALIDATION_OFFLOAD 1
 #define DPDK_CONFIG_DEFAULT_VLAN_STRIP                  0
+#define DPDK_CONFIG_DEFAULT_SEGMENTED_MBUFS             1
 #define DPDK_CONFIG_DEFAULT_LINKUP_TIMEOUT              0
 #define DPDK_CONFIG_DEFAULT_COPY_MODE                   "none"
 #define DPDK_CONFIG_DEFAULT_COPY_INTERFACE              "none"
@@ -134,6 +135,7 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
     .checksum_checks_offload = "checksum-checks-offload",
     .mtu = "mtu",
     .vlan_strip_offload = "vlan-strip-offload",
+    .segmented_mbufs = "segmented-mbufs",
     .rss_hf = "rss-hash-functions",
     .linkup_timeout = "linkup-timeout",
     .mempool_size = "mempool-size",
@@ -353,6 +355,7 @@ static void ConfigInit(DPDKIfaceConfig **iconf)
         FatalError("Could not allocate memory for DPDKIfaceConfig");
 
     ptr->out_port_id = UINT16_MAX; // make sure no port is set
+    ptr->out_tx_seg_max = UINT16_MAX;
     SC_ATOMIC_INIT(ptr->ref);
     (void)SC_ATOMIC_ADD(ptr->ref, 1);
     ptr->DerefFunc = DPDKDerefConfig;
@@ -828,6 +831,13 @@ static void ConfigSetVlanStrip(DPDKIfaceConfig *iconf, int entry_bool)
     SCReturn;
 }
 
+static void ConfigSetSegmentedMbufs(DPDKIfaceConfig *iconf, int entry_bool)
+{
+    SCEnter();
+    iconf->segmented_mbufs = entry_bool;
+    SCReturn;
+}
+
 static int ConfigSetCopyIface(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
@@ -1049,6 +1059,14 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
         ConfigSetVlanStrip(iconf, DPDK_CONFIG_DEFAULT_VLAN_STRIP);
     } else {
         ConfigSetVlanStrip(iconf, entry_bool);
+    }
+
+    retval = SCConfGetChildValueBoolWithDefault(
+            if_root, if_default, dpdk_yaml.segmented_mbufs, &entry_bool);
+    if (retval != 1) {
+        ConfigSetSegmentedMbufs(iconf, DPDK_CONFIG_DEFAULT_SEGMENTED_MBUFS);
+    } else {
+        ConfigSetSegmentedMbufs(iconf, entry_bool);
     }
 
     retval = SCConfGetChildValueIntWithDefault(
@@ -1450,6 +1468,24 @@ static void PortConfSetVlanOffload(const DPDKIfaceConfig *iconf,
     }
 }
 
+static void PortConfSetTxOffloads(const DPDKIfaceConfig *iconf,
+        const struct rte_eth_dev_info *dev_info, struct rte_eth_conf *port_conf)
+{
+    if (iconf->copy_mode != DPDK_COPY_MODE_NONE && iconf->segmented_mbufs) {
+        // the copy interface forwards segmented mbufs as they are received
+        if (dev_info->tx_offload_capa & RTE_ETH_TX_OFFLOAD_MULTI_SEGS) {
+            port_conf->txmode.offloads |= RTE_ETH_TX_OFFLOAD_MULTI_SEGS;
+        } else {
+            SCLogWarning("%s: multi-segment TX not supported, segmented mbufs may be transmitted "
+                         "incorrectly, consider setting segmented-mbufs to false",
+                    iconf->iface);
+        }
+    } else if (dev_info->tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE) {
+        // fast free requires single-segment mbufs
+        port_conf->txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
+    }
+}
+
 static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
         const struct rte_eth_dev_info *dev_info, struct rte_eth_conf *port_conf)
 {
@@ -1473,9 +1509,8 @@ static void DeviceInitPortConf(const DPDKIfaceConfig *iconf,
     DeviceSetMTU(port_conf, iconf->mtu);
     PortConfSetVlanOffload(iconf, dev_info, port_conf);
 
-    if (dev_info->tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE) {
-        port_conf->txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
-    }
+    // configure TX offloads
+    PortConfSetTxOffloads(iconf, dev_info, port_conf);
 }
 
 static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info,
@@ -1491,8 +1526,8 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
         goto cleanup;
     }
 
-    // +4 for VLAN header
-    uint16_t mtu_size = iconf->mtu + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN + 4;
+    // two VLAN headers (QinQ), as accounted for by the NIC drivers
+    uint16_t mtu_size = iconf->mtu + RTE_ETHER_CRC_LEN + RTE_ETHER_HDR_LEN + 2 * RTE_VLAN_HLEN;
     uint16_t mbuf_size = ROUNDUP(mtu_size, 1024) + RTE_PKTMBUF_HEADROOM;
     uint32_t q_mp_cache_sz = iconf->mempool_cache_size_auto
                                      ? MempoolCacheSizeCalculate(iconf->queue_mempool_size)
@@ -1598,6 +1633,11 @@ static int DeviceValidateOutIfaceConfig(DPDKIfaceConfig *iconf)
                 iconf->iface, out_iconf->iface);
         out_iconf->DerefFunc(out_iconf);
         SCReturnInt(-EINVAL);
+    } else if (iconf->segmented_mbufs != out_iconf->segmented_mbufs) {
+        SCLogError("%s: segmented-mbufs settings of interfaces %s and %s are not equal",
+                iconf->iface, iconf->iface, out_iconf->iface);
+        out_iconf->DerefFunc(out_iconf);
+        SCReturnInt(-EINVAL);
     } else if (strcmp(iconf->iface, out_iconf->out_iface) != 0) {
         // check if the other iface has the current iface set as a copy iface
         SCLogError("%s: copy interface of %s is not set to %s", iconf->iface, out_iconf->iface,
@@ -1632,6 +1672,18 @@ static int DeviceConfigureIPS(DPDKIfaceConfig *iconf)
                     "%s: out iface %s is not on the same NUMA node (%s - NUMA %d, %s - NUMA %d)",
                     iconf->iface, iconf->out_iface, iconf->iface, iconf->socket_id,
                     iconf->out_iface, out_port_socket_id);
+        }
+
+        struct rte_eth_dev_info out_dev_info;
+        retval = rte_eth_dev_info_get(iconf->out_port_id, &out_dev_info);
+        if (retval < 0) {
+            SCLogError(
+                    "%s: getting device info failed: %s", iconf->out_iface, rte_strerror(-retval));
+            SCReturnInt(retval);
+        }
+        // some drivers do not report the limit
+        if (out_dev_info.tx_desc_lim.nb_mtu_seg_max != 0) {
+            iconf->out_tx_seg_max = out_dev_info.tx_desc_lim.nb_mtu_seg_max;
         }
 
         retval = DeviceValidateOutIfaceConfig(iconf);

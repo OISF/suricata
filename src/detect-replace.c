@@ -27,6 +27,7 @@
  */
 
 #include "suricata-common.h"
+#include "suricata.h"
 
 #include "runmodes.h"
 
@@ -94,6 +95,11 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replac
         case RUNMODE_NFQ:
         case RUNMODE_IPFW:
             break;
+        case RUNMODE_DPDK:
+            if (EngineModeIsIPS()) {
+                break;
+            }
+            // fall through
         default:
             SCLogWarning("Can't use 'replace' keyword in non IPS mode: %s", s->sig_str);
             /* this is a success, having the alert is interesting */

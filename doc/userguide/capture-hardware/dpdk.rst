@@ -239,3 +239,39 @@ Encapsulation stripping
 Suricata supports stripping the hardware-offloaded encapsulation stripping on
 the supported NICs. Currently, VLAN encapsulation stripping is supported.
 VLAN encapsulation stripping can be enabled with `vlan-strip-offload`.
+
+.. _dpdk-segmented-mbufs:
+
+Segmented mbufs
+---------------
+
+A packet larger than one mbuf arrives as a chain of segmented mbufs. Suricata
+sizes its mbufs from the configured ``mtu``.
+Setting the MTU to the largest expected packet size is beneficial for
+the performance so that no segmented mbufs occur.
+Segmented mbufs still occur when a virtual PMD does not enforce
+the MTU, or when the primary DPDK application uses small mbufs, so
+avoiding mbuf segments is not always possible.
+
+With ``segmented-mbufs: true``, Suricata merges the chain into one
+contiguous mbuf or, when that is not possible, inspects a contiguous copy
+of the packet.
+In the copy modes (IPS/TAP), the chain is forwarded, including modifications
+made by Suricata (e.g. stream normalization or the ``replace`` keyword).
+To transmit segmented mbufs, Suricata enables the multi-segment TX offload
+and disables the ``MBUF_FAST_FREE`` TX offload on the copy interfaces.
+When an interface does not support multi-segment TX, Suricata attempts to
+attempts to forward segmented mbufs anyway.
+
+Suricata drops segmented mbufs without processing them when, e.g.:
+
+- ``segmented-mbufs`` is set to ``false``, counted in
+  ``capture.dpdk.segmented_drops``;
+- the chain has more segments than the copy interface can transmit, counted in
+  ``capture.dpdk.segmented_drops``;
+- the packet is larger than the maximum packet size Suricata can process
+  (about 64 KiB), counted in ``capture.dpdk.segmented_too_large``.
+
+In the copy modes, both interfaces must have the same ``segmented-mbufs``
+setting. Setting it to ``false`` keeps the ``MBUF_FAST_FREE`` TX offload
+enabled.
