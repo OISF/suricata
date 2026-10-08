@@ -11,7 +11,10 @@
 //! are collected as a list of [`Override`]s in the order they were
 //! given, and applied to a configuration after it is loaded with
 //! [`apply_overrides`]; see `overrides.rs` for the rules.
+//!
+//! The C interface, in `ffi.rs`, is exported to C with cbindgen.
 
+mod ffi;
 mod loader;
 mod node;
 mod overrides;
