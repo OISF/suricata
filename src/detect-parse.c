@@ -3038,9 +3038,8 @@ static int SigValidateCheckBuffers(
             app_buffers_evaluated++;
 
             if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
-                /* only allow rules to use the hook for engines at that
-                 * exact progress for now. We make an exception for generic
-                 * engines like app-layer-event. */
+                /* the hook selects protocol and sub-state; the buffer state is
+                 * checked against the hook state below */
                 if (!(AppProtoEqualsStrict(s->alproto, app->alproto) ||
                             app->alproto == ALPROTO_UNKNOWN)) {
                     SCLogDebug("%u:%s: for buffer %s skip engine %s alproto %s", s->id,
@@ -3084,16 +3083,43 @@ static int SigValidateCheckBuffers(
             }
 
             if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
-                if ((s->flags & SIG_FLAG_TOSERVER) && (app->dir == 0) &&
-                        app->progress != s->init_data->hook.t.app.app_progress) {
-                    SCLogError("engine progress value %d doesn't match hook %u", app->progress,
-                            s->init_data->hook.t.app.app_progress);
-                    SCReturnInt(0);
-                }
-                if ((s->flags & SIG_FLAG_TOCLIENT) && (app->dir == 1) &&
-                        app->progress != s->init_data->hook.t.app.app_progress) {
-                    SCLogError("engine progress value doesn't match hook");
-                    SCReturnInt(0);
+                const uint8_t hook_progress = s->init_data->hook.t.app.app_progress;
+                const bool dir_match = (app->dir == 0 && (s->flags & SIG_FLAG_TOSERVER)) ||
+                                       (app->dir == 1 && (s->flags & SIG_FLAG_TOCLIENT));
+                if (dir_match) {
+                    /* Engines run from their own state on, so a buffer finishing before the
+                     * hook is decided there: the hook bounds the buffer state, it does not
+                     * delay evaluation. After the hook the match could land outside the hook
+                     * window, so that stays rejected. Generic engines (app-layer-event,
+                     * app-layer-state) sit at progress 0 in every protocol, so an upper bound
+                     * would admit them under any hook and the hook would gate nothing: they
+                     * keep the exact state requirement.
+                     * A firewall rule is only a candidate at its hook, so an exact hook below
+                     * its buffer's completion state can never be decided: refuse it instead of
+                     * loading a rule that does nothing. Threat rules keep working in either
+                     * mode, they are inspected from the buffer's state on. The '<' form is held
+                     * to the same bound: its top state is the hook checked here, so a buffer
+                     * completing below the bound is refused as well. */
+                    if (app->alproto == ALPROTO_UNKNOWN) {
+                        if (app->progress != hook_progress) {
+                            SCLogError("buffer %s is not protocol specific, needs the hook at "
+                                       "state %u",
+                                    bt->name, app->progress);
+                            SCReturnInt(0);
+                        }
+                    } else if (app->progress > hook_progress) {
+                        SCLogError("buffer %s completes in state %u, after the hooked state %u",
+                                bt->name, app->progress, hook_progress);
+                        SCReturnInt(0);
+                    } else if (app->progress < hook_progress && (s->flags & SIG_FLAG_FIREWALL)) {
+                        SCLogError("buffer %s completes in state %u, before the hooked state %u: "
+                                   "a firewall rule is only evaluated at its hook, so it could "
+                                   "never match. Hook at state %u, or use a buffer that completes "
+                                   "at state %u.",
+                                bt->name, app->progress, hook_progress, app->progress,
+                                hook_progress);
+                        SCReturnInt(0);
+                    }
                 }
             }
 

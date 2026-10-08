@@ -152,8 +152,9 @@ is only to be used in decoder event rules.
 Explicit rule hooks
 ~~~~~~~~~~~~~~~~~~~
 
-In Suricata 8 the protocol field can be used to force evaluation of a rule at
-a specific explicit protocol state. This takes the format of::
+In Suricata 8 the protocol field can be used to anchor a rule to a specific
+explicit protocol state (see the note below for when a rule is actually
+evaluated). This takes the format of::
 
     <proto>:<hook>
 
@@ -171,6 +172,18 @@ More details can be found in :ref:`rule-hooks`.
 .. note::
 
    While developed for the firewall usecase, these hooks can be used in IDS/IPS rules as well.
+
+.. note::
+
+   A hook does not delay when a rule is looked at. Engines run at the state their
+   buffer completes in, so a threat rule paired with a buffer that completes in an
+   earlier state is decided there: ``alert http1:request_trailer ... http.header;``
+   matches as soon as the headers are complete and can alert on a transaction that
+   never reaches ``request_trailer``. A firewall rule is the exception: it is
+   evaluated only at its hook, so a hook above the state where its buffer completes
+   is rejected when the ruleset loads. Buffers that keep growing past the hooked
+   state are revisited at the later states, so such a rule can match more than once
+   per transaction.
 
 Source and destination
 ----------------------
