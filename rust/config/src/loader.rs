@@ -53,6 +53,7 @@ use saphyr_parser::Tag;
 use crate::node::path_node_mut;
 use crate::node::Mapping;
 use crate::node::Node;
+use crate::node::PathError;
 use crate::Config;
 use crate::MAX_INCLUDE_DEPTH;
 use crate::MAX_NESTING_DEPTH;
@@ -624,7 +625,7 @@ impl Loader {
                     map.insert(key, node);
                 }
                 Some(Key::Dotted(segments)) => {
-                    let slot = path_node_mut(map, &segments)
+                    let (slot, _) = path_node_mut(map, &segments)
                         .map_err(|reason| invalid_dotted_key(location, &segments, reason))?;
                     // A null value leaves an existing node as is.
                     if !node.is_null() {
@@ -709,7 +710,7 @@ impl Loader {
                 // A mapping is merged into an existing mapping, which is
                 // taken out and put back when complete.
                 let map = if kind == Kind::Mapping {
-                    let slot = path_node_mut(map, &segments)
+                    let (slot, _) = path_node_mut(map, &segments)
                         .map_err(|reason| invalid_dotted_key(location, &segments, reason))?;
                     match slot {
                         Node::Mapping(existing) => std::mem::take(existing),
@@ -762,7 +763,7 @@ impl Loader {
                 map.insert(key, node);
             }
             (Dest::Path(segments), Some(Frame::Mapping { map, .. })) => {
-                let slot = path_node_mut(map, &segments)
+                let (slot, _) = path_node_mut(map, &segments)
                     .map_err(|reason| invalid_dotted_key(location, &segments, reason))?;
                 *slot = node;
             }
@@ -814,7 +815,7 @@ fn dotted_key_segments(key: &str) -> Option<Vec<String>> {
     Some(segments)
 }
 
-fn invalid_dotted_key(location: Location, segments: &[String], reason: String) -> LoadError {
+fn invalid_dotted_key(location: Location, segments: &[String], reason: PathError) -> LoadError {
     LoadError::Invalid {
         location,
         message: format!("invalid dotted key {:?}: {reason}", segments.join(".")),

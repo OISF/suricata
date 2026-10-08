@@ -177,6 +177,12 @@ typedef struct SCInstance_ {
     const char *progname; /**< pointer to argv[0] */
     const char *conf_filename;
     const char **additional_configs;
+    /** Configuration values set from the command line (--set and the
+     * options that set a value), as NULL terminated parallel lists of
+     * paths and values, applied by the loader after the load. */
+    const char **override_paths;
+    const char **override_values;
+    size_t n_overrides;
     const char **additional_plugins;
     char *strict_rule_parsing_string;
 

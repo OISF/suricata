@@ -42,10 +42,12 @@ int ListKeywords(const char *keyword_info)
     return SigTableList(keyword_info);
 }
 
-int ListAppLayerProtocols(const char *conf_filename)
+int ListAppLayerProtocols(const char *conf_filename, const char *const *override_paths,
+        const char *const *override_values)
 {
     EngineModeSetIDS();
-    if (SCConfYamlLoadFile(conf_filename) != -1)
+    if (SCConfYamlLoadFileWithOptions(conf_filename, NULL, NULL, override_paths, override_values) !=
+            -1)
         SCLogLoadConfig(0, 0, 0, 0);
     MpmTableSetup();
     SpmTableSetup();
@@ -55,10 +57,12 @@ int ListAppLayerProtocols(const char *conf_filename)
     return TM_ECODE_DONE;
 }
 
-int ListRuleProtocols(const char *conf_filename)
+int ListRuleProtocols(const char *conf_filename, const char *const *override_paths,
+        const char *const *override_values)
 {
     EngineModeSetIDS();
-    if (SCConfYamlLoadFile(conf_filename) != -1)
+    if (SCConfYamlLoadFileWithOptions(conf_filename, NULL, NULL, override_paths, override_values) !=
+            -1)
         SCLogLoadConfig(0, 0, 0, 0);
     MpmTableSetup();
     SpmTableSetup();
@@ -74,10 +78,12 @@ static bool IsBuiltIn(const char *n)
            strcmp(n, "request_complete") == 0 || strcmp(n, "response_complete") == 0;
 }
 
-int ListAppLayerHooks(const char *conf_filename)
+int ListAppLayerHooks(const char *conf_filename, const char *const *override_paths,
+        const char *const *override_values)
 {
     EngineModeSetIDS();
-    if (SCConfYamlLoadFile(conf_filename) != -1)
+    if (SCConfYamlLoadFileWithOptions(conf_filename, NULL, NULL, override_paths, override_values) !=
+            -1)
         SCLogLoadConfig(0, 0, 0, 0);
     MpmTableSetup();
     SpmTableSetup();
@@ -144,10 +150,12 @@ int ListAppLayerHooks(const char *conf_filename)
     return TM_ECODE_DONE;
 }
 
-int ListAppLayerFrames(const char *conf_filename)
+int ListAppLayerFrames(const char *conf_filename, const char *const *override_paths,
+        const char *const *override_values)
 {
     EngineModeSetIDS();
-    if (SCConfYamlLoadFile(conf_filename) != -1)
+    if (SCConfYamlLoadFileWithOptions(conf_filename, NULL, NULL, override_paths, override_values) !=
+            -1)
         SCLogLoadConfig(0, 0, 0, 0);
     MpmTableSetup();
     SpmTableSetup();

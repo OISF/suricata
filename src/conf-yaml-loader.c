@@ -24,12 +24,23 @@
  *
  * The configuration is loaded with the Rust suricata-config crate,
  * which does all the merging (the main file, include keys, the
- * --include files, dotted keys), and the resulting tree is mirrored
- * into the SCConfNode tree. The mirror follows the rules of the
- * previous libyaml based loader for nodes that already exist, which
- * are the values set from the command line before the load: an
- * existing final node keeps its value, an existing node that is not
- * final is pruned and reused.
+ * --include files, dotted keys) and applies the command line overrides
+ * (--set and the options that set a value), and the resulting tree is
+ * mirrored into the SCConfNode tree. The overridden nodes are marked
+ * final afterwards, so that SCConfSet does not change them and
+ * SCConfNodeIsFinal sees them.
+ *
+ * An override that names a child of a sequence, like pcap.buffer-size
+ * where pcap is a sequence of interfaces, has no place in the Rust
+ * tree and is set in the SCConfNode tree after the mirror instead,
+ * where a sequence node can have named children, as the libyaml based
+ * loader left it.
+ *
+ * The mirror follows the rules of the previous libyaml based loader
+ * for nodes that already exist, set with SCConfSet or SCConfSetFinal
+ * before the load (Suricata itself no longer does, its command line
+ * values are all overrides): an existing final node keeps its value,
+ * an existing node that is not final is pruned and reused.
  */
 
 #include "suricata-common.h"
@@ -300,16 +311,76 @@ static int ConfYamlMirror(SCConfNode *parent, const SCConfTreeNode *node)
 }
 
 /**
+ * \brief Mark the node at a dotted path below a node as final.
+ */
+static void ConfYamlSetFinal(SCConfNode *root, const char *path, size_t path_len)
+{
+    SCConfNode *node = root;
+    const char *end = path + path_len;
+    while (node != NULL) {
+        const char *dot = memchr(path, '.', end - path);
+        size_t len = dot != NULL ? (size_t)(dot - path) : (size_t)(end - path);
+        node = ConfYamlLookupChild(node, path, len);
+        if (dot == NULL) {
+            break;
+        }
+        path = dot + 1;
+    }
+    if (node != NULL) {
+        node->final = 1;
+    }
+}
+
+/**
+ * \brief The number of entries of a NULL terminated array.
+ */
+static size_t ConfYamlCount(const char *const *array)
+{
+    size_t n = 0;
+    if (array != NULL) {
+        while (array[n] != NULL) {
+            n++;
+        }
+    }
+    return n;
+}
+
+/**
+ * \brief Set a value at a dotted path below a node, final, like
+ *     SCConfSetFinal does below the root.
+ */
+static int ConfYamlSetFinalValue(SCConfNode *root, const char *path, const char *value)
+{
+    SCConfNode *node = SCConfNodeGetNodeOrCreate(root, path, 1);
+    if (node == NULL) {
+        return -1;
+    }
+    if (node->val != NULL) {
+        SCFree(node->val);
+    }
+    node->val = SCStrdup(value);
+    if (unlikely(node->val == NULL)) {
+        return -1;
+    }
+    node->final = 1;
+    return 0;
+}
+
+/**
  * \brief Load a configuration file into the tree at a node.
  *
  * \param filename Filename of the configuration file to load.
  * \param includes NULL terminated list of files to load after it, as
  *     with --include, or NULL.
+ * \param override_paths NULL terminated list of the dotted paths of the
+ *     command line overrides, applied after the load, or NULL.
+ * \param override_values Their values, in the same order.
  * \param root The node to load the configuration below.
  *
  * \retval 0 on success, -1 on failure.
  */
-static int ConfYamlLoadFile(const char *filename, const char *const *includes, SCConfNode *root)
+static int ConfYamlLoadFile(const char *filename, const char *const *includes,
+        const char *const *override_paths, const char *const *override_values, SCConfNode *root)
 {
     struct stat stat_buf;
     if (stat(filename, &stat_buf) == 0) {
@@ -325,15 +396,12 @@ static int ConfYamlLoadFile(const char *filename, const char *const *includes, S
         ConfYamlSetConfDirname(filename);
     }
 
-    size_t n_includes = 0;
-    if (includes != NULL) {
-        while (includes[n_includes] != NULL) {
-            n_includes++;
-        }
-    }
+    size_t n_overrides = ConfYamlCount(override_paths);
+    BUG_ON(n_overrides != ConfYamlCount(override_values));
 
     char *err = NULL;
-    SCConfTree *tree = SCConfTreeLoadFile(filename, conf_dirname, includes, n_includes, &err);
+    SCConfTree *tree = SCConfTreeLoadFile(filename, conf_dirname, includes, ConfYamlCount(includes),
+            override_paths, override_values, n_overrides, &err);
     if (tree == NULL) {
         SCLogError("%s", err != NULL ? err : "failed to load configuration file");
         SCConfTreeErrorFree(err);
@@ -341,6 +409,15 @@ static int ConfYamlLoadFile(const char *filename, const char *const *includes, S
     }
 
     int ret = ConfYamlMirror(root, SCConfTreeRoot(tree));
+    for (size_t i = 0; ret == 0 && i < n_overrides; i++) {
+        if (SCConfTreeOverrideApplied(tree, i)) {
+            size_t len = 0;
+            const char *path = SCConfTreeOverridePath(tree, i, &len);
+            ConfYamlSetFinal(root, path, len);
+        } else {
+            ret = ConfYamlSetFinalValue(root, override_paths[i], override_values[i]);
+        }
+    }
     SCConfTreeFree(tree);
     return ret;
 }
@@ -359,7 +436,7 @@ static int ConfYamlLoadFile(const char *filename, const char *const *includes, S
  */
 int SCConfYamlLoadFile(const char *filename)
 {
-    return ConfYamlLoadFile(filename, NULL, SCConfGetRootNode());
+    return ConfYamlLoadFile(filename, NULL, NULL, NULL, SCConfGetRootNode());
 }
 
 /**
@@ -392,11 +469,16 @@ int SCConfYamlLoadString(const char *string, size_t len)
  * \param prefix Name prefix to use, or NULL for the root.
  * \param includes NULL terminated list of files to load after it, as
  *     with --include, or NULL.
+ * \param override_paths NULL terminated list of the dotted paths of the
+ *     command line overrides, applied in order after the files are
+ *     loaded, or NULL. The nodes set are final.
+ * \param override_values Their values, in the same order.
  *
  * \retval 0 on success, -1 on failure.
  */
-int SCConfYamlLoadFileWithPrefixAndIncludes(
-        const char *filename, const char *prefix, const char *const *includes)
+int SCConfYamlLoadFileWithOptions(const char *filename, const char *prefix,
+        const char *const *includes, const char *const *override_paths,
+        const char *const *override_values)
 {
     SCConfNode *root;
     if (prefix == NULL) {
@@ -412,17 +494,17 @@ int SCConfYamlLoadFileWithPrefixAndIncludes(
             }
         }
     }
-    return ConfYamlLoadFile(filename, includes, root);
+    return ConfYamlLoadFile(filename, includes, override_paths, override_values, root);
 }
 
 /**
  * \brief Load configuration from a YAML file, insert in tree at 'prefix'
  *
- * See SCConfYamlLoadFileWithPrefixAndIncludes.
+ * See SCConfYamlLoadFileWithOptions.
  */
 int SCConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
 {
-    return SCConfYamlLoadFileWithPrefixAndIncludes(filename, prefix, NULL);
+    return SCConfYamlLoadFileWithOptions(filename, prefix, NULL, NULL, NULL);
 }
 
 #ifdef UNITTESTS
@@ -646,12 +728,14 @@ ConfYamlFileIncludeTest(void)
         "mapping: !include ConfYamlFileIncludeTest-include.yaml\n";
 
     const char include_filename[] = "ConfYamlFileIncludeTest-include.yaml";
-    const char include_file_contents[] =
-        "%YAML 1.1\n"
-        "---\n"
-        "host-mode: auto\n"
-        "unix-command:\n"
-        "  enabled: no\n";
+    const char include_file_contents[] = "%YAML 1.1\n"
+                                         "---\n"
+                                         "host-mode: auto\n"
+                                         "unix-command:\n"
+                                         "  enabled: no\n"
+                                         "list:\n"
+                                         "  - a\n"
+                                         "  - b\n";
 
     SCConfCreateContextBackup();
     SCConfInit();
@@ -702,15 +786,55 @@ ConfYamlFileIncludeTest(void)
     SCConfInit();
 
     const char *includes[] = { include_filename, NULL };
-    FAIL_IF(SCConfYamlLoadFileWithPrefixAndIncludes(config_filename, "prefix", includes) != 0);
+    const char *paths[] = { "host-mode", "new.key", "list.00", "list.name", NULL };
+    const char *values[] = { " sniffer-only", "1", "x", "y", NULL };
+    FAIL_IF(SCConfYamlLoadFileWithOptions(config_filename, "prefix", includes, paths, values) != 0);
     node = SCConfGetNode("prefix.mapping.host-mode");
     FAIL_IF_NULL(node);
     FAIL_IF(strcmp(node->val, "auto") != 0);
     FAIL_IF_NOT_NULL(SCConfGetNode("host-mode"));
 
+    /* The overrides are applied after the files, with the values as
+     * given, and are final. */
+    node = SCConfGetNode("prefix.host-mode");
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->val, " sniffer-only") != 0);
+    FAIL_IF(!node->final);
+    node = SCConfGetNode("prefix.new.key");
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->val, "1") != 0);
+    FAIL_IF(!node->final);
+    FAIL_IF(SCConfGetNode("prefix.new")->final);
+    /* SCConfSet does not change a final node. */
+    FAIL_IF(SCConfSet("prefix.host-mode", "auto") != 0);
+    node = SCConfGetNode("prefix.host-mode");
+    FAIL_IF(strcmp(node->val, " sniffer-only") != 0);
+
+    /* An index is final under its resolved name. */
+    node = SCConfGetNode("prefix.list.0");
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->val, "x") != 0);
+    FAIL_IF(!node->final);
+    FAIL_IF_NOT_NULL(SCConfGetNode("prefix.list.00"));
+
+    /* A name into a sequence is set next to the items, final. */
+    node = SCConfGetNode("prefix.list.name");
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->val, "y") != 0);
+    FAIL_IF(!node->final);
+    node = SCConfGetNode("prefix.list.1");
+    FAIL_IF_NULL(node);
+    FAIL_IF(strcmp(node->val, "b") != 0);
+
     /* A missing --include file is an error. */
     const char *missing[] = { "ConfYamlFileIncludeTest-missing.yaml", NULL };
-    FAIL_IF(SCConfYamlLoadFileWithPrefixAndIncludes(config_filename, "prefix2", missing) != -1);
+    FAIL_IF(SCConfYamlLoadFileWithOptions(config_filename, "prefix2", missing, NULL, NULL) != -1);
+
+    /* A bad override path is an error. */
+    const char *bad_paths[] = { "a..b", NULL };
+    const char *bad_values[] = { "1", NULL };
+    FAIL_IF(SCConfYamlLoadFileWithOptions(
+                    config_filename, "prefix3", NULL, bad_paths, bad_values) != -1);
 
     SCConfDeInit();
     SCConfRestoreContextBackup();

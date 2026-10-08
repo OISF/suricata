@@ -505,6 +505,64 @@ void EngineStop(void)
 }
 
 /**
+ * \brief Add a configuration value set from the command line to the
+ *     overrides, applied in order after the configuration is loaded, so
+ *     a later option or --set on the command line wins. The path and
+ *     value are copied.
+ */
+static void AddConfigOverride(SCInstance *suri, const char *path, const char *value)
+{
+    size_t n = suri->n_overrides;
+    const char **paths = SCRealloc(suri->override_paths, (n + 2) * sizeof(char *));
+    if (paths == NULL) {
+        FatalError("Failed to allocate memory for configuration overrides: %s", strerror(errno));
+    }
+    suri->override_paths = paths;
+    const char **values = SCRealloc(suri->override_values, (n + 2) * sizeof(char *));
+    if (values == NULL) {
+        FatalError("Failed to allocate memory for configuration overrides: %s", strerror(errno));
+    }
+    suri->override_values = values;
+    paths[n] = SCStrdup(path);
+    values[n] = SCStrdup(value);
+    if (paths[n] == NULL || values[n] == NULL) {
+        FatalError("Failed to allocate memory for configuration overrides: %s", strerror(errno));
+    }
+    paths[n + 1] = NULL;
+    values[n + 1] = NULL;
+    suri->n_overrides = n + 1;
+}
+
+/**
+ * \brief Add a --set argument of the form path=value to the overrides.
+ *
+ * Like SCConfSetFromString, whitespace is trimmed from the end of the
+ * path and the start of the value, so --set 'a = b' sets a to b. The
+ * value may contain '=', and may be empty.
+ */
+static void AddSetOverride(SCInstance *suri, const char *arg)
+{
+    char *path = SCStrdup(arg);
+    if (path == NULL) {
+        FatalError("Failed to allocate memory for configuration overrides: %s", strerror(errno));
+    }
+    char *value = strchr(path, '=');
+    if (value == NULL) {
+        FatalError("Invalid argument for --set, must be key=val.");
+    }
+    *value++ = '\0';
+    size_t len = strlen(path);
+    while (len > 0 && isspace((unsigned char)path[len - 1])) {
+        path[--len] = '\0';
+    }
+    while (isspace((unsigned char)*value)) {
+        value++;
+    }
+    AddConfigOverride(suri, path, value);
+    SCFree(path);
+}
+
+/**
  * \brief Used to indicate that the current task is done.
  *
  * This is mainly used by pcap-file to tell it has finished
@@ -545,11 +603,7 @@ static int SetBpfString(int argc, char *argv[])
     }
 
     if(strlen(bpf_filter) > 0) {
-        if (SCConfSetFinal("bpf-filter", bpf_filter) != 1) {
-            SCLogError("Failed to set bpf filter.");
-            SCFree(bpf_filter);
-            return TM_ECODE_FAILED;
-        }
+        AddConfigOverride(&suricata, "bpf-filter", bpf_filter);
     }
     SCFree(bpf_filter);
 
@@ -621,10 +675,7 @@ static void SetBpfStringFromFile(char *filename)
             bpf_filter[strlen(bpf_filter)-1] = '\0';
         }
         if (strlen(bpf_filter) > 0) {
-            if (SCConfSetFinal("bpf-filter", bpf_filter) != 1) {
-                SCFree(bpf_filter);
-                FatalError("failed to set bpf filter");
-            }
+            AddConfigOverride(&suricata, "bpf-filter", bpf_filter);
         }
     }
     SCFree(bpf_filter);
@@ -1075,8 +1126,8 @@ TmEcode SCLoadYamlConfig(void)
         }
     }
 
-    if (SCConfYamlLoadFileWithPrefixAndIncludes(
-                suri->conf_filename, NULL, suri->additional_configs) != 0) {
+    if (SCConfYamlLoadFileWithOptions(suri->conf_filename, NULL, suri->additional_configs,
+                suri->override_paths, suri->override_values) != 0) {
         /* Error already displayed. */
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -1594,10 +1645,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 #endif /* HAVE_PFRING */
             } else if (strcmp((long_opts[option_index]).name, "pfring-cluster-id") == 0) {
 #ifdef HAVE_PFRING
-                if (SCConfSetFinal("pfring.cluster-id", optarg) != 1) {
-                    SCLogError("failed to set pfring.cluster-id");
-                    return TM_ECODE_FAILED;
-                }
+                AddConfigOverride(suri, "pfring.cluster-id", optarg);
 #else
                 SCLogError("PF_RING not enabled. Make sure "
                            "to pass --enable-pfring to configure when building.");
@@ -1605,10 +1653,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 #endif /* HAVE_PFRING */
             } else if (strcmp((long_opts[option_index]).name, "pfring-cluster-type") == 0) {
 #ifdef HAVE_PFRING
-                if (SCConfSetFinal("pfring.cluster-type", optarg) != 1) {
-                    SCLogError("failed to set pfring.cluster-type");
-                    return TM_ECODE_FAILED;
-                }
+                AddConfigOverride(suri, "pfring.cluster-type", optarg);
 #else
                 SCLogError("PF_RING not enabled. Make sure "
                            "to pass --enable-pfring to configure when building.");
@@ -1679,19 +1724,13 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                 SCLogInfo("Setting IPS mode");
                 EngineModeSetIPS(ENGINE_HOST_IS_ROUTER);
             } else if (strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
-                if (SCConfSetFinal("engine.init-failure-fatal", "1") != 1) {
-                    SCLogError("failed to set engine init-failure-fatal");
-                    return TM_ECODE_FAILED;
-                }
+                AddConfigOverride(suri, "engine.init-failure-fatal", "1");
 #ifdef BUILD_UNIX_SOCKET
             } else if (strcmp((long_opts[option_index]).name , "unix-socket") == 0) {
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_UNIX_SOCKET;
                     if (optarg) {
-                        if (SCConfSetFinal("unix-command.filename", optarg) != 1) {
-                            SCLogError("failed to set unix-command.filename");
-                            return TM_ECODE_FAILED;
-                        }
+                        AddConfigOverride(suri, "unix-command.filename", optarg);
                     }
                 } else {
                     SCLogError("more than one run mode "
@@ -1779,10 +1818,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 #endif /* HAVE_LIBCAP_NG */
             } else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
                 suri->run_mode = RUNMODE_ERF_FILE;
-                if (SCConfSetFinal("erf-file.file", optarg) != 1) {
-                    SCLogError("failed to set erf-file.file");
-                    return TM_ECODE_FAILED;
-                }
+                AddConfigOverride(suri, "erf-file.file", optarg);
             } else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
 #ifdef HAVE_DAG
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
@@ -1809,10 +1845,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
 #endif /* HAVE_NAPATECH */
             } else if (strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
 #ifdef HAVE_PCAP_SET_BUFF
-                if (SCConfSetFinal("pcap.buffer-size", optarg) != 1) {
-                    SCLogError("failed to set pcap-buffer-size");
-                    return TM_ECODE_FAILED;
-                }
+                AddConfigOverride(suri, "pcap.buffer-size", optarg);
 #else
                 SCLogError("The version of libpcap you have"
                            " doesn't support setting buffer size.");
@@ -1876,38 +1909,19 @@ TmEcode SCParseCommandLine(int argc, char **argv)
             }
             else if (strcmp((long_opts[option_index]).name, "set") == 0) {
                 if (optarg != NULL) {
-                    /* Quick validation. */
-                    char *val = strchr(optarg, '=');
-                    if (val == NULL) {
-                        FatalError("Invalid argument for --set, must be key=val.");
-                    }
-                    if (!SCConfSetFromString(optarg, 1)) {
-                        FatalError("failed to set configuration value %s", optarg);
-                    }
+                    AddSetOverride(suri, optarg);
                 }
             }
             else if (strcmp((long_opts[option_index]).name, "pcap-file-continuous") == 0) {
-                if (SCConfSetFinal("pcap-file.continuous", "true") != 1) {
-                    SCLogError("Failed to set pcap-file.continuous");
-                    return TM_ECODE_FAILED;
-                }
+                AddConfigOverride(suri, "pcap-file.continuous", "true");
             }
             else if (strcmp((long_opts[option_index]).name, "pcap-file-delete") == 0) {
-                if (SCConfSetFinal("pcap-file.delete-when-done", "true") != 1) {
-                    SCLogError("Failed to set pcap-file.delete-when-done");
-                    return TM_ECODE_FAILED;
-                }
+                AddConfigOverride(suri, "pcap-file.delete-when-done", "true");
             }
             else if (strcmp((long_opts[option_index]).name, "pcap-file-recursive") == 0) {
-                if (SCConfSetFinal("pcap-file.recursive", "true") != 1) {
-                    SCLogError("failed to set pcap-file.recursive");
-                    return TM_ECODE_FAILED;
-                }
+                AddConfigOverride(suri, "pcap-file.recursive", "true");
             } else if (strcmp((long_opts[option_index]).name, "pcap-file-buffer-size") == 0) {
-                if (SCConfSetFinal("pcap-file.buffer-size", optarg) != 1) {
-                    SCLogError("failed to set pcap-file.buffer-size");
-                    return TM_ECODE_FAILED;
-                }
+                AddConfigOverride(suri, "pcap-file.buffer-size", optarg);
             } else if (strcmp((long_opts[option_index]).name, "data-dir") == 0) {
                 if (optarg == NULL) {
                     SCLogError("no option argument (optarg) for -d");
@@ -1958,10 +1972,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
             break;
         case 'T':
             conf_test = 1;
-            if (SCConfSetFinal("engine.init-failure-fatal", "1") != 1) {
-                SCLogError("failed to set engine init-failure-fatal");
-                return TM_ECODE_FAILED;
-            }
+            AddConfigOverride(suri, "engine.init-failure-fatal", "1");
             break;
 #ifndef OS_WIN32
         case 'D':
@@ -2092,10 +2103,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                 SCLogError("pcap file '%s': %s", optarg, strerror(errno));
                 return TM_ECODE_FAILED;
             }
-            if (SCConfSetFinal("pcap-file.file", optarg) != 1) {
-                SCLogError("ERROR: Failed to set pcap-file.file\n");
-                return TM_ECODE_FAILED;
-            }
+            AddConfigOverride(suri, "pcap-file.file", optarg);
 
             break;
         case 's':
@@ -2470,27 +2478,35 @@ int SCStartInternalRunMode(int argc, char **argv)
             return ListKeywords(suri->keyword_info);
         case RUNMODE_LIST_RULE_PROTOS:
             if (suri->conf_filename != NULL) {
-                return ListRuleProtocols(suri->conf_filename);
+                return ListRuleProtocols(
+                        suri->conf_filename, suri->override_paths, suri->override_values);
             } else {
-                return ListRuleProtocols(DEFAULT_CONF_FILE);
+                return ListRuleProtocols(
+                        DEFAULT_CONF_FILE, suri->override_paths, suri->override_values);
             }
         case RUNMODE_LIST_APP_LAYERS:
             if (suri->conf_filename != NULL) {
-                return ListAppLayerProtocols(suri->conf_filename);
+                return ListAppLayerProtocols(
+                        suri->conf_filename, suri->override_paths, suri->override_values);
             } else {
-                return ListAppLayerProtocols(DEFAULT_CONF_FILE);
+                return ListAppLayerProtocols(
+                        DEFAULT_CONF_FILE, suri->override_paths, suri->override_values);
             }
         case RUNMODE_LIST_APP_LAYER_HOOKS:
             if (suri->conf_filename != NULL) {
-                return ListAppLayerHooks(suri->conf_filename);
+                return ListAppLayerHooks(
+                        suri->conf_filename, suri->override_paths, suri->override_values);
             } else {
-                return ListAppLayerHooks(DEFAULT_CONF_FILE);
+                return ListAppLayerHooks(
+                        DEFAULT_CONF_FILE, suri->override_paths, suri->override_values);
             }
         case RUNMODE_LIST_APP_LAYER_FRAMES:
             if (suri->conf_filename != NULL) {
-                return ListAppLayerFrames(suri->conf_filename);
+                return ListAppLayerFrames(
+                        suri->conf_filename, suri->override_paths, suri->override_values);
             } else {
-                return ListAppLayerFrames(DEFAULT_CONF_FILE);
+                return ListAppLayerFrames(
+                        DEFAULT_CONF_FILE, suri->override_paths, suri->override_values);
             }
         case RUNMODE_PRINT_VERSION:
             PrintVersion();
