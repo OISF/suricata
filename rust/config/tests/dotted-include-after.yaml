@@ -1,0 +1,10 @@
+%YAML 1.1
+---
+vars:
+  address-groups:
+    HOME_NET: "1.1.1.1"
+    EXTERNAL_NET: any
+vars.address-groups.HOME_NET: "2.2.2.2"
+
+# Comes last, so its vars mapping replaces everything above.
+include: dotted-include-after-vars.yaml

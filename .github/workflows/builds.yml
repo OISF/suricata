@@ -1354,6 +1354,8 @@ jobs:
       - run: CFLAGS="${DEFAULT_CFLAGS}" ./configure
       - run: make -j ${{ env.CPUS }}
       - run: ./src/suricata --build-info # check if we can run Suricata
+      # Install the headers from the dist directory, without cbindgen.
+      - run: make install-headers
 
   ubuntu-24-04:
     name: Ubuntu 24.04 (cocci)

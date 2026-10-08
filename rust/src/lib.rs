@@ -142,7 +142,7 @@ pub mod x509;
 pub use suricata_ffi::direction;
 pub mod llmnr;
 
-#[allow(unused_imports)]
-pub use suricata_lua_sys;
-//Re-export htp symbols
+// Re-exports for C linkage.
 pub use htp::c_api::*;
+pub use suricata_config;
+pub use suricata_lua_sys;

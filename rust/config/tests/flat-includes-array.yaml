@@ -1,0 +1,14 @@
+%YAML 1.1
+---
+
+classification-file: /etc/suricata/classification.config
+reference-config-file: /etc/suricata/reference.config
+
+# These will be included into the root of the configuration tree.
+include:
+  - ./flat-af-packet.yaml
+
+foobar:
+  include:
+    # This should be included under foobar.
+    - ./flat-af-packet.yaml
