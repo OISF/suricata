@@ -49,14 +49,19 @@ static int LuaFlowvarRegister(lua_State *L)
     if (ld == NULL) {
         return luaL_error(L, "flowvar API not available in this context");
     }
+    if (!ld->register_in_init) {
+        return luaL_error(L, "flowvar.register() must be called from init()");
+    }
     const char *name = luaL_checkstring(L, 1);
+    /* check the limit first: a failed over-limit registration must not
+     * leave a name store entry that nothing unregisters */
+    if (ld->flowvars >= DETECT_LUA_MAX_FLOWVARS) {
+        return luaL_error(L, "too many flowvars registered");
+    }
     uint32_t *flowvar_id = lua_newuserdata(L, sizeof(*flowvar_id));
     *flowvar_id = VarNameStoreRegister(name, VAR_TYPE_FLOW_VAR);
     if (*flowvar_id == 0) {
         return luaL_error(L, "failed to register flowvar");
-    }
-    if (ld->flowvars >= DETECT_LUA_MAX_FLOWVARS) {
-        return luaL_error(L, "too many flowvars registered");
     }
     ld->flowvar[ld->flowvars++] = *flowvar_id;
 

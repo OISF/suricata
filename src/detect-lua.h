@@ -56,6 +56,9 @@ typedef struct DetectLuaData {
     uint64_t alloc_limit;
     uint64_t instruction_limit;
     int allow_restricted_functions;
+    bool register_in_init; /* set around the init() call: register()
+                            * mutates the shared ld, so it is only
+                            * allowed there */
 } DetectLuaData;
 
 /* prototypes */
