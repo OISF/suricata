@@ -3185,6 +3185,43 @@ default.
 Using this default setting, flows will be associated only if the compared packet
 headers are encapsulated in the same number of headers.
 
+.. _tunnels:
+
+Tunnels
+~~~~~~~
+
+If your packets sources are multiple tunnels encapsulating the traffic,
+you can configure the ``decoder.tunnels`` section to assign a tunnel
+identifier to each of these tunnels. Such tunnel traffic is
+unidirectional from a sender (like a switch doing traffic mirroring) to
+the ip address where Suricata is listening.
+
+.. note:: This setting is thus not meant for firewall nor IPS mode.
+
+These tunnel identifiers are used in flow hashing to be able to distinguish
+the same-looking flow (same 5-tuple) from different tunnels, meaning it
+is in fact a different subnetwork (like a VLAN identifier).
+
+Valid tunnel ids range from 1 to 32767.
+
+The supported tunnel types are:
+
+- vxlan
+- erspan2
+
+This section is a list of tunnels with the following parameters:
+::
+
+    - id: 1
+      type: erspan2 # or vxlan
+      src: 192.168.1.1
+      dst: 192.168.1.3 # ip address where suricata is receiving the traffic
+      session: 123 # erspan span id or vxlan vni
+
+Only IPv4 addresses are supported for now.
+
+These tunnel identifiers can be used for multi-tenancy.
+
 Advanced Options
 ----------------
 

@@ -118,6 +118,7 @@ void PacketReinit(Packet *p)
     p->flags = 0;
     p->flowflags = 0;
     p->pkt_src = 0;
+    p->tunnel_id = 0;
     p->vlan_id[0] = 0;
     p->vlan_id[1] = 0;
     p->vlan_idx = 0;
@@ -156,6 +157,7 @@ void PacketReinit(Packet *p)
     p->prev = NULL;
     p->tunnel_verdicted = false;
     p->root = NULL;
+    p->tproto = DECODE_TUNNEL_UNSET;
     p->livedev_id = 0;
     p->livedev_dst_id = 0;
     PACKET_PROFILING_RESET(p);

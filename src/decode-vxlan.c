@@ -214,8 +214,9 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     /* Set-up and process inner packet if it is a supported ethertype */
     if (eth_ok) {
-        Packet *tp = PacketTunnelPktSetup(
-                tv, dtv, p, pkt + VXLAN_HEADER_LEN, len - VXLAN_HEADER_LEN, DECODE_TUNNEL_VXLAN);
+        uint32_t vni_session = (vxlanh->vni[0] << 16) + (vxlanh->vni[1] << 8) + (vxlanh->vni[2]);
+        Packet *tp = PacketTunnelPktSetupWithSession(tv, dtv, p, pkt + VXLAN_HEADER_LEN,
+                len - VXLAN_HEADER_LEN, DECODE_TUNNEL_VXLAN, &vni_session);
         if (tp != NULL) {
             PKT_SET_SRC(tp, PKT_SRC_DECODER_VXLAN);
             PacketEnqueueNoLock(&tv->decode_pq, tp);

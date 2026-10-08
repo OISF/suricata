@@ -18,7 +18,9 @@ Add a new section in the main ("master") Suricata configuration file -- ``surica
 Settings:
 
 * `enabled`: yes/no -> is multi-tenancy support enabled
-* `selector`: direct (for unix socket pcap processing, see below), VLAN or device
+* `selector`: direct (for unix socket pcap processing, see below), VLAN, tunnel or device
+* `default`: yes/no (default: no) -> inspect traffic not matching any mapping with the
+  rules of the master configuration, see :ref:`multi-tenant-default`
 * `loaders`: number of `loader` threads, for parallel tenant loading at startup
 * `tenants`: list of tenants
 * `config-path`: path from where the tenant yamls are loaded
@@ -35,7 +37,7 @@ Settings:
 
   multi-detect:
     enabled: yes
-    #selector: direct # direct or vlan or device
+    #selector: direct # direct or vlan or tunnel or device
     selector: vlan
     loaders: 3
 
@@ -134,6 +136,43 @@ Note: Not currently supported for IPS.
 
 Note: support depends on a capture method using the 'livedev' API. Currently
 these are: pcap, AF_PACKET, PF_RING and Netmap.
+
+tunnel
+~~~~~~
+
+Assign tenants to tunnels. A single tenant can be assigned to a tunnel, see :ref:`tunnels`.
+Multiple tunnels can have the same tenant id.
+
+Example of tunnel mapping::
+
+    mappings:
+    - tunnel-id: 1
+      tenant-id: 1
+    - tunnel-id: 2
+      tenant-id: 3
+
+.. _multi-tenant-default:
+
+Traffic not matching any mapping
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Traffic the selector cannot map to a tenant, e.g. untagged traffic, an unmapped
+VLAN id or device, traffic from a tunnel not defined in ``decoder.tunnels`` or
+the outer packets of a defined tunnel, is still decoded, tracked in flows and
+logged. Only its inspection depends on ``default``:
+
+* ``default: no`` (default): no rule inspects it. The rule files of the master
+  configuration, including the ones passed with ``-S``, are not loaded.
+* ``default: yes``: the rules of the master configuration inspect it. Its alerts
+  have no ``tenant_id``.
+
+::
+
+  multi-detect:
+    enabled: yes
+    selector: vlan
+    default: yes
+
 
 Per tenant settings
 -------------------
