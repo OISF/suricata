@@ -88,6 +88,10 @@ void SCHTTP2MimicHttp1Request(void *alstate_orig, void *h2s)
         SCHttp2TxSetUri(h2s, bstr_ptr(htp_tx_request_uri(h1tx)),
                 (uint32_t)bstr_len(htp_tx_request_uri(h1tx)));
     }
+    if (htp_tx_normalized_uri(h1tx) != NULL) {
+        SCHttp2TxSetNormUri(h2s, bstr_ptr(htp_tx_normalized_uri(h1tx)),
+                (uint32_t)bstr_len(htp_tx_normalized_uri(h1tx)));
+    }
     size_t nbheaders = htp_tx_request_headers_size(h1tx);
     for (size_t i = 0; i < nbheaders; i++) {
         const htp_header_t *h = htp_tx_request_header_index(h1tx, i);
