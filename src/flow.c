@@ -1290,6 +1290,11 @@ AppProto SCFlowGetAppProtocol(const Flow *f)
     return f->alproto;
 }
 
+AppProto SCFlowGetAppProtocolToClient(const Flow *f)
+{
+    return f->alproto_tc;
+}
+
 /**
  * \brief Get flow destination port.
  *

@@ -47,5 +47,6 @@ const uint8_t *SCFlowGetDestinationAddressAsRawPtr(const Flow *flow);
 uint32_t SCFlowGetToServerPacketCount(const Flow *flow);
 uint32_t SCFlowGetToClientPacketCount(const Flow *flow);
 AppProto SCFlowGetAppProtocol(const Flow *f);
+AppProto SCFlowGetAppProtocolToClient(const Flow *f);
 
 #endif /* SURICATA_FLOW_BINDGEN_H */
