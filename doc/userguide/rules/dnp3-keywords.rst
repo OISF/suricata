@@ -152,3 +152,32 @@ Example
 ::
 
   dnp3_data; content:"|c3 06|";
+
+DNP3 link-layer events
+----------------------
+
+Besides the link-layer anomaly events ``dnp3.bad_link_crc``,
+``dnp3.len_too_small`` and ``dnp3.bad_transport_crc``, two events describe
+how the parser recovered from a link-layer error:
+
+dnp3.bad_start_bytes
+  Octets that are not a DNP3 start sequence (``0x05 0x64``) were skipped.
+  Raised only with ``app-layer.protocols.dnp3.resync-on-bad-start`` set to
+  ``yes``; otherwise such octets end DNP3 inspection of the flow. With the
+  option set, protocol detection also looks up to 256 octets into the flow
+  for a start sequence with a valid header CRC.
+
+dnp3.policy_divergence
+  The first well-formed frame parsed after a link-layer error on the same
+  flow direction. A DNP3 endpoint that stops on link errors (for example
+  ``dnp3-rs`` with ``LinkErrorMode::Close``) would have dropped the session
+  before this frame; one that resynchronizes (``opendnp3``, ``dnp3-rs``
+  ``Discard``) processes it. Which one the device does is a device setting
+  that is not visible on the wire, so this event marks where processing
+  starts to depend on it. It is raised once per link-layer error, on the
+  first frame that follows it, not on every later frame of the session.
+
+Example::
+
+  alert dnp3 any any -> any any (msg:"DNP3 frame behind a link error"; \
+        app-layer-event:dnp3.policy_divergence; sid:1; rev:1;)
