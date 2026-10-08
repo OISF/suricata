@@ -24,9 +24,13 @@
 #define SURICATA_UTIL_RUNNING_MODES_H
 
 int ListKeywords(const char *keyword_info);
-int ListAppLayerProtocols(const char *conf_filename);
-int ListRuleProtocols(const char *conf_filename);
-int ListAppLayerHooks(const char *conf_filename);
-int ListAppLayerFrames(const char *conf_filename);
+int ListAppLayerProtocols(const char *conf_filename, const char *const *override_paths,
+        const char *const *override_values);
+int ListRuleProtocols(const char *conf_filename, const char *const *override_paths,
+        const char *const *override_values);
+int ListAppLayerHooks(const char *conf_filename, const char *const *override_paths,
+        const char *const *override_values);
+int ListAppLayerFrames(const char *conf_filename, const char *const *override_paths,
+        const char *const *override_values);
 
 #endif /* SURICATA_UTIL_RUNNING_MODES_H */

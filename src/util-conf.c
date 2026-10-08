@@ -63,23 +63,39 @@ TmEcode ConfigCheckLogDirectoryExists(const char *log_dir)
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode ConfigSetDataDirectory(char *name)
+/**
+ * \brief Normalize a data directory name: drop a trailing '/', except
+ *     for "/" itself.
+ *
+ * \param name The data directory name.
+ * \param out Buffer for the normalized name.
+ * \param out_size The size of out, PATH_MAX + 1 for any name.
+ *
+ * \retval TM_ECODE_OK on success, TM_ECODE_FAILED if the name is too long.
+ */
+TmEcode ConfigNormalizeDataDirectory(const char *name, char *out, size_t out_size)
 {
     size_t name_len = strlen(name);
-    if (name_len == 0)
-        return TM_ECODE_OK;
-
-    if (name_len > PATH_MAX) {
+    if (name_len > PATH_MAX || name_len >= out_size) {
         SCLogError("Too long name for data directory");
         return TM_ECODE_FAILED;
     }
-    size_t size = strlen(name) + 1;
-    char tmp[size];
-    strlcpy(tmp, name, size);
-    if (size > 2 && tmp[size - 2] == '/') // > 2 to allow just /
-        tmp[size - 2] = '\0';
+    strlcpy(out, name, out_size);
+    if (name_len > 1 && out[name_len - 1] == '/') // > 1 to allow just /
+        out[name_len - 1] = '\0';
+    return TM_ECODE_OK;
+}
 
-    return SCConfSetFinal("default-data-dir", tmp) ? TM_ECODE_OK : TM_ECODE_FAILED;
+TmEcode ConfigSetDataDirectory(char *name)
+{
+    if (strlen(name) == 0)
+        return TM_ECODE_OK;
+
+    char dir[PATH_MAX + 1];
+    if (ConfigNormalizeDataDirectory(name, dir, sizeof(dir)) != TM_ECODE_OK)
+        return TM_ECODE_FAILED;
+
+    return SCConfSetFinal("default-data-dir", dir) ? TM_ECODE_OK : TM_ECODE_FAILED;
 }
 
 const char *ConfigGetDataDirectory(void)

@@ -90,9 +90,26 @@ impl Node {
     }
 }
 
+/// Why a path could not be walked, see [`path_node_mut`].
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum PathError {
+    /// The path is empty.
+    #[error("empty key")]
+    Empty,
+    /// A component of the path names a child of a sequence, which only
+    /// has indexes.
+    #[error("{segment:?} is not a valid index for a sequence of length {len}")]
+    NotAnIndex { segment: String, len: usize },
+    /// An index past the end of a sequence, where only the next index
+    /// can be used to append an item.
+    #[error("{segment:?} is not a valid index for a sequence of length {len}")]
+    PastEnd { segment: String, len: usize },
+}
+
 /// Walk a path below a mapping and return the node at the end of the
-/// path, for setting it. Used for dotted keys and command line
-/// overrides.
+/// path, for setting it, with the path as resolved: an index of a
+/// sequence is in its canonical form, so `00` is `0`. Used for dotted
+/// keys and command line overrides.
 ///
 /// Missing nodes are created as null, and a node along the path that is
 /// neither a mapping nor a sequence is replaced with a mapping. A number
@@ -100,38 +117,48 @@ impl Node {
 /// item, anything beyond is an error.
 pub(crate) fn path_node_mut<'a>(
     mapping: &'a mut Mapping, segments: &[String],
-) -> Result<&'a mut Node, String> {
+) -> Result<(&'a mut Node, Vec<String>), PathError> {
     let Some((first, rest)) = segments.split_first() else {
-        return Err("empty key".into());
+        return Err(PathError::Empty);
     };
 
+    let mut resolved = Vec::with_capacity(segments.len());
+    resolved.push(first.clone());
     let mut node = mapping.entry(first.clone()).or_default();
     for segment in rest {
         if !node.is_mapping() && !node.is_sequence() {
             *node = Node::Mapping(Mapping::new());
         }
         node = match node {
-            Node::Mapping(mapping) => mapping.entry(segment.clone()).or_default(),
+            Node::Mapping(mapping) => {
+                resolved.push(segment.clone());
+                mapping.entry(segment.clone()).or_default()
+            }
             Node::Sequence(items) => {
                 let len = items.len();
-                match segment.parse::<usize>() {
-                    Ok(index) if index < len => &mut items[index],
-                    Ok(index) if index == len => {
-                        items.push(Node::Null);
-                        &mut items[index]
-                    }
-                    _ => {
-                        return Err(format!(
-                            "{segment:?} is not a valid index for a sequence of length {len}"
-                        ))
-                    }
+                let Ok(index) = segment.parse::<usize>() else {
+                    return Err(PathError::NotAnIndex {
+                        segment: segment.clone(),
+                        len,
+                    });
+                };
+                if index > len {
+                    return Err(PathError::PastEnd {
+                        segment: segment.clone(),
+                        len,
+                    });
                 }
+                if index == len {
+                    items.push(Node::Null);
+                }
+                resolved.push(index.to_string());
+                &mut items[index]
             }
             Node::Null | Node::Scalar(_) => unreachable!(),
         };
     }
 
-    Ok(node)
+    Ok((node, resolved))
 }
 
 impl Index<&str> for Node {

@@ -5109,8 +5109,8 @@ int DetectEngineReload(const SCInstance *suri)
                 SCLogConfig("Reloading %s", suri->additional_configs[i]);
             }
         }
-        if (SCConfYamlLoadFileWithPrefixAndIncludes(
-                    suri->conf_filename, prefix, suri->additional_configs) != 0) {
+        if (SCConfYamlLoadFileWithOptions(
+                    suri->conf_filename, prefix, suri->additional_configs, NULL, NULL) != 0) {
             SCLogError("failed to load yaml %s", suri->conf_filename);
             return -1;
         }

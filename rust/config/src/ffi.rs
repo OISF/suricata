@@ -23,12 +23,48 @@ use crate::loader::decode;
 use crate::loader::load_file_with_include_dir;
 use crate::loader::load_string_with_include_dir;
 use crate::loader::merge_file;
+use crate::overrides::apply_override;
 use crate::LoadError;
 use crate::Node;
+use crate::Override;
+use crate::OverrideError;
 
 /// A loaded configuration.
 pub struct ConfTree {
     root: Node,
+    // The command line overrides, in the order they were given.
+    overrides: Vec<OverrideResult>,
+}
+
+// What became of a command line override.
+struct OverrideResult {
+    // The path as resolved, joined with dots, with the indexes of
+    // sequences in their canonical form.
+    path: String,
+    // Whether it was applied to the tree. An override that names a
+    // child of a sequence is not: the tree has no place for it, and C
+    // applies it to its own tree if it is still deferred.
+    applied: bool,
+    // Whether C still needs to apply this named child of a sequence.
+    // False if a later override replaced the sequence or an ancestor.
+    deferred: bool,
+    // Whether the node at the path still has the value of the override
+    // after all of them were applied, that is a later override did not
+    // replace it. The value is converted to UTF-8 for the tree, so the
+    // caller sets it again from the bytes it was given.
+    is_value: bool,
+}
+
+/// Why a configuration could not be loaded.
+#[derive(Debug, thiserror::Error)]
+enum FfiError {
+    #[error(transparent)]
+    Load(#[from] LoadError),
+    #[error(transparent)]
+    Override(#[from] OverrideError),
+    /// A file name from C that is not UTF-8. The bytes, escaped.
+    #[error("file name is not valid UTF-8: {0}")]
+    NotUtf8(String),
 }
 
 /// The kind of a node.
@@ -59,18 +95,23 @@ unsafe fn set_error(err: *mut *mut c_char, message: String) {
     *err = message.into_raw();
 }
 
-// A file system path from a NUL terminated string. Paths are taken to
-// be UTF-8; a byte sequence that is not is replaced, so such a file
-// will not be found.
-unsafe fn path(s: *const c_char) -> PathBuf {
-    let bytes = CStr::from_ptr(s).to_bytes();
-    PathBuf::from(String::from_utf8_lossy(bytes).into_owned())
+// A file system path from a NUL terminated string. File names must be
+// UTF-8, on every platform; one that is not is an error rather than
+// converted, which could name another file.
+unsafe fn path(s: *const c_char) -> Result<PathBuf, FfiError> {
+    let s = CStr::from_ptr(s);
+    match s.to_str() {
+        Ok(s) => Ok(PathBuf::from(s)),
+        Err(_) => Err(FfiError::NotUtf8(
+            s.to_bytes().escape_ascii().to_string(),
+        )),
+    }
 }
 
 // The paths of a C array of NUL terminated strings.
-unsafe fn paths(array: *const *const c_char, len: usize) -> Vec<PathBuf> {
+unsafe fn paths(array: *const *const c_char, len: usize) -> Result<Vec<PathBuf>, FfiError> {
     if array.is_null() {
-        return Vec::new();
+        return Ok(Vec::new());
     }
     std::slice::from_raw_parts(array, len)
         .iter()
@@ -78,17 +119,98 @@ unsafe fn paths(array: *const *const c_char, len: usize) -> Vec<PathBuf> {
         .collect()
 }
 
-// Load a configuration file and merge the `--include` files into it.
-fn load(path: &Path, include_dir: &Path, includes: &[PathBuf]) -> Result<Node, LoadError> {
-    let mut config = load_file_with_include_dir(path, include_dir)?;
-    for include in includes {
-        merge_file(&mut config, include, include_dir)?;
+// The strings of a C array of NUL terminated strings, with bytes that
+// are not UTF-8 replaced.
+unsafe fn strings(array: *const *const c_char, len: usize) -> Vec<String> {
+    if array.is_null() {
+        return Vec::new();
     }
-    Ok(config)
+    std::slice::from_raw_parts(array, len)
+        .iter()
+        .map(|s| CStr::from_ptr(*s).to_string_lossy().into_owned())
+        .collect()
+}
+
+// Resolve a named child of a sequence in the final tree. Overrides can
+// replace a sequence, but cannot create one, so finding it here means
+// no later override replaced it or an ancestor. Resolve numeric indexes
+// before the named child, just as for overrides applied to the Rust tree.
+fn deferred_override_path(root: &Node, path: &[String]) -> Option<String> {
+    let mut node = root;
+    let mut resolved = Vec::with_capacity(path.len());
+    for (i, segment) in path.iter().enumerate() {
+        if node.is_sequence() {
+            let Ok(index) = segment.parse::<usize>() else {
+                resolved.extend_from_slice(&path[i..]);
+                return Some(resolved.join("."));
+            };
+            resolved.push(index.to_string());
+        } else {
+            resolved.push(segment.clone());
+        }
+        node = node.get(segment)?;
+    }
+    None
+}
+
+// Load a configuration file, merge the `--include` files into it and
+// apply the overrides. The overrides are checked first, so a bad path
+// fails before any file is read.
+fn load(
+    path: &Path, include_dir: &Path, includes: &[PathBuf], overrides: &[(String, String)],
+) -> Result<ConfTree, FfiError> {
+    let overrides = overrides
+        .iter()
+        .map(|(path, value)| Override::new(path, value))
+        .collect::<Result<Vec<Override>, _>>()?;
+    let mut root = load_file_with_include_dir(path, include_dir)?;
+    for include in includes {
+        merge_file(&mut root, include, include_dir)?;
+    }
+    let mut results = Vec::with_capacity(overrides.len());
+    for override_ in &overrides {
+        let result = match apply_override(&mut root, override_) {
+            Ok(resolved) => OverrideResult {
+                path: resolved.join("."),
+                applied: true,
+                deferred: false,
+                is_value: false,
+            },
+            Err(OverrideError::NotAnIndex { path, .. }) => OverrideResult {
+                path,
+                applied: false,
+                deferred: false,
+                is_value: false,
+            },
+            Err(error) => return Err(error.into()),
+        };
+        results.push(result);
+    }
+    for (result, override_) in results.iter_mut().zip(&overrides) {
+        if !result.applied {
+            if let Some(path) = deferred_override_path(&root, &override_.path) {
+                result.path = path;
+                result.deferred = true;
+            }
+        }
+        result.is_value = result.applied
+            && root.get_path(&result.path).and_then(Node::as_str) == Some(override_.value.as_str());
+    }
+    Ok(ConfTree {
+        root,
+        overrides: results,
+    })
 }
 
 /// Load a configuration file, then the `includes` (the `--include`
-/// files) into it, in order.
+/// files) into it in order, then apply the command line overrides in
+/// order: the values at `override_values` for the dotted paths at
+/// `override_paths`, both used as given (a `--set` argument is split
+/// and trimmed by the caller).
+///
+/// An override that names a child of a sequence, like
+/// `pcap.buffer-size` where `pcap` is a sequence, is not an error but
+/// is not applied either, see `SCConfTreeOverrideDeferred`.
 ///
 /// Relative include paths, also in included files, are resolved from
 /// `include_dir`, or the directory of `path` if `include_dir` is NULL.
@@ -98,22 +220,32 @@ fn load(path: &Path, include_dir: &Path, includes: &[PathBuf]) -> Result<Node, L
 /// # Safety
 ///
 /// `path`, and `include_dir` if not NULL, must be NUL terminated
-/// strings, and `includes` must point to `n_includes` of them.
+/// strings, `includes` must point to `n_includes` of them and
+/// `override_paths` and `override_values` to `n_overrides` of them
+/// each.
 #[no_mangle]
 pub unsafe extern "C" fn SCConfTreeLoadFile(
     path: *const c_char, include_dir: *const c_char, includes: *const *const c_char,
-    n_includes: usize, err: *mut *mut c_char,
+    n_includes: usize, override_paths: *const *const c_char, override_values: *const *const c_char,
+    n_overrides: usize, err: *mut *mut c_char,
 ) -> *mut ConfTree {
-    let path = self::path(path);
-    let include_dir = if include_dir.is_null() {
-        file_include_dir(&path)
-    } else {
-        self::path(include_dir)
-    };
-    let includes = paths(includes, n_includes);
+    let overrides: Vec<(String, String)> = strings(override_paths, n_overrides)
+        .into_iter()
+        .zip(strings(override_values, n_overrides))
+        .collect();
 
-    match load(&path, &include_dir, &includes) {
-        Ok(root) => Box::into_raw(Box::new(ConfTree { root })),
+    let result = (|| {
+        let path = self::path(path)?;
+        let include_dir = if include_dir.is_null() {
+            file_include_dir(&path)
+        } else {
+            self::path(include_dir)?
+        };
+        let includes = paths(includes, n_includes)?;
+        load(&path, &include_dir, &includes, &overrides)
+    })();
+    match result {
+        Ok(tree) => Box::into_raw(Box::new(tree)),
         Err(error) => {
             set_error(err, error.to_string());
             ptr::null_mut()
@@ -145,13 +277,19 @@ pub unsafe extern "C" fn SCConfTreeLoadString(
         }
     };
     let include_dir = if include_dir.is_null() {
-        PathBuf::from(".")
+        Ok(PathBuf::from("."))
     } else {
         path(include_dir)
     };
 
-    match load_string_with_include_dir(&input, &include_dir) {
-        Ok(root) => Box::into_raw(Box::new(ConfTree { root })),
+    let result = include_dir.and_then(|include_dir| {
+        load_string_with_include_dir(&input, &include_dir).map_err(FfiError::from)
+    });
+    match result {
+        Ok(root) => Box::into_raw(Box::new(ConfTree {
+            root,
+            overrides: Vec::new(),
+        })),
         Err(error) => {
             set_error(err, error.to_string());
             ptr::null_mut()
@@ -194,6 +332,95 @@ pub unsafe extern "C" fn SCConfTreeErrorFree(err: *mut c_char) {
 #[no_mangle]
 pub unsafe extern "C" fn SCConfTreeRoot(tree: *const ConfTree) -> *const Node {
     &(*tree).root
+}
+
+/// The number of command line overrides of a configuration, applied or
+/// not.
+///
+/// # Safety
+///
+/// `tree` must be a valid configuration.
+#[no_mangle]
+pub unsafe extern "C" fn SCConfTreeOverrideCount(tree: *const ConfTree) -> usize {
+    let tree = &*tree;
+    tree.overrides.len()
+}
+
+/// Whether command line override `index` was applied to the tree. An
+/// override that names a child of a sequence is not, as a sequence has
+/// only indexes; see `SCConfTreeOverrideDeferred` for whether the caller
+/// should apply it to its own tree. False if `index` is out of range.
+///
+/// # Safety
+///
+/// `tree` must be a valid configuration.
+#[no_mangle]
+pub unsafe extern "C" fn SCConfTreeOverrideApplied(tree: *const ConfTree, index: usize) -> bool {
+    let tree = &*tree;
+    tree.overrides
+        .get(index)
+        .is_some_and(|result| result.applied)
+}
+
+/// Whether command line override `index` names a child of a sequence
+/// that still exists after all overrides. The caller applies it to its
+/// own tree, using `SCConfTreeOverridePath`. False if a later override
+/// replaced the sequence or an ancestor, or if `index` is out of range.
+///
+/// # Safety
+///
+/// `tree` must be a valid configuration.
+#[no_mangle]
+pub unsafe extern "C" fn SCConfTreeOverrideDeferred(tree: *const ConfTree, index: usize) -> bool {
+    let tree = &*tree;
+    tree.overrides
+        .get(index)
+        .is_some_and(|result| result.deferred)
+}
+
+/// Whether the node at the path of command line override `index`, an
+/// applied one, has the value of the override after all of them were
+/// applied, that is a later override did not replace it or give it
+/// children. The tree has the value converted to UTF-8, with invalid
+/// bytes replaced, so the caller can set it again from the bytes it was
+/// given, like a file name that is not UTF-8. False if `index` is out
+/// of range.
+///
+/// # Safety
+///
+/// `tree` must be a valid configuration.
+#[no_mangle]
+pub unsafe extern "C" fn SCConfTreeOverrideIsValue(tree: *const ConfTree, index: usize) -> bool {
+    let tree = &*tree;
+    tree.overrides
+        .get(index)
+        .is_some_and(|result| result.is_value)
+}
+
+/// The dotted path of command line override `index` as resolved, like
+/// `stream.midstream` or `outputs.1.eve-log.enabled` with the indexes
+/// of sequences in their canonical form, with its length in bytes in
+/// `*len`. The string is not NUL terminated. NULL, with `*len` 0, if
+/// `index` is out of range.
+///
+/// # Safety
+///
+/// `tree` must be a valid configuration and `len` a valid pointer.
+#[no_mangle]
+pub unsafe extern "C" fn SCConfTreeOverridePath(
+    tree: *const ConfTree, index: usize, len: *mut usize,
+) -> *const c_char {
+    let tree = &*tree;
+    match tree.overrides.get(index) {
+        Some(result) => {
+            *len = result.path.len();
+            str_ptr(&result.path)
+        }
+        None => {
+            *len = 0;
+            ptr::null()
+        }
+    }
 }
 
 /// The kind of a node.
@@ -480,6 +707,9 @@ mod tests {
                 ptr::null(),
                 includes.as_ptr(),
                 includes.len(),
+                ptr::null(),
+                ptr::null(),
+                0,
                 &mut err,
             );
             assert!(!tree.is_null(), "{:?}", CStr::from_ptr(err));
@@ -499,6 +729,9 @@ mod tests {
                 dir.as_ptr(),
                 includes.as_ptr(),
                 includes.len(),
+                ptr::null(),
+                ptr::null(),
+                0,
                 &mut err,
             );
             assert!(!tree.is_null(), "{:?}", CStr::from_ptr(err));
@@ -512,6 +745,9 @@ mod tests {
                 ptr::null(),
                 includes.as_ptr(),
                 includes.len(),
+                ptr::null(),
+                ptr::null(),
+                0,
                 &mut err,
             );
             assert!(tree.is_null());
@@ -520,12 +756,275 @@ mod tests {
             SCConfTreeErrorFree(err);
 
             // A missing file.
-            let tree = SCConfTreeLoadFile(missing.as_ptr(), ptr::null(), ptr::null(), 0, &mut err);
+            let tree = SCConfTreeLoadFile(
+                missing.as_ptr(),
+                ptr::null(),
+                ptr::null(),
+                0,
+                ptr::null(),
+                ptr::null(),
+                0,
+                &mut err,
+            );
             assert!(tree.is_null());
+            SCConfTreeErrorFree(err);
+
+            // A file name that is not UTF-8 is an error, not converted
+            // to another name, as the file, the include directory or
+            // an include.
+            let latin1 = CString::new(b"caf\xe9.yaml".to_vec()).unwrap();
+            let expected = "file name is not valid UTF-8: caf\\xe9.yaml";
+            let includes = [latin1.as_ptr()];
+            for (file, dir, includes, n) in [
+                (latin1.as_ptr(), ptr::null(), ptr::null(), 0),
+                (path.as_ptr(), latin1.as_ptr(), ptr::null(), 0),
+                (path.as_ptr(), ptr::null(), includes.as_ptr(), 1),
+            ] {
+                let tree = SCConfTreeLoadFile(
+                    file,
+                    dir,
+                    includes,
+                    n,
+                    ptr::null(),
+                    ptr::null(),
+                    0,
+                    &mut err,
+                );
+                assert!(tree.is_null());
+                assert_eq!(CStr::from_ptr(err).to_str().unwrap(), expected);
+                SCConfTreeErrorFree(err);
+            }
+            let input = "a: 1\n";
+            let tree = SCConfTreeLoadString(
+                input.as_ptr() as *const c_char,
+                input.len(),
+                latin1.as_ptr(),
+                &mut err,
+            );
+            assert!(tree.is_null());
+            assert_eq!(CStr::from_ptr(err).to_str().unwrap(), expected);
             SCConfTreeErrorFree(err);
 
             SCConfTreeFree(ptr::null_mut());
             SCConfTreeErrorFree(ptr::null_mut());
+        }
+    }
+
+    unsafe fn override_paths(tree: *const ConfTree) -> Vec<String> {
+        (0..SCConfTreeOverrideCount(tree))
+            .map(|index| {
+                let mut len = 0;
+                let path = SCConfTreeOverridePath(tree, index, &mut len);
+                String::from_utf8(std::slice::from_raw_parts(path as *const u8, len).to_vec())
+                    .unwrap()
+            })
+            .collect()
+    }
+
+    // A value that is not UTF-8, like a file name, is replaced in the
+    // tree, and the caller is told to set it again from its bytes,
+    // unless a later override replaced it.
+    #[test]
+    fn test_load_file_override_is_value() {
+        let data = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/data");
+        let path = CString::new(data.join("ffi-overrides.yaml").to_str().unwrap()).unwrap();
+        let c = |s: &[u8]| CString::new(s).unwrap();
+        let overrides = [
+            (c(b"pcap-file.file"), c(b"/tmp/\xff.pcap")),
+            (c(b"shared"), c(b"1")),
+            (c(b"shared"), c(b"2")),
+            (c(b"mapping"), c(b"3")),
+            (c(b"mapping.b"), c(b"4")),
+            (c(b"list.0"), c(b"5")),
+        ];
+        let paths: Vec<_> = overrides.iter().map(|(p, _)| p.as_ptr()).collect();
+        let values: Vec<_> = overrides.iter().map(|(_, v)| v.as_ptr()).collect();
+        unsafe {
+            let mut err = ptr::null_mut();
+            let tree = SCConfTreeLoadFile(
+                path.as_ptr(),
+                ptr::null(),
+                ptr::null(),
+                0,
+                paths.as_ptr(),
+                values.as_ptr(),
+                paths.len(),
+                &mut err,
+            );
+            assert!(!tree.is_null(), "{:?}", CStr::from_ptr(err));
+            let root = &(*tree).root;
+            assert_eq!(
+                root["pcap-file"]["file"].as_str(),
+                Some("/tmp/\u{fffd}.pcap")
+            );
+            let is_value: Vec<bool> = (0..overrides.len())
+                .map(|index| SCConfTreeOverrideIsValue(tree, index))
+                .collect();
+            assert_eq!(is_value, [true, false, true, false, true, true]);
+            SCConfTreeFree(tree);
+        }
+    }
+
+    #[test]
+    fn test_load_file_deferred_overrides() {
+        let data = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/data");
+        let path = data.join("ffi-overrides.yaml");
+        // Replacing the sequence or an ancestor removes its deferred
+        // children, even if a later override recreates part of the path.
+        // Replacing only an item leaves the deferred child in place.
+        for (paths, deferred) in [
+            (vec!["list.name", "list"], false),
+            (vec!["list.name", "list", "list.other"], false),
+            (vec!["nested.00.name", "nested.0"], false),
+            (vec!["nested.0.name", "nested"], false),
+            (vec!["nested.00.name", "nested.0", "nested.0.other"], false),
+            (vec!["list.name", "list.0"], true),
+            (vec!["nested.00.name", "nested.0.1"], true),
+        ] {
+            let overrides: Vec<_> = paths
+                .iter()
+                .map(|path| (path.to_string(), "value".to_string()))
+                .collect();
+            let tree = load(&path, &data, &[], &overrides).unwrap();
+            unsafe {
+                assert!(!SCConfTreeOverrideApplied(&tree, 0));
+                assert_eq!(SCConfTreeOverrideDeferred(&tree, 0), deferred, "{paths:?}");
+                assert!(!SCConfTreeOverrideDeferred(&tree, 1));
+                assert!(!SCConfTreeOverrideDeferred(&tree, paths.len()));
+                if deferred {
+                    let expected = paths[0].replace(".00.", ".0.");
+                    assert_eq!(override_paths(&tree)[0], expected);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_load_file_overrides() {
+        let data = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/data");
+        let path = CString::new(data.join("ffi-overrides.yaml").to_str().unwrap()).unwrap();
+        let include_a = CString::new("cli-include-a.yaml").unwrap();
+        let includes = [include_a.as_ptr()];
+        let c = |s: &str| CString::new(s).unwrap();
+        let (p1, v1) = (c("shared"), c(" from-set"));
+        let (p2, v2) = (c("mapping.new.key"), c("1"));
+        let (p3, v3) = (c("list.00"), c("x"));
+        let (p4, v4) = (c("list.name"), c("y"));
+        let paths = [p1.as_ptr(), p2.as_ptr(), p3.as_ptr(), p4.as_ptr()];
+        let values = [v1.as_ptr(), v2.as_ptr(), v3.as_ptr(), v4.as_ptr()];
+        unsafe {
+            let mut err = ptr::null_mut();
+            let tree = SCConfTreeLoadFile(
+                path.as_ptr(),
+                ptr::null(),
+                includes.as_ptr(),
+                includes.len(),
+                paths.as_ptr(),
+                values.as_ptr(),
+                paths.len(),
+                &mut err,
+            );
+            assert!(!tree.is_null(), "{:?}", CStr::from_ptr(err));
+            // The overrides are applied after the --include file, with
+            // the values as given.
+            let root = &(*tree).root;
+            assert_eq!(root["shared"].as_str(), Some(" from-set"));
+            assert_eq!(root["from-a"].as_str(), Some("1"));
+            assert_eq!(root["mapping"]["new"]["key"].as_str(), Some("1"));
+            assert_eq!(root["list"][0].as_str(), Some("x"));
+            // The paths are resolved, and a name into a sequence is
+            // reported as not applied.
+            assert_eq!(
+                override_paths(tree),
+                ["shared", "mapping.new.key", "list.0", "list.name"]
+            );
+            assert!(SCConfTreeOverrideApplied(tree, 0));
+            assert!(SCConfTreeOverrideApplied(tree, 2));
+            assert!(!SCConfTreeOverrideApplied(tree, 3));
+            assert!(!SCConfTreeOverrideApplied(tree, 4));
+            assert!(SCConfTreeOverrideDeferred(tree, 3));
+            assert!(!SCConfTreeOverrideDeferred(tree, 4));
+            assert!(SCConfTreeOverrideIsValue(tree, 0));
+            assert!(!SCConfTreeOverrideIsValue(tree, 3));
+            assert!(!SCConfTreeOverrideIsValue(tree, 4));
+            SCConfTreeFree(tree);
+
+            // A bad path is an error, before anything is read.
+            let bad = c("a..b");
+            let paths = [bad.as_ptr()];
+            let tree = SCConfTreeLoadFile(
+                path.as_ptr(),
+                ptr::null(),
+                ptr::null(),
+                0,
+                paths.as_ptr(),
+                values.as_ptr(),
+                paths.len(),
+                &mut err,
+            );
+            assert!(tree.is_null());
+            let message = CStr::from_ptr(err).to_str().unwrap();
+            assert!(
+                message.starts_with("invalid argument for --set"),
+                "{message}"
+            );
+            SCConfTreeErrorFree(err);
+
+            // An index past the end of a sequence is an error.
+            let bad = c("list.5");
+            let paths = [bad.as_ptr()];
+            let tree = SCConfTreeLoadFile(
+                path.as_ptr(),
+                ptr::null(),
+                ptr::null(),
+                0,
+                paths.as_ptr(),
+                values.as_ptr(),
+                paths.len(),
+                &mut err,
+            );
+            assert!(tree.is_null());
+            let message = CStr::from_ptr(err).to_str().unwrap();
+            assert!(
+                message.starts_with("cannot apply --set list.5"),
+                "{message}"
+            );
+            SCConfTreeErrorFree(err);
+
+            // A scalar along the path of an override is replaced with
+            // a mapping.
+            let deep = c("mapping.a.b.c");
+            let paths = [deep.as_ptr()];
+            let tree = SCConfTreeLoadFile(
+                path.as_ptr(),
+                ptr::null(),
+                ptr::null(),
+                0,
+                paths.as_ptr(),
+                values.as_ptr(),
+                paths.len(),
+                &mut err,
+            );
+            assert!(!tree.is_null(), "{:?}", CStr::from_ptr(err));
+            let root = &(*tree).root;
+            assert_eq!(root["mapping"]["a"]["b"]["c"].as_str(), Some(" from-set"));
+            SCConfTreeFree(tree);
+
+            // No overrides from a string.
+            let input = "a: 1\n";
+            let tree = SCConfTreeLoadString(
+                input.as_ptr() as *const c_char,
+                input.len(),
+                ptr::null(),
+                &mut err,
+            );
+            assert!(!tree.is_null(), "{:?}", CStr::from_ptr(err));
+            assert_eq!(SCConfTreeOverrideCount(tree), 0);
+            let mut len = 1;
+            assert!(SCConfTreeOverridePath(tree, 0, &mut len).is_null());
+            assert_eq!(len, 0);
+            assert!(!SCConfTreeOverrideApplied(tree, 0));
+            SCConfTreeFree(tree);
         }
     }
 }
