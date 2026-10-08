@@ -16,6 +16,7 @@
  */
 
 use crate::common::nom8::take_until_and_consume;
+use crate::detect::transforms::urldecode::url_decode_transform_do;
 use nom8::branch::alt;
 use nom8::bytes::complete::{tag, take, take_till, take_until, take_while};
 use nom8::character::complete::char;
@@ -92,20 +93,20 @@ fn is_attribute_char(c: u8) -> bool {
     }
 }
 
-fn mime_parse_token_name(input: &[u8]) -> IResult<&[u8], &[u8]> {
+fn mime_parse_token_name(input: &[u8]) -> IResult<&[u8], (bool, &[u8])> {
     // handle RFC2331 part 4 "Parameter Value Character Set and Language Information"
     let mut star = false;
     for i in 0..input.len() {
         match input[i] {
             b'=' => {
                 if !star {
-                    return Ok((&input[i + 1..], &input[..i]));
+                    return Ok((&input[i + 1..], (star, &input[..i])));
                 }
                 let mut single_quotes = false;
                 for j in i + 1..input.len() {
                     if input[j] == b'\'' {
                         if single_quotes {
-                            return Ok((&input[j + 1..], &input[..i - 1]));
+                            return Ok((&input[j + 1..], (star, &input[..i - 1])));
                         }
                         single_quotes = true;
                     } else if j - i - 1 > MIME_MAX_CHARSETLANG_LEN {
@@ -115,7 +116,7 @@ fn mime_parse_token_name(input: &[u8]) -> IResult<&[u8], &[u8]> {
                         break;
                     }
                 }
-                return Ok((&input[i + 1..], &input[..i - 1]));
+                return Ok((&input[i + 1..], (star, &input[..i - 1])));
             }
             b'*' => {
                 star = true;
@@ -128,11 +129,11 @@ fn mime_parse_token_name(input: &[u8]) -> IResult<&[u8], &[u8]> {
     Err(Err::Error(make_error(input, ErrorKind::Tag)))
 }
 
-pub fn mime_parse_header_token_name(input: &[u8]) -> IResult<&[u8], &[u8]> {
+pub fn mime_parse_header_token_name(input: &[u8]) -> IResult<&[u8], (bool, &[u8])> {
     // from RFC2047 : like ch.is_ascii_whitespace but without 0x0c FORM-FEED
     let (input, _) = take_while(is_mime_space).parse(input)?;
-    let (input, name) = mime_parse_token_name(input)?;
-    return Ok((input, name));
+    let (input, (star, name)) = mime_parse_token_name(input)?;
+    return Ok((input, (star, name)));
 }
 
 pub fn mime_skip_header_token_value(input: &[u8]) -> IResult<&[u8], ()> {
@@ -143,11 +144,17 @@ pub fn mime_skip_header_token_value(input: &[u8]) -> IResult<&[u8], ()> {
     return Ok((input, ()));
 }
 
-pub fn mime_parse_header_token_value(input: &[u8]) -> IResult<&[u8], Vec<u8>> {
+pub fn mime_parse_header_token_value(input: &[u8], star: bool) -> IResult<&[u8], Vec<u8>> {
     let (input, value) =
         alt((mime_parse_value_delimited, mime_parse_value_until_semicolon)).parse(input)?;
     let (input, _) = take_while(is_mime_space).parse(input)?;
     let (input, _) = opt(complete(char(';'))).parse(input)?;
+    if star {
+        let mut decoded = vec![0; value.len()];
+        let out_len = url_decode_transform_do(&value, &mut decoded, false);
+        decoded.truncate(out_len as usize);
+        return Ok((input, decoded));
+    }
     return Ok((input, value));
 }
 
@@ -168,14 +175,14 @@ pub fn mime_find_header_token(header: &[u8], token: &[u8]) -> Option<Vec<u8>> {
         match mime_parse_header_token_name(input) {
             Ok((rem, name)) => {
                 let prev = input;
-                if name == token {
-                    if let Ok((_, value)) = mime_parse_header_token_value(rem) {
+                if name.1 == token {
+                    if let Ok((_, value)) = mime_parse_header_token_value(rem, name.0) {
                         return Some(value);
                     } else {
                         return None;
                     }
-                } else if name == current_section_slice {
-                    if let Ok((rem2, value)) = mime_parse_header_token_value(rem) {
+                } else if name.1 == current_section_slice {
+                    if let Ok((rem2, value)) = mime_parse_header_token_value(rem, name.0) {
                         sections_values.extend_from_slice(&value);
                         input = rem2;
                     } else {
@@ -186,10 +193,10 @@ pub fn mime_find_header_token(header: &[u8], token: &[u8]) -> Option<Vec<u8>> {
                     current_section_slice.truncate(current_section_slice.len() - nbdigits);
                     current_section_slice
                         .extend_from_slice(current_section_seen.to_string().as_bytes());
-                } else if name.len() > token.len() && &name[..token.len()] == token {
+                } else if name.1.len() > token.len() && &name.1[..token.len()] == token {
                     // prefix
-                    if let Ok((rem2, value)) = mime_parse_header_token_value(rem) {
-                        sections.insert(name, value);
+                    if let Ok((rem2, value)) = mime_parse_header_token_value(rem, name.0) {
+                        sections.insert(name.1, value);
                         input = rem2;
                     } else {
                         return None;
@@ -668,5 +675,20 @@ mod test {
         )
         .unwrap();
         assert_eq!(multi, b"shell.php");
+
+        let encoded = mime_find_header_token(
+            "attachment; filename*=us-ascii'en-us'she%6c%6C.php".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(encoded, b"shell.php");
+
+        let multi_encoded = mime_find_header_token(
+            "attachment; filename*0*=us-ascii'en-us'sh%65; filename*1*=%6c%6C;filename*2=\".php\""
+                .as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(multi_encoded, b"shell.php");
     }
 }
