@@ -959,10 +959,11 @@ static void TxNonPFFree(void *data)
 /** \internal \brief does the rule's fast pattern keep growing above its hook?
  *  An app hooked rule can only hold patterns from buffers whose engine sits at
  *  the hook progress (`SigValidateCheckBuffers`), so such a buffer is complete
- *  once the tx is past the hook and a miss there is final. Two cases escape
- *  that: a raw stream pattern has no hook tied buffer and completes with the tx,
- *  and a protocol which declares sub-states rewrites a buffer above its hook -
- *  an http2 trailer HEADERS frame updates the header buffers. */
+ *  once the tx is past the hook and a miss there is final. One case escapes
+ *  that: a protocol which declares sub-states rewrites a buffer above its hook
+ *  - an http2 trailer HEADERS frame updates the header buffers. A raw stream
+ *  pattern cannot get here: DetectFirewallRuleValidate() refuses an LTE rule
+ *  with anything on the payload list. */
 static enum FwLteGrows FwLtePatternGrowsAboveBound(const Signature *s)
 {
     if (s->init_data->mpm_sm == NULL) {

@@ -4949,17 +4949,17 @@ static int DetectFwLtePendingLiveTest01(void)
     /* live in every respect on the packet below */
     Signature *s_ok = DetectFirewallRuleAppendNew(de_ctx,
             "accept:flow,alert http1:<request_headers any any -> any any "
-            "(content:\"abc\"; sid:10;)");
+            "(http.host; content:\"abc\"; sid:10;)");
     FAIL_IF_NULL(s_ok);
     /* same rule, but a packet predicate that cannot hold on a small packet */
     Signature *s_pkt = DetectFirewallRuleAppendNew(de_ctx,
             "accept:flow,alert http1:<request_headers any any -> any any "
-            "(content:\"abc\"; dsize:>9000; sid:11;)");
+            "(http.host; content:\"abc\"; flowbits:isset,pending.lte.bit; sid:11;)");
     FAIL_IF_NULL(s_pkt);
     /* port does not match, so the rule header already rejects it */
     Signature *s_hdr = DetectFirewallRuleAppendNew(de_ctx,
             "accept:flow,alert http1:<request_headers any any -> any 9999 "
-            "(content:\"abc\"; sid:12;)");
+            "(http.host; content:\"abc\"; sid:12;)");
     FAIL_IF_NULL(s_hdr);
     SigGroupBuild(de_ctx);
 
@@ -5046,7 +5046,8 @@ static int DetectFwLtePendingLivePolicyTest01(void)
      * packet: only the window search can tell it is not live. */
     Signature *s_blk = DetectFirewallRuleAppendNew(de_ctx,
             "accept:flow,alert http1:<request_headers any any -> any any "
-            "(content:\"absent.example.com\"; dsize:>9000; sid:1101;)");
+            "(http.host; content:\"absent.example.com\"; flowbits:isset,pending.lte.bit; "
+            "sid:1101;)");
     FAIL_IF_NULL(s_blk);
 
     SigGroupBuild(de_ctx);
