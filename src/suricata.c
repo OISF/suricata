@@ -1069,16 +1069,16 @@ TmEcode SCLoadYamlConfig(void)
     if (suri->conf_filename == NULL)
         suri->conf_filename = DEFAULT_CONF_FILE;
 
-    if (SCConfYamlLoadFile(suri->conf_filename) != 0) {
-        /* Error already displayed. */
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
     if (suri->additional_configs) {
         for (int i = 0; suri->additional_configs[i] != NULL; i++) {
             SCLogConfig("Loading additional configuration file %s", suri->additional_configs[i]);
-            SCConfYamlHandleInclude(SCConfGetRootNode(), suri->additional_configs[i]);
         }
+    }
+
+    if (SCConfYamlLoadFileWithPrefixAndIncludes(
+                suri->conf_filename, NULL, suri->additional_configs) != 0) {
+        /* Error already displayed. */
+        SCReturnInt(TM_ECODE_FAILED);
     }
 
     SCReturnInt(TM_ECODE_OK);
