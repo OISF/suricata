@@ -17,7 +17,6 @@
 
 use super::dcerpc::{
     DCERPCState, DCERPCTransaction, ALPROTO_DCERPC, DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE,
-    DCERPC_UUID_ENTRY_FLAG_FF,
 };
 use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{detect_match_uint, detect_parse_uint, DetectUintData};
@@ -80,13 +79,14 @@ pub(crate) enum DCEOpnumData {
 fn match_backuuid(
     tx: &DCERPCTransaction, state: &mut DCERPCState, if_data: &mut DCEIfaceData,
 ) -> c_int {
+    // if any_frag is not enabled, we need to match only if the request was
+    // a first fragment (or not fragmented), like Snort's dce_iface
+    if if_data.any_frag == 0 && !tx.req_first_frag {
+        SCLogDebug!("any frag not enabled");
+        return 0;
+    }
     if !state.interface_uuids.is_empty() {
         for uuidentry in &state.interface_uuids {
-            // if any_frag is not enabled, we need to match only against the first fragment
-            if if_data.any_frag == 0 && (uuidentry.flags & DCERPC_UUID_ENTRY_FLAG_FF == 0) {
-                SCLogDebug!("any frag not enabled");
-                continue;
-            }
             // if the uuid has been rejected(uuidentry->result == 1), we skip to the next uuid
             if !uuidentry.acked || uuidentry.result != 0 {
                 SCLogDebug!("Skipping to next UUID");
