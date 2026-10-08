@@ -1324,6 +1324,7 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint16_t file_no_match = 0;
     bool mpm_before_progress = false;   // is mpm engine before progress?
     bool mpm_in_progress = false;       // is mpm engine in a buffer we will revisit?
+    bool other_dir_pending = false;     // engine of the other direction left to inspect?
 
     TRACE_SID_TXS(s->id, tx, "starting %s", direction ? "toclient" : "toserver");
 
@@ -1488,10 +1489,12 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
             // for transactional rules, the engines on the opposite direction
             // are ordered by progress on the different side
             // so we have a two mixed-up lists, and we skip the elements
-            if (direction == 0 && engine->next == NULL) {
-                // do not match yet on request only
-                break;
-            }
+            //
+            // The engine is only inspected in the other direction, so a full
+            // match must wait for it regardless of where it sits in the list.
+            // Only reachable while inspecting toserver: in the toclient
+            // direction the branch above runs the toserver engines as well.
+            other_dir_pending = true;
             engine = engine->next;
             continue;
         }
@@ -1502,7 +1505,7 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
             inspect_flags, total_matches, engine);
 
     bool full_match = false;
-    if (engine == NULL && total_matches) {
+    if (engine == NULL && total_matches && !other_dir_pending) {
         inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
         TRACE_SID_TXS(s->id, tx, "MATCH");
         full_match = true;
