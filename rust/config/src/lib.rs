@@ -11,6 +11,7 @@
 //! given, and applied to a configuration after it is loaded with
 //! [`apply_overrides`]. See [`overrides`].
 
+pub mod ffi;
 pub mod loader;
 pub mod node;
 pub mod overrides;
