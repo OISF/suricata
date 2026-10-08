@@ -43,6 +43,30 @@ obtained before use::
 
 All other functions are methods on the transaction table.
 
+How long a transaction handle is valid
+======================================
+
+A handle is valid while its transaction remains open: it is resolved
+by identity within the flow of the current invocation, so a method
+call after the transaction is gone (freed once it is complete,
+inspected and logged, or at flow teardown) aborts the script with a
+Lua error - counted in ``detect.lua.errors`` for detection scripts -
+and never returns data from another transaction or flow. The sandbox blocks
+``pcall``/``xpcall``, so a detection script cannot catch the error
+(output scripts are unsandboxed). Keep handles short-lived: do not
+cache them across packets.
+
+``smtp.get_tx()`` with no transaction available returns the usual
+``nil`` plus ``error: no SMTP transaction found`` - the invocation
+continues and nothing is logged or counted - which is what keeps it
+distinguishable from a stale handle.
+
+``get_mail_from()`` on a transaction whose field has not been seen yet
+returns a single ``nil`` with no error, so an empty ``mail_from`` is
+distinguishable from a stale handle. ``get_mime_field()`` and
+``get_mime_list()`` return ``nil`` plus an error before DATA or for a
+field not seen.
+
 Transaction Methods
 ===================
 
