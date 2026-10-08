@@ -2087,8 +2087,9 @@ uint8_t DetectEngineInspectGenericList(DetectEngineCtx *de_ctx, DetectEngineThre
 static bool DetectTxCompleted(
         Flow *f, void *txv, uint8_t flags, const DetectEngineAppInspectionEngine *engine)
 {
-    if (f->alproto == ALPROTO_DOH2 && engine->alproto == ALPROTO_DOH2) {
-        // the DNS tx from DetectGetInnerTx is always complete
+    if (f->alproto == ALPROTO_DOH2 && engine->alproto == ALPROTO_DNS) {
+        // A DNS engine on a DOH2 flow receives the inner DNS transaction
+        // from DetectGetInnerTx, which is always complete.
         return true;
     } // else
     return AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress;
