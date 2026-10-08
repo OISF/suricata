@@ -1,3 +1,5 @@
+.. _rule-types:
+
 .. role:: example-rule-action
 .. role:: example-rule-header
 .. role:: example-rule-options
