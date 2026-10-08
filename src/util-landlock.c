@@ -1,4 +1,4 @@
-/* Copyright (C) 2022 Open Information Security Foundation
+/* Copyright (C) 2022,2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,6 +24,7 @@
 #include "suricata.h"
 #include "detect-engine.h"
 #include "feature.h"
+#include "util-byte.h"
 #include "util-conf.h"
 #include "util-file.h"
 #include "util-landlock.h"
@@ -33,6 +34,22 @@
 #ifndef HAVE_LINUX_LANDLOCK_H
 
 void LandlockSandboxing(SCInstance *suri)
+{
+}
+
+void SCLandlockGrantReadPath(void *ruleset, const char *path)
+{
+}
+
+void SCLandlockGrantWritePath(void *ruleset, const char *path)
+{
+}
+
+void SCLandlockGrantNetBindTCP(void *ruleset, uint16_t port)
+{
+}
+
+void SCLandlockGrantNetConnectTCP(void *ruleset, uint16_t port)
 {
 }
 
@@ -73,19 +90,48 @@ static inline int landlock_restrict_self(const int ruleset_fd, const __u32 flags
 #define LANDLOCK_ACCESS_FS_REFER (1ULL << 13)
 #endif
 
+#ifndef LANDLOCK_ACCESS_FS_TRUNCATE
+#define LANDLOCK_ACCESS_FS_TRUNCATE (1ULL << 14)
+#endif
+
+#ifndef LANDLOCK_ACCESS_FS_IOCTL_DEV
+#define LANDLOCK_ACCESS_FS_IOCTL_DEV (1ULL << 15)
+#endif
+
+#ifndef LANDLOCK_ACCESS_FS_RESOLVE_UNIX
+#define LANDLOCK_ACCESS_FS_RESOLVE_UNIX (1ULL << 18)
+#endif
+
+#ifndef LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET
+#define LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET (1ULL << 0)
+#endif
+
+#ifndef LANDLOCK_SCOPE_SIGNAL
+#define LANDLOCK_SCOPE_SIGNAL (1ULL << 1)
+#endif
+
 #define _LANDLOCK_ACCESS_FS_WRITE                                                                  \
     (LANDLOCK_ACCESS_FS_WRITE_FILE | LANDLOCK_ACCESS_FS_REMOVE_DIR |                               \
             LANDLOCK_ACCESS_FS_REMOVE_FILE | LANDLOCK_ACCESS_FS_MAKE_CHAR |                        \
             LANDLOCK_ACCESS_FS_MAKE_DIR | LANDLOCK_ACCESS_FS_MAKE_REG |                            \
             LANDLOCK_ACCESS_FS_MAKE_SOCK | LANDLOCK_ACCESS_FS_MAKE_FIFO |                          \
             LANDLOCK_ACCESS_FS_MAKE_BLOCK | LANDLOCK_ACCESS_FS_MAKE_SYM |                          \
-            LANDLOCK_ACCESS_FS_REFER)
+            LANDLOCK_ACCESS_FS_REFER | LANDLOCK_ACCESS_FS_TRUNCATE |                               \
+            LANDLOCK_ACCESS_FS_IOCTL_DEV | LANDLOCK_ACCESS_FS_RESOLVE_UNIX)
 
 #define _LANDLOCK_ACCESS_FS_READ (LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_READ_DIR)
 
 #define _LANDLOCK_SURI_ACCESS_FS_WRITE                                                             \
     (LANDLOCK_ACCESS_FS_WRITE_FILE | LANDLOCK_ACCESS_FS_MAKE_DIR | LANDLOCK_ACCESS_FS_MAKE_REG |   \
             LANDLOCK_ACCESS_FS_REMOVE_FILE | LANDLOCK_ACCESS_FS_MAKE_SOCK)
+
+#ifndef LANDLOCK_ACCESS_NET_BIND_TCP
+#define LANDLOCK_ACCESS_NET_BIND_TCP (1ULL << 0)
+#endif
+#ifndef LANDLOCK_ACCESS_NET_CONNECT_TCP
+#define LANDLOCK_ACCESS_NET_CONNECT_TCP (1ULL << 1)
+#endif
+#define _LANDLOCK_ACCESS_NET (LANDLOCK_ACCESS_NET_BIND_TCP | LANDLOCK_ACCESS_NET_CONNECT_TCP)
 
 struct landlock_ruleset {
     int fd;
@@ -102,20 +148,49 @@ static inline struct landlock_ruleset *LandlockCreateRuleset(void)
 
     ruleset->attr.handled_access_fs =
             _LANDLOCK_ACCESS_FS_READ | _LANDLOCK_ACCESS_FS_WRITE | LANDLOCK_ACCESS_FS_EXECUTE;
+#ifdef HAVE_LANDLOCK_RULESET_ATTR_HANDLED_ACCESS_NET
+    ruleset->attr.handled_access_net = _LANDLOCK_ACCESS_NET;
+#endif
 
     int abi = landlock_create_ruleset(NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
     if (abi < 0) {
         SCFree(ruleset);
         return NULL;
     }
-    if (abi < 2) {
-        if (SCRequiresFeature(FEATURE_OUTPUT_FILESTORE)) {
-            SCLogError("Landlock disabled: need Linux 5.19+ for file store support");
-            SCFree(ruleset);
-            return NULL;
-        } else {
-            ruleset->attr.handled_access_fs &= ~LANDLOCK_ACCESS_FS_REFER;
-        }
+    switch (abi) {
+        case 1:
+            /* Refer is only available from ABI 2 */
+            if (SCRequiresFeature(FEATURE_OUTPUT_FILESTORE)) {
+                SCLogError("Landlock disabled: need Linux 5.19+ for file store support");
+                SCFree(ruleset);
+                return NULL;
+            } else {
+                ruleset->attr.handled_access_fs &= ~LANDLOCK_ACCESS_FS_REFER;
+            }
+            __attribute__((fallthrough));
+        case 2:
+            /* Truncate is only available from ABI 3 */
+            ruleset->attr.handled_access_fs &= ~LANDLOCK_ACCESS_FS_TRUNCATE;
+            __attribute__((fallthrough));
+        case 3:
+            /* Network access is only available from ABI 4 */
+#ifdef HAVE_LANDLOCK_RULESET_ATTR_HANDLED_ACCESS_NET
+            ruleset->attr.handled_access_net &= ~_LANDLOCK_ACCESS_NET;
+#endif
+            __attribute__((fallthrough));
+        case 4:
+            /* Device ioctl is only available from ABI 5 */
+            ruleset->attr.handled_access_fs &= ~LANDLOCK_ACCESS_FS_IOCTL_DEV;
+            __attribute__((fallthrough));
+        case 5:
+            /* Scoping is only available from ABI 6 */
+#ifdef HAVE_LANDLOCK_RULESET_ATTR_SCOPED
+            ruleset->attr.scoped &= ~(LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET | LANDLOCK_SCOPE_SIGNAL);
+#endif
+            __attribute__((fallthrough));
+        case 6 ... 8:
+            /* Unix socket resolution is only available from ABI 9 */
+            ruleset->attr.handled_access_fs &= ~LANDLOCK_ACCESS_FS_RESOLVE_UNIX;
     }
 
     ruleset->fd = landlock_create_ruleset(&ruleset->attr, sizeof(ruleset->attr), 0);
@@ -162,19 +237,111 @@ static int LandlockSandboxingAddRule(
     return 0;
 }
 
-static inline void LandlockSandboxingWritePath(
-        struct landlock_ruleset *ruleset, const char *directory)
+void SCLandlockGrantWritePath(void *vruleset, const char *directory)
 {
+    struct landlock_ruleset *ruleset = vruleset;
+    if (ruleset == NULL || directory == NULL)
+        return;
     if (LandlockSandboxingAddRule(ruleset, directory, _LANDLOCK_SURI_ACCESS_FS_WRITE) == 0) {
         SCLogConfig("Added write permission to '%s'", directory);
     }
 }
 
-static inline void LandlockSandboxingReadPath(
-        struct landlock_ruleset *ruleset, const char *directory)
+void SCLandlockGrantReadPath(void *vruleset, const char *directory)
 {
+    struct landlock_ruleset *ruleset = vruleset;
+    if (ruleset == NULL || directory == NULL)
+        return;
     if (LandlockSandboxingAddRule(ruleset, directory, _LANDLOCK_ACCESS_FS_READ) == 0) {
         SCLogConfig("Added read permission to '%s'", directory);
+    }
+}
+
+#ifdef HAVE_LANDLOCK_RULESET_ATTR_HANDLED_ACCESS_NET
+static void LandlockGrantNetPort(
+        struct landlock_ruleset *ruleset, uint16_t port, uint64_t access, const char *access_name)
+{
+    if (ruleset == NULL)
+        return;
+    if ((ruleset->attr.handled_access_net & access) == 0) {
+        SCLogInfo("Landlock network access %s not available; skipping port %u", access_name, port);
+        return;
+    }
+    struct landlock_net_port_attr net_port = {
+        .allowed_access = access,
+        .port = port,
+    };
+    if (landlock_add_rule(ruleset->fd, LANDLOCK_RULE_NET_PORT, &net_port, 0)) {
+        SCLogError("Can't add net rule (%s, port %u): %s", access_name, port, strerror(errno));
+        return;
+    }
+    SCLogConfig("Added net %s permission on port %u", access_name, port);
+}
+#endif
+
+/**
+ * \brief Grant TCP bind permission on the given port
+ *
+ * Silently no-op when running on a kernel where landlock network support is
+ * not available.
+ *
+ * \param vruleset opaque landlock ruleset
+ * \param port TCP port to allow bind() on
+ */
+void SCLandlockGrantNetBindTCP(void *vruleset, uint16_t port)
+{
+#ifdef HAVE_LANDLOCK_RULESET_ATTR_HANDLED_ACCESS_NET
+    LandlockGrantNetPort(
+            (struct landlock_ruleset *)vruleset, port, LANDLOCK_ACCESS_NET_BIND_TCP, "bind-tcp");
+#else
+    (void)vruleset;
+    (void)port;
+#endif
+}
+
+/**
+ * \brief Grant TCP connect permission on the given port
+ *
+ * Silently no-op when running on a kernel where landlock network support is
+ * not available.
+ *
+ * \param vruleset opaque landlock ruleset
+ * \param port TCP port to allow connect() on
+ */
+void SCLandlockGrantNetConnectTCP(void *vruleset, uint16_t port)
+{
+#ifdef HAVE_LANDLOCK_RULESET_ATTR_HANDLED_ACCESS_NET
+    LandlockGrantNetPort((struct landlock_ruleset *)vruleset, port, LANDLOCK_ACCESS_NET_CONNECT_TCP,
+            "connect-tcp");
+#else
+    (void)vruleset;
+    (void)port;
+#endif
+}
+
+static void LandlockSandboxingApplyNetPorts(
+        void *v_ruleset, const char *conf_key, void (*grant)(void *, uint16_t))
+{
+    struct landlock_ruleset *ruleset = v_ruleset;
+    SCConfNode *ports = SCConfGetNode(conf_key);
+    if (ports == NULL)
+        return;
+    if (!SCConfNodeIsSequence(ports)) {
+        SCLogWarning(
+                "Invalid %s configuration section: expected a list of port numbers.", conf_key);
+        return;
+    }
+    SCConfNode *port_node;
+    TAILQ_FOREACH (port_node, &ports->head, next) {
+        if (port_node->val == NULL)
+            continue;
+        uint16_t port = 0;
+        if (StringParseUint16(&port, 10, 0, port_node->val) < 0 || port == 0) {
+            SCLogWarning("Invalid port '%s' in %s: expected a value in [1, 65535].", port_node->val,
+                    conf_key);
+            continue;
+        }
+        grant(ruleset, port);
     }
 }
 
@@ -195,7 +362,7 @@ void LandlockSandboxing(SCInstance *suri)
         return;
     }
 
-    LandlockSandboxingWritePath(ruleset, SCConfigGetLogDirectory());
+    SCLandlockGrantWritePath(ruleset, SCConfigGetLogDirectory());
     struct stat sb;
     if (stat(ConfigGetDataDirectory(), &sb) == 0) {
         LandlockSandboxingAddRule(ruleset, ConfigGetDataDirectory(),
@@ -213,9 +380,9 @@ void LandlockSandboxing(SCInstance *suri)
                 struct stat statbuf;
                 if (stat(file_name, &statbuf) != -1) {
                     if (S_ISDIR(statbuf.st_mode)) {
-                        LandlockSandboxingReadPath(ruleset, file_name);
+                        SCLandlockGrantReadPath(ruleset, file_name);
                     } else {
-                        LandlockSandboxingReadPath(ruleset, dirname(file_name));
+                        SCLandlockGrantReadPath(ruleset, dirname(file_name));
                     }
                 } else {
                     SCLogError("Can't open pcap file");
@@ -227,14 +394,14 @@ void LandlockSandboxing(SCInstance *suri)
     if (suri->sig_file) {
         char *file_name = SCStrdup(suri->sig_file);
         if (file_name != NULL) {
-            LandlockSandboxingReadPath(ruleset, dirname(file_name));
+            SCLandlockGrantReadPath(ruleset, dirname(file_name));
             SCFree(file_name);
         }
     }
     if (suri->pid_filename) {
         char *file_name = SCStrdup(suri->pid_filename);
         if (file_name != NULL) {
-            LandlockSandboxingWritePath(ruleset, dirname(file_name));
+            SCLandlockGrantWritePath(ruleset, dirname(file_name));
             SCFree(file_name);
         }
     }
@@ -244,20 +411,20 @@ void LandlockSandboxing(SCInstance *suri)
             if (PathIsAbsolute(socketname)) {
                 char *file_name = SCStrdup(socketname);
                 if (file_name != NULL) {
-                    LandlockSandboxingWritePath(ruleset, dirname(file_name));
+                    SCLandlockGrantWritePath(ruleset, dirname(file_name));
                     SCFree(file_name);
                 }
             } else {
-                LandlockSandboxingWritePath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
+                SCLandlockGrantWritePath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
             }
         } else {
-            LandlockSandboxingWritePath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
+            SCLandlockGrantWritePath(ruleset, LOCAL_STATE_DIR "/run/suricata/");
         }
     }
     if (!suri->sig_file_exclusive) {
         const char *rule_path;
         if (SCConfGetNonNull("default-rule-path", &rule_path) == 1 && rule_path) {
-            LandlockSandboxingReadPath(ruleset, rule_path);
+            SCLandlockGrantReadPath(ruleset, rule_path);
         }
     }
 
@@ -269,7 +436,7 @@ void LandlockSandboxing(SCInstance *suri)
         } else {
             SCConfNode *directory;
             TAILQ_FOREACH (directory, &read_dirs->head, next) {
-                LandlockSandboxingReadPath(ruleset, directory->val);
+                SCLandlockGrantReadPath(ruleset, directory->val);
             }
         }
     }
@@ -281,10 +448,16 @@ void LandlockSandboxing(SCInstance *suri)
         } else {
             SCConfNode *directory;
             TAILQ_FOREACH (directory, &write_dirs->head, next) {
-                LandlockSandboxingWritePath(ruleset, directory->val);
+                SCLandlockGrantWritePath(ruleset, directory->val);
             }
         }
     }
+
+    LandlockSandboxingApplyNetPorts(
+            ruleset, "security.landlock.network.connect.tcp", SCLandlockGrantNetConnectTCP);
+    LandlockSandboxingApplyNetPorts(
+            ruleset, "security.landlock.network.bind.tcp", SCLandlockGrantNetBindTCP);
+
     LandlockEnforceRuleset(ruleset);
     SCFree(ruleset);
 }
