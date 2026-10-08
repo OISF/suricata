@@ -3136,7 +3136,7 @@ jobs:
           name: prep
           path: prep
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $(grep rust-version rust/Cargo.toml.in|sed 's/\"//g'|awk '{print $3}') -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $(awk -F '"' '/^rust-version *=/ { print $2 }' rust/Cargo.toml.in) -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: ./.github/actions/install-cbindgen
       - run: tar xf prep/suricata-update.tar.gz
@@ -3428,7 +3428,7 @@ jobs:
           name: prep
           path: prep
       - name: Install Rust
-        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $(grep rust-version rust/Cargo.toml.in|sed 's/\"//g'|awk '{print $3}') -y
+        run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain $(awk -F '"' '/^rust-version *=/ { print $2 }' rust/Cargo.toml.in) -y
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - uses: ./.github/actions/install-cbindgen
       - run: tar xf prep/suricata-update.tar.gz

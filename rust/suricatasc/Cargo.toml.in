@@ -1,8 +1,9 @@
 [package]
 name = "suricatasc"
-version = "@PACKAGE_VERSION@"
-edition = "2021"
-license = "GPL-2.0-only"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
 description = "Suricata socket control program"
 readme = "README.md"
 
@@ -10,22 +11,24 @@ readme = "README.md"
 name = "suricatasc"
 
 [dependencies]
-clap = { version = "=4.5.57", default-features = false, features = ["std", "derive", "help", "usage"] }
+clap = { workspace = true }
 
-once_cell = { version = "1.21.3" }
+once_cell = { workspace = true }
 
-# Held at 14 to support Rust 1.75.0.
-rustyline = { version = "14.0.0" }
+# Held at 17 as rustyline 18 requires home 0.5.12, which requires Rust 1.88.
+rustyline = { version = "17.0.2" }
 rustyline-derive = { version = "~0.11.1" }
 
 thiserror = { version = "1.0.69" }
 
-serde = { version = "1.0.219", default-features = false, features = ["derive"] }
-serde_json = { version = "1.0.140", default-features = false, features = ["preserve_order"] }
+serde = { workspace = true }
+serde_json = { workspace = true, features = ["preserve_order"] }
 
-# Pinned back to support Rust 1.75.0. Not used directly by us, but by rustyline.
-home = { version = "=0.5.9" }
-unicode-segmentation = { version = "=1.12.0" }
+# Pinned to support Rust 1.85. Not used directly by us, but by rustyline.
+home = { version = "=0.5.11" }
 
-# Pinned back to support Rust 1.75.0. Not used directly by us, but by serde_json.
-indexmap = { version = "=2.11.4" }
+# Pinned to support Rust 1.85. Not used directly by us, but by rustyline.
+unicode-segmentation = { version = "=1.13.3" }
+
+# Pinned to support Rust 1.85. Not used directly by us, but by serde_json.
+indexmap = { version = "=2.14.2" }
