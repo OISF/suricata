@@ -40,3 +40,8 @@ alert dnp3 any any -> any any (msg:"SURICATA DNP3 Too many objects"; \
 alert dnp3 any any -> any any (msg:"SURICATA DNP3 Too long reassembly"; \
       app-layer-event:dnp3.too_long_reassembly; \
       classtype:protocol-command-decode; sid:2270007; rev:1;)
+
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Start bytes not 0x05 0x64"; \
+      app-layer-event:dnp3.bad_start_bytes; classtype:protocol-command-decode; sid:2270010; rev:1;)
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Frame parsed after a link-layer error"; \
+      app-layer-event:dnp3.policy_divergence; classtype:protocol-command-decode; sid:2270011; rev:1;)

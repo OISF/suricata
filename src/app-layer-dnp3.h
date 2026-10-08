@@ -113,6 +113,8 @@ enum {
     DNP3_DECODER_EVENT_TOO_MANY_POINTS,
     DNP3_DECODER_EVENT_TOO_MANY_OBJECTS,
     DNP3_DECODER_EVENT_TOO_LONG_REASS,
+    DNP3_DECODER_EVENT_BAD_START_BYTES,
+    DNP3_DECODER_EVENT_POLICY_DIVERGENCE,
 };
 
 /**
@@ -247,6 +249,12 @@ typedef struct DNP3State_ {
     uint16_t events;
     uint32_t unreplied;        /**< Number of unreplied requests. */
     uint8_t flooded;           /**< Flag indicating flood. */
+    /** A link-layer error occurred to server (ts) or to client (tc) and no
+     *  frame has been accepted since in that direction. A stop-on-error
+     *  endpoint would have dropped the session at the error; the next frame
+     *  accepted is one only a resynchronizing endpoint processes. */
+    bool link_error_ts;
+    bool link_error_tc;
 
     DNP3Buffer request_buffer;  /**< Request buffer for buffering
                                  * incomplete request PDUs received
