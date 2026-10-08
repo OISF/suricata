@@ -324,6 +324,25 @@ YAML::
             # Default: all.
             #types: [a, aaaa, cname, mx, ns, ptr, txt]
 
+mDNS
+~~~~
+
+mDNS records are logged as one entry for the request, and one entry for
+the response.
+
+YAML::
+
+        - mdns:
+            # Enable/disable this logger. Default: enabled.
+            #enabled: yes
+
+            # Control logging of requests and responses:
+            # - requests: enable logging of mDNS queries
+            # - responses: enable logging of mDNS answers
+            # By default both requests and responses are logged.
+            #requests: no
+            #responses: no
+
 TLS
 ~~~
 
