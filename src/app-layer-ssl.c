@@ -1770,18 +1770,34 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, const uint8_t *input
         SCLogDebug("bytes_processed %u", ssl_state->curr_connp->bytes_processed);
         SCLogDebug("input %p input_len %u", input, input_len);
 
-        if (input_len < 4) {
-            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
-            SCReturnInt(-1);
+        const uint8_t *hs_hdr = input;
+        if (input_len < 4 || ssl_state->curr_connp->hs_hdr_len > 0) {
+            DEBUG_VALIDATE_BUG_ON(ssl_state->curr_connp->hs_hdr_len >= 4);
+            uint32_t add = MIN(input_len, (uint32_t)(4 - ssl_state->curr_connp->hs_hdr_len));
+            if (SafeMemcpy(ssl_state->curr_connp->hs_hdr, ssl_state->curr_connp->hs_hdr_len, 4,
+                        input, 0, input_len, add) != 0) {
+                return -1;
+            }
+            ssl_state->curr_connp->hs_hdr_len += add;
+            input += add;
+            input_len -= add;
+            if (ssl_state->curr_connp->hs_hdr_len < 4) {
+                /* partial header received, not enough input len, return */
+                SSLParserHSReset(ssl_state->curr_connp);
+                return (int)(input - initial_input);
+            }
+            hs_hdr = ssl_state->curr_connp->hs_hdr;
+            ssl_state->curr_connp->hs_hdr_len = 0;
+        } else {
+            input += 4;
+            input_len -= 4;
         }
 
-        ssl_state->curr_connp->handshake_type = input[0];
-        ssl_state->curr_connp->message_length = input[1] << 16 | input[2] << 8 | input[3];
+        ssl_state->curr_connp->handshake_type = hs_hdr[0];
+        ssl_state->curr_connp->message_length = hs_hdr[1] << 16 | hs_hdr[2] << 8 | hs_hdr[3];
         SCLogDebug("handshake_type %u message len %u input %p input_len %u",
                 ssl_state->curr_connp->handshake_type, ssl_state->curr_connp->message_length, input,
                 input_len);
-        input += 4;
-        input_len -= 4;
 
         const uint32_t record_len = ssl_state->curr_connp->message_length;
         /* see if we support this type. We check here to not use the fragment
@@ -2590,13 +2606,6 @@ static struct SSLDecoderResult SSLv3Decode(uint8_t direction, SSLState *ssl_stat
                     // if we started parsing this, we must stop
                     break;
                 }
-            }
-
-            if (ssl_state->curr_connp->record_length < 4) {
-                SSLParserReset(ssl_state);
-                SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
-                SCLogDebug("record len < 4 => %u", ssl_state->curr_connp->record_length);
-                return SSL_DECODER_ERROR(-1);
             }
 
             int retval = SSLv3ParseHandshakeProtocol(ssl_state, input + parsed,
