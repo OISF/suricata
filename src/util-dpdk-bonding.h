@@ -29,7 +29,6 @@
 
 #ifdef HAVE_DPDK
 
-int32_t BondingIsBond(uint16_t pid);
 uint16_t BondingMemberDevicesGet(
         uint16_t bond_pid, uint16_t bonded_devs[], uint16_t bonded_devs_length);
 uint32_t BondingMempoolSizeCalculate(

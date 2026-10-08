@@ -2489,6 +2489,13 @@ auto-calculated by setting ``mempool-size: auto``. If ``mempool-size`` is set
 manually (to e.g. ``mempool-size: 65536``), the value is divided by the number of
 worker cores of the interface (on 4 worker threads, each worker is assigned
 with a mempool containing 16383 packet objects).
+Both auto sizing and manual minimum validation include each worker's RX and
+TX descriptors, ``rx-backlog-size`` mbufs, and a 32-mbuf in-flight margin.
+The optional :ref:`dpdk-rx-backlog` can help to overcome short-term traffic
+bursts.  The backlog is configured per worker/RX queue and requires an integer
+that is a power of two, with a minimum value of 32.
+By default, the backlog is disabled and can be disabled when absent or set to
+zero. A good value to start with could be, e.g., ``131072``.
 Memory (in bytes) for interface's memory pools is calculated as:
 ``mempool-size`` * ``mtu``.
 The sum of memory pool requirements divided by the size of one hugepage results
@@ -2526,8 +2533,7 @@ Other NICs using the same driver as mentioned above should work as well.
 The DPDK capture interface has not been tested neither with the virtual
 interfaces nor in the virtual environments like VMs, Docker or similar.
 
-The minimal supported DPDK is version 19.11 which should be available in most
-repositories of major distributions.
+The minimal supported DPDK version is 21.11.
 Alternatively, it is also possible to use ``meson`` and ``ninja`` to build and
 install DPDK from source files.
 It is required to have correctly configured tool ``pkg-config`` as it is used to
