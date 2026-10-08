@@ -15,12 +15,17 @@
  * 02110-1301, USA.
  */
 
-use super::modbus::ModbusTransaction;
-use super::modbus::ALPROTO_MODBUS;
-use crate::core::STREAM_TOSERVER;
+use super::modbus::{ModbusTransaction, ALPROTO_MODBUS};
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
+use crate::detect::uint::{
+    detect_parse_uint_enum, DetectUintData, SCDetectU16Free, SCDetectU16Match, SCDetectU16Parse,
+    SCDetectU8Free, SCDetectU8Match, SCDetectU8Parse,
+};
+use crate::detect::{SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT16, SIGMATCH_INFO_UINT8};
+use crate::direction::Direction;
 use lazy_static::lazy_static;
 use regex::Regex;
-use sawp_modbus::{AccessType, CodeCategory, Data, Flags, FunctionCode, Message};
+use sawp_modbus::{AccessType, CodeCategory, Data, Flags, FunctionCode, Message, Read, Write};
 use std::ffi::CStr;
 use std::ops::{Range, RangeInclusive};
 use std::os::raw::{c_char, c_int, c_void};
@@ -498,6 +503,729 @@ unsafe extern "C" fn modbus_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
     std::mem::drop(Box::from_raw(ctx));
 }
 
+static mut G_MODBUS_UNIT_ID_KW_ID: u16 = 0;
+static mut G_MODBUS_UNIT_ID_BUFFER_ID: c_int = 0;
+static mut G_MODBUS_TRANSACTION_ID_KW_ID: u16 = 0;
+static mut G_MODBUS_TRANSACTION_ID_BUFFER_ID: c_int = 0;
+static mut G_MODBUS_PROTOCOL_ID_KW_ID: u16 = 0;
+static mut G_MODBUS_PROTOCOL_ID_BUFFER_ID: c_int = 0;
+static mut G_MODBUS_FUNCTION_KW_ID: u16 = 0;
+static mut G_MODBUS_FUNCTION_BUFFER_ID: c_int = 0;
+static mut G_MODBUS_SUBFUNCTION_KW_ID: u16 = 0;
+static mut G_MODBUS_SUBFUNCTION_BUFFER_ID: c_int = 0;
+static mut G_MODBUS_EXCEPTION_CODE_KW_ID: u16 = 0;
+static mut G_MODBUS_EXCEPTION_CODE_BUFFER_ID: c_int = 0;
+static mut G_MODBUS_READ_ADDRESS_KW_ID: u16 = 0;
+static mut G_MODBUS_READ_ADDRESS_BUFFER_ID: c_int = 0;
+static mut G_MODBUS_READ_QUANTITY_KW_ID: u16 = 0;
+static mut G_MODBUS_READ_QUANTITY_BUFFER_ID: c_int = 0;
+static mut G_MODBUS_WRITE_ADDRESS_KW_ID: u16 = 0;
+static mut G_MODBUS_WRITE_ADDRESS_BUFFER_ID: c_int = 0;
+static mut G_MODBUS_WRITE_QUANTITY_KW_ID: u16 = 0;
+static mut G_MODBUS_WRITE_QUANTITY_BUFFER_ID: c_int = 0;
+static mut G_MODBUS_WRITE_VALUE_KW_ID: u16 = 0;
+static mut G_MODBUS_WRITE_VALUE_BUFFER_ID: c_int = 0;
+
+/// Get the message matching the direction of the packet under inspection:
+/// the request for to-server, the response for to-client.
+fn tx_get_message(tx: &ModbusTransaction, direction: u8) -> Option<&Message> {
+    let direction: Direction = direction.into();
+    if direction == Direction::ToServer {
+        return tx.request.as_ref();
+    }
+    return tx.response.as_ref();
+}
+
+unsafe extern "C" fn unit_id_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = SCDetectU8Parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_UNIT_ID_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_UNIT_ID_BUFFER_ID,
+    )
+    .is_null()
+    {
+        unit_id_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn unit_id_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    if let Some(msg) = tx_get_message(tx, flags) {
+        return SCDetectU8Match(msg.unit_id, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn unit_id_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    SCDetectU8Free(ctx);
+}
+
+unsafe extern "C" fn transaction_id_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_TRANSACTION_ID_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_TRANSACTION_ID_BUFFER_ID,
+    )
+    .is_null()
+    {
+        transaction_id_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn transaction_id_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(msg) = tx_get_message(tx, flags) {
+        return SCDetectU16Match(msg.transaction_id, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn transaction_id_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    SCDetectU16Free(ctx);
+}
+
+unsafe extern "C" fn protocol_id_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_PROTOCOL_ID_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_PROTOCOL_ID_BUFFER_ID,
+    )
+    .is_null()
+    {
+        protocol_id_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn protocol_id_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(msg) = tx_get_message(tx, flags) {
+        return SCDetectU16Match(msg.protocol_id, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn protocol_id_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    SCDetectU16Free(ctx);
+}
+
+/// Modbus function codes, mirroring sawp_modbus::FunctionCode without its
+/// Unknown variant, whose value collides with function code 44
+#[repr(u8)]
+#[derive(EnumStringU8)]
+// parse RdCoils, as logged in function_code, not rd_coils
+#[suricata(enum_string_style = "UPPERCASE")]
+pub enum ModbusFunctionCode {
+    RdCoils = 0x01,
+    RdDiscreteInputs = 0x02,
+    RdHoldRegs = 0x03,
+    RdInputRegs = 0x04,
+    WrSingleCoil = 0x05,
+    WrSingleReg = 0x06,
+    RdExcStatus = 0x07,
+    Diagnostic = 0x08,
+    Program484 = 0x09,
+    Poll484 = 0x0a,
+    GetCommEventCtr = 0x0b,
+    GetCommEventLog = 0x0c,
+    ProgramController = 0x0d,
+    PollController = 0x0e,
+    WrMultCoils = 0x0f,
+    WrMultRegs = 0x10,
+    ReportServerID = 0x11,
+    Program884 = 0x12,
+    ResetCommLink = 0x13,
+    RdFileRec = 0x14,
+    WrFileRec = 0x15,
+    MaskWrReg = 0x16,
+    RdWrMultRegs = 0x17,
+    RdFIFOQueue = 0x18,
+    MEI = 0x2b,
+}
+
+/// Modbus diagnostic subfunction codes, mirroring
+/// sawp_modbus::DiagnosticSubfunction without its Reserved variant, whose
+/// value collides with subfunction 22
+#[repr(u16)]
+#[derive(EnumStringU16)]
+// parse RetQueryData, as logged in diagnostic.code, not ret_query_data
+#[suricata(enum_string_style = "UPPERCASE")]
+pub enum ModbusDiagnosticSubfunction {
+    RetQueryData = 0x00,
+    RestartCommOpt = 0x01,
+    RetDiagReg = 0x02,
+    ChangeInputDelimiter = 0x03,
+    ForceListenOnlyMode = 0x04,
+    ClearCtrDiagReg = 0x0a,
+    RetBusMsgCount = 0x0b,
+    RetBusCommErrCount = 0x0c,
+    RetBusExcErrCount = 0x0d,
+    RetServerMsgCount = 0x0e,
+    RetServerNoRespCount = 0x0f,
+    RetServerNAKCount = 0x10,
+    RetServerBusyCount = 0x11,
+    RetBusCharOverrunCount = 0x12,
+    RetOverrunErrCount = 0x13,
+    ClearOverrunCounterFlag = 0x14,
+    GetClearPlusStats = 0x15,
+}
+
+/// Modbus exception codes, mirroring sawp_modbus::ExceptionCode without its
+/// Unknown variant, whose value collides with exception code 12
+#[repr(u8)]
+#[derive(EnumStringU8)]
+// parse IllegalFunction, as logged in exception.code, not illegal_function
+#[suricata(enum_string_style = "UPPERCASE")]
+pub enum ModbusExceptionCode {
+    IllegalFunction = 0x01,
+    IllegalDataAddr = 0x02,
+    IllegalDataValue = 0x03,
+    ServerDeviceFail = 0x04,
+    Ack = 0x05,
+    ServerDeviceBusy = 0x06,
+    NegAck = 0x07,
+    MemParityErr = 0x08,
+    GatewayPathUnavailable = 0x0a,
+    GatewayTargetFailToResp = 0x0b,
+}
+
+unsafe fn function_parse(raw: *const c_char) -> *mut DetectUintData<u8> {
+    let raw: &CStr = CStr::from_ptr(raw); //unsafe
+    if let Ok(s) = raw.to_str() {
+        if let Some(ctx) = detect_parse_uint_enum::<u8, ModbusFunctionCode>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+unsafe fn subfunction_parse(raw: *const c_char) -> *mut DetectUintData<u16> {
+    let raw: &CStr = CStr::from_ptr(raw); //unsafe
+    if let Ok(s) = raw.to_str() {
+        if let Some(ctx) = detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+unsafe fn exception_code_parse(raw: *const c_char) -> *mut DetectUintData<u8> {
+    let raw: &CStr = CStr::from_ptr(raw); //unsafe
+    if let Ok(s) = raw.to_str() {
+        if let Some(ctx) = detect_parse_uint_enum::<u8, ModbusExceptionCode>(s) {
+            let boxed = Box::new(ctx);
+            return Box::into_raw(boxed) as *mut _;
+        }
+    }
+    return std::ptr::null_mut();
+}
+
+fn tx_get_function(tx: &ModbusTransaction, direction: u8) -> Option<u8> {
+    return tx_get_message(tx, direction).map(|msg| msg.function.raw);
+}
+
+fn tx_get_subfunction(tx: &ModbusTransaction, direction: u8) -> Option<u16> {
+    if let Some(msg) = tx_get_message(tx, direction) {
+        if let Data::Diagnostic { func, .. } = &msg.data {
+            return Some(func.raw);
+        }
+    }
+    return None;
+}
+
+fn tx_get_exception_code(tx: &ModbusTransaction, direction: u8) -> Option<u8> {
+    if let Some(msg) = tx_get_message(tx, direction) {
+        if let Data::Exception(exc) = &msg.data {
+            return Some(exc.raw);
+        }
+    }
+    return None;
+}
+
+unsafe extern "C" fn function_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = function_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_FUNCTION_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_FUNCTION_BUFFER_ID,
+    )
+    .is_null()
+    {
+        function_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn function_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    if let Some(val) = tx_get_function(tx, flags) {
+        return SCDetectU8Match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn function_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    SCDetectU8Free(ctx);
+}
+
+unsafe extern "C" fn subfunction_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = subfunction_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_SUBFUNCTION_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_SUBFUNCTION_BUFFER_ID,
+    )
+    .is_null()
+    {
+        subfunction_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn subfunction_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(val) = tx_get_subfunction(tx, flags) {
+        return SCDetectU16Match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn subfunction_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    SCDetectU16Free(ctx);
+}
+
+unsafe extern "C" fn exception_code_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = exception_code_parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_EXCEPTION_CODE_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_EXCEPTION_CODE_BUFFER_ID,
+    )
+    .is_null()
+    {
+        exception_code_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn exception_code_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    if let Some(val) = tx_get_exception_code(tx, flags) {
+        return SCDetectU8Match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn exception_code_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u8>);
+    SCDetectU8Free(ctx);
+}
+
+fn tx_get_read(tx: &ModbusTransaction, direction: u8) -> Option<&Read> {
+    if let Some(msg) = tx_get_message(tx, direction) {
+        match &msg.data {
+            Data::Read(read) | Data::ReadWrite { read, .. } => return Some(read),
+            _ => {}
+        }
+    }
+    return None;
+}
+
+fn tx_get_write(tx: &ModbusTransaction, direction: u8) -> Option<&Write> {
+    if let Some(msg) = tx_get_message(tx, direction) {
+        match &msg.data {
+            Data::Write(write) | Data::ReadWrite { write, .. } => return Some(write),
+            _ => {}
+        }
+    }
+    return None;
+}
+
+fn tx_get_read_address(tx: &ModbusTransaction, direction: u8) -> Option<u16> {
+    if let Some(Read::Request { address, .. }) = tx_get_read(tx, direction) {
+        return Some(*address);
+    }
+    return None;
+}
+
+fn tx_get_read_quantity(tx: &ModbusTransaction, direction: u8) -> Option<u16> {
+    if let Some(Read::Request { quantity, .. }) = tx_get_read(tx, direction) {
+        return Some(*quantity);
+    }
+    return None;
+}
+
+fn tx_get_write_address(tx: &ModbusTransaction, direction: u8) -> Option<u16> {
+    if let Some(write) = tx_get_write(tx, direction) {
+        match write {
+            Write::MultReq { address, .. }
+            | Write::Mask { address, .. }
+            | Write::Other { address, .. } => {
+                return Some(*address);
+            }
+        }
+    }
+    return None;
+}
+
+fn tx_get_write_quantity(tx: &ModbusTransaction, direction: u8) -> Option<u16> {
+    if let Some(msg) = tx_get_message(tx, direction) {
+        match &msg.data {
+            Data::Write(Write::MultReq { quantity, .. })
+            | Data::ReadWrite {
+                write: Write::MultReq { quantity, .. },
+                ..
+            } => {
+                return Some(*quantity);
+            }
+            // multiple-write responses echo the quantity in Write::Other
+            Data::Write(Write::Other { data, .. })
+                if msg.access_type.contains(AccessType::MULTIPLE) =>
+            {
+                return Some(*data);
+            }
+            _ => {}
+        }
+    }
+    return None;
+}
+
+fn tx_get_write_value(tx: &ModbusTransaction, direction: u8) -> Option<u16> {
+    if let Some(msg) = tx_get_message(tx, direction) {
+        if let Data::Write(Write::Other { data, .. }) = &msg.data {
+            // multiple-write responses echo the quantity in Write::Other,
+            // only match the value of single writes
+            if msg.access_type.contains(AccessType::SINGLE) {
+                return Some(*data);
+            }
+        }
+    }
+    return None;
+}
+
+unsafe extern "C" fn read_address_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_READ_ADDRESS_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_READ_ADDRESS_BUFFER_ID,
+    )
+    .is_null()
+    {
+        read_address_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn read_address_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(val) = tx_get_read_address(tx, flags) {
+        return SCDetectU16Match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn read_address_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    SCDetectU16Free(ctx);
+}
+
+unsafe extern "C" fn read_quantity_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_READ_QUANTITY_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_READ_QUANTITY_BUFFER_ID,
+    )
+    .is_null()
+    {
+        read_quantity_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn read_quantity_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(val) = tx_get_read_quantity(tx, flags) {
+        return SCDetectU16Match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn read_quantity_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    SCDetectU16Free(ctx);
+}
+
+unsafe extern "C" fn write_address_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_WRITE_ADDRESS_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_WRITE_ADDRESS_BUFFER_ID,
+    )
+    .is_null()
+    {
+        write_address_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn write_address_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(val) = tx_get_write_address(tx, flags) {
+        return SCDetectU16Match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn write_address_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    SCDetectU16Free(ctx);
+}
+
+unsafe extern "C" fn write_quantity_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_WRITE_QUANTITY_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_WRITE_QUANTITY_BUFFER_ID,
+    )
+    .is_null()
+    {
+        write_quantity_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn write_quantity_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(val) = tx_get_write_quantity(tx, flags) {
+        return SCDetectU16Match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn write_quantity_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    SCDetectU16Free(ctx);
+}
+
+unsafe extern "C" fn write_value_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, raw: *const c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0 {
+        return -1;
+    }
+    let ctx = SCDetectU16Parse(raw) as *mut c_void;
+    if ctx.is_null() {
+        return -1;
+    }
+    if SCSigMatchAppendSMToList(
+        de,
+        s,
+        G_MODBUS_WRITE_VALUE_KW_ID,
+        ctx as *mut SigMatchCtx,
+        G_MODBUS_WRITE_VALUE_BUFFER_ID,
+    )
+    .is_null()
+    {
+        write_value_free(std::ptr::null_mut(), ctx);
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn write_value_match(
+    _de: *mut DetectEngineThreadCtx, _f: *mut Flow, flags: u8, _state: *mut c_void,
+    tx: *mut c_void, _sig: *const Signature, ctx: *const SigMatchCtx,
+) -> c_int {
+    let tx = cast_pointer!(tx, ModbusTransaction);
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    if let Some(val) = tx_get_write_value(tx, flags) {
+        return SCDetectU16Match(val, ctx);
+    }
+    return 0;
+}
+
+unsafe extern "C" fn write_value_free(_de: *mut DetectEngineCtx, ctx: *mut c_void) {
+    // Just unbox...
+    let ctx = cast_pointer!(ctx, DetectUintData<u16>);
+    SCDetectU16Free(ctx);
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectModbusRegister() {
     let kw = SCSigTableAppLiteElmt {
@@ -516,6 +1244,182 @@ pub unsafe extern "C" fn SCDetectModbusRegister() {
         STREAM_TOSERVER,
         0,
     );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.unit_id\0".as_ptr() as *const c_char,
+        desc: b"match on Modbus unit identifier\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-unit-id\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(unit_id_match),
+        Setup: Some(unit_id_setup),
+        Free: Some(unit_id_free),
+        flags: SIGMATCH_INFO_UINT8,
+    };
+    G_MODBUS_UNIT_ID_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_UNIT_ID_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.unit_id\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.transaction_id\0".as_ptr() as *const c_char,
+        desc: b"match on Modbus transaction identifier\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-transaction-id\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(transaction_id_match),
+        Setup: Some(transaction_id_setup),
+        Free: Some(transaction_id_free),
+        flags: SIGMATCH_INFO_UINT16,
+    };
+    G_MODBUS_TRANSACTION_ID_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_TRANSACTION_ID_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.transaction_id\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.protocol_id\0".as_ptr() as *const c_char,
+        desc: b"match on Modbus protocol identifier\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-protocol-id\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(protocol_id_match),
+        Setup: Some(protocol_id_setup),
+        Free: Some(protocol_id_free),
+        flags: SIGMATCH_INFO_UINT16,
+    };
+    G_MODBUS_PROTOCOL_ID_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_PROTOCOL_ID_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.protocol_id\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.function\0".as_ptr() as *const c_char,
+        desc: b"match on Modbus function code\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-function\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(function_match),
+        Setup: Some(function_setup),
+        Free: Some(function_free),
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT,
+    };
+    G_MODBUS_FUNCTION_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_FUNCTION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.function\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.subfunction\0".as_ptr() as *const c_char,
+        desc: b"match on Modbus diagnostic subfunction code\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-subfunction\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(subfunction_match),
+        Setup: Some(subfunction_setup),
+        Free: Some(subfunction_free),
+        flags: SIGMATCH_INFO_UINT16 | SIGMATCH_INFO_ENUM_UINT,
+    };
+    G_MODBUS_SUBFUNCTION_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_SUBFUNCTION_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.subfunction\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.exception_code\0".as_ptr() as *const c_char,
+        desc: b"match on Modbus exception code in error responses\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-exception-code\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(exception_code_match),
+        Setup: Some(exception_code_setup),
+        Free: Some(exception_code_free),
+        flags: SIGMATCH_INFO_UINT8 | SIGMATCH_INFO_ENUM_UINT,
+    };
+    G_MODBUS_EXCEPTION_CODE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_EXCEPTION_CODE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.exception_code\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.read.address\0".as_ptr() as *const c_char,
+        desc: b"match on address of Modbus read requests\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-read-address\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(read_address_match),
+        Setup: Some(read_address_setup),
+        Free: Some(read_address_free),
+        flags: SIGMATCH_INFO_UINT16,
+    };
+    G_MODBUS_READ_ADDRESS_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_READ_ADDRESS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.read.address\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.read.quantity\0".as_ptr() as *const c_char,
+        desc: b"match on quantity of Modbus read requests\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-read-quantity\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(read_quantity_match),
+        Setup: Some(read_quantity_setup),
+        Free: Some(read_quantity_free),
+        flags: SIGMATCH_INFO_UINT16,
+    };
+    G_MODBUS_READ_QUANTITY_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_READ_QUANTITY_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.read.quantity\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.write.address\0".as_ptr() as *const c_char,
+        desc: b"match on address of Modbus write accesses\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-write-address\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(write_address_match),
+        Setup: Some(write_address_setup),
+        Free: Some(write_address_free),
+        flags: SIGMATCH_INFO_UINT16,
+    };
+    G_MODBUS_WRITE_ADDRESS_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_WRITE_ADDRESS_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.write.address\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.write.quantity\0".as_ptr() as *const c_char,
+        desc: b"match on quantity of Modbus multiple-write requests\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-write-quantity\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(write_quantity_match),
+        Setup: Some(write_quantity_setup),
+        Free: Some(write_quantity_free),
+        flags: SIGMATCH_INFO_UINT16,
+    };
+    G_MODBUS_WRITE_QUANTITY_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_WRITE_QUANTITY_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.write.quantity\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
+    let kw = SCSigTableAppLiteElmt {
+        name: b"modbus.write.value\0".as_ptr() as *const c_char,
+        desc: b"match on value of Modbus single-write accesses\0".as_ptr() as *const c_char,
+        url: b"/rules/modbus-keyword.html#modbus-write-value\0".as_ptr() as *const c_char,
+        AppLayerTxMatch: Some(write_value_match),
+        Setup: Some(write_value_setup),
+        Free: Some(write_value_free),
+        flags: SIGMATCH_INFO_UINT16,
+    };
+    G_MODBUS_WRITE_VALUE_KW_ID = SCDetectHelperKeywordRegister(&kw);
+    G_MODBUS_WRITE_VALUE_BUFFER_ID = SCDetectHelperBufferProgressRegister(
+        b"modbus.write.value\0".as_ptr() as *const c_char,
+        ALPROTO_MODBUS,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        0,
+    );
 }
 
 #[cfg(test)]
@@ -523,7 +1427,80 @@ mod test {
     use super::super::modbus::ModbusState;
     use super::*;
     use crate::applayer::*;
+    use crate::detect::uint::DetectUintMode;
     use sawp::parser::Direction;
+
+    #[test]
+    fn test_parse_function_enum() {
+        let ctx = detect_parse_uint_enum::<u8, ModbusFunctionCode>("8").unwrap();
+        assert_eq!(ctx.arg1, 8);
+        let ctx = detect_parse_uint_enum::<u8, ModbusFunctionCode>("Diagnostic").unwrap();
+        assert_eq!(ctx.arg1, 8);
+        assert_eq!(ctx.mode, DetectUintMode::DetectUintModeEqual);
+        let ctx = detect_parse_uint_enum::<u8, ModbusFunctionCode>("RdCoils").unwrap();
+        assert_eq!(ctx.arg1, 1);
+        // names are case insensitive
+        let ctx = detect_parse_uint_enum::<u8, ModbusFunctionCode>("rdcoils").unwrap();
+        assert_eq!(ctx.arg1, 1);
+        let ctx = detect_parse_uint_enum::<u8, ModbusFunctionCode>("RDCOILS").unwrap();
+        assert_eq!(ctx.arg1, 1);
+        let ctx = detect_parse_uint_enum::<u8, ModbusFunctionCode>("MEI").unwrap();
+        assert_eq!(ctx.arg1, 0x2b);
+        // negation
+        let ctx = detect_parse_uint_enum::<u8, ModbusFunctionCode>("!Diagnostic").unwrap();
+        assert_eq!(ctx.arg1, 8);
+        assert_eq!(ctx.mode, DetectUintMode::DetectUintModeNe);
+        // the sawp catch-all variant is not a name we accept
+        assert!(detect_parse_uint_enum::<u8, ModbusFunctionCode>("Unknown").is_none());
+        assert!(detect_parse_uint_enum::<u8, ModbusFunctionCode>("").is_none());
+        assert!(detect_parse_uint_enum::<u8, ModbusFunctionCode>("NoSuchFunction").is_none());
+        assert!(detect_parse_uint_enum::<u8, ModbusFunctionCode>("256").is_none());
+    }
+
+    #[test]
+    fn test_parse_subfunction_enum() {
+        let ctx = detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("4").unwrap();
+        assert_eq!(ctx.arg1, 4);
+        let ctx = detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("ForceListenOnlyMode")
+            .unwrap();
+        assert_eq!(ctx.arg1, 4);
+        let ctx = detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("forcelistenonlymode")
+            .unwrap();
+        assert_eq!(ctx.arg1, 4);
+        let ctx =
+            detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("RetQueryData").unwrap();
+        assert_eq!(ctx.arg1, 0);
+        let ctx = detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("GetClearPlusStats")
+            .unwrap();
+        assert_eq!(ctx.arg1, 0x15);
+        let ctx =
+            detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("!RetDiagReg").unwrap();
+        assert_eq!(ctx.arg1, 2);
+        assert_eq!(ctx.mode, DetectUintMode::DetectUintModeNe);
+        // the sawp catch-all variant is not a name we accept
+        assert!(detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("Reserved").is_none());
+        assert!(detect_parse_uint_enum::<u16, ModbusDiagnosticSubfunction>("").is_none());
+    }
+
+    #[test]
+    fn test_parse_exception_code_enum() {
+        let ctx = detect_parse_uint_enum::<u8, ModbusExceptionCode>("11").unwrap();
+        assert_eq!(ctx.arg1, 11);
+        let ctx =
+            detect_parse_uint_enum::<u8, ModbusExceptionCode>("GatewayTargetFailToResp").unwrap();
+        assert_eq!(ctx.arg1, 0x0b);
+        let ctx =
+            detect_parse_uint_enum::<u8, ModbusExceptionCode>("gatewaytargetfailtoresp").unwrap();
+        assert_eq!(ctx.arg1, 0x0b);
+        let ctx = detect_parse_uint_enum::<u8, ModbusExceptionCode>("IllegalFunction").unwrap();
+        assert_eq!(ctx.arg1, 1);
+        let ctx = detect_parse_uint_enum::<u8, ModbusExceptionCode>("!Ack").unwrap();
+        assert_eq!(ctx.arg1, 5);
+        assert_eq!(ctx.mode, DetectUintMode::DetectUintModeNe);
+        // the sawp catch-all variant is not a name we accept
+        assert!(detect_parse_uint_enum::<u8, ModbusExceptionCode>("Unknown").is_none());
+        assert!(detect_parse_uint_enum::<u8, ModbusExceptionCode>("").is_none());
+    }
 
     #[test]
     fn test_parse() {
