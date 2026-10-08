@@ -12,6 +12,14 @@ Stream
 
    stream/inspection_raw_data
 
+Detection
+---------
+
+.. toctree::
+   :maxdepth: 2
+
+   detect_trace
+
 Defrag
 ------
 
