@@ -253,6 +253,8 @@ typedef struct SSLStateConnp_ {
     uint32_t hs_buffer_message_size;
     uint32_t hs_buffer_size;   /**< allocation size */
     uint32_t hs_buffer_offset; /**< write offset */
+    uint8_t hs_hdr[4];         /**< handshake header */
+    uint8_t hs_hdr_len;        /**< handshake header length */
 } SSLStateConnp;
 
 /**
