@@ -1267,6 +1267,10 @@ app-layer:
       enabled: no
       detection-ports:
         dp: 20000
+      # Resynchronize on octets that are not a start sequence (0x05 0x64),
+      # like a resynchronizing endpoint (opendnp3, dnp3-rs Discard) does,
+      # instead of ending DNP3 inspection of the flow. Default: no.
+      #resync-on-bad-start: no
       #max-tx: 32
       #max-points: 16384
       #max-objects: 2048
