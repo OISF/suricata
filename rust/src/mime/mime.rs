@@ -16,6 +16,7 @@
  */
 
 use crate::common::nom8::take_until_and_consume;
+use crate::detect::transforms::urldecode::url_decode_transform_do;
 use nom8::branch::alt;
 use nom8::bytes::complete::{tag, take, take_till, take_until, take_while};
 use nom8::character::complete::char;
@@ -118,8 +119,8 @@ fn mime_parse_token_name(input: &[u8]) -> IResult<&[u8], (bool, &[u8])> {
 pub fn mime_parse_header_token_name(input: &[u8]) -> IResult<&[u8], (bool, &[u8])> {
     // from RFC2047 : like ch.is_ascii_whitespace but without 0x0c FORM-FEED
     let (input, _) = take_while(is_mime_space).parse(input)?;
-    let (input, name) = mime_parse_token_name(input)?;
-    return Ok((input, name));
+    let (input, (star, name)) = mime_parse_token_name(input)?;
+    return Ok((input, (star, name)));
 }
 
 pub fn mime_skip_header_token_value(input: &[u8]) -> IResult<&[u8], ()> {
@@ -149,8 +150,9 @@ pub fn mime_parse_header_token_value(input: &[u8], star: bool) -> IResult<&[u8],
                 break;
             }
         }
-        let mut decoded = Vec::new();
-        decoded.extend_from_slice(&value[start..]);
+        let mut decoded = vec![0; value.len() - start];
+        let out_len = url_decode_transform_do(&value[start..], &mut decoded, false);
+        decoded.truncate(out_len as usize);
         return Ok((input, decoded));
     }
     return Ok((input, value));
@@ -680,5 +682,20 @@ mod test {
         )
         .unwrap();
         assert_eq!(quote_after_lang, b"shell.php");
+
+        let encoded = mime_find_header_token(
+            "attachment; filename*=us-ascii'en-us'she%6c%6C.php".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(encoded, b"shell.php");
+
+        let multi_encoded = mime_find_header_token(
+            "attachment; filename*0*=us-ascii'en-us'sh%65; filename*1*=%6c%6C;filename*2=\".php\""
+                .as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(multi_encoded, b"shell.php");
     }
 }
