@@ -2777,11 +2777,6 @@ static void SigSetupPrefilter(DetectEngineCtx *de_ctx, Signature *s)
     SCLogDebug("s %u: set up prefilter/mpm", s->id);
     DEBUG_VALIDATE_BUG_ON(s->init_data->mpm_sm != NULL);
 
-    if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
-        SCLogDebug("no prefilter for SIG_FLAG_FW_HOOK_LTE sig");
-        SCReturn;
-    }
-
     if (s->init_data->prefilter_sm != NULL) {
         if (s->init_data->prefilter_sm->type == DETECT_CONTENT) {
             RetrieveFPForSig(de_ctx, s);

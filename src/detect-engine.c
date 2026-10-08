@@ -663,8 +663,13 @@ static void AppendFrameInspectEngine(DetectEngineCtx *de_ctx,
     }
     if (mpm_list == u->sm_list) {
         SCLogDebug("%s is mpm", DetectEngineBufferTypeGetNameById(de_ctx, u->sm_list));
-        prepend = true;
-        new_engine->mpm = true;
+        /* defensive only: the frame path has no mpm finality handling in the walk, so
+         * the flag would just reorder this engine ahead of the others. Keep the LTE
+         * rule in progress order like the stream and app engines. */
+        if ((s->flags & SIG_FLAG_FW_HOOK_LTE) == 0) {
+            prepend = true;
+            new_engine->mpm = true;
+        }
     }
 
     new_engine->type = u->type;
@@ -772,9 +777,16 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     bool prepend = false;
     if (mpm_list == t->sm_list) {
         SCLogDebug("%s is mpm", DetectEngineBufferTypeGetNameById(de_ctx, t->sm_list));
-        prepend = true;
-        *head_is_mpm = true;
-        new_engine->mpm = true;
+        /* An LTE rule must keep its engines in progress order: the pass through
+         * engines cover the states below the hook, and a not yet reached hook has
+         * to stay a partial match instead of breaking out as a no match. The mpm
+         * flag is left off as well: it would make a no match above the hook final
+         * (`mpm_before_progress`), while LTE rules rely on the buffers own eof. */
+        if ((s->flags & SIG_FLAG_FW_HOOK_LTE) == 0) {
+            prepend = true;
+            *head_is_mpm = true;
+            new_engine->mpm = true;
+        }
     }
 
     new_engine->alproto = t->alproto;
@@ -2129,8 +2141,10 @@ int DetectEngineReloadIsIdle(void)
  *
  *  An LTE rule is a candidate below its hook, so a miss is not final while a
  *  sub-state can still grow the buffer the engine reads: a http2 trailer
- *  updates the header buffer above the rule's hook, and the tx only reaches
- *  its end state after that.
+ *  updates the header buffer above the rule's hook. That growth ends with the
+ *  direction's END_STREAM, not with the tx end state: an http2 request stays
+ *  below its end state until the response closes, and holding the rule
+ *  pending that long keeps its partial accept open for the whole request.
  */
 static bool DetectLteRevisit(
         Flow *f, void *txv, uint8_t flags, const Signature *s, const int progress)
@@ -2138,7 +2152,7 @@ static bool DetectLteRevisit(
     if ((s->flags & SIG_FLAG_FW_HOOK_LTE) == 0 || !AppLayerParserSupportsSubStates(f->alproto)) {
         return false;
     }
-    return progress < AppLayerParserGetTxEndState(f->proto, f->alproto, txv, flags);
+    return progress < AppLayerParserGetTxBuffersFinal(f->proto, f->alproto, txv, flags);
 }
 
 /** \internal
@@ -3865,6 +3879,7 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
         SCFree(det_ctx->replace);
 
     RuleMatchCandidateTxArrayFree(det_ctx);
+    DetectPrefilterLteWindowFree(det_ctx);
 
     AlertQueueFree(det_ctx);
 
