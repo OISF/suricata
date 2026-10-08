@@ -129,6 +129,8 @@ int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
 #include "packet.h"
+#include "flow-hash.h"
+#include "tmqh-packetpool.h"
 
 /** \todo Must GRE+VLAN and Multi-Vlan packets to
  * create more tests
@@ -222,6 +224,80 @@ static int DecodeVLANtest03 (void)
     FlowShutdown();
     PASS;
 }
+
+/**
+ * \test DecodeVLANtest04 test that the packet pool recycle path clears
+ *       every VLAN id slot a decoder can use.
+ *
+ * DecodeVLAN() fills vlan_id[] up to VLAN_MAX_LAYERS, so a triple tagged
+ * (QinQinQ) frame sets all of them. The slots are handed to the next
+ * occupant of the pool slot unless PacketReinit() clears them all: the
+ * flow hash key (FlowHashIp4Fill()) and the flow comparison
+ * (CmpVlanIds()) fold in every slot regardless of vlan_idx, so a single
+ * stale slot makes the packets of one and the same stream hash into two
+ * different Flow objects, which splits reassembly over those two flows.
+ *
+ *  \retval 1 on success
+ *  \retval 0 on failure
+ */
+static int DecodeVLANtest04(void)
+{
+    /* QinQinQ: 3 vlan header layers, ids 32, 257 and 3843. */
+    uint8_t raw_qinqinq[] = { 0x00, 0x20, 0x81, 0x00, 0x01, 0x01, 0x81, 0x00, 0x0f, 0x03, 0x08,
+        0x00, 0x45, 0x00, 0x00, 0x34, 0x3b, 0x36, 0x40, 0x00, 0x40, 0x06, 0xb7, 0xc9, 0x83, 0x97,
+        0x20, 0x81, 0x83, 0x97, 0x20, 0x15, 0x04, 0x8a, 0x17, 0x70, 0x4e, 0x14, 0xdf, 0x55, 0x4d,
+        0x3d, 0x5a, 0x61, 0x80, 0x10, 0x6b, 0x50, 0x3c, 0x4c, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a,
+        0x00, 0x04, 0xf0, 0xc8, 0x01, 0x99, 0xa3, 0xf3 };
+    /* QinQ: 2 vlan header layers, ids 32 and 257, same inner packet. */
+    uint8_t raw_qinq[] = { 0x00, 0x20, 0x81, 0x00, 0x01, 0x01, 0x08, 0x00, 0x45, 0x00, 0x00, 0x34,
+        0x3b, 0x36, 0x40, 0x00, 0x40, 0x06, 0xb7, 0xc9, 0x83, 0x97, 0x20, 0x81, 0x83, 0x97, 0x20,
+        0x15, 0x04, 0x8a, 0x17, 0x70, 0x4e, 0x14, 0xdf, 0x55, 0x4d, 0x3d, 0x5a, 0x61, 0x80, 0x10,
+        0x6b, 0x50, 0x3c, 0x4c, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a, 0x00, 0x04, 0xf0, 0xc8, 0x01,
+        0x99, 0xa3, 0xf3 };
+
+    Packet *p = PacketPoolGetPacket();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    FAIL_IF_NOT(TM_ECODE_OK == DecodeVLAN(&tv, &dtv, p, raw_qinqinq, sizeof(raw_qinqinq)));
+    FAIL_IF(p->vlan_idx != VLAN_MAX_LAYERS);
+    for (unsigned i = 0; i < VLAN_MAX_LAYERS; i++) {
+        FAIL_IF(p->vlan_id[i] == 0);
+    }
+
+    /* Hand the packet back to the pool it came from and take a packet out
+     * again: the very same slot is recycled. */
+    PacketPoolReturnPacket(p);
+    Packet *recycled = PacketPoolGetPacket();
+    FAIL_IF_NULL(recycled);
+    FAIL_IF(recycled != p);
+    FAIL_IF(recycled->vlan_idx != 0);
+    for (unsigned i = 0; i < VLAN_MAX_LAYERS; i++) {
+        FAIL_IF(recycled->vlan_id[i] != 0);
+    }
+
+    /* And now the part that decides behaviour: decoding a double tagged
+     * frame into the recycled packet must key exactly like decoding it
+     * into a packet that never saw the QinQinQ one. */
+    FAIL_IF_NOT(TM_ECODE_OK == DecodeVLAN(&tv, &dtv, recycled, raw_qinq, sizeof(raw_qinq)));
+    FAIL_IF(recycled->vlan_idx != 2);
+    FAIL_IF(recycled->vlan_id[VLAN_MAX_LAYER_IDX] != 0);
+    const uint32_t recycled_hash = FlowGetIpPairProtoHash(recycled);
+
+    Packet *fresh = PacketGetFromAlloc();
+    FAIL_IF_NULL(fresh);
+    FAIL_IF_NOT(TM_ECODE_OK == DecodeVLAN(&tv, &dtv, fresh, raw_qinq, sizeof(raw_qinq)));
+    const uint32_t fresh_hash = FlowGetIpPairProtoHash(fresh);
+
+    FAIL_IF(recycled_hash != fresh_hash);
+
+    PacketFree(fresh);
+    PacketPoolReturnPacket(recycled);
+    PASS;
+}
 #endif /* UNITTESTS */
 
 void DecodeVLANRegisterTests(void)
@@ -230,6 +306,7 @@ void DecodeVLANRegisterTests(void)
     UtRegisterTest("DecodeVLANtest01", DecodeVLANtest01);
     UtRegisterTest("DecodeVLANtest02", DecodeVLANtest02);
     UtRegisterTest("DecodeVLANtest03", DecodeVLANtest03);
+    UtRegisterTest("DecodeVLANtest04", DecodeVLANtest04);
 #endif /* UNITTESTS */
 }
 
