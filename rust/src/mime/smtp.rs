@@ -17,6 +17,7 @@
 
 use super::mime;
 use crate::core::StreamingBufferConfig;
+use crate::detect::transforms::urldecode::url_decode_transform_do;
 use crate::utils::base64;
 use digest::Digest;
 use digest::Update;
@@ -193,15 +194,28 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> (u32, bool) {
                 if let Some(value) =
                     mime::mime_find_header_token(&h.value, b"filename", &mut sections_values)
                 {
-                    let value = if value.len() > mime::RS_MIME_MAX_TOKEN_LEN {
+                    let filename = value.1;
+                    let filename = if filename.len() > mime::RS_MIME_MAX_TOKEN_LEN {
                         warnings |= MIME_ANOM_LONG_FILENAME;
-                        &value[..mime::RS_MIME_MAX_TOKEN_LEN]
+                        &filename[..mime::RS_MIME_MAX_TOKEN_LEN]
                     } else {
-                        value
+                        filename
                     };
-                    ctx.filename.extend_from_slice(value);
+                    if value.0 {
+                        ctx.filename = vec![0; filename.len()];
+                        let out_len = url_decode_transform_do(filename, &mut ctx.filename, false);
+                        ctx.filename.truncate(out_len as usize);
+                    } else {
+                        ctx.filename = Vec::with_capacity(filename.len());
+                        for c in filename {
+                            // unescape
+                            if *c != b'\\' {
+                                ctx.filename.push(*c);
+                            }
+                        }
+                    }
                     let mut newname = Vec::new();
-                    newname.extend_from_slice(value);
+                    newname.extend_from_slice(&ctx.filename);
                     ctx.attachments.push(newname);
                     sections_values.clear();
                 }
@@ -218,15 +232,28 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> (u32, bool) {
                 if let Some(value) =
                     mime::mime_find_header_token(&h.value, b"name", &mut sections_values)
                 {
-                    let value = if value.len() > mime::RS_MIME_MAX_TOKEN_LEN {
+                    let filename = value.1;
+                    let filename = if filename.len() > mime::RS_MIME_MAX_TOKEN_LEN {
                         warnings |= MIME_ANOM_LONG_FILENAME;
-                        &value[..mime::RS_MIME_MAX_TOKEN_LEN]
+                        &filename[..mime::RS_MIME_MAX_TOKEN_LEN]
                     } else {
-                        value
+                        filename
                     };
-                    ctx.filename.extend_from_slice(value);
+                    if value.0 {
+                        ctx.filename = vec![0; filename.len()];
+                        let out_len = url_decode_transform_do(filename, &mut ctx.filename, false);
+                        ctx.filename.truncate(out_len as usize);
+                    } else {
+                        ctx.filename = Vec::with_capacity(filename.len());
+                        for c in filename {
+                            // unescape
+                            if *c != b'\\' {
+                                ctx.filename.push(*c);
+                            }
+                        }
+                    }
                     let mut newname = Vec::new();
-                    newname.extend_from_slice(value);
+                    newname.extend_from_slice(&ctx.filename);
                     ctx.attachments.push(newname);
                     sections_values.clear();
                 }
@@ -235,6 +262,7 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> (u32, bool) {
                 mime::mime_find_header_token(&h.value, b"boundary", &mut sections_values)
             {
                 // start wih 2 additional hyphens
+                let value = value.1;
                 let mut boundary = Vec::new();
                 boundary.push(b'-');
                 boundary.push(b'-');

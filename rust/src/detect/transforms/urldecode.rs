@@ -41,7 +41,8 @@ fn hex_value(i: u8) -> Option<u8> {
         _ => None,
     }
 }
-fn url_decode_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
+
+pub(crate) fn url_decode_transform_do(input: &[u8], output: &mut [u8], plus_space: bool) -> u32 {
     let mut state = (0u8, 0u8);
     let mut nb = 0;
     for &i in input.iter() {
@@ -68,7 +69,7 @@ fn url_decode_transform_do(input: &[u8], output: &mut [u8]) -> u32 {
         } else if i == b'%' {
             state = (1u8, 0u8);
         } else {
-            if i == b'+' {
+            if i == b'+' && plus_space {
                 output[nb] = b' ';
             } else {
                 output[nb] = i;
@@ -104,7 +105,7 @@ unsafe extern "C" fn url_decode_transform(
     }
     let output = std::slice::from_raw_parts_mut(output, input_len as usize);
 
-    let out_len = url_decode_transform_do(input, output);
+    let out_len = url_decode_transform_do(input, output, true);
 
     SCInspectionBufferTruncate(buffer, out_len);
 }
@@ -138,11 +139,11 @@ mod tests {
         let mut buf = Vec::new();
         buf.extend_from_slice(b"Suricata%20is+%27%61wesome%21%27%25%30%30%ZZ%4");
         let mut out = vec![0; buf.len()];
-        let nb = url_decode_transform_do(&buf, &mut out);
+        let nb = url_decode_transform_do(&buf, &mut out, true);
         assert_eq!(&out[..nb as usize], b"Suricata is 'awesome!'%00%ZZ%4");
         // test in place
         let still_buf = unsafe { std::slice::from_raw_parts(buf.as_ptr(), buf.len()) };
-        let nb = url_decode_transform_do(still_buf, &mut buf);
+        let nb = url_decode_transform_do(still_buf, &mut buf, true);
         assert_eq!(&still_buf[..nb as usize], b"Suricata is 'awesome!'%00%ZZ%4");
     }
 }
