@@ -29,7 +29,8 @@
 int SCConfYamlLoadFile(const char *);
 int SCConfYamlLoadString(const char *, size_t);
 int SCConfYamlLoadFileWithPrefix(const char *filename, const char *prefix);
-int SCConfYamlHandleInclude(SCConfNode *parent, const char *filename);
+int SCConfYamlLoadFileWithPrefixAndIncludes(
+        const char *filename, const char *prefix, const char *const *includes);
 
 void SCConfYamlRegisterTests(void);
 
