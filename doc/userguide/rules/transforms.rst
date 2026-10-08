@@ -193,10 +193,19 @@ xor
 
 Takes the buffer, applies xor decoding.
 
-The key can be a hexadecimal string or a variable specified inline using
-``extract <nbytes> <offset>``. When a variable key is used, the engine reads
-``<nbytes>`` bytes starting at ``<offset>`` in the raw inspection buffer
-at transform time.
+The key can be given as:
+
+* a literal hexadecimal string (``xor:"<hex_key>"``);
+* an inline buffer location (``xor:extract <nbytes> <offset>``), where the
+  engine reads ``<nbytes>`` bytes starting at ``<offset>`` in the raw inspection
+  buffer at transform time; or
+* the name of a ``byte_extract`` or ``byte_math`` variable
+  (``xor:var <name> [<nbytes>]``), whose value is used as the key, read at
+  inspection time.
+
+Exactly one key form may be given per ``xor`` transform. The hexadecimal string,
+``extract``, and ``var`` forms are mutually exclusive and cannot be combined in a
+single transform; for example, ``xor:extract 1 0 var xkey`` is rejected.
 
 An optional ``offset`` parameter specifies the byte position in the buffer
 where XOR decoding starts. Bytes before this position are left as-is.
@@ -207,13 +216,15 @@ Syntax::
 
     xor:"<hex_key>"
     xor:extract <nbytes> <offset>
+    xor:var <name> [<nbytes>]
     xor:offset <N>,"<hex_key>"
     xor:offset <N>,extract <nbytes> <offset>
+    xor:offset <N>,var <name> [<nbytes>]
 
 Quotes around a hex key are optional; ``xor:0d0ac8ff`` and ``xor:"0d0ac8ff"``
 are equivalent.
 
-This example alerts if ``http.uri`` contains ``password=`` xored with 4-bytes key ``0d0ac8ff``:
+This example alerts if ``http.uri`` contains ``password=`` xored with 4-byte key ``0d0ac8ff``:
 
 .. container:: example-rule
 
@@ -228,6 +239,39 @@ matches ``infected`` in the decoded data:
 
     alert http any any -> any any (msg:"XOR with variable key"; \
         http.request_body; xor:offset 1,extract 1 0; content:"infected"; sid:2;)
+
+With a ``byte_extract`` or ``byte_math`` variable key, the keyword reads or
+computes the key from traffic and ``xor:var`` consumes it. The variable must be
+produced by a buffer that is inspected before the transformed buffer (a lower
+app-layer progress), because a transform runs when its buffer is built. A
+signature whose transform depends on a runtime variable cannot have its buffer
+precomputed, so it is disqualified from prefilter/MPM and inspected in full.
+
+The optional ``<nbytes>`` gives the key width in bytes (1-8). For a
+``byte_extract`` variable in the default (non-``string``) mode it defaults to
+the number of bytes the keyword reads and may be omitted. When ``byte_extract``
+uses ``string`` mode its read count is a number of characters rather than a
+value width, and a ``byte_math`` result is a computed value with no inherent
+width; in both cases ``<nbytes>`` is required. The low ``<nbytes>`` bytes of the
+variable's value form the key, in big-endian order regardless of the keyword's
+own endianness.
+
+This example extracts a one-byte key from ``http.uri`` and uses it to xor-decode
+the request body:
+
+.. container:: example-rule
+
+    alert http any any -> any any (msg:"xor variable key"; \
+        http.uri; byte_extract:1,1,xkey; \
+        http.request_body; xor:var xkey; content:"SECRET"; sid:1;)
+
+This example computes the key with ``byte_math`` and supplies an explicit width:
+
+.. container:: example-rule
+
+    alert http any any -> any any (msg:"xor byte_math key"; \
+        http.uri; byte_math:bytes 1, offset 1, oper -, rvalue 1, result xkey; \
+        http.request_body; xor:var xkey 1; content:"SECRET"; sid:1;)
 
 header_lowercase
 ----------------
