@@ -122,6 +122,28 @@ This behavior can be modified via the ``security.lua`` section of :ref:`suricata
 
 .. note:: Suricata 8.0 has moved to Lua 5.4 and now has builtin support for bitwise and utf8 operations.
 
+Script state and budgets
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Each rule runs in one Lua state per thread, shared by every packet
+that thread processes for that rule, unrelated flows included. A
+value a script stores - a global, a cached table or handle - remains
+until the per-thread states are rebuilt (a rule reload) or the engine
+shuts down, and it is the script's own to manage:
+the engine-owned per-invocation context (flow, transactions, files)
+is refreshed by the engine on each call and reached only through the
+lib accessors.
+
+The budgets are per invocation on top of that state. The instruction
+counter is reset before every script call, so retained state costs no
+instructions. Retained memory does count against the memory
+allocation limit: the limit is the setup-time footprint plus
+``security.lua.max-bytes`` (0 disables it), fixed for the state's
+life and not re-based between calls - so state a script keeps
+reduces what later calls may allocate, and a script that caches more
+than the limit fails its own later invocations with a memory limit
+error. Keep state small and free what a call no longer needs.
+
 A comprehensive list of existing lua functions - with examples - can
 be found at :ref:`lua-functions` (some of them, however, work only for
 the lua-output functionality).
