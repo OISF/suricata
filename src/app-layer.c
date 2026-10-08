@@ -1176,8 +1176,10 @@ void AppLayerRegisterGlobalCounters(void)
     StatsRegisterGlobalCounter("http.byterange.memcap", HTPByteRangeMemcapGlobalCounter);
     StatsRegisterGlobalCounter("ippair.memuse", IPPairGetMemuse);
     StatsRegisterGlobalCounter("ippair.memcap", IPPairGetMemcap);
+    StatsRegisterGlobalCounter("ippair.active", IPPairGetActive);
     StatsRegisterGlobalCounter("host.memuse", HostGetMemuse);
     StatsRegisterGlobalCounter("host.memcap", HostGetMemcap);
+    StatsRegisterGlobalCounter("host.active", HostGetActive);
 }
 
 static bool IsAppLayerErrorExceptionPolicyStatsValid(enum ExceptionPolicy policy)
