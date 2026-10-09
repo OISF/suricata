@@ -34,12 +34,6 @@
 /* see detect-lua.h */
 typedef struct DetectLuaData DetectLuaData;
 
-typedef struct LuaStreamingBuffer_ {
-    const uint8_t *data;
-    uint32_t data_len;
-    uint8_t flags;
-} LuaStreamingBuffer;
-
 lua_State *LuaGetState(void);
 void LuaReturnState(lua_State *s);
 
@@ -67,8 +61,6 @@ File *LuaStateGetFile(lua_State *luastate);
 
 /** \brief get detect engine thread context pointer from the lua state */
 DetectEngineThreadCtx *LuaStateGetDetCtx(lua_State *luastate);
-
-LuaStreamingBuffer *LuaStateGetStreamingBuffer(lua_State *luastate);
 
 /** \brief get the per-rule DetectLuaData, NULL when the state has none
  * (output/transform states) */
@@ -101,8 +93,6 @@ void LuaStateSetFile(lua_State *luastate, File *file);
 void LuaStateSetDetCtx(lua_State *luastate, DetectEngineThreadCtx *det_ctx);
 
 void LuaStateSetThreadVars(lua_State *luastate, ThreadVars *tv);
-
-void LuaStateSetStreamingBuffer(lua_State *luastate, LuaStreamingBuffer *b);
 
 void LuaStateSetDirection(lua_State *luastate, int direction);
 

@@ -94,8 +94,6 @@ const char lua_ext_key_s[] = "suricata:lua:signature:ptr";
 const char lua_ext_key_file[] = "suricata:lua:file:ptr";
 /* key for DetectEngineThreadCtx pointer */
 const char lua_ext_key_det_ctx[] = "suricata:lua:det_ctx:ptr";
-/* key for streaming buffer pointer */
-const char lua_ext_key_streaming_buffer[] = "suricata:lua:streaming_buffer:ptr";
 
 /*
  * Registry context values are wrapped in a typed userdata instead of
@@ -290,21 +288,6 @@ DetectEngineThreadCtx *LuaStateGetDetCtx(lua_State *luastate)
 void LuaStateSetDetCtx(lua_State *luastate, DetectEngineThreadCtx *det_ctx)
 {
     LuaStateSetReg(luastate, lua_ext_key_det_ctx, SCLUA_REG_DET_CTX, (void *)det_ctx);
-}
-
-LuaStreamingBuffer *LuaStateGetStreamingBuffer(lua_State *luastate)
-{
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_streaming_buffer);
-    lua_gettable(luastate, LUA_REGISTRYINDEX);
-    void *b = lua_touserdata(luastate, -1);
-    return (LuaStreamingBuffer *)b;
-}
-
-void LuaStateSetStreamingBuffer(lua_State *luastate, LuaStreamingBuffer *b)
-{
-    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_streaming_buffer);
-    lua_pushlightuserdata(luastate, (void *)b);
-    lua_settable(luastate, LUA_REGISTRYINDEX);
 }
 
 /** \brief get the per-rule DetectLuaData */
