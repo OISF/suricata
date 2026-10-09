@@ -33,56 +33,47 @@
 #include "util-debug.h"
 #include "util-print.h"
 
-/* key for p (packet) pointer */
-extern const char lua_ext_key_p[];
 static const char suricata_packet[] = "suricata:packet";
 
+/* no stored pointer: the accessors act on the packet the state is
+ * running on (LuaStateGetPacket), so a retained handle can never
+ * dangle */
 struct LuaPacket {
-    Packet *p;
 };
-
-static int LuaPacketGC(lua_State *luastate)
-{
-    SCLogDebug("gc:start");
-    struct LuaPacket *s = SCLuaTestUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
-    if (s != NULL) {
-        SCLogDebug("packet %p", s->p);
-        s->p = NULL;
-    }
-    SCLogDebug("gc:done");
-    return 0;
-}
 
 static int LuaPacketPayload(lua_State *luastate)
 {
-    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
-    if (s->p == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
+    Packet *p = LuaStateGetPacket(luastate);
+    if (p == NULL) {
         LUA_ERROR("failed to get packet");
     }
 
-    LuaPushStringBuffer(luastate, (const uint8_t *)s->p->payload, (size_t)s->p->payload_len);
+    LuaPushStringBuffer(luastate, (const uint8_t *)p->payload, (size_t)p->payload_len);
     return 1;
 }
 
 static int LuaPacketPacket(lua_State *luastate)
 {
-    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
-    if (s->p == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
+    Packet *p = LuaStateGetPacket(luastate);
+    if (p == NULL) {
         LUA_ERROR("failed to get packet");
     }
 
-    LuaPushStringBuffer(luastate, (const uint8_t *)GET_PKT_DATA(s->p), (size_t)GET_PKT_LEN(s->p));
+    LuaPushStringBuffer(luastate, (const uint8_t *)GET_PKT_DATA(p), (size_t)GET_PKT_LEN(p));
     return 1;
 }
 
 static int LuaPacketPcapCnt(lua_State *luastate)
 {
-    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
-    if (s->p == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
+    Packet *p = LuaStateGetPacket(luastate);
+    if (p == NULL) {
         LUA_ERROR("failed to get packet");
     }
 
-    lua_pushinteger(luastate, s->p->pcap_cnt);
+    lua_pushinteger(luastate, p->pcap_cnt);
     return 1;
 }
 
@@ -91,39 +82,42 @@ static int LuaPacketPcapCnt(lua_State *luastate)
  */
 static int LuaPacketTimestringLegacy(lua_State *luastate)
 {
-    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
-    if (s->p == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
+    Packet *p = LuaStateGetPacket(luastate);
+    if (p == NULL) {
         LUA_ERROR("failed to get packet");
     }
 
     char timebuf[64];
-    CreateTimeString(s->p->ts, timebuf, sizeof(timebuf));
+    CreateTimeString(p->ts, timebuf, sizeof(timebuf));
     lua_pushstring(luastate, timebuf);
     return 1;
 }
 
 static int LuaPacketTimestringIso8601(lua_State *luastate)
 {
-    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
-    if (s->p == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
+    Packet *p = LuaStateGetPacket(luastate);
+    if (p == NULL) {
         LUA_ERROR("failed to get packet");
     }
 
     char timebuf[64];
-    CreateIsoTimeString(s->p->ts, timebuf, sizeof(timebuf));
+    CreateIsoTimeString(p->ts, timebuf, sizeof(timebuf));
     lua_pushstring(luastate, timebuf);
     return 1;
 }
 
 static int LuaPacketTimestamp(lua_State *luastate)
 {
-    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
-    if (s->p == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
+    Packet *p = LuaStateGetPacket(luastate);
+    if (p == NULL) {
         LUA_ERROR("failed to get packet");
     }
 
-    lua_pushnumber(luastate, (double)SCTIME_SECS(s->p->ts));
-    lua_pushnumber(luastate, (double)SCTIME_USECS(s->p->ts));
+    lua_pushnumber(luastate, (double)SCTIME_SECS(p->ts));
+    lua_pushnumber(luastate, (double)SCTIME_USECS(p->ts));
     return 2;
 }
 
@@ -137,11 +131,11 @@ static int LuaPacketTimestamp(lua_State *luastate)
  */
 static int LuaPacketTuple(lua_State *luastate)
 {
-    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
-    if (s->p == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
+    Packet *p = LuaStateGetPacket(luastate);
+    if (p == NULL) {
         LUA_ERROR("failed to get packet");
     }
-    Packet *p = s->p;
 
     int ipver = 0;
     if (PacketIsIPv4(p)) {
@@ -188,11 +182,11 @@ static int LuaPacketTuple(lua_State *luastate)
  */
 static int LuaPacketSport(lua_State *luastate)
 {
-    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
-    if (s->p == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
+    Packet *p = LuaStateGetPacket(luastate);
+    if (p == NULL) {
         LUA_ERROR("failed to get packet");
     }
-    Packet *p = s->p;
 
     switch (p->proto) {
         case IPPROTO_TCP:
@@ -213,11 +207,11 @@ static int LuaPacketSport(lua_State *luastate)
  */
 static int LuaPacketDport(lua_State *luastate)
 {
-    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
-    if (s->p == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
+    Packet *p = LuaStateGetPacket(luastate);
+    if (p == NULL) {
         LUA_ERROR("failed to get packet");
     }
-    Packet *p = s->p;
 
     switch (p->proto) {
         case IPPROTO_TCP:
@@ -243,7 +237,6 @@ static int LuaPacketGet(lua_State *luastate)
     if (s == NULL) {
         LUA_ERROR("failed to get userdata");
     }
-    s->p = p;
     luaL_getmetatable(luastate, suricata_packet);
     lua_setmetatable(luastate, -2);
     return 1;
@@ -267,7 +260,6 @@ static const luaL_Reg packetlib_meta[] = {
     { "tuple", LuaPacketTuple },
     { "sp", LuaPacketSport },
     { "dp", LuaPacketDport },
-    { "__gc", LuaPacketGC },
     { NULL, NULL }
     // clang-format on
 };
