@@ -115,12 +115,20 @@ Each object in the ``objects`` array contains:
 
 .. attribute:: points
 
-   Array of data points for this object
+   Data points of this object, as an array-like value. ``#points``
+   gives the point count, ``points[i]`` (1-based) returns the point
+   as a table, and reads outside ``1..#points`` return nil; the
+   value supports ``pairs()`` and numeric loops. Objects of 32
+   points or fewer carry a copy that stays readable; objects with
+   more points are backed by the transaction itself, so they are
+   valid while that transaction is open - once it is freed (complete,
+   inspected and logged, or at flow teardown) ``points[i]`` returns
+   nil.
 
 Points Structure
 ****************
 
-Each point in the ``points`` array contains:
+Each point (table) of the ``points`` value contains:
 
 .. attribute:: index
 

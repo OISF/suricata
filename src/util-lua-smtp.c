@@ -38,7 +38,7 @@
 static const char smtp_tx_mt[] = "suricata:smtp:tx";
 
 struct LuaSmtpTx {
-    SMTPTransaction *tx;
+    SCLuaTxRef ref; /* (flow, tx id); the tx is resolved on demand */
 };
 
 static int LuaSmtpGetTx(lua_State *L)
@@ -51,8 +51,11 @@ static int LuaSmtpGetTx(lua_State *L)
      * sets the registry entry in the tx-inspection phase); in the plain
      * packet phase the entry is empty and the flow's current
      * transaction is the one the script wants */
+    uint64_t tx_id;
     SMTPTransaction *tx = (SMTPTransaction *)LuaStateGetTX(L);
-    if (tx == NULL) {
+    if (tx != NULL) {
+        tx_id = LuaStateGetTxId(L);
+    } else {
         Flow *flow = LuaStateGetFlow(L);
         if (flow == NULL) {
             return LuaCallbackError(L, "error: no flow found");
@@ -62,16 +65,17 @@ static int LuaSmtpGetTx(lua_State *L)
             return LuaCallbackError(L, "error: no SMTP state");
         }
         tx = state->curr_tx;
-    }
-    if (tx == NULL) {
-        return LuaCallbackError(L, "error: no SMTP transaction found");
+        if (tx == NULL) {
+            return LuaCallbackError(L, "error: no SMTP transaction found");
+        }
+        tx_id = tx->tx_id;
     }
 
     struct LuaSmtpTx *lua_tx = SCLuaNewUserData(L, SCLUA_TUD_SMTP_TX, sizeof(*lua_tx));
     if (lua_tx == NULL) {
         return LuaCallbackError(L, "error: fail to allocate user data");
     }
-    lua_tx->tx = tx;
+    SCLuaTxRefInit(L, &lua_tx->ref, tx_id);
 
     luaL_getmetatable(L, smtp_tx_mt);
     lua_setmetatable(L, -2);
@@ -81,9 +85,15 @@ static int LuaSmtpGetTx(lua_State *L)
 
 static int LuaSmtpTxGetMimeField(lua_State *L)
 {
-    struct LuaSmtpTx *tx = SCLuaCheckUserData(L, 1, smtp_tx_mt, SCLUA_TUD_SMTP_TX);
+    struct LuaSmtpTx *ltx = SCLuaCheckUserData(L, 1, smtp_tx_mt, SCLUA_TUD_SMTP_TX);
+    if (ltx == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
+    SCLUA_RESOLVE_TX(L, &ltx->ref, txptr);
+    SMTPTransaction *tx = (SMTPTransaction *)txptr;
 
-    if (tx->tx->mime_state == NULL) {
+    if (tx->mime_state == NULL) {
         return LuaCallbackError(L, "no mime state");
     }
 
@@ -94,7 +104,7 @@ static int LuaSmtpTxGetMimeField(lua_State *L)
 
     const uint8_t *field_value;
     uint32_t field_len;
-    if (SCMimeSmtpGetHeader(tx->tx->mime_state, name, &field_value, &field_len)) {
+    if (SCMimeSmtpGetHeader(tx->mime_state, name, &field_value, &field_len)) {
         return LuaPushStringBuffer(L, field_value, field_len);
     }
 
@@ -103,9 +113,15 @@ static int LuaSmtpTxGetMimeField(lua_State *L)
 
 static int LuaSmtpTxGetMimeList(lua_State *L)
 {
-    struct LuaSmtpTx *tx = SCLuaCheckUserData(L, 1, smtp_tx_mt, SCLUA_TUD_SMTP_TX);
+    struct LuaSmtpTx *ltx = SCLuaCheckUserData(L, 1, smtp_tx_mt, SCLUA_TUD_SMTP_TX);
+    if (ltx == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
+    SCLUA_RESOLVE_TX(L, &ltx->ref, txptr);
+    SMTPTransaction *tx = (SMTPTransaction *)txptr;
 
-    if (tx->tx->mime_state == NULL) {
+    if (tx->mime_state == NULL) {
         return LuaCallbackError(L, "no mime state");
     }
 
@@ -114,7 +130,7 @@ static int LuaSmtpTxGetMimeList(lua_State *L)
     /* the FFI accessor is 0-based; the Lua table is 1-based */
     int num = 0;
     lua_newtable(L);
-    while (SCMimeSmtpGetHeaderName(tx->tx->mime_state, &field_name, &field_len, (uint32_t)num)) {
+    while (SCMimeSmtpGetHeaderName(tx->mime_state, &field_name, &field_len, (uint32_t)num)) {
         lua_pushinteger(L, num + 1);
         LuaPushStringBuffer(L, field_name, field_len);
         lua_settable(L, -3);
@@ -125,19 +141,31 @@ static int LuaSmtpTxGetMimeList(lua_State *L)
 
 static int LuaSmtpTxGetMailFrom(lua_State *L)
 {
-    struct LuaSmtpTx *tx = SCLuaCheckUserData(L, 1, smtp_tx_mt, SCLUA_TUD_SMTP_TX);
+    struct LuaSmtpTx *ltx = SCLuaCheckUserData(L, 1, smtp_tx_mt, SCLUA_TUD_SMTP_TX);
+    if (ltx == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
+    SCLUA_RESOLVE_TX(L, &ltx->ref, txptr);
+    SMTPTransaction *tx = (SMTPTransaction *)txptr;
 
-    if (tx->tx->mail_from == NULL || tx->tx->mail_from_len == 0) {
+    if (tx->mail_from == NULL || tx->mail_from_len == 0) {
         lua_pushnil(L);
         return 1;
     }
 
-    return LuaPushStringBuffer(L, tx->tx->mail_from, tx->tx->mail_from_len);
+    return LuaPushStringBuffer(L, tx->mail_from, tx->mail_from_len);
 }
 
 static int LuaSmtpTxGetRcptList(lua_State *L)
 {
-    struct LuaSmtpTx *tx = SCLuaCheckUserData(L, 1, smtp_tx_mt, SCLUA_TUD_SMTP_TX);
+    struct LuaSmtpTx *ltx = SCLuaCheckUserData(L, 1, smtp_tx_mt, SCLUA_TUD_SMTP_TX);
+    if (ltx == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
+    SCLUA_RESOLVE_TX(L, &ltx->ref, txptr);
+    SMTPTransaction *tx = (SMTPTransaction *)txptr;
 
     /* Create a new table in luastate for rcpt list */
     lua_newtable(L);
@@ -145,7 +173,7 @@ static int LuaSmtpTxGetRcptList(lua_State *L)
     int u = 1;
     SMTPString *rcpt;
 
-    TAILQ_FOREACH (rcpt, &tx->tx->rcpt_to_list, next) {
+    TAILQ_FOREACH (rcpt, &tx->rcpt_to_list, next) {
         lua_pushinteger(L, u++);
         LuaPushStringBuffer(L, rcpt->str, rcpt->len);
         lua_settable(L, -3);

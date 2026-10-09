@@ -31,7 +31,7 @@
 static const char htp_tx[] = "suricata:http:tx";
 
 struct LuaTx {
-    htp_tx_t *tx;
+    SCLuaTxRef ref;
 };
 
 static int LuaHttpGetTx(lua_State *luastate)
@@ -49,7 +49,7 @@ static int LuaHttpGetTx(lua_State *luastate)
         return LuaCallbackError(luastate, "error: failed to allocate user data");
     }
 
-    ltx->tx = tx;
+    SCLuaTxRefInit(luastate, &ltx->ref, LuaStateGetTxId(luastate));
 
     luaL_getmetatable(luastate, htp_tx);
     lua_setmetatable(luastate, -2);
@@ -64,7 +64,8 @@ static int LuaHttpGetRequestHost(lua_State *luastate)
         lua_pushnil(luastate);
         return 1;
     }
-    const struct bstr *host = htp_tx_request_hostname(tx->tx);
+    SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
+    const struct bstr *host = htp_tx_request_hostname(txptr);
     if (host == NULL) {
         lua_pushnil(luastate);
         return 1;
@@ -80,7 +81,8 @@ static int LuaHttpGetRequestUriRaw(lua_State *luastate)
         lua_pushnil(luastate);
         return 1;
     }
-    const struct bstr *uri = htp_tx_request_uri(tx->tx);
+    SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
+    const struct bstr *uri = htp_tx_request_uri(txptr);
     if (uri == NULL) {
         lua_pushnil(luastate);
         return 1;
@@ -96,7 +98,8 @@ static int LuaHttpGetRequestUriNormalized(lua_State *luastate)
         lua_pushnil(luastate);
         return 1;
     }
-    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(tx->tx);
+    SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
+    bstr *request_uri_normalized = (bstr *)htp_tx_normalized_uri(txptr);
 
     if (request_uri_normalized == NULL || bstr_ptr(request_uri_normalized) == NULL ||
             bstr_len(request_uri_normalized) == 0)
@@ -114,7 +117,8 @@ static int LuaHttpGetRequestLine(lua_State *luastate)
         return 1;
     }
 
-    const struct bstr *line = htp_tx_request_line(tx->tx);
+    SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
+    const struct bstr *line = htp_tx_request_line(txptr);
     if (line == NULL) {
         lua_pushnil(luastate);
         return 1;
@@ -131,7 +135,8 @@ static int LuaHttpGetResponseLine(lua_State *luastate)
         return 1;
     }
 
-    const struct bstr *line = htp_tx_response_line(tx->tx);
+    SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
+    const struct bstr *line = htp_tx_response_line(txptr);
     if (line == NULL) {
         lua_pushnil(luastate);
         return 1;
@@ -156,10 +161,11 @@ static int LuaHttpGetHeader(lua_State *luastate, int dir)
     }
 
     const htp_header_t *h = NULL;
+    SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
     if (dir == 0) {
-        h = htp_tx_request_header(tx->tx, name);
+        h = htp_tx_request_header(txptr, name);
     } else {
-        h = htp_tx_response_header(tx->tx, name);
+        h = htp_tx_response_header(txptr, name);
     }
 
     if (h == NULL || htp_header_value_len(h) == 0) {
@@ -186,7 +192,8 @@ static int LuaHttpGetRawHeaders(lua_State *luastate, int dir)
         lua_pushnil(luastate);
         return 1;
     }
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx->tx);
+    SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(txptr);
 
     uint8_t *raw = htud->request_headers_raw;
     uint32_t raw_len = htud->request_headers_raw_len;
@@ -219,9 +226,10 @@ static int LuaHttpGetHeaders(lua_State *luastate, int dir)
         return 1;
     }
 
-    const htp_headers_t *table = htp_tx_request_headers(tx->tx);
+    SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
+    const htp_headers_t *table = htp_tx_request_headers(txptr);
     if (dir == 1)
-        table = htp_tx_response_headers(tx->tx);
+        table = htp_tx_response_headers(txptr);
     if (table == NULL) {
         lua_pushnil(luastate);
         return 1;
@@ -260,7 +268,8 @@ static int LuaHttpGetBody(lua_State *luastate, int dir)
         return 1;
     }
 
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx->tx);
+    SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(txptr);
 
     HtpBody *body = NULL;
     if (dir == 0)

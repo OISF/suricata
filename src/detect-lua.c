@@ -405,6 +405,12 @@ static void *DetectLuaThreadInit(void *data, bool allow_restricted_functions)
         goto error;
     }
 
+    /* the sandbox context owns this state's invocation counter */
+    SCLuaSbState *sb = SCLuaSbGetContext(t->luastate);
+    if (sb != NULL) {
+        LuaStateSetInvocationGen(t->luastate, &sb->invocation_gen);
+    }
+
     if (allow_restricted_functions) {
         luaL_openlibs(t->luastate);
         SCLuaRequirefBuiltIns(t->luastate);
@@ -478,8 +484,24 @@ static void DetectLuaThreadFree(void *ctx)
 {
     if (ctx != NULL) {
         DetectLuaThreadData *t = (DetectLuaThreadData *)ctx;
-        if (t->luastate != NULL)
+        if (t->luastate != NULL) {
+            /* finalizers run while the state closes: the context slots and
+             * the invocation generation still name the last call's objects,
+             * which the engine may have freed by now (a tx can be evicted
+             * while its flow stays live, and the packet pool goes first)
+             * - clear them so a cursor or handle read from a finalizer
+             * fails closed (the cold path re-resolves and yields nil) */
+            LuaStateSetPacket(t->luastate, NULL);
+            LuaStateSetPacketAlert(t->luastate, NULL);
+            LuaStateSetTX(t->luastate, NULL, 0);
+            LuaStateSetFlow(t->luastate, NULL);
+            LuaStateSetFile(t->luastate, NULL);
+            LuaStateSetSignature(t->luastate, NULL);
+            LuaStateSetDetCtx(t->luastate, NULL);
+            LuaStateSetDetectLuaData(t->luastate, NULL);
+            LuaStateSetInvocationGen(t->luastate, NULL);
             SCLuaSbStateClose(t->luastate);
+        }
         SCFree(t);
     }
 }

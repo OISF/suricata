@@ -94,6 +94,11 @@ void LuaStateSetDetCtx(lua_State *luastate, DetectEngineThreadCtx *det_ctx);
 
 void LuaStateSetThreadVars(lua_State *luastate, ThreadVars *tv);
 
+/** \brief publish the state's invocation counter (once, at state init) */
+void LuaStateSetInvocationGen(lua_State *luastate, uint64_t *gen);
+/** \brief current invocation generation; 0 when the state has none */
+uint64_t LuaStateGetInvocationGen(lua_State *luastate);
+
 void LuaStateSetDirection(lua_State *luastate, int direction);
 
 void LuaPrintStack(lua_State *state);

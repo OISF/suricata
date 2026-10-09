@@ -64,6 +64,11 @@ typedef struct SCLuaSbState {
     bool blocked_function_error;
     bool instruction_count_error;
     bool memory_limit_error;
+
+    /* invocation generation: bumped once per script invocation
+     * (LuaStateSetThreadVars); the dnp3 points cursor compares it to
+     * know its cached pointers are inside the invocation that set them */
+    uint64_t invocation_gen;
 } SCLuaSbState;
 
 /*

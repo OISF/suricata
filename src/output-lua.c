@@ -60,6 +60,10 @@ typedef struct LogLuaCtx_ {
     SCMutex m;
     lua_State *luastate;
     int deinit_once;
+    /* invocation counter for the state's generation slot: the state is
+     * shared and the logger's mutex is held across the invocation, so
+     * the per-invocation bump is serialized */
+    uint64_t invocation_gen;
 } LogLuaCtx;
 
 typedef struct LogLuaThreadCtx_ {
@@ -731,6 +735,9 @@ static OutputInitResult OutputLuaLogInitSub(SCConfNode *conf, OutputCtx *parent_
     SCMutexUnlock(&lua_ctx->m);
     if (lua_ctx->luastate == NULL)
         goto error;
+
+    /* the ctx owns this state's invocation counter */
+    LuaStateSetInvocationGen(lua_ctx->luastate, &lua_ctx->invocation_gen);
 
     SCLogDebug("lua_ctx %p", lua_ctx);
 
