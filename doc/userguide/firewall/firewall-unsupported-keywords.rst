@@ -26,3 +26,12 @@ Threat Detection Rules
 ~~~~~~~~~~~~~~~~~~~~~~
 
 * Config (both the ``config`` keyword and the ``config`` action)
+
+Firewall Rules
+~~~~~~~~~~~~~~
+
+* App-layer keywords whose buffer completes before the rule's hook state. A
+  firewall rule is evaluated only at its hook, so pairing ``http.header`` with
+  ``http1:request_trailer`` can never match and is rejected when the ruleset
+  loads. Either hook at the state the buffer completes in, or use the keywords
+  of the buffer that is complete at your hook.

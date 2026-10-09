@@ -1088,6 +1088,9 @@ removed.
 
 To match on non-normalized header data, use the :ref:`http.header.raw` keyword.
 
+The buffer covers the header section of the message. When a chunked body ends with
+trailer fields, those are not part of ``http.header``; use :ref:`http.trailer` for them.
+
 Normalization Example::
 
   GET /index.html HTTP/1.1
@@ -1137,6 +1140,9 @@ http.header.raw
 
 The ``http.header.raw`` buffer matches on HTTP header content but does not have
 any normalization performed on the buffer contents (see :ref:`http.header`)
+
+Like ``http.header`` it covers the header section only; the trailer section of a
+chunked body is available through :ref:`http.trailer.raw`.
 
 Abnormal HTTP Header Example::
 
@@ -1238,6 +1244,83 @@ after ``User-Agent`` but not necessarily directly after.
 
 .. note:: ``http.header_names`` can have additional formatting/normalization applied
   to buffer contents, see :ref:`http.normalization` for additional details.
+
+.. note:: Names used in the trailer section of a chunked body are not part of this
+  buffer, see :ref:`http.trailer_names`.
+
+.. _http.trailer:
+
+http.trailer
+------------
+
+The ``http.trailer`` keyword matches on the trailer fields of an HTTP/1 message. A
+chunked body may end with a second block of fields, the trailers, which are parsed
+once the body is complete. They are deliberately kept out of :ref:`http.header`,
+:ref:`http.header.raw` and :ref:`http.header_names` as well as out of the field
+keywords such as ``http.user_agent``.
+
+Fields are rendered as ``Name: value``, separated by \r\n, like ``http.header`` does.
+In HTTP/1 repeated names are combined with a comma, as in the header section. In HTTP/2
+the trailer block is rendered as one line per entry, so a repeated name appears twice.
+
+Example HTTP Request::
+
+  POST /upload HTTP/1.1
+  Host: suricata.io
+  Trailer: Server-Timing
+  Content-Type: application/x-www-form-urlencoded
+  Transfer-Encoding: chunked
+
+  5
+  hello
+  0
+  Server-Timing: total;dur=120
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Trailer Example"; \
+  flow:established,to_server; :example-rule-options:`http.trailer; content:"Server-Timing|3a 20|"; \
+  content:"dur=120|0d 0a|";` classtype:bad-unknown; sid:117; rev:1;)
+
+.. note:: Since the trailer section follows the body, a rule that only matches here
+  alerts when the last chunk is parsed, not when the headers are. To run a rule at
+  that point regardless of what it matches, use the ``http1:request_trailer`` or
+  ``http1:response_trailer`` state hook.
+
+.. note:: HTTP/2 does not have a trailer section; its trailing HEADERS frames are
+  currently part of :ref:`http.header`.
+
+.. _http.trailer_names:
+
+http.trailer_names
+------------------
+
+The ``http.trailer_names`` keyword matches on the names of the trailer fields of an
+HTTP/1 message. The buffer has the same shape as :ref:`http.header_names`: it starts
+with a \r\n, lists one name per line and ends with an extra \r\n.
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Trailer Names Example"; \
+  flow:established,to_server; :example-rule-options:`http.trailer_names; \
+  content:"|0d 0a|Server-Timing|0d 0a 0d 0a|";` classtype:bad-unknown; sid:118; rev:1;)
+
+.. _http.trailer.raw:
+
+http.trailer.raw
+----------------
+
+The ``http.trailer.raw`` buffer matches on the trailer section as it appears in the
+stream, without the normalization ``http.trailer`` applies. Folded field values and
+repeated names are therefore not combined. A chunked message whose
+trailer section carries no fields holds only the framing that ends the body, and is not a
+buffer: a rule on ``http.trailer.raw`` does not match it.
+
+.. container:: example-rule
+
+  alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"HTTP Trailer Raw Example"; \
+  flow:established,to_server; :example-rule-options:`http.trailer.raw; \
+  content:"Server-Timing|3a |";` classtype:bad-unknown; sid:119; rev:1;)
 
 .. _http.protocol:
 
