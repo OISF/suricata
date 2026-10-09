@@ -305,18 +305,13 @@ static void EveHttpLogJSONExtended(SCJsonBuilder *js, htp_tx_t *tx)
     SCJbSetUint(js, "length", htp_tx_response_message_len(tx));
 }
 
-static void EveHttpLogJSONHeaders(
-        SCJsonBuilder *js, uint32_t direction, htp_tx_t *tx, LogHttpFileCtx *http_ctx)
+static bool EveHttpLogJSONHeaderTable(SCJsonBuilder *js, const htp_headers_t *headers,
+        uint32_t direction, LogHttpFileCtx *http_ctx)
 {
-    const htp_headers_t *headers = direction & LOG_HTTP_REQ_HEADERS ? htp_tx_request_headers(tx)
-                                                                    : htp_tx_response_headers(tx);
     char name[MAX_SIZE_HEADER_NAME] = {0};
     char value[MAX_SIZE_HEADER_VALUE] = {0};
+    bool wrote = false;
     size_t n = htp_headers_size(headers);
-    SCJsonBuilderMark mark = { 0, 0, 0 };
-    SCJbGetMark(js, &mark);
-    bool array_empty = true;
-    SCJbOpenArray(js, direction & LOG_HTTP_REQ_HEADERS ? "request_headers" : "response_headers");
     for (size_t i = 0; i < n; i++) {
         const htp_header_t *h = htp_headers_get_index(headers, i);
         if ((http_ctx->flags & direction) == 0 && http_ctx->fields != 0) {
@@ -339,7 +334,7 @@ static void EveHttpLogJSONHeaders(
                 continue;
             }
         }
-        array_empty = false;
+        wrote = true;
         SCJbStartObject(js);
         size_t size_name = htp_header_name_len(h) < MAX_SIZE_HEADER_NAME - 1
                                    ? htp_header_name_len(h)
@@ -354,6 +349,28 @@ static void EveHttpLogJSONHeaders(
         value[size_value] = '\0';
         SCJbSetString(js, "value", value);
         SCJbClose(js);
+    }
+    return wrote;
+}
+
+static void EveHttpLogJSONHeaders(
+        SCJsonBuilder *js, uint32_t direction, htp_tx_t *tx, LogHttpFileCtx *http_ctx)
+{
+    const htp_headers_t *headers = direction & LOG_HTTP_REQ_HEADERS ? htp_tx_request_headers(tx)
+                                                                    : htp_tx_response_headers(tx);
+    const htp_headers_t *trailers = direction & LOG_HTTP_REQ_HEADERS ? htp_tx_request_trailers(tx)
+                                                                     : htp_tx_response_trailers(tx);
+    SCJsonBuilderMark mark = { 0, 0, 0 };
+    SCJbGetMark(js, &mark);
+    SCJbOpenArray(js, direction & LOG_HTTP_REQ_HEADERS ? "request_headers" : "response_headers");
+    bool array_empty = true;
+    if (headers != NULL) {
+        array_empty = !EveHttpLogJSONHeaderTable(js, headers, direction, http_ctx);
+    }
+    /* Trailer fields are no longer merged into the header table, but they must stay in the
+     * dump: a field only present in the trailer block would otherwise vanish from EVE. */
+    if (trailers != NULL) {
+        array_empty &= !EveHttpLogJSONHeaderTable(js, trailers, direction, http_ctx);
     }
     if (array_empty) {
         SCJbRestoreMark(js, &mark);

@@ -423,7 +423,9 @@ impl ConnectionParser {
                     Ordering::Equal => {
                         // End of data
                         self.request_state = State::Headers;
-                        self.request_mut().unwrap().request_progress = HtpRequestProgress::TRAILER
+                        let req = self.request_mut().unwrap();
+                        req.request_progress = HtpRequestProgress::TRAILER;
+                        req.request_in_trailers = true;
                     }
                     Ordering::Greater => {
                         // More data available.
@@ -714,12 +716,56 @@ impl ConnectionParser {
         }
     }
 
+    /// Extract one request trailer field. Kept out of the header table, but otherwise treated
+    /// like a header field: repeated names are combined under the same repetition cap, and the
+    /// total field count is shared with the header section.
+    fn process_request_trailer(&mut self, header: Header, hl: usize) -> Result<()> {
+        let req = self.request_mut().unwrap();
+        if req.request_trailers.elements.len() + req.request_headers.elements.len() > hl {
+            if !req.flags.is_set(HtpFlags::HEADERS_TOO_MANY) {
+                htp_warn!(
+                    self.logger,
+                    HtpLogCode::REQUEST_TOO_MANY_HEADERS,
+                    "Too many request headers"
+                );
+                let req = self.request_mut().unwrap();
+                req.flags.set(HtpFlags::HEADERS_TOO_MANY);
+            }
+            return Err(HtpStatus::ERROR);
+        }
+        let req = self.request_mut().unwrap();
+        let mut update_reps = false;
+        if let Some(existing) = req.request_trailers.get_nocase_mut(header.name.as_slice()) {
+            // Same cap as the header path: past it, repeated names stop being merged, so a
+            // peer cannot grow one value without bound.
+            if existing.flags.is_set(HeaderFlags::FIELD_REPEATED) {
+                if req.request_header_repetitions >= 64 {
+                    return Ok(());
+                }
+                update_reps = true;
+            }
+            existing.flags.set(HeaderFlags::FIELD_REPEATED);
+            existing.value.extend_from_slice(b", ");
+            existing.value.extend_from_slice(header.value.as_slice());
+        } else {
+            req.request_trailers.elements.push(header);
+        }
+        if update_reps {
+            let req = self.request_mut().unwrap();
+            req.request_header_repetitions = req.request_header_repetitions.wrapping_add(1);
+        }
+        Ok(())
+    }
+
     /// Extract one request header. A header can span multiple lines, in
     /// which case they will be folded into one before parsing is attempted.
     fn process_request_header(&mut self, header: Header) -> Result<()> {
         // Try to parse the header.
         // ensured by caller
         let hl = self.cfg.number_headers_limit as usize;
+        if self.request_mut().unwrap().request_in_trailers {
+            return self.process_request_trailer(header, hl);
+        }
         let req = self.request_mut().unwrap();
         let mut repeated = false;
         let reps = req.request_header_repetitions;
