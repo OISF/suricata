@@ -2777,11 +2777,6 @@ static void SigSetupPrefilter(DetectEngineCtx *de_ctx, Signature *s)
     SCLogDebug("s %u: set up prefilter/mpm", s->id);
     DEBUG_VALIDATE_BUG_ON(s->init_data->mpm_sm != NULL);
 
-    if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
-        SCLogDebug("no prefilter for SIG_FLAG_FW_HOOK_LTE sig");
-        SCReturn;
-    }
-
     if (s->init_data->prefilter_sm != NULL) {
         if (s->init_data->prefilter_sm->type == DETECT_CONTENT) {
             RetrieveFPForSig(de_ctx, s);
@@ -2904,6 +2899,13 @@ static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Sign
         }
     }
     if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
+        if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {
+            SCLogError("rule %u: the auto-accept notation ('<hook') cannot match the raw "
+                       "stream: its match must come from a buffer of that hook, so that a "
+                       "miss at the hook is final",
+                    s->id);
+            return false;
+        }
         if (!(((s->action & ACTION_ACCEPT) != 0) &&
                     (s->action_scope == ACTION_SCOPE_FLOW || s->action_scope == ACTION_SCOPE_TX ||
                             s->action_scope == ACTION_SCOPE_HOOK))) {

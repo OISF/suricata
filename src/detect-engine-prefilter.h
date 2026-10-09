@@ -80,13 +80,16 @@ int PrefilterAppendPostRuleEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
                 DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p, Flow *f),
         void *pectx, void (*FreeFunc)(void *pectx), const char *name);
 
-void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
-        const SigGroupHead *sgh,
-        Packet *p,
-        const uint8_t ipproto,
-        const uint8_t flow_flags,
-        const AppProto alproto,
-        void *alstate,
+void DetectPrefilterLteWindowFree(DetectEngineThreadCtx *det_ctx);
+
+/** \brief the iid of the lowest pending LTE rule at or above \a min_iid that the
+ *         fast pattern did not add, UINT32_MAX if there is none
+ */
+uint32_t DetectPrefilterLtePendingIid(
+        DetectEngineThreadCtx *det_ctx, uint32_t cand_cnt, uint32_t min_iid);
+
+bool DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p,
+        const uint8_t ipproto, const uint8_t flow_flags, const AppProto alproto, void *alstate,
         DetectTransaction *tx);
 
 void PrefilterFreeEnginesList(PrefilterEngineList *list);
@@ -113,5 +116,9 @@ void PostRuleMatchWorkQueueAppend(
         DetectEngineThreadCtx *det_ctx, const Signature *s, const int type, const uint32_t value);
 
 void PrefilterPktNonPFStatsDump(void);
+
+#ifdef UNITTESTS
+void DetectPrefilterRegisterTests(void);
+#endif
 
 #endif

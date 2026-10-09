@@ -1476,6 +1476,10 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 file_no_match = 1;
             }
             /* implied DETECT_ENGINE_INSPECT_SIG_NO_MATCH */
+            /* LTE rules are in the prefilter fast pattern but carry no
+             * engine->mpm, so this arm cannot fire for them. Setting that flag
+             * later needs the revisit arm back (skip the set while tx_progress
+             * < tx_end_state), or a pre-progress miss becomes final. */
             if (engine->mpm && mpm_before_progress) {
                 inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                 inspect_flags |= BIT_U32(engine->id);
@@ -1741,6 +1745,16 @@ struct DetectFirewallAppTxState {
      *  rules cover it (their own hook and every prior hook). Progress values
      *  stay under APP_LAYER_MAX_PROGRESS. */
     bool fw_lte_cover_active;
+    /** An LTE rule is pending at the tx's current hook: no default policy may
+     *  decide the packet yet, as the rule may still match as data arrives. */
+    bool fw_defer_defaults;
+    /** LTE rule the fast pattern could not add at its hook while the tx is not
+     *  final there. A walk that has all rules in it reaches this one before any
+     *  rule of a higher iid, and breaks the walk at it. */
+    const Signature *fw_lte_pending;
+    /** iid of the pending rule the walk credited in fw_lte_cover, or UINT32_MAX: only the
+     *  head of the chain borrowed a count, so only it has to give one back. */
+    uint32_t fw_lte_credited_iid;
 };
 
 /** \internal
@@ -1862,6 +1876,66 @@ static inline void DetectFwCountAppendedLteRule(DetectEngineThreadCtx *det_ctx, 
     }
     det_ctx->tx_candidates[can_idx].fw_lte_counted = true;
     det_ctx->tx_candidates[can_idx].fw_lte_header_ok = true;
+}
+
+/** \internal
+ *  \brief would a full transaction walk still consider this rule on this packet
+ *
+ *  Runs the filters `DetectRunTxInspectRule()` applies before a rule can hold a
+ *  hook, so a rule the walk would drop here cannot defer defaults or mask a higher
+ *  id. Ordered by cost: scope, then the proto check that stream mpm and negated mpm
+ *  signatures can fail, then the packet engines.
+ */
+static bool DetectFwLteRuleStillLive(ThreadVars *tv, DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Packet *p, Flow *f, const Signature *s)
+{
+    if (!DetectRunInspectRuleHeader(p, f, s, s->flags)) {
+        return false;
+    }
+    if (!(AppProtoEquals(s->alproto, f->alproto) || s->alproto == ALPROTO_UNKNOWN)) {
+        return false;
+    }
+    return DetectEnginePktInspectionRun(tv, det_ctx, s, f, p, NULL);
+}
+
+/** \internal
+ *  \brief the lowest LTE rule the fast pattern did not add at this state
+ *  \note a rule that is out of the flows scope is no barrier: the walk would
+ *        inspect it, get a header no match and carry on, so the search moves to the
+ *        next pending rule
+ *  \note the filters a walk runs before a rule can hold the hook apply here too, or
+ *        a rule it would drop on this packet defers defaults and masks higher ids.
+ *        Such a rule is never in the candidates, so this is not work already done.
+ *  \note a rule resolved in an earlier pass cannot come out of here either. Resolved
+ *        state lives in the tx store and every store item becomes a candidate in
+ *        `DetectRunTx()`, while the search only yields iids missing from the candidate
+ *        array. The other way in, a fast pattern in a state below the hook, is refused
+ *        at load: `SigValidateCheckBuffers()` requires every same direction buffer
+ *        engine of an app hooked rule to sit at the hook progress, so none of its
+ *        engines can run and CANT before the hook. `DetectFwBuildLteCoverage()` tests
+ *        the store flags because it walks the candidates; this walks their complement.
+ *  \note a stale engine bit cannot decide a firewall outcome on either path: the state
+ *        clear for a new file leaves the engine bits set but drops the resolution
+ *        flags, which only ever moves a rule back into "not yet resolved".
+ */
+static const Signature *DetectFwLtePendingRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Packet *p, Flow *f, const uint32_t cand_cnt,
+        const uint32_t min_iid)
+{
+    uint32_t next = min_iid;
+    while (true) {
+        const uint32_t iid = DetectPrefilterLtePendingIid(det_ctx, cand_cnt, next);
+        if (iid == UINT32_MAX) {
+            return NULL;
+        }
+        const Signature *s = de_ctx->sig_array[iid];
+        if ((s->flags & (SIG_FLAG_FW_HOOK_LTE | SIG_FLAG_FIREWALL)) ==
+                        (SIG_FLAG_FW_HOOK_LTE | SIG_FLAG_FIREWALL) &&
+                DetectFwLteRuleStillLive(tv, de_ctx, det_ctx, p, f, s)) {
+            return s;
+        }
+        next = iid + 1;
+    }
 }
 
 /** \internal
@@ -2000,9 +2074,20 @@ static struct DetectFirewallPolicy DetectFirewallApplyDefaultAppPolicy(
 static enum DetectTxFirewallFlowControl DetectFirewallApplyDefaultPolicies(
         DetectEngineThreadCtx *det_ctx, const struct DetectFirewallPolicies *policies,
         DetectTransaction *tx, Packet *p, const AppProto alproto, const uint8_t direction,
-        const uint8_t start_hook, const uint8_t end_hook)
+        const uint8_t start_hook, const uint8_t end_hook, const bool defer)
 {
     DEBUG_VALIDATE_BUG_ON(start_hook > end_hook);
+
+    if (defer) {
+        SCLogDebug("LTE rule pending at the current hook: no default policy yet");
+        /* The rule is still in the running, so this packet is not the one to
+         * decide the flow: keep it, same as a rule that was inspected but is
+         * not final yet. */
+        if (tx->is_last) {
+            DetectRunAppendDefaultAccept(det_ctx, p);
+        }
+        return DETECT_TX_FW_FC_OK;
+    }
 
     const bool need_verdict =
             tx->is_last && (end_hook == tx->tx_end_state || end_hook == tx->tx_progress);
@@ -2147,9 +2232,10 @@ static enum DetectTxFirewallFlowControl DetectRunTxPreCheckFirewallPolicy(
                     s->app_progress_hook, tx->detect_progress, tx->detect_progress_orig);
             /* if this rule was after the state we expected meaning that there are
              * no rules for that state. Invoke the default policies. */
-            enum DetectTxFirewallFlowControl r = DetectFirewallApplyDefaultPolicies(det_ctx,
-                    det_ctx->de_ctx->fw_policies, tx, p, s->alproto, direction,
-                    tx->detect_progress_orig, s->app_progress_hook - 1);
+            enum DetectTxFirewallFlowControl r =
+                    DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies, tx, p,
+                            s->alproto, direction, tx->detect_progress_orig,
+                            s->app_progress_hook - 1, fw_state->fw_defer_defaults);
             if (r != DETECT_TX_FW_FC_OK) {
                 /* both SKIP and BREAK mean: no more fw rules to inspect.
                  * SKIP applies to just this TX.
@@ -2322,9 +2408,9 @@ static void DetectRunTxFirewallApplyAccept(DetectEngineThreadCtx *det_ctx, Packe
             const uint8_t last_hook = fw_state->last_fw_rule
                                               ? tx->tx_progress
                                               : MIN(tx->tx_progress, s->app_progress_hook + 1);
-            enum DetectTxFirewallFlowControl r =
-                    DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies, tx, p,
-                            s->alproto, direction, s->app_progress_hook + 1, last_hook);
+            enum DetectTxFirewallFlowControl r = DetectFirewallApplyDefaultPolicies(det_ctx,
+                    det_ctx->de_ctx->fw_policies, tx, p, s->alproto, direction,
+                    s->app_progress_hook + 1, last_hook, fw_state->fw_defer_defaults);
             if (r == DETECT_TX_FW_FC_BREAK) {
                 fw_state->fw_skip_app_filter = true;
                 return;
@@ -2354,7 +2440,8 @@ static void DetectRunTxFirewallApplyAccept(DetectEngineThreadCtx *det_ctx, Packe
  * \retval 0 ok, continue as normal. No policies applied.
  */
 static int DetectTxFirewallNoRulesApplyPolicies(DetectEngineThreadCtx *det_ctx, Packet *p, Flow *f,
-        DetectTransaction *tx, const AppProto alproto, const uint8_t flow_flags, const int rule_cnt)
+        DetectTransaction *tx, const AppProto alproto, const uint8_t flow_flags, const int rule_cnt,
+        const bool defer)
 {
     /* if there are no rules / rule candidates, handling invoking the default
      * policy. */
@@ -2388,7 +2475,7 @@ static int DetectTxFirewallNoRulesApplyPolicies(DetectEngineThreadCtx *det_ctx, 
             enum DetectTxFirewallFlowControl r =
                     DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies, tx, p,
                             alproto, flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT),
-                            tx->detect_progress_orig, tx->tx_progress);
+                            tx->detect_progress_orig, tx->tx_progress, defer);
             SCLogDebug("r %u", r);
             if (r == DETECT_TX_FW_FC_BREAK)
                 return 1;
@@ -2453,7 +2540,9 @@ static void DetectRunTxFirewallRuleFullMatch(DetectEngineThreadCtx *det_ctx, con
  *
  * A default accept is appended. TD has a chance to override this accept.
  *
- * \retval 1 accept partial, caller must break loop
+ * \retval 1 partial accept handled: the caller breaks, unless the rule is an
+ *           LTE rule the tx has moved past its hook - then it skips the rule's
+ *           hook and the ones below it and continues with the higher hooks
  * \retval 0 ok, caller must continue as normal
  */
 static int DetectRunTxFirewallRulePartialMatch(
@@ -2476,6 +2565,63 @@ static int DetectRunTxFirewallRulePartialMatch(
 }
 
 /** \internal
+ *  \brief behave as a walk with all rules in it would before it reaches iid `below`
+ *
+ *  "below" and "above" are the iid space: the position in the sorted signature list,
+ *  which is the order the walk inspects in. Not the order of the rules in the file.
+ *
+ *  The rules the fast pattern did not add are pending, and more than one of them can
+ *  sit below the same candidate: the walk has to reach each in iid order, not only the
+ *  lowest, or a pending accept loses its priority over the rules above it.
+ *
+ *  \retval 1 the walk has to end here
+ *  \retval 0 the walk continues, *pending is the first rule above `below` or none
+ */
+static int DetectFwLtePendingThrough(ThreadVars *tv, DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const Signature **pending, Packet *p, Flow *f,
+        DetectTransaction *tx, struct DetectFirewallAppTxState *fw_state, const uint32_t cand_cnt,
+        const uint32_t below, uint32_t *credited_iid)
+{
+    /* a pending rule is a firewall rule: the walk's skip state applies to it too,
+     * or running it here would end the walk and cost the candidates above it
+     * their inspection, threat detection included. `DetectRunTxPreCheckFirewall-
+     * Policy()` is what a listed rule would go through. */
+    const bool skip_firewall = fw_state->fw_skip_app_filter ||
+                               (p->flow->flags & FLOW_ACTION_ACCEPT) != 0 ||
+                               (tx->tx_data_ptr->flags & APP_LAYER_TX_ACCEPT) != 0;
+    while (*pending != NULL && (*pending)->iid < below) {
+        bool skip = skip_firewall;
+        /* skip_fw_hook ends at the first rule it does not skip; a rule already
+         * skipped by the accept state is not that rule */
+        if (fw_state->skip_fw_hook && !skip) {
+            if ((*pending)->app_progress_hook <= fw_state->skip_before_progress)
+                skip = true;
+            else
+                fw_state->skip_fw_hook = false;
+        }
+        if (!skip && DetectRunTxFirewallRulePartialMatch(det_ctx, *pending, tx, p) == 1) {
+            return 1;
+        }
+        if ((*pending)->iid == *credited_iid) {
+            /* out of the running: the count its hooks borrowed at walk start goes
+             * back. fw_lte_cover is read by DetectFwOtherLteCoversHook(), not only
+             * when deciding about a pending rule. */
+            const Signature *done = *pending;
+            const uint16_t last = MIN(done->app_progress_hook, APP_LAYER_MAX_PROGRESS - 1);
+            for (uint16_t h = 0; h <= last; h++) {
+                DEBUG_VALIDATE_BUG_ON(det_ctx->fw_lte_cover[h] == 0);
+                if (det_ctx->fw_lte_cover[h] > 0) {
+                    det_ctx->fw_lte_cover[h]--;
+                }
+            }
+            *credited_iid = UINT32_MAX;
+        }
+        *pending = DetectFwLtePendingRule(tv, de_ctx, det_ctx, p, f, cand_cnt, (*pending)->iid + 1);
+    }
+    return 0;
+}
+
+/** \internal
  * \brief handle the no-match case for a firewall rule
  *
  * If the rule did not match we need to see if we need invoke the default
@@ -2490,7 +2636,8 @@ static int DetectRunTxFirewallRuleNoMatch(DetectEngineThreadCtx *det_ctx, const 
         DetectTransaction *tx, struct DetectFirewallAppTxState *fw_state, Packet *p,
         const uint8_t flow_flags)
 {
-    if (fw_state->fw_last_for_progress && (s->flags & SIG_FLAG_FIREWALL)) {
+    if (fw_state->fw_last_for_progress && (s->flags & SIG_FLAG_FIREWALL) &&
+            !fw_state->fw_defer_defaults) {
         SCLogDebug("%" PRIu64 ": %s default policy for progress %u", PcapPacketCntGet(p),
                 flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", s->app_progress_hook);
         /* if this rule was the last for our progress state, and it didn't match,
@@ -2519,9 +2666,9 @@ static int DetectRunTxFirewallRuleNoMatch(DetectEngineThreadCtx *det_ctx, const 
             const uint8_t last_hook = fw_state->last_fw_rule
                                               ? tx->tx_progress
                                               : MIN(tx->tx_progress, s->app_progress_hook + 1);
-            enum DetectTxFirewallFlowControl r =
-                    DetectFirewallApplyDefaultPolicies(det_ctx, det_ctx->de_ctx->fw_policies, tx, p,
-                            s->alproto, flow_flags, s->app_progress_hook + 1, last_hook);
+            enum DetectTxFirewallFlowControl r = DetectFirewallApplyDefaultPolicies(det_ctx,
+                    det_ctx->de_ctx->fw_policies, tx, p, s->alproto, flow_flags,
+                    s->app_progress_hook + 1, last_hook, fw_state->fw_defer_defaults);
             if (r == DETECT_TX_FW_FC_BREAK) {
                 /* the sweep dropped the packet: same as a current-hook
                  * policy drop, the caller must stop the walk */
@@ -2616,10 +2763,13 @@ static void DetectRunTx(ThreadVars *tv,
         total_rules += (tx.de_state ? tx.de_state->cnt : 0);
 
         /* run prefilter engines and merge results into a candidates array */
+        /* set if an LTE rule has its hook at the current tx progress while the
+         * tx is not final there: the fast pattern decides candidacy there. */
+        bool lte_at_hook = false;
         if (sgh && sgh->tx_engines) {
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_TX);
-            DetectRunPrefilterTx(det_ctx, sgh, p, ipproto, flow_flags, alproto,
-                    alstate, &tx);
+            lte_at_hook = DetectRunPrefilterTx(
+                    det_ctx, sgh, p, ipproto, flow_flags, alproto, alstate, &tx);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_TX);
             SCLogDebug("%p/%"PRIu64" rules added from prefilter: %u candidates",
                     tx.tx_ptr, tx.tx_id, det_ctx->pmq.rule_id_array_cnt);
@@ -2727,8 +2877,31 @@ static void DetectRunTx(ThreadVars *tv,
          * tracked where the candidates are added: the list mixes fw and TD
          * rules across tables in iid order, so a scan cannot stop early. */
         struct DetectFirewallAppTxState fw_state = { 0 };
-        if (have_fw_rules && fw_lte_candidates) {
+        fw_state.fw_lte_credited_iid = UINT32_MAX;
+        if (have_fw_rules && lte_at_hook) {
+            /* The lowest of those rules is still in the running: it covers the hooks
+             * as if it were in the list, and it ends the walk before any rule that
+             * takes a higher id. It is not inspected here, so a matcher that fails
+             * definitively on a buffer that can still grow (which would retire it in
+             * a full walk) leaves it pending: the defaults wait for the hook. */
+            fw_state.fw_lte_pending =
+                    DetectFwLtePendingRule(tv, de_ctx, det_ctx, p, f, array_idx, 0);
+        }
+        /* The fast pattern decided candidacy at the rules hook, so the rules it did
+         * not add are missing from the list. They are not final at this state, so the
+         * default policies have to wait for them. Only for those that are actually in
+         * the running: a window whose misses are all out of the flows scope defers no
+         * policy, or the one of this hook would be dropped on the floor. */
+        fw_state.fw_defer_defaults = have_fw_rules && fw_state.fw_lte_pending != NULL;
+        if (have_fw_rules && (fw_lte_candidates || fw_state.fw_lte_pending != NULL)) {
             DetectFwBuildLteCoverage(det_ctx, p, f, &fw_state, array_idx);
+            if (fw_state.fw_lte_pending != NULL) {
+                const Signature *ps = fw_state.fw_lte_pending;
+                const uint16_t last = MIN(ps->app_progress_hook, APP_LAYER_MAX_PROGRESS - 1);
+                for (uint16_t h = 0; h <= last; h++)
+                    det_ctx->fw_lte_cover[h]++;
+                fw_state.fw_lte_credited_iid = ps->iid;
+            }
         }
 
         SCLogDebug("%s: tx_progress %u tx %p have_fw_rules %s array_idx %u detect_progress_orig %u "
@@ -2741,7 +2914,7 @@ static void DetectRunTx(ThreadVars *tv,
             /* if there are no firewall rules to consider, handle invoking the default
              * policies. */
             const int r = DetectTxFirewallNoRulesApplyPolicies(
-                    det_ctx, p, f, &tx, alproto, flow_flags, array_idx);
+                    det_ctx, p, f, &tx, alproto, flow_flags, array_idx, fw_state.fw_defer_defaults);
             if (r == 1) {
                 SCLogDebug("done");
                 return;
@@ -2751,7 +2924,8 @@ static void DetectRunTx(ThreadVars *tv,
         }
 
         /* run rules: inspect the match candidates */
-        for (uint32_t i = 0; i < array_idx; i++) {
+        uint32_t i = 0;
+        for (; i < array_idx; i++) {
             RuleMatchCandidateTx *can = &det_ctx->tx_candidates[i];
             const Signature *s = det_ctx->tx_candidates[i].s;
             uint32_t *inspect_flags = det_ctx->tx_candidates[i].flags;
@@ -2759,6 +2933,22 @@ static void DetectRunTx(ThreadVars *tv,
             SCLogDebug("%" PRIu64 ": sid:%u: %s tx %u/%u/%u sig %u", PcapPacketCntGet(p), s->id,
                     flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", tx.tx_progress,
                     tx.detect_progress, tx.detect_progress_orig, s->app_progress_hook);
+
+            if (have_fw_rules && fw_state.fw_lte_pending != NULL &&
+                    s->iid > fw_state.fw_lte_pending->iid) {
+                /* A walk that has all rules in it reaches the pending rules before
+                 * this candidate: what they do there is what would have happened. */
+                SCLogDebug(
+                        "sid %u is beyond pending LTE rule %u", s->id, fw_state.fw_lte_pending->id);
+                if (DetectFwLtePendingThrough(tv, de_ctx, det_ctx, &fw_state.fw_lte_pending, p, f,
+                            &tx, &fw_state, array_idx, s->iid,
+                            &fw_state.fw_lte_credited_iid) == 1) {
+                    break;
+                }
+                /* the chain can empty here, and the policy paths read the bool rather than
+                 * the pointer: it has to follow what it was derived from */
+                fw_state.fw_defer_defaults = fw_state.fw_lte_pending != NULL;
+            }
 
             if (have_fw_rules) {
                 const enum DetectTxFirewallFlowControl fw_r = DetectRunTxPreCheckFirewallPolicy(
@@ -2863,7 +3053,21 @@ static void DetectRunTx(ThreadVars *tv,
             } else if (r == 0) {
                 SCLogDebug("sid %u partial match", s->id);
                 if (DetectRunTxFirewallRulePartialMatch(det_ctx, s, &tx, p) == 1) {
-                    break;
+                    /* partial matches are only produced for LTE rules today;
+                     * keep the check as defence in case that changes */
+                    if ((s->flags & SIG_FLAG_FW_HOOK_LTE) == 0 ||
+                            tx.tx_progress <= s->app_progress_hook) {
+                        break;
+                    }
+                    /* The tx moved past the pending rule's hook: a rule hooked
+                     * above it still has to run, as a match there covers the
+                     * pending rule and its policy decides the flow. Skip this
+                     * hook and the ones below it, like an accept:hook does.
+                     * The states above the hook are not swept while the rule is
+                     * pending: they are decided when it resolves, so a higher
+                     * state's default cannot preempt the pending rule's own. */
+                    fw_state.skip_fw_hook = true;
+                    fw_state.skip_before_progress = s->app_progress_hook;
                 }
             } else if (r == -1) {
                 if ((s->flags & SIG_FLAG_FIREWALL) != 0 &&
@@ -2922,6 +3126,15 @@ static void DetectRunTx(ThreadVars *tv,
                 det_ctx->post_rule_work_queue.len = 0;
                 PMQ_RESET(&det_ctx->pmq);
             }
+        }
+
+        if (have_fw_rules && i == array_idx && fw_state.fw_lte_pending != NULL) {
+            /* no candidate took an id above a pending rule, so the loop never stepped
+             * through them. A full walk would still have run them: do their treatment
+             * here, at the end of the walk. */
+            (void)DetectFwLtePendingThrough(tv, de_ctx, det_ctx, &fw_state.fw_lte_pending, p, f,
+                    &tx, &fw_state, array_idx, UINT32_MAX, &fw_state.fw_lte_credited_iid);
+            fw_state.fw_defer_defaults = fw_state.fw_lte_pending != NULL;
         }
 
         det_ctx->tx_id = 0;

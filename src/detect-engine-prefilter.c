@@ -49,6 +49,9 @@
 
 #include "detect-engine.h"
 #include "detect-engine-prefilter.h"
+#ifdef UNITTESTS
+#include "util-unittest.h"
+#endif
 #include "detect-engine-mpm.h"
 #include "detect-engine-frame.h"
 #include "detect-engine-uint.h"
@@ -64,6 +67,22 @@ static int PrefilterStoreGetId(DetectEngineCtx *de_ctx,
         const char *name, void (*FreeFunc)(void *));
 static const PrefilterStore *PrefilterStoreGetStore(const DetectEngineCtx *de_ctx,
         const uint32_t id);
+
+enum FwLteGrows {
+    LTE_GROWS_NONE, /**< every pattern of the group is final above the hook */
+    LTE_GROWS_LIST, /**< the buffer can be rewritten above the hook: inspect */
+};
+
+struct PrefilterNonPFDataTx {
+    uint32_t size;
+    /** some rule of the group has a fast pattern in a buffer that keeps growing
+     *  above the hook, so its miss is not final there. */
+    enum FwLteGrows lte_grows;
+    uint32_t array[];
+};
+
+static bool PrefilterLteWindowAdd(
+        DetectEngineThreadCtx *det_ctx, const struct PrefilterNonPFDataTx *data);
 
 static inline void QuickSortSigIntId(SigIntId *sids, uint32_t n)
 {
@@ -89,20 +108,35 @@ static inline void QuickSortSigIntId(SigIntId *sids, uint32_t n)
     QuickSortSigIntId(l, (uint32_t)(sids + n - l));
 }
 
+/** LTE windows exist for firewall rules only: the `<` hook form is refused for any
+ *  other rule, so `tx_max_progress` is set only when the engine groups LTE rules.
+ *  Keep the dependency on the engine mode explicit rather than implicit. */
+static bool PrefilterEngineIsFwLteWindow(const PrefilterEngine *engine)
+{
+    /* tx_max_progress doubles as "no bound" and "hooked at progress 0": a rule at the
+     * very start has no state below its hook, so the plain run the base does already
+     * covers it and a window would only add a per-packet store. */
+    if (engine->ctx.app.tx_max_progress == 0)
+        return false;
+    DEBUG_VALIDATE_BUG_ON(!EngineModeIsFirewall());
+    return EngineModeIsFirewall();
+}
+
 /**
  * \brief run prefilter engines on a transaction
+ *
+ * \retval true if an LTE pending window engine was skipped because the tx has
+ *         reached the rules hook: the fast pattern decides there, and its miss
+ *         is not final yet, so default policies must wait.
  */
-void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
-        const SigGroupHead *sgh,
-        Packet *p,
-        const uint8_t ipproto,
-        const uint8_t flow_flags,
-        const AppProto alproto,
-        void *alstate,
+bool DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh, Packet *p,
+        const uint8_t ipproto, const uint8_t flow_flags, const AppProto alproto, void *alstate,
         DetectTransaction *tx)
 {
     /* reset rule store */
     det_ctx->pmq.rule_id_array_cnt = 0;
+    det_ctx->fw_lte_window_cnt = 0;
+    bool lte_at_hook = false;
 
     SCLogDebug("packet %" PRIu64 " tx %p id %" PRIu64 " progress %d tx->detect_progress %02x",
             PcapPacketCntGet(p), tx->tx_ptr, tx->tx_id, tx->tx_progress, tx->detect_progress);
@@ -143,6 +177,39 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
             /* if engine needs tx state to be higher, break out. */
             if (engine->ctx.app.tx_min_progress > tx->tx_progress)
                 break;
+            /* A pending window engine covers LTE rules that have their hook at
+             * `bound`. At that state the fast pattern decides which of them match,
+             * so the list is left to it; above it the group is retired on its last
+             * rule, unless a rule of it can still grow there. */
+            const uint8_t bound = engine->ctx.app.tx_max_progress;
+            bool run = true;
+            if (PrefilterEngineIsFwLteWindow(engine) && tx->tx_progress >= bound) {
+                run = false;
+                /* only the pending windows carry a bound, so this is the
+                 * non-prefilter data */
+                const struct PrefilterNonPFDataTx *data = engine->pectx;
+                if (tx->tx_progress == bound && tx->tx_progress < tx->tx_end_state) {
+                    /* the rules the pattern did not add may still match: keep track of
+                     * the group so the walk can act as if it had them in its list */
+                    if (PrefilterLteWindowAdd(det_ctx, data)) {
+                        lte_at_hook = true;
+                    } else {
+                        PrefilterAddSids(&det_ctx->pmq, data->array, data->size);
+                    }
+                } else if (data->size > 0) {
+                    /* The last rule can only retire the group if no other rule of it can
+                     * match anymore. A protocol which declares sub-states rewrites a buffer
+                     * above its hook - an http2 trailer HEADERS frame - so such a group is
+                     * still live and its rules go in the list whole; a rule whose pattern
+                     * can only arrive from the stream cannot load at an LTE hook (see
+                     * DetectFirewallRuleValidate). */
+                    if (data->lte_grows == LTE_GROWS_LIST) {
+                        PrefilterAddSids(&det_ctx->pmq, data->array, data->size);
+                    } else {
+                        PrefilterAddSids(&det_ctx->pmq, &data->array[data->size - 1], 1);
+                    }
+                }
+            }
             if (tx->tx_progress > engine->ctx.app.tx_min_progress) {
                 SCLogDebug("tx->tx_progress %u > engine->ctx.app.tx_min_progress %d",
                         tx->tx_progress, engine->ctx.app.tx_min_progress);
@@ -163,10 +230,12 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
 #ifdef DEBUG
             uint32_t old = det_ctx->pmq.rule_id_array_cnt;
 #endif
-            PREFILTER_PROFILING_START(det_ctx);
-            engine->cb.PrefilterTx(det_ctx, engine->pectx, p, p->flow, tx_ptr, tx->tx_id,
-                    tx->tx_data_ptr, flow_flags);
-            PREFILTER_PROFILING_END(det_ctx, engine->gid);
+            if (run) {
+                PREFILTER_PROFILING_START(det_ctx);
+                engine->cb.PrefilterTx(det_ctx, engine->pectx, p, p->flow, tx_ptr, tx->tx_id,
+                        tx->tx_data_ptr, flow_flags);
+                PREFILTER_PROFILING_END(det_ctx, engine->gid);
+            }
             SCLogDebug("engine %p min_progress %d %s:%s: results %u", engine,
                     engine->ctx.app.tx_min_progress, AppProtoToString(engine->alproto), pname,
                     det_ctx->pmq.rule_id_array_cnt - old);
@@ -210,6 +279,7 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT1);
     }
+    return lte_at_hook;
 }
 
 /** \brief invoke post-rule match "prefilter" engines
@@ -597,11 +667,6 @@ struct PrefilterNonPFData {
     struct PrefilterNonPFDataSig array[];
 };
 
-struct PrefilterNonPFDataTx {
-    uint32_t size;
-    uint32_t array[];
-};
-
 /** \internal
  *  \brief wrapper for use in APIs */
 static void PrefilterNonPFDataFree(void *data)
@@ -615,6 +680,113 @@ static void PrefilterTxNonPF(DetectEngineThreadCtx *det_ctx, const void *pectx, 
     const struct PrefilterNonPFDataTx *data = (const struct PrefilterNonPFDataTx *)pectx;
     SCLogDebug("adding %u sids", data->size);
     PrefilterAddSids(&det_ctx->pmq, data->array, data->size);
+}
+
+static int PrefilterNonPFDataSortU32(const void *a, const void *b)
+{
+    const uint32_t x = *(const uint32_t *)a, y = *(const uint32_t *)b;
+    return x < y ? -1 : (x > y ? 1 : 0);
+}
+
+/** \brief keep track of a pending window that went silent at its bound. The number
+ *         of groups bound at a state is set by the ruleset, so the array grows to
+ *         fit: a window that could not be tracked would leave the walk unable to
+ *         tell which rule is still pending.
+ */
+static bool PrefilterLteWindowAdd(
+        DetectEngineThreadCtx *det_ctx, const struct PrefilterNonPFDataTx *data)
+{
+    for (uint32_t w = 0; w < det_ctx->fw_lte_window_cnt; w++) {
+        /* the engines of one group can share a set of rules, and the window is
+         * merged against itself: a duplicate only costs the merge */
+        if (det_ctx->fw_lte_windows[w] == data) {
+            return true;
+        }
+    }
+    if (det_ctx->fw_lte_window_cnt == det_ctx->fw_lte_window_size) {
+        const uint32_t size =
+                det_ctx->fw_lte_window_size == 0 ? 8 : det_ctx->fw_lte_window_size * 2;
+        void *ptmp = SCRealloc((void *)det_ctx->fw_lte_windows, size * sizeof(void *));
+        if (ptmp == NULL) {
+            /* out of memory: tell the caller to keep the group as candidates
+             * instead of killing the engine on the packet path */
+            return false;
+        }
+        det_ctx->fw_lte_windows = (const void **)ptmp;
+        det_ctx->fw_lte_window_size = size;
+    }
+    det_ctx->fw_lte_windows[det_ctx->fw_lte_window_cnt++] = data;
+    return true;
+}
+
+void DetectPrefilterLteWindowFree(DetectEngineThreadCtx *det_ctx)
+{
+    SCFree((void *)det_ctx->fw_lte_windows);
+    det_ctx->fw_lte_windows = NULL;
+    det_ctx->fw_lte_window_size = 0;
+    det_ctx->fw_lte_window_cnt = 0;
+}
+
+static uint32_t LteArrayLowerBound(const uint32_t *a, const uint32_t n_, const uint32_t v)
+{
+    uint32_t lo = 0, hi = n_;
+    while (lo < hi) {
+        const uint32_t mid = lo + (hi - lo) / 2;
+        if (a[mid] < v)
+            lo = mid + 1;
+        else
+            hi = mid;
+    }
+    return lo;
+}
+
+static uint32_t LteCandidateLowerBound(
+        const RuleMatchCandidateTx *cands, const uint32_t cand_cnt, const uint32_t v)
+{
+    uint32_t lo = 0, hi = cand_cnt;
+    while (lo < hi) {
+        const uint32_t mid = lo + (hi - lo) / 2;
+        if (cands[mid].id < v)
+            lo = mid + 1;
+        else
+            hi = mid;
+    }
+    return lo;
+}
+
+/** \brief find the lowest rule of a silenced LTE pending window that is not a
+ *         candidate: the fast pattern did not add it, but the tx is not final at
+ *         the hook, so it may still match. A walk that had all rules in it would
+ *         inspect this one before any rule with a higher iid.
+ *  Both arrays are in iid order, so the search enters them at the cursor.
+ */
+static uint32_t LteWindowFirstMissing(const struct PrefilterNonPFDataTx *data,
+        const RuleMatchCandidateTx *cands, const uint32_t cand_cnt, const uint32_t min_iid)
+{
+    /* both arrays are sorted, so enter them where min_iid lies rather than at the
+     * start: a caller that retries past rejected rules would otherwise rewalk
+     * everything below the cursor on every retry. */
+    uint32_t i = LteArrayLowerBound(data->array, data->size, min_iid);
+    while (i < data->size) {
+        const uint32_t iid = data->array[i];
+        const uint32_t j = LteCandidateLowerBound(cands, cand_cnt, iid);
+        if (j == cand_cnt || cands[j].id != iid)
+            return iid;
+        i++;
+    }
+    return UINT32_MAX;
+}
+
+uint32_t DetectPrefilterLtePendingIid(
+        DetectEngineThreadCtx *det_ctx, const uint32_t cand_cnt, const uint32_t min_iid)
+{
+    uint32_t lowest = UINT32_MAX;
+    for (uint32_t i = 0; i < det_ctx->fw_lte_window_cnt; i++) {
+        const struct PrefilterNonPFDataTx *data = det_ctx->fw_lte_windows[i];
+        lowest =
+                MIN(lowest, LteWindowFirstMissing(data, det_ctx->tx_candidates, cand_cnt, min_iid));
+    }
+    return lowest;
 }
 
 #ifdef NONPF_PKT_STATS
@@ -750,6 +922,11 @@ struct TxNonPFData {
      *  update (engine progress -1) so a provisional miss can be revisited as
      *  the transaction advances. */
     bool run_always;
+    /** LTE pending window bound: the engine goes silent once the tx reaches this
+     *  hook, as the fast pattern decides there. 0 means always add the sids. */
+    uint8_t lte_hook;
+    /** like #lte_hook, but for the group: #FwLteGrows of its rules */
+    enum FwLteGrows lte_grows;
     uint32_t sigs_cnt;
     struct PrefilterNonPFDataSig *sigs;
     const char *engine_name; /**< pointer to name owned by DetectEngineCtx::non_pf_engine_names */
@@ -758,7 +935,8 @@ struct TxNonPFData {
 static uint32_t TxNonPFHash(HashListTable *h, void *data, uint16_t _len)
 {
     struct TxNonPFData *d = data;
-    return (d->alproto + d->sub_state + d->progress + d->dir + d->sig_list + d->run_always) %
+    return (d->alproto + d->sub_state + d->progress + d->dir + d->sig_list + d->run_always +
+                   d->lte_hook) %
            h->array_size;
 }
 
@@ -768,7 +946,7 @@ static char TxNonPFCompare(void *data1, uint16_t _len1, void *data2, uint16_t le
     struct TxNonPFData *d2 = data2;
     return d1->alproto == d2->alproto && d1->sub_state == d2->sub_state &&
            d1->progress == d2->progress && d1->dir == d2->dir && d1->sig_list == d2->sig_list &&
-           d1->run_always == d2->run_always;
+           d1->run_always == d2->run_always && d1->lte_hook == d2->lte_hook;
 }
 
 static void TxNonPFFree(void *data)
@@ -778,9 +956,31 @@ static void TxNonPFFree(void *data)
     SCFree(d);
 }
 
+/** \internal \brief does the rule's fast pattern keep growing above its hook?
+ *  An app hooked rule can only hold patterns from buffers whose engine sits at
+ *  the hook progress (`SigValidateCheckBuffers`), so such a buffer is complete
+ *  once the tx is past the hook and a miss there is final. One case escapes
+ *  that: a protocol which declares sub-states rewrites a buffer above its hook
+ *  - an http2 trailer HEADERS frame updates the header buffers. A raw stream
+ *  pattern cannot get here: DetectFirewallRuleValidate() refuses an LTE rule
+ *  with anything on the payload list. */
+static enum FwLteGrows FwLtePatternGrowsAboveBound(const Signature *s)
+{
+    if (s->init_data->mpm_sm == NULL) {
+        /* no fast pattern at all: nothing can bring the rule back into the
+         * candidates above the bound, so the group cannot be retired there */
+        return LTE_GROWS_LIST;
+    }
+    if (AppLayerParserSupportsSubStates(s->alproto)) {
+        return LTE_GROWS_LIST; /* a frame rewrites the buffer above the hook */
+    }
+    return LTE_GROWS_NONE;
+}
+
 static int TxNonPFAddSig(DetectEngineCtx *de_ctx, HashListTable *tx_engines_hash,
         const AppProto alproto, const uint8_t sub_state, const int dir, const uint8_t progress,
-        const int sig_list, const char *name, const Signature *s, const bool run_always)
+        const int sig_list, const char *name, const Signature *s, const bool run_always,
+        const uint8_t lte_hook)
 {
     const uint32_t max_sids = DetectEngineGetMaxSigId(de_ctx);
 
@@ -791,12 +991,16 @@ static int TxNonPFAddSig(DetectEngineCtx *de_ctx, HashListTable *tx_engines_hash
         .progress = progress,
         .sig_list = sig_list,
         .run_always = run_always,
+        .lte_hook = lte_hook,
         .sigs_cnt = 0,
         .sigs = NULL,
         .engine_name = NULL,
     };
+    const enum FwLteGrows grows = lte_hook != 0 ? FwLtePatternGrowsAboveBound(s) : LTE_GROWS_NONE;
+
     struct TxNonPFData *e = HashListTableLookup(tx_engines_hash, &lookup, 0);
     if (e != NULL) {
+        e->lte_grows = MAX(e->lte_grows, grows);
         bool found = false;
         // avoid adding same sid multiple times
         for (uint32_t y = 0; y < e->sigs_cnt; y++) {
@@ -824,6 +1028,8 @@ static int TxNonPFAddSig(DetectEngineCtx *de_ctx, HashListTable *tx_engines_hash
     add->progress = progress;
     add->sig_list = sig_list;
     add->run_always = run_always;
+    add->lte_hook = lte_hook;
+    add->lte_grows = grows;
     add->sigs = SCCalloc(max_sids, sizeof(struct PrefilterNonPFDataSig));
     if (add->sigs == NULL) {
         SCFree(add);
@@ -939,11 +1145,17 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (s == NULL)
             continue;
         SCLogDebug("checking sid %u for non-prefilter", s->id);
+        /* pf_hook: the rules hook state is covered by a fast pattern or a keyword
+         * prefilter engine, so the rule needs no non-prefilter entry there. */
+        bool pf_hook = false;
         if (s->init_data->mpm_sm != NULL && (s->flags & SIG_FLAG_MPM_NEG) == 0)
-            continue;
+            pf_hook = true;
         if (s->init_data->prefilter_sm != NULL)
-            continue;
+            pf_hook = true;
         if ((s->flags & (SIG_FLAG_PREFILTER | SIG_FLAG_MPM_NEG)) == SIG_FLAG_PREFILTER)
+            pf_hook = true;
+        const bool lte = (s->flags & SIG_FLAG_FW_HOOK_LTE) != 0;
+        if (pf_hook && !lte)
             continue;
         SCLogDebug("setting up sid %u for non-prefilter", s->id);
 
@@ -994,6 +1206,14 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
          * hook 0 it could have a preceding rule that makes sure this sig isn't triggered, but then
          * for hook 1 we would need to be called. */
         if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
+            /* With a fast pattern the pattern engine is the only one that may drop
+             * rules that do not match, so the hook state is left to it: the window
+             * covers the states below the hook and the engine bound takes care of
+             * the hook and the states above it. Without one the rule needs to be in
+             * the list at its hook, as it has always been. A hook of 0 has no state
+             * below it to defer, and gating it would leave the rule with neither a
+             * window nor an engine. */
+            const bool gated = pf_hook && s->app_progress_hook > 0;
             for (uint8_t state = 0; state < s->app_progress_hook; state++) {
                 SCLogDebug("handle HOOK %u LTE", state);
                 const int dir = (s->flags & SIG_FLAG_TOSERVER) ? 0 : 1;
@@ -1007,10 +1227,16 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                 const int sm_list =
                         DetectEngineAppHookToSmlist(s->alproto, sub_state, state, direction);
                 if (TxNonPFAddSig(de_ctx, tx_engines_hash, s->alproto, sub_state, dir, state,
-                            sm_list, pname, s, false) != 0) {
+                            sm_list, pname, s, false, gated ? s->app_progress_hook : 0) != 0) {
                     goto error;
                 }
                 tx_non_pf = true;
+            }
+            if (gated) {
+                /* skip the buffer loop: it would add the rule at the hook
+                 * regardless of what the pattern engine made of it */
+                SCLogDebug("sid %u: LTE pending window only", s->id);
+                continue;
             }
         }
 
@@ -1082,7 +1308,7 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
                     const bool run_always = buf != NULL && buf->run_always;
                     const uint8_t sub_state = app->sub_state;
                     if (TxNonPFAddSig(de_ctx, tx_engines_hash, app->alproto, sub_state, app->dir,
-                                app->progress, sig_list, buf->name, s, run_always) != 0) {
+                                app->progress, sig_list, buf->name, s, run_always, 0) != 0) {
                         goto error;
                     }
                     tx_non_pf = true;
@@ -1105,7 +1331,7 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             uint8_t sub_state = s->init_data->hook.t.app.sub_state;
             if (TxNonPFAddSig(de_ctx, tx_engines_hash, s->alproto, sub_state, dir,
                         s->init_data->hook.t.app.app_progress, s->init_data->hook.sm_list, pname, s,
-                        false) != 0) {
+                        false, 0) != 0) {
                 goto error;
             }
             tx_non_pf = true;
@@ -1196,22 +1422,35 @@ static int SetupNonPrefilter(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (data == NULL)
             goto error;
         data->size = t->sigs_cnt;
+        data->lte_grows = t->lte_grows;
         for (uint32_t i = 0; i < t->sigs_cnt; i++) {
             data->array[i] = t->sigs[i].sid;
+        }
+        if (t->lte_hook) {
+            /* DetectPrefilterLtePendingIid merges the window against the sorted
+             * candidates, so the window has to be in iid order. */
+            qsort(data->array, data->size, sizeof(data->array[0]), PrefilterNonPFDataSortU32);
         }
         if (PrefilterAppendTxEngineSubState(de_ctx, sgh, PrefilterTxNonPF, t->alproto, t->sub_state,
                     engine_progress, (void *)data, PrefilterNonPFDataFree, t->engine_name) < 0) {
             SCFree(data);
             goto error;
         }
-        if (t->run_always) {
-            /* A stateful keyword must be revisited as the tx advances. Keep
-             * its real progress (so the progress bookkeeping runs and the
-             * proto-agnostic -1 invariant holds) and carry an explicit flag. */
+        if (t->run_always || t->lte_hook) {
             PrefilterEngineList *tail = sgh->init->tx_engines;
             while (tail->next != NULL)
                 tail = tail->next;
-            tail->run_always = true;
+            if (t->run_always) {
+                /* A stateful keyword must be revisited as the tx advances. Keep
+                 * its real progress (so the progress bookkeeping runs and the
+                 * proto-agnostic -1 invariant holds) and carry an explicit flag. */
+                tail->run_always = true;
+            }
+            if (t->lte_hook) {
+                /* LTE pending window: stop adding the sids once the tx reached
+                 * the rules hook, where the fast pattern takes over. */
+                tail->tx_max_progress = t->lte_hook;
+            }
         }
     }
     HashListTableFree(tx_engines_hash);
@@ -1388,6 +1627,7 @@ int PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             e->local_id = local_id++;
             e->alproto = el->alproto;
             e->ctx.app.tx_min_progress = el->tx_min_progress;
+            e->ctx.app.tx_max_progress = el->tx_max_progress;
             e->ctx.app.sub_state = el->sub_state;
             e->run_always = el->run_always;
             e->cb.PrefilterTx = el->PrefilterTx;
@@ -1905,3 +2145,189 @@ void PostRuleMatchWorkQueueAppend(
     det_ctx->post_rule_work_queue.len++;
     SCLogDebug("det_ctx->post_rule_work_queue.len %u", det_ctx->post_rule_work_queue.len);
 }
+
+#ifdef UNITTESTS
+static struct PrefilterNonPFDataTx *LteWindowTestData(const uint32_t *iids, uint32_t cnt)
+{
+    struct PrefilterNonPFDataTx *data = SCCalloc(1, sizeof(*data) + cnt * sizeof(data->array[0]));
+    if (data == NULL)
+        return NULL;
+    data->size = cnt;
+    for (uint32_t i = 0; i < cnt; i++)
+        data->array[i] = iids[i];
+    return data;
+}
+
+/** \test the pending rule of a LTE window the fast pattern did not add */
+static int PrefilterLteWindowTest01(void)
+{
+    const uint32_t iids[] = { 2, 5, 9, 13 };
+    struct PrefilterNonPFDataTx *data = LteWindowTestData(iids, 4);
+    FAIL_IF(data == NULL);
+
+    /* the pattern added nothing: the lowest rule of the window is pending */
+    FAIL_IF(LteWindowFirstMissing(data, NULL, 0, 0) != 2);
+
+    /* a rule of the window matched, but it is not the lowest one */
+    RuleMatchCandidateTx cands[1] = { { .id = 5 } };
+    FAIL_IF(LteWindowFirstMissing(data, cands, 1, 0) != 2);
+
+    /* the lowest rule matched, so the miss is the next one */
+    cands[0].id = 2;
+    FAIL_IF(LteWindowFirstMissing(data, cands, 1, 0) != 5);
+
+    RuleMatchCandidateTx more[3] = { { .id = 2 }, { .id = 5 }, { .id = 9 } };
+    FAIL_IF(LteWindowFirstMissing(data, more, 3, 0) != 13);
+
+    /* the window is fully matched: nothing is pending */
+    RuleMatchCandidateTx all[4] = { { .id = 2 }, { .id = 5 }, { .id = 9 }, { .id = 13 } };
+    FAIL_IF(LteWindowFirstMissing(data, all, 4, 0) != UINT32_MAX);
+
+    /* the candidates also hold rules of other groups, before, between and after */
+    RuleMatchCandidateTx mix[5] = { { .id = 1 }, { .id = 2 }, { .id = 6 }, { .id = 9 },
+        { .id = 40 } };
+    FAIL_IF(LteWindowFirstMissing(data, mix, 5, 0) != 5);
+
+    SCFree(data);
+    PASS;
+}
+
+/** \test empty and single entry windows */
+static int PrefilterLteWindowTest02(void)
+{
+    struct PrefilterNonPFDataTx *empty = LteWindowTestData(NULL, 0);
+    FAIL_IF(empty == NULL);
+    FAIL_IF(LteWindowFirstMissing(empty, NULL, 0, 0) != UINT32_MAX);
+    SCFree(empty);
+
+    const uint32_t iids[] = { 7 };
+    struct PrefilterNonPFDataTx *one = LteWindowTestData(iids, 1);
+    FAIL_IF(one == NULL);
+    FAIL_IF(LteWindowFirstMissing(one, NULL, 0, 0) != 7);
+    FAIL_IF(LteWindowFirstMissing(one, NULL, 0, 8) != UINT32_MAX);
+    RuleMatchCandidateTx cand = { .id = 7 };
+    FAIL_IF(LteWindowFirstMissing(one, &cand, 1, 0) != UINT32_MAX);
+    SCFree(one);
+    PASS;
+}
+
+/** \test DetectPrefilterLtePendingIid over several windows */
+static int PrefilterLteWindowTest03(void)
+{
+    DetectEngineThreadCtx det_ctx = { 0 };
+    Signature sigs[6] = { { 0 } };
+    for (uint32_t i = 0; i < 6; i++)
+        sigs[i].iid = i;
+
+    const uint32_t a[] = { 1, 3, 5 }, b[] = { 0, 2, 4 };
+    struct PrefilterNonPFDataTx *wa = LteWindowTestData(a, 3);
+    struct PrefilterNonPFDataTx *wb = LteWindowTestData(b, 3);
+    FAIL_IF(wa == NULL || wb == NULL);
+    FAIL_IF(wa == wb);
+
+    RuleMatchCandidateTx cands[2] = { { .id = 0 }, { .id = 3 } };
+    const void *windows[2] = { wa, wb };
+    det_ctx.tx_candidates = cands;
+    det_ctx.fw_lte_windows = windows;
+    det_ctx.fw_lte_window_size = 2;
+    det_ctx.fw_lte_window_cnt = 2;
+
+    /* window b has rule 0, so its first miss is 2; window a misses at 1 */
+    FAIL_IF(DetectPrefilterLtePendingIid(&det_ctx, 2, 0) != sigs[1].iid);
+    /* the caller takes the next one when a rule turns out to be out of scope */
+    FAIL_IF(DetectPrefilterLtePendingIid(&det_ctx, 2, 2) != 2);
+    FAIL_IF(DetectPrefilterLtePendingIid(&det_ctx, 2, 3) != 4);
+    FAIL_IF(DetectPrefilterLtePendingIid(&det_ctx, 2, 6) != UINT32_MAX);
+
+    /* nothing pending: every rule of every window made the list */
+    det_ctx.fw_lte_window_cnt = 0;
+    FAIL_IF(DetectPrefilterLtePendingIid(&det_ctx, 2, 0) != UINT32_MAX);
+
+    SCFree(wa);
+    SCFree(wb);
+    PASS;
+}
+
+/** \test more windows than the initial array holds: they all stay tracked */
+static int PrefilterLteWindowTest04(void)
+{
+    DetectEngineThreadCtx det_ctx = { 0 };
+    Signature sigs[16] = { { 0 } };
+    for (uint32_t i = 0; i < 16; i++)
+        sigs[i].iid = i;
+
+    const uint32_t pending[] = { 4, 9 };
+    const uint32_t matched[] = { 12 };
+    struct PrefilterNonPFDataTx *w0 = LteWindowTestData(pending, 2);
+    struct PrefilterNonPFDataTx *w[16] = { 0 };
+    FAIL_IF(w0 == NULL);
+    PrefilterLteWindowAdd(&det_ctx, w0);
+    for (uint32_t i = 0; i < 16; i++) {
+        /* distinct sets: the array has to grow past its initial 8 entries */
+        w[i] = LteWindowTestData(matched, 1);
+        FAIL_IF(w[i] == NULL);
+        PrefilterLteWindowAdd(&det_ctx, w[i]);
+    }
+    FAIL_IF(det_ctx.fw_lte_window_cnt != 17);
+    FAIL_IF(det_ctx.fw_lte_window_size != 32);
+    /* a window already tracked is not tracked twice: the engines of a group share it */
+    PrefilterLteWindowAdd(&det_ctx, w[3]);
+    FAIL_IF(det_ctx.fw_lte_window_cnt != 17);
+
+    /* the windows that are fully matched give no pending rule, window 0 misses at 9 */
+    RuleMatchCandidateTx cands[2] = { { .id = 4 }, { .id = 12 } };
+    det_ctx.tx_candidates = cands;
+    FAIL_IF(DetectPrefilterLtePendingIid(&det_ctx, 2, 0) != sigs[9].iid);
+
+    DetectPrefilterLteWindowFree(&det_ctx);
+    FAIL_IF(det_ctx.fw_lte_windows != NULL);
+    FAIL_IF(det_ctx.fw_lte_window_cnt != 0);
+    for (uint32_t i = 0; i < 16; i++) {
+        SCFree(w[i]);
+    }
+    SCFree(w0);
+    PASS;
+}
+
+/** \test a large window entered at any cursor answers as a linear scan would
+ *  (the search enters both arrays where the cursor lies, not at index 0)
+ */
+static int PrefilterLteWindowTest05(void)
+{
+    enum { WIN = 256, CAND = 128 };
+    uint32_t iids[WIN];
+    for (uint32_t i = 0; i < WIN; i++)
+        iids[i] = i * 2 + 1;
+    struct PrefilterNonPFDataTx *data = LteWindowTestData(iids, WIN);
+    FAIL_IF_NULL(data);
+    RuleMatchCandidateTx cands[CAND];
+    for (uint32_t i = 0; i < CAND; i++)
+        cands[i].id = i * 4 + 1;
+    for (uint32_t cursor = 0; cursor <= WIN * 2; cursor += 7) {
+        uint32_t want = UINT32_MAX;
+        for (uint32_t i = 0; i < WIN; i++) {
+            if (iids[i] < cursor)
+                continue;
+            bool in_cands = false;
+            for (uint32_t j = 0; j < CAND; j++)
+                in_cands |= cands[j].id == iids[i];
+            if (!in_cands) {
+                want = iids[i];
+                break;
+            }
+        }
+        FAIL_IF(LteWindowFirstMissing(data, cands, CAND, cursor) != want);
+    }
+    SCFree(data);
+    PASS;
+}
+
+void DetectPrefilterRegisterTests(void)
+{
+    UtRegisterTest("PrefilterLteWindowTest01", PrefilterLteWindowTest01);
+    UtRegisterTest("PrefilterLteWindowTest02", PrefilterLteWindowTest02);
+    UtRegisterTest("PrefilterLteWindowTest03", PrefilterLteWindowTest03);
+    UtRegisterTest("PrefilterLteWindowTest04", PrefilterLteWindowTest04);
+    UtRegisterTest("PrefilterLteWindowTest05", PrefilterLteWindowTest05);
+}
+#endif /* UNITTESTS */

@@ -883,10 +883,6 @@ impl HTTP2State {
         let mut tx = HTTP2Transaction::new();
         tx.tx_data = AppLayerTxData::for_direction(dir);
         tx.tx_data.0.tx_type = HTTP2TxType::HTTP2TxTypeGlobal as u8;
-        // a parser with tx types must fill both eop fields: the end state
-        // helper asserts on 0
-        tx.tx_data.0.tx_type_eop_ts = HTTP2TxGlobalProgress::HTTP2ProgGlobalComplete as u8;
-        tx.tx_data.0.tx_type_eop_tc = HTTP2TxGlobalProgress::HTTP2ProgGlobalComplete as u8;
         self.tx_id += 1;
         tx.tx_id = self.tx_id;
         tx.progress = HTTP2Progress::GLOBAL(HTTP2GlobalProgress::complete());
@@ -973,10 +969,6 @@ impl HTTP2State {
             tx.update_file_flags(tx.tx_data.0.file_flags);
             tx.tx_data.0.file_tx = STREAM_TOSERVER | STREAM_TOCLIENT; // might hold files in both directions
             tx.tx_data.0.tx_type = HTTP2TxType::HTTP2TxTypeStream as u8;
-            // a parser with tx types must fill both eop fields: the end state
-            // helper asserts on 0
-            tx.tx_data.0.tx_type_eop_ts = HTTP2TxProgress::HTTP2ProgComplete as u8;
-            tx.tx_data.0.tx_type_eop_tc = HTTP2TxProgress::HTTP2ProgComplete as u8;
             self.transactions.push_back(tx);
             return Some(self.transactions.back_mut().unwrap());
         }
@@ -1871,12 +1863,20 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
             HTTP2TxType::HTTP2TxTypeStream as u8,
             Some(HTTP2TxProgress::ffi_id_from_name),
             Some(HTTP2TxProgress::ffi_name_from_id),
+            HTTP2TxProgress::HTTP2ProgComplete as u8,
+            // each side's frames end with its own END_STREAM (closed); complete
+            // also needs the other side
+            HTTP2TxProgress::HTTP2ProgClosed as u8,
+            HTTP2TxProgress::HTTP2ProgClosed as u8,
         );
         SCAppLayerParserRegisterGetTxSubStateFuncs(
             ALPROTO_HTTP2,
             HTTP2TxType::HTTP2TxTypeGlobal as u8,
             Some(HTTP2TxGlobalProgress::ffi_id_from_name),
             Some(HTTP2TxGlobalProgress::ffi_name_from_id),
+            HTTP2TxGlobalProgress::HTTP2ProgGlobalComplete as u8,
+            0,
+            0,
         );
 
         SCLogDebug!("Rust http2 parser registered.");

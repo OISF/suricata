@@ -425,14 +425,50 @@ enum Http2Header<'a> {
 fn http2_frames_get_header_value<'a>(
     tx: &'a HTTP2Transaction, direction: Direction, name: &str,
 ) -> Option<Http2Header<'a>> {
-    let mut found = 0;
-    let mut vec = Vec::new();
-    let mut single = None;
     let frames = if direction == Direction::ToServer {
         &tx.frames_ts
     } else {
         &tx.frames_tc
     };
+    http2_frames_slice_get_header_value(frames, name)
+}
+
+/// The header section of a message: the frames before the first DATA frame or
+/// before a HEADERS frame that follows a completed header block (END_HEADERS),
+/// which can only be the trailer section. The headers of an h2c upgrade arrive
+/// as one HEADERS frame per field without END_HEADERS and all stay in.
+fn http2_header_section(frames: &[HTTP2Frame]) -> &[HTTP2Frame] {
+    let mut block_done = false;
+    for (i, frame) in frames.iter().enumerate() {
+        match frame.data {
+            HTTP2FrameTypeData::DATA => {
+                return &frames[..i];
+            }
+            HTTP2FrameTypeData::HEADERS(_) => {
+                if block_done {
+                    return &frames[..i];
+                }
+                if frame.header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0 {
+                    block_done = true;
+                }
+            }
+            HTTP2FrameTypeData::CONTINUATION(_) => {
+                if frame.header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0 {
+                    block_done = true;
+                }
+            }
+            _ => {}
+        }
+    }
+    frames
+}
+
+fn http2_frames_slice_get_header_value<'a>(
+    frames: &'a [HTTP2Frame], name: &str,
+) -> Option<Http2Header<'a>> {
+    let mut found = 0;
+    let mut vec = Vec::new();
+    let mut single = None;
     for frame in frames {
         if let Some(blocks) = http2_header_blocks(frame) {
             for block in blocks.iter() {
@@ -638,9 +674,13 @@ fn http2_normalize_host(ve: Http2Header) -> Http2Header {
 fn http2_get_host(tx: &HTTP2Transaction) -> Option<Http2Header<'_>> {
     // RFC 9113 states
     // The recipient of an HTTP/2 request MUST NOT use the Host header field to determine the target URI if ":authority" is present.
-    let r = http2_frames_get_header_value(tx, Direction::ToServer, ":authority");
+    // Neither can come from a trailer: RFC 9113 8.1 forbids pseudo-header fields
+    // there, and RFC 9110 6.5.1 keeps routing fields like Host out of trailers.
+    // Reading them from every frame would let a trailer rewrite the target.
+    let section = http2_header_section(&tx.frames_ts);
+    let r = http2_frames_slice_get_header_value(section, ":authority");
     if r.is_none() {
-        http2_frames_get_header_value(tx, Direction::ToServer, "host")
+        http2_frames_slice_get_header_value(section, "host")
     } else {
         r
     }
@@ -1176,6 +1216,81 @@ mod tests {
             _ => {
                 panic!("Result should have been a multiple header value");
             }
+        }
+    }
+
+    fn hdr(name: &str, value: &str, flags: u8) -> HTTP2Frame {
+        let block = parser::HTTP2FrameHeaderBlock {
+            name: name.as_bytes().to_vec().into(),
+            value: value.as_bytes().to_vec().into(),
+            error: parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
+            sizeupdate: 0,
+        };
+        HTTP2Frame {
+            header: parser::HTTP2FrameHeader {
+                length: 0,
+                ftype: parser::HTTP2FrameType::Headers as u8,
+                flags,
+                reserved: 0,
+                stream_id: 1,
+            },
+            data: HTTP2FrameTypeData::HEADERS(parser::HTTP2FrameHeaders {
+                padlength: None,
+                priority: None,
+                blocks: vec![block],
+            }),
+        }
+    }
+
+    fn data() -> HTTP2Frame {
+        HTTP2Frame {
+            header: parser::HTTP2FrameHeader {
+                length: 0,
+                ftype: parser::HTTP2FrameType::Data as u8,
+                flags: 0,
+                reserved: 0,
+                stream_id: 1,
+            },
+            data: HTTP2FrameTypeData::DATA,
+        }
+    }
+
+    #[test]
+    fn test_http2_get_host_from_header_section_only() {
+        let eos = parser::HTTP2_FLAG_HEADER_EOS;
+        let end = parser::HTTP2_FLAG_HEADER_END_HEADERS;
+
+        // a body ends the header section, so the closing HEADERS frame is a
+        // trailer and cannot rewrite the target
+        let mut tx = HTTP2Transaction::new();
+        tx.frames_ts.push(hdr(":authority", "evil.example", end));
+        tx.frames_ts.push(data());
+        tx.frames_ts
+            .push(hdr(":authority", "allowed.example", end | eos));
+        match http2_get_host(&tx) {
+            Some(Http2Header::Single(v)) => assert_eq!(v, "evil.example".as_bytes()),
+            other => panic!("trailer must not reach http.host, got {other:?}"),
+        }
+
+        // same without a body: the second block follows a completed one
+        let mut tx = HTTP2Transaction::new();
+        tx.frames_ts.push(hdr("host", "evil.example", end));
+        tx.frames_ts.push(hdr("host", "allowed.example", end | eos));
+        match http2_get_host(&tx) {
+            Some(Http2Header::Single(v)) => assert_eq!(v, "evil.example".as_bytes()),
+            other => panic!("trailer must not reach http.host, got {other:?}"),
+        }
+
+        // an h2c upgrade sends one HEADERS frame per field with no END_HEADERS:
+        // all of them are the header section
+        let mut tx = HTTP2Transaction::new();
+        tx.frames_ts.push(hdr(":authority", "evil.example", 0));
+        tx.frames_ts.push(hdr(":authority", "allowed.example", end));
+        match http2_get_host(&tx) {
+            Some(Http2Header::Multiple(v)) => {
+                assert_eq!(v, "evil.example, allowed.example".as_bytes())
+            }
+            other => panic!("upgrade frames must all count, got {other:?}",),
         }
     }
 }
