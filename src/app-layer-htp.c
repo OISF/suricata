@@ -476,6 +476,10 @@ static void HtpTxUserDataFree(void *txud)
             HTPFree(htud->request_headers_raw, htud->request_headers_raw_len);
         if (htud->response_headers_raw)
             HTPFree(htud->response_headers_raw, htud->response_headers_raw_len);
+        if (htud->request_trailers_raw)
+            HTPFree(htud->request_trailers_raw, htud->request_trailers_raw_len);
+        if (htud->response_trailers_raw)
+            HTPFree(htud->response_trailers_raw, htud->response_trailers_raw_len);
         if (htud->mime_state)
             SCMimeStateFree(htud->mime_state);
         SCAppLayerTxDataCleanup(&htud->tx_data);
@@ -1894,6 +1898,46 @@ static int HTPCallbackResponseHeaderData(const htp_connp_t *connp, htp_tx_data_t
     return HTP_STATUS_OK;
 }
 
+static void HTPAppendTrailerData(
+        HtpTxUserData *tx_ud, bool to_server, const uint8_t *data, size_t len)
+{
+    uint8_t **buf = to_server ? &tx_ud->request_trailers_raw : &tx_ud->response_trailers_raw;
+    uint32_t *buf_len =
+            to_server ? &tx_ud->request_trailers_raw_len : &tx_ud->response_trailers_raw_len;
+
+    void *ptmp = HTPRealloc(*buf, *buf_len, (size_t)*buf_len + len);
+    if (ptmp == NULL) {
+        return;
+    }
+    *buf = ptmp;
+    memcpy(*buf + *buf_len, data, len);
+    *buf_len += len;
+}
+
+static int HTPCallbackRequestTrailerData(const htp_connp_t *connp, htp_tx_data_t *tx_data)
+{
+    const htp_tx_t *tx = htp_tx_data_tx(tx_data);
+    if (htp_tx_data_is_empty(tx_data) || tx == NULL)
+        return HTP_STATUS_OK;
+
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    tx_ud->tx_data.updated_ts = true;
+    HTPAppendTrailerData(tx_ud, true, htp_tx_data_data(tx_data), htp_tx_data_len(tx_data));
+    return HTP_STATUS_OK;
+}
+
+static int HTPCallbackResponseTrailerData(const htp_connp_t *connp, htp_tx_data_t *tx_data)
+{
+    const htp_tx_t *tx = htp_tx_data_tx(tx_data);
+    if (htp_tx_data_is_empty(tx_data) || tx == NULL)
+        return HTP_STATUS_OK;
+
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    tx_ud->tx_data.updated_tc = true;
+    HTPAppendTrailerData(tx_ud, false, htp_tx_data_data(tx_data), htp_tx_data_len(tx_data));
+    return HTP_STATUS_OK;
+}
+
 /*
  * We have a similar set function called HTPConfigSetDefaultsPhase1.
  */
@@ -1915,9 +1959,9 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     cfg_prec->randomize_range = HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE;
 
     htp_config_register_request_header_data(cfg_prec->cfg, HTPCallbackRequestHeaderData);
-    htp_config_register_request_trailer_data(cfg_prec->cfg, HTPCallbackRequestHeaderData);
+    htp_config_register_request_trailer_data(cfg_prec->cfg, HTPCallbackRequestTrailerData);
     htp_config_register_response_header_data(cfg_prec->cfg, HTPCallbackResponseHeaderData);
-    htp_config_register_response_trailer_data(cfg_prec->cfg, HTPCallbackResponseHeaderData);
+    htp_config_register_response_trailer_data(cfg_prec->cfg, HTPCallbackResponseTrailerData);
 
     htp_config_register_request_trailer(cfg_prec->cfg, HTPCallbackRequestHasTrailer);
     htp_config_register_response_trailer(cfg_prec->cfg, HTPCallbackResponseHasTrailer);
