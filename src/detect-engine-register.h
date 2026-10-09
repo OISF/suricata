@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -102,6 +102,7 @@ enum DetectKeywordId {
     DETECT_ISDATAAT,
     DETECT_URILEN,
     DETECT_ABSENT,
+    DETECT_TRANSFORM_RESULT,
     DETECT_ENTROPY,
     /* end of content inspection */
 
@@ -362,6 +363,8 @@ extern int DETECT_TBLSIZE_IDX;
 #define SIGMATCH_BAN_FIREWALL_MODE (1UL << (22))
 /** keyword cannot be used in td rules with firewall mode */
 #define SIGMATCH_BAN_TD_FIREWALL_MODE (1UL << (24))
+/** transform can fail (return no data) */
+#define SIGMATCH_TRANSFORM_CAN_FAIL (1UL << (25))
 
 int SigTableList(const char *keyword);
 void SigTableCleanup(void);

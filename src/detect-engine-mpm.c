@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1119,10 +1119,20 @@ static void SetMpm(Signature *s, SigMatch *mpm_sm, const int mpm_sm_list)
     s->init_data->mpm_sm = mpm_sm;
 }
 
+/* absent and transform_result end the part of a buffer that can supply the
+ * fast_pattern. Repeated buffers can share a list id, so every pass over a
+ * list's buffers has to stop at them, not just the first. */
+static inline bool StopsFastPattern(const SigMatch *sm)
+{
+    return sm->type == DETECT_ABSENT || sm->type == DETECT_TRANSFORM_RESULT;
+}
+
 static SigMatch *GetMpmForList(const Signature *s, SigMatch *list, SigMatch *mpm_sm,
         uint16_t max_len, bool skip_negated_content)
 {
     for (SigMatch *sm = list; sm != NULL; sm = sm->next) {
+        if (StopsFastPattern(sm))
+            break;
         if (sm->type != DETECT_CONTENT)
             continue;
 
@@ -1233,8 +1243,8 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
         }
 
         for (SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
-            // a buffer with absent keyword cannot be used as fast_pattern
-            if (sm->type == DETECT_ABSENT)
+            // a buffer with absent or transform_result cannot use fast_pattern
+            if (StopsFastPattern(sm))
                 break;
             if (sm->type != DETECT_CONTENT)
                 continue;
@@ -1346,6 +1356,8 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
                             DetectEngineBufferTypeGetNameById(de_ctx, list_id));
 
                     for (SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
+                        if (StopsFastPattern(sm))
+                            break;
                         if (sm->type != DETECT_CONTENT)
                             continue;
 

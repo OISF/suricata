@@ -1,4 +1,4 @@
-/* Copyright (C) 2021-2024 Open Information Security Foundation
+/* Copyright (C) 2021-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -80,10 +80,58 @@ pub unsafe extern "C" fn SCBase64DecodeBufferSize(input_len: u32) -> u32 {
     return get_decoded_buffer_size(input_len);
 }
 
+/// Base64 decode `input` into `output` in the given mode.
+///
+/// Returns the number of bytes written to `output`. `output` must be at least
+/// as long as `input`.
+pub fn base64_decode(input: &[u8], mode: SCBase64Mode, output: &mut [u8]) -> u32 {
+    if input.is_empty() {
+        return 0;
+    }
+
+    let mut num_decoded: u32 = 0;
+    let mut decoder = Decoder::new();
+    match mode {
+        SCBase64Mode::SCBase64ModeRFC2045 => {
+            if decode_rfc2045(&mut decoder, input, output, &mut num_decoded).is_err() {
+                debug_validate_bug_on!(num_decoded >= input.len() as u32);
+                return num_decoded;
+            }
+        }
+        SCBase64Mode::SCBase64ModeRFC4648 => {
+            if decode_rfc4648(&mut decoder, input, output, &mut num_decoded).is_err() {
+                debug_validate_bug_on!(num_decoded >= input.len() as u32);
+                return num_decoded;
+            }
+        }
+        SCBase64Mode::SCBase64ModeStrict => {
+            if let Ok(decoded_len) = STANDARD.decode_slice(input, output) {
+                num_decoded = decoded_len as u32;
+            }
+        }
+        SCBase64Mode::SCBase64ModeNoPad => {
+            if let Ok(decoded_len) = STANDARD_NO_PAD.decode_slice(input, output) {
+                num_decoded = decoded_len as u32;
+            }
+        }
+        SCBase64Mode::SCBase64ModePadOpt => {
+            let config = base64::engine::GeneralPurposeConfig::new()
+                .with_decode_padding_mode(base64::engine::DecodePaddingMode::Indifferent);
+            let decoder = base64::engine::GeneralPurpose::new(&base64::alphabet::STANDARD, config);
+            if let Ok(decoded_len) = decoder.decode_slice(input, output) {
+                num_decoded = decoded_len as u32;
+            }
+        }
+    }
+
+    debug_validate_bug_on!(num_decoded >= input.len() as u32);
+    return num_decoded;
+}
+
 /// Base64 decode a buffer.
 ///
 /// This method exposes the Rust base64 decoder to C and should not be called from
-/// Rust code.
+/// Rust code; use ``base64_decode`` instead.
 ///
 /// It allows decoding in the modes described by ``SCBase64Mode`` enum.
 #[no_mangle]
@@ -96,43 +144,7 @@ pub unsafe extern "C" fn SCBase64Decode(
 
     let in_vec = build_slice!(input, len);
     let out_vec = std::slice::from_raw_parts_mut(output, len);
-    let mut num_decoded: u32 = 0;
-    let mut decoder = Decoder::new();
-    match mode {
-        SCBase64Mode::SCBase64ModeRFC2045 => {
-            if decode_rfc2045(&mut decoder, in_vec, out_vec, &mut num_decoded).is_err() {
-                debug_validate_bug_on!(num_decoded >= len as u32);
-                return num_decoded;
-            }
-        }
-        SCBase64Mode::SCBase64ModeRFC4648 => {
-            if decode_rfc4648(&mut decoder, in_vec, out_vec, &mut num_decoded).is_err() {
-                debug_validate_bug_on!(num_decoded >= len as u32);
-                return num_decoded;
-            }
-        }
-        SCBase64Mode::SCBase64ModeStrict => {
-            if let Ok(decoded_len) = STANDARD.decode_slice(in_vec, out_vec) {
-                num_decoded = decoded_len as u32;
-            }
-        }
-        SCBase64Mode::SCBase64ModeNoPad => {
-            if let Ok(decoded_len) = STANDARD_NO_PAD.decode_slice(in_vec, out_vec) {
-                num_decoded = decoded_len as u32;
-            }
-        }
-        SCBase64Mode::SCBase64ModePadOpt => {
-            let config = base64::engine::GeneralPurposeConfig::new()
-                .with_decode_padding_mode(base64::engine::DecodePaddingMode::Indifferent);
-            let decoder = base64::engine::GeneralPurpose::new(&base64::alphabet::STANDARD, config);
-            if let Ok(decoded_len) = decoder.decode_slice(in_vec, out_vec) {
-                num_decoded = decoded_len as u32;
-            }
-        }
-    }
-
-    debug_validate_bug_on!(num_decoded >= len as u32);
-    return num_decoded;
+    base64_decode(in_vec, mode, out_vec)
 }
 
 /// Base64 encode a buffer with a provided mode.

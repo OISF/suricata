@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -3106,7 +3106,7 @@ static int SigValidateCheckBuffers(
         if (!DetectBsizeValidateContentCallback(s, b)) {
             SCReturnInt(0);
         }
-        if (!DetectAbsentValidateContentCallback(s, b)) {
+        if (!DetectAbsentValidateContentCallback(de_ctx, s, b)) {
             SCReturnInt(0);
         }
     }
