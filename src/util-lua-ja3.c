@@ -49,7 +49,7 @@ static int LuaJa3GetTx(lua_State *L)
     if (tx == NULL) {
         return LuaCallbackError(L, "error: no tx available");
     }
-    struct LuaTx *ltx = (struct LuaTx *)lua_newuserdata(L, sizeof(*ltx));
+    struct LuaTx *ltx = SCLuaNewUserData(L, SCLUA_TUD_JA3_TX, sizeof(*ltx));
     if (ltx == NULL) {
         return LuaCallbackError(L, "error: fail to allocate user data");
     }
@@ -64,7 +64,7 @@ static int LuaJa3GetTx(lua_State *L)
 
 static int LuaJa3TxGetHash(lua_State *L)
 {
-    struct LuaTx *ltx = luaL_testudata(L, 1, ja3_tx);
+    struct LuaTx *ltx = SCLuaTestUserData(L, 1, ja3_tx, SCLUA_TUD_JA3_TX);
     if (ltx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -92,7 +92,7 @@ static int LuaJa3TxGetHash(lua_State *L)
 
 static int LuaJa3TxGetString(lua_State *L)
 {
-    struct LuaTx *ltx = luaL_testudata(L, 1, ja3_tx);
+    struct LuaTx *ltx = SCLuaTestUserData(L, 1, ja3_tx, SCLUA_TUD_JA3_TX);
     if (ltx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -118,7 +118,7 @@ static int LuaJa3TxGetString(lua_State *L)
 
 static int LuaJa3TxGetServerHash(lua_State *L)
 {
-    struct LuaTx *ltx = luaL_testudata(L, 1, ja3_tx);
+    struct LuaTx *ltx = SCLuaTestUserData(L, 1, ja3_tx, SCLUA_TUD_JA3_TX);
     if (ltx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -146,7 +146,7 @@ static int LuaJa3TxGetServerHash(lua_State *L)
 
 static int LuaJa3TxGetServerString(lua_State *L)
 {
-    struct LuaTx *ltx = luaL_testudata(L, 1, ja3_tx);
+    struct LuaTx *ltx = SCLuaTestUserData(L, 1, ja3_tx, SCLUA_TUD_JA3_TX);
     if (ltx == NULL) {
         lua_pushnil(L);
         return 1;

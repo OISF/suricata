@@ -36,6 +36,52 @@
 #include "util-lua.h"
 #include "util-lua-common.h"
 
+void *SCLuaNewUserData(lua_State *L, uint32_t type_id, size_t size)
+{
+    uint8_t *block = (uint8_t *)lua_newuserdata(L, sizeof(SCLuaUserDataHeader) + size);
+    if (block == NULL) {
+        return NULL;
+    }
+    SCLuaUserDataHeader *h = (SCLuaUserDataHeader *)block;
+    h->magic = SCLUA_UD_MAGIC;
+    h->type_id = type_id;
+    return block + sizeof(SCLuaUserDataHeader);
+}
+
+static uint8_t *SCLuaUserDataPayload(lua_State *L, int idx, const char *mt, uint32_t type_id)
+{
+    void *block = luaL_testudata(L, idx, mt);
+    if (block == NULL) {
+        return NULL;
+    }
+    SCLuaUserDataHeader *h = (SCLuaUserDataHeader *)block;
+    if (h->magic != SCLUA_UD_MAGIC || h->type_id != type_id) {
+        return NULL;
+    }
+    return (uint8_t *)block + sizeof(SCLuaUserDataHeader);
+}
+
+void *SCLuaCheckUserData(lua_State *L, int idx, const char *mt, uint32_t type_id)
+{
+    uint8_t *block = (uint8_t *)luaL_checkudata(L, idx, mt);
+    if (block == NULL) {
+        return NULL;
+    }
+    SCLuaUserDataHeader *h = (SCLuaUserDataHeader *)block;
+    if (h->magic != SCLUA_UD_MAGIC || h->type_id != type_id) {
+        luaL_error(L, "invalid handle: type mismatch");
+        /* luaL_error raises; the return keeps the fail-closed path
+         * explicit if it ever did not */
+        return NULL;
+    }
+    return block + sizeof(SCLuaUserDataHeader);
+}
+
+void *SCLuaTestUserData(lua_State *L, int idx, const char *mt, uint32_t type_id)
+{
+    return SCLuaUserDataPayload(L, idx, mt, type_id);
+}
+
 int LuaCallbackError(lua_State *luastate, const char *msg)
 {
     lua_pushnil(luastate);

@@ -36,7 +36,7 @@ static int LuaNtpGetTx(lua_State *L)
     if (tx == NULL) {
         return LuaCallbackError(L, "error: no tx available");
     }
-    struct LuaTx *ltx = (struct LuaTx *)lua_newuserdata(L, sizeof(*ltx));
+    struct LuaTx *ltx = SCLuaNewUserData(L, SCLUA_TUD_NTP_TX, sizeof(*ltx));
     if (ltx == NULL) {
         return LuaCallbackError(L, "error: fail to allocate user data");
     }
@@ -50,7 +50,7 @@ static int LuaNtpGetTx(lua_State *L)
 
 static int LuaNtpTxGetVersion(lua_State *L)
 {
-    struct LuaTx *tx = luaL_testudata(L, 1, ntp_tx);
+    struct LuaTx *tx = SCLuaTestUserData(L, 1, ntp_tx, SCLUA_TUD_NTP_TX);
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -60,7 +60,7 @@ static int LuaNtpTxGetVersion(lua_State *L)
 
 static int LuaNtpTxGetMode(lua_State *L)
 {
-    struct LuaTx *tx = luaL_testudata(L, 1, ntp_tx);
+    struct LuaTx *tx = SCLuaTestUserData(L, 1, ntp_tx, SCLUA_TUD_NTP_TX);
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -70,7 +70,7 @@ static int LuaNtpTxGetMode(lua_State *L)
 
 static int LuaNtpTxGetStratum(lua_State *L)
 {
-    struct LuaTx *tx = luaL_testudata(L, 1, ntp_tx);
+    struct LuaTx *tx = SCLuaTestUserData(L, 1, ntp_tx, SCLUA_TUD_NTP_TX);
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -80,7 +80,7 @@ static int LuaNtpTxGetStratum(lua_State *L)
 
 static int LuaNtpTxGetReferenceId(lua_State *L)
 {
-    struct LuaTx *tx = luaL_testudata(L, 1, ntp_tx);
+    struct LuaTx *tx = SCLuaTestUserData(L, 1, ntp_tx, SCLUA_TUD_NTP_TX);
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;

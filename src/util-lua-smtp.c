@@ -67,7 +67,7 @@ static int LuaSmtpGetTx(lua_State *L)
         return LuaCallbackError(L, "error: no SMTP transaction found");
     }
 
-    struct LuaSmtpTx *lua_tx = (struct LuaSmtpTx *)lua_newuserdata(L, sizeof(*lua_tx));
+    struct LuaSmtpTx *lua_tx = SCLuaNewUserData(L, SCLUA_TUD_SMTP_TX, sizeof(*lua_tx));
     if (lua_tx == NULL) {
         return LuaCallbackError(L, "error: fail to allocate user data");
     }
@@ -81,7 +81,7 @@ static int LuaSmtpGetTx(lua_State *L)
 
 static int LuaSmtpTxGetMimeField(lua_State *L)
 {
-    struct LuaSmtpTx *tx = luaL_checkudata(L, 1, smtp_tx_mt);
+    struct LuaSmtpTx *tx = SCLuaCheckUserData(L, 1, smtp_tx_mt, SCLUA_TUD_SMTP_TX);
 
     if (tx->tx->mime_state == NULL) {
         return LuaCallbackError(L, "no mime state");
@@ -103,7 +103,7 @@ static int LuaSmtpTxGetMimeField(lua_State *L)
 
 static int LuaSmtpTxGetMimeList(lua_State *L)
 {
-    struct LuaSmtpTx *tx = luaL_checkudata(L, 1, smtp_tx_mt);
+    struct LuaSmtpTx *tx = SCLuaCheckUserData(L, 1, smtp_tx_mt, SCLUA_TUD_SMTP_TX);
 
     if (tx->tx->mime_state == NULL) {
         return LuaCallbackError(L, "no mime state");
@@ -125,7 +125,7 @@ static int LuaSmtpTxGetMimeList(lua_State *L)
 
 static int LuaSmtpTxGetMailFrom(lua_State *L)
 {
-    struct LuaSmtpTx *tx = luaL_checkudata(L, 1, smtp_tx_mt);
+    struct LuaSmtpTx *tx = SCLuaCheckUserData(L, 1, smtp_tx_mt, SCLUA_TUD_SMTP_TX);
 
     if (tx->tx->mail_from == NULL || tx->tx->mail_from_len == 0) {
         lua_pushnil(L);
@@ -137,7 +137,7 @@ static int LuaSmtpTxGetMailFrom(lua_State *L)
 
 static int LuaSmtpTxGetRcptList(lua_State *L)
 {
-    struct LuaSmtpTx *tx = luaL_checkudata(L, 1, smtp_tx_mt);
+    struct LuaSmtpTx *tx = SCLuaCheckUserData(L, 1, smtp_tx_mt, SCLUA_TUD_SMTP_TX);
 
     /* Create a new table in luastate for rcpt list */
     lua_newtable(L);

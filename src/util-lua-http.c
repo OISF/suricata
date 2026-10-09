@@ -44,7 +44,7 @@ static int LuaHttpGetTx(lua_State *luastate)
     if (tx == NULL) {
         return LuaCallbackError(luastate, "error: no tx available");
     }
-    struct LuaTx *ltx = (struct LuaTx *)lua_newuserdata(luastate, sizeof(*ltx));
+    struct LuaTx *ltx = SCLuaNewUserData(luastate, SCLUA_TUD_HTTP_TX, sizeof(*ltx));
     if (ltx == NULL) {
         return LuaCallbackError(luastate, "error: failed to allocate user data");
     }
@@ -59,7 +59,7 @@ static int LuaHttpGetTx(lua_State *luastate)
 
 static int LuaHttpGetRequestHost(lua_State *luastate)
 {
-    struct LuaTx *tx = luaL_testudata(luastate, 1, htp_tx);
+    struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
     if (tx == NULL) {
         lua_pushnil(luastate);
         return 1;
@@ -75,7 +75,7 @@ static int LuaHttpGetRequestHost(lua_State *luastate)
 
 static int LuaHttpGetRequestUriRaw(lua_State *luastate)
 {
-    struct LuaTx *tx = luaL_testudata(luastate, 1, htp_tx);
+    struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
     if (tx == NULL) {
         lua_pushnil(luastate);
         return 1;
@@ -91,7 +91,7 @@ static int LuaHttpGetRequestUriRaw(lua_State *luastate)
 
 static int LuaHttpGetRequestUriNormalized(lua_State *luastate)
 {
-    struct LuaTx *tx = luaL_testudata(luastate, 1, htp_tx);
+    struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
     if (tx == NULL) {
         lua_pushnil(luastate);
         return 1;
@@ -108,7 +108,7 @@ static int LuaHttpGetRequestUriNormalized(lua_State *luastate)
 
 static int LuaHttpGetRequestLine(lua_State *luastate)
 {
-    struct LuaTx *tx = luaL_testudata(luastate, 1, htp_tx);
+    struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
     if (tx == NULL) {
         lua_pushnil(luastate);
         return 1;
@@ -125,7 +125,7 @@ static int LuaHttpGetRequestLine(lua_State *luastate)
 
 static int LuaHttpGetResponseLine(lua_State *luastate)
 {
-    struct LuaTx *tx = luaL_testudata(luastate, 1, htp_tx);
+    struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
     if (tx == NULL) {
         lua_pushnil(luastate);
         return 1;
@@ -142,7 +142,7 @@ static int LuaHttpGetResponseLine(lua_State *luastate)
 
 static int LuaHttpGetHeader(lua_State *luastate, int dir)
 {
-    struct LuaTx *tx = luaL_testudata(luastate, 1, htp_tx);
+    struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
     if (tx == NULL) {
         lua_pushnil(luastate);
         return 1;
@@ -181,7 +181,7 @@ static int LuaHttpGetResponseHeader(lua_State *luastate)
 
 static int LuaHttpGetRawHeaders(lua_State *luastate, int dir)
 {
-    struct LuaTx *tx = luaL_testudata(luastate, 1, htp_tx);
+    struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
     if (tx == NULL) {
         lua_pushnil(luastate);
         return 1;
@@ -213,7 +213,7 @@ static int LuaHttpGetRawResponseHeaders(lua_State *luastate)
 
 static int LuaHttpGetHeaders(lua_State *luastate, int dir)
 {
-    struct LuaTx *tx = luaL_testudata(luastate, 1, htp_tx);
+    struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
     if (tx == NULL) {
         lua_pushnil(luastate);
         return 1;
@@ -254,7 +254,7 @@ static int LuaHttpGetResponseHeaders(lua_State *luastate)
 
 static int LuaHttpGetBody(lua_State *luastate, int dir)
 {
-    struct LuaTx *tx = luaL_testudata(luastate, 1, htp_tx);
+    struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
     if (tx == NULL) {
         lua_pushnil(luastate);
         return 1;

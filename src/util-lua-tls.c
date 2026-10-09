@@ -69,7 +69,7 @@ static int LuaTlsFlowStateGet(lua_State *luastate)
         LUA_ERROR("failed to get flow");
     }
 
-    struct LuaTls *s = (struct LuaTls *)lua_newuserdata(luastate, sizeof(*s));
+    struct LuaTls *s = SCLuaNewUserData(luastate, SCLUA_TUD_TLS_STATE, sizeof(*s));
     if (s == NULL) {
         LUA_ERROR("failed to allocate userdata");
     }
@@ -101,7 +101,7 @@ static int GetCertNotBefore(lua_State *luastate, bool client, const SSLState *ss
 
 static int LuaTlsGetServerCertNotBefore(lua_State *luastate)
 {
-    struct LuaTls *s = (struct LuaTls *)luaL_checkudata(luastate, 1, tls_state_mt);
+    struct LuaTls *s = SCLuaCheckUserData(luastate, 1, tls_state_mt, SCLUA_TUD_TLS_STATE);
     if (s->state == NULL) {
         LUA_ERROR("failed to get flow");
     }
@@ -111,7 +111,7 @@ static int LuaTlsGetServerCertNotBefore(lua_State *luastate)
 
 static int LuaTlsGetClientCertNotBefore(lua_State *luastate)
 {
-    struct LuaTls *s = (struct LuaTls *)luaL_checkudata(luastate, 1, tls_state_mt);
+    struct LuaTls *s = SCLuaCheckUserData(luastate, 1, tls_state_mt, SCLUA_TUD_TLS_STATE);
     if (s->state == NULL) {
         LUA_ERROR("failed to get flow");
     }
@@ -137,7 +137,7 @@ static int GetCertNotAfter(lua_State *luastate, bool client, const SSLState *ssl
 
 static int LuaTlsGetServerCertNotAfter(lua_State *luastate)
 {
-    struct LuaTls *s = (struct LuaTls *)luaL_checkudata(luastate, 1, tls_state_mt);
+    struct LuaTls *s = SCLuaCheckUserData(luastate, 1, tls_state_mt, SCLUA_TUD_TLS_STATE);
     if (s->state == NULL) {
         LUA_ERROR("failed to get state");
     }
@@ -146,7 +146,7 @@ static int LuaTlsGetServerCertNotAfter(lua_State *luastate)
 }
 static int LuaTlsGetClientCertNotAfter(lua_State *luastate)
 {
-    struct LuaTls *s = (struct LuaTls *)luaL_checkudata(luastate, 1, tls_state_mt);
+    struct LuaTls *s = SCLuaCheckUserData(luastate, 1, tls_state_mt, SCLUA_TUD_TLS_STATE);
     if (s->state == NULL) {
         LUA_ERROR("failed to get state");
     }
@@ -180,7 +180,7 @@ static int GetCertInfo(lua_State *luastate, bool client, const SSLState *ssl_sta
 
 static int LuaTlsGetServerCertInfo(lua_State *luastate)
 {
-    struct LuaTls *s = (struct LuaTls *)luaL_checkudata(luastate, 1, tls_state_mt);
+    struct LuaTls *s = SCLuaCheckUserData(luastate, 1, tls_state_mt, SCLUA_TUD_TLS_STATE);
     if (s->state == NULL) {
         LUA_ERROR("failed to get state");
     }
@@ -190,7 +190,7 @@ static int LuaTlsGetServerCertInfo(lua_State *luastate)
 
 static int LuaTlsGetClientCertInfo(lua_State *luastate)
 {
-    struct LuaTls *s = (struct LuaTls *)luaL_checkudata(luastate, 1, tls_state_mt);
+    struct LuaTls *s = SCLuaCheckUserData(luastate, 1, tls_state_mt, SCLUA_TUD_TLS_STATE);
     if (s->state == NULL) {
         LUA_ERROR("failed to get state");
     }
@@ -209,7 +209,7 @@ static int GetSNI(lua_State *luastate, const SSLState *ssl_state)
 
 static int LuaTlsGetSNI(lua_State *luastate)
 {
-    struct LuaTls *s = (struct LuaTls *)luaL_checkudata(luastate, 1, tls_state_mt);
+    struct LuaTls *s = SCLuaCheckUserData(luastate, 1, tls_state_mt, SCLUA_TUD_TLS_STATE);
     if (s->state == NULL) {
         LUA_ERROR("failed to get state");
     }
@@ -222,7 +222,7 @@ static int LuaTlsGetSNI(lua_State *luastate)
 
 static int GetCertChain(lua_State *luastate, bool client)
 {
-    struct LuaTls *s = (struct LuaTls *)luaL_checkudata(luastate, 1, tls_state_mt);
+    struct LuaTls *s = SCLuaCheckUserData(luastate, 1, tls_state_mt, SCLUA_TUD_TLS_STATE);
     if (s->state == NULL) {
         LUA_ERROR("failed to get state");
     }
@@ -274,7 +274,7 @@ static int LuaTlsGetClientCertChain(lua_State *luastate)
 
 static int GetCertSerial(lua_State *luastate, bool client)
 {
-    struct LuaTls *s = (struct LuaTls *)luaL_checkudata(luastate, 1, tls_state_mt);
+    struct LuaTls *s = SCLuaCheckUserData(luastate, 1, tls_state_mt, SCLUA_TUD_TLS_STATE);
     if (s->state == NULL) {
         LUA_ERROR("failed to get flow");
     }
@@ -304,7 +304,7 @@ static int LuaTlsGetClientCertSerial(lua_State *luastate)
 
 static int GetAgreedVersion(lua_State *luastate, bool client)
 {
-    struct LuaTls *s = (struct LuaTls *)luaL_checkudata(luastate, 1, tls_state_mt);
+    struct LuaTls *s = SCLuaCheckUserData(luastate, 1, tls_state_mt, SCLUA_TUD_TLS_STATE);
     if (s->state == NULL) {
         LUA_ERROR("failed to get state");
     }

@@ -45,7 +45,7 @@ static int LuaSshGetTx(lua_State *L)
     if (tx == NULL) {
         return LuaCallbackError(L, "error: no tx available");
     }
-    struct LuaTx *ltx = (struct LuaTx *)lua_newuserdata(L, sizeof(*ltx));
+    struct LuaTx *ltx = SCLuaNewUserData(L, SCLUA_TUD_SSH_TX, sizeof(*ltx));
     if (ltx == NULL) {
         return LuaCallbackError(L, "error: fail to allocate user data");
     }
@@ -61,7 +61,7 @@ static int LuaSshTxGetProto(lua_State *L, uint8_t flags)
 {
     const uint8_t *buf = NULL;
     uint32_t b_len = 0;
-    struct LuaTx *ltx = luaL_testudata(L, 1, ssh_tx);
+    struct LuaTx *ltx = SCLuaTestUserData(L, 1, ssh_tx, SCLUA_TUD_SSH_TX);
     if (ltx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -87,7 +87,7 @@ static int LuaSshTxGetSoftware(lua_State *L, uint8_t flags)
 {
     const uint8_t *buf = NULL;
     uint32_t b_len = 0;
-    struct LuaTx *ltx = luaL_testudata(L, 1, ssh_tx);
+    struct LuaTx *ltx = SCLuaTestUserData(L, 1, ssh_tx, SCLUA_TUD_SSH_TX);
     if (ltx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -113,7 +113,7 @@ static int LuaSshTxGetHassh(lua_State *L, uint8_t flags)
 {
     const uint8_t *buf = NULL;
     uint32_t b_len = 0;
-    struct LuaTx *ltx = luaL_testudata(L, 1, ssh_tx);
+    struct LuaTx *ltx = SCLuaTestUserData(L, 1, ssh_tx, SCLUA_TUD_SSH_TX);
     if (ltx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -139,7 +139,7 @@ static int LuaSshTxGetHasshString(lua_State *L, uint8_t flags)
 {
     const uint8_t *buf = NULL;
     uint32_t b_len = 0;
-    struct LuaTx *ltx = luaL_testudata(L, 1, ssh_tx);
+    struct LuaTx *ltx = SCLuaTestUserData(L, 1, ssh_tx, SCLUA_TUD_SSH_TX);
     if (ltx == NULL) {
         lua_pushnil(L);
         return 1;
