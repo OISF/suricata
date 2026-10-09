@@ -189,6 +189,20 @@ pub unsafe extern "C" fn htp_tx_request_headers_size(tx: *const Transaction) -> 
         .unwrap_or(-1)
 }
 
+/// Get a transaction's request trailer fields, which are kept apart from its headers.
+///
+/// tx: Transaction pointer.
+///
+/// Returns the trailer table or NULL on error.
+/// # Safety
+/// When calling this method, you have to ensure that tx is either properly initialized or NULL
+#[no_mangle]
+pub unsafe extern "C" fn htp_tx_request_trailers(tx: *const Transaction) -> *const Headers {
+    tx.as_ref()
+        .map(|tx| &tx.request_trailers as *const Headers)
+        .unwrap_or(std::ptr::null())
+}
+
 /// Get the first request header value matching the key from a transaction.
 ///
 /// tx: Transaction pointer.
@@ -390,6 +404,20 @@ pub unsafe extern "C" fn htp_tx_response_message(tx: *const Transaction) -> *con
 pub unsafe extern "C" fn htp_tx_response_headers(tx: *const Transaction) -> *const Headers {
     tx.as_ref()
         .map(|tx| &tx.response_headers as *const Headers)
+        .unwrap_or(std::ptr::null())
+}
+
+/// Get a transaction's response trailer fields, which are kept apart from its headers.
+///
+/// tx: Transaction pointer.
+///
+/// Returns the trailer table or NULL on error.
+/// # Safety
+/// When calling this method, you have to ensure that tx is either properly initialized or NULL
+#[no_mangle]
+pub unsafe extern "C" fn htp_tx_response_trailers(tx: *const Transaction) -> *const Headers {
+    tx.as_ref()
+        .map(|tx| &tx.response_trailers as *const Headers)
         .unwrap_or(std::ptr::null())
 }
 

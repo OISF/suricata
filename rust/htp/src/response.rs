@@ -238,8 +238,9 @@ impl ConnectionParser {
                                     Ordering::Equal => {
                                         // End of data
                                         self.response_state = State::Headers;
-                                        self.response_mut().unwrap().response_progress =
-                                            HtpResponseProgress::TRAILER
+                                        let resp = self.response_mut().unwrap();
+                                        resp.response_progress = HtpResponseProgress::TRAILER;
+                                        resp.response_in_trailers = true;
                                     }
                                     Ordering::Greater => {
                                         // More data available.
@@ -882,9 +883,56 @@ impl ConnectionParser {
         }
     }
 
+    /// Extract one response trailer field. Kept out of the header table, but otherwise treated
+    /// like a header field: repeated names are combined, and the total field count is shared
+    /// with the header section.
+    fn process_response_trailer(&mut self, header: Header, hl: usize) -> Result<()> {
+        let resp = self.response_mut().unwrap();
+        if resp.response_trailers.elements.len() + resp.response_headers.elements.len() > hl {
+            if !resp.flags.is_set(HtpFlags::HEADERS_TOO_MANY) {
+                htp_warn!(
+                    self.logger,
+                    HtpLogCode::RESPONSE_TOO_MANY_HEADERS,
+                    "Too many response headers"
+                );
+                let resp = self.response_mut().unwrap();
+                resp.flags.set(HtpFlags::HEADERS_TOO_MANY);
+            }
+            return Err(HtpStatus::ERROR);
+        }
+        let resp = self.response_mut().unwrap();
+        let mut update_reps = false;
+        if let Some(existing) = resp
+            .response_trailers
+            .get_nocase_mut(header.name.as_slice())
+        {
+            // Same cap as the header path: past it, repeated names stop being merged, so a
+            // peer cannot grow one value without bound.
+            if existing.flags.is_set(HeaderFlags::FIELD_REPEATED) {
+                if resp.response_header_repetitions >= 64 {
+                    return Ok(());
+                }
+                update_reps = true;
+            }
+            existing.flags.set(HeaderFlags::FIELD_REPEATED);
+            existing.value.extend_from_slice(b", ");
+            existing.value.extend_from_slice(header.value.as_slice());
+        } else {
+            resp.response_trailers.elements.push(header);
+        }
+        if update_reps {
+            let resp = self.response_mut().unwrap();
+            resp.response_header_repetitions = resp.response_header_repetitions.wrapping_add(1);
+        }
+        Ok(())
+    }
+
     /// Response header line(s) processor, which assembles folded lines
     /// into a single buffer before invoking the parsing function.
     fn process_response_header(&mut self, header: Header) -> Result<()> {
+        if self.response_mut().unwrap().response_in_trailers {
+            return self.process_response_trailer(header, self.cfg.number_headers_limit as usize);
+        }
         let mut repeated = false;
         let hl = self.cfg.number_headers_limit as usize;
         let resp = self.response_mut();
