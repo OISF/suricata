@@ -46,6 +46,31 @@ Major Changes
 - Default value for ``stream.reassembly.depth`` when the value is not specified in
   suricata.yaml is now 1 MiB instead of 0/unlimited.
 - LLMNR protocol parser, logger and sticky buffers are implemented.
+- A rule with an app-layer state hook can now use buffers that complete in an earlier
+  state: a rule hooked at ``http1:request_trailer`` matching on ``http.header`` loads, where
+  it was rejected before with "engine progress value doesn't match hook". The buffer is
+  inspected from its own state on, so the hook limits which buffers a rule may use rather
+  than when the data is looked at. Buffers that complete after the hooked state are still
+  rejected. A firewall rule - one loaded through ``firewall.rule-files`` - whose exact state
+  hook sits above the state where its buffer completes is refused at load: it is only
+  evaluated at its hook, so it could never match. The ``<state`` hook form is held to the same
+  bound: its top state is checked the same way, so a rule whose buffer completes below the
+  bound no longer loads either. Concretely, a firewall rule pairing ``http.header.raw`` with
+  ``<request_body`` or with a ``request_body``/``response_body`` hook loaded before this
+  change, because that buffer's engine was registered one state after the block completed;
+  it now needs the ``request_headers`` hook or bound.
+- HTTP trailer fields are no longer part of the header buffers. They have buffers of
+  their own: ``http.trailer``, ``http.trailer.raw`` and ``http.trailer_names``. A rule
+  that matched trailer content through ``http.header``, ``http.header.raw``,
+  ``http.header_names`` or a field keyword such as ``http.user_agent`` stops matching
+  and needs one of the trailer buffers. This also closes a hole where a trailer could
+  extend a header value that detection and logging had already accepted.
+  For HTTP/1 they also drop out of the ``http.request_headers`` and
+  ``http.response_headers`` EVE arrays; no EVE key for trailer fields exists yet.
+  The Lua http library loses them the same way: ``tx:request_header()``,
+  ``tx:request_headers()``, ``tx:request_headers_raw()`` and the response twins read the
+  header tables and the raw header buffer, and that library has no trailer accessor.
+
 - ``pgsql`` is no longer enabled by default. Previously, if the
   ``app-layer.protocols.pgsql`` section was absent from suricata.yaml, the
   parser would be enabled. It's now disabled by default. Simply enabling its EVE

@@ -43,6 +43,11 @@ HTTP is transaction based, and the current transaction must be obtained before u
 
 All other functions are methods on the transaction table.
 
+.. note::
+
+  The header functions below cover the header section only. HTTP trailer fields are not
+  reachable from Lua; match them with the ``http.trailer`` buffers in a rule instead.
+
 Transaction Methods
 ~~~~~~~~~~~~~~~~~~~
 
