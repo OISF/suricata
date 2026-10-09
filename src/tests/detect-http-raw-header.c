@@ -2188,7 +2188,7 @@ static int DetectEngineHttpRawHeaderTest31(void)
     FAIL_IF_NULL(http_state);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF(!(PacketAlertCheck(p1, 1)));
+    FAIL_IF(PacketAlertCheck(p1, 1)); /* trailer bytes are not in the raw header block */
 
     UTHFreePackets(&p1, 1);
     FLOW_DESTROY(&f);
@@ -2278,7 +2278,7 @@ static int DetectEngineHttpRawHeaderTest32(void)
     FAIL_IF_NOT(r == 0);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    FAIL_IF(!PacketAlertCheck(p2, 1));
+    FAIL_IF(PacketAlertCheck(p2, 1)); /* and not when they arrive in a later packet */
 
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
