@@ -36,7 +36,7 @@ static int LuaFileGetFile(lua_State *L)
         return LuaCallbackError(L, "error: no file found");
     }
 
-    struct LuaFile *lua_file = (struct LuaFile *)lua_newuserdata(L, sizeof(*lua_file));
+    struct LuaFile *lua_file = SCLuaNewUserData(L, SCLUA_TUD_FILE, sizeof(*lua_file));
     if (lua_file == NULL) {
         return LuaCallbackError(L, "error: fail to allocate user data");
     }
@@ -50,7 +50,7 @@ static int LuaFileGetFile(lua_State *L)
 
 static int LuaFileGetFileId(lua_State *L)
 {
-    struct LuaFile *lua_file = luaL_checkudata(L, 1, file_mt);
+    struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
     const File *file = lua_file->file;
     lua_pushinteger(L, file->file_store_id);
 
@@ -67,7 +67,7 @@ static int LuaFileGetTxId(lua_State *L)
 
 static int LuaFileGetName(lua_State *L)
 {
-    struct LuaFile *lua_file = luaL_checkudata(L, 1, file_mt);
+    struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
     const File *file = lua_file->file;
     lua_pushlstring(L, (char *)file->name, file->name_len);
 
@@ -76,7 +76,7 @@ static int LuaFileGetName(lua_State *L)
 
 static int LuaFileGetSize(lua_State *L)
 {
-    struct LuaFile *lua_file = luaL_checkudata(L, 1, file_mt);
+    struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
     const File *file = lua_file->file;
     lua_pushinteger(L, FileTrackedSize(file));
 
@@ -86,7 +86,7 @@ static int LuaFileGetSize(lua_State *L)
 static int LuaFileGetMagic(lua_State *L)
 {
 #ifdef HAVE_MAGIC
-    struct LuaFile *lua_file = luaL_checkudata(L, 1, file_mt);
+    struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
     const File *file = lua_file->file;
     if (file->magic != NULL) {
         lua_pushstring(L, file->magic);
@@ -115,7 +115,7 @@ static void PushHex(lua_State *L, const uint8_t *buf, size_t len)
 
 static int LuaFileGetMd5(lua_State *L)
 {
-    struct LuaFile *lua_file = luaL_checkudata(L, 1, file_mt);
+    struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
     const File *file = lua_file->file;
 
     if (file->flags & FILE_MD5) {
@@ -129,7 +129,7 @@ static int LuaFileGetMd5(lua_State *L)
 
 static int LuaFileGetSha1(lua_State *L)
 {
-    struct LuaFile *lua_file = luaL_checkudata(L, 1, file_mt);
+    struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
     const File *file = lua_file->file;
 
     if (file->flags & FILE_SHA1) {
@@ -143,7 +143,7 @@ static int LuaFileGetSha1(lua_State *L)
 
 static int LuaFileGetSha256(lua_State *L)
 {
-    struct LuaFile *lua_file = luaL_checkudata(L, 1, file_mt);
+    struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
     const File *file = lua_file->file;
 
     if (file->flags & FILE_SHA256) {
@@ -157,7 +157,7 @@ static int LuaFileGetSha256(lua_State *L)
 
 static int LuaFileGetState(lua_State *L)
 {
-    struct LuaFile *lua_file = luaL_checkudata(L, 1, file_mt);
+    struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
     const File *file = lua_file->file;
 
     const char *state = "UNKNOWN";
@@ -188,7 +188,7 @@ static int LuaFileGetState(lua_State *L)
 
 static int LuaFileIsStored(lua_State *L)
 {
-    struct LuaFile *lua_file = luaL_checkudata(L, 1, file_mt);
+    struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
     const File *file = lua_file->file;
     lua_pushboolean(L, file->flags & FILE_STORED);
 

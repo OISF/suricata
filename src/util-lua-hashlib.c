@@ -45,6 +45,7 @@
 
 #include "lauxlib.h"
 #include "rust-bindings.h"
+#include "util-lua-common.h"
 
 #define SHA256_MT "suricata:hashlib:sha256"
 
@@ -77,7 +78,7 @@ static int LuaHashLibSha256New(lua_State *L)
     if (CheckHashingEnabled(L)) {
         return 1;
     }
-    struct SCSha256 **hasher = lua_newuserdata(L, sizeof(struct SCSha256 *));
+    struct SCSha256 **hasher = SCLuaNewUserData(L, SCLUA_TUD_SHA256, sizeof(struct SCSha256 *));
     if (hasher == NULL) {
         return luaL_error(L, "failed to allocate userdata for sha256");
     }
@@ -92,7 +93,7 @@ static int LuaHashLibSha256New(lua_State *L)
  */
 static int LuaHashLibSha256Update(lua_State *L)
 {
-    struct SCSha256 **hasher = luaL_checkudata(L, 1, SHA256_MT);
+    struct SCSha256 **hasher = SCLuaCheckUserData(L, 1, SHA256_MT, SCLUA_TUD_SHA256);
     if (hasher == NULL || *hasher == NULL) {
         return luaL_error(L, "invalid sha256 hash context");
     }
@@ -110,7 +111,7 @@ static int LuaHashLibSha256Update(lua_State *L)
 
 static int LuaHashLibSha256Finalize(lua_State *L)
 {
-    struct SCSha256 **hasher = luaL_checkudata(L, 1, SHA256_MT);
+    struct SCSha256 **hasher = SCLuaCheckUserData(L, 1, SHA256_MT, SCLUA_TUD_SHA256);
     if (hasher == NULL || *hasher == NULL) {
         return luaL_error(L, "invalid sha256 hash context");
     }
@@ -129,7 +130,7 @@ static int LuaHashLibSha256Finalize(lua_State *L)
 
 static int LuaHashLibSha256FinalizeToHex(lua_State *L)
 {
-    struct SCSha256 **hasher = luaL_checkudata(L, 1, SHA256_MT);
+    struct SCSha256 **hasher = SCLuaCheckUserData(L, 1, SHA256_MT, SCLUA_TUD_SHA256);
     if (hasher == NULL || *hasher == NULL) {
         return luaL_error(L, "invalid sha256 hash context");
     }
@@ -193,13 +194,47 @@ static int LuaHashLibSha256HexDigest(lua_State *L)
     return 1;
 }
 
-static int LuaHashLibSha256Gc(lua_State *L)
+static int LuaHashLibGc(lua_State *L)
 {
-    struct SCSha256 **hasher = luaL_checkudata(L, 1, SHA256_MT);
-    if (hasher && *hasher) {
-        struct SCSha256 *ctx = *hasher;
-        *hasher = NULL;
-        SCSha256Free(ctx);
+    /* free by the payload's own tag, not the metatable's: a script can
+     * re-metatable a hash handle (debug.setmetatable) and then a
+     * different hasher's __gc runs; a metatable-only check would never
+     * free the payload (ASan leak) */
+    if (lua_type(L, 1) != LUA_TUSERDATA) {
+        return 0;
+    }
+    SCLuaUserDataHeader *h = (SCLuaUserDataHeader *)lua_touserdata(L, 1);
+    if (h == NULL || h->magic != SCLUA_UD_MAGIC) {
+        return 0;
+    }
+    uint8_t *payload = (uint8_t *)h + sizeof(*h);
+    switch (h->type_id) {
+        case SCLUA_TUD_SHA256: {
+            struct SCSha256 **hasher = (struct SCSha256 **)payload;
+            if (*hasher != NULL) {
+                SCSha256Free(*hasher);
+                *hasher = NULL;
+            }
+            break;
+        }
+        case SCLUA_TUD_SHA1: {
+            struct SCSha1 **hasher = (struct SCSha1 **)payload;
+            if (*hasher != NULL) {
+                SCSha1Free(*hasher);
+                *hasher = NULL;
+            }
+            break;
+        }
+        case SCLUA_TUD_MD5: {
+            struct SCMd5 **hasher = (struct SCMd5 **)payload;
+            if (*hasher != NULL) {
+                SCMd5Free(*hasher);
+                *hasher = NULL;
+            }
+            break;
+        }
+        default:
+            break;
     }
     return 0;
 }
@@ -209,7 +244,7 @@ static int LuaHashLibSha1New(lua_State *L)
     if (CheckHashingEnabled(L)) {
         return 1;
     }
-    struct SCSha1 **hasher = lua_newuserdata(L, sizeof(struct SCSha1 *));
+    struct SCSha1 **hasher = SCLuaNewUserData(L, SCLUA_TUD_SHA1, sizeof(struct SCSha1 *));
     if (hasher == NULL) {
         return luaL_error(L, "failed to allocate userdata for sha1");
     }
@@ -221,7 +256,7 @@ static int LuaHashLibSha1New(lua_State *L)
 
 static int LuaHashLibSha1Update(lua_State *L)
 {
-    struct SCSha1 **hasher = luaL_checkudata(L, 1, SHA1_MT);
+    struct SCSha1 **hasher = SCLuaCheckUserData(L, 1, SHA1_MT, SCLUA_TUD_SHA1);
     if (hasher == NULL || *hasher == NULL) {
         return luaL_error(L, "invalid sha1 hash context");
     }
@@ -240,7 +275,7 @@ static int LuaHashLibSha1Update(lua_State *L)
 
 static int LuaHashLibSha1Finalize(lua_State *L)
 {
-    struct SCSha1 **hasher = luaL_checkudata(L, 1, SHA1_MT);
+    struct SCSha1 **hasher = SCLuaCheckUserData(L, 1, SHA1_MT, SCLUA_TUD_SHA1);
     if (hasher == NULL || *hasher == NULL) {
         return luaL_error(L, "invalid sha1 hash context");
     }
@@ -259,7 +294,7 @@ static int LuaHashLibSha1Finalize(lua_State *L)
 
 static int LuaHashLibSha1FinalizeToHex(lua_State *L)
 {
-    struct SCSha1 **hasher = luaL_checkudata(L, 1, SHA1_MT);
+    struct SCSha1 **hasher = SCLuaCheckUserData(L, 1, SHA1_MT, SCLUA_TUD_SHA1);
     if (hasher == NULL || *hasher == NULL) {
         return luaL_error(L, "invalid sha1 hash context");
     }
@@ -321,23 +356,12 @@ static int LuaHashLibSha1HexDigest(lua_State *L)
     return 1;
 }
 
-static int LuaHashLibSha1Gc(lua_State *L)
-{
-    struct SCSha1 **hasher = luaL_checkudata(L, 1, SHA1_MT);
-    if (hasher && *hasher) {
-        struct SCSha1 *ctx = *hasher;
-        *hasher = NULL;
-        SCSha1Free(ctx);
-    }
-    return 0;
-}
-
 static int LuaHashLibMd5New(lua_State *L)
 {
     if (CheckHashingEnabled(L)) {
         return 1;
     }
-    struct SCMd5 **hasher = lua_newuserdata(L, sizeof(struct SCMd5 *));
+    struct SCMd5 **hasher = SCLuaNewUserData(L, SCLUA_TUD_MD5, sizeof(struct SCMd5 *));
     if (hasher == NULL) {
         return luaL_error(L, "failed to allocate userdata for sha1");
     }
@@ -349,7 +373,7 @@ static int LuaHashLibMd5New(lua_State *L)
 
 static int LuaHashLibMd5Update(lua_State *L)
 {
-    struct SCMd5 **hasher = luaL_checkudata(L, 1, MD5_MT);
+    struct SCMd5 **hasher = SCLuaCheckUserData(L, 1, MD5_MT, SCLUA_TUD_MD5);
     if (hasher == NULL || *hasher == NULL) {
         return luaL_error(L, "invalid md5 hash context");
     }
@@ -368,7 +392,7 @@ static int LuaHashLibMd5Update(lua_State *L)
 
 static int LuaHashLibMd5Finalize(lua_State *L)
 {
-    struct SCMd5 **hasher = luaL_checkudata(L, 1, MD5_MT);
+    struct SCMd5 **hasher = SCLuaCheckUserData(L, 1, MD5_MT, SCLUA_TUD_MD5);
     if (hasher == NULL || *hasher == NULL) {
         return luaL_error(L, "invalid md5 hash context");
     }
@@ -387,7 +411,7 @@ static int LuaHashLibMd5Finalize(lua_State *L)
 
 static int LuaHashLibMd5FinalizeToHex(lua_State *L)
 {
-    struct SCMd5 **hasher = luaL_checkudata(L, 1, MD5_MT);
+    struct SCMd5 **hasher = SCLuaCheckUserData(L, 1, MD5_MT, SCLUA_TUD_MD5);
     if (hasher == NULL || *hasher == NULL) {
         return luaL_error(L, "invalid md5 hash context");
     }
@@ -449,17 +473,6 @@ static int LuaHashLibMd5HexDigest(lua_State *L)
     return 1;
 }
 
-static int LuaHashLibMd5Gc(lua_State *L)
-{
-    struct SCMd5 **hasher = luaL_checkudata(L, 1, MD5_MT);
-    if (hasher && *hasher) {
-        struct SCMd5 *ctx = *hasher;
-        *hasher = NULL;
-        SCMd5Free(ctx);
-    }
-    return 0;
-}
-
 static const struct luaL_Reg hashlib[] = {
     // clang-format off
     { "sha256_digest", LuaHashLibSha256Digest },
@@ -505,19 +518,19 @@ static const struct luaL_Reg md5_methods[] = {
 int SCLuaLoadHashlib(lua_State *L)
 {
     luaL_newmetatable(L, SHA256_MT);
-    lua_pushcfunction(L, LuaHashLibSha256Gc);
+    lua_pushcfunction(L, LuaHashLibGc);
     lua_setfield(L, -2, "__gc");
     luaL_newlib(L, sha256_methods);
     lua_setfield(L, -2, "__index");
 
     luaL_newmetatable(L, SHA1_MT);
-    lua_pushcfunction(L, LuaHashLibSha1Gc);
+    lua_pushcfunction(L, LuaHashLibGc);
     lua_setfield(L, -2, "__gc");
     luaL_newlib(L, sha1_methods);
     lua_setfield(L, -2, "__index");
 
     luaL_newmetatable(L, MD5_MT);
-    lua_pushcfunction(L, LuaHashLibMd5Gc);
+    lua_pushcfunction(L, LuaHashLibGc);
     lua_setfield(L, -2, "__gc");
     luaL_newlib(L, md5_methods);
     lua_setfield(L, -2, "__index");

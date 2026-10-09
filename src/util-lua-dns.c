@@ -44,7 +44,7 @@ static int LuaDnsGetTx(lua_State *L)
     if (tx == NULL) {
         return LuaCallbackError(L, "error: no tx available");
     }
-    struct LuaTx *ltx = (struct LuaTx *)lua_newuserdata(L, sizeof(*ltx));
+    struct LuaTx *ltx = SCLuaNewUserData(L, SCLUA_TUD_DNS_TX, sizeof(*ltx));
     if (ltx == NULL) {
         return LuaCallbackError(L, "error: fail to allocate user data");
     }
@@ -58,7 +58,7 @@ static int LuaDnsGetTx(lua_State *L)
 
 static int LuaDnsTxGetRrname(lua_State *L)
 {
-    struct LuaTx *tx = luaL_testudata(L, 1, dns_tx);
+    struct LuaTx *tx = SCLuaTestUserData(L, 1, dns_tx, SCLUA_TUD_DNS_TX);
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -68,7 +68,7 @@ static int LuaDnsTxGetRrname(lua_State *L)
 
 static int LuaDnsTxGetTxid(lua_State *L)
 {
-    struct LuaTx *tx = luaL_testudata(L, 1, dns_tx);
+    struct LuaTx *tx = SCLuaTestUserData(L, 1, dns_tx, SCLUA_TUD_DNS_TX);
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -78,7 +78,7 @@ static int LuaDnsTxGetTxid(lua_State *L)
 
 static int LuaDnsTxGetRcode(lua_State *L)
 {
-    struct LuaTx *tx = luaL_testudata(L, 1, dns_tx);
+    struct LuaTx *tx = SCLuaTestUserData(L, 1, dns_tx, SCLUA_TUD_DNS_TX);
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -88,7 +88,7 @@ static int LuaDnsTxGetRcode(lua_State *L)
 
 static int LuaDnsTxGetRcodeString(lua_State *L)
 {
-    struct LuaTx *tx = luaL_testudata(L, 1, dns_tx);
+    struct LuaTx *tx = SCLuaTestUserData(L, 1, dns_tx, SCLUA_TUD_DNS_TX);
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -98,7 +98,7 @@ static int LuaDnsTxGetRcodeString(lua_State *L)
 
 static int LuaDnsTxGetRecursionDesired(lua_State *L)
 {
-    struct LuaTx *tx = luaL_testudata(L, 1, dns_tx);
+    struct LuaTx *tx = SCLuaTestUserData(L, 1, dns_tx, SCLUA_TUD_DNS_TX);
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -113,7 +113,7 @@ static int LuaDnsTxGetRecursionDesired(lua_State *L)
 
 static int LuaDnsTxGetQueries(lua_State *L)
 {
-    struct LuaTx *tx = luaL_testudata(L, 1, dns_tx);
+    struct LuaTx *tx = SCLuaTestUserData(L, 1, dns_tx, SCLUA_TUD_DNS_TX);
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -123,7 +123,7 @@ static int LuaDnsTxGetQueries(lua_State *L)
 
 static int LuaDnsTxGetAnswers(lua_State *L)
 {
-    struct LuaTx *tx = luaL_testudata(L, 1, dns_tx);
+    struct LuaTx *tx = SCLuaTestUserData(L, 1, dns_tx, SCLUA_TUD_DNS_TX);
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;
@@ -133,7 +133,7 @@ static int LuaDnsTxGetAnswers(lua_State *L)
 
 static int LuaDnsTxGetAuthorities(lua_State *L)
 {
-    struct LuaTx *tx = luaL_testudata(L, 1, dns_tx);
+    struct LuaTx *tx = SCLuaTestUserData(L, 1, dns_tx, SCLUA_TUD_DNS_TX);
     if (tx == NULL) {
         lua_pushnil(L);
         return 1;

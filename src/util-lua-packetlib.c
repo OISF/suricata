@@ -44,7 +44,7 @@ struct LuaPacket {
 static int LuaPacketGC(lua_State *luastate)
 {
     SCLogDebug("gc:start");
-    struct LuaPacket *s = (struct LuaPacket *)luaL_testudata(luastate, 1, suricata_packet);
+    struct LuaPacket *s = SCLuaTestUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
     if (s != NULL) {
         SCLogDebug("packet %p", s->p);
         s->p = NULL;
@@ -55,7 +55,7 @@ static int LuaPacketGC(lua_State *luastate)
 
 static int LuaPacketPayload(lua_State *luastate)
 {
-    struct LuaPacket *s = (struct LuaPacket *)luaL_checkudata(luastate, 1, suricata_packet);
+    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
     if (s->p == NULL) {
         LUA_ERROR("failed to get packet");
     }
@@ -66,7 +66,7 @@ static int LuaPacketPayload(lua_State *luastate)
 
 static int LuaPacketPacket(lua_State *luastate)
 {
-    struct LuaPacket *s = (struct LuaPacket *)luaL_checkudata(luastate, 1, suricata_packet);
+    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
     if (s->p == NULL) {
         LUA_ERROR("failed to get packet");
     }
@@ -77,7 +77,7 @@ static int LuaPacketPacket(lua_State *luastate)
 
 static int LuaPacketPcapCnt(lua_State *luastate)
 {
-    struct LuaPacket *s = (struct LuaPacket *)luaL_checkudata(luastate, 1, suricata_packet);
+    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
     if (s->p == NULL) {
         LUA_ERROR("failed to get packet");
     }
@@ -91,7 +91,7 @@ static int LuaPacketPcapCnt(lua_State *luastate)
  */
 static int LuaPacketTimestringLegacy(lua_State *luastate)
 {
-    struct LuaPacket *s = (struct LuaPacket *)luaL_checkudata(luastate, 1, suricata_packet);
+    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
     if (s->p == NULL) {
         LUA_ERROR("failed to get packet");
     }
@@ -104,7 +104,7 @@ static int LuaPacketTimestringLegacy(lua_State *luastate)
 
 static int LuaPacketTimestringIso8601(lua_State *luastate)
 {
-    struct LuaPacket *s = (struct LuaPacket *)luaL_checkudata(luastate, 1, suricata_packet);
+    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
     if (s->p == NULL) {
         LUA_ERROR("failed to get packet");
     }
@@ -117,7 +117,7 @@ static int LuaPacketTimestringIso8601(lua_State *luastate)
 
 static int LuaPacketTimestamp(lua_State *luastate)
 {
-    struct LuaPacket *s = (struct LuaPacket *)luaL_checkudata(luastate, 1, suricata_packet);
+    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
     if (s->p == NULL) {
         LUA_ERROR("failed to get packet");
     }
@@ -137,7 +137,7 @@ static int LuaPacketTimestamp(lua_State *luastate)
  */
 static int LuaPacketTuple(lua_State *luastate)
 {
-    struct LuaPacket *s = (struct LuaPacket *)luaL_checkudata(luastate, 1, suricata_packet);
+    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
     if (s->p == NULL) {
         LUA_ERROR("failed to get packet");
     }
@@ -188,7 +188,7 @@ static int LuaPacketTuple(lua_State *luastate)
  */
 static int LuaPacketSport(lua_State *luastate)
 {
-    struct LuaPacket *s = (struct LuaPacket *)luaL_checkudata(luastate, 1, suricata_packet);
+    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
     if (s->p == NULL) {
         LUA_ERROR("failed to get packet");
     }
@@ -213,7 +213,7 @@ static int LuaPacketSport(lua_State *luastate)
  */
 static int LuaPacketDport(lua_State *luastate)
 {
-    struct LuaPacket *s = (struct LuaPacket *)luaL_checkudata(luastate, 1, suricata_packet);
+    struct LuaPacket *s = SCLuaCheckUserData(luastate, 1, suricata_packet, SCLUA_TUD_PACKET);
     if (s->p == NULL) {
         LUA_ERROR("failed to get packet");
     }
@@ -239,7 +239,7 @@ static int LuaPacketGet(lua_State *luastate)
         LUA_ERROR("failed to get packet");
     }
 
-    struct LuaPacket *s = (struct LuaPacket *)lua_newuserdata(luastate, sizeof(*s));
+    struct LuaPacket *s = SCLuaNewUserData(luastate, SCLUA_TUD_PACKET, sizeof(*s));
     if (s == NULL) {
         LUA_ERROR("failed to get userdata");
     }

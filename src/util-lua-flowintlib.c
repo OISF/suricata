@@ -58,7 +58,7 @@ static int LuaFlowintRegister(lua_State *L)
     if (ld->flowints >= DETECT_LUA_MAX_FLOWINTS) {
         return luaL_error(L, "too many flowints registered");
     }
-    uint32_t *flowvar_id = lua_newuserdata(L, sizeof(*flowvar_id));
+    uint32_t *flowvar_id = SCLuaNewUserData(L, SCLUA_TUD_FLOWINT, sizeof(*flowvar_id));
     *flowvar_id = VarNameStoreRegister(name, VAR_TYPE_FLOW_INT);
     if (*flowvar_id == 0) {
         return luaL_error(L, "failed to register flowint");
@@ -74,7 +74,7 @@ static int LuaFlowintRegister(lua_State *L)
 static int LuaFlowintGet(lua_State *L)
 {
     const char *name = luaL_checkstring(L, 1);
-    uint32_t *flowvar_id = lua_newuserdata(L, sizeof(*flowvar_id));
+    uint32_t *flowvar_id = SCLuaNewUserData(L, SCLUA_TUD_FLOWINT, sizeof(*flowvar_id));
     *flowvar_id = VarNameStoreLookupByName(name, VAR_TYPE_FLOW_INT);
     if (*flowvar_id == 0) {
         return luaL_error(L, "flowvar does not exist");
@@ -88,7 +88,7 @@ static int LuaFlowintGet(lua_State *L)
 
 static int LuaFlowintValue(lua_State *L)
 {
-    uint32_t *flowvar_id = luaL_checkudata(L, 1, suricata_flowint_mt);
+    uint32_t *flowvar_id = SCLuaCheckUserData(L, 1, suricata_flowint_mt, SCLUA_TUD_FLOWINT);
     Flow *f = LuaStateGetFlow(L);
     if (f == NULL) {
         return LuaCallbackError(L, "flow is NULL");
@@ -105,7 +105,7 @@ static int LuaFlowintValue(lua_State *L)
 static int LuaFlowintSet(lua_State *L)
 {
     const lua_Integer value = luaL_checkinteger(L, 2);
-    uint32_t *flowvar_id = luaL_checkudata(L, 1, suricata_flowint_mt);
+    uint32_t *flowvar_id = SCLuaCheckUserData(L, 1, suricata_flowint_mt, SCLUA_TUD_FLOWINT);
     Flow *f = LuaStateGetFlow(L);
     if (f == NULL) {
         return luaL_error(L, "no flow");
@@ -129,7 +129,7 @@ static int LuaFlowintSet(lua_State *L)
 
 static int LuaFlowintIncr(lua_State *L)
 {
-    uint32_t *flowvar_id = luaL_checkudata(L, 1, suricata_flowint_mt);
+    uint32_t *flowvar_id = SCLuaCheckUserData(L, 1, suricata_flowint_mt, SCLUA_TUD_FLOWINT);
     Flow *f = LuaStateGetFlow(L);
     if (f == NULL) {
         return luaL_error(L, "no flow");
@@ -154,7 +154,7 @@ static int LuaFlowintIncr(lua_State *L)
 
 static int LuaFlowintDecr(lua_State *L)
 {
-    uint32_t *flowvar_id = luaL_checkudata(L, 1, suricata_flowint_mt);
+    uint32_t *flowvar_id = SCLuaCheckUserData(L, 1, suricata_flowint_mt, SCLUA_TUD_FLOWINT);
     Flow *f = LuaStateGetFlow(L);
     if (f == NULL) {
         return luaL_error(L, "no flow");

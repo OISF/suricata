@@ -97,7 +97,10 @@ static int LuaBytevarGet(lua_State *L)
 
     for (uint16_t i = 0; i < ld->bytevars; i++) {
         if (strcmp(ld->bytevar[i].name, name) == 0) {
-            LuaBytevarHandle *handle = lua_newuserdata(L, sizeof(*handle));
+            LuaBytevarHandle *handle = SCLuaNewUserData(L, SCLUA_TUD_BYTEVAR, sizeof(*handle));
+            if (handle == NULL) {
+                return LuaCallbackError(L, "error: failed to allocate user data");
+            }
             handle->id = ld->bytevar[i].id;
             handle->sig = ld->signature;
             luaL_getmetatable(L, suricata_bytevar_mt);
@@ -111,7 +114,11 @@ static int LuaBytevarGet(lua_State *L)
 
 static int LuaBytevarValue(lua_State *L)
 {
-    LuaBytevarHandle *handle = luaL_checkudata(L, 1, suricata_bytevar_mt);
+    LuaBytevarHandle *handle = SCLuaCheckUserData(L, 1, suricata_bytevar_mt, SCLUA_TUD_BYTEVAR);
+    if (handle == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
     DetectEngineThreadCtx *det_ctx = LuaStateGetDetCtx(L);
     if (det_ctx == NULL) {
         return LuaCallbackError(L, "internal error: no det_ctx");

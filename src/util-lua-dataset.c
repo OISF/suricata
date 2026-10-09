@@ -48,7 +48,7 @@ struct LuaDataset {
 static int LuaDatasetGC(lua_State *luastate)
 {
     SCLogDebug("gc:start");
-    struct LuaDataset *s = (struct LuaDataset *)luaL_testudata(luastate, 1, "dataset::metatable");
+    struct LuaDataset *s = SCLuaTestUserData(luastate, 1, "dataset::metatable", SCLUA_TUD_DATASET);
     if (s != NULL) {
         s->name[0] = '\0';
     }
@@ -59,7 +59,7 @@ static int LuaDatasetGC(lua_State *luastate)
 static int LuaDatasetGetRef(lua_State *luastate)
 {
     SCLogDebug("get");
-    struct LuaDataset *s = (struct LuaDataset *)luaL_checkudata(luastate, 1, "dataset::metatable");
+    struct LuaDataset *s = SCLuaCheckUserData(luastate, 1, "dataset::metatable", SCLUA_TUD_DATASET);
 
     const char *name = lua_tostring(luastate, 2);
     if (name == NULL) {
@@ -79,7 +79,7 @@ static int LuaDatasetGetRef(lua_State *luastate)
 static int LuaDatasetAdd(lua_State *luastate)
 {
     SCLogDebug("add:start");
-    struct LuaDataset *s = luaL_checkudata(luastate, 1, "dataset::metatable");
+    struct LuaDataset *s = SCLuaCheckUserData(luastate, 1, "dataset::metatable", SCLUA_TUD_DATASET);
     if (s->name[0] == '\0') {
         LUA_ERROR("dataset is not initialized (call :get first)");
     }
@@ -116,7 +116,7 @@ static int LuaDatasetAdd(lua_State *luastate)
 static int LuaDatasetNew(lua_State *luastate)
 {
     SCLogDebug("new:start");
-    struct LuaDataset *s = (struct LuaDataset *)lua_newuserdata(luastate, sizeof(*s));
+    struct LuaDataset *s = SCLuaNewUserData(luastate, SCLUA_TUD_DATASET, sizeof(*s));
     if (s == NULL) {
         LUA_ERROR("failed to get userdata");
     }

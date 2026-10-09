@@ -59,7 +59,7 @@ static int LuaRuleGetRule(lua_State *L)
 
     const size_t msg_size = s->msg ? strlen(s->msg) + 1 : 0;
     const size_t class_size = s->class_msg ? strlen(s->class_msg) + 1 : 0;
-    LuaRuleData *r = (LuaRuleData *)lua_newuserdata(L, sizeof(*r) + msg_size + class_size);
+    LuaRuleData *r = SCLuaNewUserData(L, SCLUA_TUD_RULE, sizeof(*r) + msg_size + class_size);
     if (r == NULL) {
         return LuaCallbackError(L, "error: failed to allocate user data");
     }
@@ -89,7 +89,7 @@ static int LuaRuleGetRule(lua_State *L)
 
 static int LuaRuleGetSid(lua_State *L)
 {
-    LuaRuleData *r = luaL_testudata(L, 1, suricata_rule_mt);
+    LuaRuleData *r = SCLuaTestUserData(L, 1, suricata_rule_mt, SCLUA_TUD_RULE);
     if (r == NULL) {
         lua_pushnil(L);
         return 1;
@@ -100,7 +100,7 @@ static int LuaRuleGetSid(lua_State *L)
 
 static int LuaRuleGetGid(lua_State *L)
 {
-    LuaRuleData *r = luaL_testudata(L, 1, suricata_rule_mt);
+    LuaRuleData *r = SCLuaTestUserData(L, 1, suricata_rule_mt, SCLUA_TUD_RULE);
     if (r == NULL) {
         lua_pushnil(L);
         return 1;
@@ -111,7 +111,7 @@ static int LuaRuleGetGid(lua_State *L)
 
 static int LuaRuleGetRev(lua_State *L)
 {
-    LuaRuleData *r = luaL_testudata(L, 1, suricata_rule_mt);
+    LuaRuleData *r = SCLuaTestUserData(L, 1, suricata_rule_mt, SCLUA_TUD_RULE);
     if (r == NULL) {
         lua_pushnil(L);
         return 1;
@@ -122,7 +122,7 @@ static int LuaRuleGetRev(lua_State *L)
 
 static int LuaRuleGetAction(lua_State *L)
 {
-    LuaRuleData *r = luaL_testudata(L, 1, suricata_rule_mt);
+    LuaRuleData *r = SCLuaTestUserData(L, 1, suricata_rule_mt, SCLUA_TUD_RULE);
     if (r == NULL) {
         lua_pushnil(L);
         return 1;
@@ -145,7 +145,7 @@ static int LuaRuleGetAction(lua_State *L)
 
 static int LuaRuleGetMsg(lua_State *L)
 {
-    LuaRuleData *r = luaL_testudata(L, 1, suricata_rule_mt);
+    LuaRuleData *r = SCLuaTestUserData(L, 1, suricata_rule_mt, SCLUA_TUD_RULE);
     if (r == NULL) {
         lua_pushnil(L);
         return 1;
@@ -156,7 +156,7 @@ static int LuaRuleGetMsg(lua_State *L)
 
 static int LuaRuleGetClassDescription(lua_State *L)
 {
-    LuaRuleData *r = luaL_testudata(L, 1, suricata_rule_mt);
+    LuaRuleData *r = SCLuaTestUserData(L, 1, suricata_rule_mt, SCLUA_TUD_RULE);
     if (r == NULL) {
         lua_pushnil(L);
         return 1;
@@ -167,7 +167,7 @@ static int LuaRuleGetClassDescription(lua_State *L)
 
 static int LuaRuleGetPriority(lua_State *L)
 {
-    LuaRuleData *r = luaL_testudata(L, 1, suricata_rule_mt);
+    LuaRuleData *r = SCLuaTestUserData(L, 1, suricata_rule_mt, SCLUA_TUD_RULE);
     if (r == NULL) {
         lua_pushnil(L);
         return 1;
