@@ -155,9 +155,6 @@ typedef struct HtpTxUserData_ {
     uint8_t request_body_init;
     uint8_t response_body_init;
 
-    uint8_t request_has_trailers;
-    uint8_t response_has_trailers;
-
     uint8_t tsflags;
     uint8_t tcflags;
 

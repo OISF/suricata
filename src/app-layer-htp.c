@@ -1609,22 +1609,6 @@ void HTPFreeConfig(void)
     SCReturn;
 }
 
-static int HTPCallbackRequestHasTrailer(const htp_connp_t *connp, htp_tx_t *tx)
-{
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    htud->tx_data.updated_ts = true;
-    htud->request_has_trailers = 1;
-    return HTP_STATUS_OK;
-}
-
-static int HTPCallbackResponseHasTrailer(const htp_connp_t *connp, htp_tx_t *tx)
-{
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    htud->tx_data.updated_tc = true;
-    htud->response_has_trailers = 1;
-    return HTP_STATUS_OK;
-}
-
 static void *HTPCallbackTxCreate(bool request)
 {
     HtpTxUserData *tx_ud = HTPCalloc(1, sizeof(HtpTxUserData));
@@ -1962,9 +1946,6 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     htp_config_register_request_trailer_data(cfg_prec->cfg, HTPCallbackRequestTrailerData);
     htp_config_register_response_header_data(cfg_prec->cfg, HTPCallbackResponseHeaderData);
     htp_config_register_response_trailer_data(cfg_prec->cfg, HTPCallbackResponseTrailerData);
-
-    htp_config_register_request_trailer(cfg_prec->cfg, HTPCallbackRequestHasTrailer);
-    htp_config_register_response_trailer(cfg_prec->cfg, HTPCallbackResponseHasTrailer);
 
     htp_config_register_request_body_data(cfg_prec->cfg, HTPCallbackRequestBodyData);
     htp_config_register_response_body_data(cfg_prec->cfg, HTPCallbackResponseBodyData);

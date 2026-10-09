@@ -71,11 +71,6 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
         const int list_id);
 
-static int PrefilterMpmHttpHeaderRawRequestRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id);
-static int PrefilterMpmHttpHeaderRawResponseRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id);
-
 /**
  * \brief Registers the keyword handlers for the "http_raw_header" keyword.
  */
@@ -101,17 +96,19 @@ void DetectHttpRawHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_RAW_HEADER].Setup = DetectHttpRawHeaderSetupSticky;
     sigmatch_table[DETECT_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
+    /* one state past the headers, unlike the other header buffers: the raw bytes arrive
+     * through a data hook that htp only flushes as it leaves the header state, so a round at
+     * HEADERS would decide on a truncated block (negated content and within: would answer
+     * differently than on the complete block) */
     DetectAppLayerInspectEngineRegister("http_raw_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
             HTP_REQUEST_PROGRESS_HEADERS + 1, DetectEngineInspectBufferGeneric, GetData);
     DetectAppLayerInspectEngineRegister("http_raw_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
             HTP_RESPONSE_PROGRESS_HEADERS + 1, DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerMpmRegister("http_raw_header", SIG_FLAG_TOSERVER, 2,
-            PrefilterMpmHttpHeaderRawRequestRegister, NULL, ALPROTO_HTTP1,
-            0); /* progress handled in register */
-    DetectAppLayerMpmRegister("http_raw_header", SIG_FLAG_TOCLIENT, 2,
-            PrefilterMpmHttpHeaderRawResponseRegister, NULL, ALPROTO_HTTP1,
-            0); /* progress handled in register */
+    DetectAppLayerMpmRegister("http_raw_header", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS + 1);
+    DetectAppLayerMpmRegister("http_raw_header", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
+            GetData, ALPROTO_HTTP1, HTP_RESPONSE_PROGRESS_HEADERS + 1);
 
     DetectAppLayerInspectEngineRegisterSubState("http_raw_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetData2);
@@ -234,142 +231,6 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
     }
 
     return buffer;
-}
-
-typedef struct PrefilterMpmHttpHeaderRawCtx {
-    int list_id;
-    const MpmCtx *mpm_ctx;
-    const DetectEngineTransforms *transforms;
-} PrefilterMpmHttpHeaderRawCtx;
-
-/** \brief Generic Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterMpmHttpHeaderRaw(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
-        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
-{
-    SCEnter();
-
-    const PrefilterMpmHttpHeaderRawCtx *ctx = pectx;
-    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
-    SCLogDebug("running on list %d", ctx->list_id);
-
-    const int list_id = ctx->list_id;
-
-    InspectionBuffer *buffer = GetData(det_ctx, ctx->transforms, f,
-            flags, txv, list_id);
-    if (buffer == NULL)
-        return;
-
-    const uint32_t data_len = buffer->inspect_len;
-    const uint8_t *data = buffer->inspect;
-
-    SCLogDebug("mpm'ing buffer:");
-    //PrintRawDataFp(stdout, data, data_len);
-
-    if (data != NULL && data_len >= mpm_ctx->minlen) {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(
-                mpm_ctx, &det_ctx->mtc, &det_ctx->pmq, data, data_len);
-        PREFILTER_PROFILING_ADD_BYTES(det_ctx, data_len);
-    }
-}
-
-static void PrefilterMpmHttpTrailerRaw(DetectEngineThreadCtx *det_ctx, const void *pectx, Packet *p,
-        Flow *f, void *txv, const uint64_t idx, const AppLayerTxData *_txd, const uint8_t flags)
-{
-    SCEnter();
-
-    htp_tx_t *tx = txv;
-    const HtpTxUserData *htud = (const HtpTxUserData *)htp_tx_get_user_data(tx);
-    /* if the request wasn't flagged as having a trailer, we skip */
-    if (((flags & STREAM_TOSERVER) && !htud->request_has_trailers) ||
-            ((flags & STREAM_TOCLIENT) && !htud->response_has_trailers)) {
-        SCReturn;
-    }
-    PrefilterMpmHttpHeaderRaw(det_ctx, pectx, p, f, txv, idx, _txd, flags);
-    SCReturn;
-}
-
-static void PrefilterMpmHttpHeaderRawFree(void *ptr)
-{
-    SCFree(ptr);
-}
-
-static int PrefilterMpmHttpHeaderRawRequestRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
-{
-    SCEnter();
-
-    /* header */
-    PrefilterMpmHttpHeaderRawCtx *pectx = SCCalloc(1, sizeof(*pectx));
-    if (pectx == NULL)
-        return -1;
-    pectx->list_id = list_id;
-    pectx->mpm_ctx = mpm_ctx;
-    pectx->transforms = &mpm_reg->transforms;
-
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpHeaderRaw, mpm_reg->app_v2.alproto,
-            HTP_REQUEST_PROGRESS_HEADERS + 1, pectx, PrefilterMpmHttpHeaderRawFree, mpm_reg->pname);
-    if (r != 0) {
-        SCFree(pectx);
-        return r;
-    }
-
-    /* trailer */
-    pectx = SCCalloc(1, sizeof(*pectx));
-    if (pectx == NULL)
-        return -1;
-    pectx->list_id = list_id;
-    pectx->mpm_ctx = mpm_ctx;
-    pectx->transforms = &mpm_reg->transforms;
-
-    r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpTrailerRaw, mpm_reg->app_v2.alproto,
-            HTP_REQUEST_PROGRESS_TRAILER + 1, pectx, PrefilterMpmHttpHeaderRawFree, mpm_reg->pname);
-    if (r != 0) {
-        SCFree(pectx);
-    }
-    return r;
-}
-
-static int PrefilterMpmHttpHeaderRawResponseRegister(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
-        MpmCtx *mpm_ctx, const DetectBufferMpmRegistry *mpm_reg, int list_id)
-{
-    SCEnter();
-
-    /* header */
-    PrefilterMpmHttpHeaderRawCtx *pectx = SCCalloc(1, sizeof(*pectx));
-    if (pectx == NULL)
-        return -1;
-    pectx->list_id = list_id;
-    pectx->mpm_ctx = mpm_ctx;
-    pectx->transforms = &mpm_reg->transforms;
-
-    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpHeaderRaw, mpm_reg->app_v2.alproto,
-            HTP_RESPONSE_PROGRESS_HEADERS, pectx, PrefilterMpmHttpHeaderRawFree, mpm_reg->pname);
-    if (r != 0) {
-        SCFree(pectx);
-        return r;
-    }
-
-    /* trailer */
-    pectx = SCCalloc(1, sizeof(*pectx));
-    if (pectx == NULL)
-        return -1;
-    pectx->list_id = list_id;
-    pectx->mpm_ctx = mpm_ctx;
-    pectx->transforms = &mpm_reg->transforms;
-
-    r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpmHttpTrailerRaw, mpm_reg->app_v2.alproto,
-            HTP_RESPONSE_PROGRESS_TRAILER, pectx, PrefilterMpmHttpHeaderRawFree, mpm_reg->pname);
-    if (r != 0) {
-        SCFree(pectx);
-    }
-    return r;
 }
 
 /************************************Unittests*********************************/
