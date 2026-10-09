@@ -75,6 +75,8 @@ void LuaReturnState(lua_State *s)
 
 /* key for tv (threadvars) pointer */
 const char lua_ext_key_tv[] = "suricata:lua:tv:ptr";
+/* key for the invocation-generation counter pointer */
+const char lua_ext_key_invocation_gen[] = "suricata:lua:invocation:gen";
 /* key for tx pointer */
 const char lua_ext_key_tx[] = "suricata:lua:tx:ptr";
 /* key for tx id */
@@ -118,6 +120,7 @@ enum {
     SCLUA_REG_FILE,
     SCLUA_REG_DET_CTX,
     SCLUA_REG_DETECT_LUA_DATA,
+    SCLUA_REG_INVOCATION_GEN,
 };
 
 static void LuaStateSetReg(lua_State *luastate, const void *key, uint32_t type_id, void *ptr)
@@ -191,7 +194,31 @@ ThreadVars *LuaStateGetThreadVars(lua_State *luastate)
 
 void LuaStateSetThreadVars(lua_State *luastate, ThreadVars *tv)
 {
+    /* every registry context write is one script invocation: the state's
+     * invocation generation counts them, so a handle caching
+     * invocation-local pointers can compare it as a generation (a tx
+     * cannot be freed while a script call runs) */
+    uint64_t *gen = LuaStateGetReg(luastate, lua_ext_key_invocation_gen, SCLUA_REG_INVOCATION_GEN);
+    if (gen != NULL) {
+        *gen += 1;
+    }
     LuaStateSetReg(luastate, lua_ext_key_tv, SCLUA_REG_TV, (void *)tv);
+}
+
+/* publish the state's invocation counter: the slot holds the counter's
+ * address, not the counter - the value stays C-owned (sandbox context
+ * or output ctx), so a script cannot forge a generation; a swapped or
+ * cleared slot reads as 0 and no cursor is ever trusted */
+void LuaStateSetInvocationGen(lua_State *luastate, uint64_t *gen)
+{
+    LuaStateSetReg(luastate, lua_ext_key_invocation_gen, SCLUA_REG_INVOCATION_GEN, (void *)gen);
+}
+
+/** \brief get the current invocation generation for this state */
+uint64_t LuaStateGetInvocationGen(lua_State *luastate)
+{
+    uint64_t *gen = LuaStateGetReg(luastate, lua_ext_key_invocation_gen, SCLUA_REG_INVOCATION_GEN);
+    return (gen != NULL) ? *gen : 0;
 }
 
 /** \brief get packet pointer from the lua state */

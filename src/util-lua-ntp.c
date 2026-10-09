@@ -24,7 +24,7 @@
 static const char ntp_tx[] = "suricata:ntp:tx";
 
 struct LuaTx {
-    void *tx;
+    SCLuaTxRef ref;
 };
 
 static int LuaNtpGetTx(lua_State *L)
@@ -40,7 +40,7 @@ static int LuaNtpGetTx(lua_State *L)
     if (ltx == NULL) {
         return LuaCallbackError(L, "error: fail to allocate user data");
     }
-    ltx->tx = tx;
+    SCLuaTxRefInit(L, &ltx->ref, LuaStateGetTxId(L));
 
     luaL_getmetatable(L, ntp_tx);
     lua_setmetatable(L, -2);
@@ -55,7 +55,8 @@ static int LuaNtpTxGetVersion(lua_State *L)
         lua_pushnil(L);
         return 1;
     }
-    return SCNtpLuaGetVersion(L, tx->tx);
+    SCLUA_RESOLVE_TX(L, &tx->ref, txptr);
+    return SCNtpLuaGetVersion(L, txptr);
 }
 
 static int LuaNtpTxGetMode(lua_State *L)
@@ -65,7 +66,8 @@ static int LuaNtpTxGetMode(lua_State *L)
         lua_pushnil(L);
         return 1;
     }
-    return SCNtpLuaGetMode(L, tx->tx);
+    SCLUA_RESOLVE_TX(L, &tx->ref, txptr);
+    return SCNtpLuaGetMode(L, txptr);
 }
 
 static int LuaNtpTxGetStratum(lua_State *L)
@@ -75,7 +77,8 @@ static int LuaNtpTxGetStratum(lua_State *L)
         lua_pushnil(L);
         return 1;
     }
-    return SCNtpLuaGetStratum(L, tx->tx);
+    SCLUA_RESOLVE_TX(L, &tx->ref, txptr);
+    return SCNtpLuaGetStratum(L, txptr);
 }
 
 static int LuaNtpTxGetReferenceId(lua_State *L)
@@ -85,7 +88,8 @@ static int LuaNtpTxGetReferenceId(lua_State *L)
         lua_pushnil(L);
         return 1;
     }
-    return SCNtpLuaGetReferenceId(L, tx->tx);
+    SCLUA_RESOLVE_TX(L, &tx->ref, txptr);
+    return SCNtpLuaGetReferenceId(L, txptr);
 }
 
 static const struct luaL_Reg txlib[] = {

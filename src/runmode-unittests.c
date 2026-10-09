@@ -107,6 +107,7 @@
 
 #include "util-streaming-buffer.h"
 #include "util-lua.h"
+#include "util-lua-common.h"
 #include "tm-modules.h"
 #include "tmqh-packetpool.h"
 #include "decode-chdlc.h"
@@ -210,6 +211,7 @@ static void RegisterUnittests(void)
     SCAtomicRegisterTests();
     MemrchrRegisterTests();
     AppLayerUnittestsRegister();
+    SCLuaCommonRegisterTests();
     StreamingBufferRegisterTests();
     MacSetRegisterTests();
     FlowRateRegisterTests();
