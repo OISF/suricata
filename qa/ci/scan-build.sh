@@ -67,6 +67,7 @@ scan-build-22 ./configure --enable-warnings --enable-dpdk --enable-nfqueue --ena
 # flags handling.
 scan-build-22 --status-bugs --exclude "$(pwd)/rust/" \
     --exclude "$HOME/\.cargo/registry/src/" \
+    --exclude /usr/include/dpdk \
     -o scan-build-report/ \
     -enable-checker core.BitwiseShift \
     -enable-checker core.CallAndMessage \
