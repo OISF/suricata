@@ -88,7 +88,8 @@ static bool LuaTlsTxLogCondition(
     return SSLV3TxLogReady(tx);
 }
 
-static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate,
+        void *txptr, uint64_t tx_id)
 {
     SCEnter();
 
@@ -128,8 +129,8 @@ static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow 
  *  Hooks into the Streaming Logger API. Gets called for each chunk of new
  *  streaming data.
  */
-static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
-        const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags)
+static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data,
+        uint32_t data_len, uint64_t tx_id, uint8_t flags)
 {
     SCEnter();
 
@@ -240,7 +241,7 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
         LuaStateSetPacketAlert(td->lua_ctx->luastate, (PacketAlert *)pa);
 
         /* prepare data to pass to script */
-        //lua_newtable(td->lua_ctx->luastate);
+        // lua_newtable(td->lua_ctx->luastate);
 
         int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
         if (retval != 0) {
@@ -346,6 +347,9 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
     LuaStateSetTX(td->lua_ctx->luastate, tx, tx_id);
     LuaStateSetFlow(td->lua_ctx->luastate, p->flow);
     LuaStateSetFile(td->lua_ctx->luastate, (File *)ff);
+    /* the file's container direction - on the EOF opposing-direction
+     * flush this is the packet's opposite direction */
+    LuaStateSetDirection(td->lua_ctx->luastate, (dir & STREAM_TOSERVER) ? 1 : 0);
 
     /* get the lua function to call */
     lua_getglobal(td->lua_ctx->luastate, "log");
@@ -396,8 +400,6 @@ static int LuaFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     SCMutexUnlock(&td->lua_ctx->m);
     return 0;
 }
-
-
 
 static int LuaStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
 {
@@ -455,7 +457,6 @@ static int LuaStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *s
     }
     SCMutexUnlock(&td->lua_ctx->m);
     return 0;
-
 }
 
 typedef struct LogLuaScriptOptions_ {
@@ -580,13 +581,13 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options, Log
             }
         } else if (strcmp(k, "protocol") == 0 && strcmp(v, "http") == 0)
             options->alproto = ALPROTO_HTTP1;
-        else if (strcmp(k,"protocol") == 0 && strcmp(v, "dns") == 0)
+        else if (strcmp(k, "protocol") == 0 && strcmp(v, "dns") == 0)
             options->alproto = ALPROTO_DNS;
-        else if (strcmp(k,"protocol") == 0 && strcmp(v, "tls") == 0)
+        else if (strcmp(k, "protocol") == 0 && strcmp(v, "tls") == 0)
             options->alproto = ALPROTO_TLS;
-        else if (strcmp(k,"protocol") == 0 && strcmp(v, "ssh") == 0)
+        else if (strcmp(k, "protocol") == 0 && strcmp(v, "ssh") == 0)
             options->alproto = ALPROTO_SSH;
-        else if (strcmp(k,"protocol") == 0 && strcmp(v, "smtp") == 0)
+        else if (strcmp(k, "protocol") == 0 && strcmp(v, "smtp") == 0)
             options->alproto = ALPROTO_SMTP;
         else if (strcmp(k, "protocol") == 0 && strcmp(v, "ntp") == 0)
             options->alproto = ALPROTO_NTP;
@@ -686,7 +687,8 @@ error:
     return NULL;
 }
 
-static void LogLuaSubFree(OutputCtx *oc) {
+static void LogLuaSubFree(OutputCtx *oc)
+{
     if (oc->data)
         SCFree(oc->data);
     SCFree(oc);
@@ -760,7 +762,7 @@ static void LogLuaMasterFree(OutputCtx *oc)
         SCFree(oc->data);
 
     OutputModule *om, *tom;
-    TAILQ_FOREACH_SAFE(om, &oc->submodules, entries, tom) {
+    TAILQ_FOREACH_SAFE (om, &oc->submodules, entries, tom) {
         SCFree(om);
     }
     SCFree(oc);
@@ -815,13 +817,13 @@ static OutputInitResult OutputLuaLogInit(SCConfNode *conf)
 
     /* check the enables scripts and set them up as submodules */
     SCConfNode *script;
-    TAILQ_FOREACH(script, &scripts->head, next) {
+    TAILQ_FOREACH (script, &scripts->head, next) {
         SCLogInfo("enabling script %s", script->val);
         LogLuaScriptOptions opts;
         memset(&opts, 0x00, sizeof(opts));
 
         char path[PATH_MAX] = "";
-        snprintf(path, sizeof(path),"%s%s%s", dir, strlen(dir) ? "/" : "", script->val);
+        snprintf(path, sizeof(path), "%s%s%s", dir, strlen(dir) ? "/" : "", script->val);
         SCLogDebug("script full path %s", path);
 
         int r = LuaScriptInit(path, &opts, master_config);
@@ -941,6 +943,16 @@ static void OutputLuaLogDoDeinit(LogLuaCtx *lua_ctx)
      * and a logging state is never closed underneath a logger */
     lua_State *luastate = lua_ctx->luastate;
 
+    /* the context slots name the last callback's objects, which the
+     * engine may have freed by now (the packet pool is destroyed before
+     * the thread deinit): clear them so a handle used from deinit() or
+     * a close-time finalizer fails closed */
+    LuaStateSetPacket(luastate, NULL);
+    LuaStateSetPacketAlert(luastate, NULL);
+    LuaStateSetTX(luastate, NULL, 0);
+    LuaStateSetFlow(luastate, NULL);
+    LuaStateSetFile(luastate, NULL);
+
     lua_getglobal(luastate, "deinit");
     if (lua_type(luastate, -1) == LUA_TFUNCTION) {
         if (lua_pcall(luastate, 0, 0, 0) != 0) {
@@ -1008,7 +1020,8 @@ static TmEcode LuaLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void LuaLogRegister(void) {
+void LuaLogRegister(void)
+{
     /* register as separate module */
     OutputRegisterModule(MODULE_NAME, "lua", OutputLuaLogInit);
 }

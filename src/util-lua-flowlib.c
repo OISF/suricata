@@ -33,25 +33,13 @@
 #include "util-debug.h"
 #include "util-print.h"
 
-/* key for f (flow) pointer */
-extern const char lua_ext_key_f[];
 static const char suricata_flow[] = "suricata:flow";
 
+/* no stored pointer: the accessors act on the flow the state is
+ * running on (LuaStateGetFlow), so a retained handle can never
+ * dangle */
 struct LuaFlow {
-    Flow *f;
 };
-
-static int LuaFlowGC(lua_State *luastate)
-{
-    SCLogDebug("gc:start");
-    struct LuaFlow *s = SCLuaTestUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
-    if (s != NULL) {
-        SCLogDebug("flow %p", s->f);
-        s->f = NULL;
-    }
-    SCLogDebug("gc:done");
-    return 0;
-}
 
 /** \internal
  *  \brief fill lua stack with flow id
@@ -62,12 +50,11 @@ static int LuaFlowGC(lua_State *luastate)
  */
 static int LuaFlowId(lua_State *luastate)
 {
-    struct LuaFlow *s = SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
-    if (s->f == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
+    Flow *f = LuaStateGetFlow(luastate);
+    if (f == NULL) {
         LUA_ERROR("failed to get flow");
     }
-
-    Flow *f = s->f;
 
     int64_t id = (int64_t)FlowGetId(f);
     lua_pushinteger(luastate, id);
@@ -91,12 +78,11 @@ static void PushAlprotoString(lua_State *luastate, AppProto alproto)
  */
 static int LuaFlowAppLayerProto(lua_State *luastate)
 {
-    struct LuaFlow *s = SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
-    if (s->f == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
+    Flow *f = LuaStateGetFlow(luastate);
+    if (f == NULL) {
         LUA_ERROR("failed to get flow");
     }
-
-    Flow *f = s->f;
     /* unknown alprotos have no name: report "unknown" as documented */
     PushAlprotoString(luastate, f->alproto);
     PushAlprotoString(luastate, f->alproto_ts);
@@ -115,12 +101,11 @@ static int LuaFlowAppLayerProto(lua_State *luastate)
  */
 static int LuaFlowHasAlerts(lua_State *luastate)
 {
-    struct LuaFlow *s = SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
-    if (s->f == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
+    Flow *f = LuaStateGetFlow(luastate);
+    if (f == NULL) {
         LUA_ERROR("failed to get flow");
     }
-
-    Flow *f = s->f;
     lua_pushboolean(luastate, FlowHasAlerts(f));
     return 1;
 }
@@ -134,12 +119,11 @@ static int LuaFlowHasAlerts(lua_State *luastate)
  */
 static int LuaFlowStats(lua_State *luastate)
 {
-    struct LuaFlow *s = SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
-    if (s->f == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
+    Flow *f = LuaStateGetFlow(luastate);
+    if (f == NULL) {
         LUA_ERROR("failed to get flow");
     }
-
-    Flow *f = s->f;
     lua_pushinteger(luastate, f->todstpktcnt);
     lua_pushinteger(luastate, f->todstbytecnt);
     lua_pushinteger(luastate, f->tosrcpktcnt);
@@ -157,12 +141,11 @@ static int LuaFlowStats(lua_State *luastate)
  */
 static int LuaFlowTimestamps(lua_State *luastate)
 {
-    struct LuaFlow *s = SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
-    if (s->f == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
+    Flow *f = LuaStateGetFlow(luastate);
+    if (f == NULL) {
         LUA_ERROR("failed to get flow");
     }
-
-    Flow *f = s->f;
     lua_pushnumber(luastate, (double)SCTIME_SECS(f->startts));
     lua_pushnumber(luastate, (double)SCTIME_SECS(f->lastts));
     lua_pushnumber(luastate, (double)SCTIME_USECS(f->startts));
@@ -172,12 +155,11 @@ static int LuaFlowTimestamps(lua_State *luastate)
 
 static int LuaFlowTimestringIso8601(lua_State *luastate)
 {
-    struct LuaFlow *s = SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
-    if (s->f == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
+    Flow *f = LuaStateGetFlow(luastate);
+    if (f == NULL) {
         LUA_ERROR("failed to get flow");
     }
-
-    Flow *f = s->f;
     char timebuf[64];
     CreateIsoTimeString(f->startts, timebuf, sizeof(timebuf));
     lua_pushstring(luastate, timebuf);
@@ -189,12 +171,11 @@ static int LuaFlowTimestringIso8601(lua_State *luastate)
  */
 static int LuaFlowTimestringLegacy(lua_State *luastate)
 {
-    struct LuaFlow *s = SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
-    if (s->f == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
+    Flow *f = LuaStateGetFlow(luastate);
+    if (f == NULL) {
         LUA_ERROR("failed to get flow");
     }
-
-    Flow *f = s->f;
     char timebuf[64];
     CreateTimeString(f->startts, timebuf, sizeof(timebuf));
     lua_pushstring(luastate, timebuf);
@@ -211,11 +192,11 @@ static int LuaFlowTimestringLegacy(lua_State *luastate)
  */
 static int LuaFlowTuple(lua_State *luastate)
 {
-    struct LuaFlow *s = SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
-    if (s->f == NULL) {
+    SCLuaCheckUserData(luastate, 1, suricata_flow, SCLUA_TUD_FLOW);
+    Flow *f = LuaStateGetFlow(luastate);
+    if (f == NULL) {
         LUA_ERROR("failed to get flow");
     }
-    Flow *f = s->f;
     int ipver = 0;
     if (FLOW_IS_IPV4(f)) {
         ipver = 4;
@@ -264,7 +245,6 @@ static int LuaFlowGet(lua_State *luastate)
     if (s == NULL) {
         LUA_ERROR("failed to allocate userdata");
     }
-    s->f = f;
     luaL_getmetatable(luastate, suricata_flow);
     lua_setmetatable(luastate, -2);
     return 1;
@@ -287,7 +267,6 @@ static const luaL_Reg flowlib_meta[] = {
     { "timestring_iso8601", LuaFlowTimestringIso8601 },
     { "timestring_legacy", LuaFlowTimestringLegacy },
     { "tuple", LuaFlowTuple },
-    { "__gc", LuaFlowGC },
     { NULL, NULL }
     // clang-format on
 };

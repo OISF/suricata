@@ -20,18 +20,52 @@
 #include "util-lua-common.h"
 #include "util-lua-filelib.h"
 
+#include "app-layer-parser.h"
+#include "flow.h"
+#include "rust.h"
+#include "util-file.h"
+
 #include "lua.h"
 #include "lauxlib.h"
 
 static const char file_mt[] = "suricata:file:mt";
 
+/* the handle pins the file by (tx anchor, direction, file_track_id):
+ * parsers assign file_track_id at file open and it is unique within
+ * the tx's file container (htp/smtp per-state counters, http2 the tx
+ * id). No parser pointer is stored; the accessors resolve on demand,
+ * so a retained handle can never dangle */
 struct LuaFile {
-    File *file;
+    SCLuaTxRef ref;
+    uint8_t direction;
+    uint32_t file_track_id;
 };
+
+/* resolve the anchored file: the tx must still be on the live state
+ * and the file must still be in that tx's file container for the
+ * recorded direction; any miss fails closed */
+static const File *LuaFileRefResolve(lua_State *L, const struct LuaFile *lf)
+{
+    void *tx = NULL;
+    if (!SCLuaTxRefResolve(L, &lf->ref, &tx)) {
+        return NULL;
+    }
+    const Flow *f = LuaStateGetFlow(L);
+    AppLayerGetFileState gfs = AppLayerParserGetTxFiles(f, tx, lf->direction);
+    if (gfs.fc == NULL) {
+        return NULL;
+    }
+    for (const File *ff = gfs.fc->head; ff != NULL; ff = ff->next) {
+        if (ff->file_track_id == lf->file_track_id) {
+            return ff;
+        }
+    }
+    return NULL;
+}
 
 static int LuaFileGetFile(lua_State *L)
 {
-    File *file = LuaStateGetFile(L);
+    const File *file = LuaStateGetFile(L);
     if (file == NULL) {
         return LuaCallbackError(L, "error: no file found");
     }
@@ -40,7 +74,11 @@ static int LuaFileGetFile(lua_State *L)
     if (lua_file == NULL) {
         return LuaCallbackError(L, "error: fail to allocate user data");
     }
-    lua_file->file = file;
+    SCLuaTxRefInit(L, &lua_file->ref, LuaStateGetTxId(L));
+    /* the registry direction is the container's direction; the
+     * packet can be the opposing one on the EOF flush */
+    lua_file->direction = LuaStateGetDirection(L) ? STREAM_TOSERVER : STREAM_TOCLIENT;
+    lua_file->file_track_id = file->file_track_id;
 
     luaL_getmetatable(L, file_mt);
     lua_setmetatable(L, -2);
@@ -51,7 +89,11 @@ static int LuaFileGetFile(lua_State *L)
 static int LuaFileGetFileId(lua_State *L)
 {
     struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
-    const File *file = lua_file->file;
+    const File *file = LuaFileRefResolve(L, lua_file);
+    if (file == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
     lua_pushinteger(L, file->file_store_id);
 
     return 1;
@@ -59,8 +101,8 @@ static int LuaFileGetFileId(lua_State *L)
 
 static int LuaFileGetTxId(lua_State *L)
 {
-    lua_Integer tx_id = LuaStateGetTxId(L);
-    lua_pushinteger(L, tx_id);
+    struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
+    lua_pushinteger(L, (lua_Integer)lua_file->ref.tx_id);
 
     return 1;
 }
@@ -68,7 +110,11 @@ static int LuaFileGetTxId(lua_State *L)
 static int LuaFileGetName(lua_State *L)
 {
     struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
-    const File *file = lua_file->file;
+    const File *file = LuaFileRefResolve(L, lua_file);
+    if (file == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
     lua_pushlstring(L, (char *)file->name, file->name_len);
 
     return 1;
@@ -77,7 +123,11 @@ static int LuaFileGetName(lua_State *L)
 static int LuaFileGetSize(lua_State *L)
 {
     struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
-    const File *file = lua_file->file;
+    const File *file = LuaFileRefResolve(L, lua_file);
+    if (file == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
     lua_pushinteger(L, FileTrackedSize(file));
 
     return 1;
@@ -87,7 +137,11 @@ static int LuaFileGetMagic(lua_State *L)
 {
 #ifdef HAVE_MAGIC
     struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
-    const File *file = lua_file->file;
+    const File *file = LuaFileRefResolve(L, lua_file);
+    if (file == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
     if (file->magic != NULL) {
         lua_pushstring(L, file->magic);
     } else {
@@ -116,7 +170,11 @@ static void PushHex(lua_State *L, const uint8_t *buf, size_t len)
 static int LuaFileGetMd5(lua_State *L)
 {
     struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
-    const File *file = lua_file->file;
+    const File *file = LuaFileRefResolve(L, lua_file);
+    if (file == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
 
     if (file->flags & FILE_MD5) {
         PushHex(L, file->md5, sizeof(file->md5));
@@ -130,7 +188,11 @@ static int LuaFileGetMd5(lua_State *L)
 static int LuaFileGetSha1(lua_State *L)
 {
     struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
-    const File *file = lua_file->file;
+    const File *file = LuaFileRefResolve(L, lua_file);
+    if (file == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
 
     if (file->flags & FILE_SHA1) {
         PushHex(L, file->sha1, sizeof(file->sha1));
@@ -144,7 +206,11 @@ static int LuaFileGetSha1(lua_State *L)
 static int LuaFileGetSha256(lua_State *L)
 {
     struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
-    const File *file = lua_file->file;
+    const File *file = LuaFileRefResolve(L, lua_file);
+    if (file == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
 
     if (file->flags & FILE_SHA256) {
         PushHex(L, file->sha256, sizeof(file->sha256));
@@ -158,7 +224,11 @@ static int LuaFileGetSha256(lua_State *L)
 static int LuaFileGetState(lua_State *L)
 {
     struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
-    const File *file = lua_file->file;
+    const File *file = LuaFileRefResolve(L, lua_file);
+    if (file == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
 
     const char *state = "UNKNOWN";
     switch (file->state) {
@@ -189,7 +259,11 @@ static int LuaFileGetState(lua_State *L)
 static int LuaFileIsStored(lua_State *L)
 {
     struct LuaFile *lua_file = SCLuaCheckUserData(L, 1, file_mt, SCLUA_TUD_FILE);
-    const File *file = lua_file->file;
+    const File *file = LuaFileRefResolve(L, lua_file);
+    if (file == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
     lua_pushboolean(L, file->flags & FILE_STORED);
 
     return 1;
