@@ -4441,6 +4441,12 @@ static int SigTestStateHookBuffer01(void)
             "app-layer-event:http.request_header_host_invalid; sid:6;)");
     FAIL_IF_NULL(s);
 
+    /* a buffer completing in the hooked state itself needs no relaxation */
+    s = DetectEngineAppendSig(de_ctx,
+            "alert http1:request_trailer any any -> any any (flow:to_server; http.trailer; "
+            "content:\"X-Trailed\"; sid:7;)");
+    FAIL_IF_NULL(s);
+
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
