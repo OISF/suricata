@@ -171,6 +171,13 @@ typedef struct HtpTxUserData_ {
     uint32_t request_headers_raw_len;
     uint32_t response_headers_raw_len;
 
+    /* raw bytes of the trailer section of a chunked message, kept apart from the
+     * header block so that http.header.raw does not gain trailer data */
+    uint8_t *request_trailers_raw;
+    uint8_t *response_trailers_raw;
+    uint32_t request_trailers_raw_len;
+    uint32_t response_trailers_raw_len;
+
     MimeStateHTTP *mime_state;
 
     HttpRangeContainerBlock *file_range; /**< used to assign track ids to range file */
