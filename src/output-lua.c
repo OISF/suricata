@@ -130,7 +130,6 @@ static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
     SCEnter();
 
     void *txptr = NULL;
-    LuaStreamingBuffer b = { data, data_len, flags };
 
     SCLogDebug("flags %02x", flags);
 
@@ -149,8 +148,9 @@ static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
     lua_State *luastate = td->lua_ctx->luastate;
 
     LuaStateSetThreadVars(luastate, tv);
-    if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION)
-        LuaStateSetTX(luastate, txptr, tx_id);
+    /* txptr is already NULL for non-transaction chunks: write the entry
+     * unconditionally so the registry cannot keep a previous tx */
+    LuaStateSetTX(luastate, txptr, txptr ? tx_id : 0);
     LuaStateSetFlow(luastate, (Flow *)f);
 
     /* prepare data to pass to script */
