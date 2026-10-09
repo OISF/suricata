@@ -294,6 +294,7 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem **pdd, const char *str)
                     goto error;
 
                 dd->netmask = (uint8_t)cidr;
+                netmask = CIDRGet(cidr);
             }
 
             r = inet_pton(AF_INET, ip, &in);
