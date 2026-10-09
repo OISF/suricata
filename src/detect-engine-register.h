@@ -329,6 +329,9 @@ enum DetectKeywordId {
     DETECT_VLAN_ID,
     DETECT_VLAN_LAYERS,
 
+    /* Added at the end of the static keywords to preserve ABI. */
+    DETECT_FLOW_ELEPHANT,
+
     /* make sure this stays last */
     DETECT_TBLSIZE_STATIC,
 };

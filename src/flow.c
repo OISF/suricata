@@ -357,7 +357,9 @@ static inline void FlowUpdateFlowRate(
 {
     if (FlowRateStorageEnabled()) {
         /* No need to update the struct if flow is already marked as elephant flow */
-        if (f->flags & FLOW_IS_ELEPHANT)
+        if ((dir == TOSERVER) && (f->aux_flags & FLOW_AUX_IS_ELEPHANT_TOSERVER))
+            return;
+        if ((dir == TOCLIENT) && (f->aux_flags & FLOW_AUX_IS_ELEPHANT_TOCLIENT))
             return;
         FlowRateStore *frs = FlowGetStorageById(f, FlowRateGetStorageID());
         if (frs != NULL) {
@@ -367,9 +369,24 @@ static inline void FlowUpdateFlowRate(
                 SCLogDebug("Flow rate for flow %p exceeds the configured values, marking it as an "
                            "elephant flow",
                         f);
-                f->flags |= FLOW_IS_ELEPHANT;
-                if (tv != NULL) {
-                    StatsIncr(tv, dtv->counter_flow_elephant);
+                /* FLOW_IS_ELEPHANT keeps its 8.0 meaning of either direction,
+                 * the direction is tracked in the aux flags. */
+                if ((f->flags & FLOW_IS_ELEPHANT) == 0) {
+                    f->flags |= FLOW_IS_ELEPHANT;
+                    if (tv != NULL) {
+                        StatsIncr(tv, dtv->counter_flow_elephant);
+                    }
+                }
+                if (dir == TOSERVER) {
+                    f->aux_flags |= FLOW_AUX_IS_ELEPHANT_TOSERVER;
+                    if (tv != NULL) {
+                        StatsIncr(tv, dtv->counter_flow_elephant_toserver);
+                    }
+                } else {
+                    f->aux_flags |= FLOW_AUX_IS_ELEPHANT_TOCLIENT;
+                    if (tv != NULL) {
+                        StatsIncr(tv, dtv->counter_flow_elephant_toclient);
+                    }
                 }
             }
         }

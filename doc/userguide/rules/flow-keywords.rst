@@ -434,6 +434,8 @@ following directions:
 
 * either
 
+* both
+
 Syntax::
 
  flow.pkts:<direction>,[op]<number>
@@ -467,6 +469,8 @@ following directions:
 
 * either
 
+* both
+
 Syntax::
 
  flow.bytes:<direction>,[op]<number>
@@ -484,3 +488,30 @@ Signature example::
 .. note:: Suricata also supports ``flow.bytes_toclient`` and ``flow.bytes_toserver``
    keywords for ``flow.bytes:toclient`` and ``flow.bytes:toserver`` respectively but
    that is not the preferred syntax.
+
+flow.elephant
+-------------
+
+Match an elephant flow.
+This keyword does not wait for the end of the flow, but will be checked at each packet as the state
+of a flow can change with any packet.
+
+``flow.elephant`` is tracked per direction internally which is why it is possible to give a direction
+that match should be made on:
+
+* toclient
+
+* toserver
+
+* either
+
+* both
+
+Syntax::
+
+ flow.elephant:<direction>
+
+Signature example::
+
+ alert tcp any any -> any any (msg:"Flow is elephant in toserver dir"; flow.elephant:toserver; sid:1;)
+

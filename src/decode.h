@@ -1064,6 +1064,10 @@ typedef struct DecodeThreadVars_
      * flow recycle during lookups */
     void *output_flow_thread_data;
 
+    /* Added at the end of the struct to preserve ABI. */
+    uint16_t counter_flow_elephant_toserver;
+    uint16_t counter_flow_elephant_toclient;
+
 } DecodeThreadVars;
 
 void CaptureStatsUpdate(ThreadVars *tv, const Packet *p);
