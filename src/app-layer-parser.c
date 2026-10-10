@@ -77,6 +77,8 @@ struct AppLayerParserSubStateMapping {
     uint8_t sub_state;
     AppLayerParserGetStateIdByNameFn GetStateIdByName;
     AppLayerParserGetStateNameByIdFn GetStateNameById;
+    AppLayerParserGetStatePolicyByIdFn GetStatePolicy;
+    uint8_t completion;
     struct AppLayerParserSubStateMapping *next;
 };
 
@@ -618,7 +620,8 @@ void AppLayerParserRegisterGetEventInfoById(uint8_t ipproto, AppProto alproto,
 
 void SCAppLayerParserRegisterGetTxSubStateFuncs(AppProto alproto, const uint8_t sub_state,
         AppLayerParserGetStateIdByNameFn GetIdByNameFunc,
-        AppLayerParserGetStateNameByIdFn GetNameByIdFunc)
+        AppLayerParserGetStateNameByIdFn GetNameByIdFunc, const uint8_t completion,
+        AppLayerParserGetStatePolicyByIdFn GetPolicyFunc)
 {
     SCEnter();
     /* validate input */
@@ -638,6 +641,8 @@ void SCAppLayerParserRegisterGetTxSubStateFuncs(AppProto alproto, const uint8_t 
     m->sub_state = sub_state;
     m->GetStateIdByName = GetIdByNameFunc;
     m->GetStateNameById = GetNameByIdFunc;
+    m->GetStatePolicy = GetPolicyFunc;
+    m->completion = completion;
     m->next = p->sub_state_mappings;
     p->sub_state_mappings = m;
 
@@ -1310,17 +1315,37 @@ uint8_t AppLayerParserGetSubStateCompletion(const AppProto alproto, const uint8_
 
     BUG_ON(alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].max_sub_state == 0);
 
-    /* TODO hard coded for now */
-    BUG_ON(alproto != ALPROTO_HTTP2);
-
-    if (sub_state == 1) {
-        return 4;
-    } else if (sub_state == 2) {
-        return 1;
-    } else {
-        BUG_ON(1);
+    for (struct AppLayerParserSubStateMapping *m =
+                    alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].sub_state_mappings;
+            m != NULL; m = m->next) {
+        if (m->sub_state == sub_state) {
+            return m->completion;
+        }
     }
+    BUG_ON(1);
     return 0;
+}
+
+const char *AppLayerParserGetSubStateProgressPolicy(const AppProto alproto, const uint8_t sub_state,
+        const uint8_t state, const uint8_t dir_flag)
+{
+    if (!AppLayerParserIsEnabled(alproto))
+        return NULL;
+
+    if (alproto == ALPROTO_DOH2)
+        return AppLayerParserGetSubStateProgressPolicy(ALPROTO_HTTP2, sub_state, state, dir_flag);
+
+    for (struct AppLayerParserSubStateMapping *m =
+                    alp_ctx.ctxs[alproto][FLOW_PROTO_DEFAULT].sub_state_mappings;
+            m != NULL; m = m->next) {
+        if (m->sub_state == sub_state) {
+            if (m->GetStatePolicy == NULL) {
+                return NULL;
+            }
+            return m->GetStatePolicy(state, dir_flag);
+        }
+    }
+    return NULL;
 }
 
 const char *AppLayerParserGetSubStateName(const AppProto alproto, const uint8_t sub_state)
