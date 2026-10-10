@@ -49,8 +49,12 @@
 #define BUFFER_NAME         "http_trailer_raw"
 #define BUFFER_DESC         "raw http trailer data"
 static int g_buffer_id = 0;
+static int g_http2_thread_id = 0;
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id);
+static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
         const int list_id);
 
@@ -82,9 +86,24 @@ void DetectHttpTrailerRawRegister(void)
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
             GetData, ALPROTO_HTTP1, HTP_RESPONSE_PROGRESS_TRAILER);
 
+    /* http2: a trailing HEADERS block completes at the trailer state */
+    DetectAppLayerInspectEngineRegisterSubState(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
+            HTTP2TxTypeStream, HTTP2ProgTrailers, DetectEngineInspectBufferGeneric, GetData2);
+    DetectAppLayerInspectEngineRegisterSubState(BUFFER_NAME, ALPROTO_HTTP2, SIG_FLAG_TOCLIENT,
+            HTTP2TxTypeStream, HTTP2ProgTrailers, DetectEngineInspectBufferGeneric, GetData2);
+    DetectAppLayerMpmRegisterSubState(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetData2, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgTrailers);
+    DetectAppLayerMpmRegisterSubState(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister, GetData2, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            HTTP2ProgTrailers);
+
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
+
+    g_http2_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
+            "http2.trailer_raw", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 }
 
 static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
@@ -112,6 +131,30 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
 
         SCInspectionBufferSetupAndApplyTransforms(
                 det_ctx, list_id, buffer, data, data_len, transforms);
+    }
+
+    return buffer;
+}
+
+static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f, const uint8_t flow_flags, void *txv,
+        const int list_id)
+{
+    InspectionBuffer *buffer = SCInspectionBufferGet(det_ctx, list_id);
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        const uint8_t *b = NULL;
+
+        void *thread_buf = SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        if (thread_buf == NULL)
+            return NULL;
+
+        if (SCHttp2TxGetTrailersRaw(txv, flow_flags, &b, &b_len, thread_buf) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        SCInspectionBufferSetupAndApplyTransforms(det_ctx, list_id, buffer, b, b_len, transforms);
     }
 
     return buffer;
