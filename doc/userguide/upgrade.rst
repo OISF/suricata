@@ -60,6 +60,7 @@ Logging Changes
 - Anomaly records for a packet with the ``decoder.ethernet.unknown_ethertype``
   event now include the ethertype the decoder could not handle in a top-level
   ``unknown_ether_type`` field.
+  Alerts for a packet with that event have the same field.
 
 - Alert verdict key is changed from to ``reject-target`` to ``reject_target``
 
