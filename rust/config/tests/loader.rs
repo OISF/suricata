@@ -5,6 +5,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use suricata_config::load_file;
+use suricata_config::load_file_with_include_dir;
 use suricata_config::load_string;
 use suricata_config::load_string_with_include_dir;
 use suricata_config::merge_file;
@@ -397,6 +398,29 @@ fn test_include_cycle() {
         load_string_with_include_dir("x: !include include-cycle-tag.yaml\n", &data()),
         "includes itself",
     );
+}
+
+// A configuration read from a pipe, like -c /dev/stdin or a shell
+// process substitution, has no canonical path but loads, with its
+// includes.
+#[cfg(unix)]
+#[test]
+fn test_load_pipe() {
+    use std::os::fd::AsRawFd;
+    use std::process::Command;
+    use std::process::Stdio;
+
+    let mut child = Command::new("cat")
+        .arg(data().join("include.yaml"))
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let stdout = child.stdout.take().unwrap();
+    let path = PathBuf::from(format!("/dev/fd/{}", stdout.as_raw_fd()));
+    let config = load_file_with_include_dir(&path, &data()).unwrap();
+    drop(stdout);
+    child.wait().unwrap();
+    assert_eq!(flat(&config), flat(&load_data("include").unwrap()));
 }
 
 // Without a cycle, includes may only be nested so deep.

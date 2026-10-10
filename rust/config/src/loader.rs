@@ -221,12 +221,37 @@ enum Mode {
     Value,
 }
 
+// The identity of an open file, to detect include cycles: the device
+// and inode on Unix, so that a file read from a pipe, like -c /dev/stdin
+// or a shell process substitution, which has no canonical path, still
+// has one.
+#[cfg(unix)]
+#[derive(PartialEq, Eq)]
+struct FileId(u64, u64);
+
+#[cfg(unix)]
+fn file_id(file: &std::fs::File, _path: &Path) -> std::io::Result<Option<FileId>> {
+    use std::os::unix::fs::MetadataExt;
+    let metadata = file.metadata()?;
+    Ok(Some(FileId(metadata.dev(), metadata.ino())))
+}
+
+// The canonical path elsewhere, if there is one.
+#[cfg(not(unix))]
+#[derive(PartialEq, Eq)]
+struct FileId(PathBuf);
+
+#[cfg(not(unix))]
+fn file_id(_file: &std::fs::File, path: &Path) -> std::io::Result<Option<FileId>> {
+    Ok(std::fs::canonicalize(path).ok().map(FileId))
+}
+
 // A file, or string, being parsed.
 struct Source {
     parser: YamlParser,
     path: Option<PathBuf>,
-    // The canonical path, to detect include cycles.
-    canonical: Option<PathBuf>,
+    // The identity of the file, to detect include cycles.
+    id: Option<FileId>,
     mode: Mode,
     // The number of mappings and sequences open in this source.
     open: usize,
@@ -423,11 +448,12 @@ impl Loader {
             }
         }
 
-        let canonical = std::fs::canonicalize(path).map_err(io_error)?;
-        if let Some(location) = &include {
+        let mut file = std::fs::File::open(path).map_err(io_error)?;
+        let id = file_id(&file, path).map_err(io_error)?;
+        if let (Some(location), Some(id)) = (&include, &id) {
             let cycle = self.inputs.iter().any(|input| {
                 matches!(input, Input::Source(source)
-                    if source.canonical.as_ref() == Some(&canonical))
+                    if source.id.as_ref() == Some(id))
             });
             if cycle {
                 return Err(LoadError::IncludeCycle {
@@ -437,13 +463,14 @@ impl Loader {
             }
         }
 
-        let text = std::fs::read_to_string(path).map_err(io_error)?;
-        self.push_source(text, Some(path.to_path_buf()), Some(canonical), mode);
+        let mut text = String::new();
+        std::io::Read::read_to_string(&mut file, &mut text).map_err(io_error)?;
+        self.push_source(text, Some(path.to_path_buf()), id, mode);
         Ok(())
     }
 
     fn push_source(
-        &mut self, mut text: String, path: Option<PathBuf>, canonical: Option<PathBuf>, mode: Mode,
+        &mut self, mut text: String, path: Option<PathBuf>, id: Option<FileId>, mode: Mode,
     ) {
         if text.starts_with('\u{feff}') {
             text.remove(0);
@@ -451,7 +478,7 @@ impl Loader {
         self.inputs.push(Input::Source(Box::new(Source {
             parser: Parser::new_from_iter(OwnedChars { text, pos: 0 }),
             path,
-            canonical,
+            id,
             mode,
             open: 0,
             root_seen: false,
