@@ -4499,9 +4499,29 @@ static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const 
     app_pol->progress = state;
     app_pol->direction = (uint8_t)direction;
     /* init to drop:flow by default, will be overwritten by ResolveFirewallPolicy if there
-     * is a config for this hook. */
+     * is a config for this hook. A parser may ask for another built-in for one of its states
+     * (see AppLayerParserGetSubStateProgressPolicy), typically a state added late, which
+     * must not start dropping flows as soon as it is reached. */
     app_pol->policy.action = ACTION_DROP;
     app_pol->policy.action_scope = ACTION_SCOPE_FLOW;
+    if (sub_state != 0) {
+        const char *builtin = AppLayerParserGetSubStateProgressPolicy(
+                app_proto, sub_state, state, (uint8_t)direction);
+        if (builtin != NULL) {
+            /* parse into fresh locals: SigParseActionDo accumulates, so feeding it the
+             * seeded drop:flow would look like a second action with another scope */
+            uint8_t action = 0, action_scope = 0;
+            if (SigParseActionDo(builtin, 0, true, &action, &action_scope) < 0 ||
+                    !FirewallScopeValidForClass(action_scope, DETECT_FIREWALL_POLICY_CLASS_APP)) {
+                SCLogError("%s: invalid default policy \"%s\" for state %u", app_proto_str, builtin,
+                        state);
+                SCFree(app_pol);
+                return -1;
+            }
+            app_pol->policy.action = action;
+            app_pol->policy.action_scope = action_scope;
+        }
+    }
 
     int r = ResolveFirewallPolicy(&app_pol->policy, DETECT_FIREWALL_POLICY_CLASS_APP, &chain);
     if (r < 0) {
