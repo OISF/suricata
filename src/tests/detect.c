@@ -4805,6 +4805,164 @@ static int DetectFwLteCoverageTest03(void)
     PASS;
 }
 
+/** \test a pending LTE rule the walk would discard must not hold the hook.
+ *  Pins the filters in DetectFwLteRuleStillLive(): a rule whose header and protocol
+ *  checks pass but whose packet engines fail is no barrier, as the full walk would
+ *  drop it before reaching the rules above it. */
+static int DetectFwLtePendingLiveTest01(void)
+{
+    EngineModeSetFirewall(ENGINE_HOST_IS_ROUTER);
+
+    ThreadVars th_v;
+    memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v.stats);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+    FAIL_IF(DetectFirewallInitDefaultPolicies(de_ctx) != 0);
+
+    /* live in every respect on the packet below */
+    Signature *s_ok = DetectFirewallRuleAppendNew(de_ctx,
+            "accept:flow,alert http1:<request_headers any any -> any any "
+            "(content:\"abc\"; sid:10;)");
+    FAIL_IF_NULL(s_ok);
+    /* same rule, but a packet predicate that cannot hold on a small packet */
+    Signature *s_pkt = DetectFirewallRuleAppendNew(de_ctx,
+            "accept:flow,alert http1:<request_headers any any -> any any "
+            "(content:\"abc\"; dsize:>9000; sid:11;)");
+    FAIL_IF_NULL(s_pkt);
+    /* port does not match, so the rule header already rejects it */
+    Signature *s_hdr = DetectFirewallRuleAppendNew(de_ctx,
+            "accept:flow,alert http1:<request_headers any any -> any 9999 "
+            "(content:\"abc\"; sid:12;)");
+    FAIL_IF_NULL(s_hdr);
+    SigGroupBuild(de_ctx);
+
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    FAIL_IF_NULL(det_ctx);
+
+    Flow f;
+    memset(&f, 0, sizeof(f));
+    FLOW_INITIALIZE(&f);
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_HTTP1;
+
+    Packet p;
+    memset(&p, 0, sizeof(p));
+    p.proto = IPPROTO_TCP;
+    p.dp = 80;
+    p.sp = 1234;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+
+    FAIL_IF(!DetectFwLteRuleStillLive(&th_v, de_ctx, det_ctx, &p, &f, s_ok));
+    /* the case the scan used to miss: header and protocol pass, packet engines fail */
+    FAIL_IF(DetectFwLteRuleStillLive(&th_v, de_ctx, det_ctx, &p, &f, s_pkt));
+    FAIL_IF(DetectFwLteRuleStillLive(&th_v, de_ctx, det_ctx, &p, &f, s_hdr));
+    /* a rule for another protocol is not a barrier either */
+    const AppProto keep = s_ok->alproto;
+    s_ok->alproto = ALPROTO_TLS;
+    FAIL_IF(DetectFwLteRuleStillLive(&th_v, de_ctx, det_ctx, &p, &f, s_ok));
+    s_ok->alproto = keep;
+    FAIL_IF(!DetectFwLteRuleStillLive(&th_v, de_ctx, det_ctx, &p, &f, s_ok));
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    FLOW_DESTROY(&f);
+    StatsThreadCleanup(&th_v.stats);
+    EngineModeSetIDS();
+    PASS;
+}
+
+/** \test a pending LTE rule that the walk would drop on a packet predicate must
+ *  not defer the default policy of its hook (ticket #9149).
+ *
+ *  The only accept rule of the state is blocked by `dsize`, so no rule is in the
+ *  running at the hook: the http1 app default (drop:flow) has to decide on the
+ *  first packet. Counting the rule as pending instead defers the policy, which is a
+ *  fail-open window opened by a rule that cannot be inspected at all. */
+static int DetectFwLtePendingLivePolicyTest01(void)
+{
+    EngineModeSetFirewall(ENGINE_HOST_IS_ROUTER);
+
+    ThreadVars th_v;
+    memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v.stats);
+
+    Flow f;
+    TcpSession ssn;
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.flags |= FLOW_IPV4;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_HTTP1;
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+    StreamTcpInitConfig(true);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+    FAIL_IF(DetectFirewallInitDefaultPolicies(de_ctx) != 0);
+
+    /* accept the packet hooks, so only the app state is under test */
+    Signature *scaf1 = DetectFirewallRuleAppendNew(
+            de_ctx, "accept:hook tcp:all any any -> any any (flow:not_established; sid:1021;)");
+    FAIL_IF_NULL(scaf1);
+    Signature *scaf2 = DetectFirewallRuleAppendNew(
+            de_ctx, "accept:hook tcp:all any any -> any any (flow:established; sid:1022;)");
+    FAIL_IF_NULL(scaf2);
+    /* The only LTE rule of the state. The pattern is absent, so the fast pattern
+     * leaves it in the pending window, and a packet predicate blocks it on this
+     * packet: only the window search can tell it is not live. */
+    Signature *s_blk = DetectFirewallRuleAppendNew(de_ctx,
+            "accept:flow,alert http1:<request_headers any any -> any any "
+            "(content:\"absent.example.com\"; dsize:>9000; sid:1101;)");
+    FAIL_IF_NULL(s_blk);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    FAIL_IF_NULL(det_ctx);
+
+    /* the header block stays open, so the hook is not crossed on this packet */
+    const uint8_t seg[] = "GET / HTTP/1.1\r\nHost: open.example.com\r\n";
+    Packet *p = UTHBuildPacket((uint8_t *)seg, (uint16_t)strlen((const char *)seg), IPPROTO_TCP);
+    FAIL_IF_NULL(p);
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    p->app_update_direction = STREAM_TOSERVER;
+    FAIL_IF(AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP1, STREAM_TOSERVER, seg,
+                    (uint16_t)strlen((const char *)seg)) != 0);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    /* the rule cannot be inspected on this packet: the default policy decides now */
+    FAIL_IF(!(f.flags & FLOW_ACTION_DROP));
+    FAIL_IF(f.flags & FLOW_ACTION_ACCEPT);
+    /* and it is not the rule that dropped: no alert of its own is queued */
+    for (uint16_t i = 0; i < det_ctx->alert_queue_size; i++) {
+        FAIL_IF(det_ctx->alert_queue[i].s == s_blk);
+    }
+
+    UTHFreePackets(&p, 1);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    FLOW_DESTROY(&f);
+    StatsThreadCleanup(&th_v.stats);
+    EngineModeSetIDS();
+
+    PASS;
+}
+
 void SigRegisterTests(void)
 {
     SigParseRegisterTests();
@@ -4813,6 +4971,8 @@ void SigRegisterTests(void)
     UtRegisterTest("DetectFwLteCoverageTest01", DetectFwLteCoverageTest01);
     UtRegisterTest("DetectFwLteCoverageTest02", DetectFwLteCoverageTest02);
     UtRegisterTest("DetectFwLteCoverageTest03", DetectFwLteCoverageTest03);
+    UtRegisterTest("DetectFwLtePendingLiveTest01", DetectFwLtePendingLiveTest01);
+    UtRegisterTest("DetectFwLtePendingLivePolicyTest01", DetectFwLtePendingLivePolicyTest01);
 
     UtRegisterTest("SigTest01", SigTest01);
     UtRegisterTest("SigTest02 -- Offset/Depth match", SigTest02);

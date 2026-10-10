@@ -288,16 +288,28 @@ While such a rule is still pending - it ran the states before its hook without
 matching, but a buffer of its hook can still grow - a rule hooked at a higher
 state is still evaluated once the transaction has moved past the pending rule's
 hook; while the transaction is at or before that hook the walk stops, so no
-higher state's policy can decide the flow early. A higher-hook rule inspects
+higher state's policy can decide the flow early. A rule of a higher id at the
+pending rule's own hook is evaluated too: stepping over the pending one must not
+stall the hook, because a rule which can never resolve would otherwise hold it
+open for the whole transaction. That is a choice, and its price is that a
+drop:flow rule at that hook can decide before a pending accept resolves.
+A higher-hook rule inspects
 the buffers of every state below its own hook, so its match covers the pending
 rule and its action decides the flow: when it matches, the pending rule's later
-no-match does not apply the default policy of its own state.
+no-match does not apply the default policy of its own state. Stepping over a rule
+the transaction has moved past keeps that rule's accept for the packet, as a
+listed partial match of it would: without it the packet default policy drops
+packets of a flow which then ends up accepted.
 
 A sub-state's buffers can also grow after the transaction moved past the rule's
-hook: a http2 trailer HEADERS frame updates the header buffer above the
-``request_headers`` hook. The fast pattern at the hook decides regardless: above
-it the group is retired, so the rule is not run again there. The default
-policies of the states it covers are deferred by the window at the hook only.
+hook: a http2 trailer HEADERS frame updates the header lists above the
+``request_headers`` hook. That growth stops with the direction's own END_STREAM,
+not with the transaction: a http2 stream only completes once both sides closed,
+and holding a rule pending that long defers the default policy past the request. The fast pattern at the hook decides there: above it a
+group is retired once its rules are, so a rule whose buffer is final at that
+point is not run again. A rule whose pattern can still arrive later - a raw
+stream ``content``, or a buffer that is not complete yet - keeps the window
+filled, and with it the default policies of the states it covers.
 
 The bound is the transaction's end state. For a parser with per-direction sub-
 states that can be later than the direction's own close - a http2 stream
@@ -489,11 +501,25 @@ Two moments, for the rules of a group hooked at ``H``:
 
 * at ``H``: the pattern runs; matches go to the candidate list, the rules it did not
   add are the window and the hook stays pending.
-* at ``C``: a miss is final. The window contributes its last rule only, so that any
-  other match still wins the state and the policy decides when nothing does.
+* at ``C``: a miss is final for the group's rules whose buffers are complete at
+  ``H``. The window contributes its last rule only, so that any other match still
+  wins the state and the policy decides when nothing does. A group that also holds
+  a rule whose pattern can still grow above ``C`` is not retired there, so the
+  retirement cannot apply a default policy through it. Tracking such a rule keeps
+  its hook covered while the transaction has moved past it, without ending the walk
+  there: a match at a higher rule still gets its inspection, and the rule keeps its
+  packet accept. When no candidate sits above it, the walk takes the pending rules
+  at its end, so they are accounted for either way.
 
-``C`` is ``H + 1``, whatever the protocol: a hook buffer that fills in above ``H``
-(an http2 header buffer frame by frame, a stream buffer across segments) does
-not reopen the window. A transaction that ends at or below ``H`` never opens a
-window: its end state decides, and a window opens only for a tx that keeps
-going past ``H``.
+``C`` is ``H + 1`` for the app buffers of a protocol which declares no sub-states: an
+app hooked rule can only hold patterns of buffers whose engine sits at its hook, so such
+a buffer cannot grow once the transaction has moved past it. Two cases do grow: a raw
+stream pattern, which arrives with a later segment, and an app buffer of a protocol
+declaring sub-states, because a frame can rewrite it above the hook -- an http2 trailer
+HEADERS frame updates the header buffers. The first still leaves the fast pattern to say
+which update brings it, so the group keeps its window filled there; the second has no
+pattern which covers that update, so all the rules of the group are inspected. A rule
+with no fast pattern at all has no update which brings it, so a group which holds one is
+inspected whole there as well. A
+transaction that ends at or below ``H`` never opens a window: its end state decides,
+and a window opens only for a tx that keeps going past ``H``.

@@ -663,8 +663,13 @@ static void AppendFrameInspectEngine(DetectEngineCtx *de_ctx,
     }
     if (mpm_list == u->sm_list) {
         SCLogDebug("%s is mpm", DetectEngineBufferTypeGetNameById(de_ctx, u->sm_list));
-        prepend = true;
-        new_engine->mpm = true;
+        /* defensive only: the frame path has no mpm finality handling in the walk, so
+         * the flag would just reorder this engine ahead of the others. Keep the LTE
+         * rule in progress order like the stream and app engines. */
+        if ((s->flags & SIG_FLAG_FW_HOOK_LTE) == 0) {
+            prepend = true;
+            new_engine->mpm = true;
+        }
     }
 
     new_engine->type = u->type;
@@ -772,9 +777,16 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     bool prepend = false;
     if (mpm_list == t->sm_list) {
         SCLogDebug("%s is mpm", DetectEngineBufferTypeGetNameById(de_ctx, t->sm_list));
-        prepend = true;
-        *head_is_mpm = true;
-        new_engine->mpm = true;
+        /* An LTE rule must keep its engines in progress order: the pass through
+         * engines cover the states below the hook, and a not yet reached hook has
+         * to stay a partial match instead of breaking out as a no match. The mpm
+         * flag is left off as well: it would make a no match above the hook final
+         * (`mpm_before_progress`), while LTE rules rely on the buffers own eof. */
+        if ((s->flags & SIG_FLAG_FW_HOOK_LTE) == 0) {
+            prepend = true;
+            *head_is_mpm = true;
+            new_engine->mpm = true;
+        }
     }
 
     new_engine->alproto = t->alproto;
@@ -2125,34 +2137,17 @@ int DetectEngineReloadIsIdle(void)
 }
 
 /** \internal
- *  \brief can the rule still match in a later state of its sub-state?
- *
- *  An LTE rule is a candidate below its hook, so a miss is not final while a
- *  sub-state can still grow the buffer the engine reads: a http2 trailer
- *  updates the header buffer above the rule's hook, and the tx only reaches
- *  its end state after that.
- */
-static bool DetectLteRevisit(
-        Flow *f, void *txv, uint8_t flags, const Signature *s, const int progress)
-{
-    if ((s->flags & SIG_FLAG_FW_HOOK_LTE) == 0 || !AppLayerParserSupportsSubStates(f->alproto)) {
-        return false;
-    }
-    return progress < AppLayerParserGetTxEndState(f->proto, f->alproto, txv, flags);
-}
-
-/** \internal
  *  \brief is the engine's data final for this tx?
  *
- *  Past the engine's phase the answer is yes, unless the rule is an LTE rule
- *  that can still match in a later state of its sub-state (DetectLteRevisit()).
- *  At or beyond the tx end state it is final too, even for engines registered
- *  at the completion state (no P+1). AppLayerParserGetStateProgress() returns
+ *  Past the engine's phase the answer is yes: a rule hooked below is a candidate
+ *  in the list at those updates, so it is inspected there without needing the
+ *  engine kept open. At or beyond the tx end state it is final too, even for
+ *  engines registered at the completion state (no P+1). AppLayerParserGetStateProgress() returns
  *  the end progress for disrupted flows, so progress == end stays a valid
  *  finality signal there.
  */
-static bool DetectTxCompleted(Flow *f, void *txv, uint8_t flags,
-        const DetectEngineAppInspectionEngine *engine, const Signature *s)
+static bool DetectTxCompleted(
+        Flow *f, void *txv, uint8_t flags, const DetectEngineAppInspectionEngine *engine)
 {
     if (f->alproto == ALPROTO_DOH2 && engine->alproto == ALPROTO_DOH2) {
         // the DNS tx from DetectGetInnerTx is always complete
@@ -2163,9 +2158,6 @@ static bool DetectTxCompleted(Flow *f, void *txv, uint8_t flags,
         return false;
     }
     if (progress > engine->progress) {
-        if (DetectLteRevisit(f, txv, flags, s, progress)) {
-            return false;
-        }
         return true;
     }
     if (progress < engine->progress) {
@@ -2195,7 +2187,7 @@ uint8_t DetectEngineInspectGenericList(DetectEngineCtx *de_ctx, DetectEngineThre
                 if ((sigmatch_table[smd->type].flags & SIGMATCH_STATEFUL) != 0) {
                     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
                 }
-                return DetectTxCompleted(f, txv, flags, engine, s)
+                return DetectTxCompleted(f, txv, flags, engine)
                                ? DETECT_ENGINE_INSPECT_SIG_CANT_MATCH
                                : DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
             }
@@ -2233,7 +2225,7 @@ uint8_t DetectEngineInspectBufferSingle(DetectEngineCtx *de_ctx, DetectEngineThr
     const int list_id = engine->sm_list;
     SCLogDebug("running inspect on %d", list_id);
 
-    const bool eof = DetectTxCompleted(f, txv, flags, engine, s);
+    const bool eof = DetectTxCompleted(f, txv, flags, engine);
 
     SCLogDebug("list %d mpm? %s transforms %p", engine->sm_list, engine->mpm ? "true" : "false",
             engine->v2.transforms);
@@ -2293,7 +2285,7 @@ uint8_t DetectEngineInspectBufferGeneric(DetectEngineCtx *de_ctx, DetectEngineTh
     const int list_id = engine->sm_list;
     SCLogDebug("running inspect on %d", list_id);
 
-    const bool eof = DetectTxCompleted(f, txv, flags, engine, s);
+    const bool eof = DetectTxCompleted(f, txv, flags, engine);
 
     SCLogDebug("list %d mpm? %s transforms %p",
             engine->sm_list, engine->mpm ? "true" : "false", engine->v2.transforms);
@@ -2427,7 +2419,7 @@ uint8_t DetectEngineInspectMultiBufferGeneric(DetectEngineCtx *de_ctx,
     } while (1);
     if (local_id == 0) {
         // That means we did not get even one buffer value from the multi-buffer
-        const bool eof = DetectTxCompleted(f, txv, flags, engine, s);
+        const bool eof = DetectTxCompleted(f, txv, flags, engine);
         if (eof && engine->match_on_null) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
         }
@@ -3865,6 +3857,7 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
         SCFree(det_ctx->replace);
 
     RuleMatchCandidateTxArrayFree(det_ctx);
+    DetectPrefilterLteWindowFree(det_ctx);
 
     AlertQueueFree(det_ctx);
 

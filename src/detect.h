@@ -1422,6 +1422,18 @@ typedef struct DetectEngineThreadCtx_ {
      *  Cleared by the firewall coverage build on first use in a walk. */
     uint32_t fw_lte_cover[APP_LAYER_MAX_PROGRESS];
 
+    /** LTE rules still pending at this state: the tx reached the bound of their
+     *  window engines, so the fast pattern decided their candidacy and the rules it
+     *  did not add are absent from the candidates while they can still match. One
+     *  entry per engine bound here: a rule with hook P has P of them, one per state
+     *  below the hook, and another per sub-state, direction and buffer list it
+     *  registered in. The walk merges them with the candidates to find the lowest
+     *  rule that is still in the running. Grows with the engines, freed on thread
+     *  deinit. */
+    const void **fw_lte_windows; /**< PrefilterNonPFDataTx, opaque here */
+    uint32_t fw_lte_window_cnt;
+    uint32_t fw_lte_window_size;
+
     MpmThreadCtx mtc; /**< thread ctx for the mpm */
     /* work queue for post-rule matching affecting prefilter */
     PostRuleMatchWorkQueue post_rule_work_queue;
@@ -1620,6 +1632,7 @@ typedef struct PrefilterEngineList_ {
     /** Minimal Tx progress we need before running the engine. Only used
      *  with Tx Engine. Set to -1 for all states. */
     int8_t tx_min_progress;
+
     /** Upper bound, exclusive: skip the engine once the tx reached it.
      *  0 means no bound. */
     uint8_t tx_max_progress;
@@ -1672,10 +1685,10 @@ typedef struct PrefilterEngine_ {
             /** Minimal Tx progress we need before running the engine. Only used
              *  with Tx Engine. Set to -1 for all states. */
             int8_t tx_min_progress;
-            /** Upper bound, exclusive: skip the engine once the tx reached it.
-             *  0 means no bound. */
-            uint8_t tx_max_progress;
             uint8_t sub_state;
+            /** Upper bound, exclusive: skip the engine once the tx reached it.
+             *  0 means no bound. Only set for the non-prefilter engines. */
+            uint8_t tx_max_progress;
         } app;
         uint8_t frame_type;
     } ctx;
