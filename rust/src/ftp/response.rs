@@ -21,7 +21,7 @@ use std::slice;
 
 #[repr(C)]
 pub struct FTPResponseLine {
-    code: *mut u8,      // Response code as a string (may be null)
+    code: *mut u8,      // Response code as a string; empty if no code
     response: *mut u8,  // Response string
     length: usize,      // Length of the response string
     code_length: usize, // Length of the response code string
@@ -103,19 +103,16 @@ pub unsafe extern "C" fn SCFTPFreeResponseLine(response: *mut FTPResponseLine) {
 
     let response = Box::from_raw(response);
 
-    if !response.response.is_null() {
-        let _ = Box::from_raw(std::ptr::slice_from_raw_parts_mut(
-            response.code,
-            response.code_length,
-        ));
-    }
-
-    if !response.response.is_null() {
-        let _ = Box::from_raw(std::ptr::slice_from_raw_parts_mut(
-            response.response,
-            response.length,
-        ));
-    }
+    // parse_response_line always sets both buffers from Box::into_raw, so
+    // neither is null.
+    let _ = Box::from_raw(std::ptr::slice_from_raw_parts_mut(
+        response.code,
+        response.code_length,
+    ));
+    let _ = Box::from_raw(std::ptr::slice_from_raw_parts_mut(
+        response.response,
+        response.length,
+    ));
 }
 
 #[cfg(test)]
