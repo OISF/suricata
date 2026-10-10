@@ -57,6 +57,10 @@ Logging Changes
   E.g., previously, ``ether_type`` values were logged in host order;  an ethertype value of ``0xfbb7``
   (network order) was logged as `47099`` (``0xb7fb``). This ethertype value will be logged as ``64439``.
 
+- Anomaly records for a packet with the ``decoder.ethernet.unknown_ethertype``
+  event now include the ethertype the decoder could not handle in a top-level
+  ``unknown_ether_type`` field.
+
 - Alert verdict key is changed from to ``reject-target`` to ``reject_target``
 
 - App-layer stats protocols names replace dash by underscore, meaning

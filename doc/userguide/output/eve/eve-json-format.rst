@@ -527,6 +527,16 @@ Fields
 * "code" If "type" is "unknown", than "code" contains the unrecognized event
   code. Otherwise, this field is not present.
 
+Every anomaly record for a packet with the
+``decoder.ethernet.unknown_ethertype`` event, including the
+``decoder.vlan.unknown_type``, ``decoder.etag.unknown_type`` or
+``decoder.vntag.unknown_type`` record raised with it, has a top-level field
+outside the "anomaly" object:
+
+* "unknown_ether_type" The ethertype the decoder could not handle. When that
+  ethertype follows a VLAN, 802.1ah, E-Tag or VN-Tag header, the field differs
+  from "ether.ether_type", which holds the ethernet header's type.
+
 The following field is included when "type" has the value "applayer":
 
 * "layer" Indicates the handling layer that detected the event. This will be
@@ -560,6 +570,21 @@ Examples
     "anomaly": {
       "type": "stream",
       "event": "stream.pkt_invalid_timestamp"
+    }
+
+    {
+      "event_type": "anomaly",
+      "vlan": [
+        100
+      ],
+      "ether": {
+        "ether_type": 33024
+      },
+      "anomaly": {
+        "type": "decode",
+        "event": "decoder.ethernet.unknown_ethertype"
+      },
+      "unknown_ether_type": 32821
     }
 
     {
