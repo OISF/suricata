@@ -292,7 +292,9 @@ higher state's policy can decide the flow early. A rule of a higher id at the
 pending rule's own hook is inspected in the same walk: a rule which cannot be
 decided by this update must not stall the hook for the rules which can. The price
 is that such a rule's action - a ``drop:flow``, say - decides the flow before the
-pending accept resolves. ``ruletype-firewall-616`` pins it.
+pending accept resolves. ``ruletype-firewall-616`` pins it; ``ruletype-firewall-623`` pins
+the other half, that nothing at all decides an update in which the transaction has not yet
+reached the pending rule's hook.
 A higher-hook rule inspects
 the buffers of every state below its own hook, so its match covers the pending
 rule and its action decides the flow: when it matches, the pending rule's later
@@ -300,9 +302,9 @@ no-match does not apply the default policy of its own state.
 
 A sub-state's buffers can also grow after the transaction moved past the rule's
 hook: a http2 trailer HEADERS frame updates the header lists above the
-``request_headers`` hook. That growth stops with the direction's own END_STREAM,
-not with the transaction: a http2 stream only completes once both sides closed,
-and holding a rule pending that long defers the default policy past the request. The fast pattern at the hook decides there: above it a
+``request_headers`` hook. Such a rule is not kept open for that update; it is
+brought in as a candidate, so the growth is covered without deferring the states
+below the hook. The fast pattern at the hook decides there: above it a
 group is retired once its rules are, so a rule whose buffer is final at that
 point is not run again. A group whose buffer can still be rewritten is not: all
 of its rules go into the list at that update, and with them the default policies
@@ -312,9 +314,11 @@ can still arrive cannot use the notation at all, see the limitations below.
 The bound is the transaction's end state. For a parser with per-direction sub-
 states that can be later than the direction's own close - a http2 stream
 completes when both sides closed, while its request buffers are final once the
-client sent END_STREAM - so a window can open where that direction's own buffers
-are final already. That is deliberate: the tighter bound needs a per-direction
-completion the parsers do not expose yet.
+client sent END_STREAM - so the bound can lag the point where a miss really is
+final. What that costs is one more update at which a group is tested before its
+retirement settles; for the http2 cases measured it changes no decision and no
+packet, and it keeps one bound for every protocol instead of a per-direction
+one per parser.
 
 Firewall pipeline
 -----------------
@@ -483,6 +487,11 @@ of them are worth inspecting. The rules the pattern did not add hold the hook op
 they are not candidates, so the walk cannot decide them, but the default policy cannot
 resolve the hook either.
 
+An LTE rule with a packet condition on a variable that a rule can set (``flowbits``,
+``xbits``) gets no fast pattern. Whether it is still in the running is only known once
+the rules before it in the walk have run, so it is a candidate on every update and the
+walk inspects it in order.
+
 ::
 
     progress   0 ............ H (hook) C (a miss becomes final)
@@ -512,10 +521,9 @@ Two moments, for the rules of a group hooked at ``H``:
 app hooked rule can only hold patterns of buffers whose engine sits at its hook, so such
 a buffer cannot grow once the transaction has moved past it. One case does grow: an
 app buffer of a protocol declaring sub-states, because a frame can rewrite it above the
-hook -- an http2 trailer HEADERS frame updates the header list buffers. The buffers of a
-request that ended with END_STREAM do not: the parser says where each direction stops
-growing, and that is what the revisit keys on. It has no pattern
-which covers that update, so all the rules of the group are inspected there. A rule
+hook -- an http2 trailer HEADERS frame updates the header list buffers. The rules of such
+a group are not retired to their last one: no pattern covers that update, so all of them
+are inspected there. A rule
 with no fast pattern at all has no update which brings it, so a group which holds one is
 inspected whole there as well. A
 transaction that ends at or below ``H`` never opens a window: its end state decides,
@@ -529,16 +537,9 @@ LIMITATIONS
   buffer) makes the rule fail to load. The stream is the one buffer that keeps delivering
   data above any hook, so a miss at the hook would not be final, and the retirement above
   depends on it being so. Use the buffer keyword of the state you mean.
-* A http2 request that ends with a body keeps the packets of a denied host until its
-  END_STREAM frame. The revisit exists because a trailer can rewrite the header lists,
-  so a rule hooked below them stays in the running until the request side closes, and a
-  pending rule appends a packet accept for the packets it holds. main decides on the
-  first body packet; a buffer-aware revisit - final at the hook unless one of the rule's
-  buffers can still change - would close the difference and needs a per-buffer flag at
-  registration. Pinned as it stands by
-  ``ruletype-firewall-620-lte-http2-body-delivered-until-request-closes``.
-* HTTP/1 rewrites ``http.header`` above its hook when a message has a trailer, so a rule
-  at ``http1:<request_headers`` whose pattern only appears in a trailer is retired at the
-  first update above the hook and the default policy of that state decides before the
-  trailer is inspected. This is a known gap, open with the design discussion of the
-  retirement bound.
+* A message trailer rewrites the header lists above their hook, in HTTP/1
+  (``http.header``) and in HTTP/2 (a trailer HEADERS frame). A rule hooked below them
+  whose pattern only appears in the trailer is therefore retired at the first update
+  past the hook, and that state's default policy decides before the trailer is read -
+  for http2 that update is the first DATA frame. Main is under the same constraint.
+  This is a known gap, open with the design discussion of the retirement bound.
