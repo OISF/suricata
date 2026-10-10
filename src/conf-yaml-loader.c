@@ -28,7 +28,8 @@
  * (--set and the options that set a value), and the resulting tree is
  * mirrored into the SCConfNode tree. The overridden nodes are marked
  * final afterwards, so that SCConfSet does not change them and
- * SCConfNodeIsFinal sees them.
+ * SCConfNodeIsFinal sees them, and their values are set again from
+ * the bytes given, as the Rust tree has them as UTF-8.
  *
  * An override that names a child of a sequence, like pcap.buffer-size
  * where pcap is a sequence of interfaces, has no place in the Rust
@@ -311,9 +312,13 @@ static int ConfYamlMirror(SCConfNode *parent, const SCConfTreeNode *node)
 }
 
 /**
- * \brief Mark the node at a dotted path below a node as final.
+ * \brief Mark the node at a dotted path below a node as final, and set
+ *     its value if value is not NULL.
+ *
+ * The value is the command line value as given: the Rust tree has it
+ * as UTF-8, which a file name, for example, need not be.
  */
-static void ConfYamlSetFinal(SCConfNode *root, const char *path, size_t path_len)
+static int ConfYamlSetFinal(SCConfNode *root, const char *path, size_t path_len, const char *value)
 {
     SCConfNode *node = root;
     const char *end = path + path_len;
@@ -326,9 +331,21 @@ static void ConfYamlSetFinal(SCConfNode *root, const char *path, size_t path_len
         }
         path = dot + 1;
     }
-    if (node != NULL) {
-        node->final = 1;
+    if (node == NULL) {
+        return 0;
     }
+    if (value != NULL) {
+        char *val = SCStrdup(value);
+        if (unlikely(val == NULL)) {
+            return -1;
+        }
+        if (node->val != NULL) {
+            SCFree(node->val);
+        }
+        node->val = val;
+    }
+    node->final = 1;
+    return 0;
 }
 
 /**
@@ -413,7 +430,8 @@ static int ConfYamlLoadFile(const char *filename, const char *const *includes,
         if (SCConfTreeOverrideApplied(tree, i)) {
             size_t len = 0;
             const char *path = SCConfTreeOverridePath(tree, i, &len);
-            ConfYamlSetFinal(root, path, len);
+            const char *value = SCConfTreeOverrideIsValue(tree, i) ? override_values[i] : NULL;
+            ret = ConfYamlSetFinal(root, path, len, value);
         } else {
             ret = ConfYamlSetFinalValue(root, override_paths[i], override_values[i]);
         }

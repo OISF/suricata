@@ -44,6 +44,11 @@ struct OverrideResult {
     // child of a sequence is not: the tree has no place for it, and C
     // applies it to its own tree, which does.
     applied: bool,
+    // Whether the node at the path still has the value of the override
+    // after all of them were applied, that is a later override did not
+    // replace it. The value is converted to UTF-8 for the tree, so the
+    // caller sets it again from the bytes it was given.
+    is_value: bool,
 }
 
 /// Why a configuration could not be loaded.
@@ -109,7 +114,8 @@ unsafe fn paths(array: *const *const c_char, len: usize) -> Vec<PathBuf> {
         .collect()
 }
 
-// The strings of a C array of NUL terminated strings.
+// The strings of a C array of NUL terminated strings, with bytes that
+// are not UTF-8 replaced.
 unsafe fn strings(array: *const *const c_char, len: usize) -> Vec<String> {
     if array.is_null() {
         return Vec::new();
@@ -140,14 +146,20 @@ fn load(
             Ok(resolved) => OverrideResult {
                 path: resolved.join("."),
                 applied: true,
+                is_value: false,
             },
             Err(OverrideError::NotAnIndex { path, .. }) => OverrideResult {
                 path,
                 applied: false,
+                is_value: false,
             },
             Err(error) => return Err(error.into()),
         };
         results.push(result);
+    }
+    for (result, override_) in results.iter_mut().zip(&overrides) {
+        result.is_value = result.applied
+            && root.get_path(&result.path).and_then(Node::as_str) == Some(override_.value.as_str());
     }
     Ok(ConfTree {
         root,
@@ -300,6 +312,25 @@ pub unsafe extern "C" fn SCConfTreeOverrideApplied(tree: *const ConfTree, index:
     tree.overrides
         .get(index)
         .is_some_and(|result| result.applied)
+}
+
+/// Whether the node at the path of command line override `index`, an
+/// applied one, has the value of the override after all of them were
+/// applied, that is a later override did not replace it or give it
+/// children. The tree has the value converted to UTF-8, with invalid
+/// bytes replaced, so the caller can set it again from the bytes it was
+/// given, like a file name that is not UTF-8. False if `index` is out
+/// of range.
+///
+/// # Safety
+///
+/// `tree` must be a valid configuration.
+#[no_mangle]
+pub unsafe extern "C" fn SCConfTreeOverrideIsValue(tree: *const ConfTree, index: usize) -> bool {
+    let tree = &*tree;
+    tree.overrides
+        .get(index)
+        .is_some_and(|result| result.is_value)
 }
 
 /// The dotted path of command line override `index` as resolved, like
@@ -655,6 +686,50 @@ mod tests {
             .collect()
     }
 
+    // A value that is not UTF-8, like a file name, is replaced in the
+    // tree, and the caller is told to set it again from its bytes,
+    // unless a later override replaced it.
+    #[test]
+    fn test_load_file_override_is_value() {
+        let data = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/data");
+        let path = CString::new(data.join("ffi-overrides.yaml").to_str().unwrap()).unwrap();
+        let c = |s: &[u8]| CString::new(s).unwrap();
+        let overrides = [
+            (c(b"pcap-file.file"), c(b"/tmp/\xff.pcap")),
+            (c(b"shared"), c(b"1")),
+            (c(b"shared"), c(b"2")),
+            (c(b"mapping"), c(b"3")),
+            (c(b"mapping.b"), c(b"4")),
+            (c(b"list.0"), c(b"5")),
+        ];
+        let paths: Vec<_> = overrides.iter().map(|(p, _)| p.as_ptr()).collect();
+        let values: Vec<_> = overrides.iter().map(|(_, v)| v.as_ptr()).collect();
+        unsafe {
+            let mut err = ptr::null_mut();
+            let tree = SCConfTreeLoadFile(
+                path.as_ptr(),
+                ptr::null(),
+                ptr::null(),
+                0,
+                paths.as_ptr(),
+                values.as_ptr(),
+                paths.len(),
+                &mut err,
+            );
+            assert!(!tree.is_null(), "{:?}", CStr::from_ptr(err));
+            let root = &(*tree).root;
+            assert_eq!(
+                root["pcap-file"]["file"].as_str(),
+                Some("/tmp/\u{fffd}.pcap")
+            );
+            let is_value: Vec<bool> = (0..overrides.len())
+                .map(|index| SCConfTreeOverrideIsValue(tree, index))
+                .collect();
+            assert_eq!(is_value, [true, false, true, false, true, true]);
+            SCConfTreeFree(tree);
+        }
+    }
+
     #[test]
     fn test_load_file_overrides() {
         let data = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/data");
@@ -698,6 +773,9 @@ mod tests {
             assert!(SCConfTreeOverrideApplied(tree, 2));
             assert!(!SCConfTreeOverrideApplied(tree, 3));
             assert!(!SCConfTreeOverrideApplied(tree, 4));
+            assert!(SCConfTreeOverrideIsValue(tree, 0));
+            assert!(!SCConfTreeOverrideIsValue(tree, 3));
+            assert!(!SCConfTreeOverrideIsValue(tree, 4));
             SCConfTreeFree(tree);
 
             // A bad path is an error, before anything is read.
