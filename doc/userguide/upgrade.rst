@@ -81,6 +81,11 @@ Major Changes
   example ``http2:stream:request_complete<``) now cover one more state. The new states
   start out with the built-in default policy ``accept:hook`` instead of ``drop:flow``,
   so streams carrying trailers are not blocked before a policy is chosen.
+
+- HTTP/2 trailer fields keep being logged in the ``http.request_headers`` and
+  ``http.response_headers`` arrays, as with HTTP/1: what changed for them is detection only,
+  through the buffers and the new stream states above. As with HTTP/1 there is no EVE key for
+  trailer fields yet.
 - ``pgsql`` is no longer enabled by default. Previously, if the
   ``app-layer.protocols.pgsql`` section was absent from suricata.yaml, the
   parser would be enabled. It's now disabled by default. Simply enabling its EVE
