@@ -1,4 +1,4 @@
-/* Copyright (C) 2025 Open Information Security Foundation
+/* Copyright (C) 2025-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -104,7 +104,10 @@ pub unsafe extern "C" fn SCFTPFreeResponseLine(response: *mut FTPResponseLine) {
     let response = Box::from_raw(response);
 
     if !response.response.is_null() {
-        let _ = Vec::from_raw_parts(response.code, response.code_length, response.code_length);
+        let _ = Box::from_raw(std::ptr::slice_from_raw_parts_mut(
+            response.code,
+            response.code_length,
+        ));
     }
 
     if !response.response.is_null() {
