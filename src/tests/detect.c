@@ -4949,17 +4949,19 @@ static int DetectFwLtePendingLiveTest01(void)
     /* live in every respect on the packet below */
     Signature *s_ok = DetectFirewallRuleAppendNew(de_ctx,
             "accept:flow,alert http1:<request_headers any any -> any any "
-            "(content:\"abc\"; sid:10;)");
+            "(http.host; content:\"abc\"; sid:10;)");
     FAIL_IF_NULL(s_ok);
-    /* same rule, but a packet predicate that cannot hold on a small packet */
+    /* same rule, but a packet predicate that cannot hold on this packet: it is not
+     * established. A variable reader would not do: it never gets a prefilter, so it
+     * cannot be in the window (ruletype-firewall-621/622). */
     Signature *s_pkt = DetectFirewallRuleAppendNew(de_ctx,
             "accept:flow,alert http1:<request_headers any any -> any any "
-            "(content:\"abc\"; dsize:>9000; sid:11;)");
+            "(http.host; content:\"abc\"; flow:established; sid:11;)");
     FAIL_IF_NULL(s_pkt);
     /* port does not match, so the rule header already rejects it */
     Signature *s_hdr = DetectFirewallRuleAppendNew(de_ctx,
             "accept:flow,alert http1:<request_headers any any -> any 9999 "
-            "(content:\"abc\"; sid:12;)");
+            "(http.host; content:\"abc\"; sid:12;)");
     FAIL_IF_NULL(s_hdr);
     SigGroupBuild(de_ctx);
 
@@ -5003,10 +5005,11 @@ static int DetectFwLtePendingLiveTest01(void)
 /** \test a pending LTE rule that the walk would drop on a packet predicate must
  *  not defer the default policy of its hook (ticket #9149).
  *
- *  The only accept rule of the state is blocked by `dsize`, so no rule is in the
- *  running at the hook: the http1 app default (drop:flow) has to decide on the
- *  first packet. Counting the rule as pending instead defers the policy, which is a
- *  fail-open window opened by a rule that cannot be inspected at all. */
+ *  The only accept rule of the state is blocked by `flow:not_established`, so no
+ *  rule is in the running at the hook: the http1 app default (drop:flow) has to
+ *  decide on the first packet. Counting the rule as pending instead defers the
+ *  policy, which is a fail-open window opened by a rule that cannot be inspected
+ *  at all. */
 static int DetectFwLtePendingLivePolicyTest01(void)
 {
     EngineModeSetFirewall(ENGINE_HOST_IS_ROUTER);
@@ -5046,7 +5049,8 @@ static int DetectFwLtePendingLivePolicyTest01(void)
      * packet: only the window search can tell it is not live. */
     Signature *s_blk = DetectFirewallRuleAppendNew(de_ctx,
             "accept:flow,alert http1:<request_headers any any -> any any "
-            "(content:\"absent.example.com\"; dsize:>9000; sid:1101;)");
+            "(http.host; content:\"absent.example.com\"; flow:not_established; "
+            "sid:1101;)");
     FAIL_IF_NULL(s_blk);
 
     SigGroupBuild(de_ctx);
