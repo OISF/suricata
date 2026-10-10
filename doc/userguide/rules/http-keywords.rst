@@ -1253,14 +1253,19 @@ after ``User-Agent`` but not necessarily directly after.
 http.trailer
 ------------
 
-The ``http.trailer`` keyword matches on the trailer fields of an HTTP/1 message. A
-chunked body may end with a second block of fields, the trailers, which are parsed
-once the body is complete. They are deliberately kept out of :ref:`http.header`,
-:ref:`http.header.raw` and :ref:`http.header_names` as well as out of the field
-keywords such as ``http.user_agent``.
+The ``http.trailer`` keyword matches on the trailer fields of an HTTP message. In
+HTTP/1 a chunked body may end with a second block of fields, the trailers, which are
+parsed once the body is complete. In HTTP/2 they arrive as the HEADERS block that closes
+the stream, with or without body data before it, which is how gRPC and telemetry uploads
+report status at the end of a stream.
+Trailers are deliberately kept out of :ref:`http.header`, :ref:`http.header.raw` and
+:ref:`http.header_names` as well as out of the field keywords such as
+``http.user_agent``.
 
 Fields are rendered as ``Name: value``, separated by \r\n, like ``http.header`` does.
-In HTTP/1 repeated names are combined with a comma, as in the header section. In HTTP/2
+In HTTP/1 repeated names are combined with a comma under the same repetition limit as the
+header section, so occurrences past it are not merged; :ref:`http.trailer.raw` still shows
+them all. In HTTP/2
 the trailer block is rendered as one line per entry, so a repeated name appears twice.
 
 Example HTTP Request::
@@ -1285,10 +1290,14 @@ Example HTTP Request::
 .. note:: Since the trailer section follows the body, a rule that only matches here
   alerts when the last chunk is parsed, not when the headers are. To run a rule at
   that point regardless of what it matches, use the ``http1:request_trailer`` or
-  ``http1:response_trailer`` state hook.
+  ``http1:response_trailer`` state hook, or ``http2:stream:request_trailers`` and
+  ``http2:stream:response_trailers`` for HTTP/2.
 
-.. note:: HTTP/2 does not have a trailer section; its trailing HEADERS frames are
-  currently part of :ref:`http.header`.
+.. note:: An HTTP/2 block counts as trailers once the header section of that direction has
+  completed: for a request the first ``HEADERS`` that ends the section, for a response the
+  first one that also carries a non-1xx status. Body data is not required, so a second
+  ``HEADERS`` block with no ``DATA`` in between is a trailer block, while 1xx informational
+  responses are not.
 
 .. _http.trailer_names:
 
@@ -1296,7 +1305,7 @@ http.trailer_names
 ------------------
 
 The ``http.trailer_names`` keyword matches on the names of the trailer fields of an
-HTTP/1 message. The buffer has the same shape as :ref:`http.header_names`: it starts
+HTTP message. The buffer has the same shape as :ref:`http.header_names`: it starts
 with a \r\n, lists one name per line and ends with an extra \r\n.
 
 .. container:: example-rule
