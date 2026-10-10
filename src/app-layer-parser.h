@@ -245,6 +245,12 @@ typedef int (*AppLayerParserGetStateIdByNameFn)(const char *name, const uint8_t 
  *  \param direction STREAM_TOSERVER/STREAM_TOCLIENT
  */
 typedef const char *(*AppLayerParserGetStateNameByIdFn)(const int id, const uint8_t direction);
+/**
+ *  \param id progress value id to get the default firewall policy for
+ *  \param direction STREAM_TOSERVER/STREAM_TOCLIENT
+ *  \retval policy string such as "accept:hook", NULL to use the generic default
+ */
+typedef const char *(*AppLayerParserGetStatePolicyByIdFn)(const int id, const uint8_t direction);
 
 typedef int (*AppLayerParserGetFrameIdByNameFn)(const char *frame_name);
 typedef const char *(*AppLayerParserGetFrameNameByIdFn)(const uint8_t id);
@@ -301,10 +307,12 @@ void AppLayerParserRegisterGetStateFuncs(uint8_t ipproto, AppProto alproto,
         AppLayerParserGetStateIdByNameFn GetStateIdByName,
         AppLayerParserGetStateNameByIdFn GetStateNameById);
 
-/** \brief register state<>name funcs for a substate */
+/** \brief register state<>name funcs, the completion state and an optional
+ *         per-state default firewall policy for a substate */
 void SCAppLayerParserRegisterGetTxSubStateFuncs(AppProto alproto, const uint8_t sub_state,
         AppLayerParserGetStateIdByNameFn GetIdByNameFunc,
-        AppLayerParserGetStateNameByIdFn GetNameByIdFunc);
+        AppLayerParserGetStateNameByIdFn GetNameByIdFunc, const uint8_t completion,
+        AppLayerParserGetStatePolicyByIdFn GetPolicyFunc);
 
 void AppLayerParserRegisterTxDataFunc(uint8_t ipproto, AppProto alproto,
         AppLayerTxData *(*GetTxData)(void *tx));
@@ -341,6 +349,8 @@ void *AppLayerParserGetTx(uint8_t ipproto, AppProto alproto, void *alstate, uint
 int8_t AppLayerParserGetSubStateProgressId(
         const AppProto alproto, const uint8_t sub_state, const char *state, const uint8_t dir_flag);
 const char *AppLayerParserGetSubStateProgressName(const AppProto alproto, const uint8_t sub_state,
+        const uint8_t state, const uint8_t dir_flag);
+const char *AppLayerParserGetSubStateProgressPolicy(const AppProto alproto, const uint8_t sub_state,
         const uint8_t state, const uint8_t dir_flag);
 uint8_t AppLayerParserGetSubStateCompletion(const AppProto alproto, const uint8_t sub_state);
 uint8_t AppLayerParserGetStateProgressCompletionStatus(AppProto alproto, uint8_t direction);
