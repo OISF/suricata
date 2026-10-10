@@ -268,6 +268,23 @@ fn http2_detect_sizeupdate_match(
     return 0;
 }
 
+/// Blocks of frames holding header-section fields. Kept separate from
+/// http2_header_blocks so that the HPACK size-update matching still sees every frame.
+fn http2_header_section_blocks(frame: &HTTP2Frame) -> Option<&[parser::HTTP2FrameHeaderBlock]> {
+    if frame.is_trailer {
+        return None;
+    }
+    http2_header_blocks(frame)
+}
+
+/// Blocks of frames holding trailer-section fields.
+fn http2_trailer_section_blocks(frame: &HTTP2Frame) -> Option<&[parser::HTTP2FrameHeaderBlock]> {
+    if frame.is_trailer {
+        return http2_header_blocks(frame);
+    }
+    None
+}
+
 fn http2_header_blocks(frame: &HTTP2Frame) -> Option<&[parser::HTTP2FrameHeaderBlock]> {
     match &frame.data {
         HTTP2FrameTypeData::HEADERS(hd) => {
@@ -328,7 +345,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaderName(
     match direction.into() {
         Direction::ToServer => {
             for frame in &tx.frames_ts {
-                if let Some(blocks) = http2_header_blocks(frame) {
+                if let Some(blocks) = http2_header_section_blocks(frame) {
                     if nb < pos + blocks.len() as u32 {
                         let value = &blocks[(nb - pos) as usize].name;
                         *buffer = value.as_ptr(); //unsafe
@@ -342,7 +359,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaderName(
         }
         Direction::ToClient => {
             for frame in &tx.frames_tc {
-                if let Some(blocks) = http2_header_blocks(frame) {
+                if let Some(blocks) = http2_header_section_blocks(frame) {
                     if nb < pos + blocks.len() as u32 {
                         let value = &blocks[(nb - pos) as usize].name;
                         *buffer = value.as_ptr(); //unsafe
@@ -367,7 +384,7 @@ fn http2_frames_get_header_firstvalue<'a>(
         &tx.frames_tc
     };
     for frame in frames {
-        if let Some(blocks) = http2_header_blocks(frame) {
+        if let Some(blocks) = http2_header_section_blocks(frame) {
             for block in blocks.iter() {
                 if block.name.as_ref() == name.as_bytes() {
                     return Ok(&block.value);
@@ -391,7 +408,7 @@ pub fn http2_frames_get_header_value_vec(
         &tx.frames_tc
     };
     for frame in frames {
-        if let Some(blocks) = http2_header_blocks(frame) {
+        if let Some(blocks) = http2_header_section_blocks(frame) {
             for block in blocks.iter() {
                 if block.name.as_ref() == name.as_bytes() {
                     if found == 0 {
@@ -434,7 +451,7 @@ fn http2_frames_get_header_value<'a>(
         &tx.frames_tc
     };
     for frame in frames {
-        if let Some(blocks) = http2_header_blocks(frame) {
+        if let Some(blocks) = http2_header_section_blocks(frame) {
             for block in blocks.iter() {
                 if block.name.as_ref() == name.as_bytes() {
                     if found == 0 {
@@ -791,7 +808,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaderNames(
     };
     let mut repeated = HTTP2RepeatedHeaders::default();
     for frame in frames {
-        if let Some(blocks) = http2_header_blocks(frame) {
+        if let Some(blocks) = http2_header_section_blocks(frame) {
             for block in blocks.iter() {
                 if repeated.add(block) {
                     continue;
@@ -858,7 +875,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaders(
     };
     let mut repeated = HTTP2RepeatedHeaders::default();
     for frame in frames {
-        if let Some(blocks) = http2_header_blocks(frame) {
+        if let Some(blocks) = http2_header_section_blocks(frame) {
             for block in blocks.iter() {
                 if !http2_header_iscookie(direction.into(), &block.name) {
                     if repeated.add(block) {
@@ -896,7 +913,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeadersRaw(
     };
     let mut repeated = HTTP2RepeatedHeaders::default();
     for frame in frames {
-        if let Some(blocks) = http2_header_blocks(frame) {
+        if let Some(blocks) = http2_header_section_blocks(frame) {
             for block in blocks.iter() {
                 if repeated.add(block) {
                     continue;
@@ -910,6 +927,126 @@ pub unsafe extern "C" fn SCHttp2TxGetHeadersRaw(
         }
     }
     if !tbuf.data.is_empty() {
+        *buffer = tbuf.data.as_ptr(); //unsafe
+        *buffer_len = tbuf.data.len() as u32;
+        return 1;
+    }
+    return 0;
+}
+
+/// A trailer section may repeat a field, and two occurrences can share one HPACK
+/// dynamic-table entry: every decodable block is a field of its own. The limit
+/// stops indexed repetitions from growing the buffer without bound.
+const HTTP2_MAX_TRAILER_BUFFER_SIZE: usize = 65536;
+
+/// Append one line per trailer field of `frames` to `data`.
+fn http2_trailer_append_fields(frames: &[HTTP2Frame], data: &mut Vec<u8>, trim: bool) {
+    for frame in frames {
+        let Some(blocks) = http2_trailer_section_blocks(frame) else {
+            continue;
+        };
+        for block in blocks {
+            if block.error != parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess {
+                continue;
+            }
+            if data.len() + block.name.len() + block.value.len() + 4 > HTTP2_MAX_TRAILER_BUFFER_SIZE
+            {
+                return;
+            }
+            data.extend_from_slice(&block.name);
+            data.extend_from_slice(b": ");
+            if trim {
+                data.extend_from_slice(http2_header_trimspaces(&block.value));
+            } else {
+                data.extend_from_slice(&block.value);
+            }
+            data.extend_from_slice(b"\r\n");
+        }
+    }
+}
+
+/// Append the trailer field names of `frames` to `data`, framed like
+/// `http.header_names`.
+fn http2_trailer_append_names(frames: &[HTTP2Frame], data: &mut Vec<u8>) {
+    data.extend_from_slice(b"\r\n");
+    'frames: for frame in frames {
+        let Some(blocks) = http2_trailer_section_blocks(frame) else {
+            continue;
+        };
+        for block in blocks {
+            if block.error != parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess {
+                continue;
+            }
+            // 4 = this name's CRLF and the closing one, so the buffer keeps the
+            // http.header_names shape when the cap is reached
+            if data.len() + block.name.len() + 4 > HTTP2_MAX_TRAILER_BUFFER_SIZE {
+                break 'frames;
+            }
+            data.extend_from_slice(&block.name);
+            data.extend_from_slice(b"\r\n");
+        }
+    }
+    if data.len() > 2 {
+        data.extend_from_slice(b"\r\n");
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2TxGetTrailers(
+    tx: &HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+    tbuf: *mut c_void,
+) -> u8 {
+    let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
+    tbuf.data.clear();
+    let frames = if direction & Direction::ToServer as u8 != 0 {
+        &tx.frames_ts
+    } else {
+        &tx.frames_tc
+    };
+    http2_trailer_append_fields(frames, &mut tbuf.data, true);
+    if !tbuf.data.is_empty() {
+        *buffer = tbuf.data.as_ptr(); //unsafe
+        *buffer_len = tbuf.data.len() as u32;
+        return 1;
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2TxGetTrailersRaw(
+    tx: &HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+    tbuf: *mut c_void,
+) -> u8 {
+    let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
+    tbuf.data.clear();
+    let frames = if direction & Direction::ToServer as u8 != 0 {
+        &tx.frames_ts
+    } else {
+        &tx.frames_tc
+    };
+    http2_trailer_append_fields(frames, &mut tbuf.data, false);
+    if !tbuf.data.is_empty() {
+        *buffer = tbuf.data.as_ptr(); //unsafe
+        *buffer_len = tbuf.data.len() as u32;
+        return 1;
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2TxGetTrailerNames(
+    tx: &HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+    tbuf: *mut c_void,
+) -> u8 {
+    let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
+    tbuf.data.clear();
+    let frames = if direction & Direction::ToServer as u8 != 0 {
+        &tx.frames_ts
+    } else {
+        &tx.frames_tc
+    };
+    http2_trailer_append_names(frames, &mut tbuf.data);
+    if tbuf.data.len() > 2 {
         *buffer = tbuf.data.as_ptr(); //unsafe
         *buffer_len = tbuf.data.len() as u32;
         return 1;
@@ -944,7 +1081,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeader(
     match direction.into() {
         Direction::ToServer => {
             for frame in &tx.frames_ts {
-                if let Some(blocks) = http2_header_blocks(frame) {
+                if let Some(blocks) = http2_header_section_blocks(frame) {
                     if nb < pos + blocks.len() as u32 {
                         if nb as usize == tbuf.data.len() {
                             tbuf.data.push(Vec::new());
@@ -962,7 +1099,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeader(
         }
         Direction::ToClient => {
             for frame in &tx.frames_tc {
-                if let Some(blocks) = http2_header_blocks(frame) {
+                if let Some(blocks) = http2_header_section_blocks(frame) {
                     if nb < pos + blocks.len() as u32 {
                         if nb as usize == tbuf.data.len() {
                             tbuf.data.push(Vec::new());
@@ -1008,9 +1145,9 @@ fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
         .find_or_create_tx(&head, &txdata, Direction::ToServer)
         .unwrap();
     tx.frames_ts.push(HTTP2Frame {
-        is_trailer: false,
         header: head,
         data: txdata,
+        is_trailer: false,
     });
     //we do not expect more data from client
     if let HTTP2Progress::STREAM(ref mut stream_tx) = tx.progress {
@@ -1056,9 +1193,9 @@ fn http2_tx_set_settings(state: &mut HTTP2State, input: &[u8]) {
                         .find_or_create_tx(&head, &txdata, Direction::ToServer)
                         .unwrap();
                     tx.frames_ts.push(HTTP2Frame {
-                        is_trailer: false,
                         header: head,
                         data: txdata,
+                        is_trailer: false,
                     });
                 }
                 Err(_) => {
@@ -1098,6 +1235,122 @@ pub unsafe extern "C" fn SCHttp2TxAddHeader(
 mod tests {
 
     use super::*;
+
+    fn trailer_frame(blocks: Vec<parser::HTTP2FrameHeaderBlock>, is_trailer: bool) -> HTTP2Frame {
+        HTTP2Frame {
+            header: parser::HTTP2FrameHeader {
+                length: 0,
+                ftype: parser::HTTP2FrameType::Headers as u8,
+                flags: 0,
+                reserved: 0,
+                stream_id: 1,
+            },
+            data: HTTP2FrameTypeData::HEADERS(parser::HTTP2FrameHeaders {
+                padlength: None,
+                priority: None,
+                blocks,
+            }),
+            is_trailer,
+        }
+    }
+
+    #[test]
+    fn test_trailer_buffers_keep_indexed_repeat() {
+        // both occurrences resolve to the same dynamic table entry, i.e. share the
+        // name and value Rc, and both are fields of the trailer section
+        let name = std::rc::Rc::new(b"server-timing".to_vec());
+        let value = std::rc::Rc::new(b"dur=2".to_vec());
+        let indexed = || parser::HTTP2FrameHeaderBlock {
+            name: name.clone(),
+            value: value.clone(),
+            error: parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
+            sizeupdate: 0,
+        };
+        let frames = vec![trailer_frame(vec![indexed(), indexed()], true)];
+
+        let mut data = Vec::new();
+        http2_trailer_append_fields(&frames, &mut data, true);
+        assert_eq!(
+            data,
+            b"server-timing: dur=2\r\nserver-timing: dur=2\r\n".to_vec()
+        );
+
+        let mut names = Vec::new();
+        http2_trailer_append_names(&frames, &mut names);
+        assert_eq!(
+            names,
+            b"\r\nserver-timing\r\nserver-timing\r\n\r\n".to_vec()
+        );
+    }
+
+    #[test]
+    fn test_trailer_buffers_skip_non_fields() {
+        let size_update = parser::HTTP2FrameHeaderBlock {
+            name: std::rc::Rc::new(Vec::new()),
+            value: std::rc::Rc::new(Vec::new()),
+            error: parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate,
+            sizeupdate: 0,
+        };
+        let decode_error = parser::HTTP2FrameHeaderBlock {
+            name: std::rc::Rc::new(Vec::new()),
+            value: std::rc::Rc::new(Vec::new()),
+            error: parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIndex0,
+            sizeupdate: 0,
+        };
+        let frames = vec![trailer_frame(vec![size_update, decode_error], true)];
+
+        let mut data = Vec::new();
+        http2_trailer_append_fields(&frames, &mut data, true);
+        assert!(data.is_empty());
+
+        let mut names = Vec::new();
+        http2_trailer_append_names(&frames, &mut names);
+        assert_eq!(names, b"\r\n".to_vec());
+    }
+
+    #[test]
+    fn test_trailer_buffers_ignore_header_sections() {
+        let block = parser::HTTP2FrameHeaderBlock {
+            name: std::rc::Rc::new(b"x-checksum".to_vec()),
+            value: std::rc::Rc::new(b"abc".to_vec()),
+            error: parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
+            sizeupdate: 0,
+        };
+        let frames = vec![trailer_frame(vec![block], false)];
+        let mut data = Vec::new();
+        http2_trailer_append_fields(&frames, &mut data, true);
+        assert!(data.is_empty());
+    }
+
+    #[test]
+    fn test_trailer_buffers_stop_at_the_cap() {
+        // 4000 byte values: 16 lines fit before the cap, the 17th would pass it
+        let block = || parser::HTTP2FrameHeaderBlock {
+            name: std::rc::Rc::new(b"x-amp".to_vec()),
+            value: std::rc::Rc::new(vec![b'A'; 4000]),
+            error: parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
+            sizeupdate: 0,
+        };
+        let frames = vec![trailer_frame((0..20).map(|_| block()).collect(), true)];
+
+        let mut data = Vec::new();
+        http2_trailer_append_fields(&frames, &mut data, true);
+        assert_eq!(data.len(), 16 * 4009);
+        assert!(data.ends_with(b"\r\n"));
+
+        // names keep more entries, and the closing CRLF survives the cap
+        let name_block = || parser::HTTP2FrameHeaderBlock {
+            name: std::rc::Rc::new(vec![b'n'; 1000]),
+            value: std::rc::Rc::new(Vec::new()),
+            error: parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
+            sizeupdate: 0,
+        };
+        let frames = vec![trailer_frame((0..80).map(|_| name_block()).collect(), true)];
+        let mut names = Vec::new();
+        http2_trailer_append_names(&frames, &mut names);
+        assert_eq!(names.len(), 2 + 65 * 1002 + 2);
+        assert!(names.ends_with(b"\r\n\r\n"));
+    }
 
     #[test]
     fn test_http2_normalize_host() {
@@ -1173,9 +1426,9 @@ mod tests {
         };
         let txdata = HTTP2FrameTypeData::HEADERS(hs);
         tx.frames_ts.push(HTTP2Frame {
-            is_trailer: false,
             header: head,
             data: txdata,
+            is_trailer: false,
         });
         match http2_frames_get_header_value(&tx, Direction::ToServer, "Host") {
             Some(Http2Header::Multiple(x)) => {
