@@ -176,6 +176,16 @@ Anomalies are reported by and configured by type:
 - Stream
 - Application layer
 
+Decode anomaly records for a packet with the
+``decoder.ethernet.unknown_ethertype`` event include the ethertype the decoder
+could not handle in a top-level ``unknown_ether_type`` field. Decoding stops at
+that ethertype, so a packet has at most one. When that ethertype follows a
+VLAN, 802.1ah, E-Tag or VN-Tag header, ``ether.ether_type`` (logged with
+``ethernet: yes``) holds the ethernet header's type, such as 0x8100 for VLAN,
+not the unknown one. After a VLAN, E-Tag or VN-Tag header the decoder also
+raises ``decoder.vlan.unknown_type``, ``decoder.etag.unknown_type`` or
+``decoder.vntag.unknown_type``, and that record carries the same field.
+
 Metadata::
 
     - anomaly:
