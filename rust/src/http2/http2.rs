@@ -140,8 +140,9 @@ pub enum HTTP2TxProgress {
     HTTP2ProgStarted = 0,
     HTTP2ProgHeaders = 1,
     HTTP2ProgData = 2,
-    HTTP2ProgClosed = 3,
-    HTTP2ProgComplete = 4, // complete is a pseudo state set only when both sides are closed
+    HTTP2ProgTrailers = 3,
+    HTTP2ProgClosed = 4,
+    HTTP2ProgComplete = 5, // complete is a pseudo state set only when both sides are closed
 }
 
 #[repr(u8)]
@@ -156,6 +157,8 @@ pub enum HTTP2TxGlobalProgress {
 pub struct HTTP2Frame {
     pub header: parser::HTTP2FrameHeader,
     pub data: HTTP2FrameTypeData,
+    /// the blocks of this frame belong to a trailer section, not to the header section
+    pub is_trailer: bool,
 }
 
 #[derive(Debug, Default)]
@@ -292,6 +295,14 @@ pub struct HTTP2Transaction {
 
     pub frames_tc: Vec<HTTP2Frame>,
     pub frames_ts: Vec<HTTP2Frame>,
+    /// header section complete per direction: END_HEADERS seen, for a response only past a
+    /// non-1xx status; a later header block in that direction is a trailer section
+    headers_done_ts: bool,
+    headers_done_tc: bool,
+    final_status_tc: bool,
+    // whether the header block currently open in each direction is a trailer block
+    open_block_trailer_ts: Option<bool>,
+    open_block_trailer_tc: Option<bool>,
 
     decoder: decompression::HTTP2Decoder,
     pub file_range: *mut HttpRangeContainerBlock,
@@ -328,6 +339,11 @@ impl HTTP2Transaction {
             to_drop: false,
             frames_tc: Vec::new(),
             frames_ts: Vec::new(),
+            headers_done_ts: false,
+            headers_done_tc: false,
+            final_status_tc: false,
+            open_block_trailer_ts: None,
+            open_block_trailer_tc: None,
             decoder: decompression::HTTP2Decoder::new(),
             file_range: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
@@ -519,11 +535,90 @@ impl HTTP2Transaction {
         return Ok(());
     }
 
+    /// A header block is trailers once the header section of the message has completed in
+    /// that direction, which is sequence, not body: RFC 9113 allows a trailer section after a
+    /// message with no DATA frames at all. A stream that opens with DATA still has no completed
+    /// header section, and an informational response does not complete one either, so neither
+    /// can turn a following block into trailers.
+    fn frame_is_trailer(&self, data: &HTTP2FrameTypeData, dir: Direction) -> bool {
+        match data {
+            HTTP2FrameTypeData::HEADERS(_) => {
+                if dir == Direction::ToServer {
+                    self.headers_done_ts
+                } else {
+                    self.headers_done_tc
+                }
+            }
+            // A CONTINUATION belongs to the block that opened it, so it inherits that
+            // block's classification instead of the state the direction reached since.
+            HTTP2FrameTypeData::CONTINUATION(_) => {
+                if dir == Direction::ToServer {
+                    self.open_block_trailer_ts.unwrap_or(false)
+                } else {
+                    self.open_block_trailer_tc.unwrap_or(false)
+                }
+            }
+            _ => false,
+        }
+    }
+
+    /// True once a response block carries a non-1xx :status, i.e. the header section of the
+    /// message proper has been seen.
+    fn blocks_have_final_status(blocks: &[parser::HTTP2FrameHeaderBlock]) -> bool {
+        blocks
+            .iter()
+            .any(|b| b.name.as_slice() == b":status" && b.value.first() != Some(&b'1'))
+    }
+
     fn handle_frame(
         &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: Direction,
+        is_trailer: bool,
     ) -> Option<Vec<u8>> {
         //handle child_stream_id changes
         let mut r = None;
+        let end_headers = header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0;
+        match data {
+            HTTP2FrameTypeData::HEADERS(_) | HTTP2FrameTypeData::PUSHPROMISE(_) => {
+                let open = if dir == Direction::ToServer {
+                    &mut self.open_block_trailer_ts
+                } else {
+                    &mut self.open_block_trailer_tc
+                };
+                *open = if end_headers { None } else { Some(is_trailer) };
+            }
+            HTTP2FrameTypeData::CONTINUATION(_) if end_headers => {
+                let open = if dir == Direction::ToServer {
+                    &mut self.open_block_trailer_ts
+                } else {
+                    &mut self.open_block_trailer_tc
+                };
+                *open = None;
+            }
+            _ => {}
+        }
+        if !is_trailer
+            && matches!(
+                data,
+                HTTP2FrameTypeData::HEADERS(_) | HTTP2FrameTypeData::CONTINUATION(_)
+            )
+        {
+            let blocks = match data {
+                HTTP2FrameTypeData::HEADERS(hs) => &hs.blocks,
+                HTTP2FrameTypeData::CONTINUATION(hs) => &hs.blocks,
+                _ => unreachable!(),
+            };
+            if dir == Direction::ToClient && Self::blocks_have_final_status(blocks) {
+                self.final_status_tc = true;
+            }
+            if header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0 {
+                if dir == Direction::ToServer {
+                    self.headers_done_ts = true;
+                } else {
+                    // an informational response has not finished the header section yet
+                    self.headers_done_tc = self.final_status_tc;
+                }
+            }
+        }
         match data {
             HTTP2FrameTypeData::PUSHPROMISE(hs) => {
                 if dir == Direction::ToClient {
@@ -559,6 +654,20 @@ impl HTTP2Transaction {
             _ => {}
         }
         if let HTTP2Progress::STREAM(ref mut stream_tx) = self.progress {
+            // a trailer section is complete once its last block frame is in; the end of stream
+            // handling below takes precedence, it moves further. Use the caller's value: the
+            // arming above has already set headers_done for this frame, so re-evaluating here
+            // would turn the block that opens a stream into trailers.
+            if is_trailer && header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0 {
+                let st = if dir == Direction::ToServer {
+                    &mut stream_tx.progress_ts
+                } else {
+                    &mut stream_tx.progress_tc
+                };
+                if *st < HTTP2TxProgress::HTTP2ProgTrailers {
+                    *st = HTTP2TxProgress::HTTP2ProgTrailers;
+                }
+            }
             //handle closing state changes
             let state = if dir == Direction::ToServer {
                 &mut stream_tx.progress_ts
@@ -1487,7 +1596,10 @@ impl HTTP2State {
                         continue; // skip this frame, continue parsing the next
                     }
 
-                    if let Some(doh_req_buf) = tx.handle_frame(&head, &txdata, dir) {
+                    // classify before handling: handling moves the state this frame is
+                    // judged against
+                    let is_trailer = tx.frame_is_trailer(&txdata, dir);
+                    if let Some(doh_req_buf) = tx.handle_frame(&head, &txdata, dir, is_trailer) {
                         if let Ok(mut dtx) = dns_parse_request(&doh_req_buf, &DnsVariant::Dns) {
                             dtx.id = 1;
                             unsafe {
@@ -1521,6 +1633,7 @@ impl HTTP2State {
                         h2frames.push(HTTP2Frame {
                             header: head,
                             data: txdata,
+                            is_trailer,
                         });
                     } else {
                         tx.tx_data.set_event(HTTP2Event::TooManyFrames as u8);
@@ -1752,6 +1865,19 @@ unsafe extern "C" fn http2_state_get_tx_count(state: *mut std::os::raw::c_void) 
     return state.tx_id;
 }
 
+// the trailer state was added after HTTP/2 support shipped: default to accept for the hook
+// so flows with trailers are not dropped on upgrade, until a policy is configured explicitly
+const HTTP2_TRAILERS_POLICY: &[u8] = b"accept:hook\0";
+
+unsafe extern "C" fn http2_tx_state_get_policy(
+    state: std::os::raw::c_int, _direction: u8,
+) -> *const std::os::raw::c_char {
+    if HTTP2TxProgress::from_u8(state as u8) == Some(HTTP2TxProgress::HTTP2ProgTrailers) {
+        return HTTP2_TRAILERS_POLICY.as_ptr() as *const std::os::raw::c_char;
+    }
+    std::ptr::null()
+}
+
 unsafe extern "C" fn http2_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, direction: u8,
 ) -> std::os::raw::c_int {
@@ -1871,12 +1997,16 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
             HTTP2TxType::HTTP2TxTypeStream as u8,
             Some(HTTP2TxProgress::ffi_id_from_name),
             Some(HTTP2TxProgress::ffi_name_from_id),
+            HTTP2TxProgress::HTTP2ProgComplete as u8,
+            Some(http2_tx_state_get_policy),
         );
         SCAppLayerParserRegisterGetTxSubStateFuncs(
             ALPROTO_HTTP2,
             HTTP2TxType::HTTP2TxTypeGlobal as u8,
             Some(HTTP2TxGlobalProgress::ffi_id_from_name),
             Some(HTTP2TxGlobalProgress::ffi_name_from_id),
+            HTTP2TxGlobalProgress::HTTP2ProgGlobalComplete as u8,
+            None,
         );
 
         SCLogDebug!("Rust http2 parser registered.");
@@ -1904,5 +2034,366 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
         SCLogDebug!("Rust doh2 parser registered.");
     } else {
         SCLogNotice!("Protocol detector and parser disabled for DOH2.");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn hdr(ftype: u8, flags: u8) -> parser::HTTP2FrameHeader {
+        parser::HTTP2FrameHeader {
+            length: 0,
+            ftype,
+            flags,
+            reserved: 0,
+            stream_id: 1,
+        }
+    }
+
+    fn blocks(pairs: &[(&[u8], &[u8])]) -> Vec<parser::HTTP2FrameHeaderBlock> {
+        pairs
+            .iter()
+            .map(|(n, v)| parser::HTTP2FrameHeaderBlock {
+                name: std::rc::Rc::new(n.to_vec()),
+                value: std::rc::Rc::new(v.to_vec()),
+                error: parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
+                sizeupdate: 0,
+            })
+            .collect()
+    }
+
+    fn headers(pairs: &[(&[u8], &[u8])]) -> HTTP2FrameTypeData {
+        HTTP2FrameTypeData::HEADERS(parser::HTTP2FrameHeaders {
+            padlength: None,
+            priority: None,
+            blocks: blocks(pairs),
+        })
+    }
+
+    fn progress_tc(tx: &HTTP2Transaction) -> HTTP2TxProgress {
+        match &tx.progress {
+            HTTP2Progress::STREAM(s) => s.progress_tc,
+            _ => panic!("not a stream tx"),
+        }
+    }
+
+    fn progress_ts(tx: &HTTP2Transaction) -> HTTP2TxProgress {
+        match &tx.progress {
+            HTTP2Progress::STREAM(s) => s.progress_ts,
+            _ => panic!("not a stream tx"),
+        }
+    }
+
+    /// A header block after the body is a trailer section: it is marked as such and it
+    /// moves the transaction to the trailer state, where the trailer buffers complete.
+    #[test]
+    fn http2_trailers_get_their_own_state() {
+        let mut tx = HTTP2Transaction::new();
+        let end = parser::HTTP2_FLAG_HEADER_END_HEADERS;
+        let hs = headers(&[
+            (&b":method"[..], &b"POST"[..]),
+            (&b"host"[..], &b"a.example"[..]),
+        ]);
+        let is_trailer = tx.frame_is_trailer(&hs, Direction::ToServer);
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, end),
+            &hs,
+            Direction::ToServer,
+            is_trailer,
+        );
+        // a further block is trailers already, body or no body
+        assert!(tx.frame_is_trailer(&hs, Direction::ToServer));
+        assert_eq!(progress_ts(&tx), HTTP2TxProgress::HTTP2ProgHeaders);
+
+        let is_trailer = tx.frame_is_trailer(&HTTP2FrameTypeData::DATA, Direction::ToServer);
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Data as u8, 0),
+            &HTTP2FrameTypeData::DATA,
+            Direction::ToServer,
+            is_trailer,
+        );
+        assert_eq!(progress_ts(&tx), HTTP2TxProgress::HTTP2ProgData);
+
+        let tr = headers(&[(&b"x-checksum"[..], &b"deadbeef"[..])]);
+        let is_trailer = tx.frame_is_trailer(&tr, Direction::ToServer);
+        assert!(is_trailer);
+        tx.handle_frame(
+            &hdr(
+                parser::HTTP2FrameType::Headers as u8,
+                end | parser::HTTP2_FLAG_HEADER_EOS,
+            ),
+            &tr,
+            Direction::ToServer,
+            is_trailer,
+        );
+        // end of stream wins over the trailer bump, the section is complete either way
+        assert_eq!(progress_ts(&tx), HTTP2TxProgress::HTTP2ProgClosed);
+    }
+
+    /// RFC 9113 allows a trailer section behind a message that sent no DATA frames, so
+    /// classification must key on block sequence. Both directions are covered; an
+    /// informational response must not complete the header section, which the next case
+    /// in http2_intermediate_headers_are_not_trailers pins from the other side.
+    #[test]
+    fn http2_bodyless_trailers_are_trailers() {
+        let mut tx = HTTP2Transaction::new();
+        let end = parser::HTTP2_FLAG_HEADER_END_HEADERS;
+        let eos = parser::HTTP2_FLAG_HEADER_EOS;
+        let hs = headers(&[
+            (&b":method"[..], &b"POST"[..]),
+            (&b"host"[..], &b"a.example"[..]),
+        ]);
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, end),
+            &hs,
+            Direction::ToServer,
+            false,
+        );
+        let tr = headers(&[(&b"x-checksum"[..], &b"deadbeef"[..])]);
+        assert!(tx.frame_is_trailer(&tr, Direction::ToServer));
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, end | eos),
+            &tr,
+            Direction::ToServer,
+            true,
+        );
+
+        let mut tx = HTTP2Transaction::new();
+        let hs = headers(&[(&b":status"[..], &b"200"[..])]);
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, end),
+            &hs,
+            Direction::ToClient,
+            false,
+        );
+        let tr = headers(&[(&b"x-checksum"[..], &b"deadbeef"[..])]);
+        assert!(tx.frame_is_trailer(&tr, Direction::ToClient));
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, end | eos),
+            &tr,
+            Direction::ToClient,
+            true,
+        );
+        match &tx.progress {
+            HTTP2Progress::STREAM(s) => {
+                // end of stream takes precedence over the trailer bump, as elsewhere
+                assert!(matches!(
+                    s.progress_tc,
+                    HTTP2TxProgress::HTTP2ProgTrailers | HTTP2TxProgress::HTTP2ProgClosed
+                ));
+            }
+            _ => panic!("not a stream tx"),
+        }
+    }
+
+    /// A 1xx block must not arm the trailer classifier for the final block that follows it
+    /// when no body came in between, which is the case DATA used to stand in for.
+    #[test]
+    fn http2_interim_then_final_blocks_are_not_trailers() {
+        let mut tx = HTTP2Transaction::new();
+        let end = parser::HTTP2_FLAG_HEADER_END_HEADERS;
+        let i = headers(&[(&b":status"[..], &b"103"[..])]);
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, end),
+            &i,
+            Direction::ToClient,
+            false,
+        );
+        assert!(!tx.frame_is_trailer(&i, Direction::ToClient));
+        let f = headers(&[(&b":status"[..], &b"200"[..])]);
+        assert!(!tx.frame_is_trailer(&f, Direction::ToClient));
+    }
+
+    /// A stream that opens with a DATA frame keeps its header block in the header section.
+    #[test]
+    fn http2_data_before_headers_is_not_a_trailer() {
+        let mut tx = HTTP2Transaction::new();
+        let end = parser::HTTP2_FLAG_HEADER_END_HEADERS;
+        let is_trailer = tx.frame_is_trailer(&HTTP2FrameTypeData::DATA, Direction::ToServer);
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Data as u8, 0),
+            &HTTP2FrameTypeData::DATA,
+            Direction::ToServer,
+            is_trailer,
+        );
+        let hs = headers(&[
+            (&b":method"[..], &b"POST"[..]),
+            (&b"host"[..], &b"a.example"[..]),
+        ]);
+        assert!(!tx.frame_is_trailer(&hs, Direction::ToServer));
+        let is_trailer = tx.frame_is_trailer(&hs, Direction::ToServer);
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, end),
+            &hs,
+            Direction::ToServer,
+            is_trailer,
+        );
+        // the stray DATA frame ahead of it must not push this block into the trailer state
+        assert_ne!(progress_ts(&tx), HTTP2TxProgress::HTTP2ProgTrailers);
+        // body data behind the header section, then a block: that one is trailers
+        let is_trailer = tx.frame_is_trailer(&HTTP2FrameTypeData::DATA, Direction::ToServer);
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Data as u8, 0),
+            &HTTP2FrameTypeData::DATA,
+            Direction::ToServer,
+            is_trailer,
+        );
+        let tr = headers(&[(&b"x-checksum"[..], &b"deadbeef"[..])]);
+        let is_trailer = tx.frame_is_trailer(&tr, Direction::ToServer);
+        assert!(is_trailer);
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, end),
+            &tr,
+            Direction::ToServer,
+            is_trailer,
+        );
+        assert_eq!(progress_ts(&tx), HTTP2TxProgress::HTTP2ProgTrailers);
+    }
+
+    /// Trailers without end-stream stay in the trailer state until the stream closes.
+    #[test]
+    fn http2_trailers_without_end_stream() {
+        let mut tx = HTTP2Transaction::new();
+        let end = parser::HTTP2_FLAG_HEADER_END_HEADERS;
+        let hs = headers(&[(&b":method"[..], &b"POST"[..])]);
+        let is_trailer = tx.frame_is_trailer(&hs, Direction::ToServer);
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, end),
+            &hs,
+            Direction::ToServer,
+            is_trailer,
+        );
+        let is_trailer = tx.frame_is_trailer(&HTTP2FrameTypeData::DATA, Direction::ToServer);
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Data as u8, 0),
+            &HTTP2FrameTypeData::DATA,
+            Direction::ToServer,
+            is_trailer,
+        );
+        let tr = headers(&[(&b"x-checksum"[..], &b"1"[..])]);
+        let is_trailer = tx.frame_is_trailer(&tr, Direction::ToServer);
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, end),
+            &tr,
+            Direction::ToServer,
+            is_trailer,
+        );
+        assert_eq!(progress_ts(&tx), HTTP2TxProgress::HTTP2ProgTrailers);
+    }
+
+    /// A CONTINUATION continues the block that opened it. A PUSH_PROMISE issued while the
+    /// response body is in flight must not have its fields read as the parent stream's
+    /// trailers, even though the parent has completed its header section.
+    #[test]
+    fn http2_push_promise_continuation_is_not_a_trailer() {
+        let mut tx = HTTP2Transaction::new();
+        let end = parser::HTTP2_FLAG_HEADER_END_HEADERS;
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, end),
+            &headers(&[(&b":status"[..], &b"200"[..])]),
+            Direction::ToClient,
+            false,
+        );
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Data as u8, 0),
+            &HTTP2FrameTypeData::DATA,
+            Direction::ToClient,
+            false,
+        );
+        let pp = HTTP2FrameTypeData::PUSHPROMISE(parser::HTTP2FramePushPromise {
+            padlength: None,
+            reserved: 0,
+            stream_id: 2,
+            blocks: vec![],
+        });
+        assert!(!tx.frame_is_trailer(&pp, Direction::ToClient));
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::PushPromise as u8, 0),
+            &pp,
+            Direction::ToClient,
+            false,
+        );
+        let c = HTTP2FrameTypeData::CONTINUATION(parser::HTTP2FrameContinuation { blocks: vec![] });
+        assert!(!tx.frame_is_trailer(&c, Direction::ToClient));
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Continuation as u8, end),
+            &c,
+            Direction::ToClient,
+            false,
+        );
+        assert_ne!(progress_tc(&tx), HTTP2TxProgress::HTTP2ProgTrailers);
+    }
+
+    /// A trailer block spread over HEADERS plus CONTINUATION keeps its classification for
+    /// the whole block, and completes in the trailer state.
+    #[test]
+    fn http2_trailer_block_spanning_continuation() {
+        let mut tx = HTTP2Transaction::new();
+        let end = parser::HTTP2_FLAG_HEADER_END_HEADERS;
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, end),
+            &headers(&[(&b":method"[..], &b"POST"[..])]),
+            Direction::ToServer,
+            false,
+        );
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Data as u8, 0),
+            &HTTP2FrameTypeData::DATA,
+            Direction::ToServer,
+            false,
+        );
+        let hs = headers(&[(&b"x-checksum"[..], &b"deadbeef"[..])]);
+        assert!(tx.frame_is_trailer(&hs, Direction::ToServer));
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, 0),
+            &hs,
+            Direction::ToServer,
+            true,
+        );
+        let c = HTTP2FrameTypeData::CONTINUATION(parser::HTTP2FrameContinuation { blocks: vec![] });
+        assert!(tx.frame_is_trailer(&c, Direction::ToServer));
+        tx.handle_frame(
+            &hdr(
+                parser::HTTP2FrameType::Continuation as u8,
+                end | parser::HTTP2_FLAG_HEADER_EOS,
+            ),
+            &c,
+            Direction::ToServer,
+            true,
+        );
+    }
+
+    /// Repeated header blocks are not trailers when no body came in between, which is how
+    /// an HTTP/2 response sends 1xx before its final block.
+    #[test]
+    fn http2_intermediate_headers_are_not_trailers() {
+        let mut tx = HTTP2Transaction::new();
+        let end = parser::HTTP2_FLAG_HEADER_END_HEADERS;
+        let h1 = headers(&[(&b":status"[..], &b"100"[..])]);
+        let is_trailer = tx.frame_is_trailer(&h1, Direction::ToClient);
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, end),
+            &h1,
+            Direction::ToClient,
+            is_trailer,
+        );
+        let h2 = headers(&[(&b":status"[..], &b"200"[..])]);
+        assert!(!tx.frame_is_trailer(&h2, Direction::ToClient));
+        let is_trailer = tx.frame_is_trailer(&h2, Direction::ToClient);
+        tx.handle_frame(
+            &hdr(
+                parser::HTTP2FrameType::Headers as u8,
+                end | parser::HTTP2_FLAG_HEADER_EOS,
+            ),
+            &h2,
+            Direction::ToClient,
+            is_trailer,
+        );
+        assert_eq!(
+            progress_ts(&tx),
+            HTTP2TxProgress::HTTP2ProgStarted,
+            "wrong direction must not move"
+        );
     }
 }

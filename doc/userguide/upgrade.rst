@@ -71,6 +71,12 @@ Major Changes
   ``tx:request_headers()``, ``tx:request_headers_raw()`` and the response twins read the
   header tables and the raw header buffer, and that library has no trailer accessor.
 
+- HTTP/2 gained a transaction state for the trailer block,
+  ``http2:stream:request_trailers`` and ``http2:stream:response_trailers``, between
+  ``..._data`` and ``..._closed``. Firewall rules with a state range spanning them (for
+  example ``http2:stream:request_complete<``) now cover one more state. The new states
+  start out with the built-in default policy ``accept:hook`` instead of ``drop:flow``,
+  so streams carrying trailers are not blocked before a policy is chosen.
 - ``pgsql`` is no longer enabled by default. Previously, if the
   ``app-layer.protocols.pgsql`` section was absent from suricata.yaml, the
   parser would be enabled. It's now disabled by default. Simply enabling its EVE
