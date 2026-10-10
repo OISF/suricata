@@ -18,7 +18,7 @@ once_cell = { version = "1.21.3" }
 rustyline = { version = "14.0.0" }
 rustyline-derive = { version = "~0.11.1" }
 
-thiserror = { version = "1.0.69" }
+thiserror = { version = "2.0.21" }
 
 serde = { version = "1.0.219", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0.140", default-features = false, features = ["preserve_order"] }

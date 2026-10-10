@@ -1,0 +1,28 @@
+%YAML 1.1
+---
+under_score:
+  sub_key: 1
+  nested_more:
+    deeper_key: 2
+vars:
+  address-groups:
+    HOME_NET: "[192.168.0.0/16]"
+    lower_case: x
+  port-groups:
+    HTTP_PORTS: 80
+  other_group:
+    X_Y: 1
+not-vars:
+  address_groups:
+    SOME_NET: 1
+vars.address-groups.CLI_NET: y
+dotted.key_with_underscore: 1
+also_dotted.key_two: 2
+seq_of_maps:
+  - inter_face: eth0
+    cluster_id: 99
+    cluster-type: cluster_flow
+  - interface: eth1
+__double: 3
+trailing_underscore_: 4
+k_1: a

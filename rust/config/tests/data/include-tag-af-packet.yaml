@@ -1,0 +1,3 @@
+- interface: eth0
+  threads: 1
+- interface: eth1

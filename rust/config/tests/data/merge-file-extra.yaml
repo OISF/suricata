@@ -1,0 +1,5 @@
+a: 2
+map:
+  z: 3
+vars.address-groups.EXTERNAL_NET: x
+include: merge-file-nested.yaml
