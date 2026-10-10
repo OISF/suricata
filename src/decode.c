@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -62,6 +62,11 @@
 #include "decode-erspan.h"
 #include "decode-teredo.h"
 #include "decode-arp.h"
+#include "decode-chdlc.h"
+#include "decode-etag.h"
+#include "decode-sll.h"
+#include "decode-sll2.h"
+#include "decode-vntag.h"
 
 #include "defrag-hash.h"
 
@@ -1190,6 +1195,93 @@ inline void PcapPacketCntSet(Packet *p, uint64_t pcap_cnt)
     if (PcapPacketCntRunmodeCanAccess() && p != NULL) {
         p->pcap_v.pcap_cnt = pcap_cnt;
     }
+}
+
+/** \brief get the ethertype that stopped layer 2 decoding
+ *
+ *  The decoder raises ETHERNET_UNKNOWN_ETHERTYPE and stops when it reads a
+ *  type it has no decoder for. Find that type again in the raw packet.
+ *  Start at the type field of the last ethernet header decoded. Without an
+ *  ethernet header, start at the type field of the VLAN header that a GRE
+ *  VLAN tunnel packet begins with, or at the protocol field of the SLL, SLL2
+ *  or Cisco HDLC header. Then step over VLAN, 802.1ah, E-Tag and VN-Tag
+ *  headers as the decoder does, until reaching a type that is none of those.
+ *
+ *  \param p packet carrying the ETHERNET_UNKNOWN_ETHERTYPE event
+ *  \param ethertype set to the ethertype in host byte order
+ *  \retval true if found, false otherwise
+ */
+bool DecodeGetUnknownEthertype(const Packet *p, uint16_t *ethertype)
+{
+    const uint8_t *pkt = GET_PKT_DATA(p);
+    const uint32_t len = GET_PKT_LEN(p);
+    /* type_off is where the type field is, next_off is where the header it
+     * announces starts. These are not adjacent in SLL2, where the protocol
+     * field comes first. */
+    uint32_t type_off;
+    uint32_t next_off;
+
+    if (PacketIsEthernet(p)) {
+        const uint8_t *ethh = (const uint8_t *)PacketGetEthernet(p);
+        if (ethh < pkt || ethh >= pkt + len)
+            return false;
+        type_off = (uint32_t)(ethh - pkt) + offsetof(EthernetHdr, eth_type);
+        next_off = (uint32_t)(ethh - pkt) + ETHERNET_HEADER_LEN;
+    } else if (PacketIsTunnelChild(p)) {
+        /* the only tunnel packet that reaches DecodeNetworkLayer() without
+         * an ethernet header is a GRE VLAN one (GRE protocol 0x8100), and
+         * its data starts with the VLAN header */
+        type_off = offsetof(VLANHdr, protocol);
+        next_off = VLAN_HEADER_LEN;
+    } else {
+        switch (p->datalink) {
+            case LINKTYPE_LINUX_SLL:
+                type_off = offsetof(SllHdr, sll_protocol);
+                next_off = SLL_HEADER_LEN;
+                break;
+            case LINKTYPE_LINUX_SLL2:
+                type_off = offsetof(Sll2Hdr, sll_protocol);
+                next_off = SLL2_HEADER_LEN;
+                break;
+            case LINKTYPE_CISCO_HDLC:
+                type_off = offsetof(CHDLCHdr, protocol);
+                next_off = CHDLC_HEADER_LEN;
+                break;
+            default:
+                return false;
+        }
+    }
+
+    /* every step moves both offsets forward, so the loop ends */
+    while (len >= sizeof(uint16_t) && type_off <= len - sizeof(uint16_t)) {
+        uint16_t proto;
+        memcpy(&proto, pkt + type_off, sizeof(proto));
+        proto = SCNtohs(proto);
+        switch (proto) {
+            case ETHERNET_TYPE_VLAN:
+            case ETHERNET_TYPE_8021AD:
+            case ETHERNET_TYPE_8021QINQ:
+                type_off = next_off + offsetof(VLANHdr, protocol);
+                next_off += VLAN_HEADER_LEN;
+                break;
+            case ETHERNET_TYPE_8021AH:
+                type_off = next_off + offsetof(IEEE8021ahHdr, type);
+                next_off += IEEE8021AH_HEADER_LEN;
+                break;
+            case ETHERNET_TYPE_ETAG:
+                type_off = next_off + offsetof(ETagHdr, protocol);
+                next_off += ETAG_HEADER_LEN;
+                break;
+            case ETHERNET_TYPE_VNTAG:
+                type_off = next_off + offsetof(VNTagHdr, protocol);
+                next_off += VNTAG_HEADER_LEN;
+                break;
+            default:
+                *ethertype = proto;
+                return true;
+        }
+    }
+    return false;
 }
 
 /**

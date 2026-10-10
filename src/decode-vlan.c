@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -93,15 +93,6 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     }
     return TM_ECODE_OK;
 }
-
-typedef struct IEEE8021ahHdr_ {
-    uint32_t flags;
-    uint8_t c_destination[6];
-    uint8_t c_source[6];
-    uint16_t type;              /**< next protocol */
-}  __attribute__((__packed__)) IEEE8021ahHdr;
-
-#define IEEE8021AH_HEADER_LEN sizeof(IEEE8021ahHdr)
 
 int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         const uint8_t *pkt, uint32_t len)

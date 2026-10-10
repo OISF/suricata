@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2024 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1496,6 +1496,9 @@ static inline void DecodeLinkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
 static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
         const uint16_t proto, Packet *p, const uint8_t *data, const uint32_t len)
 {
+    /* DecodeGetUnknownEthertype() steps over the same VLAN, 802.1ah, E-Tag
+     * and VN-Tag headers to find the type reported for the unknown
+     * ethertype event: a header type added here needs adding there too */
     switch (proto) {
         case ETHERNET_TYPE_IP: {
             uint16_t ip_len = (len < USHRT_MAX) ? (uint16_t)len : (uint16_t)USHRT_MAX;
@@ -1560,5 +1563,6 @@ static inline bool DecodeNetworkLayer(ThreadVars *tv, DecodeThreadVars *dtv,
 
 uint64_t PcapPacketCntGet(const Packet *p);
 void PcapPacketCntSet(Packet *p, uint64_t pcap_cnt);
+bool DecodeGetUnknownEthertype(const Packet *p, uint16_t *ethertype);
 
 #endif /* SURICATA_DECODE_H */
