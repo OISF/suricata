@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1069,21 +1069,30 @@ static void PopulateMpmHelperAddPattern(MpmCtx *mpm_ctx, const DetectContentData
         pat_depth = pat_offset = 0;
     }
 
+    uint8_t pflags = flags | MPM_PATTERN_CTX_OWNS_ID;
+    /* A depth taken from bsize is checked when a match is reported rather
+     * than compiled into the matcher. Hyperscan is slow to compile a pattern
+     * whose depth equals its length, since that ties it to the start of the
+     * buffer, and ET/Pro has thousands of bsize contents. */
+    if (cd->flags & DETECT_CONTENT_BSIZE2DEPTH) {
+        pflags |= MPM_PATTERN_FLAG_DEPTH_MATCH;
+    }
+
     if (cd->flags & DETECT_CONTENT_NOCASE) {
         if (chop) {
             SCMpmAddPatternCI(mpm_ctx, cd->content + cd->fp_chop_offset, cd->fp_chop_len,
-                    pat_offset, pat_depth, cd->id, s->iid, flags | MPM_PATTERN_CTX_OWNS_ID);
+                    pat_offset, pat_depth, cd->id, s->iid, pflags);
         } else {
             SCMpmAddPatternCI(mpm_ctx, cd->content, cd->content_len, pat_offset, pat_depth, cd->id,
-                    s->iid, flags | MPM_PATTERN_CTX_OWNS_ID);
+                    s->iid, pflags);
         }
     } else {
         if (chop) {
             MpmAddPatternCS(mpm_ctx, cd->content + cd->fp_chop_offset, cd->fp_chop_len, pat_offset,
-                    pat_depth, cd->id, s->iid, flags | MPM_PATTERN_CTX_OWNS_ID);
+                    pat_depth, cd->id, s->iid, pflags);
         } else {
             MpmAddPatternCS(mpm_ctx, cd->content, cd->content_len, pat_offset, pat_depth, cd->id,
-                    s->iid, flags | MPM_PATTERN_CTX_OWNS_ID);
+                    s->iid, pflags);
         }
     }
 }
