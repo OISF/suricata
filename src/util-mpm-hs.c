@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -158,8 +158,12 @@ static inline SCHSPattern *SCHSInitHashLookup(SCHSCtx *ctx, const uint8_t *pat, 
     SCHSPattern *t = ctx->init_hash[hash];
     for (; t != NULL; t = t->next) {
         /* Since Hyperscan uses offset/depth, we must distinguish between
-         * patterns with the same ID but different offset/depth here. */
-        if (t->id == pid && t->offset == offset && t->depth == depth) {
+         * patterns with the same ID but different offset/depth here. A depth
+         * checked at match time is compiled differently, so keep those
+         * patterns apart as well. */
+        if (t->id == pid && t->offset == offset && t->depth == depth &&
+                (t->flags & MPM_PATTERN_FLAG_DEPTH_MATCH) ==
+                        ((uint8_t)flags & MPM_PATTERN_FLAG_DEPTH_MATCH)) {
             BUG_ON(t->len != patlen);
             BUG_ON(SCMemcmp(t->original_pat, pat, patlen) != 0);
             return t;
@@ -638,7 +642,10 @@ static void SCHSCleanupOnError(PatternDatabase *pd, SCHSCompileData *cd)
 
 static int CompileDataExtensionsInit(hs_expr_ext_t **ext, const SCHSPattern *p)
 {
-    if (p->flags & (MPM_PATTERN_FLAG_OFFSET | MPM_PATTERN_FLAG_DEPTH)) {
+    /* a depth flagged DEPTH_MATCH is checked in SCHSMatchEvent instead */
+    const bool compile_depth =
+            (p->flags & MPM_PATTERN_FLAG_DEPTH) && !(p->flags & MPM_PATTERN_FLAG_DEPTH_MATCH);
+    if ((p->flags & MPM_PATTERN_FLAG_OFFSET) || compile_depth) {
         *ext = SCCalloc(1, sizeof(hs_expr_ext_t));
         if (*ext == NULL) {
             return -1;
@@ -647,7 +654,7 @@ static int CompileDataExtensionsInit(hs_expr_ext_t **ext, const SCHSPattern *p)
             (*ext)->flags |= HS_EXT_FLAG_MIN_OFFSET;
             (*ext)->min_offset = p->offset + p->len;
         }
-        if (p->flags & MPM_PATTERN_FLAG_DEPTH) {
+        if (compile_depth) {
             (*ext)->flags |= HS_EXT_FLAG_MAX_OFFSET;
             (*ext)->max_offset = p->offset + p->depth;
         }
@@ -1041,6 +1048,13 @@ static int SCHSMatchEvent(unsigned int id, unsigned long long from,
     SCLogDebug("Hyperscan Match %" PRIu32 ": id=%" PRIu32 " @ %" PRIuMAX
                " (pat id=%" PRIu32 ")",
                cctx->match_count, (uint32_t)id, (uintmax_t)to, pat->id);
+
+    /* The database reports only the first, and so the earliest ending, match
+     * of each pattern. If that one ends past the depth, none is within it. */
+    if ((pat->flags & MPM_PATTERN_FLAG_DEPTH_MATCH) && (pat->flags & MPM_PATTERN_FLAG_DEPTH) &&
+            to > (uint64_t)pat->offset + pat->depth) {
+        return 0;
+    }
 
     PrefilterAddSids(pmq, pat->sids, pat->sids_size);
 
@@ -2306,6 +2320,157 @@ end:
     return result;
 }
 
+/* a depth flagged MPM_PATTERN_FLAG_DEPTH_MATCH is applied when the match is
+ * reported: the pattern is found only when it ends within the depth */
+static int SCHSTest30(void)
+{
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+    PrefilterRuleStore pmq;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_HS);
+
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)"xyz", 3, 0, 3, 0, 0, MPM_PATTERN_FLAG_DEPTH_MATCH);
+    PmqSetup(&pmq);
+
+    SCHSPreparePatterns(NULL, &mpm_ctx);
+    SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+
+    const char *buf1 = "xyzabcdefghijklmnopqrstuvw";
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf1, strlen(buf1));
+    FAIL_IF_NOT(cnt == 1);
+    const char *buf2 = "axyzxyzxyzxyzxyzxyzxyzxyz";
+    cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf2, strlen(buf2));
+    FAIL_IF_NOT(cnt == 0);
+
+    SCHSDestroyCtx(&mpm_ctx);
+    SCHSDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    PmqFree(&pmq);
+    PASS;
+}
+
+/* with an offset as well, the offset is still compiled in and the depth is
+ * applied at match time: "xyz" must start at byte 2 and end by byte 5 */
+static int SCHSTest31(void)
+{
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+    PrefilterRuleStore pmq;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_HS);
+
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)"xyz", 3, 2, 3, 0, 0, MPM_PATTERN_FLAG_DEPTH_MATCH);
+    PmqSetup(&pmq);
+
+    SCHSPreparePatterns(NULL, &mpm_ctx);
+    SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+
+    const char *buf1 = "abxyzcdefghijklmnopqrstuvw";
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf1, strlen(buf1));
+    FAIL_IF_NOT(cnt == 1);
+    const char *buf2 = "xyzabcdefghijklmnopqrstuvw";
+    cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf2, strlen(buf2));
+    FAIL_IF_NOT(cnt == 0);
+    const char *buf3 = "abcxyzdefghijklmnopqrstuvw";
+    cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf3, strlen(buf3));
+    FAIL_IF_NOT(cnt == 0);
+
+    SCHSDestroyCtx(&mpm_ctx);
+    SCHSDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    PmqFree(&pmq);
+    PASS;
+}
+
+/* search a buffer for "xyz" with the given offset, depth and pattern flags and
+ * return the number of matching patterns */
+static uint32_t SCHSTestDepthSearch(const char *buf, uint16_t offset, uint16_t depth, uint8_t flags)
+{
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+    PrefilterRuleStore pmq;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_HS);
+
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)"xyz", 3, offset, depth, 0, 0, flags);
+    PmqSetup(&pmq);
+
+    SCHSPreparePatterns(NULL, &mpm_ctx);
+    SCHSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+
+    uint32_t cnt = SCHSSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf, strlen(buf));
+
+    SCHSDestroyCtx(&mpm_ctx);
+    SCHSDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    PmqFree(&pmq);
+    return cnt;
+}
+
+/* the depth compiled into the database and the depth checked when a match is
+ * reported give the same result on the same buffers */
+static int SCHSTest32(void)
+{
+    static const struct {
+        const char *buf;
+        uint16_t offset;
+        uint16_t depth;
+        uint32_t cnt;
+    } tests[] = {
+        /* the match ends exactly at the depth */
+        { "xyzabcdefghijklmnopqrstuvw", 0, 3, 1 },
+        { "axyzbcdefghijklmnopqrstuvw", 0, 4, 1 },
+        /* the first match ends one byte past the depth */
+        { "axyzxyzxyzxyzxyzxyzxyzxyzx", 0, 3, 0 },
+        /* with an offset, the match has to start at it and end by
+         * offset + depth */
+        { "abxyzcdefghijklmnopqrstuvw", 2, 3, 1 },
+        { "xyzabcdefghijklmnopqrstuvw", 2, 3, 0 },
+        { "abcxyzdefghijklmnopqrstuvw", 2, 3, 0 },
+    };
+
+    for (size_t i = 0; i < ARRAY_SIZE(tests); i++) {
+        FAIL_IF_NOT(SCHSTestDepthSearch(tests[i].buf, tests[i].offset, tests[i].depth, 0) ==
+                    tests[i].cnt);
+        FAIL_IF_NOT(SCHSTestDepthSearch(tests[i].buf, tests[i].offset, tests[i].depth,
+                            MPM_PATTERN_FLAG_DEPTH_MATCH) == tests[i].cnt);
+    }
+    PASS;
+}
+
+/* a pattern flagged MPM_PATTERN_FLAG_DEPTH_MATCH without a depth matches
+ * anywhere in the buffer */
+static int SCHSTest33(void)
+{
+    FAIL_IF_NOT(SCHSTestDepthSearch(
+                        "abcdefghijklmnopqrstuvwxyz", 0, 0, MPM_PATTERN_FLAG_DEPTH_MATCH) == 1);
+    PASS;
+}
+
+/* the same id, offset and depth with and without MPM_PATTERN_FLAG_DEPTH_MATCH
+ * are kept as two patterns, since they compile differently */
+static int SCHSTest34(void)
+{
+    MpmCtx mpm_ctx;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    MpmInitCtx(&mpm_ctx, MPM_HS);
+
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)"xyz", 3, 0, 3, 0, 0, 0);
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)"xyz", 3, 0, 3, 0, 1, MPM_PATTERN_FLAG_DEPTH_MATCH);
+    FAIL_IF_NOT(mpm_ctx.pattern_cnt == 2);
+    MpmAddPatternCS(&mpm_ctx, (uint8_t *)"xyz", 3, 0, 3, 0, 2, MPM_PATTERN_FLAG_DEPTH_MATCH);
+    FAIL_IF_NOT(mpm_ctx.pattern_cnt == 2);
+
+    SCHSPreparePatterns(NULL, &mpm_ctx);
+    SCHSDestroyCtx(&mpm_ctx);
+    PASS;
+}
+
 static void SCHSRegisterTests(void)
 {
     UtRegisterTest("SCHSTest01", SCHSTest01);
@@ -2337,6 +2502,11 @@ static void SCHSRegisterTests(void)
     UtRegisterTest("SCHSTest27", SCHSTest27);
     UtRegisterTest("SCHSTest28", SCHSTest28);
     UtRegisterTest("SCHSTest29", SCHSTest29);
+    UtRegisterTest("SCHSTest30", SCHSTest30);
+    UtRegisterTest("SCHSTest31", SCHSTest31);
+    UtRegisterTest("SCHSTest32", SCHSTest32);
+    UtRegisterTest("SCHSTest33", SCHSTest33);
+    UtRegisterTest("SCHSTest34", SCHSTest34);
 }
 #endif /* UNITTESTS */
 #endif /* BUILD_HYPERSCAN */
