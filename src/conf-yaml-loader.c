@@ -520,6 +520,25 @@ int SCConfYamlLoadFileWithOptions(const char *filename, const char *prefix,
 }
 
 /**
+ * \brief Set the command line overrides in the configuration directly,
+ *     in order and final, without loading a file.
+ *
+ * For the modes that run without a configuration file, like the unit
+ * tests, or that go on when it can't be loaded, like the listing modes,
+ * so the overrides still apply as when they were set before the load.
+ *
+ * \param override_paths NULL terminated list of the dotted paths of the
+ *     command line overrides, or NULL.
+ * \param override_values Their values, in the same order.
+ */
+void SCConfYamlSetOverrides(const char *const *override_paths, const char *const *override_values)
+{
+    for (size_t i = 0; override_paths != NULL && override_paths[i] != NULL; i++) {
+        (void)SCConfSetFinal(override_paths[i], override_values[i]);
+    }
+}
+
+/**
  * \brief Load configuration from a YAML file, insert in tree at 'prefix'
  *
  * See SCConfYamlLoadFileWithOptions.

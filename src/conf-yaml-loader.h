@@ -32,6 +32,7 @@ int SCConfYamlLoadFileWithPrefix(const char *filename, const char *prefix);
 int SCConfYamlLoadFileWithOptions(const char *filename, const char *prefix,
         const char *const *includes, const char *const *override_paths,
         const char *const *override_values);
+void SCConfYamlSetOverrides(const char *const *override_paths, const char *const *override_values);
 
 void SCConfYamlRegisterTests(void);
 

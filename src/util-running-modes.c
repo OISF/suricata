@@ -42,13 +42,30 @@ int ListKeywords(const char *keyword_info)
     return SigTableList(keyword_info);
 }
 
+/**
+ * \brief Load the configuration for a listing mode, with the command
+ *     line overrides.
+ *
+ * A listing goes on without a configuration file, so if the file can't
+ * be loaded the overrides are still set, as they were when they were
+ * set before the load.
+ */
+static void ListModeLoadConfig(const char *conf_filename, const char *const *override_paths,
+        const char *const *override_values)
+{
+    if (SCConfYamlLoadFileWithOptions(conf_filename, NULL, NULL, override_paths, override_values) !=
+            -1) {
+        SCLogLoadConfig(0, 0, 0, 0);
+        return;
+    }
+    SCConfYamlSetOverrides(override_paths, override_values);
+}
+
 int ListAppLayerProtocols(const char *conf_filename, const char *const *override_paths,
         const char *const *override_values)
 {
     EngineModeSetIDS();
-    if (SCConfYamlLoadFileWithOptions(conf_filename, NULL, NULL, override_paths, override_values) !=
-            -1)
-        SCLogLoadConfig(0, 0, 0, 0);
+    ListModeLoadConfig(conf_filename, override_paths, override_values);
     MpmTableSetup();
     SpmTableSetup();
     AppLayerSetup();
@@ -61,9 +78,7 @@ int ListRuleProtocols(const char *conf_filename, const char *const *override_pat
         const char *const *override_values)
 {
     EngineModeSetIDS();
-    if (SCConfYamlLoadFileWithOptions(conf_filename, NULL, NULL, override_paths, override_values) !=
-            -1)
-        SCLogLoadConfig(0, 0, 0, 0);
+    ListModeLoadConfig(conf_filename, override_paths, override_values);
     MpmTableSetup();
     SpmTableSetup();
     AppLayerSetup();
@@ -82,9 +97,7 @@ int ListAppLayerHooks(const char *conf_filename, const char *const *override_pat
         const char *const *override_values)
 {
     EngineModeSetIDS();
-    if (SCConfYamlLoadFileWithOptions(conf_filename, NULL, NULL, override_paths, override_values) !=
-            -1)
-        SCLogLoadConfig(0, 0, 0, 0);
+    ListModeLoadConfig(conf_filename, override_paths, override_values);
     MpmTableSetup();
     SpmTableSetup();
     AppLayerSetup();
@@ -154,9 +167,7 @@ int ListAppLayerFrames(const char *conf_filename, const char *const *override_pa
         const char *const *override_values)
 {
     EngineModeSetIDS();
-    if (SCConfYamlLoadFileWithOptions(conf_filename, NULL, NULL, override_paths, override_values) !=
-            -1)
-        SCLogLoadConfig(0, 0, 0, 0);
+    ListModeLoadConfig(conf_filename, override_paths, override_values);
     MpmTableSetup();
     SpmTableSetup();
     AppLayerSetup();

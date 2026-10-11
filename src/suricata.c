@@ -2528,6 +2528,9 @@ int SCStartInternalRunMode(int argc, char **argv)
         case RUNMODE_LIST_UNITTEST:
             RunUnittests(1, suri->regex_arg);
         case RUNMODE_UNITTEST:
+            /* No configuration file is loaded, set the command line
+             * values, like -l, directly. */
+            SCConfYamlSetOverrides(suri->override_paths, suri->override_values);
             RunUnittests(0, suri->regex_arg);
 #ifdef OS_WIN32
         case RUNMODE_INSTALL_SERVICE:
