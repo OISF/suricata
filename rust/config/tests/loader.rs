@@ -8,6 +8,7 @@ use suricata_config::load_file;
 use suricata_config::load_file_with_include_dir;
 use suricata_config::load_string;
 use suricata_config::load_string_with_include_dir;
+use suricata_config::loader::decode;
 use suricata_config::merge_file;
 use suricata_config::print_flat_config;
 use suricata_config::LoadError;
@@ -397,6 +398,48 @@ fn test_include_cycle() {
     assert_error(
         load_string_with_include_dir("x: !include include-cycle-tag.yaml\n", &data()),
         "includes itself",
+    );
+}
+
+// Like libyaml, a file starting with a UTF-16 byte order mark is read as
+// UTF-16. encoding-utf16le.yaml and encoding-utf16be.yaml are
+// encoding.yaml encoded as UTF-16LE and UTF-16BE, with the mark.
+#[test]
+fn test_encoding_utf16() {
+    let expected = flat(&load_data("encoding").unwrap());
+    assert!(expected.contains("encoding.name = caf\u{e9} \u{2603} \u{1f600}\n"));
+    assert_eq!(flat(&load_data("encoding-utf16le").unwrap()), expected);
+    assert_eq!(flat(&load_data("encoding-utf16be").unwrap()), expected);
+
+    // In included files too.
+    let config = load_data("encoding-include").unwrap();
+    assert_eq!(
+        config["encoding"]["name"].as_str(),
+        Some("caf\u{e9} \u{2603} \u{1f600}")
+    );
+    assert_eq!(
+        config["value"]["encoding"]["name"].as_str(),
+        Some("caf\u{e9} \u{2603} \u{1f600}")
+    );
+}
+
+#[test]
+fn test_decode() {
+    assert_eq!(decode(b"a: 1\n".to_vec()).unwrap(), "a: 1\n");
+    assert_eq!(decode(b"\xff\xfea\0:\0 \x001\0".to_vec()).unwrap(), "a: 1");
+    assert_eq!(decode(b"\xfe\xff\0a\0:\0 \x001".to_vec()).unwrap(), "a: 1");
+    // A UTF-8 byte order mark is kept, the parser skips it.
+    assert_eq!(decode(b"\xef\xbb\xbfa".to_vec()).unwrap(), "\u{feff}a");
+    assert_eq!(decode(b"\xff\xfe".to_vec()).unwrap(), "");
+
+    let error = |bytes: &[u8]| decode(bytes.to_vec()).unwrap_err().to_string();
+    assert_eq!(error(b"a: \xff"), "stream did not contain valid UTF-8");
+    // An odd number of bytes.
+    assert_eq!(error(b"\xff\xfea"), "stream did not contain valid UTF-16");
+    // An unpaired surrogate.
+    assert_eq!(
+        error(b"\xff\xfe\x00\xd8"),
+        "stream did not contain valid UTF-16"
     );
 }
 

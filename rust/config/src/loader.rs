@@ -37,6 +37,9 @@
 //! the parts of dotted keys, is limited to [`MAX_NESTING_DEPTH`].
 //!
 //! YAML anchors are ignored, and aliases are not supported.
+//!
+//! Like libyaml, a file is read as UTF-16LE or UTF-16BE if it starts with
+//! the byte order mark of either, and as UTF-8 otherwise.
 
 use std::collections::VecDeque;
 use std::fmt;
@@ -181,6 +184,31 @@ pub fn merge_file(config: &mut Config, path: &Path, include_dir: &Path) -> Resul
     loader.push_file(&path, None, Mode::Splice)?;
     *config = Node::Mapping(loader.run()?);
     Ok(())
+}
+
+/// Decode the bytes of a configuration as libyaml does: as UTF-16LE or
+/// UTF-16BE if they start with the byte order mark of either, without
+/// the mark, and as UTF-8 otherwise. A UTF-8 byte order mark is kept, it
+/// is skipped when parsing.
+pub fn decode(bytes: Vec<u8>) -> std::io::Result<String> {
+    let invalid = |encoding| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("stream did not contain valid {encoding}"),
+        )
+    };
+    let unit: fn([u8; 2]) -> u16 = match bytes.get(..2) {
+        Some([0xff, 0xfe]) => u16::from_le_bytes,
+        Some([0xfe, 0xff]) => u16::from_be_bytes,
+        _ => return String::from_utf8(bytes).map_err(|_| invalid("UTF-8")),
+    };
+    let units = bytes[2..].chunks_exact(2);
+    if !units.remainder().is_empty() {
+        return Err(invalid("UTF-16"));
+    }
+    char::decode_utf16(units.map(|pair| unit([pair[0], pair[1]])))
+        .collect::<Result<String, _>>()
+        .map_err(|_| invalid("UTF-16"))
 }
 
 // The directory of a configuration file.
@@ -463,8 +491,9 @@ impl Loader {
             }
         }
 
-        let mut text = String::new();
-        std::io::Read::read_to_string(&mut file, &mut text).map_err(io_error)?;
+        let mut bytes = Vec::new();
+        std::io::Read::read_to_end(&mut file, &mut bytes).map_err(io_error)?;
+        let text = decode(bytes).map_err(io_error)?;
         self.push_source(text, Some(path.to_path_buf()), id, mode);
         Ok(())
     }
