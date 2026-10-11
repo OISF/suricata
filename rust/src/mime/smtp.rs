@@ -194,14 +194,14 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> (u32, bool) {
                 if let Some(value) =
                     mime::mime_find_header_token(&h.value, b"filename", &mut sections_values)
                 {
-                    let filename = value.1;
+                    let filename = value.2;
                     let filename = if filename.len() > mime::RS_MIME_MAX_TOKEN_LEN {
                         warnings |= MIME_ANOM_LONG_FILENAME;
                         &filename[..mime::RS_MIME_MAX_TOKEN_LEN]
                     } else {
                         filename
                     };
-                    if value.0 {
+                    if value.1 {
                         ctx.filename = vec![0; filename.len()];
                         let out_len = url_decode_transform_do(filename, &mut ctx.filename, false);
                         ctx.filename.truncate(out_len as usize);
@@ -232,14 +232,14 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> (u32, bool) {
                 if let Some(value) =
                     mime::mime_find_header_token(&h.value, b"name", &mut sections_values)
                 {
-                    let filename = value.1;
+                    let filename = value.2;
                     let filename = if filename.len() > mime::RS_MIME_MAX_TOKEN_LEN {
                         warnings |= MIME_ANOM_LONG_FILENAME;
                         &filename[..mime::RS_MIME_MAX_TOKEN_LEN]
                     } else {
                         filename
                     };
-                    if value.0 {
+                    if value.1 {
                         ctx.filename = vec![0; filename.len()];
                         let out_len = url_decode_transform_do(filename, &mut ctx.filename, false);
                         ctx.filename.truncate(out_len as usize);
@@ -263,16 +263,16 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> (u32, bool) {
             {
                 // start wih 2 additional hyphens
                 let mut boundary = Vec::new();
-                if value.0 {
-                    boundary = vec![0; 2 + value.1.len()];
+                if value.1 {
+                    boundary = vec![0; 2 + value.2.len()];
                     boundary[0] = b'-';
                     boundary[1] = b'-';
-                    let out_len = url_decode_transform_do(value.1, &mut boundary[2..], false);
+                    let out_len = url_decode_transform_do(value.2, &mut boundary[2..], false);
                     boundary.truncate(2 + out_len as usize);
                 } else {
                     boundary.push(b'-');
                     boundary.push(b'-');
-                    for c in value.1 {
+                    for c in value.2 {
                         // unescape
                         if *c != b'\\' {
                             boundary.push(*c);

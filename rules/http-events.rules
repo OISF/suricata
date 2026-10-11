@@ -100,4 +100,6 @@ alert http any any -> any any (msg:"SURICATA HTTP response too many headers"; fl
 
 alert http any any -> any any (msg:"SURICATA HTTP compression bomb limit reached"; flow:established; app-layer-event:http.compression_bomb_limit_reached; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221059; rev:1;)
 
-# next sid 2221060
+alert http any any -> any any (msg:"SURICATA HTTP multipart duplicate token"; flow:established,to_server; app-layer-event:http.multipart_duplicate_token; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221060; rev:1;)
+
+# next sid 2221061
