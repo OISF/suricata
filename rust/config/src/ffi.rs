@@ -19,6 +19,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::ptr;
 
+use crate::loader::decode;
 use crate::loader::load_file_with_include_dir;
 use crate::loader::load_string_with_include_dir;
 use crate::loader::merge_file;
@@ -215,7 +216,8 @@ pub unsafe extern "C" fn SCConfTreeLoadFile(
     }
 }
 
-/// Load a configuration from a string of `len` bytes.
+/// Load a configuration from a string of `len` bytes, UTF-8, or UTF-16
+/// with a byte order mark, like a file.
 ///
 /// Relative include paths are resolved from `include_dir`, or the
 /// current directory if it is NULL. Errors are returned like
@@ -230,7 +232,13 @@ pub unsafe extern "C" fn SCConfTreeLoadString(
     input: *const c_char, len: usize, include_dir: *const c_char, err: *mut *mut c_char,
 ) -> *mut ConfTree {
     let input = std::slice::from_raw_parts(input as *const u8, len);
-    let input = String::from_utf8_lossy(input);
+    let input = match decode(input.to_vec()) {
+        Ok(input) => input,
+        Err(error) => {
+            set_error(err, format!("failed to read configuration: {error}"));
+            return ptr::null_mut();
+        }
+    };
     let include_dir = if include_dir.is_null() {
         PathBuf::from(".")
     } else {
@@ -590,6 +598,41 @@ mod tests {
                 ptr::null_mut(),
             );
             assert!(tree.is_null());
+
+            // Not valid UTF-8.
+            let input = b"a: \xff\n";
+            let tree = SCConfTreeLoadString(
+                input.as_ptr() as *const c_char,
+                input.len(),
+                ptr::null(),
+                &mut err,
+            );
+            assert!(tree.is_null());
+            let message = CStr::from_ptr(err).to_str().unwrap();
+            assert_eq!(
+                message,
+                "failed to read configuration: stream did not contain valid UTF-8"
+            );
+            SCConfTreeErrorFree(err);
+        }
+    }
+
+    // UTF-16 with a byte order mark is decoded, like a file.
+    #[test]
+    fn test_load_string_utf16() {
+        let input = b"\xff\xfea\0:\0 \x001\0";
+        unsafe {
+            let mut err = ptr::null_mut();
+            let tree = SCConfTreeLoadString(
+                input.as_ptr() as *const c_char,
+                input.len(),
+                ptr::null(),
+                &mut err,
+            );
+            assert!(!tree.is_null(), "{:?}", CStr::from_ptr(err));
+            let root = &(*tree).root;
+            assert_eq!(root["a"].as_str(), Some("1"));
+            SCConfTreeFree(tree);
         }
     }
 
