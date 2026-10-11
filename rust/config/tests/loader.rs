@@ -443,6 +443,74 @@ fn test_decode() {
     );
 }
 
+// Like libyaml, characters that are not printable are not allowed. The
+// parser takes a NUL as the end of the input, which would silently
+// ignore the rest of the file after one.
+#[test]
+fn test_control_chars() {
+    // A NUL between two include keys, the second must not be ignored.
+    let err = load_data("control-chars-nul").unwrap_err();
+    assert!(matches!(err, LoadError::Invalid { .. }), "{err:?}");
+    let path = data().join("control-chars-nul.yaml");
+    assert_eq!(
+        err.to_string(),
+        format!("character U+0000 is not allowed at {}:4", path.display())
+    );
+
+    // In included files.
+    assert_error(
+        load_data("control-chars-include"),
+        "control-chars-nul.yaml:4",
+    );
+    assert_error(load_data("control-chars-tag"), "control-chars-nul.yaml:4");
+    let mut config = load_string("a: 1\n").unwrap();
+    assert_error(
+        merge_file(&mut config, Path::new("control-chars-nul.yaml"), &data()),
+        "character U+0000 is not allowed",
+    );
+    assert_eq!(config, load_string("a: 1\n").unwrap());
+
+    // In UTF-16.
+    assert_error(
+        load_data("control-chars-utf16"),
+        "character U+0001 is not allowed at",
+    );
+
+    // In strings, anywhere.
+    for (input, message) in [
+        (
+            "a: 1\n\0b: 2\n",
+            "character U+0000 is not allowed at line 2",
+        ),
+        ("a: x\0y\n", "character U+0000 is not allowed at line 1"),
+        ("a: \"x\0y\"\n", "character U+0000 is not allowed at line 1"),
+        ("a: 1\n# \0\n", "character U+0000 is not allowed at line 2"),
+        ("a: 1\n\0", "character U+0000 is not allowed at line 2"),
+        ("a: x\u{1}y\n", "character U+0001 is not allowed"),
+        ("a: x\u{1b}y\n", "character U+001B is not allowed"),
+        ("a: x\u{7f}y\n", "character U+007F is not allowed"),
+        ("a: x\u{80}y\n", "character U+0080 is not allowed"),
+        ("a: x\u{9f}y\n", "character U+009F is not allowed"),
+        ("a: x\u{fffe}y\n", "character U+FFFE is not allowed"),
+        ("a: x\u{ffff}y\n", "character U+FFFF is not allowed"),
+    ] {
+        assert_error(load_string(input), message);
+    }
+
+    // The printable characters are allowed, and an escaped NUL is a
+    // character of the value, not of the input.
+    let config = load_string(
+        "a: \"x\ty\"\nb: \"\u{a0}\u{d7ff}\u{e000}\u{fffd}\u{10000}\u{10ffff}\"\nc: \"x\\0y\"\r\n",
+    )
+    .unwrap();
+    assert_eq!(config["a"].as_str(), Some("x\ty"));
+    assert_eq!(
+        config["b"].as_str(),
+        Some("\u{a0}\u{d7ff}\u{e000}\u{fffd}\u{10000}\u{10ffff}")
+    );
+    assert_eq!(config["c"].as_str(), Some("x\0y"));
+}
+
 // A configuration read from a pipe, like -c /dev/stdin or a shell
 // process substitution, has no canonical path but loads, with its
 // includes.

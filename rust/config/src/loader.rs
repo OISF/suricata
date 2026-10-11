@@ -39,7 +39,8 @@
 //! YAML anchors are ignored, and aliases are not supported.
 //!
 //! Like libyaml, a file is read as UTF-16LE or UTF-16BE if it starts with
-//! the byte order mark of either, and as UTF-8 otherwise.
+//! the byte order mark of either, and as UTF-8 otherwise, and characters
+//! that are not printable, like control characters, are not allowed.
 
 use std::collections::VecDeque;
 use std::fmt;
@@ -153,7 +154,7 @@ pub fn load_string(input: &str) -> Result<Config, LoadError> {
 /// from `include_dir`.
 pub fn load_string_with_include_dir(input: &str, include_dir: &Path) -> Result<Config, LoadError> {
     let mut loader = Loader::new(Mapping::new(), include_dir);
-    loader.push_source(input.to_string(), None, None, Mode::Splice);
+    loader.push_source(input.to_string(), None, None, Mode::Splice)?;
     loader.run().map(Node::Mapping)
 }
 
@@ -209,6 +210,16 @@ pub fn decode(bytes: Vec<u8>) -> std::io::Result<String> {
     char::decode_utf16(units.map(|pair| unit([pair[0], pair[1]])))
         .collect::<Result<String, _>>()
         .map_err(|_| invalid("UTF-16"))
+}
+
+// Whether a character may be in the input: the printable characters of
+// YAML, which libyaml checks the input for. Required, as the parser takes
+// a NUL as the end of the input, which would silently ignore the rest of
+// a file after one.
+fn is_printable(c: char) -> bool {
+    matches!(c,
+        '\t' | '\n' | '\r' | ' '..='~' | '\u{85}' | '\u{a0}'..='\u{d7ff}'
+            | '\u{e000}'..='\u{fffd}' | '\u{10000}'..='\u{10ffff}')
 }
 
 // The directory of a configuration file.
@@ -494,15 +505,23 @@ impl Loader {
         let mut bytes = Vec::new();
         std::io::Read::read_to_end(&mut file, &mut bytes).map_err(io_error)?;
         let text = decode(bytes).map_err(io_error)?;
-        self.push_source(text, Some(path.to_path_buf()), id, mode);
-        Ok(())
+        self.push_source(text, Some(path.to_path_buf()), id, mode)
     }
 
     fn push_source(
         &mut self, mut text: String, path: Option<PathBuf>, id: Option<FileId>, mode: Mode,
-    ) {
+    ) -> Result<(), LoadError> {
         if text.starts_with('\u{feff}') {
             text.remove(0);
+        }
+        if let Some((pos, c)) = text.char_indices().find(|(_, c)| !is_printable(*c)) {
+            return Err(LoadError::Invalid {
+                location: Location {
+                    path,
+                    line: text[..pos].matches('\n').count() + 1,
+                },
+                message: format!("character U+{:04X} is not allowed", c as u32),
+            });
         }
         self.inputs.push(Input::Source(Box::new(Source {
             parser: Parser::new_from_iter(OwnedChars { text, pos: 0 }),
@@ -513,6 +532,7 @@ impl Loader {
             root_seen: false,
             documents: 0,
         })));
+        Ok(())
     }
 
     fn end_source(&mut self) -> Result<(), LoadError> {
