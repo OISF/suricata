@@ -537,6 +537,32 @@ static void AddConfigOverride(SCInstance *suri, const char *path, const char *va
 }
 
 /**
+ * \brief Add the data directory given on the command line to the
+ *     overrides, without a trailing '/', like ConfigSetDataDirectory.
+ *
+ * \retval 0 on success, -1 if the name is too long.
+ */
+static int AddDataDirOverride(SCInstance *suri, const char *dir)
+{
+    size_t len = strlen(dir);
+    if (len == 0) {
+        return 0;
+    }
+    if (len > PATH_MAX) {
+        SCLogError("Too long name for data directory");
+        return -1;
+    }
+    char tmp[PATH_MAX + 1];
+    strlcpy(tmp, dir, sizeof(tmp));
+    /* len > 1 to allow just / */
+    if (len > 1 && tmp[len - 1] == '/') {
+        tmp[len - 1] = '\0';
+    }
+    AddConfigOverride(suri, "default-data-dir", tmp);
+    return 0;
+}
+
+/**
  * \brief Add a --set argument of the form path=value to the overrides.
  *
  * Like SCConfSetFromString, whitespace is trimmed from the end of the
@@ -1931,7 +1957,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                     return TM_ECODE_FAILED;
                 }
 
-                if (ConfigSetDataDirectory(optarg) != TM_ECODE_OK) {
+                if (AddDataDirOverride(suri, optarg) != 0) {
                     SCLogError("Failed to set data directory.");
                     return TM_ECODE_FAILED;
                 }
@@ -2026,10 +2052,7 @@ TmEcode SCParseCommandLine(int argc, char **argv)
                 return TM_ECODE_FAILED;
             }
 
-            if (ConfigSetLogDirectory(optarg) != TM_ECODE_OK) {
-                SCLogError("Failed to set log directory.");
-                return TM_ECODE_FAILED;
-            }
+            AddConfigOverride(suri, "default-log-dir", optarg);
             if (ConfigCheckLogDirectoryExists(optarg) != TM_ECODE_OK) {
                 SCLogError("The logging directory \"%s\""
                            " supplied at the command-line (-l %s) doesn't "
