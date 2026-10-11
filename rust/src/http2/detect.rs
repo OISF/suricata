@@ -359,7 +359,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaderName(
 }
 
 fn http2_frames_get_header_firstvalue<'a>(
-    tx: &'a mut HTTP2Transaction, direction: Direction, name: &str,
+    tx: &'a HTTP2Transaction, direction: Direction, name: &str,
 ) -> Result<&'a [u8], ()> {
     let frames = if direction == Direction::ToServer {
         &tx.frames_ts
@@ -532,7 +532,7 @@ pub unsafe extern "C" fn SCHttp2TxGetResponseLine(
 
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2TxGetUri(
-    tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
     if let Ok(value) = http2_frames_get_header_firstvalue(tx, Direction::ToServer, ":path") {
         *buffer = value.as_ptr(); //unsafe

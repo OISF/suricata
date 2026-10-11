@@ -29,6 +29,7 @@ use std::collections::HashMap;
 #[derive(Clone)]
 pub struct HeaderTokens<'a> {
     pub tokens: HashMap<&'a [u8], (bool, &'a [u8])>,
+    pub has_duplicates: bool,
 }
 
 fn mime_parse_value_delimited(input: &[u8]) -> IResult<&[u8], &[u8]> {
@@ -130,10 +131,13 @@ pub fn mime_parse_header_token(input: &[u8]) -> IResult<&[u8], TokenStarNameValu
 fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], HeaderTokens<'_>> {
     let (mut input, _) = take_until_and_consume(b";").parse(input)?;
     let mut tokens = HashMap::new();
+    let mut has_duplicates = false;
     while !input.is_empty() {
         match mime_parse_header_token(input) {
             Ok((rem, t)) => {
-                tokens.insert(t.1, (t.0, t.2));
+                if tokens.insert(t.1, (t.0, t.2)).is_some() {
+                    has_duplicates = true;
+                }
                 // should never happen
                 debug_validate_bug_on!(input.len() == rem.len());
                 if input.len() == rem.len() {
@@ -148,12 +152,18 @@ fn mime_parse_header_tokens(input: &[u8]) -> IResult<&[u8], HeaderTokens<'_>> {
             }
         }
     }
-    return Ok((input, HeaderTokens { tokens }));
+    return Ok((
+        input,
+        HeaderTokens {
+            tokens,
+            has_duplicates,
+        },
+    ));
 }
 
 pub fn mime_find_header_token<'a>(
     header: &'a [u8], token: &[u8], sections_values: &'a mut Vec<u8>,
-) -> Option<(bool, &'a [u8])> {
+) -> Option<(bool, bool, &'a [u8])> {
     match mime_parse_header_tokens(header) {
         Ok((_rem, t)) => {
             // in case of multiple sections for the parameter cf RFC2231
@@ -162,7 +172,7 @@ pub fn mime_find_header_token<'a>(
             // look for the specific token
             match t.tokens.get(token) {
                 // easy nominal case
-                Some(value) => return Some(*value),
+                Some(value) => return Some((t.has_duplicates, value.0, value.1)),
                 None => {
                     // check for initial section of a parameter
                     current_section_slice.extend_from_slice(token);
@@ -207,7 +217,7 @@ pub fn mime_find_header_token<'a>(
                         current_section_slice
                             .extend_from_slice(current_section_seen.to_string().as_bytes());
                     }
-                    None => return Some((false, sections_values)),
+                    None => return Some((t.has_duplicates, false, sections_values)),
                 }
             }
         }
@@ -315,9 +325,9 @@ pub fn slice_equals_lowercase(s1: &[u8], s2: &[u8]) -> bool {
 
 fn mime_parse_headers<'a>(
     ctx: &mut MimeStateHTTP, i: &'a [u8],
-) -> IResult<&'a [u8], (MimeParserState, bool, bool)> {
+) -> IResult<&'a [u8], (MimeParserState, bool, u32)> {
     let mut fileopen = false;
-    let mut errored = false;
+    let mut errored = 0u32;
     let mut input = i;
     while !input.is_empty() {
         if let Ok((input2, line)) =
@@ -329,16 +339,19 @@ fn mime_parse_headers<'a>(
                     if let Some(filename) =
                         mime_find_header_token(value, "filename".as_bytes(), &mut sections_values)
                     {
-                        if !filename.1.is_empty() {
+                        if filename.0 {
+                            errored |= MIME_EVENT_FLAG_DUPLICATE_TOKEN;
+                        }
+                        if !filename.2.is_empty() {
                             fileopen = true;
-                            if filename.0 {
-                                ctx.filename = vec![0; filename.1.len()];
+                            if filename.1 {
+                                ctx.filename = vec![0; filename.2.len()];
                                 let out_len =
-                                    url_decode_transform_do(filename.1, &mut ctx.filename, false);
+                                    url_decode_transform_do(filename.2, &mut ctx.filename, false);
                                 ctx.filename.truncate(out_len as usize);
                             } else {
-                                ctx.filename = Vec::with_capacity(filename.1.len());
-                                for c in filename.1 {
+                                ctx.filename = Vec::with_capacity(filename.2.len());
+                                for c in filename.2 {
                                     // unescape
                                     if *c != b'\\' {
                                         ctx.filename.push(*c);
@@ -349,10 +362,10 @@ fn mime_parse_headers<'a>(
                     }
                 }
                 if value.is_empty() {
-                    errored = true;
+                    errored |= MIME_EVENT_FLAG_INVALID_HEADER;
                 }
             } else if !line.is_empty() {
-                errored = true;
+                errored |= MIME_EVENT_FLAG_INVALID_HEADER;
             }
             let (input3, _) = tag("\r\n")(input2)?;
             input = input3;
@@ -407,6 +420,7 @@ fn mime_consume_chunk<'a>(boundary: &[u8], input: &'a [u8]) -> IResult<&'a [u8],
 
 pub const MIME_EVENT_FLAG_INVALID_HEADER: u32 = 0x01;
 pub const MIME_EVENT_FLAG_NO_FILEDATA: u32 = 0x02;
+pub const MIME_EVENT_FLAG_DUPLICATE_TOKEN: u32 = 0x04;
 
 fn mime_process(ctx: &mut MimeStateHTTP, i: &[u8]) -> (MimeParserResult, u32, u32) {
     let mut input = i;
@@ -440,9 +454,7 @@ fn mime_process(ctx: &mut MimeStateHTTP, i: &[u8]) -> (MimeParserResult, u32, u3
                     ctx.state = next;
                     consumed += (input.len() - rem.len()) as u32;
                     input = rem;
-                    if err {
-                        warnings |= MIME_EVENT_FLAG_INVALID_HEADER;
-                    }
+                    warnings |= err;
                     if fileopen {
                         return (MimeParserResult::MimeFileOpen, consumed, warnings);
                     }
@@ -495,22 +507,22 @@ fn mime_process(ctx: &mut MimeStateHTTP, i: &[u8]) -> (MimeParserResult, u32, u3
 pub fn mime_state_init(i: &[u8]) -> Option<MimeStateHTTP> {
     let mut sections_values = Vec::new();
     if let Some(value) = mime_find_header_token(i, "boundary".as_bytes(), &mut sections_values) {
-        if value.1.len() <= RS_MIME_MAX_TOKEN_LEN {
+        if value.2.len() <= RS_MIME_MAX_TOKEN_LEN {
             let mut r = MimeStateHTTP {
-                boundary: Vec::with_capacity(2 + value.1.len()),
+                boundary: Vec::with_capacity(2 + value.2.len()),
                 ..Default::default()
             };
             // start wih 2 additional hyphens
-            if value.0 {
-                r.boundary = vec![0; 2 + value.1.len()];
+            if value.1 {
+                r.boundary = vec![0; 2 + value.2.len()];
                 r.boundary[0] = b'-';
                 r.boundary[1] = b'-';
-                let out_len = url_decode_transform_do(value.1, &mut r.boundary[2..], false);
+                let out_len = url_decode_transform_do(value.2, &mut r.boundary[2..], false);
                 r.boundary.truncate(2 + out_len as usize);
             } else {
                 r.boundary.push(b'-');
                 r.boundary.push(b'-');
-                for c in value.1 {
+                for c in value.2 {
                     // unescape
                     if *c != b'\\' {
                         r.boundary.push(*c);
@@ -580,56 +592,56 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(undelimok, Some((false, "test".as_bytes())));
+        assert_eq!(undelimok, Some((false, false, "test".as_bytes())));
 
         let delimok = mime_find_header_token(
             "attachment; filename=\"test2\";".as_bytes(),
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(delimok, Some((false, "test2".as_bytes())));
+        assert_eq!(delimok, Some((false, false, "test2".as_bytes())));
 
         let escaped = mime_find_header_token(
             "attachment; filename=\"test\\\"2\";".as_bytes(),
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(escaped, Some((false, "test\\\"2".as_bytes())));
+        assert_eq!(escaped, Some((false, false, "test\\\"2".as_bytes())));
 
         let evasion_othertoken = mime_find_header_token(
             "attachment; dummy=\"filename=wrong\"; filename=real;".as_bytes(),
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(evasion_othertoken, Some((false, "real".as_bytes())));
+        assert_eq!(evasion_othertoken, Some((false, false, "real".as_bytes())));
 
         let evasion_suffixtoken = mime_find_header_token(
             "attachment; notafilename=wrong; filename=good;".as_bytes(),
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(evasion_suffixtoken, Some((false, "good".as_bytes())));
+        assert_eq!(evasion_suffixtoken, Some((false, false, "good".as_bytes())));
 
         let badending = mime_find_header_token(
             "attachment; filename=oksofar; badending".as_bytes(),
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(badending, Some((false, "oksofar".as_bytes())));
+        assert_eq!(badending, Some((false, false, "oksofar".as_bytes())));
 
         let missend = mime_find_header_token(
             "attachment; filename=test".as_bytes(),
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(missend, Some((false, "test".as_bytes())));
+        assert_eq!(missend, Some((false, false, "test".as_bytes())));
 
         let spaces = mime_find_header_token(
             "attachment; filename=test me wrong".as_bytes(),
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(spaces, Some((false, "test me wrong".as_bytes())));
+        assert_eq!(spaces, Some((false, false, "test me wrong".as_bytes())));
 
         assert_eq!(outvec.len(), 0);
         let multi = mime_find_header_token(
@@ -637,7 +649,7 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(multi, Some((false, "abcdef".as_bytes())));
+        assert_eq!(multi, Some((false, false, "abcdef".as_bytes())));
         outvec.clear();
 
         let multi = mime_find_header_token(
@@ -645,7 +657,7 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(multi, Some((false, "123456".as_bytes())));
+        assert_eq!(multi, Some((false, false, "123456".as_bytes())));
         outvec.clear();
 
         let multi = mime_find_header_token(
@@ -653,7 +665,7 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(multi, Some((true, "shell.php".as_bytes())));
+        assert_eq!(multi, Some((false, true, "shell.php".as_bytes())));
         outvec.clear();
 
         let multi = mime_find_header_token(
@@ -661,7 +673,7 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(multi, Some((true, "shell.php".as_bytes())));
+        assert_eq!(multi, Some((false, true, "shell.php".as_bytes())));
         outvec.clear();
 
         let multi = mime_find_header_token(
@@ -669,7 +681,7 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(multi, Some((true, "shell.php".as_bytes())));
+        assert_eq!(multi, Some((false, true, "shell.php".as_bytes())));
         outvec.clear();
 
         let multi = mime_find_header_token(
@@ -677,7 +689,7 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(multi, Some((true, "second".as_bytes())));
+        assert_eq!(multi, Some((true, true, "second".as_bytes())));
         outvec.clear();
 
         let multi = mime_find_header_token(
@@ -686,7 +698,7 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(multi, Some((false, "shell.php".as_bytes())));
+        assert_eq!(multi, Some((false, false, "shell.php".as_bytes())));
         outvec.clear();
     }
 }
