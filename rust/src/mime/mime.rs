@@ -592,56 +592,56 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(undelimok, Some((false, "test".as_bytes())));
+        assert_eq!(undelimok, Some((false, false, "test".as_bytes())));
 
         let delimok = mime_find_header_token(
             "attachment; filename=\"test2\";".as_bytes(),
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(delimok, Some((false, "test2".as_bytes())));
+        assert_eq!(delimok, Some((false, false, "test2".as_bytes())));
 
         let escaped = mime_find_header_token(
             "attachment; filename=\"test\\\"2\";".as_bytes(),
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(escaped, Some((false, "test\\\"2".as_bytes())));
+        assert_eq!(escaped, Some((false, false, "test\\\"2".as_bytes())));
 
         let evasion_othertoken = mime_find_header_token(
             "attachment; dummy=\"filename=wrong\"; filename=real;".as_bytes(),
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(evasion_othertoken, Some((false, "real".as_bytes())));
+        assert_eq!(evasion_othertoken, Some((false, false, "real".as_bytes())));
 
         let evasion_suffixtoken = mime_find_header_token(
             "attachment; notafilename=wrong; filename=good;".as_bytes(),
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(evasion_suffixtoken, Some((false, "good".as_bytes())));
+        assert_eq!(evasion_suffixtoken, Some((false, false, "good".as_bytes())));
 
         let badending = mime_find_header_token(
             "attachment; filename=oksofar; badending".as_bytes(),
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(badending, Some((false, "oksofar".as_bytes())));
+        assert_eq!(badending, Some((false, false, "oksofar".as_bytes())));
 
         let missend = mime_find_header_token(
             "attachment; filename=test".as_bytes(),
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(missend, Some((false, "test".as_bytes())));
+        assert_eq!(missend, Some((false, false, "test".as_bytes())));
 
         let spaces = mime_find_header_token(
             "attachment; filename=test me wrong".as_bytes(),
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(spaces, Some((false, "test me wrong".as_bytes())));
+        assert_eq!(spaces, Some((false, false, "test me wrong".as_bytes())));
 
         assert_eq!(outvec.len(), 0);
         let multi = mime_find_header_token(
@@ -649,7 +649,7 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(multi, Some((false, "abcdef".as_bytes())));
+        assert_eq!(multi, Some((false, false, "abcdef".as_bytes())));
         outvec.clear();
 
         let multi = mime_find_header_token(
@@ -657,7 +657,7 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(multi, Some((false, "123456".as_bytes())));
+        assert_eq!(multi, Some((false, false, "123456".as_bytes())));
         outvec.clear();
 
         let multi = mime_find_header_token(
@@ -665,7 +665,7 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(multi, Some((true, "shell.php".as_bytes())));
+        assert_eq!(multi, Some((false, true, "shell.php".as_bytes())));
         outvec.clear();
 
         let multi = mime_find_header_token(
@@ -673,7 +673,7 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(multi, Some((true, "shell.php".as_bytes())));
+        assert_eq!(multi, Some((false, true, "shell.php".as_bytes())));
         outvec.clear();
 
         let multi = mime_find_header_token(
@@ -681,7 +681,7 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(multi, Some((true, "shell.php".as_bytes())));
+        assert_eq!(multi, Some((false, true, "shell.php".as_bytes())));
         outvec.clear();
 
         let multi = mime_find_header_token(
@@ -689,7 +689,7 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(multi, Some((true, "second".as_bytes())));
+        assert_eq!(multi, Some((true, true, "second".as_bytes())));
         outvec.clear();
 
         let multi = mime_find_header_token(
@@ -698,7 +698,7 @@ mod test {
             "filename".as_bytes(),
             &mut outvec,
         );
-        assert_eq!(multi, Some((false, "shell.php".as_bytes())));
+        assert_eq!(multi, Some((false, false, "shell.php".as_bytes())));
         outvec.clear();
     }
 }
