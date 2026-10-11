@@ -61,6 +61,10 @@ static int ConfYamlMirror(SCConfNode *parent, const SCConfTreeNode *node);
 /**
  * \brief Set the directory name of the configuration file.
  *
+ * The directory keeps its trailing separator, so the root directory of
+ * /suricata.yaml is "/", not an empty name, which the loader would
+ * resolve includes against the current directory with.
+ *
  * \param filename The configuration filename.
  */
 static void
@@ -83,7 +87,7 @@ ConfYamlSetConfDirname(const char *filename)
         if (conf_dirname == NULL) {
             FatalError("ERROR: Failed to allocate memory while loading configuration.");
         }
-        conf_dirname[ep - filename] = '\0';
+        conf_dirname[ep - filename + 1] = '\0';
     }
 }
 
@@ -1089,6 +1093,36 @@ static int ConfYamlKeyManglingTest(void)
     PASS;
 }
 
+/**
+ * \test The directory of the configuration file, for includes, keeps
+ *     its separator, so a file in the root directory has "/".
+ */
+static int ConfYamlSetConfDirnameTest(void)
+{
+    char *saved = conf_dirname;
+
+    static const struct {
+        const char *filename;
+        const char *dirname;
+    } tests[] = {
+        { "suricata.yaml", "." },
+        { "/suricata.yaml", "/" },
+        { "/etc/suricata/suricata.yaml", "/etc/suricata/" },
+        { "etc/suricata.yaml", "etc/" },
+        { "C:\\suricata.yaml", "C:\\" },
+    };
+    for (size_t i = 0; i < ARRAY_SIZE(tests); i++) {
+        conf_dirname = NULL;
+        ConfYamlSetConfDirname(tests[i].filename);
+        FAIL_IF_NULL(conf_dirname);
+        FAIL_IF(strcmp(conf_dirname, tests[i].dirname) != 0);
+        SCFree(conf_dirname);
+    }
+
+    conf_dirname = saved;
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void SCConfYamlRegisterTests(void)
@@ -1105,5 +1139,6 @@ void SCConfYamlRegisterTests(void)
     UtRegisterTest("ConfYamlOverrideFinalTest", ConfYamlOverrideFinalTest);
     UtRegisterTest("ConfYamlNull", ConfYamlNull);
     UtRegisterTest("ConfYamlKeyManglingTest", ConfYamlKeyManglingTest);
+    UtRegisterTest("ConfYamlSetConfDirnameTest", ConfYamlSetConfDirnameTest);
 #endif /* UNITTESTS */
 }
