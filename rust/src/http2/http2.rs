@@ -588,13 +588,6 @@ impl HTTP2Transaction {
                 }
                 _ => {}
             }
-            let (progress_tc, progress_ts) = (stream_tx.progress_tc, stream_tx.progress_ts);
-            if progress_ts > HTTP2TxProgress::HTTP2ProgHeaders && self.req_line.is_empty() {
-                detect::http2_tx_get_req_line(self);
-            }
-            if progress_tc > HTTP2TxProgress::HTTP2ProgHeaders && self.resp_line.is_empty() {
-                detect::http2_tx_get_resp_line(self);
-            }
         }
         return r;
     }
@@ -1529,6 +1522,20 @@ impl HTTP2State {
                             header: head,
                             data: txdata,
                         });
+                        if let HTTP2Progress::STREAM(ref mut stream_tx) = tx.progress {
+                            let (progress_tc, progress_ts) =
+                                (stream_tx.progress_tc, stream_tx.progress_ts);
+                            if progress_ts > HTTP2TxProgress::HTTP2ProgHeaders
+                                && tx.req_line.is_empty()
+                            {
+                                detect::http2_tx_get_req_line(tx);
+                            }
+                            if progress_tc > HTTP2TxProgress::HTTP2ProgHeaders
+                                && tx.resp_line.is_empty()
+                            {
+                                detect::http2_tx_get_resp_line(tx);
+                            }
+                        }
                     } else {
                         tx.tx_data.set_event(HTTP2Event::TooManyFrames as u8);
                     }
