@@ -465,10 +465,7 @@ fn http2_frames_get_header_value<'a>(
 }
 
 // we mutate the tx to cache req_line
-fn http2_tx_get_req_line(tx: &mut HTTP2Transaction) {
-    if !tx.req_line.is_empty() {
-        return;
-    }
+pub(super) fn http2_tx_get_req_line(tx: &mut HTTP2Transaction) {
     let empty = Vec::new();
     let mut req_line = Vec::new();
     let method =
@@ -493,15 +490,14 @@ fn http2_tx_get_req_line(tx: &mut HTTP2Transaction) {
 
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2TxGetRequestLine(
-    tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    http2_tx_get_req_line(tx);
     *buffer = tx.req_line.as_ptr(); //unsafe
     *buffer_len = tx.req_line.len() as u32;
     return 1;
 }
 
-fn http2_tx_get_resp_line(tx: &mut HTTP2Transaction) {
+pub(super) fn http2_tx_get_resp_line(tx: &mut HTTP2Transaction) {
     if !tx.resp_line.is_empty() {
         return;
     }
@@ -522,9 +518,8 @@ fn http2_tx_get_resp_line(tx: &mut HTTP2Transaction) {
 
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2TxGetResponseLine(
-    tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    http2_tx_get_resp_line(tx);
     *buffer = tx.resp_line.as_ptr(); //unsafe
     *buffer_len = tx.resp_line.len() as u32;
     return 1;

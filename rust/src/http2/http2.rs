@@ -588,6 +588,13 @@ impl HTTP2Transaction {
                 }
                 _ => {}
             }
+            let (progress_tc, progress_ts) = (stream_tx.progress_tc, stream_tx.progress_ts);
+            if progress_ts > HTTP2TxProgress::HTTP2ProgHeaders && self.req_line.is_empty() {
+                detect::http2_tx_get_req_line(self);
+            }
+            if progress_tc > HTTP2TxProgress::HTTP2ProgHeaders && self.resp_line.is_empty() {
+                detect::http2_tx_get_resp_line(self);
+            }
         }
         return r;
     }
