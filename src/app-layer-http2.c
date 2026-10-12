@@ -80,14 +80,16 @@ void SCHTTP2MimicHttp1Request(void *alstate_orig, void *h2s)
         return;
     }
     // else
-    SCHttp2TxSetMethod(h2s, bstr_ptr(htp_tx_request_method(h1tx)),
-            (uint32_t)bstr_len(htp_tx_request_method(h1tx)));
+    uint8_t *uri = NULL;
+    uint32_t uri_len = 0;
     if (htp_tx_request_uri(h1tx) != NULL) {
         // A request line without spaces gets interpreted as a request_method
         // and has request_uri=NULL
-        SCHttp2TxSetUri(h2s, bstr_ptr(htp_tx_request_uri(h1tx)),
-                (uint32_t)bstr_len(htp_tx_request_uri(h1tx)));
+        uri = bstr_ptr(htp_tx_request_uri(h1tx));
+        uri_len = (uint32_t)bstr_len(htp_tx_request_uri(h1tx));
     }
+    SCHttp2TxSetMethodUri(h2s, bstr_ptr(htp_tx_request_method(h1tx)),
+            (uint32_t)bstr_len(htp_tx_request_method(h1tx)), uri, uri_len);
     size_t nbheaders = htp_tx_request_headers_size(h1tx);
     for (size_t i = 0; i < nbheaders; i++) {
         const htp_header_t *h = htp_tx_request_header_index(h1tx, i);

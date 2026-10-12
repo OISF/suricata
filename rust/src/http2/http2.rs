@@ -519,6 +519,34 @@ impl HTTP2Transaction {
         return Ok(());
     }
 
+    fn build_req_line(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>) {
+        for block in blocks.iter() {
+            if block.name.as_ref() == ":method".as_bytes() {
+                self.req_line.extend_from_slice(&block.value);
+                break;
+            }
+        }
+        self.req_line.push(b' ');
+        for block in blocks.iter() {
+            if block.name.as_ref() == ":path".as_bytes() {
+                self.req_line.extend_from_slice(&block.value);
+                break;
+            }
+        }
+        self.req_line.extend(b" HTTP/2\r\n");
+    }
+
+    fn build_resp_line(&mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>) {
+        self.resp_line.extend(b"HTTP/2 ");
+        for block in blocks.iter() {
+            if block.name.as_ref() == ":status".as_bytes() {
+                self.resp_line.extend_from_slice(&block.value);
+                break;
+            }
+        }
+        self.resp_line.extend(b"\r\n");
+    }
+
     fn handle_frame(
         &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: Direction,
     ) -> Option<Vec<u8>> {
@@ -576,8 +604,15 @@ impl HTTP2Transaction {
                             stream_tx.progress_tc = HTTP2TxProgress::HTTP2ProgComplete;
                         }
                     }
+                    if !c.blocks.is_empty() {
+                        if dir == Direction::ToServer && self.req_line.is_empty() {
+                            self.build_req_line(&c.blocks);
+                        } else if dir == Direction::ToClient && self.resp_line.is_empty() {
+                            self.build_resp_line(&c.blocks);
+                        }
+                    }
                 }
-                HTTP2FrameTypeData::HEADERS(_) => {
+                HTTP2FrameTypeData::HEADERS(h) => {
                     if header.flags & parser::HTTP2_FLAG_HEADER_EOS != 0
                         && header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0
                     {
@@ -592,6 +627,13 @@ impl HTTP2Transaction {
                         }
                     } else if *state < HTTP2TxProgress::HTTP2ProgHeaders {
                         *state = HTTP2TxProgress::HTTP2ProgHeaders;
+                    }
+                    if header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0 {
+                        if dir == Direction::ToServer && self.req_line.is_empty() {
+                            self.build_req_line(&h.blocks);
+                        } else if dir == Direction::ToClient && self.resp_line.is_empty() {
+                            self.build_resp_line(&h.blocks);
+                        }
                     }
                 }
                 HTTP2FrameTypeData::DATA => {
@@ -919,6 +961,10 @@ impl HTTP2State {
         // a global tx (stream id 0) does not hold files cf RFC 9113 section 5.1.1
         self.transactions.push_back(tx);
         return self.transactions.back_mut().unwrap();
+    }
+
+    pub fn get_only_tx(&mut self) -> &mut HTTP2Transaction {
+        &mut self.transactions[0]
     }
 
     pub fn find_or_create_tx(

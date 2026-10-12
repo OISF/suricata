@@ -464,67 +464,19 @@ fn http2_frames_get_header_value<'a>(
     }
 }
 
-// we mutate the tx to cache req_line
-fn http2_tx_get_req_line(tx: &mut HTTP2Transaction) {
-    if !tx.req_line.is_empty() {
-        return;
-    }
-    let empty = Vec::new();
-    let mut req_line = Vec::new();
-    let method =
-        if let Ok(value) = http2_frames_get_header_firstvalue(tx, Direction::ToServer, ":method") {
-            value
-        } else {
-            &empty
-        };
-    req_line.extend(method);
-    req_line.push(b' ');
-
-    let uri =
-        if let Ok(value) = http2_frames_get_header_firstvalue(tx, Direction::ToServer, ":path") {
-            value
-        } else {
-            &empty
-        };
-    req_line.extend(uri);
-    req_line.extend(b" HTTP/2\r\n");
-    tx.req_line.extend(req_line)
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2TxGetRequestLine(
-    tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    http2_tx_get_req_line(tx);
     *buffer = tx.req_line.as_ptr(); //unsafe
     *buffer_len = tx.req_line.len() as u32;
     return 1;
 }
 
-fn http2_tx_get_resp_line(tx: &mut HTTP2Transaction) {
-    if !tx.resp_line.is_empty() {
-        return;
-    }
-    let empty = Vec::new();
-    let mut resp_line: Vec<u8> = Vec::new();
-
-    let status =
-        if let Ok(value) = http2_frames_get_header_firstvalue(tx, Direction::ToClient, ":status") {
-            value
-        } else {
-            &empty
-        };
-    resp_line.extend(b"HTTP/2 ");
-    resp_line.extend(status);
-    resp_line.extend(b"\r\n");
-    tx.resp_line.extend(resp_line)
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn SCHttp2TxGetResponseLine(
-    tx: &mut HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
+    tx: &HTTP2Transaction, buffer: *mut *const u8, buffer_len: *mut u32,
 ) -> u8 {
-    http2_tx_get_resp_line(tx);
     *buffer = tx.resp_line.as_ptr(); //unsafe
     *buffer_len = tx.resp_line.len() as u32;
     return 1;
@@ -1012,20 +964,29 @@ fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
     }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn SCHttp2TxSetMethod(
-    state: &mut HTTP2State, buffer: *const u8, buffer_len: u32,
-) {
-    let slice = build_slice!(buffer, buffer_len as usize);
-    http2_tx_set_header(state, ":method".as_bytes(), slice)
+// we mutate the tx to cache req_line
+fn http2_tx_get_req_line(tx: &mut HTTP2Transaction, method: &[u8], uri: &[u8]) {
+    tx.req_line.extend(method);
+    tx.req_line.push(b' ');
+    tx.req_line.extend(uri);
+    tx.req_line.extend(b" HTTP/2\r\n");
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SCHttp2TxSetUri(
-    state: &mut HTTP2State, buffer: *const u8, buffer_len: u32,
+pub unsafe extern "C" fn SCHttp2TxSetMethodUri(
+    state: &mut HTTP2State, buffer: *const u8, buffer_len: u32, uri: *const u8, uri_len: u32,
 ) {
-    let slice = build_slice!(buffer, buffer_len as usize);
-    http2_tx_set_header(state, ":path".as_bytes(), slice)
+    let methods = build_slice!(buffer, buffer_len as usize);
+    http2_tx_set_header(state, ":method".as_bytes(), methods);
+    if uri != std::ptr::null() {
+        let uris = build_slice!(uri, uri_len as usize);
+        http2_tx_set_header(state, ":path".as_bytes(), uris);
+        let tx = state.get_only_tx();
+        http2_tx_get_req_line(tx, methods, uris);
+    } else {
+        let tx = state.get_only_tx();
+        http2_tx_get_req_line(tx, methods, &[]);
+    }
 }
 
 fn http2_tx_set_settings(state: &mut HTTP2State, input: &[u8]) {
