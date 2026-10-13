@@ -169,7 +169,7 @@ fn calculate_entropy(data: &[u8]) -> f64 {
 
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectEntropyMatch(
-    c_data: *const c_void, length: i32, ctx: &DetectEntropyData, calculated_entropy: *mut c_double,
+    c_data: *const c_void, length: u32, ctx: &DetectEntropyData, calculated_entropy: *mut c_double,
 ) -> bool {
     if c_data.is_null() {
         return false;
@@ -179,9 +179,11 @@ pub unsafe extern "C" fn SCDetectEntropyMatch(
     let mut start = buffer;
     let mut count = length;
 
-    // Adjust start and count based on offset and nbytes from context
+    // Adjust start and count based on offset and nbytes from context. Both are
+    // validated positive at parse time, so the casts to the unsigned length
+    // domain are lossless.
     if ctx.offset > 0 {
-        let offset = ctx.offset;
+        let offset = ctx.offset as u32;
         if offset > count {
             SCLogDebug!("offset {} exceeds buffer length {}", offset, count);
             return false;
@@ -191,7 +193,7 @@ pub unsafe extern "C" fn SCDetectEntropyMatch(
     }
 
     if ctx.nbytes > 0 {
-        let nbytes = ctx.nbytes;
+        let nbytes = ctx.nbytes as u32;
         if nbytes > count {
             SCLogDebug!("byte count {} exceeds buffer length {}", nbytes, count);
             return false;
