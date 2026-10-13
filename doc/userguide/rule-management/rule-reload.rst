@@ -41,6 +41,30 @@ This will cause Suricata to reload rules without the caller blocking or waiting.
 
   suricatasc -c ruleset-reload-nonblocking
 
+.. _rule-reload-windows-service:
+
+Via Windows service control
+---------------------------
+
+Windows does not support the ``USR2`` signal or the UNIX domain socket.
+Instead, when Suricata is running as a Windows service, a rule reload can be
+requested by sending the service the user-defined control code ``128``::
+
+  sc.exe control Suricata 128
+
+This is a non-blocking reload. ``sc.exe`` does not report the result of the
+reload; it is logged by Suricata.
+
+When installed with ``--service-install``, only SYSTEM and Administrators may
+send control codes to the Suricata service. A service installed by older
+versions of Suricata, or by other tools, may allow any interactive user to
+send control codes. This can be restricted with::
+
+  sc.exe sdset Suricata "D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLORC;;;IU)(A;;CCLCSWLORC;;;SU)"
+
+.. note:: In PowerShell, ``sc`` is an alias for ``Set-Content``, so
+          ``sc.exe`` must be used.
+
 Resources Reloaded
 ~~~~~~~~~~~~~~~~~~
 

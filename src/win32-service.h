@@ -25,6 +25,13 @@
 #define SURICATA_WIN32_SERVICE_H
 
 #ifdef OS_WIN32
+/* User-defined service control codes, must be in the range 128-255. */
+#define SC_SERVICE_CONTROL_RELOAD_RULES 128
+
+/* Requests returned by SCServiceTakeRequests(). */
+#define SC_SERVICE_REQUEST_RELOAD_RULES BIT_U32(0)
+
+uint32_t SCServiceTakeRequests(void);
 int SCRunningAsService(void);
 int SCServiceInit(int argc, char **argv);
 int SCServiceInstall(int argc, char **argv);
