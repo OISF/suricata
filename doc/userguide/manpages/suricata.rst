@@ -45,6 +45,9 @@ SIGHUP
     used to re-open log files after they may have been moved away by
     log rotation utilities.
 
+On Windows, when running as a service, the service control code 128 is the
+equivalent of SIGUSR2.
+
 FILES AND DIRECTORIES
 ---------------------
 

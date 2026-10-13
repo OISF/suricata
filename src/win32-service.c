@@ -137,6 +137,9 @@ static bool SCServiceGetCommandLine(
 
 static SERVICE_STATUS_HANDLE service_status_handle = 0;
 
+/* Pending SC_SERVICE_REQUEST_* flags, handled by the main loop. */
+static SC_ATOMIC_DECLARE(uint32_t, service_requests);
+
 static int service_argc = 0;
 
 static char **service_argv = NULL;
@@ -186,10 +189,26 @@ static void SCAtExitHandler(void)
 }
 
 /**
+ * \brief Get and clear the pending service control requests.
+ *
+ * \retval SC_SERVICE_REQUEST_* flags
+ */
+uint32_t SCServiceTakeRequests(void)
+{
+    return SC_ATOMIC_AND(service_requests, 0);
+}
+
+/**
  * \brief Service handler
  */
 static DWORD WINAPI SCServiceCtrlHandlerEx(DWORD code, DWORD etype, LPVOID edata, LPVOID context)
 {
+    if (code == SC_SERVICE_CONTROL_RELOAD_RULES) {
+        /* Defer logging to the main loop, after logging initialization. */
+        SC_ATOMIC_OR(service_requests, SC_SERVICE_REQUEST_RELOAD_RULES);
+        return NO_ERROR;
+    }
+
     if (code == SERVICE_CONTROL_SHUTDOWN || code == SERVICE_CONTROL_STOP) {
         SERVICE_STATUS status = {
             SERVICE_WIN32,
