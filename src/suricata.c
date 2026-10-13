@@ -3040,6 +3040,18 @@ void SuricataMainLoop(void)
 
         TmThreadCheckThreadState();
 
+#ifdef OS_WIN32
+        /* Service control requests are handled like their signal equivalents,
+         * SC_SERVICE_REQUEST_RELOAD_RULES like SIGUSR2. */
+        uint32_t requests = SCServiceTakeRequests();
+        if (requests & SC_SERVICE_REQUEST_RELOAD_RULES) {
+            SCLogNotice("Rule reload requested by service control");
+            if (DetectEngineEnabled() && sigusr2_count < 2) {
+                sigusr2_count++;
+            }
+        }
+#endif
+
         if (sighup_count > 0) {
             OutputNotifyFileRotation();
             sighup_count--;
