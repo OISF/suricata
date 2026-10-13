@@ -449,11 +449,8 @@ static FILE *SCLogOpenFileFp(
         return NULL;
     }
 
-    if (SCConfValIsTrue(append_setting)) {
-        ret = fopen(filename, "a");
-    } else {
-        ret = fopen(filename, "w");
-    }
+    const char *fmode = SCConfValIsTrue(append_setting) ? "a" : "w";
+    ret = SCFopenLogFile(filename, fmode);
 
     if (ret == NULL) {
         SCLogError("Error opening file: \"%s\": %s", filename, strerror(errno));
