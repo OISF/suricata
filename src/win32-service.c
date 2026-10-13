@@ -30,6 +30,15 @@
 #include "win32-service.h"
 #include "util-debug.h"
 
+#include <sddl.h>
+
+/* The default service DACL, but without SERVICE_USER_DEFINED_CONTROL (CR) for
+ * interactive (IU) and service (SU) users, so only SYSTEM and Administrators
+ * can send user-defined control codes. */
+#define SERVICE_SDDL                                                                               \
+    "D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)"                           \
+    "(A;;CCLCSWLORC;;;IU)(A;;CCLCSWLORC;;;SU)"
+
 /** Append a character, leaving room for the terminating NUL. */
 static bool SCServiceAppendChar(char *path, size_t size, size_t *len, char c)
 {
@@ -299,6 +308,33 @@ int SCServiceInit(int argc, char **argv)
 }
 
 /**
+ * \brief Restrict who can send user-defined control codes to the service.
+ *
+ * By default, interactive and service users can send user-defined control
+ * codes to a service. Restrict this to SYSTEM and Administrators as these
+ * codes will be used for runtime control of Suricata, such as rule reloads.
+ */
+static int SCServiceSetSecurity(SC_HANDLE service)
+{
+    PSECURITY_DESCRIPTOR sd = NULL;
+    int ret = 0;
+
+    if (!ConvertStringSecurityDescriptorToSecurityDescriptorA(
+                SERVICE_SDDL, SDDL_REVISION_1, &sd, NULL)) {
+        SCLogError("Can't create service security descriptor: %d", (int)GetLastError());
+        return -1;
+    }
+
+    if (!SetServiceObjectSecurity(service, DACL_SECURITY_INFORMATION, sd)) {
+        SCLogError("Can't set service security descriptor: %d", (int)GetLastError());
+        ret = -1;
+    }
+
+    LocalFree(sd);
+    return ret;
+}
+
+/**
  * \brief Install suricata as service
  *
  * \param argc num of arguments
@@ -338,6 +374,11 @@ int SCServiceInstall(int argc, char **argv)
 
         if (service == NULL) {
             SCLogError("Can't create service: %d", (int)GetLastError());
+            break;
+        }
+
+        if (SCServiceSetSecurity(service) != 0) {
+            DeleteService(service);
             break;
         }
 
