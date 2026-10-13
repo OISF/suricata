@@ -209,6 +209,12 @@ static DWORD WINAPI SCServiceCtrlHandlerEx(DWORD code, DWORD etype, LPVOID edata
         return NO_ERROR;
     }
 
+    if (code == SC_SERVICE_CONTROL_REOPEN_LOG_FILES) {
+        /* Defer logging to the main loop, after logging initialization. */
+        SC_ATOMIC_OR(service_requests, SC_SERVICE_REQUEST_REOPEN_LOG_FILES);
+        return NO_ERROR;
+    }
+
     if (code == SERVICE_CONTROL_SHUTDOWN || code == SERVICE_CONTROL_STOP) {
         SERVICE_STATUS status = {
             SERVICE_WIN32,
