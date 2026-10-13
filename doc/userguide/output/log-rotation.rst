@@ -44,3 +44,20 @@ include:
 
 - :ref:`Eve <output_eve_rotate>`
 - :ref:`PCAP log <suricata_yaml_pcap_log>`
+
+Windows
+-------
+
+Windows does not support SIGHUP. Instead, when Suricata is running as a
+Windows service, it can be told to re-open its log files by sending the
+service the user-defined control code ``129``::
+
+  sc.exe control Suricata 129
+
+As with SIGHUP, an external tool is responsible for renaming the log files
+before sending the control code. Suricata opens log files on Windows with
+shared delete access so they can be renamed while open. See
+:ref:`rule-reload-windows-service` for who may send control codes.
+
+.. note:: In PowerShell, ``sc`` is an alias for ``Set-Content``, so
+          ``sc.exe`` must be used.
