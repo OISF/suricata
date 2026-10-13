@@ -40,4 +40,6 @@ int inet_pton(int af, const char *src, void *dst);
 
 #define geteuid() (0)
 
+FILE *SCWin32Fopen(const char *path, const char *mode);
+
 #endif

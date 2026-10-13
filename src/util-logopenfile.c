@@ -45,6 +45,10 @@
 #include "util-log-redis.h"
 #endif /* HAVE_LIBHIREDIS */
 
+#ifdef OS_WIN32
+#include "win32-misc.h"
+#endif /* OS_WIN32 */
+
 #define LOGFILE_NAME_MAX 255
 
 static bool LogFileNewThreadedCtx(LogFileCtx *parent_ctx, const char *log_path, const char *append,
@@ -449,11 +453,12 @@ static FILE *SCLogOpenFileFp(
         return NULL;
     }
 
-    if (SCConfValIsTrue(append_setting)) {
-        ret = fopen(filename, "a");
-    } else {
-        ret = fopen(filename, "w");
-    }
+    const char *fmode = SCConfValIsTrue(append_setting) ? "a" : "w";
+#ifdef OS_WIN32
+    ret = SCWin32Fopen(filename, fmode);
+#else
+    ret = fopen(filename, fmode);
+#endif
 
     if (ret == NULL) {
         SCLogError("Error opening file: \"%s\": %s", filename, strerror(errno));

@@ -35,6 +35,10 @@
 #include "util-path.h"
 #include "util-syslog.h"
 
+#ifdef OS_WIN32
+#include "win32-misc.h"
+#endif /* OS_WIN32 */
+
 // clang-format off
 /* holds the string-enum mapping for the enums held in the table SCLogLevel */
 SCEnumCharMap sc_log_level_map[] = {
@@ -631,7 +635,11 @@ static int SCLogReopen(SCLogOPIfaceCtx *op_iface_ctx)
     if (op_iface_ctx->file_d != NULL) {
         fclose(op_iface_ctx->file_d);
     }
+#ifdef OS_WIN32
+    op_iface_ctx->file_d = SCWin32Fopen(op_iface_ctx->file, "a");
+#else
     op_iface_ctx->file_d = fopen(op_iface_ctx->file, "a");
+#endif
     if (op_iface_ctx->file_d == NULL) {
         return -1;
     }
@@ -846,7 +854,12 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file, uint32_t u
     iface_ctx->iface = SC_LOG_OP_IFACE_FILE;
     iface_ctx->type = type;
 
-    if ( (iface_ctx->file_d = fopen(file, "a")) == NULL) {
+#ifdef OS_WIN32
+    iface_ctx->file_d = SCWin32Fopen(file, "a");
+#else
+    iface_ctx->file_d = fopen(file, "a");
+#endif
+    if (iface_ctx->file_d == NULL) {
         SCLogWarning("error opening file %s: %s", file, strerror(errno));
         goto error;
     }
