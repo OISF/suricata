@@ -432,7 +432,10 @@ impl HTTP2Transaction {
         //handle closing state changes
         match data {
             HTTP2FrameTypeData::HEADERS(_) | HTTP2FrameTypeData::DATA => {
-                if header.flags & parser::HTTP2_FLAG_HEADER_EOS != 0 {
+                if header.flags & parser::HTTP2_FLAG_HEADER_EOS != 0
+                    && (!matches!(data, HTTP2FrameTypeData::HEADERS(_))
+                        || header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0)
+                {
                     match self.state {
                         HTTP2TransactionState::HTTP2StateHalfClosedClient
                         | HTTP2TransactionState::HTTP2StateDataServer => {
