@@ -34,6 +34,7 @@ base64 = "~0.22.1"
 brotli = "~8.0.1"
 # clap 4.5.58 requires clap_lex 1 which requires edition2024
 clap = { version = "=4.5.57", default-features = false, features = ["std", "derive", "help", "usage"] }
+flate2 = { version = "~1.0.35", features = ["zlib-default"], default-features = false }
 lazy_static = "~1.5.0"
 libc = "~0.2.172"
 lzma-rs = { version = "~0.2.0", features = ["stream"] }
@@ -72,7 +73,7 @@ num = "~0.2.1"
 num-derive = "~0.4.2"
 num-traits = "~0.2.19"
 widestring = "~0.4.3"
-flate2 = { version = "~1.0.35", features = ["zlib"] }
+flate2.workspace = true
 brotli.workspace = true
 zstd.workspace = true
 hkdf = "~0.12.4"
