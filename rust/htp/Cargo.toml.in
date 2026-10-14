@@ -27,7 +27,7 @@ bstr = "1.12.0"
 libc.workspace = true
 nom = "8.0.0"
 lzma-rs.workspace = true
-flate2 = { version = "~1.0.35", features = ["zlib-default"], default-features = false }
+flate2.workspace = true
 brotli.workspace = true
 zstd.workspace = true
 lazy_static.workspace = true
