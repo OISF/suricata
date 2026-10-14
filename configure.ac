@@ -2565,7 +2565,8 @@ AC_SUBST(RUST_SURICATA_LIBNAME)
 
 AM_CONDITIONAL([BUILD_SHARED_LIBRARY], [test "x$enable_shared" = "xyes"] && [test "x$can_build_shared_library" = "xyes"])
 
-AC_CONFIG_FILES(Makefile src/Makefile rust/Makefile rust/Cargo.lock rust/Cargo.toml rust/derive/Cargo.toml rust/.cargo/config.toml)
+AC_CONFIG_FILES(Makefile src/Makefile rust/Makefile rust/Cargo.lock rust/Cargo.toml rust/.cargo/config.toml)
+AC_CONFIG_FILES(rust/derive/Makefile rust/derive/Cargo.toml)
 AC_CONFIG_FILES(rust/sys/Makefile rust/sys/Cargo.toml)
 AC_CONFIG_FILES(rust/ffi/Makefile rust/ffi/Cargo.toml)
 AC_CONFIG_FILES(rust/suricatactl/Makefile rust/suricatactl/Cargo.toml)

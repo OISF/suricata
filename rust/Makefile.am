@@ -1,4 +1,5 @@
-SUBDIRS =	ffi \
+SUBDIRS =	derive \
+		ffi \
 		htp \
 		sys \
 		suricatasc \
