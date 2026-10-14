@@ -307,6 +307,9 @@ static void InitEal(void)
             const char *key = param->name;
             SCConfNode *val;
             TAILQ_FOREACH (val, &param->head, next) {
+                if (val->val == NULL || val->val[0] == '\0') {
+                    continue;
+                }
                 ArgumentsAddOptionAndArgument(&args, key, (const char *)val->val);
             }
             continue;

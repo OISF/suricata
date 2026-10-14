@@ -756,6 +756,9 @@ static OutputInitResult OutputLuaLogInit(SCConfNode *conf)
     /* check the enables scripts and set them up as submodules */
     SCConfNode *script;
     TAILQ_FOREACH(script, &scripts->head, next) {
+        if (script->val == NULL || script->val[0] == '\0') {
+            continue;
+        }
         SCLogInfo("enabling script %s", script->val);
         LogLuaScriptOptions opts;
         memset(&opts, 0x00, sizeof(opts));

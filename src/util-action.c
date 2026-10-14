@@ -119,6 +119,9 @@ int ActionInitConfig(void)
     }
     else {
         TAILQ_FOREACH(action, &action_order->head, next) {
+            if (action->val == NULL || action->val[0] == '\0') {
+                continue;
+            }
             SCLogDebug("Loading action order : %s", action->val);
             action_flag = ActionAsciiToFlag(action->val);
             if (action_flag == 0) {

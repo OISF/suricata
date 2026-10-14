@@ -219,6 +219,9 @@ void OutputEmailInitConf(SCConfNode *conf, OutputJsonEmailCtx *email_ctx)
         if ((custom = SCConfNodeLookupChild(conf, "custom")) != NULL) {
             SCConfNode *field;
             TAILQ_FOREACH (field, &custom->head, next) {
+                if (field->val == NULL || field->val[0] == '\0') {
+                    continue;
+                }
                 int f = 0;
                 while (email_fields[f].config_field) {
                     if ((strcmp(email_fields[f].config_field, field->val) == 0) ||
@@ -236,6 +239,9 @@ void OutputEmailInitConf(SCConfNode *conf, OutputJsonEmailCtx *email_ctx)
         if ((md5_conf = SCConfNodeLookupChild(conf, "md5")) != NULL) {
             SCConfNode *field;
             TAILQ_FOREACH (field, &md5_conf->head, next) {
+                if (field->val == NULL || field->val[0] == '\0') {
+                    continue;
+                }
                 if (strcmp("body", field->val) == 0) {
                     SCLogInfo("Going to log the md5 sum of email body");
                     email_ctx->flags |= LOG_EMAIL_BODY_MD5;
