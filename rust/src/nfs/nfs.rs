@@ -502,6 +502,10 @@ pub struct NFSState {
     pub tc_chunk_tail: u32,
     /// file handle of in progress toserver WRITE file chunk
     ts_chunk_fh: Vec<u8>,
+    /// file handle of in progress toclient READ file chunk. Kept here as
+    /// the requestmap is bounded and may evict the READ's xid before the
+    /// chunk is complete.
+    tc_chunk_fh: Vec<u8>,
 
     /// number of stream bytes to skip (queued file data over the queue limit)
     skip_ts: u32,
@@ -563,6 +567,7 @@ impl NFSState {
             ts_chunk_tail: 0,
             tc_chunk_tail: 0,
             ts_chunk_fh: Vec::new(),
+            tc_chunk_fh: Vec::new(),
             ts_ssn_gap: false,
             tc_ssn_gap: false,
             ts_gap: false,
@@ -1472,6 +1477,7 @@ impl NFSState {
         self.tc_chunk_xid = 0;
         self.tc_chunk_left = 0;
         self.tc_chunk_tail = 0;
+        self.tc_chunk_fh.clear();
         SCLogDebug!(
             "v4 COMPOUND reply malformed (record claim {}): skipping {} stream bytes",
             r.prog_data_size,
@@ -1621,17 +1627,11 @@ impl NFSState {
                 self.ts_chunk_fh.clear();
             } else {
                 self.tc_chunk_xid = 0;
+                file_handle = self.tc_chunk_fh.to_vec();
+                self.tc_chunk_fh.clear();
 
-                // chunk done, remove requestmap entry
-                match self.requestmap.pop(&xid) {
-                    None => {
-                        SCLogDebug!("no file handle found for XID {:04X}", xid);
-                        return 0;
-                    }
-                    Some(xidmap) => {
-                        file_handle = xidmap.file_handle.to_vec();
-                    }
-                }
+                // chunk done, remove requestmap entry (unless evicted)
+                self.requestmap.pop(&xid);
             }
         } else {
             chunk_left -= data.len() as u32;
@@ -1639,16 +1639,7 @@ impl NFSState {
             if direction == Direction::ToServer {
                 file_handle = self.ts_chunk_fh.to_vec();
             } else {
-                // see if we have a file handle to work on
-                match self.requestmap.get(&xid) {
-                    None => {
-                        SCLogDebug!("no file handle found for XID {:04X}", xid);
-                        return 0;
-                    }
-                    Some(xidmap) => {
-                        file_handle = xidmap.file_handle.to_vec();
-                    }
-                }
+                file_handle = self.tc_chunk_fh.to_vec();
             }
         }
 
@@ -1657,8 +1648,17 @@ impl NFSState {
         let mut limit_event: Option<NFSEvent> = None;
         let mut limit_skip: u32 = 0;
         let mut consumed: u32 = 0;
-        // get the tx and update it
-        match self.get_file_tx_by_handle(&file_handle, direction) {
+        // get the tx and update it. A tx whose tracker has no open file cannot
+        // take the chunk: its tracker never got a chunk, as it replaced the
+        // chunk's tx after that was closed (e.g. by the max-tx limit), or its
+        // file was already closed. Handle it like a missing tx.
+        let tx = self
+            .get_file_tx_by_handle(&file_handle, direction)
+            .filter(|tx| match tx.type_data {
+                Some(NFSTransactionTypeData::FILE(ref tdf)) => !tdf.file_tracker.is_done(),
+                _ => false,
+            });
+        match tx {
             Some(tx) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                     // Chunk-path queue limit (not a newchunk caller): enforce the operator
@@ -1749,7 +1749,13 @@ impl NFSState {
                     consumed = 0;
                 }
             }
-            None => consumed = 0,
+            None => {
+                // The file tx is gone (e.g. closed by the max-tx limit), but
+                // the record boundary is still known: consume the chunk up to
+                // the record tail so its data is not parsed as an RPC record.
+                SCLogDebug!("no file tx for chunk XID {:04X}: consuming it", xid);
+                consumed = cmp::min(chunk_tail0, data.len() as u32);
+            }
         };
 
         // the record tail shrinks by what the tracker consumed from the stream
@@ -1773,6 +1779,7 @@ impl NFSState {
             if to_client {
                 self.tc_chunk_left = 0;
                 self.tc_chunk_xid = 0;
+                self.tc_chunk_fh.clear();
                 self.requestmap.pop(&xid);
             } else {
                 self.ts_chunk_left = 0;
@@ -1887,6 +1894,7 @@ impl NFSState {
                 self.tc_chunk_xid = 0;
                 self.tc_chunk_left = 0;
                 self.tc_chunk_tail = 0;
+                self.tc_chunk_fh.clear();
             }
             SCLogDebug!(
                 "READ too large ({} > {}): skipping {} stream bytes",
@@ -2049,6 +2057,7 @@ impl NFSState {
                 self.tc_chunk_xid = 0;
                 self.tc_chunk_left = 0;
                 self.tc_chunk_tail = 0;
+                self.tc_chunk_fh.clear();
                 SCLogDebug!("READ queue exceeded: skipping {} stream bytes", pending);
             } else {
                 self.tc_chunk_xid = r.hdr.xid;
@@ -2062,6 +2071,7 @@ impl NFSState {
                 // (not the count-based promise) bounds what a rejected
                 // continuation may consume or skip
                 self.tc_chunk_tail = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+                self.tc_chunk_fh = file_handle;
             }
         }
 
