@@ -566,6 +566,24 @@ impl HTTP2Transaction {
                 &mut stream_tx.progress_tc
             };
             match data {
+                HTTP2FrameTypeData::CONTINUATION(c) => {
+                    if c.end_stream && *state < HTTP2TxProgress::HTTP2ProgClosed {
+                        *state = HTTP2TxProgress::HTTP2ProgClosed;
+                        if stream_tx.progress_ts == HTTP2TxProgress::HTTP2ProgClosed
+                            && stream_tx.progress_tc == HTTP2TxProgress::HTTP2ProgClosed
+                        {
+                            stream_tx.progress_ts = HTTP2TxProgress::HTTP2ProgComplete;
+                            stream_tx.progress_tc = HTTP2TxProgress::HTTP2ProgComplete;
+                        }
+                    }
+                    if !c.blocks.is_empty() {
+                        if dir == Direction::ToServer && self.req_line.is_empty() {
+                            detect::http2_tx_get_req_line(self);
+                        } else if dir == Direction::ToClient && self.resp_line.is_empty() {
+                            detect::http2_tx_get_resp_line(self);
+                        }
+                    }
+                }
                 HTTP2FrameTypeData::HEADERS(_) => {
                     if header.flags & parser::HTTP2_FLAG_HEADER_EOS != 0
                         && header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0
@@ -581,6 +599,13 @@ impl HTTP2Transaction {
                         }
                     } else if *state < HTTP2TxProgress::HTTP2ProgHeaders {
                         *state = HTTP2TxProgress::HTTP2ProgHeaders;
+                    }
+                    if header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0 {
+                        if dir == Direction::ToServer && self.req_line.is_empty() {
+                            detect::http2_tx_get_req_line(self);
+                        } else if dir == Direction::ToClient && self.resp_line.is_empty() {
+                            detect::http2_tx_get_resp_line(self);
+                        }
                     }
                 }
                 HTTP2FrameTypeData::DATA => {
@@ -730,6 +755,7 @@ impl HTTP2DynTable {
 struct HTTP2HeaderReassemblyBuffer {
     data: Vec<u8>,
     stream_id: u32,
+    end_stream: bool,
 }
 
 pub struct HTTP2State {
@@ -1243,7 +1269,10 @@ impl HTTP2State {
                         *reass_limit_reached = true;
                     }
                     if head.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS == 0 {
-                        let hs = parser::HTTP2FrameContinuation { blocks: Vec::new() };
+                        let hs = parser::HTTP2FrameContinuation {
+                            blocks: Vec::new(),
+                            end_stream: false,
+                        };
                         return (HTTP2FrameTypeData::CONTINUATION(hs), events);
                     }
                 } // else try to parse anyways
@@ -1259,10 +1288,15 @@ impl HTTP2State {
                     &mut self.dynamic_headers_ts
                 };
                 match parser::http2_parse_frame_continuation(input_reass, dyn_headers) {
-                    Ok((_, hs)) => {
-                        if head.stream_id == buf.stream_id {
+                    Ok((_, mut hs)) => {
+                        let same = head.stream_id == buf.stream_id;
+                        if same {
                             buf.stream_id = 0;
                             buf.data.clear();
+                        }
+                        hs.end_stream = buf.end_stream;
+                        if same {
+                            buf.end_stream = false;
                         }
                         events.extend(self.process_headers(&hs.blocks, dir));
                         return (HTTP2FrameTypeData::CONTINUATION(hs), events);
@@ -1271,6 +1305,7 @@ impl HTTP2State {
                         if head.stream_id == buf.stream_id {
                             buf.stream_id = 0;
                             buf.data.clear();
+                            buf.end_stream = false;
                         }
                         if complete {
                             events.push(HTTP2Event::InvalidFrameData);
@@ -1293,6 +1328,7 @@ impl HTTP2State {
                         if head.stream_id == buf.stream_id {
                             buf.stream_id = 0;
                             buf.data.clear();
+                            buf.end_stream = false;
                         }
                         events.push(HTTP2Event::InvalidFrameData);
                         return (
@@ -1312,6 +1348,7 @@ impl HTTP2State {
                         &mut self.c2s_buf
                     };
                     buf.data.clear();
+                    buf.end_stream = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
                     if let Ok((rem_hpack, hs)) = parser::get_frame_headers_hpack(input, hflags) {
                         // store only the HPACK fragment: skip Pad Length, Priority, and trailing padding
                         buf.data.extend(rem_hpack);
@@ -1535,20 +1572,6 @@ impl HTTP2State {
                             header: head,
                             data: txdata,
                         });
-                        if let HTTP2Progress::STREAM(ref mut stream_tx) = tx.progress {
-                            let (progress_tc, progress_ts) =
-                                (stream_tx.progress_tc, stream_tx.progress_ts);
-                            if progress_ts > HTTP2TxProgress::HTTP2ProgHeaders
-                                && tx.req_line.is_empty()
-                            {
-                                detect::http2_tx_get_req_line(tx);
-                            }
-                            if progress_tc > HTTP2TxProgress::HTTP2ProgHeaders
-                                && tx.resp_line.is_empty()
-                            {
-                                detect::http2_tx_get_resp_line(tx);
-                            }
-                        }
                     } else {
                         tx.tx_data.set_event(HTTP2Event::TooManyFrames as u8);
                     }
