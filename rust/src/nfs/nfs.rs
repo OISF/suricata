@@ -1156,6 +1156,9 @@ impl NFSState {
 
         // for now assume that stable FILE_SYNC flags means a single chunk
         let is_last = w.stable == 2;
+        // a partial record's file tx must stay open (found by handle) until
+        // filetracker_update has received the rest of its data
+        let is_partial = w.file_data.len() < w.file_len as usize;
         let file_handle = w.handle.value.to_vec();
         let file_name = if let Some(name) = self.namemap.get(w.handle.value) {
             SCLogDebug!("WRITE name {:?}", name);
@@ -1241,7 +1244,9 @@ impl NFSState {
                             tdf.file_last_xid = r.hdr.xid;
                             tx.is_last = true;
                             tx.response_done = true;
-                            tx.is_file_closed = true;
+                            if !is_partial {
+                                tx.is_file_closed = true;
+                            }
                             sc_app_layer_parser_trigger_raw_stream_inspection(
                                 flow,
                                 Direction::ToClient as i32,
@@ -1287,9 +1292,16 @@ impl NFSState {
                 if is_last && !queue_exceeded {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.is_last = true;
-                    tx.request_done = true;
-                    tx.is_file_closed = true;
-                    sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
+                    /* if this is a partial record we will close the tx
+                     * when we've received the final data */
+                    if !is_partial {
+                        tx.request_done = true;
+                        tx.is_file_closed = true;
+                        sc_app_layer_parser_trigger_raw_stream_inspection(
+                            flow,
+                            Direction::ToServer as i32,
+                        );
+                    }
                 }
             }
             tx.procedure = NFSPROC3_WRITE;
@@ -1699,8 +1711,10 @@ impl NFSState {
 
                         tdf.chunk_count += 1;
                         let cs = filetracker_update(&mut tdf.file_tracker, data, gap_size);
-                        /* see if we need to close the tx */
-                        if tdf.file_tracker.is_done() {
+                        /* see if we need to close the tx. A truncated tracker is
+                         * never done, so also close it when the data of its last
+                         * chunk is complete. */
+                        if tdf.file_tracker.is_done() || (tx.is_last && chunk_left == 0) {
                             if direction == Direction::ToClient {
                                 tx.response_done = true;
                                 tx.is_file_closed = true;
