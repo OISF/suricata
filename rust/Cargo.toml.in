@@ -35,6 +35,7 @@ brotli = "~8.0.1"
 clap = { version = "=4.5.57", default-features = false, features = ["std", "derive", "help", "usage"] }
 once_cell = "1.21.3"
 regex = "~1.5.6"
+suricata-sys = { path = "sys", version = "@PACKAGE_VERSION@" }
 zstd = { version = "~0.13.3", default-features = false, features = ["arrays", "zdict_builder"] }
 
 [lib]
@@ -103,7 +104,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 suricata-derive = { path = "./derive", version = "@PACKAGE_VERSION@" }
-suricata-sys = { path = "./sys", version = "@PACKAGE_VERSION@" }
+suricata-sys.workspace = true
 suricata-ffi = { path = "./ffi", version = "@PACKAGE_VERSION@" }
 
 suricata-lua-sys = { version = "5.4.8002" }
