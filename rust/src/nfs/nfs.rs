@@ -2175,6 +2175,21 @@ impl NFSState {
         }
     }
 
+    /// A partial record failed to parse, but its record marker gave its size:
+    /// skip the rest of the record, like the complete record parsing does,
+    /// instead of disabling the parser for the flow.
+    fn skip_partial_record(
+        &mut self, direction: Direction, cur_i: &[u8], rec_size: usize,
+    ) -> AppLayerResult {
+        let pending = (rec_size - cur_i.len()) as u32;
+        SCLogDebug!(
+            "malformed partial record: skipping {} stream bytes",
+            pending
+        );
+        self.set_skip(direction, pending);
+        return AppLayerResult::ok();
+    }
+
     pub fn parse_tcp_data_ts_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_ts_gap ({})", gap_size);
         let consumed = self.handle_skip(Direction::ToServer, gap_size);
@@ -2260,7 +2275,11 @@ impl NFSState {
                             Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
                                 self.set_event(NFSEvent::MalformedData);
                                 SCLogDebug!("Parsing failed: {:?}", _e);
-                                return AppLayerResult::err();
+                                return self.skip_partial_record(
+                                    Direction::ToServer,
+                                    cur_i,
+                                    rec_size,
+                                );
                             }
                             Err(Err::Incomplete(_)) => {
                                 // this is normal, fall through to incomplete handling
@@ -2275,7 +2294,7 @@ impl NFSState {
                     Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
                         self.set_event(NFSEvent::MalformedData);
                         SCLogDebug!("Parsing failed: {:?}", _e);
-                        return AppLayerResult::err();
+                        return self.skip_partial_record(Direction::ToServer, cur_i, rec_size);
                     }
                 }
             }
@@ -2328,7 +2347,7 @@ impl NFSState {
                         Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
                             self.set_event(NFSEvent::MalformedData);
                             SCLogDebug!("Parsing failed: {:?}", _e);
-                            return AppLayerResult::err();
+                            return self.skip_partial_record(Direction::ToServer, cur_i, rec_size);
                         }
                     }
                 }
@@ -2515,7 +2534,7 @@ impl NFSState {
             Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
                 self.set_event(NFSEvent::MalformedData);
                 SCLogDebug!("Parsing failed: {:?}", _e);
-                return AppLayerResult::err();
+                return self.skip_partial_record(Direction::ToClient, cur_i, rec_size);
             }
         }
         // special case: avoid buffering file read blobs
@@ -2548,7 +2567,13 @@ impl NFSState {
                             Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
                                 self.set_event(NFSEvent::MalformedData);
                                 SCLogDebug!("Parsing failed: {:?}", _e);
-                                return AppLayerResult::err();
+                                // done with the request, as for a complete record
+                                self.requestmap.pop(&hdr.hdr.xid);
+                                return self.skip_partial_record(
+                                    Direction::ToClient,
+                                    cur_i,
+                                    rec_size,
+                                );
                             }
                             Err(Err::Incomplete(_)) => {
                                 // this is normal, fall through to incomplete handling
@@ -2563,7 +2588,7 @@ impl NFSState {
                     Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
                         self.set_event(NFSEvent::MalformedData);
                         SCLogDebug!("Parsing failed: {:?}", _e);
-                        return AppLayerResult::err();
+                        return self.skip_partial_record(Direction::ToClient, cur_i, rec_size);
                     }
                 }
             }
@@ -2631,7 +2656,7 @@ impl NFSState {
                         Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
                             self.set_event(NFSEvent::MalformedData);
                             SCLogDebug!("Parsing failed: {:?}", _e);
-                            return AppLayerResult::err();
+                            return self.skip_partial_record(Direction::ToClient, cur_i, rec_size);
                         }
                     }
                 }
