@@ -228,6 +228,9 @@ int BuildCpusetWithCallback(
 {
     SCConfNode *lnode;
     TAILQ_FOREACH(lnode, &node->head, next) {
+        if (lnode->val == NULL || lnode->val[0] == '\0') {
+            continue;
+        }
         char *sep = NULL;
         uint32_t i;
         uint32_t a, b;
@@ -538,6 +541,9 @@ static int SetupPerIfaceAffinity(ThreadsAffinityType *taf, SCConfNode *affinity)
 
     SCConfNode *iface_node;
     TAILQ_FOREACH (iface_node, &per_iface_node->head, next) {
+        if (iface_node->val == NULL || iface_node->val[0] == '\0') {
+            continue;
+        }
         if (strcmp(iface_node->val, "interface") == 0) {
             if (SetupSingleIfaceAffinity(taf, iface_node) < 0) {
                 return -1;

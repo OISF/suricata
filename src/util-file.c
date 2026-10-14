@@ -179,6 +179,9 @@ void FileForceHashParseCfg(SCConfNode *conf)
         SCConfNode *field = NULL;
 
         TAILQ_FOREACH(field, &forcehash_node->head, next) {
+            if (field->val == NULL || field->val[0] == '\0') {
+                continue;
+            }
             if (strcasecmp("md5", field->val) == 0) {
                 if (g_disable_hashing) {
                     SCLogInfo("not forcing md5 calculation for logged files: hashing globally "

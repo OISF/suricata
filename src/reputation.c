@@ -611,6 +611,9 @@ int SRepInit(DetectEngineCtx *de_ctx)
     /* ok, let's load reputation files from the general config */
     if (files != NULL) {
         TAILQ_FOREACH(file, &files->head, next) {
+            if (file->val == NULL || file->val[0] == '\0') {
+                continue;
+            }
             char *sfile = SRepCompleteFilePath(file->val);
             if (sfile) {
                 SCLogInfo("Loading reputation file: %s", sfile);

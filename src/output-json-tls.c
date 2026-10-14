@@ -638,6 +638,9 @@ static OutputTlsCtx *OutputTlsInitCtx(SCConfNode *conf)
         SCConfNode *field;
         TAILQ_FOREACH(field, &custom->head, next)
         {
+            if (field->val == NULL || field->val[0] == '\0') {
+                continue;
+            }
             bool valid = false;
             TlsFields *valid_fields = tls_fields;
             for ( ; valid_fields->name != NULL; valid_fields++) {

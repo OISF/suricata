@@ -719,6 +719,9 @@ static uint32_t CountWorkerThreads(void)
     if (root != NULL) {
 
         TAILQ_FOREACH (affinity, &root->head, next) {
+            if (affinity->val == NULL || affinity->val[0] == '\0') {
+                continue;
+            }
             if (strcmp(affinity->val, "decode-cpu-set") == 0 ||
                     strcmp(affinity->val, "stream-cpu-set") == 0 ||
                     strcmp(affinity->val, "reject-cpu-set") == 0 ||
@@ -733,6 +736,9 @@ static uint32_t CountWorkerThreads(void)
                 enum CONFIG_SPECIFIER cpu_spec = CONFIG_SPECIFIER_UNDEFINED;
 
                 TAILQ_FOREACH (lnode, &node->head, next) {
+                    if (lnode->val == NULL || lnode->val[0] == '\0') {
+                        continue;
+                    }
                     uint8_t start, end;
                     char *end_str;
                     if (strncmp(lnode->val, "all", 4) == 0) {
@@ -895,6 +901,9 @@ int NapatechGetStreamConfig(NapatechStreamConfig stream_config[])
                 if (stream == NULL) {
                     SCLogError("Couldn't Parse Stream Configuration");
                     return -1;
+                }
+                if (stream->val == NULL || stream->val[0] == '\0') {
+                    continue;
                 }
 
                 char *end_str = strchr(stream->val, '-');
@@ -1432,6 +1441,9 @@ uint32_t NapatechSetupTraffic(uint32_t first_stream, uint32_t last_stream)
     TAILQ_FOREACH (port, &ntports->head, next) {
         if (port == NULL) {
             FatalError("Couldn't Parse Port Configuration");
+        }
+        if (port->val == NULL || port->val[0] == '\0') {
+            continue;
         }
 
         if (NapatechUseHWBypass()) {

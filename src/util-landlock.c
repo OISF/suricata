@@ -269,6 +269,9 @@ void LandlockSandboxing(SCInstance *suri)
         } else {
             SCConfNode *directory;
             TAILQ_FOREACH (directory, &read_dirs->head, next) {
+                if (directory->val == NULL || directory->val[0] == '\0') {
+                    continue;
+                }
                 LandlockSandboxingReadPath(ruleset, directory->val);
             }
         }
@@ -281,6 +284,9 @@ void LandlockSandboxing(SCInstance *suri)
         } else {
             SCConfNode *directory;
             TAILQ_FOREACH (directory, &write_dirs->head, next) {
+                if (directory->val == NULL || directory->val[0] == '\0') {
+                    continue;
+                }
                 LandlockSandboxingWritePath(ruleset, directory->val);
             }
         }

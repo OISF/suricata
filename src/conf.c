@@ -896,10 +896,14 @@ SCConfNode *SCConfNodeLookupKeyValue(const SCConfNode *base, const char *key, co
     SCConfNode *child;
 
     TAILQ_FOREACH(child, &base->head, next) {
+        if (child->val == NULL || child->val[0] == '\0') {
+            continue;
+        }
         if (!strncmp(child->val, key, strlen(child->val))) {
             SCConfNode *subchild;
             TAILQ_FOREACH(subchild, &child->head, next) {
-                if ((!strcmp(subchild->name, key)) && (!strcmp(subchild->val, value))) {
+                if (subchild->val != NULL && (!strcmp(subchild->name, key)) &&
+                        (!strcmp(subchild->val, value))) {
                     return child;
                 }
             }

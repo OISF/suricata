@@ -134,6 +134,9 @@ void SCPluginsLoad(const char *capture_plugin_name, const char *capture_plugin_a
     if (conf != NULL) {
         SCConfNode *plugin = NULL;
         TAILQ_FOREACH (plugin, &conf->head, next) {
+            if (plugin->val == NULL || plugin->val[0] == '\0') {
+                continue;
+            }
             LoadPluginsFromPath(plugin->val);
         }
     }

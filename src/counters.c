@@ -260,6 +260,9 @@ static SCConfNode *GetConfig(void)
     SCConfNode *node = NULL;
     if (root != NULL) {
         TAILQ_FOREACH(node, &root->head, next) {
+            if (node->val == NULL || node->val[0] == '\0') {
+                continue;
+            }
             if (strcmp(node->val, "stats") == 0) {
                 return node->head.tqh_first;
             }

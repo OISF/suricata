@@ -556,6 +556,9 @@ static OutputInitResult OutputHttpLogInitSub(SCConfNode *conf, OutputCtx *parent
             }
             SCConfNode *field;
             TAILQ_FOREACH (field, &custom->head, next) {
+                if (field->val == NULL || field->val[0] == '\0') {
+                    continue;
+                }
                 HttpField f;
                 for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++) {
                     if ((strcmp(http_fields[f].config_field, field->val) == 0) ||

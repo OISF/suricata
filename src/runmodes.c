@@ -676,6 +676,9 @@ static void RunModeInitializeEveOutput(
 
     SCConfNode *type = NULL;
     TAILQ_FOREACH(type, &types->head, next) {
+        if (type->val == NULL || type->val[0] == '\0') {
+            continue;
+        }
         int sub_count = 0;
         char subname[256];
 
@@ -746,6 +749,9 @@ static void RunModeInitializeLuaOutput(
 
         SCConfNode *script = NULL;
         TAILQ_FOREACH(script, &scripts->head, next) {
+            if (script->val == NULL || script->val[0] == '\0') {
+                continue;
+            }
             SCLogDebug("script %s", script->val);
             if (strcmp(script->val, m->conf_name) == 0) {
                 break;
@@ -787,6 +793,9 @@ void RunModeInitializeOutputs(void)
     LoggerId logger_bits[g_alproto_max];
     memset(logger_bits, 0, g_alproto_max * sizeof(LoggerId));
     TAILQ_FOREACH(output, &outputs->head, next) {
+        if (output->val == NULL || output->val[0] == '\0') {
+            continue;
+        }
 
         output_config = SCConfNodeLookupChild(output, output->val);
         if (output_config == NULL) {
@@ -881,6 +890,9 @@ void RunModeInitializeOutputs(void)
         SCLogWarning("Please use 'tls-store' in YAML to configure TLS storage");
 
         TAILQ_FOREACH(output, &outputs->head, next) {
+            if (output->val == NULL || output->val[0] == '\0') {
+                continue;
+            }
             output_config = SCConfNodeLookupChild(output, output->val);
 
             if (strcmp(output->val, "tls-log") == 0) {

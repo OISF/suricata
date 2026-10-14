@@ -536,6 +536,9 @@ static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, SCConfNode *conf,
         dnslog_ctx->flags &= ~LOG_ALL_RRTYPES;
         SCConfNode *field;
         TAILQ_FOREACH (field, &custom->head, next) {
+            if (field->val == NULL || field->val[0] == '\0') {
+                continue;
+            }
             DnsRRTypes f;
             for (f = DNS_RRTYPE_A; f < DNS_RRTYPE_MAX; f++) {
                 if (strcasecmp(dns_rrtype_fields[f].config_rrtype, field->val) == 0) {
@@ -621,6 +624,9 @@ static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, SCConfNode *conf)
                 uint64_t flags = 0;
                 SCConfNode *field;
                 TAILQ_FOREACH (field, &format->head, next) {
+                    if (field->val == NULL || field->val[0] == '\0') {
+                        continue;
+                    }
                     if (strcasecmp(field->val, "detailed") == 0) {
                         flags |= LOG_FORMAT_DETAILED;
                     } else if (strcasecmp(field->val, "grouped") == 0) {
