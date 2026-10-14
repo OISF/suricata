@@ -10,6 +10,8 @@
 // example static_mut_refs.
 #![allow(unknown_lints)]
 
+extern crate nom8 as nom;
+
 #[repr(C)]
 #[derive(PartialEq, Eq, Debug)]
 /// Status codes used by LibHTP internally.
