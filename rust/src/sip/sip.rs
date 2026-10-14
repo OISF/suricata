@@ -51,9 +51,12 @@ pub enum SIPFrameType {
 }
 // app-layer-frame-documentation tag end: FrameType enum
 
+const SIP_TCP_MAX_HEADERS_LEN: usize = 65536;
+
 #[derive(AppLayerEvent)]
 pub enum SIPEvent {
     InvalidData,
+    HeadersTooLong,
 }
 
 #[derive(Default)]
@@ -63,6 +66,8 @@ pub struct SIPState {
     tx_id: u64,
     request_frame: Option<Frame>,
     response_frame: Option<Frame>,
+    request_hdr_scanned: usize,
+    response_hdr_scanned: usize,
 }
 
 impl State<SIPTransaction> for SIPState {
@@ -154,6 +159,40 @@ impl SIPState {
         }
     }
 
+    /// Over TCP, a message is only parsed once its headers are complete:
+    /// on incomplete data the parser restarts from the beginning of the
+    /// message, so parsing partial headers would reparse them for every
+    /// new segment. The search for the end of headers resumes where the
+    /// previous call stopped, so trickled data is only scanned once.
+    fn tcp_wait_headers(
+        &mut self, input: &[u8], start: &[u8], direction: Direction,
+    ) -> Option<AppLayerResult> {
+        let scanned = if direction == Direction::ToServer {
+            &mut self.request_hdr_scanned
+        } else {
+            &mut self.response_hdr_scanned
+        };
+        let from = if *scanned <= start.len() {
+            scanned.saturating_sub(3)
+        } else {
+            0
+        };
+        if sip_headers_complete(&start[from..]) {
+            *scanned = 0;
+            return None;
+        }
+        *scanned = start.len();
+        if start.len() >= SIP_TCP_MAX_HEADERS_LEN {
+            self.set_event(SIPEvent::HeadersTooLong);
+            return Some(AppLayerResult::err());
+        }
+        let consumed = input.len() - start.len();
+        Some(AppLayerResult::incomplete(
+            consumed as u32,
+            (start.len() + 1) as u32,
+        ))
+    }
+
     fn parse_request_tcp(&mut self, flow: *mut Flow, stream_slice: StreamSlice) -> AppLayerResult {
         let input = stream_slice.as_slice();
         if input.is_empty() {
@@ -172,6 +211,9 @@ impl SIPState {
                     None,
                 );
                 SCLogDebug!("ts: pdu {:?}", self.request_frame);
+            }
+            if let Some(r) = self.tcp_wait_headers(input, start, Direction::ToServer) {
+                return r;
             }
             match parse_request(start) {
                 Ok((rem, request)) => {
@@ -265,6 +307,9 @@ impl SIPState {
                     None,
                 );
                 SCLogDebug!("tc: pdu {:?}", self.request_frame);
+            }
+            if let Some(r) = self.tcp_wait_headers(input, start, Direction::ToClient) {
+                return r;
             }
             match parse_response(start) {
                 Ok((rem, response)) => {

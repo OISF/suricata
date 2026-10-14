@@ -254,6 +254,12 @@ pub fn sip_take_line(i: &[u8]) -> IResult<&[u8], Option<String>> {
     Ok((i, Some(line.into())))
 }
 
+pub fn sip_headers_complete(i: &[u8]) -> bool {
+    take_until::<_, _, Error<&[u8]>>("\r\n\r\n")
+        .parse(i)
+        .is_ok()
+}
+
 pub fn parse_headers(mut input: &[u8]) -> IResult<&[u8], HashMap<String, Vec<String>>> {
     let mut headers_map: HashMap<String, Vec<String>> = HashMap::new();
     loop {
@@ -304,7 +310,7 @@ fn parse_header_value(buf: &[u8]) -> IResult<&[u8], &[u8]> {
             b => {
                 trail_spaces = 0;
                 if !is_header_value(b) {
-                    return Err(Err::Incomplete(Needed::new(1)));
+                    return Err(Err::Error(Error::new(buf, ErrorKind::IsNot)));
                 }
                 end_pos = idx + 1;
             }
@@ -350,6 +356,15 @@ mod tests {
         assert_eq!(req.version, "SIP/2.0");
         assert_eq!(req.headers["Content-Length"].first().unwrap(), "4");
         assert_eq!(body, "ABCD".as_bytes());
+    }
+
+    #[test]
+    fn test_parse_request_invalid_header_value() {
+        let buf: &[u8] = b"REGISTER sip:sip.cybercity.dk SIP/2.0\r\n\
+                          From: <sip:voi18063@sip.cybercity.dk>\x00\r\n\
+                          \r\n";
+
+        assert!(matches!(parse_request(buf), Err(Err::Error(_))));
     }
 
     #[test]
