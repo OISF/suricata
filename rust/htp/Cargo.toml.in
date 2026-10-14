@@ -31,7 +31,7 @@ flate2 = { version = "~1.0.35", features = ["zlib-default"], default-features = 
 brotli.workspace = true
 zstd.workspace = true
 lazy_static.workspace = true
-time = "~0.3.41"
+time.workspace = true
 
 [dev-dependencies]
 rstest = "0.17.0"
