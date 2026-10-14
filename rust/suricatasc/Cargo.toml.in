@@ -13,7 +13,7 @@ name = "suricatasc"
 [dependencies]
 clap.workspace = true
 
-once_cell = { version = "1.21.3" }
+once_cell.workspace = true
 
 # Held at 14 to support Rust 1.75.0.
 rustyline = { version = "14.0.0" }
