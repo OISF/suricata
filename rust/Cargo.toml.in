@@ -31,6 +31,8 @@ rust-version = "1.85.0"
 
 [workspace.dependencies]
 brotli = "~8.0.1"
+# clap 4.5.58 requires clap_lex 1 which requires edition2024
+clap = { version = "=4.5.57", default-features = false, features = ["std", "derive", "help", "usage"] }
 
 [lib]
 crate-type = ["staticlib", "rlib"]
