@@ -566,7 +566,24 @@ impl HTTP2Transaction {
                 &mut stream_tx.progress_tc
             };
             match data {
-                HTTP2FrameTypeData::HEADERS(_) | HTTP2FrameTypeData::DATA => {
+                HTTP2FrameTypeData::HEADERS(_) => {
+                    if header.flags & parser::HTTP2_FLAG_HEADER_EOS != 0
+                        && header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0
+                    {
+                        if *state < HTTP2TxProgress::HTTP2ProgClosed {
+                            *state = HTTP2TxProgress::HTTP2ProgClosed;
+                            if stream_tx.progress_ts == HTTP2TxProgress::HTTP2ProgClosed
+                                && stream_tx.progress_tc == HTTP2TxProgress::HTTP2ProgClosed
+                            {
+                                stream_tx.progress_ts = HTTP2TxProgress::HTTP2ProgComplete;
+                                stream_tx.progress_tc = HTTP2TxProgress::HTTP2ProgComplete;
+                            }
+                        }
+                    } else if *state < HTTP2TxProgress::HTTP2ProgHeaders {
+                        *state = HTTP2TxProgress::HTTP2ProgHeaders;
+                    }
+                }
+                HTTP2FrameTypeData::DATA => {
                     if header.flags & parser::HTTP2_FLAG_HEADER_EOS != 0 {
                         if *state < HTTP2TxProgress::HTTP2ProgClosed {
                             *state = HTTP2TxProgress::HTTP2ProgClosed;
@@ -577,13 +594,9 @@ impl HTTP2Transaction {
                                 stream_tx.progress_tc = HTTP2TxProgress::HTTP2ProgComplete;
                             }
                         }
-                    } else if header.ftype == parser::HTTP2FrameType::Data as u8 {
+                    } else if *state < HTTP2TxProgress::HTTP2ProgData {
                         //not end of stream
-                        if *state < HTTP2TxProgress::HTTP2ProgData {
-                            *state = HTTP2TxProgress::HTTP2ProgData;
-                        }
-                    } else if *state < HTTP2TxProgress::HTTP2ProgHeaders {
-                        *state = HTTP2TxProgress::HTTP2ProgHeaders;
+                        *state = HTTP2TxProgress::HTTP2ProgData;
                     }
                 }
                 _ => {}
