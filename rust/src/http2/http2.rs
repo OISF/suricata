@@ -566,6 +566,11 @@ impl HTTP2Transaction {
                 &mut stream_tx.progress_tc
             };
             match data {
+                HTTP2FrameTypeData::CONTINUATION(c) => {
+                    if c.end_stream && *state < HTTP2TxProgress::HTTP2ProgClosed {
+                        *state = HTTP2TxProgress::HTTP2ProgClosed;
+                    }
+                }
                 HTTP2FrameTypeData::HEADERS(_) => {
                     if header.flags & parser::HTTP2_FLAG_HEADER_EOS != 0
                         && header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0
@@ -730,6 +735,7 @@ impl HTTP2DynTable {
 struct HTTP2HeaderReassemblyBuffer {
     data: Vec<u8>,
     stream_id: u32,
+    end_stream: bool,
 }
 
 pub struct HTTP2State {
@@ -1243,7 +1249,10 @@ impl HTTP2State {
                         *reass_limit_reached = true;
                     }
                     if head.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS == 0 {
-                        let hs = parser::HTTP2FrameContinuation { blocks: Vec::new() };
+                        let hs = parser::HTTP2FrameContinuation {
+                            blocks: Vec::new(),
+                            end_stream: false,
+                        };
                         return (HTTP2FrameTypeData::CONTINUATION(hs), events);
                     }
                 } // else try to parse anyways
@@ -1259,11 +1268,13 @@ impl HTTP2State {
                     &mut self.dynamic_headers_ts
                 };
                 match parser::http2_parse_frame_continuation(input_reass, dyn_headers) {
-                    Ok((_, hs)) => {
+                    Ok((_, mut hs)) => {
                         if head.stream_id == buf.stream_id {
                             buf.stream_id = 0;
                             buf.data.clear();
+                            buf.end_stream = false;
                         }
+                        hs.end_stream = buf.end_stream;
                         events.extend(self.process_headers(&hs.blocks, dir));
                         return (HTTP2FrameTypeData::CONTINUATION(hs), events);
                     }
@@ -1271,6 +1282,7 @@ impl HTTP2State {
                         if head.stream_id == buf.stream_id {
                             buf.stream_id = 0;
                             buf.data.clear();
+                            buf.end_stream = false;
                         }
                         if complete {
                             events.push(HTTP2Event::InvalidFrameData);
@@ -1293,6 +1305,7 @@ impl HTTP2State {
                         if head.stream_id == buf.stream_id {
                             buf.stream_id = 0;
                             buf.data.clear();
+                            buf.end_stream = false;
                         }
                         events.push(HTTP2Event::InvalidFrameData);
                         return (
@@ -1312,6 +1325,7 @@ impl HTTP2State {
                         &mut self.c2s_buf
                     };
                     buf.data.clear();
+                    buf.end_stream = head.flags & parser::HTTP2_FLAG_HEADER_EOS != 0;
                     if let Ok((rem_hpack, hs)) = parser::get_frame_headers_hpack(input, hflags) {
                         // store only the HPACK fragment: skip Pad Length, Priority, and trailing padding
                         buf.data.extend(rem_hpack);
