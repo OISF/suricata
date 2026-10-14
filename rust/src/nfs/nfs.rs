@@ -1592,7 +1592,42 @@ impl NFSState {
         }
 
         if chunk_left == 0 {
-            return 0;
+            if chunk_tail == 0 {
+                return 0;
+            }
+            // The chunk's file data is complete, but the rest of its record
+            // (its XDR padding) was not part of that input. Consume it now,
+            // never past the record tail: for a still open file these bytes
+            // are the tracker's fill bytes, never file data.
+            let pad = cmp::min(chunk_tail, data.len() as u32);
+            let file_handle = if direction == Direction::ToServer {
+                self.ts_chunk_fh.to_vec()
+            } else {
+                self.tc_chunk_fh.to_vec()
+            };
+            if let Some(tx) = self.get_file_tx_by_handle(&file_handle, direction) {
+                if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                    // only a tracker with an open file owes fill bytes
+                    if !tdf.file_tracker.is_done() {
+                        filetracker_update(&mut tdf.file_tracker, &data[..pad as usize], gap_size);
+                    }
+                }
+            }
+            chunk_tail -= pad;
+            if direction == Direction::ToServer {
+                self.ts_chunk_tail = chunk_tail;
+                if chunk_tail == 0 {
+                    self.ts_chunk_xid = 0;
+                    self.ts_chunk_fh.clear();
+                }
+            } else {
+                self.tc_chunk_tail = chunk_tail;
+                if chunk_tail == 0 {
+                    self.tc_chunk_xid = 0;
+                    self.tc_chunk_fh.clear();
+                }
+            }
+            return pad;
         }
         // bytes of this call's input that belong to the in-progress chunk
         let chunk_total = chunk_left;
@@ -1619,16 +1654,14 @@ impl NFSState {
         // we have the data that we expect
         if chunk_left <= data.len() as u32 {
             chunk_left = 0;
-            chunk_tail = 0;
+            // chunk_tail is reduced by what is consumed below: if the record's
+            // XDR padding is not (all) in this input, the chunk stays active
+            // until it is (see the chunk_left == 0 case above)
 
             if direction == Direction::ToServer {
-                self.ts_chunk_xid = 0;
                 file_handle = self.ts_chunk_fh.to_vec();
-                self.ts_chunk_fh.clear();
             } else {
-                self.tc_chunk_xid = 0;
                 file_handle = self.tc_chunk_fh.to_vec();
-                self.tc_chunk_fh.clear();
 
                 // chunk done, remove requestmap entry (unless evicted)
                 self.requestmap.pop(&xid);
@@ -1762,6 +1795,13 @@ impl NFSState {
         if limit_event.is_none() && consumed > 0 {
             chunk_tail = chunk_tail.saturating_sub(consumed);
         }
+        // once the file data is done, the rest of the record that is in this
+        // input is consumed too, so it is not parsed as an RPC record
+        if limit_event.is_none() && chunk_left == 0 && chunk_tail > 0 {
+            let rest = cmp::min(chunk_tail, (data.len() as u32).saturating_sub(consumed));
+            consumed += rest;
+            chunk_tail -= rest;
+        }
 
         // persist after the limit bookkeeping: the rejected-chunk reset and
         // the normal-path tail decrement both land in the stream state
@@ -1771,6 +1811,16 @@ impl NFSState {
         } else {
             self.tc_chunk_left = chunk_left;
             self.tc_chunk_tail = chunk_tail;
+        }
+        // all of the chunk's record is consumed: forget the chunk
+        if chunk_left == 0 && chunk_tail == 0 {
+            if direction == Direction::ToServer {
+                self.ts_chunk_xid = 0;
+                self.ts_chunk_fh.clear();
+            } else {
+                self.tc_chunk_xid = 0;
+                self.tc_chunk_fh.clear();
+            }
         }
 
         // Chunk-limit overflow: reset chunk state and skip the promised
@@ -2072,6 +2122,12 @@ impl NFSState {
                 // continuation may consume or skip
                 self.tc_chunk_tail = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
                 self.tc_chunk_fh = file_handle;
+                // a partial reply that holds all of its data only has its padding
+                // left: done with the request, as at the end of a chunk in
+                // filetracker_update
+                if xidmapr.is_none() && self.tc_chunk_left == 0 {
+                    self.requestmap.pop(&r.hdr.xid);
+                }
             }
         }
 
