@@ -39,6 +39,7 @@ libc = "~0.2.172"
 lzma-rs = { version = "~0.2.0", features = ["stream"] }
 once_cell = "1.21.3"
 regex = "~1.5.6"
+serde = { version = "1.0.219", default-features = false, features = ["std", "derive"] }
 suricata-sys = { path = "sys", version = "@PACKAGE_VERSION@" }
 time = "=0.3.41"
 zstd = { version = "~0.13.3", default-features = false, features = ["arrays", "zdict_builder"] }
@@ -105,7 +106,7 @@ hex = "~0.4.3"
 psl = "2"
 
 time.workspace = true
-serde = { version = "1.0", features = ["derive"] }
+serde.workspace = true
 serde_json = "1.0"
 
 suricata-derive = { path = "./derive", version = "@PACKAGE_VERSION@" }
