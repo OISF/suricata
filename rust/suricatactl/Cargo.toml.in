@@ -10,7 +10,7 @@ description = "Suricata control tools"
 name = "suricatactl"
 
 [dependencies]
-regex = "~1.5.6"
+regex.workspace = true
 tracing = "0.1"
 tracing-subscriber = "0.3"
 once_cell.workspace = true
