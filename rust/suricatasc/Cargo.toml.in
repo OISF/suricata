@@ -1,8 +1,9 @@
 [package]
 name = "suricatasc"
-version = "@PACKAGE_VERSION@"
-edition = "2021"
-license = "GPL-2.0-only"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
 description = "Suricata socket control program"
 readme = "README.md"
 

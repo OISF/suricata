@@ -152,7 +152,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Install Minimum Supported Rust Version
         run: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $(awk -F '"' '/rust-version/ { print $2 }' rust/Cargo.toml.in)
+          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $(awk -F '"' '/^rust-version *=/ { print $2 }' rust/Cargo.toml.in)
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Configure Suricata
         run: |
