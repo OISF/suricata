@@ -15,12 +15,11 @@
  * 02110-1301, USA.
  */
 
-use super::http2::{HTTP2Frame, HTTP2FrameTypeData, HTTP2Transaction};
+use super::http2::{HTTP2Frame, HTTP2FrameTypeData, HTTP2RepeatedHeaders, HTTP2Transaction};
 use super::parser;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use std;
-use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
+use std::collections::HashMap;
 
 #[derive(Hash, PartialEq, Eq, Debug)]
 enum HeaderName {
@@ -34,21 +33,15 @@ enum HeaderName {
 
 fn log_http2_headers<'a>(
     blocks: &'a [parser::HTTP2FrameHeaderBlock], js: &mut JsonBuilder,
-    common: &mut HashMap<HeaderName, &'a Vec<u8>>,
+    common: &mut HashMap<HeaderName, &'a Vec<u8>>, repeated: &mut HTTP2RepeatedHeaders,
 ) -> Result<(), JsonError> {
-    let mut logged_headers = HashSet::new();
     let mut has_auth = false;
     for block in blocks {
         // delay js.start_object() because we skip suplicate headers
         match block.error {
             parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess => {
-                if Rc::strong_count(&block.name) > 2 {
-                    // more than one reference in headers table + current headers
-                    let ptr = Rc::as_ptr(&block.name) as usize;
-                    if !logged_headers.insert(ptr) {
-                        // only log once
-                        continue;
-                    }
+                if repeated.add(block) {
+                    continue;
                 }
                 js.start_object()?;
                 js.set_string_from_bytes("name", &block.name)?;
@@ -100,18 +93,19 @@ fn log_headers<'a>(
     common: &mut HashMap<HeaderName, &'a Vec<u8>>,
 ) -> Result<bool, JsonError> {
     let mut has_headers = false;
+    let mut repeated = HTTP2RepeatedHeaders::default();
     for frame in frames {
         match &frame.data {
             HTTP2FrameTypeData::HEADERS(hd) => {
-                log_http2_headers(&hd.blocks, js, common)?;
+                log_http2_headers(&hd.blocks, js, common, &mut repeated)?;
                 has_headers = true;
             }
             HTTP2FrameTypeData::PUSHPROMISE(hd) => {
-                log_http2_headers(&hd.blocks, js, common)?;
+                log_http2_headers(&hd.blocks, js, common, &mut repeated)?;
                 has_headers = true;
             }
             HTTP2FrameTypeData::CONTINUATION(hd) => {
-                log_http2_headers(&hd.blocks, js, common)?;
+                log_http2_headers(&hd.blocks, js, common, &mut repeated)?;
                 has_headers = true;
             }
             _ => {}

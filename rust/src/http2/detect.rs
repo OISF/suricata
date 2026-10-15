@@ -16,7 +16,8 @@
  */
 
 use super::http2::{
-    HTTP2Event, HTTP2Frame, HTTP2FrameTypeData, HTTP2State, HTTP2Transaction, HTTP2TransactionState,
+    HTTP2Event, HTTP2Frame, HTTP2FrameTypeData, HTTP2RepeatedHeaders, HTTP2State, HTTP2Transaction,
+    HTTP2TransactionState,
 };
 use super::parser;
 use crate::detect::uint::{detect_match_uint, DetectUintData};
@@ -849,9 +850,13 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaderNames(
     } else {
         &tx.frames_tc
     };
+    let mut repeated = HTTP2RepeatedHeaders::default();
     for frame in frames {
         if let Some(blocks) = http2_header_blocks(frame) {
             for block in blocks.iter() {
+                if repeated.add(block) {
+                    continue;
+                }
                 // we do not escape linefeeds in headers names
                 tbuf.data.extend_from_slice(&block.name);
                 tbuf.data.extend_from_slice(b"\r\n");
@@ -912,10 +917,14 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaders(
     } else {
         &tx.frames_tc
     };
+    let mut repeated = HTTP2RepeatedHeaders::default();
     for frame in frames {
         if let Some(blocks) = http2_header_blocks(frame) {
             for block in blocks.iter() {
                 if !http2_header_iscookie(direction.into(), &block.name) {
+                    if repeated.add(block) {
+                        continue;
+                    }
                     // we do not escape linefeeds nor : in headers names
                     tbuf.data.extend_from_slice(&block.name);
                     tbuf.data.extend_from_slice(b": ");
@@ -946,9 +955,13 @@ pub unsafe extern "C" fn SCHttp2TxGetHeadersRaw(
     } else {
         &tx.frames_tc
     };
+    let mut repeated = HTTP2RepeatedHeaders::default();
     for frame in frames {
         if let Some(blocks) = http2_header_blocks(frame) {
             for block in blocks.iter() {
+                if repeated.add(block) {
+                    continue;
+                }
                 // we do not escape linefeeds nor : in headers names
                 tbuf.data.extend_from_slice(&block.name);
                 tbuf.data.extend_from_slice(b": ");

@@ -34,10 +34,12 @@ use crate::dns::dns::{dns_parse_request, dns_parse_response, DNSTransaction};
 
 use nom7::Err;
 use std;
+use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::ffi::CString;
 use std::fmt;
 use std::io;
+use std::rc::Rc;
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerForceProtocolChange,
     SCAppLayerParserConfParserEnabled, SCAppLayerParserRegisterLogger,
@@ -51,6 +53,8 @@ static mut ALPROTO_DOH2: AppProto = ALPROTO_UNKNOWN;
 const HTTP2_DEFAULT_MAX_FRAME_SIZE: u32 = 16384;
 const HTTP2_MAX_HANDLED_FRAME_SIZE: usize = 65536;
 const HTTP2_MIN_HANDLED_FRAME_SIZE: usize = 256;
+const HTTP2_MAX_REPEATED_HEADERS_SIZE: usize = 4096;
+const HTTP2_MAX_REPEATED_HEADER_NAME_LEN: usize = 32;
 
 pub static mut SURICATA_HTTP2_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
@@ -578,6 +582,7 @@ pub enum HTTP2Event {
     TooManyFrames,
     CompressionBomb,
     ContinuationWithoutHeaders,
+    TooLongRepeatedHeaders,
 }
 
 pub struct HTTP2DynTable {
@@ -601,6 +606,43 @@ impl HTTP2DynTable {
             max_size: 4096, //default value
             overflow: 0,
         }
+    }
+}
+
+#[derive(Default)]
+pub(super) struct HTTP2RepeatedHeaders {
+    pub names: HashSet<usize>,
+    pub values: HashSet<usize>,
+    pub size: usize,
+}
+
+impl HTTP2RepeatedHeaders {
+    pub fn add(&mut self, block: &parser::HTTP2FrameHeaderBlock) -> bool {
+        if Rc::strong_count(&block.name) <= 2 {
+            return false;
+        }
+        // more than one reference in headers table + current headers
+        let ptr = Rc::as_ptr(&block.name) as usize;
+        if self.names.insert(ptr) {
+            // was not already in self.names : first time we see this name in the tx
+            if Rc::strong_count(&block.value) > 2 {
+                // still insert the value if an indexed one, but we will return false anyways
+                _ = self.values.insert(Rc::as_ptr(&block.value) as usize);
+            }
+            return false;
+        }
+        self.size += block.name.len();
+        if Rc::strong_count(&block.value) > 2
+            && !self.values.insert(Rc::as_ptr(&block.value) as usize)
+        {
+            self.size += block.value.len();
+            // same name+value
+            return true;
+        }
+        // always keep headers whose name is <= HTTP2_MAX_REPEATED_HEADER_NAME_LEN
+        // and drop bigger ones only when total size reached the threshold
+        return self.size > HTTP2_MAX_REPEATED_HEADERS_SIZE
+            && block.name.len() > HTTP2_MAX_REPEATED_HEADER_NAME_LEN;
     }
 }
 
@@ -865,6 +907,8 @@ impl HTTP2State {
         &mut self, blocks: &Vec<parser::HTTP2FrameHeaderBlock>, dir: Direction,
     ) -> Vec<HTTP2Event> {
         let mut events = Vec::new();
+        let mut repeated = HTTP2RepeatedHeaders::default();
+        let mut has_repeated = false;
         for block in blocks {
             if block.error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
                 events.push(HTTP2Event::InvalidHeader);
@@ -872,6 +916,13 @@ impl HTTP2State {
                 == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIntegerOverflow
             {
                 events.push(HTTP2Event::HeaderIntegerOverflow);
+            }
+            if !has_repeated
+                && repeated.add(block)
+                && repeated.size > HTTP2_MAX_REPEATED_HEADERS_SIZE
+            {
+                events.push(HTTP2Event::TooLongRepeatedHeaders);
+                has_repeated = true;
             }
         }
         let dyn_headers = if dir == Direction::ToClient {
