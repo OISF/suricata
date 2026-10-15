@@ -1962,6 +1962,9 @@ extern "C" {
     pub fn SCPacketGetIPProto(p: *const Packet) -> u8;
 }
 extern "C" {
+    pub fn SCPacketGetL3(p: *const Packet, len: *mut u32) -> *const u8;
+}
+extern "C" {
     pub fn SCPacketGetFlow(p: *const Packet) -> *const Flow;
 }
 extern "C" {

@@ -229,6 +229,45 @@ inline uint8_t SCPacketGetIPProto(const Packet *p)
 }
 
 /**
+ * \brief Get the L3 packet data, starting at the L3 header.
+ *
+ * The returned data is borrowed from p and is valid only while its packet
+ * buffer remains valid and unchanged. For IPv4 and IPv6 the length comes
+ * from the IP header and includes the IPv6 base header. For ARP it is the
+ * fixed ARP header length. Trailing padding is excluded. The decoder has
+ * already validated the length against the captured packet length.
+ *
+ * \param p Packet to inspect, or NULL.
+ * \param len Non-NULL output pointer, set to zero when no data is returned.
+ * \retval NULL The packet is NULL or has no decoded L3 layer.
+ */
+const uint8_t *SCPacketGetL3(const Packet *p, uint32_t *len)
+{
+    *len = 0;
+    if (p == NULL)
+        return NULL;
+
+    switch (p->l3.type) {
+        case PACKET_L3_IPV4: {
+            const IPV4Hdr *ip4h = PacketGetIPv4(p);
+            *len = IPV4_GET_RAW_IPLEN(ip4h);
+            return (const uint8_t *)ip4h;
+        }
+        case PACKET_L3_IPV6: {
+            const IPV6Hdr *ip6h = PacketGetIPv6(p);
+            *len = IPV6_HEADER_LEN + IPV6_GET_RAW_PLEN(ip6h);
+            return (const uint8_t *)ip6h;
+        }
+        case PACKET_L3_ARP:
+            *len = ARP_HEADER_LEN;
+            return (const uint8_t *)PacketGetARP(p);
+        case PACKET_L3_UNKNOWN:
+            break;
+    }
+    return NULL;
+}
+
+/**
  * \brief Get the flow associated with the packet.
  */
 const Flow *SCPacketGetFlow(const Packet *p)

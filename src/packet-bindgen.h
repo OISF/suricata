@@ -22,6 +22,7 @@ typedef struct Packet_ Packet;
 typedef struct Flow_ Flow;
 
 uint8_t SCPacketGetIPProto(const Packet *p);
+const uint8_t *SCPacketGetL3(const Packet *p, uint32_t *len);
 const Flow *SCPacketGetFlow(const Packet *p);
 void SCPacketGetTimeAsParts(const Packet *p, uint64_t *secs, uint64_t *usecs);
 
