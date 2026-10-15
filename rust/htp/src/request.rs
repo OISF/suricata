@@ -1253,6 +1253,9 @@ impl ConnectionParser {
         let compression_options = self.cfg.compression_options;
         if self.bombs >= compression_options.get_max_bombs() {
             // skip decompression for this flow if too many bombs were seen
+            self.request_mut()
+                .unwrap()
+                .request_content_encoding_processing = HtpContentEncoding::None;
             return Ok(());
         }
         if encoding != HtpContentEncoding::None {
