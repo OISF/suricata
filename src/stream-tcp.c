@@ -6748,10 +6748,17 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
             }
 
             if (ret == 1) {
-                /* Update the timestamp and last seen packet time for this
-                 * stream */
-                if (SEQ_EQ(sender_stream->next_seq, seq))
+                /* RFC 7323, section 5.3, rule R3: an acceptable segment at or before the
+                 * last acknowledged sequence with a timestamp at or after the stream
+                 * timestamp (TS.Recent) updates it. Acceptability also requires the
+                 * segment to reach the last acknowledged sequence (end_seq >= last_ack).
+                 * Like Linux, skip the update when the ACK goes backwards. */
+                if (SEQ_LEQ(seq, sender_stream->last_ack) && TS_GEQ(ts, sender_stream->last_ts) &&
+                        SEQ_GEQ(seq + p->payload_len, sender_stream->last_ack) &&
+                        (tcph->th_flags & TH_ACK) &&
+                        SEQ_GEQ(TCP_GET_RAW_ACK(tcph), receiver_stream->last_ack)) {
                     sender_stream->last_ts = ts;
+                }
 
                 sender_stream->last_pkt_ts = (uint32_t)SCTIME_SECS(p->ts);
 
