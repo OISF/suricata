@@ -138,8 +138,7 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
         return;
     }
 
-    uint16_t ip_len = 0;
-    void *ip_ptr = NULL;
+    uint32_t ip_len = 0;
     struct NdpiThreadContext *threadctx = NdpiGetThreadContext(tv);
     struct NdpiFlowContext *flowctx = NdpiGetFlowContext(f);
 
@@ -147,16 +146,10 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
         return;
     if (flowctx == NULL || flowctx->ndpi_flow == NULL)
         return;
+    if (!(PacketIsIPv4(p) || PacketIsIPv6(p)))
+        return;
 
-    if (PacketIsIPv4(p)) {
-        const IPV4Hdr *ip4h = PacketGetIPv4(p);
-        ip_len = IPV4_GET_RAW_IPLEN(ip4h);
-        ip_ptr = (void *)PacketGetIPv4(p);
-    } else if (PacketIsIPv6(p)) {
-        const IPV6Hdr *ip6h = PacketGetIPv6(p);
-        ip_len = IPV6_HEADER_LEN + IPV6_GET_RAW_PLEN(ip6h);
-        ip_ptr = (void *)PacketGetIPv6(p);
-    }
+    const uint8_t *ip_ptr = SCPacketGetL3(p, &ip_len);
 
     if (!flowctx->detection_completed && ip_ptr != NULL && ip_len > 0) {
         uint64_t secs = 0, usecs = 0;
