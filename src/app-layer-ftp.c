@@ -48,7 +48,7 @@ typedef struct FTPThreadCtx_ {
 
 static MpmCtx *ftp_mpm_ctx = NULL;
 
-uint64_t ftp_config_memcap = 0;
+uint64_t ftp_config_memcap = 64 * 1024 * 1024;
 uint32_t ftp_config_maxtx = 1024;
 uint32_t ftp_max_line_len = 4096;
 
