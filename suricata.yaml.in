@@ -994,6 +994,8 @@ app-layer:
       enabled: yes
       # memcap: 64 MiB
       # max-tx: 1024
+      # Maximum number of preliminary (1xx) responses kept per transaction.
+      # max-preliminary-responses: 16
     websocket:
       #enabled: yes
       # Maximum used payload size, the rest is skipped

@@ -1,4 +1,4 @@
-/* Copyright (C) 2023 Open Information Security Foundation
+/* Copyright (C) 2023-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -31,6 +31,8 @@ pub enum FtpEvent {
     FtpEventFileBeforePort,
     #[name("file_without_name")]
     FtpEventFileWithoutName,
+    #[name("too_many_preliminary_responses")]
+    FtpEventTooManyPreliminaryResponses,
 }
 
 /// Wrapper around the Rust generic function for get_event_info.

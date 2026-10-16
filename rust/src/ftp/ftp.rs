@@ -1,4 +1,4 @@
-/* Copyright (C) 2025 Open Information Security Foundation
+/* Copyright (C) 2025-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -188,7 +188,7 @@ impl FtpTransferCmd {
 
 #[no_mangle]
 pub unsafe extern "C" fn SCFTPGetConfigValues(
-    memcap: *mut u64, max_tx: *mut u32, max_line_len: *mut u32,
+    memcap: *mut u64, max_tx: *mut u32, max_line_len: *mut u32, max_preliminary_responses: *mut u32,
 ) {
     if let Some(val) = conf_get("app-layer.protocols.ftp.memcap") {
         if let Ok(v) = get_memval(val) {
@@ -225,6 +225,21 @@ pub unsafe extern "C" fn SCFTPGetConfigValues(
                 val,
                 *max_line_len
             );
+        }
+    }
+    if let Some(val) = conf_get("app-layer.protocols.ftp.max-preliminary-responses") {
+        match val.parse::<u32>() {
+            Ok(v) if v > 0 => {
+                *max_preliminary_responses = v;
+                SCLogConfig!("FTP max preliminary responses: {}", v);
+            }
+            _ => {
+                SCLogWarning!(
+                    "Invalid value {} for ftp.max-preliminary-responses; defaulting to {}",
+                    val,
+                    *max_preliminary_responses
+                );
+            }
         }
     }
 }

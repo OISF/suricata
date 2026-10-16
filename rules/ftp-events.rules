@@ -7,3 +7,4 @@ alert ftp any any -> any any (msg:"SURICATA FTP Response command too long"; flow
 alert ftp any any -> any any (msg:"SURICATA FTP too many transactions"; app-layer-event:ftp.too_many_transactions; classtype:protocol-command-decode; sid:2232002; rev:1;)
 alert ftp any any -> any any (msg:"SURICATA FTP file before port"; app-layer-event:ftp.file_before_port; classtype:protocol-command-decode; sid:2232003; rev:1;)
 alert ftp any any -> any any (msg:"SURICATA FTP file without name"; app-layer-event:ftp.file_without_name; classtype:protocol-command-decode; sid:2232004; rev:1;)
+alert ftp any any -> any any (msg:"SURICATA FTP too many preliminary responses"; flow:to_client; app-layer-event:ftp.too_many_preliminary_responses; classtype:protocol-command-decode; sid:2232005; rev:1;)
