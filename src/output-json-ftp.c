@@ -46,9 +46,9 @@
 #include "app-layer-ftp.h"
 #include "output-json-ftp.h"
 
-bool EveFTPLogCommand(void *vtx, SCJsonBuilder *jb)
+bool EveFTPLogCommand(const void *vtx, void *jb)
 {
-    FTPTransaction *tx = vtx;
+    const FTPTransaction *tx = vtx;
     /* Preallocate array objects to simplify failure case */
     SCJsonBuilder *js_resplist = NULL;
     if (!TAILQ_EMPTY(&tx->response_list)) {

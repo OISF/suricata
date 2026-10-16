@@ -39,7 +39,7 @@ typedef struct SCDnsLogThread_ {
     OutputJsonThreadCtx *ctx;
 } SCDnsLogThread;
 
-bool AlertJsonMdns(void *txptr, SCJsonBuilder *js)
+bool AlertJsonMdns(const void *txptr, void *js)
 {
     return SCMdnsLogJson(txptr, js);
 }

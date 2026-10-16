@@ -249,26 +249,26 @@ typedef struct LogDnsLogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogDnsLogThread;
 
-bool AlertJsonDns(void *txptr, SCJsonBuilder *js)
+bool AlertJsonDns(const void *txptr, void *js)
 {
     return SCDnsLogJson(
             txptr, LOG_FORMAT_DETAILED | LOG_QUERIES | LOG_ANSWERS | LOG_ALL_RRTYPES, js);
 }
 
-bool AlertJsonDoh2(void *txptr, SCJsonBuilder *js)
+bool AlertJsonDoh2(const void *txptr, void *js)
 {
     SCJsonBuilderMark mark = { 0, 0, 0 };
 
     SCJbGetMark(js, &mark);
     // first log HTTP2 part
-    bool r = SCHttp2LogJson(txptr, js);
+    bool r = SCHttp2LogJson((void *)txptr, js);
     if (!r) {
         SCJbRestoreMark(js, &mark);
     }
     // then log one DNS tx if any, preferring the answer
-    void *tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOCLIENT);
+    void *tx_dns = DetectGetInnerTx((void *)txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOCLIENT);
     if (tx_dns == NULL) {
-        tx_dns = DetectGetInnerTx(txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOSERVER);
+        tx_dns = DetectGetInnerTx((void *)txptr, ALPROTO_DOH2, ALPROTO_DNS, STREAM_TOSERVER);
     }
     bool r2 = false;
     if (tx_dns) {

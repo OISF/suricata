@@ -939,24 +939,22 @@ void OutputRegisterRootLoggers(void)
         FatalError("Failed to allocate simple_json_applayer_loggers");
     }
     // ALPROTO_HTTP1 special: uses some options flags
-    RegisterSimpleJsonApplayerLogger(ALPROTO_FTP, (EveJsonSimpleTxLogFunc)EveFTPLogCommand, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_FTP, EveFTPLogCommand, NULL);
     // ALPROTO_SMTP special: uses state
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_TLS, (EveJsonSimpleTxLogFunc)JsonTlsLogJSONExtended, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_TLS, JsonTlsLogJSONExtended, NULL);
     // no cast here but done in rust for SSHTransaction
     RegisterSimpleJsonApplayerLogger(ALPROTO_SSH, (EveJsonSimpleTxLogFunc)SCSshLogJson, NULL);
     // ALPROTO_SMB special: uses state
     // ALPROTO_DCERPC special: uses state
-    RegisterSimpleJsonApplayerLogger(ALPROTO_DNS, (EveJsonSimpleTxLogFunc)AlertJsonDns, NULL);
-    RegisterSimpleJsonApplayerLogger(ALPROTO_MDNS, (EveJsonSimpleTxLogFunc)AlertJsonMdns, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_DNS, AlertJsonDns, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_MDNS, AlertJsonMdns, NULL);
     // either need a cast here or in rust for ModbusTransaction, done here
     RegisterSimpleJsonApplayerLogger(ALPROTO_MODBUS, (EveJsonSimpleTxLogFunc)SCModbusToJson, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_ENIP, (EveJsonSimpleTxLogFunc)SCEnipLoggerLog, NULL);
-    RegisterSimpleJsonApplayerLogger(ALPROTO_DNP3, (EveJsonSimpleTxLogFunc)AlertJsonDnp3, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_DNP3, AlertJsonDnp3, NULL);
     // ALPROTO_NFS special: uses state
     // underscore instead of dash for ftp_data
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_FTPDATA, (EveJsonSimpleTxLogFunc)EveFTPDataAddMetadata, "ftp_data");
+    RegisterSimpleJsonApplayerLogger(ALPROTO_FTPDATA, EveFTPDataAddMetadata, "ftp_data");
     RegisterSimpleJsonApplayerLogger(
             ALPROTO_TFTP, (EveJsonSimpleTxLogFunc)SCTftpLogJsonRequest, NULL);
     // ALPROTO_IKE special: uses state
@@ -967,14 +965,12 @@ void OutputRegisterRootLoggers(void)
     RegisterSimpleJsonApplayerLogger(ALPROTO_SIP, (EveJsonSimpleTxLogFunc)SCSipLogJson, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_RFB, (EveJsonSimpleTxLogFunc)SCRfbJsonLogger, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_POP3, (EveJsonSimpleTxLogFunc)SCPop3LoggerLog, NULL);
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_MQTT, (EveJsonSimpleTxLogFunc)JsonMQTTAddMetadata, NULL);
-    RegisterSimpleJsonApplayerLogger(
-            ALPROTO_PGSQL, (EveJsonSimpleTxLogFunc)JsonPgsqlAddMetadata, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_MQTT, JsonMQTTAddMetadata, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_PGSQL, JsonPgsqlAddMetadata, NULL);
     RegisterSimpleJsonApplayerLogger(
             ALPROTO_WEBSOCKET, (EveJsonSimpleTxLogFunc)SCWebSocketLoggerLog, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_LDAP, (EveJsonSimpleTxLogFunc)SCLdapLoggerLog, NULL);
-    RegisterSimpleJsonApplayerLogger(ALPROTO_DOH2, (EveJsonSimpleTxLogFunc)AlertJsonDoh2, NULL);
+    RegisterSimpleJsonApplayerLogger(ALPROTO_DOH2, AlertJsonDoh2, NULL);
     RegisterSimpleJsonApplayerLogger(
             ALPROTO_TEMPLATE, (EveJsonSimpleTxLogFunc)SCTemplateLoggerLog, NULL);
     RegisterSimpleJsonApplayerLogger(ALPROTO_RDP, (EveJsonSimpleTxLogFunc)SCRdpToJson, NULL);

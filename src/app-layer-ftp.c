@@ -1468,9 +1468,9 @@ uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len)
     return c == NULL ? len : (uint16_t)(c - buffer + 1);
 }
 
-bool EveFTPDataAddMetadata(void *vtx, SCJsonBuilder *jb)
+bool EveFTPDataAddMetadata(const void *vtx, void *jb)
 {
-    const FtpDataState *ftp_state = (FtpDataState *)vtx;
+    const FtpDataState *ftp_state = vtx;
     SCJbOpenObject(jb, "ftp_data");
 
     if (ftp_state->file_name) {
