@@ -1803,6 +1803,14 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
                 SCLogWarning!("Invalid value for http2.compression-bomb-limit");
             }
         }
+        if let Some(val) = conf_get("app-layer.protocols.http2.brotli-memcap") {
+            if let Ok(v) = get_memval(val) {
+                decompression::HTTP2_BROTLI_MEMCAP
+                    .store(v as usize, std::sync::atomic::Ordering::Relaxed);
+            } else {
+                SCLogWarning!("Invalid value for http2.brotli-memcap");
+            }
+        }
         SCAppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP2);
         SCLogDebug!("Rust http2 parser registered.");
     } else {
