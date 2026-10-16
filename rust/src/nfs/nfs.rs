@@ -1174,6 +1174,13 @@ impl NFSState {
         };
 
         if w.count == 0 {
+            // No file data, but the rest of a partial record must not be
+            // parsed as the next RPC record: skip to the record boundary.
+            // Nothing is pending for a complete record.
+            if !self.is_udp {
+                let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+                self.set_skip(Direction::ToServer, pending);
+            }
             return 0;
         }
 
@@ -1863,6 +1870,17 @@ impl NFSState {
         }
 
         if reply.count == 0 {
+            // No file data, but the rest of a partial reply must not be
+            // parsed as the next RPC record: skip to the record boundary.
+            // Nothing is pending for a complete record.
+            if !self.is_udp {
+                let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+                self.set_skip(Direction::ToClient, pending);
+            }
+            // done with the request, as for a complete record
+            if xidmapr.is_none() {
+                self.requestmap.pop(&r.hdr.xid);
+            }
             return 0;
         }
 
