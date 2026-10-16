@@ -37,12 +37,28 @@ dedicated new configuration.
 Upgrading to 8.0.8
 ------------------
 
+Major Changes
+~~~~~~~~~~~~~
+
+- Default value for ``app-layer.protocols.ftp.memcap`` when the value is not
+  specified in suricata.yaml is now 64 MiB instead of 0/unlimited. The limit
+  also covers FTP-DATA file buffering. An invalid value also keeps the 64 MiB
+  default. Set it to ``0`` to remove the limit.
+
 Default Changes
 ~~~~~~~~~~~~~~~
 
 - ``http2`` default value for max-streams is now 256 (instead of 4096).
 - An absent configuration value for ``stream.reassembly.urgent.policy`` is now treated as ``oob`` instead of ``inline``.
 - An absent configuration value for ``stream.reassembly.urgent.oob-limit-policy`` is now treated as ``drop`` instead of ``inline``.
+
+Other Changes
+~~~~~~~~~~~~~
+
+- ``ftp`` keeps at most 16 preliminary (``1xx``) responses per transaction
+  by default, set with ``max-preliminary-responses``. Past the limit, the
+  ``ftp.too_many_preliminary_responses`` event is raised. See
+  :ref:`suricata-yaml-configure-ftp`.
 
 EVE Changes
 ~~~~~~~~~~~

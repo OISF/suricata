@@ -1584,6 +1584,22 @@ control messages only, not FTP data (file transfers).
       # Maximum line length for control messages before they will be truncated.
       #max-line-length: 4kb
 
+      # Maximum number of preliminary (1xx) responses kept per transaction.
+      #max-preliminary-responses: 16
+
+``memcap`` limits the memory that FTP counts for control-channel transactions,
+requests and replies, and for FTP-DATA file buffering. It defaults to 64 MiB
+and is shared by all FTP flows. Once it is reached, new FTP allocations fail:
+affected flows stop being parsed and file extraction can be truncated. A value
+of ``0`` removes the limit.
+
+A transaction keeps at most ``max-preliminary-responses`` preliminary
+(``1xx``) responses, 16 by default. Further preliminary responses for the same
+command are not stored or logged, and the
+``ftp.too_many_preliminary_responses`` event is raised on the transaction.
+``max-preliminary-responses`` must be greater than 0; an invalid value keeps
+the default.
+
 .. _suricata-yaml-configure-libhtp:
 
 Configure HTTP (libhtp)
