@@ -81,7 +81,7 @@ const HTTP2_FRAME_WINDOWUPDATE_LEN: usize = 4;
 pub static mut HTTP2_MAX_TABLESIZE: u32 = 65536; // 0x10000
                                                  // maximum size of reassembly for header + continuation
 static mut HTTP2_MAX_REASS: usize = 102400;
-static mut HTTP2_MAX_STREAMS: usize = 4096; // 0x1000
+static mut HTTP2_MAX_STREAMS: usize = 256; // 0x100
 static mut HTTP2_MAX_FRAMES: usize = 65536;
 pub(super) static mut HTTP2_COMPRESSION_BOMB_LIMIT: u64 = 1_048_576;
 

@@ -37,6 +37,11 @@ dedicated new configuration.
 Upgrading to 8.0.8
 ------------------
 
+Default Changes
+~~~~~~~~~~~~~~~
+
+- ``http2`` default value for max-streams is now 256 (instead of 4096).
+
 EVE Changes
 ~~~~~~~~~~~
 

@@ -1993,7 +1993,7 @@ of analysis and the resource consumption.
 Its default value is 4096 bytes, but it can be set to any uint32 by a flow.
 
 `http2.max-streams` refers to `SETTINGS_MAX_CONCURRENT_STREAMS` from rfc 7540 section 6.5.2.
-Its default value is unlimited.
+Its default value is 256.
 
 SSL/TLS
 ~~~~~~~
