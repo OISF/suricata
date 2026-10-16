@@ -711,6 +711,7 @@ pub enum HTTP2Event {
     DataStreamZero,
     TooManyFrames,
     CompressionBomb,
+    ContinuationWithoutHeaders,
 }
 
 pub struct HTTP2DynTable {
@@ -1261,7 +1262,10 @@ impl HTTP2State {
                         };
                         return (HTTP2FrameTypeData::CONTINUATION(hs), events);
                     }
-                } // else try to parse anyways
+                } else {
+                    events.push(HTTP2Event::ContinuationWithoutHeaders);
+                }
+                // else try to parse anyways
                 let input_reass = if head.stream_id == buf.stream_id {
                     &buf.data
                 } else {
