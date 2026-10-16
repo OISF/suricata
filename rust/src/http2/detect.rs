@@ -978,7 +978,7 @@ pub unsafe extern "C" fn SCHttp2TxSetMethodUri(
 ) {
     let methods = build_slice!(buffer, buffer_len as usize);
     http2_tx_set_header(state, ":method".as_bytes(), methods);
-    if uri != std::ptr::null() {
+    if !uri.is_null() {
         let uris = build_slice!(uri, uri_len as usize);
         http2_tx_set_header(state, ":path".as_bytes(), uris);
         let tx = state.get_only_tx();
