@@ -25,6 +25,6 @@
 #define SURICATA_OUTPUT_JSON_MQTT_H
 
 void JsonMQTTLogRegister(void);
-bool JsonMQTTAddMetadata(void *vtx, SCJsonBuilder *js);
+bool JsonMQTTAddMetadata(const void *vtx, void *js);
 
 #endif /* SURICATA_OUTPUT_JSON_MQTT_H */

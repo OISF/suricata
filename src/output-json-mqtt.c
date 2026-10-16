@@ -59,9 +59,9 @@ typedef struct LogMQTTLogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogMQTTLogThread;
 
-bool JsonMQTTAddMetadata(void *vtx, SCJsonBuilder *js)
+bool JsonMQTTAddMetadata(const void *vtx, void *js)
 {
-    return SCMqttLoggerLog(vtx, MQTT_DEFAULT_FLAGS, MQTT_DEFAULT_MAXLOGLEN, js);
+    return SCMqttLoggerLog((void *)vtx, MQTT_DEFAULT_FLAGS, MQTT_DEFAULT_MAXLOGLEN, js);
 }
 
 static int JsonMQTTLogger(ThreadVars *tv, void *thread_data,

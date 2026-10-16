@@ -19,6 +19,6 @@
 #define SURICATA_OUTPUT_JSON_MDNS_H
 
 void JsonMdnsLogRegister(void);
-bool AlertJsonMdns(void *txptr, SCJsonBuilder *js);
+bool AlertJsonMdns(const void *txptr, void *js);
 
 #endif /* SURICATA_OUTPUT_JSON_MDNS_H */

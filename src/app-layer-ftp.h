@@ -131,6 +131,6 @@ uint64_t FTPMemuseGlobalCounter(void);
 uint64_t FTPMemcapGlobalCounter(void);
 
 uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len);
-bool EveFTPDataAddMetadata(void *vtx, SCJsonBuilder *jb);
+bool EveFTPDataAddMetadata(const void *vtx, void *jb);
 
 #endif /* SURICATA_APP_LAYER_FTP_H */
