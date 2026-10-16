@@ -45,6 +45,10 @@ Major Changes
   be ``bypass``, ``track-only`` or ``full``.
 - Default value for ``stream.reassembly.depth`` when the value is not specified in
   suricata.yaml is now 1 MiB instead of 0/unlimited.
+- Default value for ``app-layer.protocols.ftp.memcap`` when the value is not
+  specified in suricata.yaml is now 64 MiB instead of 0/unlimited. The limit
+  also covers FTP-DATA file buffering. An invalid value also keeps the 64 MiB
+  default. Set it to ``0`` to remove the limit.
 - LLMNR protocol parser, logger and sticky buffers are implemented.
 - ``pgsql`` is no longer enabled by default. Previously, if the
   ``app-layer.protocols.pgsql`` section was absent from suricata.yaml, the
@@ -200,6 +204,10 @@ Other Changes
 - ``ldap`` has bound the maximum number of responses per transaction
   to 1024 by default.
 - ``http2`` default value for max-streams is now 256 (instead of 4096).
+- ``ftp`` keeps at most 16 preliminary (``1xx``) responses per transaction
+  by default, set with ``max-preliminary-responses``. Past the limit, the
+  ``ftp.too_many_preliminary_responses`` event is raised. See
+  :ref:`suricata-yaml-configure-ftp`.
 
 Changes for Library Users and Plugin Developers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
