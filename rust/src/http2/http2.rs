@@ -304,9 +304,6 @@ pub struct HTTP2Transaction {
     pub ft_tc: FileTransferTracker,
     pub ft_ts: FileTransferTracker,
 
-    pub req_line: Vec<u8>,
-    pub resp_line: Vec<u8>,
-
     pub doh: Option<DohHttp2Tx>,
 }
 
@@ -337,8 +334,6 @@ impl HTTP2Transaction {
             tx_data: AppLayerTxData::new(),
             ft_tc: FileTransferTracker::new(),
             ft_ts: FileTransferTracker::new(),
-            req_line: Vec::new(),
-            resp_line: Vec::new(),
             doh: None,
         }
     }

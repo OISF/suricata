@@ -69,6 +69,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         Flow *_f, const uint8_t _flow_flags,
         void *txv, const int list_id);
 static int g_http_request_line_buffer_id = 0;
+static int g_http2_thread_id = 0;
 
 static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f, const uint8_t _flow_flags, void *txv,
@@ -81,7 +82,11 @@ static InspectionBuffer *GetData2(DetectEngineThreadCtx *det_ctx,
         uint32_t b_len = 0;
         const uint8_t *b = NULL;
 
-        if (SCHttp2TxGetRequestLine(txv, &b, &b_len) != 1)
+        void *thread_buf = SCDetectThreadCtxGetGlobalKeywordThreadCtx(det_ctx, g_http2_thread_id);
+        if (thread_buf == NULL)
+            return NULL;
+
+        if (SCHttp2TxGetRequestLine(txv, &b, &b_len, thread_buf) != 1)
             return NULL;
         if (b == NULL || b_len == 0)
             return NULL;
@@ -125,6 +130,9 @@ void DetectHttpRequestLineRegister(void)
             "http request line");
 
     g_http_request_line_buffer_id = DetectBufferTypeGetByName("http_request_line");
+
+    g_http2_thread_id = SCDetectRegisterThreadCtxGlobalFuncs(
+            "http.request_line", SCDetectThreadBufDataInit, NULL, SCDetectThreadBufDataFree);
 }
 
 /**
