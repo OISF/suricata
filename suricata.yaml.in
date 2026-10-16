@@ -1033,7 +1033,7 @@ app-layer:
     http2:
       enabled: yes
       # Maximum number of live HTTP2 streams in a flow
-      #max-streams: 4096
+      #max-streams: 256
       # Maximum headers table size
       #max-table-size: 65536
       # Maximum reassembly size for header + continuation frames

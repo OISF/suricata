@@ -199,6 +199,7 @@ Other Changes
   like `alert ip`.
 - ``ldap`` has bound the maximum number of responses per transaction
   to 1024 by default.
+- ``http2`` default value for max-streams is now 256 (instead of 4096).
 
 Changes for Library Users and Plugin Developers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
