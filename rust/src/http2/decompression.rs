@@ -17,16 +17,21 @@
 
 use super::http2::HTTP2_COMPRESSION_BOMB_LIMIT;
 use crate::direction::Direction;
-use brotli::{BrotliDecompressStream, BrotliResult, BrotliState, HeapAlloc, HuffmanCode};
+use brotli::{BrotliDecompressStream, BrotliResult, BrotliState, HuffmanCode};
 use flate2::read::{DeflateDecoder, GzDecoder};
 use std;
 use std::io;
 use std::io::{BufReader, Cursor, Read, Write};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use zstd;
 
 pub const HTTP2_DECOMPRESSION_CHUNK_SIZE: usize = 0x1000; // 4096
 
 pub(super) const DEFAULT_BOMB_RATIO: u64 = 2048;
+
+const HTTP2_BROTLI_DEFAULT_MEMCAP: usize = 256 * 1024 * 1024;
+pub(super) static HTTP2_BROTLI_MEMCAP: AtomicUsize = AtomicUsize::new(HTTP2_BROTLI_DEFAULT_MEMCAP);
+static HTTP2_BROTLI_MEMUSE: AtomicUsize = AtomicUsize::new(0);
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
@@ -84,8 +89,93 @@ impl Read for HTTP2cursor {
     }
 }
 
+#[derive(Default)]
+struct HTTP2BrotliMemory<T: Clone + Default> {
+    data: Vec<T>,
+    charged: usize,
+}
+
+impl<T: Clone + Default> brotli::SliceWrapper<T> for HTTP2BrotliMemory<T> {
+    fn slice(&self) -> &[T] {
+        &self.data
+    }
+}
+
+impl<T: Clone + Default> brotli::SliceWrapperMut<T> for HTTP2BrotliMemory<T> {
+    fn slice_mut(&mut self) -> &mut [T] {
+        &mut self.data
+    }
+}
+
+impl<T: Clone + Default> Drop for HTTP2BrotliMemory<T> {
+    fn drop(&mut self) {
+        drop(std::mem::take(&mut self.data));
+        HTTP2_BROTLI_MEMUSE.fetch_sub(self.charged, Ordering::Relaxed);
+    }
+}
+
+#[derive(Clone, Copy, Default)]
+struct ScMemcapAlloc<T: Clone + Default> {
+    pub _default_value: T,
+}
+
+fn http2_brotli_reserve(size: usize) -> bool {
+    // needs MSRV 1.95 to use try_update
+    #[allow(deprecated)]
+    return HTTP2_BROTLI_MEMUSE
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |used| {
+            used.checked_add(size)
+                .filter(|total| *total <= HTTP2_BROTLI_MEMCAP.load(Ordering::Relaxed))
+        })
+        .is_ok();
+}
+
+// from private brotli_decompressor::huffman::BROTLI_HUFFMAN_MAX_TABLE_SIZE;
+const BROTLI_HUFFMAN_MAX_TABLE_SIZE: usize = 1080;
+
+#[allow(deprecated)]
+fn http2_brotli_alloc<T: Clone + Default>(len: usize, unit_size: usize) -> HTTP2BrotliMemory<T> {
+    let charged = match len.checked_mul(unit_size) {
+        Some(bytes) => bytes,
+        None => return HTTP2BrotliMemory::default(),
+    };
+    if unit_size > 4 || (unit_size == 4 && len <= 3 * BROTLI_HUFFMAN_MAX_TABLE_SIZE) {
+        // HuffmanCode or
+        // u32 unchecked allocation in brotli-decompressor-5.0.0 decode.rs:2847, 3240 entries
+        // always charge, but do not fail
+        // needs MSRV 1.95 to use try_update
+        if HTTP2_BROTLI_MEMUSE
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |used| {
+                used.checked_add(charged)
+            })
+            .is_err()
+        {
+            return HTTP2BrotliMemory::default();
+        }
+    } else if charged > 0 && !http2_brotli_reserve(charged) {
+        return HTTP2BrotliMemory::default();
+    }
+    let mut data = Vec::new();
+    if data.try_reserve_exact(len).is_err() {
+        HTTP2_BROTLI_MEMUSE.fetch_sub(charged, Ordering::Relaxed);
+        return HTTP2BrotliMemory::default();
+    }
+    data.resize(len, T::default());
+    HTTP2BrotliMemory { data, charged }
+}
+
+impl<T: Clone + Default> brotli::Allocator<T> for ScMemcapAlloc<T> {
+    type AllocatedMemory = HTTP2BrotliMemory<T>;
+
+    fn alloc_cell(&mut self, len: usize) -> Self::AllocatedMemory {
+        http2_brotli_alloc(len, std::mem::size_of::<T>())
+    }
+
+    fn free_cell(&mut self, _data: Self::AllocatedMemory) {}
+}
+
 pub(super) struct BrotliDecompressor {
-    state: BrotliState<HeapAlloc<u8>, HeapAlloc<u32>, HeapAlloc<HuffmanCode>>,
+    state: BrotliState<ScMemcapAlloc<u8>, ScMemcapAlloc<u32>, ScMemcapAlloc<HuffmanCode>>,
     cursor: HTTP2cursor,
 }
 
@@ -93,9 +183,9 @@ impl BrotliDecompressor {
     pub fn new(cursor: HTTP2cursor) -> BrotliDecompressor {
         BrotliDecompressor {
             state: BrotliState::new_strict(
-                HeapAlloc::<u8>::new(0),
-                HeapAlloc::<u32>::new(0),
-                HeapAlloc::<HuffmanCode>::new(HuffmanCode { bits: 0, value: 0 }),
+                ScMemcapAlloc::<u8>::default(),
+                ScMemcapAlloc::<u32>::default(),
+                ScMemcapAlloc::<HuffmanCode>::default(),
             ),
             cursor,
         }
