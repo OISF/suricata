@@ -522,7 +522,7 @@ static void JsonTlsLogFields(SCJsonBuilder *js, SSLState *ssl_state, uint64_t fi
     }
 }
 
-bool JsonTlsLogJSONExtended(void *vtx, SCJsonBuilder *tjs)
+bool JsonTlsLogJSONExtended(const void *vtx, void *tjs)
 {
     SSLState *state = (SSLState *)vtx;
     SCJbOpenObject(tjs, "tls");

@@ -210,7 +210,7 @@ static void JsonDNP3LogResponse(SCJsonBuilder *js, DNP3Transaction *dnp3tx)
     SCJbClose(js);
 }
 
-bool AlertJsonDnp3(void *vtx, SCJsonBuilder *js)
+bool AlertJsonDnp3(const void *vtx, void *js)
 {
     DNP3Transaction *tx = (DNP3Transaction *)vtx;
     if (tx->done && tx->buffer == NULL) {
