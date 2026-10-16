@@ -59,6 +59,12 @@ uint64_t ftp_config_memcap = 0;
 uint32_t ftp_config_maxtx = 1024;
 uint32_t ftp_max_line_len = 4096;
 
+/* Preliminary (1xx) responses kept per transaction. A preliminary response
+ * keeps the transaction open, so without a limit a server can grow the
+ * transaction's response list until the flow ends or reaches the stream
+ * reassembly depth. */
+static uint32_t ftp_max_preliminary_responses = 16;
+
 SC_ATOMIC_DECLARE(uint64_t, ftp_memuse);
 SC_ATOMIC_DECLARE(uint64_t, ftp_memcap);
 
@@ -66,7 +72,8 @@ static FTPTransaction *FTPGetOldestTx(const FtpState *, FTPTransaction *);
 
 static void FTPParseMemcap(void)
 {
-    SCFTPGetConfigValues(&ftp_config_memcap, &ftp_config_maxtx, &ftp_max_line_len);
+    SCFTPGetConfigValues(&ftp_config_memcap, &ftp_config_maxtx, &ftp_max_line_len,
+            &ftp_max_preliminary_responses);
 
     SC_ATOMIC_INIT(ftp_memuse);
     SC_ATOMIC_INIT(ftp_memcap);
@@ -720,6 +727,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
 
         state->curr_tx = tx;
 
+        const bool ppr = FTPIsPPR(line.buf, line.len);
         uint16_t dyn_port;
         switch (state->command) {
             case FTP_COMMAND_AUTH_TLS:
@@ -767,7 +775,19 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
                 break;
         }
 
-        if (likely(line.len)) {
+        if (ppr && unlikely(tx->preliminary_response_cnt >= ftp_max_preliminary_responses)) {
+            if (!AppLayerDecoderEventsIsEventSet(
+                        tx->tx_data.events, FtpEventTooManyPreliminaryResponses)) {
+                SCAppLayerDecoderEventsSetEventRaw(
+                        &tx->tx_data.events, FtpEventTooManyPreliminaryResponses);
+            }
+            /* the line is dropped, but its truncation is still reported */
+            if (line.truncated && !AppLayerDecoderEventsIsEventSet(
+                                          tx->tx_data.events, FtpEventResponseCommandTooLong)) {
+                SCAppLayerDecoderEventsSetEventRaw(
+                        &tx->tx_data.events, FtpEventResponseCommandTooLong);
+            }
+        } else if (likely(line.len)) {
             FTPResponseLine *response = SCFTPParseResponseLine((const char *)line.buf, line.len);
             if (likely(response)) {
                 FTPResponseWrapper *wrapper = FTPResponseWrapperAlloc(response);
@@ -778,6 +798,9 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
                                 &tx->tx_data.events, FtpEventResponseCommandTooLong);
                     }
                     TAILQ_INSERT_TAIL(&tx->response_list, wrapper, next);
+                    if (ppr) {
+                        tx->preliminary_response_cnt++;
+                    }
                 } else {
                     SCFTPFreeResponseLine(response);
                 }
@@ -787,7 +810,7 @@ static AppLayerResult FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserS
         }
 
         /* Handle preliminary replies -- keep tx open */
-        if (FTPIsPPR(line.buf, line.len)) {
+        if (ppr) {
             continue;
         }
     tx_complete:
@@ -1757,6 +1780,196 @@ static int FTPParserTest14(void)
     StreamTcpFreeConfig(true);
     PASS;
 }
+
+/** \test Preliminary responses past the limit are not stored */
+static int FTPParserTest15(void)
+{
+    Flow f;
+    uint8_t ftpbuf1[] = "USER anonymous\r\n";
+    const uint8_t ppr[] = "150 \r\n";
+    const uint8_t final[] = "226 done\r\n";
+    const uint32_t nppr = 100;
+    TcpSession ssn;
+
+    uint32_t ftplen2 = nppr * (sizeof(ppr) - 1) + sizeof(final) - 1;
+    uint8_t *ftpbuf2 = SCMalloc(ftplen2);
+    FAIL_IF_NULL(ftpbuf2);
+    for (uint32_t i = 0; i < nppr; i++) {
+        memcpy(ftpbuf2 + i * (sizeof(ppr) - 1), ppr, sizeof(ppr) - 1);
+    }
+    memcpy(ftpbuf2 + nppr * (sizeof(ppr) - 1), final, sizeof(final) - 1);
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_FTP;
+
+    StreamTcpInitConfig(true);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER | STREAM_START,
+            ftpbuf1, sizeof(ftpbuf1) - 1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOCLIENT, ftpbuf2, ftplen2);
+    FAIL_IF(r != 0);
+
+    FtpState *ftp_state = f.alstate;
+    FAIL_IF_NULL(ftp_state);
+    FTPTransaction *tx = TAILQ_FIRST(&ftp_state->tx_list);
+    FAIL_IF_NULL(tx);
+    FAIL_IF(TAILQ_NEXT(tx, next) != NULL);
+
+    uint32_t cnt = 0;
+    FTPResponseWrapper *wrapper;
+    TAILQ_FOREACH (wrapper, &tx->response_list, next) {
+        cnt++;
+    }
+    /* the preliminary responses up to the limit, then the final response */
+    FAIL_IF(cnt != ftp_max_preliminary_responses + 1);
+    FAIL_IF(tx->preliminary_response_cnt != ftp_max_preliminary_responses);
+    FAIL_IF(!AppLayerDecoderEventsIsEventSet(
+            tx->tx_data.events, FtpEventTooManyPreliminaryResponses));
+    FAIL_IF(!tx->done);
+
+    SCFree(ftpbuf2);
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/** \test Multi-line replies are not limited */
+static int FTPParserTest16(void)
+{
+    Flow f;
+    uint8_t ftpbuf1[] = "FEAT\r\n";
+    const uint8_t first[] = "211-Features:\r\n";
+    const uint8_t mid[] = "211-SIZE\r\n";
+    const uint8_t last[] = "211 End\r\n";
+    const uint32_t nmid = 100;
+    TcpSession ssn;
+
+    uint32_t ftplen2 = sizeof(first) - 1 + nmid * (sizeof(mid) - 1) + sizeof(last) - 1;
+    uint8_t *ftpbuf2 = SCMalloc(ftplen2);
+    FAIL_IF_NULL(ftpbuf2);
+    uint8_t *p = ftpbuf2;
+    memcpy(p, first, sizeof(first) - 1);
+    p += sizeof(first) - 1;
+    for (uint32_t i = 0; i < nmid; i++) {
+        memcpy(p, mid, sizeof(mid) - 1);
+        p += sizeof(mid) - 1;
+    }
+    memcpy(p, last, sizeof(last) - 1);
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_FTP;
+
+    StreamTcpInitConfig(true);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER | STREAM_START,
+            ftpbuf1, sizeof(ftpbuf1) - 1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOCLIENT, ftpbuf2, ftplen2);
+    FAIL_IF(r != 0);
+
+    FtpState *ftp_state = f.alstate;
+    FAIL_IF_NULL(ftp_state);
+    FTPTransaction *tx = TAILQ_FIRST(&ftp_state->tx_list);
+    FAIL_IF_NULL(tx);
+    FAIL_IF(TAILQ_NEXT(tx, next) != NULL);
+
+    uint32_t cnt = 0;
+    FTPResponseWrapper *wrapper;
+    TAILQ_FOREACH (wrapper, &tx->response_list, next) {
+        cnt++;
+    }
+    FAIL_IF(cnt != nmid + 2);
+    FAIL_IF(AppLayerDecoderEventsIsEventSet(
+            tx->tx_data.events, FtpEventTooManyPreliminaryResponses));
+    FAIL_IF(!tx->done);
+
+    SCFree(ftpbuf2);
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/** \test Truncated preliminary responses past the limit raise the too long
+ *        event once */
+static int FTPParserTest17(void)
+{
+    Flow f;
+    uint8_t ftpbuf1[] = "USER anonymous\r\n";
+    const uint8_t ppr[] = "150 \r\n";
+    const uint32_t nlong = 3;
+    TcpSession ssn;
+
+    /* the limit in short replies, then replies longer than the line limit */
+    const uint32_t long_len = ftp_max_line_len + 16;
+    uint32_t ftplen2 = ftp_max_preliminary_responses * (sizeof(ppr) - 1) + nlong * (long_len + 2);
+    uint8_t *ftpbuf2 = SCMalloc(ftplen2);
+    FAIL_IF_NULL(ftpbuf2);
+    uint8_t *p = ftpbuf2;
+    for (uint32_t i = 0; i < ftp_max_preliminary_responses; i++) {
+        memcpy(p, ppr, sizeof(ppr) - 1);
+        p += sizeof(ppr) - 1;
+    }
+    for (uint32_t i = 0; i < nlong; i++) {
+        memcpy(p, "150 ", 4);
+        memset(p + 4, 'a', long_len - 4);
+        p += long_len;
+        memcpy(p, "\r\n", 2);
+        p += 2;
+    }
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_FTP;
+
+    StreamTcpInitConfig(true);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER | STREAM_START,
+            ftpbuf1, sizeof(ftpbuf1) - 1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOCLIENT, ftpbuf2, ftplen2);
+    FAIL_IF(r != 0);
+
+    FtpState *ftp_state = f.alstate;
+    FAIL_IF_NULL(ftp_state);
+    FTPTransaction *tx = TAILQ_FIRST(&ftp_state->tx_list);
+    FAIL_IF_NULL(tx);
+
+    FAIL_IF(tx->preliminary_response_cnt != ftp_max_preliminary_responses);
+    FAIL_IF(!AppLayerDecoderEventsIsEventSet(
+            tx->tx_data.events, FtpEventTooManyPreliminaryResponses));
+    FAIL_IF(!AppLayerDecoderEventsIsEventSet(tx->tx_data.events, FtpEventResponseCommandTooLong));
+    /* each event once, however many lines were dropped */
+    FAIL_IF(tx->tx_data.events->cnt != 2);
+
+    SCFree(ftpbuf2);
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
 #endif /* UNITTESTS */
 
 void FTPParserRegisterTests(void)
@@ -1767,5 +1980,8 @@ void FTPParserRegisterTests(void)
     UtRegisterTest("FTPParserTest12", FTPParserTest12);
     UtRegisterTest("FTPParserTest13", FTPParserTest13);
     UtRegisterTest("FTPParserTest14", FTPParserTest14);
+    UtRegisterTest("FTPParserTest15", FTPParserTest15);
+    UtRegisterTest("FTPParserTest16", FTPParserTest16);
+    UtRegisterTest("FTPParserTest17", FTPParserTest17);
 #endif /* UNITTESTS */
 }

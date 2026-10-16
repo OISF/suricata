@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -68,6 +68,7 @@ typedef struct FTPTransaction_  {
 
     /* for the request */
     uint32_t request_length;
+    uint32_t preliminary_response_cnt;
     uint8_t *request;
     bool request_truncated;
 
