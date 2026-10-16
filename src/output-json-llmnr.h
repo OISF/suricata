@@ -21,6 +21,6 @@
 #define SURICATA_OUTPUT_JSON_LLMNR_H
 
 void JsonLLMNRLogRegister(void);
-bool AlertJsonLLMNR(void *txptr, SCJsonBuilder *js);
+bool AlertJsonLLMNR(const void *txptr, void *js);
 
 #endif /* SURICATA_OUTPUT_JSON_LLMNR_H */
