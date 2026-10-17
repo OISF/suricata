@@ -110,35 +110,6 @@ extern const struct SignatureProperties signature_properties[SIG_TYPE_MAX];
    -- Protocol
 */
 
-/* holds the values for different possible lists in struct Signature.
- * These codes are access points to particular lists in the array
- * Signature->init_data->smlists[DETECT_SM_LIST_MAX]. */
-enum DetectSigmatchListEnum {
-    /* list for non-payload per packet matches, e.g. ttl, flow keyword */
-    DETECT_SM_LIST_MATCH = 0,
-    /* list for payload and stream match */
-    DETECT_SM_LIST_PMATCH,
-
-    /* base64_data keyword uses some hardcoded logic so consider
-     * built-in
-     * TODO convert to inspect engine */
-    DETECT_SM_LIST_BASE64_DATA,
-
-    /* list for post match actions: flowbit set, flowint increment, etc */
-    DETECT_SM_LIST_POSTMATCH,
-
-    DETECT_SM_LIST_TMATCH, /**< post-detection tagging */
-
-    /* lists for alert thresholding and suppression */
-    DETECT_SM_LIST_SUPPRESS,
-    DETECT_SM_LIST_THRESHOLD,
-
-    DETECT_SM_LIST_MAX,
-
-    /* start of dynamically registered lists */
-    DETECT_SM_LIST_DYNAMIC_START = DETECT_SM_LIST_MAX,
-};
-
 /* used for Signature->list, which indicates which list
  * we're adding keywords to in cases of sticky buffers like
  * file_data */
