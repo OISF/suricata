@@ -202,6 +202,18 @@ uint16_t SCDetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw)
     return (uint16_t)keyword_id;
 }
 
+/**
+ * \brief Register a packet match callback for an existing keyword.
+ *
+ * Must be called during keyword initialization, after successfully registering
+ * the keyword with SCDetectHelperKeywordRegister().
+ */
+void SCDetectHelperKeywordPacketMatchRegister(uint16_t kwid,
+        int (*Match)(DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *))
+{
+    sigmatch_table[kwid].Match = Match;
+}
+
 void SCDetectHelperKeywordAliasRegister(uint16_t kwid, const char *alias)
 {
     sigmatch_table[kwid].alias = alias;
