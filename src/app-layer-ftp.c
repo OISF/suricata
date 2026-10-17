@@ -138,7 +138,8 @@ static void *FTPCalloc(size_t n, size_t size)
 
 static void *FTPRealloc(void *ptr, size_t orig_size, size_t size)
 {
-    if (FTPCheckMemcap((uint32_t)(size - orig_size)) == 0) {
+    /* a smaller size needs no memcap check, and size - orig_size would wrap */
+    if (size > orig_size && FTPCheckMemcap(size - orig_size) == 0) {
         sc_errno = SC_ELIMIT;
         return NULL;
     }
@@ -1947,6 +1948,25 @@ static int FTPParserTest17(void)
     StreamTcpFreeConfig(true);
     PASS;
 }
+
+/** \test With a memcap set, reducing a buffer's size succeeds and lowers memuse */
+static int FTPParserTest18(void)
+{
+    const uint64_t saved_memcap = ftp_config_memcap;
+    ftp_config_memcap = 1024 * 1024;
+
+    void *ptr = FTPCalloc(1, 1024);
+    FAIL_IF_NULL(ptr);
+    const uint64_t memuse = SC_ATOMIC_GET(ftp_memuse);
+
+    void *smaller = FTPRealloc(ptr, 1024, 512);
+    FAIL_IF_NULL(smaller);
+    FAIL_IF(SC_ATOMIC_GET(ftp_memuse) != memuse - 512);
+
+    FTPFree(smaller, 512);
+    ftp_config_memcap = saved_memcap;
+    PASS;
+}
 #endif /* UNITTESTS */
 
 void FTPParserRegisterTests(void)
@@ -1960,5 +1980,6 @@ void FTPParserRegisterTests(void)
     UtRegisterTest("FTPParserTest15", FTPParserTest15);
     UtRegisterTest("FTPParserTest16", FTPParserTest16);
     UtRegisterTest("FTPParserTest17", FTPParserTest17);
+    UtRegisterTest("FTPParserTest18", FTPParserTest18);
 #endif /* UNITTESTS */
 }
