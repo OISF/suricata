@@ -1045,6 +1045,9 @@ extern "C" {
         s: *mut Signature, alproto: AppProto,
     ) -> ::std::os::raw::c_int;
 }
+extern "C" {
+    pub fn SCDetectSignatureIsNegated(s: *const Signature) -> bool;
+}
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum SCError {

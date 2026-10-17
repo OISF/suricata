@@ -2610,6 +2610,22 @@ int DetectSignatureSetMultiAppProto(Signature *s, const AppProto *alprotos)
     return 0;
 }
 
+/**
+ * \brief Check if the keyword option being set up was negated.
+ *
+ * Only set for keywords registered with the SIGMATCH_HANDLE_NEGATION flag,
+ * in which case the leading '!' is stripped from the option value before it
+ * is passed to the keyword's Setup callback.
+ *
+ * \param s signature being set up
+ *
+ * \retval true if the option was prefixed with '!'
+ */
+bool SCDetectSignatureIsNegated(const Signature *s)
+{
+    return s->init_data->negated;
+}
+
 int SCDetectSignatureSetAppProto(Signature *s, AppProto alproto)
 {
     if (!AppProtoIsValid(alproto)) {
