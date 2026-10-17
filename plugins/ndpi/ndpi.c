@@ -320,16 +320,15 @@ static int DetectnDPIProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const 
     if (data == NULL)
         goto error;
 
-    SigMatch *tsm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
-    for (; tsm != NULL; tsm = tsm->next) {
-        if (tsm->type == ndpi_protocol_keyword_id) {
-            const DetectnDPIProtocolData *them = (const DetectnDPIProtocolData *)tsm->ctx;
+    const SigMatch *tsm =
+            SCDetectSignatureGetLastSMByType(s, DETECT_SM_LIST_MATCH, ndpi_protocol_keyword_id);
+    for (; tsm != NULL; tsm = SCSigMatchGetPrevByType(tsm, ndpi_protocol_keyword_id)) {
+        const DetectnDPIProtocolData *them = (const DetectnDPIProtocolData *)SCSigMatchGetCtx(tsm);
 
-            if (nDPIProtocolDataHasConflicts(data, them)) {
-                SCLogError("can't mix "
-                           "positive ndpi-protocol match with negated");
-                goto error;
-            }
+        if (nDPIProtocolDataHasConflicts(data, them)) {
+            SCLogError("can't mix "
+                       "positive ndpi-protocol match with negated");
+            goto error;
         }
     }
 
@@ -460,16 +459,15 @@ static int DetectnDPIRiskSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     if (data == NULL)
         goto error;
 
-    SigMatch *tsm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
-    for (; tsm != NULL; tsm = tsm->next) {
-        if (tsm->type == ndpi_risk_keyword_id) {
-            const DetectnDPIRiskData *them = (const DetectnDPIRiskData *)tsm->ctx;
+    const SigMatch *tsm =
+            SCDetectSignatureGetLastSMByType(s, DETECT_SM_LIST_MATCH, ndpi_risk_keyword_id);
+    for (; tsm != NULL; tsm = SCSigMatchGetPrevByType(tsm, ndpi_risk_keyword_id)) {
+        const DetectnDPIRiskData *them = (const DetectnDPIRiskData *)SCSigMatchGetCtx(tsm);
 
-            if (nDPIRiskDataHasConflicts(data, them)) {
-                SCLogError("can't mix "
-                           "positive ndpi-risk match with negated");
-                goto error;
-            }
+        if (nDPIRiskDataHasConflicts(data, them)) {
+            SCLogError("can't mix "
+                       "positive ndpi-risk match with negated");
+            goto error;
         }
     }
 
