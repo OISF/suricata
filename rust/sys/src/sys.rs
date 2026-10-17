@@ -1041,6 +1041,17 @@ extern "C" {
     pub fn SCDetectGetLastSMFromLists(s: *const Signature, ...) -> *mut SigMatch;
 }
 extern "C" {
+    pub fn SCDetectSignatureGetLastSMByType(
+        s: *const Signature, list_id: ::std::os::raw::c_int, type_: u16,
+    ) -> *const SigMatch;
+}
+extern "C" {
+    pub fn SCSigMatchGetPrevByType(sm: *const SigMatch, type_: u16) -> *const SigMatch;
+}
+extern "C" {
+    pub fn SCSigMatchGetCtx(sm: *const SigMatch) -> *const SigMatchCtx;
+}
+extern "C" {
     pub fn SCDetectSignatureSetAppProto(
         s: *mut Signature, alproto: AppProto,
     ) -> ::std::os::raw::c_int;

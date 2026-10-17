@@ -738,6 +738,57 @@ SigMatch *DetectGetLastSMByListId(const Signature *s, int list_id, ...)
 }
 
 /**
+ * \brief Get the last SigMatch of keyword \a type in list \a list_id.
+ *
+ * Lets a keyword Setup callback inspect earlier instances of a keyword in
+ * the signature being set up, together with SCSigMatchGetPrevByType() and
+ * SCSigMatchGetCtx(), without depending on the SigMatch layout.
+ *
+ * Only the static lists from DetectSigmatchListEnum are supported. A dynamic
+ * buffer list can have several instances in a signature, each with its own
+ * SigMatch chain, so there is no single list to walk.
+ *
+ * \param s signature being set up
+ * \param list_id static list to search, e.g. DETECT_SM_LIST_MATCH
+ * \param type keyword id, as returned by SCDetectHelperKeywordRegister()
+ *
+ * \retval sm last SigMatch of \a type in the list, or NULL if there is none
+ *         or \a list_id is not a static list
+ */
+const SigMatch *SCDetectSignatureGetLastSMByType(const Signature *s, int list_id, uint16_t type)
+{
+    DEBUG_VALIDATE_BUG_ON(list_id < 0 || list_id >= DETECT_SM_LIST_MAX);
+    if (list_id < 0 || list_id >= DETECT_SM_LIST_MAX)
+        return NULL;
+    return DetectGetLastSMByListId(s, list_id, type, -1);
+}
+
+/**
+ * \brief Get the previous SigMatch of keyword \a type before \a sm.
+ *
+ * \param sm SigMatch to search before, must not be NULL
+ * \param type keyword id
+ *
+ * \retval sm previous SigMatch of \a type in the same list, or NULL if there
+ *         is none
+ */
+const SigMatch *SCSigMatchGetPrevByType(const SigMatch *sm, uint16_t type)
+{
+    return SigMatchGetLastSMByType(sm->prev, type);
+}
+
+/**
+ * \brief Get the keyword context of \a sm, as passed to
+ *        SCSigMatchAppendSMToList() by the keyword's Setup callback.
+ *
+ * \param sm SigMatch, must not be NULL
+ */
+const SigMatchCtx *SCSigMatchGetCtx(const SigMatch *sm)
+{
+    return sm->ctx;
+}
+
+/**
  * \brief Returns the sm with the largest index (added latest) from this sig
  *
  * \retval sm_last Pointer to last sm
