@@ -635,6 +635,23 @@ extern "C" {
         tv: *mut ThreadVars, p: *const Packet, f: *mut Flow, jb: *mut SCJsonBuilder,
     );
 }
+impl DetectSigmatchListEnum {
+    pub const DETECT_SM_LIST_DYNAMIC_START: DetectSigmatchListEnum =
+        DetectSigmatchListEnum::DETECT_SM_LIST_MAX;
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum DetectSigmatchListEnum {
+    DETECT_SM_LIST_MATCH = 0,
+    DETECT_SM_LIST_PMATCH = 1,
+    DETECT_SM_LIST_BASE64_DATA = 2,
+    DETECT_SM_LIST_POSTMATCH = 3,
+    #[doc = "< post-detection tagging"]
+    DETECT_SM_LIST_TMATCH = 4,
+    DETECT_SM_LIST_SUPPRESS = 5,
+    DETECT_SM_LIST_THRESHOLD = 6,
+    DETECT_SM_LIST_MAX = 7,
+}
 extern "C" {
     pub fn SCSigTablePreRegister(
         KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
