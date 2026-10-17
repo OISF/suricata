@@ -316,7 +316,7 @@ static bool nDPIProtocolDataHasConflicts(
 
 static int DetectnDPIProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    DetectnDPIProtocolData *data = DetectnDPIProtocolParse(arg, s->init_data->negated);
+    DetectnDPIProtocolData *data = DetectnDPIProtocolParse(arg, SCDetectSignatureIsNegated(s));
     if (data == NULL)
         goto error;
 
@@ -456,7 +456,7 @@ static bool nDPIRiskDataHasConflicts(const DetectnDPIRiskData *us, const Detectn
 
 static int DetectnDPIRiskSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    DetectnDPIRiskData *data = DetectnDPIRiskParse(arg, s->init_data->negated);
+    DetectnDPIRiskData *data = DetectnDPIRiskParse(arg, SCDetectSignatureIsNegated(s));
     if (data == NULL)
         goto error;
 
