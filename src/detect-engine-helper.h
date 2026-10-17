@@ -29,6 +29,8 @@
 
 // type from flow.h with only forward declarations for bindgen
 typedef struct Flow_ Flow;
+// type from decode.h with only a forward declaration for bindgen
+typedef struct Packet_ Packet;
 // types from detect.h with only forward declarations for bindgen
 // could be #ifndef SURICATA_BINDGEN_H #include "detect.h" #endif
 typedef struct DetectEngineCtx_ DetectEngineCtx;
@@ -79,6 +81,8 @@ typedef struct SCTransformTableElmt {
 int SCDetectHelperNewKeywordId(void);
 
 uint16_t SCDetectHelperKeywordRegister(const SCSigTableAppLiteElmt *kw);
+void SCDetectHelperKeywordPacketMatchRegister(uint16_t kwid,
+        int (*Match)(DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *));
 void SCDetectHelperKeywordAliasRegister(uint16_t kwid, const char *alias);
 typedef struct SCJsonBuilder SCJsonBuilder;
 void SCDetectHelperKeywordJsonInfoRegister(uint16_t kwid, void (*cb)(struct SCJsonBuilder *));
