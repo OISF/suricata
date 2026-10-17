@@ -887,6 +887,19 @@ extern "C" {
     pub fn SCDetectHelperKeywordRegister(kw: *const SCSigTableAppLiteElmt) -> u16;
 }
 extern "C" {
+    pub fn SCDetectHelperKeywordPacketMatchRegister(
+        kwid: u16,
+        Match: ::std::option::Option<
+            unsafe extern "C" fn(
+                arg1: *mut DetectEngineThreadCtx,
+                arg2: *mut Packet,
+                arg3: *const Signature,
+                arg4: *const SigMatchCtx,
+            ) -> ::std::os::raw::c_int,
+        >,
+    );
+}
+extern "C" {
     pub fn SCDetectHelperKeywordAliasRegister(kwid: u16, alias: *const ::std::os::raw::c_char);
 }
 extern "C" {
