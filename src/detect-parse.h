@@ -84,6 +84,9 @@ SigMatch *DetectGetLastSMFromMpmLists(const DetectEngineCtx *de_ctx, const Signa
 SigMatch *SCDetectGetLastSMFromLists(const Signature *s, ...);
 SigMatch *DetectGetLastSMByListPtr(const Signature *s, SigMatch *sm_list, ...);
 SigMatch *DetectGetLastSMByListId(const Signature *s, int list_id, ...);
+const SigMatch *SCDetectSignatureGetLastSMByType(const Signature *s, int list_id, uint16_t type);
+const SigMatch *SCSigMatchGetPrevByType(const SigMatch *sm, uint16_t type);
+const SigMatchCtx *SCSigMatchGetCtx(const SigMatch *sm);
 
 int WARN_UNUSED SCDetectSignatureSetAppProto(Signature *s, AppProto alproto);
 bool SCDetectSignatureIsNegated(const Signature *s);
