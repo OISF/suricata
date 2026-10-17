@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -2614,6 +2614,29 @@ int DetectSignatureSetMultiAppProto(Signature *s, const AppProto *alprotos)
         }
     }
     return 0;
+}
+
+/**
+ * \brief Check if the keyword option being set up was negated.
+ *
+ * Only set for keywords registered with the SIGMATCH_HANDLE_NEGATION flag,
+ * in which case the leading '!' is stripped from the option value before it
+ * is passed to the keyword's Setup callback.
+ *
+ * Note: Must only be called from the `Setup` callback of the keyword currently
+ * being setup.
+ *
+ * \param s signature being set up
+ *
+ * \retval true if the option was prefixed with '!'
+ */
+bool SCDetectSetupSignatureIsNegated(const Signature *s)
+{
+    DEBUG_VALIDATE_BUG_ON(s->init_data == NULL);
+    if (s->init_data) {
+        return s->init_data->negated;
+    }
+    return NULL;
 }
 
 int SCDetectSignatureSetAppProto(Signature *s, AppProto alproto)
