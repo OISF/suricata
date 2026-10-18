@@ -31,6 +31,7 @@ TmEcode ConfigSetLogDirectory(const char *name);
 const char *SCConfigGetLogDirectory(void);
 TmEcode ConfigCheckLogDirectoryExists(const char *log_dir);
 
+TmEcode ConfigNormalizeDataDirectory(const char *name, char *out, size_t out_size);
 TmEcode ConfigSetDataDirectory(char *name);
 const char *ConfigGetDataDirectory(void);
 TmEcode ConfigCheckDataDirectory(const char *log_dir);

@@ -29,6 +29,7 @@ pub use loader::LoadError;
 pub use loader::Location;
 pub use node::Mapping;
 pub use node::Node;
+pub use node::PathError;
 pub use overrides::apply_overrides;
 pub use overrides::parse_set;
 pub use overrides::Override;

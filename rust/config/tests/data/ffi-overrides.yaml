@@ -1,0 +1,8 @@
+shared: from-main
+mapping:
+  a: 1
+list:
+  - a
+  - b
+nested:
+  - [a, b]
