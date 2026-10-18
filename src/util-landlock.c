@@ -45,6 +45,10 @@ void SCLandlockGrantWritePath(void *ruleset, const char *path)
 {
 }
 
+void SCLandlockGrantUnixSocket(void *ruleset, const char *path)
+{
+}
+
 void SCLandlockGrantNetBindTCP(void *ruleset, uint16_t port)
 {
 }
@@ -319,6 +323,39 @@ void SCLandlockGrantNetConnectTCP(void *vruleset, uint16_t port)
 #endif
 }
 
+/**
+ * \brief Grant connect permission on a pathname unix socket
+ *
+ * RESOLVE_UNIX is a file access right: the rule can target the socket
+ * itself, or a directory to cover every socket beneath it. Silently no-op
+ * when running on a kernel where it is not available (ABI < 9).
+ *
+ * \param vruleset opaque landlock ruleset
+ * \param path unix socket path or directory containing sockets
+ */
+void SCLandlockGrantUnixSocket(void *vruleset, const char *path)
+{
+    struct landlock_ruleset *ruleset = vruleset;
+    if (ruleset == NULL || path == NULL)
+        return;
+    if ((ruleset->attr.handled_access_fs & LANDLOCK_ACCESS_FS_RESOLVE_UNIX) == 0)
+        return;
+    struct landlock_path_beneath_attr path_beneath = {
+        .allowed_access = LANDLOCK_ACCESS_FS_RESOLVE_UNIX,
+    };
+    path_beneath.parent_fd = open(path, O_PATH | O_CLOEXEC);
+    if (path_beneath.parent_fd == -1) {
+        SCLogError("Can't open unix socket %s: %s", path, strerror(errno));
+        return;
+    }
+    if (landlock_add_rule(ruleset->fd, LANDLOCK_RULE_PATH_BENEATH, &path_beneath, 0)) {
+        SCLogError("Can't add unix socket rule for %s: %s", path, strerror(errno));
+    } else {
+        SCLogConfig("Added unix socket connect permission to '%s'", path);
+    }
+    close(path_beneath.parent_fd);
+}
+
 static void LandlockSandboxingApplyNetPorts(
         void *v_ruleset, const char *conf_key, void (*grant)(void *, uint16_t))
 {
@@ -457,6 +494,19 @@ void LandlockSandboxing(SCInstance *suri)
             SCConfNode *directory;
             TAILQ_FOREACH (directory, &write_dirs->head, next) {
                 SCLandlockGrantWritePath(ruleset, directory->val);
+            }
+        }
+    }
+
+    SCConfNode *unix_sockets = SCConfGetNode("security.landlock.unix-sockets");
+    if (unix_sockets) {
+        if (!SCConfNodeIsSequence(unix_sockets)) {
+            SCLogWarning("Invalid security.landlock.unix-sockets configuration section: "
+                         "expected a list of unix socket paths.");
+        } else {
+            SCConfNode *sock;
+            TAILQ_FOREACH (sock, &unix_sockets->head, next) {
+                SCLandlockGrantUnixSocket(ruleset, sock->val);
             }
         }
     }
