@@ -28,6 +28,7 @@
 
 void SCLandlockGrantReadPath(void *ruleset, const char *path);
 void SCLandlockGrantWritePath(void *ruleset, const char *path);
+void SCLandlockGrantUnixSocket(void *ruleset, const char *path);
 
 void SCLandlockGrantNetBindTCP(void *ruleset, uint16_t port);
 
