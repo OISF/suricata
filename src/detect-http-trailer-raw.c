@@ -117,6 +117,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
 
         const bool ts = ((flow_flags & STREAM_TOSERVER) != 0);
+        if (!HtpTrailerBlockIsComplete(tx, flow_flags))
+            return NULL;
         const uint8_t *data = ts ? tx_ud->request_trailers_raw : tx_ud->response_trailers_raw;
         if (data == NULL)
             return NULL;

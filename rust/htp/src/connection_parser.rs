@@ -692,7 +692,6 @@ impl ConnectionParser {
             }
             req.process_request_headers()?;
             // Run hook REQUEST_HEADERS.
-            #[cfg(test)]
             self.cfg
                 .hook_request_headers
                 .clone()
@@ -851,7 +850,6 @@ impl ConnectionParser {
         // Finalize sending raw header data.
         self.response_receiver_finalize_clear(input)?;
         // Run hook RESPONSE_HEADERS.
-        #[cfg(test)]
         self.cfg
             .hook_response_headers
             .clone()

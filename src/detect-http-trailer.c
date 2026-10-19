@@ -132,6 +132,9 @@ static uint8_t *GetBufferForTX(
 {
     *buffer_len = 0;
 
+    if (!HtpTrailerBlockIsComplete(tx, flags))
+        return NULL;
+
     HttpHeaderThreadData *hdr_td = NULL;
     HttpHeaderBuffer *buf = HttpHeaderGetBufferSpace(det_ctx, flags, g_keyword_thread_id, &hdr_td);
     if (unlikely(buf == NULL)) {
