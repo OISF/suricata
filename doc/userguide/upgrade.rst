@@ -71,6 +71,12 @@ Major Changes
   ``tx:request_headers()``, ``tx:request_headers_raw()`` and the response twins read the
   header tables and the raw header buffer, and that library has no trailer accessor.
 
+- A HTTP/1 header block spanning several packets is no longer re-inspected while it is still
+  arriving: a rule on ``http.header`` or ``http.header.raw`` now alerts once per transaction
+  instead of once per inspection round. Which transactions alert is unchanged, so alert counts
+  drop on captures where such a block arrived in pieces. This is what makes a negated match or a
+  ``within:`` distance on a header buffer decide on the whole block.
+
 - HTTP/2 gained a transaction state for the trailer block,
   ``http2:stream:request_trailers`` and ``http2:stream:response_trailers``, between
   ``..._data`` and ``..._closed``. Firewall rules with a state range spanning them (for

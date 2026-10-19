@@ -112,6 +112,32 @@ pub unsafe extern "C" fn htp_config_register_request_start(
     }
 }
 
+/// Registers a REQUEST_HEADERS callback, run when the request header block
+/// is complete.
+/// # Safety
+/// When calling this method, you have to ensure that cfg is either properly initialized or NULL
+#[no_mangle]
+pub unsafe extern "C" fn htp_config_register_request_headers(
+    cfg: *mut Config, cbk_fn: TxExternalCallbackFn,
+) {
+    if let Some(cfg) = cfg.as_mut() {
+        cfg.hook_request_headers.register_extern(cbk_fn)
+    }
+}
+
+/// Registers a RESPONSE_HEADERS callback, run when the response header block
+/// is complete.
+/// # Safety
+/// When calling this method, you have to ensure that cfg is either properly initialized or NULL
+#[no_mangle]
+pub unsafe extern "C" fn htp_config_register_response_headers(
+    cfg: *mut Config, cbk_fn: TxExternalCallbackFn,
+) {
+    if let Some(cfg) = cfg.as_mut() {
+        cfg.hook_response_headers.register_extern(cbk_fn)
+    }
+}
+
 /// Registers a HTP_REQUEST_TRAILER callback.
 /// # Safety
 /// When calling this method, you have to ensure that cfg is either properly initialized or NULL
