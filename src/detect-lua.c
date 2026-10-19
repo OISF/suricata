@@ -730,6 +730,14 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
     intmax_t lua_instruction_limit = DEFAULT_LUA_INSTRUCTION_LIMIT;
     (void)SCConfGetInt("security.lua.max-bytes", &lua_alloc_limit);
     (void)SCConfGetInt("security.lua.max-instructions", &lua_instruction_limit);
+    /* a negative value would wrap the cap below the baseline and fail
+     * every call silently; 0 means unlimited */
+    if (lua_alloc_limit < 0) {
+        SCLogError("security.lua.max-bytes must be non-negative (got %" PRIdMAX "), "
+                   "use 0 for no limit",
+                lua_alloc_limit);
+        goto error;
+    }
     lua->alloc_limit = lua_alloc_limit;
     lua->instruction_limit = lua_instruction_limit;
 

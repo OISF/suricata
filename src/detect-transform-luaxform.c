@@ -278,6 +278,15 @@ static int DetectTransformLuaxformSetup(DetectEngineCtx *de_ctx, Signature *s, c
     (void)SCConfGetInt("security.lua.max-instructions", &lua_instruction_limit);
     (void)SCConfGetBool("security.lua.allow-restricted-functions", &allow_restricted_functions);
 
+    /* a negative value would wrap the cap below the baseline and fail
+     * every call silently; 0 means unlimited */
+    if (lua_alloc_limit < 0) {
+        SCLogError("security.lua.max-bytes must be non-negative (got %" PRIdMAX "), "
+                   "use 0 for no limit",
+                lua_alloc_limit);
+        goto error;
+    }
+
     lua->alloc_limit = lua_alloc_limit;
     lua->instruction_limit = lua_instruction_limit;
     lua->allow_restricted_functions = allow_restricted_functions;
