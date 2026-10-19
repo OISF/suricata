@@ -1481,6 +1481,18 @@ typedef struct DetectEngineThreadCtx_ {
     /** stat of lua memory limit errors. */
     StatsCounterId lua_memory_limit_errors;
 
+    /** stats id for luaxform (transform) errors */
+    StatsCounterId lua_transform_errors;
+
+    /** stats id for luaxform blocked function counts */
+    StatsCounterId lua_transform_blocked_function_errors;
+
+    /** stats id for luaxform instruction limit errors */
+    StatsCounterId lua_transform_instruction_limit_errors;
+
+    /** stats id for luaxform memory limit errors */
+    StatsCounterId lua_transform_memory_limit_errors;
+
 #ifdef DEBUG
     uint64_t pkt_stream_add_cnt;
     uint64_t payload_mpm_cnt;

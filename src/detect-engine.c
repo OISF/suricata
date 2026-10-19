@@ -3715,6 +3715,21 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
     det_ctx->lua_memory_limit_errors =
             StatsRegisterCounter("detect.lua.memory_limit_errors", &tv->stats);
 
+    /* Register counters for luaxform (transform) errors. */
+    det_ctx->lua_transform_errors = StatsRegisterCounter("transform.lua.errors", &tv->stats);
+
+    /* Register a counter for luaxform blocked function attempts. */
+    det_ctx->lua_transform_blocked_function_errors =
+            StatsRegisterCounter("transform.lua.blocked_function_errors", &tv->stats);
+
+    /* Register a counter for luaxform instruction limit errors. */
+    det_ctx->lua_transform_instruction_limit_errors =
+            StatsRegisterCounter("transform.lua.instruction_limit_errors", &tv->stats);
+
+    /* Register a counter for luaxform memory limit errors. */
+    det_ctx->lua_transform_memory_limit_errors =
+            StatsRegisterCounter("transform.lua.memory_limit_errors", &tv->stats);
+
     det_ctx->json_content = NULL;
     det_ctx->json_content_capacity = 0;
     det_ctx->json_content_len = 0;
@@ -3786,6 +3801,24 @@ DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     }
     det_ctx->counter_alerts_suppressed =
             StatsRegisterCounter("detect.alerts_suppressed", &tv->stats);
+
+    /* the lua counters are registered by the normal thread init; the
+     * reload and multi-tenant contexts build det_ctx directly and need
+     * them too (StatsRegisterCounter returns the existing id) */
+    det_ctx->lua_rule_errors = StatsRegisterCounter("detect.lua.errors", &tv->stats);
+    det_ctx->lua_blocked_function_errors =
+            StatsRegisterCounter("detect.lua.blocked_function_errors", &tv->stats);
+    det_ctx->lua_instruction_limit_errors =
+            StatsRegisterCounter("detect.lua.instruction_limit_errors", &tv->stats);
+    det_ctx->lua_memory_limit_errors =
+            StatsRegisterCounter("detect.lua.memory_limit_errors", &tv->stats);
+    det_ctx->lua_transform_errors = StatsRegisterCounter("transform.lua.errors", &tv->stats);
+    det_ctx->lua_transform_blocked_function_errors =
+            StatsRegisterCounter("transform.lua.blocked_function_errors", &tv->stats);
+    det_ctx->lua_transform_instruction_limit_errors =
+            StatsRegisterCounter("transform.lua.instruction_limit_errors", &tv->stats);
+    det_ctx->lua_transform_memory_limit_errors =
+            StatsRegisterCounter("transform.lua.memory_limit_errors", &tv->stats);
 #ifdef PROFILING
     det_ctx->counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", &tv->stats);
     det_ctx->counter_match_list = StatsRegisterAvgCounter("detect.match_list", &tv->stats);
