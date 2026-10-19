@@ -8328,6 +8328,35 @@
                         }
                     }
                 },
+                "transform": {
+                    "type": "object",
+                    "description": "Statistics related to the transform functions",
+                    "additionalProperties": false,
+                    "properties": {
+                        "lua": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "blocked_function_errors": {
+                                    "type": "integer",
+                                    "description": "Counter for Lua transform scripts failing due to blocked functions being called"
+                                },
+                                "errors": {
+                                    "type": "integer",
+                                    "description": "Errors encountered while running Lua transform functions"
+                                },
+                                "instruction_limit_errors": {
+                                    "type": "integer",
+                                    "description": "Count of Lua transform functions exceeding the instruction limit"
+                                },
+                                "memory_limit_errors": {
+                                    "type": "integer",
+                                    "description": "Count of Lua transform functions exceeding the memory limit"
+                                }
+                            }
+                        }
+                    }
+                },
                 "uptime": {
                     "type": "integer",
                     "description": "Suricata engine's uptime"

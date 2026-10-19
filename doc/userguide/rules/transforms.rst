@@ -311,6 +311,8 @@ A Lua transform function is not invoked if the buffer is empty or the Lua framew
 not accessible (rare).
 
 Lua transform functions must return two values (see below) or the buffer is not modified.
+An empty return (``""`` with a length of 0) is accepted and also leaves the
+buffer unchanged; ``luaxform`` cannot shorten a buffer to zero.
 
 Note that the arguments and values are passed without validation
 nor interpretation. There is a maximum of 10 arguments.
