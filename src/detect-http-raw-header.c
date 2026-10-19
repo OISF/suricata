@@ -96,19 +96,15 @@ void DetectHttpRawHeaderRegister(void)
     sigmatch_table[DETECT_HTTP_RAW_HEADER].Setup = DetectHttpRawHeaderSetupSticky;
     sigmatch_table[DETECT_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT|SIGMATCH_INFO_STICKY_BUFFER;
 
-    /* one state past the headers, unlike the other header buffers: the raw bytes arrive
-     * through a data hook that htp only flushes as it leaves the header state, so a round at
-     * HEADERS would decide on a truncated block (negated content and within: would answer
-     * differently than on the complete block) */
     DetectAppLayerInspectEngineRegister("http_raw_header", ALPROTO_HTTP1, SIG_FLAG_TOSERVER,
-            HTP_REQUEST_PROGRESS_HEADERS + 1, DetectEngineInspectBufferGeneric, GetData);
+            HTP_REQUEST_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetData);
     DetectAppLayerInspectEngineRegister("http_raw_header", ALPROTO_HTTP1, SIG_FLAG_TOCLIENT,
-            HTP_RESPONSE_PROGRESS_HEADERS + 1, DetectEngineInspectBufferGeneric, GetData);
+            HTP_RESPONSE_PROGRESS_HEADERS, DetectEngineInspectBufferGeneric, GetData);
 
     DetectAppLayerMpmRegister("http_raw_header", SIG_FLAG_TOSERVER, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS + 1);
+            GetData, ALPROTO_HTTP1, HTP_REQUEST_PROGRESS_HEADERS);
     DetectAppLayerMpmRegister("http_raw_header", SIG_FLAG_TOCLIENT, 2, PrefilterGenericMpmRegister,
-            GetData, ALPROTO_HTTP1, HTP_RESPONSE_PROGRESS_HEADERS + 1);
+            GetData, ALPROTO_HTTP1, HTP_RESPONSE_PROGRESS_HEADERS);
 
     DetectAppLayerInspectEngineRegisterSubState("http_raw_header", ALPROTO_HTTP2, SIG_FLAG_TOSERVER,
             HTTP2TxTypeStream, HTTP2ProgHeaders, DetectEngineInspectBufferGeneric, GetData2);
@@ -196,6 +192,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
 
         const bool ts = ((flow_flags & STREAM_TOSERVER) != 0);
+        if (!HtpHeaderBlockIsComplete(tx, flow_flags))
+            return NULL;
         const uint8_t *data = ts ?
             tx_ud->request_headers_raw : tx_ud->response_headers_raw;
         if (data == NULL)
