@@ -48,7 +48,6 @@ jobs:
                 jansson-devel \
                 jq \
                 libtool \
-                libyaml-devel \
                 libnfnetlink-devel \
                 libnetfilter_queue-devel \
                 libnet-devel \
@@ -130,7 +129,6 @@ jobs:
                 jansson-devel \
                 jq \
                 libtool \
-                libyaml-devel \
                 libnfnetlink-devel \
                 libnetfilter_queue-devel \
                 libnet-devel \

@@ -51,7 +51,6 @@ dependencies::
     mingw-w64-ucrt-x86_64-jansson \
     mingw-w64-ucrt-x86_64-libpcap \
     mingw-w64-ucrt-x86_64-libtool \
-    mingw-w64-ucrt-x86_64-libyaml \
     mingw-w64-ucrt-x86_64-pcre2 \
     mingw-w64-ucrt-x86_64-rust \
     mingw-w64-ucrt-x86_64-toolchain \

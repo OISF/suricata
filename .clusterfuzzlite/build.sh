@@ -52,13 +52,6 @@ cmake ..
 make install
 cd ../..
 
-cd libyaml
-./bootstrap
-./configure --disable-shared
-make -j$(nproc)
-make install
-cd ..
-
 export CARGO_BUILD_TARGET="x86_64-unknown-linux-gnu"
 # cf https://github.com/google/sanitizers/issues/1389
 export MSAN_OPTIONS=strict_memcmp=false

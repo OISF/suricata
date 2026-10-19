@@ -59,7 +59,6 @@ dnf -y install \
     jansson-devel \
     libasan \
     libtool \
-    libyaml-devel \
     libnfnetlink-devel \
     libnetfilter_queue-devel \
     libnet-devel \

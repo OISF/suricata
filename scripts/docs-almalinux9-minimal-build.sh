@@ -4,5 +4,5 @@
 
 # install-guide-documentation tag start: Minimal RPM-based dependencies
 sudo dnf install -y cargo gcc jansson-devel libpcap-devel \
-    libyaml-devel make pcre2-devel zlib-devel
+    make pcre2-devel zlib-devel
 # install-guide-documentation tag end: Minimal RPM-based dependencies

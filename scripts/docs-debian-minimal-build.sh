@@ -5,5 +5,5 @@
 # install-guide-documentation tag start: Minimal dependencies
 sudo apt -y install autoconf automake build-essential cargo \
     libjansson-dev libpcap-dev libpcre2-dev libtool \
-    libyaml-dev make pkg-config rustc zlib1g-dev
+    make pkg-config rustc zlib1g-dev
 # install-guide-documentation tag end: Minimal dependencies

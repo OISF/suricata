@@ -31,7 +31,6 @@ in with pkgs;
       libnetfilter_queue
       libnfnetlink
       libpcap
-      libyaml
       lz4
       pcre2
       vectorscan

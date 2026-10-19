@@ -50,7 +50,6 @@ jobs:
 
     - run: |
        sudo apt-get update
-       sudo apt-get install libyaml-dev
        sudo apt-get install libssl-dev
        sudo apt-get install libpcre2-dev
        sudo apt-get install libjansson-dev

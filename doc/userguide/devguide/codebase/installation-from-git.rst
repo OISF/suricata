@@ -25,7 +25,7 @@ to ensure that you have everything you need for the installation.
 .. code-block:: bash
 
   sudo apt-get -y install libpcre2-dev build-essential autoconf \
-  automake libtool libpcap-dev libnet1-dev libyaml-0-2 libyaml-dev \
+  automake libtool libpcap-dev libnet1-dev \
   pkg-config zlib1g zlib1g-dev libcap-ng-dev libcap-ng0 make \
   libmagic-dev libjansson-dev rustc cargo jq git-core
 

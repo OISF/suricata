@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
+          # libyaml is kept as every commit of a pull request is
+          # built here, including those before the Rust loader
+          # replaced it. Remove it once that is no longer the case.
           apt -y install \
                 libpcre2-dev \
                 build-essential \
