@@ -42,7 +42,6 @@ pub struct Config {
     /// they don't use headers).
     pub(crate) hook_request_header_data: DataHook,
     /// Request headers hook, invoked after all request headers are seen.
-    #[cfg(test)]
     pub(crate) hook_request_headers: TxHook,
     /// Request body data hook, invoked every time body data is available. Each
     /// invocation will provide a Data instance. Chunked data
@@ -71,7 +70,6 @@ pub struct Config {
     /// they don't have response headers).
     pub(crate) hook_response_header_data: DataHook,
     /// Response headers book, invoked after all response headers have been seen.
-    #[cfg(test)]
     pub(crate) hook_response_headers: TxHook,
     /// Response body data hook, invoked every time body data is available. Each
     /// invocation will provide a Data instance. Chunked data
@@ -119,7 +117,6 @@ impl Default for Config {
             hook_request_start: TxHook::default(),
             hook_request_line: TxHook::default(),
             hook_request_header_data: DataHook::default(),
-            #[cfg(test)]
             hook_request_headers: TxHook::default(),
             hook_request_body_data: DataHook::default(),
             hook_request_trailer_data: DataHook::default(),
@@ -129,7 +126,6 @@ impl Default for Config {
             #[cfg(test)]
             hook_response_line: TxHook::default(),
             hook_response_header_data: DataHook::default(),
-            #[cfg(test)]
             hook_response_headers: TxHook::default(),
             hook_response_body_data: DataHook::default(),
             hook_response_trailer_data: DataHook::default(),
