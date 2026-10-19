@@ -439,17 +439,24 @@ void SCLuaSbUpdateBytesLimit(lua_State *L)
         sb->alloc_baseline = sb->alloc_bytes;
         sb->alloc_baseline_done = true;
     }
-    /* fixed cap relative to the setup baseline. Re-basing on the live
-     * alloc_bytes per call (old behavior) let retained script memory
-     * escape the configured limit entirely */
-    /* the call's own inputs (allocated between the Reset and this
-     * Update) are exempt, as they were before the fixed cap: they are
-     * garbage once the call returns and retain nothing. The exemption
-     * is the gross allocation: a GC step during the setup pushes can
-     * reclaim the previous call's garbage, which the net delta would
-     * net against the inputs */
-    sb->alloc_limit = sb->alloc_baseline + sb->alloc_limit_cfg +
-                      (sb->alloc_bytes_allocated - sb->alloc_since_start);
+    /* a configured limit of 0 means unlimited: keep alloc_limit at 0 so the
+     * allocator skips the check (a cap equal to the baseline would fail any
+     * non-zero allocation) */
+    if (sb->alloc_limit_cfg == 0) {
+        sb->alloc_limit = 0;
+    } else {
+        /* fixed cap relative to the setup baseline. Re-basing on the live
+         * alloc_bytes per call (old behavior) let retained script memory
+         * escape the configured limit entirely */
+        /* the call's own inputs (allocated between the Reset and this
+         * Update) are exempt, as they were before the fixed cap: they are
+         * garbage once the call returns and retain nothing. The exemption
+         * is the gross allocation: a GC step during the setup pushes can
+         * reclaim the previous call's garbage, which the net delta would
+         * net against the inputs */
+        sb->alloc_limit = sb->alloc_baseline + sb->alloc_limit_cfg +
+                          (sb->alloc_bytes_allocated - sb->alloc_since_start);
+    }
 }
 
 void SCLuaSbRestoreBytesLimit(lua_State *L, const uint64_t cfg_limit)
