@@ -46,12 +46,6 @@ impl NFSState {
         let is_last = w.stable == 2;
         SCLogDebug!("is_last {}", is_last);
 
-        let mut fill_bytes = 0;
-        let pad = w.write_len % 4;
-        if pad != 0 {
-            fill_bytes = 4 - pad;
-        }
-
         if w.write_len == 0 {
             return;
         }
@@ -88,7 +82,7 @@ impl NFSState {
             tx.tx_data.0.files_opened = 0;
             // Skip to the RPC record boundary: claim vs data can disagree, and
             // claimed-count math lands mid-padding or in a later record.
-            let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+            let pending = crate::nfs::nfs::record_tail(r.prog_data_size, r.prog_data.len());
             self.set_skip(Direction::ToServer, pending);
             self.ts_chunk_xid = 0;
             self.ts_chunk_left = 0;
@@ -121,7 +115,7 @@ impl NFSState {
                             w.data,
                             w.offset,
                             w.write_len,
-                            fill_bytes as u8,
+                            0,
                             is_last,
                             &r.hdr.xid,
                         );
@@ -161,7 +155,7 @@ impl NFSState {
                         w.data,
                         w.offset,
                         w.write_len,
-                        fill_bytes as u8,
+                        0,
                         is_last,
                         &r.hdr.xid,
                     );
@@ -180,7 +174,7 @@ impl NFSState {
         }
         if queue_exceeded {
             // Don't buffer the rest of the record: skip to its RPC boundary.
-            let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+            let pending = crate::nfs::nfs::record_tail(r.prog_data_size, r.prog_data.len());
             self.set_skip(Direction::ToServer, pending);
             self.ts_chunk_xid = 0;
             self.ts_chunk_left = 0;
@@ -190,8 +184,9 @@ impl NFSState {
             self.ts_chunk_xid = r.hdr.xid;
             debug_validate_bug_on!(w.data.len() as u32 > w.write_len);
             self.ts_chunk_left = w.write_len - w.data.len() as u32;
-            // keep the record-tail bookkeeping in sync with the v3 path
-            self.ts_chunk_tail = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+            // v4 records only reach the parser complete: nothing unbuffered,
+            // record tail 0 (no aligned-boundary correction like the v3 path)
+            self.ts_chunk_tail = crate::nfs::nfs::record_tail(r.prog_data_size, r.prog_data.len());
         }
     }
 

@@ -91,6 +91,14 @@ impl FileTransferTracker {
         !self.file_open
     }
 
+    pub fn get_chunk_is_last(&self) -> bool {
+        self.chunk_is_last
+    }
+
+    pub fn is_truncated(&self) -> bool {
+        self.file_is_truncated
+    }
+
     pub fn is_initialized(&self) -> bool {
         return self.file_open || self.file_is_truncated || self.file_closed;
     }
@@ -494,6 +502,12 @@ impl FileTransferTracker {
     /// The XDR padding bytes of the record whose chunk data is in flight.
     pub fn get_fill_bytes(&self) -> u8 {
         self.fill_bytes
+    }
+
+    /// File bytes still missing for the active chunk (file data, not record
+    /// bytes: the XDR fill and any record tail are excluded).
+    pub fn get_chunk_left(&self) -> u32 {
+        self.chunk_left
     }
 
     /// True if an append at `offset` is out of order and grows the OOO queue.
