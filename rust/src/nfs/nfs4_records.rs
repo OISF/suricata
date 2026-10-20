@@ -733,10 +733,7 @@ fn skip_request_lead_op(i: &[u8], cmd: u32) -> IResult<&[u8], ()> {
         NFSPROC4_ACCESS => skip_fixed(i, 4),
         // open4args as nfs4_req_open parses it: seq_id (4) + share_access +
         // share_deny + client_id (8) + owner (len + bytes, no XDR pad) +
-        // open_type (+ open_data for type 1) + claim_type + name. The parser
-        // reads no claim payload: payload-bearing claims desync it (their
-        // stateid/fh is read as the name length), as do the other
-        // open_types: not skippable.
+        // open_type (+ open_data for type 1) + claim_type + name.
         NFSPROC4_OPEN => {
             let (i, ()) = skip_fixed(i, 20)?;
             let (i, owner_len) = be_u32(i)?;
@@ -766,15 +763,16 @@ fn skip_request_lead_op(i: &[u8], cmd: u32) -> IResult<&[u8], ()> {
             } else {
                 return Err(Err::Error(make_error(i, ErrorKind::Switch)));
             };
-            // claim4: the parser reads no claim payload (void claims
-            // only): payload-bearing claims (FH, DELEGATE, FH_ONLY and the
-            // v4.2 claims) desync it (the payload is read as the name
-            // length). Only the claims void in every version (NULL=0,
-            // UNIQUE=2) are skippable; the rest are a bounded rejection,
-            // never Incomplete (buffering toward the record claim).
+            // open_claim4 (RFC 7530 16.16.2): the parser reads no claim
+            // payload; only NULL(0) and DELEGATE_PREV(3) carry a
+            // component4 name, byte-identical to the name read the parser
+            // does after the claim word. PREVIOUS(1)/DELEGATE_CUR(2) carry
+            // delegate_type/stateid payloads and unknown values desync the
+            // parser: bounded rejection, never Incomplete (buffering toward
+            // the record claim).
             let (i, claim_type) = be_u32(i)?;
             match claim_type {
-                0 | 2 => {}
+                0 | 3 => {}
                 _ => return Err(Err::Error(make_error(i, ErrorKind::Switch))),
             }
             skip_len_bytes(i)
@@ -2980,14 +2978,14 @@ mod tests {
 
     #[test]
     fn test_scan_request_compound_open_payload_claim_rejected() {
-        // a payload-bearing claim (FH=1, DELEGATE=3, FH_ONLY=4, the v4.2
-        // claims 5+) desyncs the parser (the stateid/fh is read as the name
-        // length): the scanner must reject the compound boundedly
+        // a non-name claim (PREVIOUS=1, DELEGATE_CUR=2) or an unknown value
+        // (4+) desyncs the parser (the delegate_type/stateid payload is read
+        // as the name length): the scanner must reject the compound boundedly
         // (Malformed), not buffer (Incomplete) and not report the oversized
         // WRITE behind it.
         let mut stateid = be32(1).to_vec();
-        stateid.resize(16, 0);
-        for claim_type in [1u32, 3, 4, 8, 9] {
+        stateid.resize(stateid.len() + 12, 0);
+        for claim_type in [1u32, 2, 4, 8, 9] {
             let mut buf = compound_head(2);
             buf.extend_from_slice(&open_req_op(0, 0, claim_type, &stateid));
             buf.extend_from_slice(&write_op(10 * 1024 * 1024));
@@ -2998,6 +2996,20 @@ mod tests {
                 claim_type
             );
         }
+    }
+
+    #[test]
+    fn test_scan_request_compound_open_delegate_prev_claim_skipped() {
+        // CLAIM_DELEGATE_PREV (3) carries a component4 name, the same layout
+        // the parser reads after the claim word (the op's trailing name):
+        // the scanner skips it and reaches the trailing op (no rejection).
+        let mut buf = compound_head(2);
+        buf.extend_from_slice(&open_req_op(0, 0, 3, &[]));
+        buf.extend_from_slice(&getfh_req_op());
+        assert_eq!(
+            scan_nfs4_request_compound_write_len(&buf, 1024),
+            Nfs4CompoundScan::Clean
+        );
     }
 
     #[test]
