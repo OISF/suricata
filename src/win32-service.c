@@ -30,6 +30,102 @@
 #include "win32-service.h"
 #include "util-debug.h"
 
+/** Append a character, leaving room for the terminating NUL. */
+static bool SCServiceAppendChar(char *path, size_t size, size_t *len, char c)
+{
+    if (size == 0 || *len >= size - 1) {
+        return false;
+    }
+    path[(*len)++] = c;
+    path[*len] = '\0';
+    return true;
+}
+
+/**
+ * Quote an argument for the Windows C runtime. Backslashes are literal except
+ * before a double quote: emit 2n+1 backslashes before an embedded quote, and
+ * 2n before the closing quote. Always quote, including empty arguments.
+ */
+static bool SCServiceAppendArgument(char *path, size_t size, size_t *len, const char *arg)
+{
+    if (!SCServiceAppendChar(path, size, len, '"')) {
+        return false;
+    }
+    while (*arg != '\0') {
+        size_t backslashes = 0;
+        while (*arg == '\\') {
+            backslashes++;
+            arg++;
+        }
+        for (size_t i = 0; i < backslashes; i++) {
+            if (!SCServiceAppendChar(path, size, len, '\\')) {
+                return false;
+            }
+            if ((*arg == '"' || *arg == '\0') && !SCServiceAppendChar(path, size, len, '\\')) {
+                return false;
+            }
+        }
+        if (*arg == '\0') {
+            break;
+        }
+        if (*arg == '"' && !SCServiceAppendChar(path, size, len, '\\')) {
+            return false;
+        }
+        if (!SCServiceAppendChar(path, size, len, *arg++)) {
+            return false;
+        }
+    }
+    return SCServiceAppendChar(path, size, len, '"');
+}
+
+/** Build the service command line without accessing SCM. */
+static bool SCServiceBuildCommandLine(char *path, size_t size, const char *module, int argc,
+        const char *const *argv, const char *service_option)
+{
+    if (size == 0) {
+        return false;
+    }
+    path[0] = '\0';
+    size_t len = 0;
+    if (!SCServiceAppendArgument(path, size, &len, module)) {
+        return false;
+    }
+    for (int i = 1; i < argc; i++) {
+        /* Preserve the existing service-option prefix matching. */
+        if (strlen(argv[i]) <= strlen(service_option) &&
+                strncmp(service_option, argv[i], strlen(argv[i])) == 0) {
+            continue;
+        }
+        if (!SCServiceAppendChar(path, size, &len, ' ') ||
+                !SCServiceAppendArgument(path, size, &len, argv[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/** Resolve the executable and reject truncation before making any SCM calls. */
+static bool SCServiceGetCommandLine(
+        char *path, size_t size, int argc, char **argv, const char *service_option)
+{
+    char module[2048];
+    DWORD len = GetModuleFileName(NULL, module, sizeof(module));
+    if (len == 0) {
+        SCLogError("Can't get path to service binary: %d", (int)GetLastError());
+        return false;
+    }
+    if (len >= sizeof(module)) {
+        SCLogError("failed to construct service path string: binary path truncated");
+        return false;
+    }
+    if (!SCServiceBuildCommandLine(
+                path, size, module, argc, (const char *const *)argv, service_option)) {
+        SCLogError("failed to construct service path string: invalid or truncated command line");
+        return false;
+    }
+    return true;
+}
+
 static SERVICE_STATUS_HANDLE service_status_handle = 0;
 
 static int service_argc = 0;
@@ -214,34 +310,10 @@ int SCServiceInstall(int argc, char **argv)
     SC_HANDLE service = NULL;
     SC_HANDLE scm = NULL;
     int ret = -1;
-    int i = 0;
 
     do {
-        memset(path, 0, sizeof(path));
-
-        path[0] = '"';
-        if (GetModuleFileName(NULL, path + 1, sizeof(path) - 1) == 0) {
-            SCLogError("Can't get path to service binary: %d", (int)GetLastError());
+        if (!SCServiceGetCommandLine(path, sizeof(path), argc, argv, "--service-install")) {
             break;
-        }
-        if (strlcat(path, "\"", sizeof(path)) >= sizeof(path)) {
-            SCLogError("failed to construct service path string: path truncated: %s", path);
-            break;
-        }
-
-        /* skip name of binary itself */
-        for (i = 1; i < argc; i++) {
-            if ((strlen(argv[i]) <= strlen("--service-install")) && (strncmp("--service-install", argv[i], strlen(argv[i])) == 0)) {
-                continue;
-            }
-            if (strlcat(path, " ", sizeof(path)) >= sizeof(path)) {
-                SCLogError("failed to construct service path string: path truncated: %s", path);
-                return -1;
-            }
-            if (strlcat(path, argv[i], sizeof(path)) >= sizeof(path)) {
-                SCLogError("failed to construct service path string: path truncated: %s", path);
-                return -1;
-            }
         }
 
         if ((scm = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS)) == NULL) {
@@ -350,34 +422,10 @@ int SCServiceChangeParams(int argc, char **argv)
     SC_HANDLE service = NULL;
     SC_HANDLE scm = NULL;
     int ret = -1;
-    int i = 0;
 
     do {
-        memset(path, 0, sizeof(path));
-
-        path[0] = '"';
-        if (GetModuleFileName(NULL, path + 1, sizeof(path) - 1) == 0) {
-            SCLogError("Can't get path to service binary: %d", (int)GetLastError());
+        if (!SCServiceGetCommandLine(path, sizeof(path), argc, argv, "--service-change-params")) {
             break;
-        }
-        if (strlcat(path, "\"", sizeof(path)) >= sizeof(path)) {
-            SCLogError("failed to construct service path string: path truncated: %s", path);
-            break;
-        }
-
-        /* skip name of binary itself */
-        for (i = 1; i < argc; i++) {
-            if ((strlen(argv[i]) <= strlen("--service-change-params")) && (strncmp("--service-change-params", argv[i], strlen(argv[i])) == 0)) {
-                continue;
-            }
-            if (strlcat(path, " ", sizeof(path)) >= sizeof(path)) {
-                SCLogError("failed to construct service path string: path truncated: %s", path);
-                return -1;
-            }
-            if (strlcat(path, argv[i], sizeof(path)) >= sizeof(path)) {
-                SCLogError("failed to construct service path string: path truncated: %s", path);
-                return -1;
-            }
         }
 
         if ((scm = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS)) == NULL) {
