@@ -438,7 +438,7 @@ impl NFSState {
                         data_len: rd.data.len() as u32,
                         data: rd.data,
                     };
-                    self.process_read_record(flow, r, &reply, Some(xidmap));
+                    self.process_read_record(flow, r, &reply, Some(xidmap), false);
                 }
                 Nfs4ResponseContent::Open(_s, Some(ref _rd)) => {
                     SCLogDebug!("OPENv4: status {} opendata {:?}", _s, _rd);
