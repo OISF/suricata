@@ -1186,6 +1186,12 @@ impl NFSState {
     }
 
     pub fn process_write_record<'b>(&mut self, flow: *mut Flow, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>) -> u32 {
+        // the parsed extent within prog_data: fh len + fh + offset + count
+        // + stable + file_len + data; the XDR fill follows it when unaligned
+        let extent = 24u32
+            .saturating_add(w.handle.len)
+            .saturating_add(w.file_len);
+
         // for now assume that stable FILE_SYNC flags means a single chunk
         let is_last = w.stable == 2;
         // a partial record's file tx must stay open (found by handle) until
@@ -1200,8 +1206,42 @@ impl NFSState {
             Vec::new()
         };
 
+        // The record must cover the parsed extent: a claim shorter than the
+        // args would run the file data past the record boundary into the next
+        // RPC. A claim larger than the extent is not an error, it is the
+        // record tail (the XDR pad, or bytes the sender put in the record
+        // after the args): the chunk promise covers it so it is never parsed.
+        // No alignment is assumed, some senders do not pad the handle.
         // unbuffered record tail (file data + XDR fill) left in the stream
         let tail = record_tail(r.prog_data_size, r.prog_data.len());
+        if !self.is_udp && extent > r.prog_data_size {
+            SCLogDebug!(
+                "WRITE claim below extent (claim {} extent {}): skipping {} stream bytes",
+                r.prog_data_size,
+                extent,
+                tail
+            );
+            // rejected tx + event, same pattern as the too-large arm
+            let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
+            tx.procedure = NFSPROC3_WRITE;
+            tx.xid = r.hdr.xid;
+            tx.is_first = true;
+            tx.nfs_version = r.progver as u16;
+            tx.request_done = true;
+            tx.response_done = true;
+            tx.is_file_closed = true;
+            tx.tx_data.set_event(NFSEvent::MalformedData as u8);
+            tx.tx_data.updated_ts = true;
+            tx.tx_data.updated_tc = true;
+            tx.tx_data.files_opened = 0;
+            self.set_skip(Direction::ToServer, tail);
+            self.ts_chunk_xid = 0;
+            self.ts_chunk_left = 0;
+            self.ts_chunk_tail = 0;
+            self.ts_chunk_fh.clear();
+            return 0;
+        }
+
         if w.count == 0 {
             // No file data, but the rest of a partial record must not be
             // parsed as the next RPC record: skip to the record boundary.
@@ -1890,13 +1930,14 @@ impl NFSState {
     /// have a complete record. Otherwise we do a lookup ourselves.
     pub fn process_read_record<'b>(
         &mut self, flow: *mut Flow, r: &RpcReplyPacket<'b>, reply: &NfsReplyRead<'b>,
-        xidmapr: Option<&NFSRequestXidMap>,
+        xidmapr: Option<&NFSRequestXidMap>, v3: bool,
     ) -> u32 {
-        let file_name;
-        let file_handle;
-        let chunk_offset;
-        let nfs_version;
-
+        // The record must cover the parsed extent (status + attr_follows +
+        // [post_op_attr] + count + eof + data_len + data); a larger claim is
+        // the record tail, which the chunk promise consumes
+        let extent = 20u32
+            .saturating_add(if reply.attr_follows != 0 { 84 } else { 0 })
+            .saturating_add(reply.data_len);
         // unbuffered record tail (reply data + XDR fill) left in the stream
         let tail = record_tail(r.prog_data_size, r.prog_data.len());
 
@@ -1913,6 +1954,38 @@ impl NFSState {
             }
             return 0;
         }
+
+        if v3 && !self.is_udp && extent > r.prog_data_size {
+            SCLogDebug!(
+                "READ claim below extent (claim {} extent {}): skipping {} stream bytes",
+                r.prog_data_size,
+                extent,
+                tail
+            );
+            // rejected tx + event, same pattern as the v4 malformed-response arm
+            let mut tx = self.new_tx();
+            tx.procedure = NFSPROC3_READ;
+            tx.xid = r.hdr.xid;
+            tx.nfs_version = self.nfs_version;
+            tx.request_done = true;
+            tx.response_done = true;
+            tx.is_file_closed = true;
+            tx.tx_data.set_event(NFSEvent::MalformedData as u8);
+            tx.tx_data.updated_ts = true;
+            tx.tx_data.updated_tc = true;
+            self.transactions.push(tx);
+            self.set_skip(Direction::ToClient, tail);
+            self.tc_chunk_xid = 0;
+            self.tc_chunk_left = 0;
+            self.tc_chunk_tail = 0;
+            self.tc_chunk_fh.clear();
+            return 0;
+        }
+
+        let file_name;
+        let file_handle;
+        let chunk_offset;
+        let nfs_version;
 
         match xidmapr {
             Some(xidmap) => {
@@ -2207,7 +2280,7 @@ impl NFSState {
             reply.count
         );
 
-        return self.process_read_record(flow, r, reply, None);
+        return self.process_read_record(flow, r, reply, None, true);
     }
 
     fn peek_reply_record(&mut self, r: &RpcPacketHeader) -> u32 {
@@ -2690,7 +2763,7 @@ impl NFSState {
                                         data_len: 0,
                                         data: &[],
                                     };
-                                    self.process_read_record(flow, hdr, &reply, None);
+                                    self.process_read_record(flow, hdr, &reply, None, false);
                                     return AppLayerResult::ok();
                                 }
                                 // Definitive structural error: skip the record (bounded
@@ -3638,7 +3711,12 @@ pub unsafe extern "C" fn SCRegisterNfsUdpParser() {
         }
         if let Some(val) = conf_get("app-layer.protocols.nfs.max-tx") {
             if let Ok(v) = val.parse::<usize>() {
-                NFS_MAX_TX = v;
+                // 0 would evict every transaction on insert
+                if v == 0 {
+                    SCLogError!("Invalid value for nfs.max-tx");
+                } else {
+                    NFS_MAX_TX = v;
+                }
             } else {
                 SCLogError!("Invalid value for nfs.max-tx");
             }
