@@ -35,6 +35,7 @@
 #include "detect-engine.h"
 #include "detect-engine-siggroup.h"
 #include "detect-engine-mpm.h"
+#include "detect-isdataat.h"
 #include "detect-engine-iponly.h"
 #include "detect-parse.h"
 #include "detect-engine-prefilter.h"
@@ -1120,11 +1121,15 @@ static void SetMpm(Signature *s, SigMatch *mpm_sm, const int mpm_sm_list)
 }
 
 /* absent and transform_result end the part of a buffer that can supply the
- * fast_pattern. Repeated buffers can share a list id, so every pass over a
- * list's buffers has to stop at them, not just the first. */
+ * fast_pattern. transform_result: must_succeed does not: content after it
+ * can only match when the transform succeeded, and the prefilter then scans
+ * the same transformed bytes. Repeated buffers can share a list id, so every
+ * pass over a list's buffers has to stop at them, not just the first. */
 static inline bool StopsFastPattern(const SigMatch *sm)
 {
-    return sm->type == DETECT_ABSENT || sm->type == DETECT_TRANSFORM_RESULT;
+    if (sm->type == DETECT_TRANSFORM_RESULT)
+        return ((const DetectAbsentData *)sm->ctx)->mode != DETECT_ABSENT_MUST_SUCCEED;
+    return sm->type == DETECT_ABSENT;
 }
 
 static SigMatch *GetMpmForList(const Signature *s, SigMatch *list, SigMatch *mpm_sm,
