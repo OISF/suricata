@@ -2433,22 +2433,34 @@ impl NFSState {
                     match parse_rpc(cur_i, false) {
                         Ok((_rem, ref hdr)) => {
                             // RPCSEC_GSS integrity compounds arrive wrapped (length, seqnum, data):
-                            // unwrap like the full record path, or the envelope length is read as the
-                            // compound tag and the scan stays incomplete (buffering toward the claim).
-                            let (gss_proc, gss_service) = match &hdr.creds {
-                                RpcRequestCreds::GssApi(ref g) => (g.procedure, g.service),
-                                _ => (0, 0),
+                            // unwrap like the full record path before scanning - the raw
+                            // envelope's length would be read as the compound tag, buffering toward the claim
+                            let gss = match &hdr.creds {
+                                RpcRequestCreds::GssApi(ref g) => Some((g.procedure, g.service)),
+                                _ => None,
                             };
-                            let scanres = match gss_compound_scan_data(
-                                gss_proc,
-                                gss_service,
-                                hdr.prog_data,
-                            ) {
+                            let scanres = match gss_compound_scan_data(gss, hdr.prog_data) {
                                 GssCompoundScan::Compound(data) => {
                                     scan_nfs4_request_compound_write_len(data, max_write)
                                 }
                                 GssCompoundScan::EnvelopeIncomplete => Nfs4CompoundScan::Incomplete,
                                 GssCompoundScan::EnvelopeMalformed => Nfs4CompoundScan::Malformed,
+                                // privacy: encrypted; keep the call for its
+                                // reply and skip the record, no tx
+                                GssCompoundScan::Opaque => {
+                                    let mut xidmap =
+                                        NFSRequestXidMap::new(hdr.progver, hdr.procedure, 0);
+                                    if let Some((procedure, service)) = gss {
+                                        xidmap.gssapi_proc = procedure;
+                                        xidmap.gssapi_service = service;
+                                    }
+                                    self.requestmap.put(hdr.hdr.xid, xidmap);
+                                    return self.skip_partial_record(
+                                        Direction::ToServer,
+                                        cur_i,
+                                        rec_size,
+                                    );
+                                }
                             };
                             match scanres {
                                 Nfs4CompoundScan::Oversized(_write_len) => {
@@ -2737,29 +2749,33 @@ impl NFSState {
                 let max_read = unsafe { NFS_CFG_MAX_READ_SIZE };
                 // a zero limit disables the check
                 if max_read != 0 {
-                    // the request recorded its RPCSEC_GSS credential combination in the
-                    // xidmap; integrity-wrapped compounds (proc 0, service 2) are unwrapped first.
-                    let gss_integrity = self
-                        .requestmap
-                        .get(&phdr.xid)
-                        .map(|xm| xm.gssapi_proc == 0 && xm.gssapi_service == 2)
-                        .unwrap_or(false);
+                    // (0, 0) is the non-GSS default; GSS requests record
+                    // their combination (only (0, 2) is unwrapped)
+                    let gss = self.requestmap.get(&phdr.xid).and_then(|xm| {
+                        if xm.gssapi_proc == 0 && xm.gssapi_service == 0 {
+                            None
+                        } else {
+                            Some((xm.gssapi_proc, xm.gssapi_service))
+                        }
+                    });
                     match parse_rpc_reply(cur_i, false) {
                         Ok((_rem, ref hdr)) => {
-                            let scanres = if gss_integrity {
-                                match gss_compound_scan_data(0, 2, hdr.prog_data) {
-                                    GssCompoundScan::Compound(data) => {
-                                        scan_nfs4_response_compound_read_len(data, max_read)
-                                    }
-                                    GssCompoundScan::EnvelopeIncomplete => {
-                                        Nfs4CompoundScan::Incomplete
-                                    }
-                                    GssCompoundScan::EnvelopeMalformed => {
-                                        Nfs4CompoundScan::Malformed
-                                    }
+                            let scanres = match gss_compound_scan_data(gss, hdr.prog_data) {
+                                GssCompoundScan::Compound(data) => {
+                                    scan_nfs4_response_compound_read_len(data, max_read)
                                 }
-                            } else {
-                                scan_nfs4_response_compound_read_len(hdr.prog_data, max_read)
+                                GssCompoundScan::EnvelopeIncomplete => Nfs4CompoundScan::Incomplete,
+                                GssCompoundScan::EnvelopeMalformed => Nfs4CompoundScan::Malformed,
+                                // privacy: encrypted reply; the call is done,
+                                // pop its xid and skip the record
+                                GssCompoundScan::Opaque => {
+                                    self.requestmap.pop(&hdr.hdr.xid);
+                                    return self.skip_partial_record(
+                                        Direction::ToClient,
+                                        cur_i,
+                                        rec_size,
+                                    );
+                                }
                             };
                             match scanres {
                                 Nfs4CompoundScan::Oversized(read_len) => {
