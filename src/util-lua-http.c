@@ -260,6 +260,123 @@ static int LuaHttpGetResponseHeaders(lua_State *luastate)
     return LuaHttpGetHeaders(luastate, 1);
 }
 
+/* Trailers live in their own table now that they are kept out of the headers. Repeated
+ * fields are merged while parsing, so a name has a single entry. */
+static int LuaHttpGetTrailer(lua_State *luastate, int dir)
+{
+    struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
+    if (tx == NULL) {
+        lua_pushnil(luastate);
+        return 1;
+    }
+
+    /* method call: self is arg 1, the trailer name is arg 2 */
+    const char *name = LuaGetStringArgument(luastate, 2);
+    if (name == NULL) {
+        return LuaCallbackError(luastate, "argument missing, empty or wrong type");
+    }
+
+    SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
+    const htp_headers_t *table =
+            dir ? htp_tx_response_trailers(txptr) : htp_tx_request_trailers(txptr);
+    const size_t nlen = strlen(name);
+    const size_t count = table != NULL ? htp_headers_size(table) : 0;
+    for (size_t i = 0; i < count; i++) {
+        const htp_header_t *h = htp_headers_get_index(table, i);
+        if ((size_t)htp_header_name_len(h) == nlen &&
+                strncasecmp((const char *)htp_header_name_ptr(h), name, nlen) == 0) {
+            return LuaPushStringBuffer(luastate, htp_header_value_ptr(h), htp_header_value_len(h));
+        }
+    }
+    return LuaCallbackError(luastate, "trailer not found");
+}
+
+static int LuaHttpGetRequestTrailer(lua_State *luastate)
+{
+    return LuaHttpGetTrailer(luastate, 0 /* request */);
+}
+
+static int LuaHttpGetResponseTrailer(lua_State *luastate)
+{
+    return LuaHttpGetTrailer(luastate, 1 /* response */);
+}
+
+static int LuaHttpGetRawTrailers(lua_State *luastate, int dir)
+{
+    struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
+    if (tx == NULL) {
+        lua_pushnil(luastate);
+        return 1;
+    }
+    SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(txptr);
+    if (htud == NULL) {
+        lua_pushnil(luastate);
+        return 1;
+    }
+
+    uint8_t *raw = htud->request_trailers_raw;
+    uint32_t raw_len = htud->request_trailers_raw_len;
+    if (dir == 1) {
+        raw = htud->response_trailers_raw;
+        raw_len = htud->response_trailers_raw_len;
+    }
+
+    if (raw == NULL || raw_len == 0)
+        return LuaCallbackError(luastate, "no raw trailers");
+
+    return LuaPushStringBuffer(luastate, raw, raw_len);
+}
+
+static int LuaHttpGetRawRequestTrailers(lua_State *luastate)
+{
+    return LuaHttpGetRawTrailers(luastate, 0);
+}
+
+static int LuaHttpGetRawResponseTrailers(lua_State *luastate)
+{
+    return LuaHttpGetRawTrailers(luastate, 1);
+}
+
+static int LuaHttpGetTrailers(lua_State *luastate, int dir)
+{
+    struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
+    if (tx == NULL) {
+        lua_pushnil(luastate);
+        return 1;
+    }
+
+    SCLUA_RESOLVE_TX(luastate, &tx->ref, txptr);
+    const htp_headers_t *table =
+            dir ? htp_tx_response_trailers(txptr) : htp_tx_request_trailers(txptr);
+    if (table == NULL) {
+        lua_pushnil(luastate);
+        return 1;
+    }
+
+    lua_newtable(luastate);
+    const size_t count = htp_headers_size(table);
+    for (size_t i = 0; i < count; i++) {
+        const htp_header_t *h = htp_headers_get_index(table, i);
+        LuaPushStringBuffer(luastate, htp_header_name_ptr(h), htp_header_name_len(h));
+        LuaPushStringBuffer(luastate, htp_header_value_ptr(h), htp_header_value_len(h));
+        lua_settable(luastate, -3);
+    }
+    return 1;
+}
+
+/** \brief return request trailers as lua table */
+static int LuaHttpGetRequestTrailers(lua_State *luastate)
+{
+    return LuaHttpGetTrailers(luastate, 0);
+}
+
+/** \brief return response trailers as lua table */
+static int LuaHttpGetResponseTrailers(lua_State *luastate)
+{
+    return LuaHttpGetTrailers(luastate, 1);
+}
+
 static int LuaHttpGetBody(lua_State *luastate, int dir)
 {
     struct LuaTx *tx = SCLuaTestUserData(luastate, 1, htp_tx, SCLUA_TUD_HTTP_TX);
@@ -329,6 +446,12 @@ static const struct luaL_Reg txlib[] = {
     {"request_uri_normalized", LuaHttpGetRequestUriNormalized},
     {"request_headers", LuaHttpGetRequestHeaders},
     {"response_headers", LuaHttpGetResponseHeaders},
+    {"request_trailer", LuaHttpGetRequestTrailer},
+    {"response_trailer", LuaHttpGetResponseTrailer},
+    {"request_trailers", LuaHttpGetRequestTrailers},
+    {"response_trailers", LuaHttpGetResponseTrailers},
+    {"request_trailers_raw", LuaHttpGetRawRequestTrailers},
+    {"response_trailers_raw", LuaHttpGetRawResponseTrailers},
     {"request_host", LuaHttpGetRequestHost},
     {"request_body", LuaHttpGetRequestBody},
     {"response_body", LuaHttpGetResponseBody},
