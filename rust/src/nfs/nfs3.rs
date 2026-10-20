@@ -237,7 +237,7 @@ impl NFSState {
             };
         } else if xidmap.procedure == NFSPROC3_READ {
             if let Ok((_, rd)) = parse_nfs3_reply_read(r.prog_data, true) {
-                self.process_read_record(flow, r, &rd, Some(xidmap));
+                self.process_read_record(flow, r, &rd, Some(xidmap), true);
                 nfs_status = rd.status;
             } else {
                 self.set_event(NFSEvent::MalformedData);
