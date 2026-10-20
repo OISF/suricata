@@ -445,6 +445,15 @@ pub(crate) fn write_chunk_queue_limit_event(
     None
 }
 
+/// Only file data can enter the queue; the record tail's fill/slack must not
+/// grow it, so the add is capped by the file bytes the chunk still misses.
+fn chunk_queue_add(stream_promise: u32, input_len: usize, file_left: u32) -> u64 {
+    std::cmp::min(
+        input_len as u64,
+        std::cmp::min(u64::from(stream_promise), u64::from(file_left)),
+    )
+}
+
 /// OOO-queue backstop (bytes): configured queue size, or a 1 GiB hard
 /// cap (16x the 64 MiB default) when limits are disabled.
 pub(crate) fn ooo_queue_backstop(direction: Direction) -> u64 {
@@ -475,6 +484,14 @@ pub(crate) fn ooo_queue_backstop_cnt(direction: Direction) -> u64 {
     }
 }
 
+/// The record's unbuffered tail: what the record marker claims minus what the
+/// parser already has. The claim is authoritative (an XDR pad, when the record
+/// carries one, is inside it), so this is also exactly what the walk advances
+/// over before the next record marker.
+pub(crate) fn record_tail(claim: u32, buffered: usize) -> u32 {
+    claim.saturating_sub(buffered as u32)
+}
+
 #[derive(Debug)]
 pub struct NFSState {
     state_data: AppLayerStateData,
@@ -487,6 +504,10 @@ pub struct NFSState {
 
     /// transactions list
     pub transactions: Vec<NFSTransaction>,
+
+    /// file txs held in the transactions list: the OOO backstop scan is a
+    /// no-op without one, so it is skipped when this is 0
+    pub(crate) file_tx_count: u32,
 
     /// partial record tracking
     pub ts_chunk_xid: u32,
@@ -558,6 +579,7 @@ impl NFSState {
             requestmap: LruCache::new(NonZeroUsize::new(unsafe { NFS_CFG_MAX_REQ }).unwrap()),
             namemap: LruCache::new(NonZeroUsize::new(unsafe { NFS_CFG_MAX_NAMES }).unwrap()),
             transactions: Vec::new(),
+            file_tx_count: 0,
             ts_chunk_xid: 0,
             tc_chunk_xid: 0,
             skip_ts: 0,
@@ -630,6 +652,9 @@ impl NFSState {
             }
         }
         if found {
+            if self.transactions[index].is_file_tx {
+                self.file_tx_count = self.file_tx_count.saturating_sub(1);
+            }
             SCLogDebug!("freeing TX with ID {} at index {}", tx_id, index);
             self.transactions.remove(index);
         }
@@ -1102,6 +1127,7 @@ impl NFSState {
         tx.file_name = file_name.to_vec();
         tx.file_handle = file_handle.to_vec();
         tx.is_file_tx = true;
+        self.file_tx_count += 1;
 
         tx.type_data = Some(NFSTransactionTypeData::FILE(NFSTransactionFile::new()));
         if let Some(NFSTransactionTypeData::FILE(ref mut d)) = tx.type_data {
@@ -1151,14 +1177,6 @@ impl NFSState {
     }
 
     pub fn process_write_record<'b>(&mut self, flow: *mut Flow, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>) -> u32 {
-        let mut fill_bytes = 0;
-        // the parser derives the XDR padding from file_len (the data that is
-        // actually on the wire), not from the claimed count
-        let pad = w.file_len % 4;
-        if pad != 0 {
-            fill_bytes = 4 - pad;
-        }
-
         // for now assume that stable FILE_SYNC flags means a single chunk
         let is_last = w.stable == 2;
         // a partial record's file tx must stay open (found by handle) until
@@ -1173,13 +1191,14 @@ impl NFSState {
             Vec::new()
         };
 
+        // unbuffered record tail (file data + XDR fill) left in the stream
+        let tail = record_tail(r.prog_data_size, r.prog_data.len());
         if w.count == 0 {
             // No file data, but the rest of a partial record must not be
             // parsed as the next RPC record: skip to the record boundary.
             // Nothing is pending for a complete record.
             if !self.is_udp {
-                let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
-                self.set_skip(Direction::ToServer, pending);
+                self.set_skip(Direction::ToServer, tail);
             }
             return 0;
         }
@@ -1206,9 +1225,9 @@ impl NFSState {
             // Rejected tx never opened a file: zero files_opened, else the tx
             // (and file) stays live until teardown and grows unbounded on repeats.
             tx.tx_data.files_opened = 0;
-            // Skip to the RPC record boundary: claim vs data can disagree, and
-            // claimed-count math lands mid-padding or in a later record.
-            let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+            // Skip to the RPC record boundary: claim vs data can disagree, so
+            // the skip follows the record marker, not the claimed count
+            let pending = record_tail(r.prog_data_size, r.prog_data.len());
             if !self.is_udp {
                 self.set_skip(Direction::ToServer, pending);
                 self.ts_chunk_xid = 0;
@@ -1226,6 +1245,12 @@ impl NFSState {
         }
 
         let mut queue_exceeded = false;
+        // what the record tail holds beyond the file data the tracker has not
+        // seen: the XDR pad, at most 3 bytes. Anything else the record carries
+        // after the args is drained by the promise's tail accounting, never as
+        // file data or fill.
+        let unbuffered = w.file_len - w.file_data.len() as u32;
+        let stream_fill = cmp::min(tail.saturating_sub(unbuffered), 3);
 
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             Some(tx) => {
@@ -1247,7 +1272,7 @@ impl NFSState {
                             w.file_data,
                             w.offset,
                             w.file_len,
-                            fill_bytes as u8,
+                            stream_fill as u8,
                             is_last,
                             &r.hdr.xid,
                         );
@@ -1296,11 +1321,13 @@ impl NFSState {
                         w.file_data,
                         w.offset,
                         w.file_len,
-                        fill_bytes as u8,
+                        stream_fill as u8,
                         is_last,
                         &r.hdr.xid,
                     );
                 }
+                // Same deferral as the found arm: a partial record closes the
+                // tx when filetracker_update has the rest of its data
                 if is_last && !queue_exceeded {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.is_last = true;
@@ -1323,8 +1350,10 @@ impl NFSState {
         }
         if !self.is_udp {
             if queue_exceeded {
-                // Don't buffer the rest of the record: skip to its RPC boundary.
-                let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+                // Don't buffer the rest of the record: skip to its RPC
+                // boundary. Complete records need no skip: the loop's rounded
+                // advance has already consumed the alignment pad.
+                let pending = record_tail(r.prog_data_size, r.prog_data.len());
                 self.set_skip(Direction::ToServer, pending);
                 self.ts_chunk_xid = 0;
                 self.ts_chunk_left = 0;
@@ -1338,11 +1367,11 @@ impl NFSState {
                 // promise outlives the record when count > file_len and would
                 // eat the following record's bytes as chunk continuation
                 debug_validate_bug_on!(w.file_data.len() as u32 > w.file_len);
-                self.ts_chunk_left = w.file_len - w.file_data.len() as u32;
-                // the record's unbuffered tail: file_len <= count, so this
-                // (not the count-based promise) bounds what a rejected
-                // continuation may consume or skip
-                self.ts_chunk_tail = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+                // chunk promise = the record's unbuffered tail; a complete
+                // record leaves none
+                let pending = record_tail(r.prog_data_size, r.prog_data.len());
+                self.ts_chunk_left = pending;
+                self.ts_chunk_tail = pending;
                 self.ts_chunk_fh = file_handle;
                 SCLogDebug!(
                     "REQUEST chunk_xid {:04X} chunk_left {} chunk_tail {}",
@@ -1373,7 +1402,7 @@ impl NFSState {
     }
     /// Reject a partial v4 WRITE compound whose claimed length exceeds the
     /// limit: log the tx and skip the record so the data blob is never buffered.
-    fn process_partial_v4_write_request_record(&mut self, r: &RpcPacket<'_>) {
+    fn process_partial_v4_write_request_record<'b>(&mut self, r: &RpcPacket<'b>) {
         SCLogDebug!(
             "REQUEST {} partial v4 WRITE rejected: claim exceeds {}",
             r.hdr.xid,
@@ -1403,7 +1432,7 @@ impl NFSState {
         tx.tx_data.files_opened = 0;
         // Skip to the RPC record boundary: claim vs data can disagree, and
         // claimed-count math lands mid-padding or in a later record.
-        let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+        let pending = record_tail(r.prog_data_size, r.prog_data.len());
         self.set_skip(Direction::ToServer, pending);
         self.ts_chunk_xid = 0;
         self.ts_chunk_left = 0;
@@ -1443,7 +1472,7 @@ impl NFSState {
         self.requestmap.put(r.hdr.xid, xidmap);
         // Skip to the RPC record boundary without buffering the claimed rest
         // of the record.
-        let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+        let pending = record_tail(r.prog_data_size, r.prog_data.len());
         self.set_skip(Direction::ToServer, pending);
         self.ts_chunk_xid = 0;
         self.ts_chunk_left = 0;
@@ -1455,8 +1484,9 @@ impl NFSState {
         );
     }
 
-    /// Mark a partially buffered v4 COMPOUND reply record malformed and skip it
-    /// (bounded fallback; cf. process_partial_v4_malformed_request_record).
+    /// Mark a partially buffered v4 COMPOUND reply record as malformed and
+    /// skip it (bounded fallback; cf.
+    /// process_partial_v4_malformed_request_record).
     fn process_partial_v4_malformed_response_record(&mut self, r: &RpcReplyPacket<'_>) {
         SCLogDebug!(
             "REPLY {} partial v4 COMPOUND rejected: structural scan error",
@@ -1475,11 +1505,9 @@ impl NFSState {
         tx.tx_data.updated_tc = true;
         self.transactions.push(tx);
         // Skip to the RPC record boundary without buffering the claimed rest
-        // of the record.
-        // NB: no requestmap entry is left behind: a reply to this (already
-        // rejected) request is dropped by process_reply_record with no
-        // event -- the request-side MalformedData tx is the only signal.
-        let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+        // of the record; NB: requestmap entry kept, a second malformed reply
+        // raises its own MalformedData
+        let pending = record_tail(r.prog_data_size, r.prog_data.len());
         self.set_skip(Direction::ToClient, pending);
         self.tc_chunk_xid = 0;
         self.tc_chunk_left = 0;
@@ -1552,25 +1580,28 @@ impl NFSState {
     // update in progress chunks for file transfers
     // return how much data we consumed
     fn filetracker_update(&mut self, flow: *mut Flow, direction: Direction, data: &[u8], gap_size: u32) -> u32 {
+        // The chunk promise is the unbuffered tail of the record that armed it
+        // (file data + its XDR fill, see record_tail): chunk_left bounds the
+        // file data still missing for the chunk, chunk_tail bounds the stream
+        // bytes that belong to the record.
         let mut chunk_left = if direction == Direction::ToServer {
             self.ts_chunk_left
         } else {
             self.tc_chunk_left
         };
-        // the record tail is tracked alongside the chunk promise (see the
-        // struct field): a rejected continuation may only consume/skip it
         let mut chunk_tail = if direction == Direction::ToServer {
             self.ts_chunk_tail
         } else {
             self.tc_chunk_tail
         };
 
-        let ssn_gap = self.ts_ssn_gap | self.tc_ssn_gap;
         // Backstop: cap the OOO queue on every open file tx (an interleaved
-        // handle can hide a first file's queue), running even with chunk_left == 0.
-        if ssn_gap {
-            // Last-resort cap for OOO data in gapped streams: configured
-            // size/count (1 GiB / 1024 when limits are off).
+        // handle can hide a queue); runs when the call feeds data: app-layer
+        // OOO needs no stream gap to grow a queue, an empty call grows none.
+        // A queue can only exist inside a held file tx.
+        if !data.is_empty() && self.file_tx_count > 0 {
+            // Last-resort cap for OOO data: configured size/count
+            // (1 GiB / 1024 when limits are off).
             let backstop = ooo_queue_backstop(direction);
             let cnt_backstop = ooo_queue_backstop_cnt(direction);
             for tx in &mut self.transactions {
@@ -1580,7 +1611,7 @@ impl NFSState {
                         let queued_cnt = tdf.file_tracker.get_inflight_cnt() as u64;
                         if queued_data > backstop || queued_cnt > cnt_backstop {
                             SCLogDebug!(
-                                "QUEUED size {} / count {} > backstop {} / {} while we've seen GAPs. Truncating file.",
+                                "QUEUED size {} / count {} > backstop {} / {}. Truncating file.",
                                 queued_data,
                                 queued_cnt,
                                 backstop,
@@ -1599,52 +1630,12 @@ impl NFSState {
         }
 
         if chunk_left == 0 {
-            if chunk_tail == 0 {
-                return 0;
-            }
-            // The chunk's file data is complete, but the rest of its record
-            // (its XDR padding) was not part of that input. Consume it now,
-            // never past the record tail: for a still open file these bytes
-            // are the tracker's fill bytes, never file data.
-            let pad = cmp::min(chunk_tail, data.len() as u32);
-            let file_handle = if direction == Direction::ToServer {
-                self.ts_chunk_fh.to_vec()
-            } else {
-                self.tc_chunk_fh.to_vec()
-            };
-            if let Some(tx) = self.get_file_tx_by_handle(&file_handle, direction) {
-                if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                    // only a tracker with an open file owes fill bytes
-                    if !tdf.file_tracker.is_done() {
-                        filetracker_update(&mut tdf.file_tracker, &data[..pad as usize], gap_size);
-                    }
-                }
-            }
-            chunk_tail -= pad;
-            if direction == Direction::ToServer {
-                self.ts_chunk_tail = chunk_tail;
-                if chunk_tail == 0 {
-                    self.ts_chunk_xid = 0;
-                    self.ts_chunk_fh.clear();
-                }
-            } else {
-                self.tc_chunk_tail = chunk_tail;
-                if chunk_tail == 0 {
-                    self.tc_chunk_xid = 0;
-                    self.tc_chunk_fh.clear();
-                }
-            }
-            return pad;
+            return 0;
         }
-        // bytes of this call's input that belong to the in-progress chunk
-        let chunk_total = chunk_left;
         // record tail at call start: bounds the stream bytes a rejected
         // continuation may consume/skip
         let chunk_tail0 = chunk_tail;
         let to_client = direction == Direction::ToClient;
-        // bytes for the in-progress chunk, gap bytes included: gaps entering
-        // file state count toward queue growth.
-        let add = std::cmp::min(data.len() as u64, chunk_total as u64);
         let xid = if direction == Direction::ToServer {
             self.ts_chunk_xid
         } else {
@@ -1663,11 +1654,14 @@ impl NFSState {
             chunk_left = 0;
             // chunk_tail is reduced by what is consumed below: if the record's
             // XDR padding is not (all) in this input, the chunk stays active
-            // until it is (see the chunk_left == 0 case above)
+            // until the tail accounting has drained
 
             if direction == Direction::ToServer {
                 file_handle = self.ts_chunk_fh.to_vec();
             } else {
+                // the handle is mirrored in the state for the length of the
+                // chunk: the requestmap is bounded and may have evicted the
+                // READ's xid (which is why the chunk is still delivered)
                 file_handle = self.tc_chunk_fh.to_vec();
 
                 // chunk done, remove requestmap entry (unless evicted)
@@ -1676,11 +1670,11 @@ impl NFSState {
         } else {
             chunk_left -= data.len() as u32;
 
-            if direction == Direction::ToServer {
-                file_handle = self.ts_chunk_fh.to_vec();
+            file_handle = if direction == Direction::ToServer {
+                self.ts_chunk_fh.to_vec()
             } else {
-                file_handle = self.tc_chunk_fh.to_vec();
-            }
+                self.tc_chunk_fh.to_vec()
+            };
         }
 
         // Chunk-path queue-limit bookkeeping, acted on after the tx borrow
@@ -1688,6 +1682,9 @@ impl NFSState {
         let mut limit_event: Option<NFSEvent> = None;
         let mut limit_skip: u32 = 0;
         let mut consumed: u32 = 0;
+        // the chunk promise outlived its tx (closed, evicted, or the tx is not
+        // a file tx): release it after the borrow ends
+        let mut promise_orphaned = false;
         // get the tx and update it. A tx whose tracker has no open file cannot
         // take the chunk: its tracker never got a chunk, as it replaced the
         // chunk's tx after that was closed (e.g. by the max-tx limit), or its
@@ -1701,9 +1698,13 @@ impl NFSState {
         match tx {
             Some(tx) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                    // Chunk-path queue limit (not a newchunk caller): enforce the operator
-                    // max-{read,write}-queue-size/cnt; gap bytes count in `add`; overflow -> event + skip.
-                    if add > 0 && limit_event.is_none() && tdf.file_tracker.current_chunk_is_ooo() {
+                    // Chunk-path queue limit (not a newchunk caller): enforce
+                    // the operator max-{read,write}-queue-size/cnt directly;
+                    // overflow -> event + skip. The add counts file data only:
+                    // the tracker's remaining chunk bytes cap the record tail.
+                    let add =
+                        chunk_queue_add(chunk_tail, data.len(), tdf.file_tracker.get_chunk_left());
+                    if add > 0 && tdf.file_tracker.current_chunk_is_ooo() {
                         // Only an active OOO chunk continuation grows the queue; in-order
                         // data drains it, so it is never rejected here.
                         let ev = if to_client {
@@ -1716,28 +1717,22 @@ impl NFSState {
                             tx.tx_data.set_event(e as u8);
                             tx.tx_data.updated_ts = true;
                             tx.tx_data.updated_tc = true;
-                            // The record's XDR padding, before the tracker state
-                            // is cleared below: it follows the claimed data on
-                            // the wire, so the claim-relative tail does not
-                            // cover it.
-                            let fill = tdf.file_tracker.get_fill_bytes() as u32;
                             // Drop the rejected chunk: clear queue + in-progress chunk.
                             filetracker_trunc(&mut tdf.file_tracker);
                             limit_event = Some(e);
-                            // Stream accounting follows the record's unbuffered
-                            // tail (file_len-based) plus its XDR padding, not
-                            // the count-based promise: count > file_len would
-                            // run the consume/skip past the record into the
-                            // next RPC.
-                            let total = chunk_tail0.saturating_add(fill);
+                            // stream accounting follows the record tail (see
+                            // record_tail), not a count promise: a count
+                            // promise runs the consume/skip past the record into
+                            // the next RPC
+                            let total = chunk_tail0;
                             if total > data.len() as u32 {
                                 // all of this segment is record tail; the rest is
                                 // skipped on later calls
                                 consumed = data.len() as u32;
                                 limit_skip = total - data.len() as u32;
                             } else {
-                                // consume exactly the tail + padding: the stream
-                                // lands on the next RPC boundary
+                                // consume exactly the tail: the stream lands on
+                                // the next RPC boundary
                                 consumed = total;
                             }
                             chunk_tail = 0;
@@ -1749,13 +1744,25 @@ impl NFSState {
                             tdf.post_gap_ts = 0;
                         }
 
-                        tdf.chunk_count += 1;
+                        // A chunk is a piece of file data: an input that only
+                        // carries record slack must not bump the count
+                        if add > 0 {
+                            tdf.chunk_count += 1;
+                        }
+                        // terminal chunk completing here must carry the is_last
+                        // bookkeeping; capture before the update (tracker consumes it)
+                        let is_last_chunk = tdf.file_tracker.get_chunk_is_last()
+                            && !tdf.file_tracker.is_truncated();
                         let cs = filetracker_update(&mut tdf.file_tracker, data, gap_size);
                         /* see if we need to close the tx. A truncated tracker is
                          * never done, so also close it when the data of its last
                          * chunk is complete. */
                         if tdf.file_tracker.is_done() || (tx.is_last && chunk_left == 0) {
                             if direction == Direction::ToClient {
+                                if is_last_chunk {
+                                    tdf.file_last_xid = xid;
+                                    tx.is_last = true;
+                                }
                                 tx.response_done = true;
                                 tx.is_file_closed = true;
                                 SCLogDebug!(
@@ -1769,6 +1776,10 @@ impl NFSState {
                                     );
                                 }
                             } else {
+                                if is_last_chunk {
+                                    tdf.file_last_xid = xid;
+                                    tx.is_last = true;
+                                }
                                 tx.request_done = true;
                                 tx.is_file_closed = true;
                                 SCLogDebug!(
@@ -1787,24 +1798,40 @@ impl NFSState {
                     }
                 } else {
                     consumed = 0;
+                    promise_orphaned = true;
                 }
             }
             None => {
-                // The file tx is gone (e.g. closed by the max-tx limit), but
-                // the record boundary is still known: consume the chunk up to
-                // the record tail so its data is not parsed as an RPC record.
-                SCLogDebug!("no file tx for chunk XID {:04X}: consuming it", xid);
-                consumed = cmp::min(chunk_tail0, data.len() as u32);
+                consumed = 0;
+                promise_orphaned = true;
             }
         };
+
+        if promise_orphaned {
+            // tx gone (closed/evicted, or not a file tx): release the promise
+            // from the call-start tail (the completion branch may have zeroed
+            // the local); the chunk state is dropped below
+            if chunk_tail0 > data.len() as u32 {
+                consumed = data.len() as u32;
+                self.set_skip(direction, chunk_tail0 - data.len() as u32);
+            } else {
+                consumed = chunk_tail0;
+            }
+            chunk_left = 0;
+            chunk_tail = 0;
+            if to_client {
+                self.requestmap.pop(&xid);
+            }
+        }
 
         // the record tail shrinks by what the tracker consumed from the stream
         if limit_event.is_none() && consumed > 0 {
             chunk_tail = chunk_tail.saturating_sub(consumed);
         }
-        // once the file data is done, the rest of the record that is in this
-        // input is consumed too, so it is not parsed as an RPC record
-        if limit_event.is_none() && chunk_left == 0 && chunk_tail > 0 {
+        // the rest of the record that is in this input is consumed too, so it
+        // is not parsed as an RPC record: the slack of a record can start in
+        // an input that also carries file bytes, without the record ending
+        if limit_event.is_none() && chunk_tail > 0 {
             let rest = cmp::min(chunk_tail, (data.len() as u32).saturating_sub(consumed));
             consumed += rest;
             chunk_tail -= rest;
@@ -1861,21 +1888,15 @@ impl NFSState {
         let chunk_offset;
         let nfs_version;
 
-        let mut fill_bytes = 0;
-        // the XDR padding derives from data_len (the data actually present in
-        // the reply), not from the requested count
-        let pad = reply.data_len % 4;
-        if pad != 0 {
-            fill_bytes = 4 - pad;
-        }
+        // unbuffered record tail (reply data + XDR fill) left in the stream
+        let tail = record_tail(r.prog_data_size, r.prog_data.len());
 
         if reply.count == 0 {
             // No file data, but the rest of a partial reply must not be
             // parsed as the next RPC record: skip to the record boundary.
             // Nothing is pending for a complete record.
             if !self.is_udp {
-                let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
-                self.set_skip(Direction::ToClient, pending);
+                self.set_skip(Direction::ToClient, tail);
             }
             // done with the request, as for a complete record
             if xidmapr.is_none() {
@@ -1901,7 +1922,7 @@ impl NFSState {
                     // Unknown xid (unsolicited reply): the data cannot be
                     // associated. Skip to the record boundary instead of
                     // leaving the stream buffered toward the claim.
-                    let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+                    let pending = record_tail(r.prog_data_size, r.prog_data.len());
                     self.set_skip(Direction::ToClient, pending);
                     return 0;
                 }
@@ -1954,9 +1975,9 @@ impl NFSState {
                     tx.tx_data.files_opened = 0;
                 }
             }
-            // Skip to the RPC record boundary: claim vs data can disagree, and
-            // claimed-count math lands mid-padding or in a later record.
-            let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+            // Skip to the RPC record boundary: claim vs data can disagree, so
+            // the skip follows the record marker, not the claimed count
+            let pending = record_tail(r.prog_data_size, r.prog_data.len());
             if !self.is_udp {
                 self.set_skip(Direction::ToClient, pending);
                 self.tc_chunk_xid = 0;
@@ -1975,10 +1996,9 @@ impl NFSState {
 
         let mut is_last = reply.eof;
         SCLogDebug!(
-            "XID {} is_last {} fill_bytes {} reply.count {} reply.data_len {} reply.data.len() {}",
+            "XID {} is_last {} reply.count {} reply.data_len {} reply.data.len() {}",
             r.hdr.xid,
             is_last,
-            fill_bytes,
             reply.count,
             reply.data_len,
             reply.data.len()
@@ -2004,6 +2024,10 @@ impl NFSState {
 
         let is_partial = reply.data.len() < reply.data_len as usize;
         SCLogDebug!("partial data? {}", is_partial);
+        // what the record tail holds beyond the data still to come: the XDR
+        // pad, at most 3 bytes
+        let unbuffered = reply.data_len - reply.data.len() as u32;
+        let stream_fill = cmp::min(tail.saturating_sub(unbuffered), 3);
 
         let mut queue_exceeded = false;
 
@@ -2028,7 +2052,7 @@ impl NFSState {
                             reply.data,
                             chunk_offset,
                             reply.data_len,
-                            fill_bytes as u8,
+                            stream_fill as u8,
                             is_last,
                             &r.hdr.xid,
                         );
@@ -2087,7 +2111,7 @@ impl NFSState {
                         reply.data,
                         chunk_offset,
                         reply.data_len,
-                        fill_bytes as u8,
+                        stream_fill as u8,
                         is_last,
                         &r.hdr.xid,
                     );
@@ -2119,8 +2143,10 @@ impl NFSState {
         }
         if !self.is_udp {
             if queue_exceeded {
-                // Don't buffer the rest of the record: skip to its RPC boundary.
-                let pending = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+                // Don't buffer the rest of the record: skip to its RPC
+                // boundary. Complete records need no skip: the loop's rounded
+                // advance has already consumed the alignment pad.
+                let pending = record_tail(r.prog_data_size, r.prog_data.len());
                 self.set_skip(Direction::ToClient, pending);
                 self.tc_chunk_xid = 0;
                 self.tc_chunk_left = 0;
@@ -2134,16 +2160,17 @@ impl NFSState {
                 // record on a short read and would eat the following record's
                 // bytes as chunk continuation
                 debug_validate_bug_on!(reply.data.len() as u32 > reply.data_len);
-                self.tc_chunk_left = reply.data_len - reply.data.len() as u32;
-                // the record's unbuffered tail: data_len <= count, so this
-                // (not the count-based promise) bounds what a rejected
-                // continuation may consume or skip
-                self.tc_chunk_tail = r.prog_data_size.saturating_sub(r.prog_data.len() as u32);
+                // chunk promise = the record's unbuffered tail; a complete
+                // record leaves none
+                let pending = record_tail(r.prog_data_size, r.prog_data.len());
+                self.tc_chunk_left = pending;
+                self.tc_chunk_tail = pending;
+                // kept for the length of the chunk: the requestmap is bounded
+                // and may evict the xid before the last fragment arrives
                 self.tc_chunk_fh = file_handle;
-                // a partial reply that holds all of its data only has its padding
-                // left: done with the request, as at the end of a chunk in
-                // filetracker_update
-                if xidmapr.is_none() && self.tc_chunk_left == 0 {
+                // nothing left in the stream to deliver: done with the
+                // request, as at the end of a chunk in filetracker_update
+                if xidmapr.is_none() && pending == 0 {
                     self.requestmap.pop(&r.hdr.xid);
                 }
             }
@@ -2201,9 +2228,8 @@ impl NFSState {
     pub fn parse_tcp_data_ts_gap(&mut self, gap_size: u32) -> AppLayerResult {
         SCLogDebug!("parse_tcp_data_ts_gap ({})", gap_size);
         let consumed = self.handle_skip(Direction::ToServer, gap_size);
-        // Tag the session gapped even when the skip ate the gap: the OOO
-        // backstop is gated on this flag and runs on every subsequent
-        // filetracker_update (SMB parity).
+        // Tag the session gapped even when the skip ate the gap: post-gap
+        // housekeeping keys off this flag.
         self.ts_ssn_gap = true;
         self.ts_gap = true;
         if consumed == gap_size {
@@ -2375,19 +2401,15 @@ impl NFSState {
         let mut cur_i = stream_slice.as_slice();
         let consumed = self.handle_skip(Direction::ToServer, cur_i.len() as u32);
         if consumed > 0 {
-            if consumed as usize > cur_i.len() {
-                return AppLayerResult::err();
-            }
-            cur_i = &cur_i[consumed as usize..];
+            debug_validate_bug_on!(consumed > cur_i.len() as u32);
+            cur_i = &cur_i[consumed.min(cur_i.len() as u32) as usize..];
         }
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
         let consumed = self.filetracker_update(flow, Direction::ToServer, cur_i, 0);
         if consumed > 0 {
-            if consumed > cur_i.len() as u32 {
-                return AppLayerResult::err();
-            }
-            cur_i = &cur_i[consumed as usize..];
+            debug_validate_bug_on!(consumed > cur_i.len() as u32);
+            cur_i = &cur_i[consumed.min(cur_i.len() as u32) as usize..];
         }
         if cur_i.is_empty() {
             return AppLayerResult::ok();
@@ -2683,19 +2705,15 @@ impl NFSState {
         let mut cur_i = stream_slice.as_slice();
         let consumed = self.handle_skip(Direction::ToClient, cur_i.len() as u32);
         if consumed > 0 {
-            if consumed as usize > cur_i.len() {
-                return AppLayerResult::err();
-            }
-            cur_i = &cur_i[consumed as usize..];
+            debug_validate_bug_on!(consumed > cur_i.len() as u32);
+            cur_i = &cur_i[consumed.min(cur_i.len() as u32) as usize..];
         }
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
         let consumed = self.filetracker_update(flow, Direction::ToClient, cur_i, 0);
         if consumed > 0 {
-            if consumed > cur_i.len() as u32 {
-                return AppLayerResult::err();
-            }
-            cur_i = &cur_i[consumed as usize..];
+            debug_validate_bug_on!(consumed > cur_i.len() as u32);
+            cur_i = &cur_i[consumed.min(cur_i.len() as u32) as usize..];
         }
         if cur_i.is_empty() {
             return AppLayerResult::ok();
@@ -3724,4 +3742,28 @@ mod tests {
             NFS_CFG_MAX_WRITE_QUEUE_CNT = 64;
         }
     }
+
+    #[test]
+    fn test_chunk_queue_add() {
+        // record tail beyond the file data is fill/slack: it cannot grow the queue
+        assert_eq!(chunk_queue_add(1880, 100, 0), 0);
+        // plain continuation: all of the input is queued file data
+        assert_eq!(chunk_queue_add(1000, 500, 900), 500);
+        // the cap that motivated the fix: only the file bytes the chunk still
+        // misses may be added, however long the record promise is
+        assert_eq!(chunk_queue_add(4096, 4096, 100), 100);
+    }
+}
+
+#[test]
+fn test_record_tail() {
+    // partial record: the tail is what the claim holds beyond the buffer
+    assert_eq!(record_tail(1004, 500), 504);
+    // an unaligned claim is not padded out: the record ends at the claim and
+    // the next one starts there (issue-9196-nfs-filesync-partial-write pcap)
+    assert_eq!(record_tail(897, 81), 816);
+    // nothing buffered: the whole record body
+    assert_eq!(record_tail(1002, 0), 1002);
+    // complete record: nothing left to skip
+    assert_eq!(record_tail(1002, 1002), 0);
 }
