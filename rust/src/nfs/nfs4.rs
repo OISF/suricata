@@ -18,6 +18,7 @@
 // written by Victor Julien
 
 use nom7::bytes::streaming::take;
+use nom7::error::ErrorKind;
 use nom7::number::streaming::be_u32;
 use nom7::{Err, IResult};
 
@@ -348,6 +349,12 @@ impl NFSState {
                 // unwrapped below
                 xidmap.gssapi_proc = creds.procedure;
                 xidmap.gssapi_service = creds.service;
+                // privacy (0, 3) carries an encrypted compound: nothing to
+                // parse, and it is not malformed: just keep the request state
+                if creds.procedure == 0 && creds.service == 3 {
+                    self.requestmap.put(r.hdr.xid, xidmap);
+                    return;
+                }
                 if creds.procedure == 0 && creds.service == 2 {
                     SCLogDebug!("GSS INTEGRITY: {:?}", creds);
                     match parse_rpc_gssapi_integrity(r.prog_data) {
@@ -379,11 +386,19 @@ impl NFSState {
                 }
                 Err(Err::Incomplete(_n)) => {
                     SCLogDebug!("NFSPROC4_COMPOUND: INCOMPLETE {:?}", _n);
+                    self.reject_failed_v4_compound_parse(r, data);
+                }
+                Err(Err::Error(ref e)) if e.code == ErrorKind::Tag => {
+                    // a defined v4 op this parser does not implement: the compound is
+                    // valid, just not parsed. No tx of its own: keeps base's event on
+                    // the newest tx, so a lock-only flow logs nothing when it has no
+                    // earlier tx.
+                    SCLogDebug!("NFSPROC4_COMPOUND: unsupported op {:?}", e);
                     self.set_event(NFSEvent::MalformedData);
                 }
                 Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
                     SCLogDebug!("NFSPROC4_COMPOUND: Parsing failed: {:?}", _e);
-                    self.set_event(NFSEvent::MalformedData);
+                    self.reject_failed_v4_compound_parse(r, data);
                 }
             };
         }
@@ -470,6 +485,12 @@ impl NFSState {
     pub fn process_reply_record_v4(&mut self, flow: *mut Flow, r: &RpcReplyPacket, xidmap: &mut NFSRequestXidMap) {
         if xidmap.procedure == NFSPROC4_COMPOUND {
             let mut data = r.prog_data;
+
+            // privacy (0, 3) carries an encrypted response: not parsed,
+            // and not malformed (the call logged no tx either)
+            if xidmap.gssapi_proc == 0 && xidmap.gssapi_service == 3 {
+                return;
+            }
 
             if xidmap.gssapi_proc == 0 && xidmap.gssapi_service == 2 {
                 SCLogDebug!("GSS INTEGRITY as set by call: {:?}", xidmap);

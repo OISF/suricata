@@ -595,6 +595,12 @@ fn nfs4_req_sequence(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent<'_>> {
     Ok((i, req))
 }
 
+/// The op codes the NFSv4 RFCs (7530, 8881, 7862, 8276) assign all fall in this
+/// range: inside it an op may be one we do not parse, outside it is no op.
+fn v4_request_op_is_assigned(cmd: u32) -> bool {
+    matches!(cmd, 3..=75)
+}
+
 fn parse_request_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent<'_>> {
     let (i, cmd) = be_u32(i)?;
     let (i, cmd_data) = match cmd {
@@ -630,6 +636,11 @@ fn parse_request_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent
         NFSPROC4_LAYOUTRETURN => nfs4_req_layoutreturn(i)?,
         NFSPROC4_DESTROY_SESSION => nfs4_req_destroy_session(i)?,
         NFSPROC4_DESTROY_CLIENTID => nfs4_req_destroy_clientid(i)?,
+        // an op no parser here reads: Tag, not Switch, so the caller does not
+        // call valid traffic malformed (no request parser else yields Tag)
+        _ if v4_request_op_is_assigned(cmd) => {
+            return Err(Err::Error(make_error(i, ErrorKind::Tag)));
+        }
         _ => {
             return Err(Err::Error(make_error(i, ErrorKind::Switch)));
         }

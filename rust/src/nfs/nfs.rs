@@ -1451,7 +1451,7 @@ impl NFSState {
     }
     /// Reject a partial v4 WRITE compound whose claimed length exceeds the
     /// limit: log the tx and skip the record so the data blob is never buffered.
-    fn process_partial_v4_write_request_record<'b>(&mut self, r: &RpcPacket<'b>) {
+    pub(crate) fn process_partial_v4_write_request_record(&mut self, r: &RpcPacket<'_>) {
         SCLogDebug!(
             "REQUEST {} partial v4 WRITE rejected: claim exceeds {}",
             r.hdr.xid,
@@ -1497,7 +1497,7 @@ impl NFSState {
     /// Mark a partially buffered v4 COMPOUND request record malformed and skip it
     /// so the (attacker-controlled) record length is never buffered: the scanner's
     /// structural errors are definitive and the full parser rejects the same record.
-    fn process_partial_v4_malformed_request_record(&mut self, r: &RpcPacket<'_>) {
+    pub(crate) fn process_partial_v4_malformed_request_record(&mut self, r: &RpcPacket<'_>) {
         SCLogDebug!(
             "REQUEST {} partial v4 COMPOUND rejected: structural scan error",
             r.hdr.xid
@@ -1531,6 +1531,39 @@ impl NFSState {
             r.prog_data_size,
             pending
         );
+    }
+
+    /// Reject a complete v4 COMPOUND request record the parser could not read.
+    ///
+    /// The regular path only did `set_event`, which labels the most recent tx and
+    /// is a no-op when the state has none yet: the record was then consumed with
+    /// nothing logged. Run the partial path's bounded scan over the very bytes the
+    /// parser was given (`data`, so an RPCSEC_GSS wrapper is already unwrapped)
+    /// and reuse its rejects: an oversized WRITE claim gets the write-too-large
+    /// tx, everything else the malformed tx. A complete record has no unbuffered
+    /// tail, so the skip those helpers set is 0.
+    pub(crate) fn reject_failed_v4_compound_parse(&mut self, r: &RpcPacket<'_>, data: &[u8]) {
+        let max_write = unsafe { NFS_CFG_MAX_WRITE_SIZE };
+        // a zero limit disables the check
+        if max_write != 0
+            && matches!(
+                scan_nfs4_request_compound_write_len(data, max_write),
+                Nfs4CompoundScan::Oversized(_)
+            )
+        {
+            SCLogDebug!(
+                "REQUEST {} complete v4 COMPOUND unparsed: WRITE claim exceeds {}",
+                r.hdr.xid,
+                max_write
+            );
+            self.process_partial_v4_write_request_record(r);
+            return;
+        }
+        SCLogDebug!(
+            "REQUEST {} complete v4 COMPOUND unparsed: rejecting as malformed",
+            r.hdr.xid
+        );
+        self.process_partial_v4_malformed_request_record(r);
     }
 
     /// Mark a partially buffered v4 COMPOUND reply record as malformed and
@@ -3890,6 +3923,140 @@ mod tests {
         // the cap that motivated the fix: only the file bytes the chunk still
         // misses may be added, however long the record promise is
         assert_eq!(chunk_queue_add(4096, 4096, 100), 100);
+    }
+
+    fn be32(v: u32) -> [u8; 4] {
+        v.to_be_bytes()
+    }
+
+    /// A complete RPC/nfs v4 COMPOUND request record (AUTH_UNIX creds, NULL
+    /// verifier) carrying `compound` as program data, so the record path can be
+    /// driven without a stream. The RPC marker excludes itself, so it holds
+    /// xid + msgtype + the fixed header body + the program data.
+    fn v4_compound_record(xid: u32, compound: &[u8]) -> Vec<u8> {
+        let mut body: Vec<u8> = Vec::new();
+        body.extend_from_slice(&be32(2)); // rpcver
+        body.extend_from_slice(&be32(100003)); // program: NFS
+        body.extend_from_slice(&be32(4)); // progver
+        body.extend_from_slice(&be32(NFSPROC4_COMPOUND)); // procedure
+        body.extend_from_slice(&be32(1)); // creds flavor: AUTH_UNIX
+        body.extend_from_slice(&be32(16)); // creds length
+        body.extend_from_slice(&[0u8; 16]); // stamp, machine name, uid, gid
+        body.extend_from_slice(&be32(0)); // verifier flavor: NULL
+        body.extend_from_slice(&be32(0)); // verifier length
+        let frag_len = (4 + 4 + body.len() + compound.len()) as u32;
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&(frag_len | 0x8000_0000).to_be_bytes()); // last frag
+        buf.extend_from_slice(&be32(xid));
+        buf.extend_from_slice(&be32(1)); // msgtype: CALL
+        buf.extend_from_slice(&body);
+        buf.extend_from_slice(compound);
+        buf
+    }
+
+    /// v4 compound head: empty XDR string tag + minor version + op count
+    fn compound_head(ops_cnt: u32) -> Vec<u8> {
+        let mut v = be32(0).to_vec(); // tag length 0
+        v.extend_from_slice(&be32(0)); // minor version
+        v.extend_from_slice(&be32(ops_cnt));
+        v
+    }
+
+    /// v4 PUTFH op with a 16 byte handle
+    fn putfh_op() -> Vec<u8> {
+        let mut v = be32(NFSPROC4_PUTFH).to_vec();
+        v.extend_from_slice(&be32(16));
+        v.extend_from_slice(&[0u8; 16]);
+        v
+    }
+
+    /// v4 WRITE op that claims `write_len` bytes but carries none
+    fn write_op(write_len: u32) -> Vec<u8> {
+        let mut v = be32(NFSPROC4_WRITE).to_vec();
+        v.extend_from_slice(&be32(1)); // stateid seqid
+        v.extend_from_slice(&[0u8; 12]); // stateid other
+        v.extend_from_slice(&[0u8; 8]); // offset
+        v.extend_from_slice(&be32(2)); // stable: FILE_SYNC
+        v.extend_from_slice(&be32(write_len));
+        v
+    }
+
+    /// The reject a complete record gets must be observable in the transaction
+    /// list: `AppLayerTxData::set_event` is compiled out under cfg(test), so the
+    /// tx shape is what names the event (the write-too-large reject is a closed
+    /// file tx with the WRITE procedure, the malformed reject a plain tx with
+    /// the COMPOUND procedure).
+    fn reject_tx(state: &NFSState, expect_file_tx: bool, expect_proc: u32) {
+        assert_eq!(
+            state.transactions.len(),
+            1,
+            "expected exactly one tx for the rejected record"
+        );
+        let tx = &state.transactions[0];
+        assert_eq!(tx.is_file_tx, expect_file_tx);
+        assert_eq!(tx.procedure, expect_proc);
+        assert!(tx.request_done && tx.response_done && tx.is_file_closed);
+        assert_eq!(tx.tx_data.files_opened, 0);
+    }
+
+    #[test]
+    fn test_v4_complete_record_write_claim_past_record() {
+        let _lock = NFS_CFG_TEST_LOCK.lock().unwrap();
+        unsafe {
+            NFS_CFG_MAX_WRITE_SIZE = 4096;
+        }
+
+        // PUTFH + WRITE whose count runs past the end of the record: the parser
+        // stops with Incomplete, the scan sees the claim above the limit
+        let mut compound = compound_head(2);
+        compound.extend_from_slice(&putfh_op());
+        compound.extend_from_slice(&write_op(65536));
+        let buf = v4_compound_record(0x1234, &compound);
+
+        let mut state = NFSState::new();
+        let (_, pkt) = parse_rpc(&buf, true).expect("record parses");
+        state.process_request_record_v4(&pkt);
+
+        reject_tx(&state, true, NFSPROC4_WRITE);
+        assert_eq!(state.transactions[0].xid, 0x1234);
+        // A complete record leaves no unbuffered tail: nothing may be skipped,
+        // and the xid must be registered so the reply still matches the request.
+        assert_eq!(state.skip_ts, 0);
+        assert_eq!(state.ts_chunk_left, 0);
+        assert_eq!(state.ts_chunk_tail, 0);
+        assert!(state.requestmap.peek(&0x1234).is_some());
+
+        unsafe {
+            NFS_CFG_MAX_WRITE_SIZE = NFS_MAX_RW_SIZE_DEFAULT;
+        }
+    }
+
+    #[test]
+    fn test_v4_complete_record_malformed_compound() {
+        let _lock = NFS_CFG_TEST_LOCK.lock().unwrap();
+        unsafe {
+            NFS_CFG_MAX_WRITE_SIZE = 4096;
+        }
+
+        // unknown op in a non-last position: the parser rejects it, and the
+        // scan cannot reach a WRITE claim either
+        let mut compound = compound_head(2);
+        compound.extend_from_slice(&be32(0xffff));
+        compound.extend_from_slice(&putfh_op());
+        let buf = v4_compound_record(0x4321, &compound);
+
+        let mut state = NFSState::new();
+        let (_, pkt) = parse_rpc(&buf, true).expect("record parses");
+        state.process_request_record_v4(&pkt);
+
+        reject_tx(&state, false, NFSPROC4_COMPOUND);
+        assert_eq!(state.transactions[0].xid, 0x4321);
+        assert_eq!(state.skip_ts, 0);
+        assert!(state.requestmap.peek(&0x4321).is_some());
+
+        unsafe {
+            NFS_CFG_MAX_WRITE_SIZE = NFS_MAX_RW_SIZE_DEFAULT;
+        }
     }
 }
 
