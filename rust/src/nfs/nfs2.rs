@@ -113,7 +113,7 @@ impl NFSState {
             match parse_nfs2_reply_read(r.prog_data) {
                 Ok((_, ref reply)) => {
                     SCLogDebug!("NFSv2: READ reply record");
-                    self.process_read_record(flow, r, reply, Some(xidmap));
+                    self.process_read_record(flow, r, reply, Some(xidmap), false);
                     nfs_status = reply.status;
                 }
                 _ => {
