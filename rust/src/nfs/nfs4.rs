@@ -344,15 +344,16 @@ impl NFSState {
             let mut data = r.prog_data;
 
             if let RpcRequestCreds::GssApi(ref creds) = r.creds {
+                // store proc and serv for the reply; only (0, 2) is
+                // unwrapped below
+                xidmap.gssapi_proc = creds.procedure;
+                xidmap.gssapi_service = creds.service;
                 if creds.procedure == 0 && creds.service == 2 {
                     SCLogDebug!("GSS INTEGRITY: {:?}", creds);
                     match parse_rpc_gssapi_integrity(r.prog_data) {
                         Ok((_rem, rec)) => {
                             SCLogDebug!("GSS INTEGRITY wrapper: {:?}", rec);
                             data = rec.data;
-                            // store proc and serv for the reply
-                            xidmap.gssapi_proc = creds.procedure;
-                            xidmap.gssapi_service = creds.service;
                         }
                         Err(Err::Incomplete(_n)) => {
                             SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITY: INCOMPLETE {:?}", _n);
