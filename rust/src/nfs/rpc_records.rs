@@ -129,22 +129,28 @@ pub enum GssCompoundScan<'a> {
     /// The claimed envelope length fails the bounds check: definitive malformed
     /// (the full record path rejects it the same way).
     EnvelopeMalformed,
+    /// RPCSEC_GSS privacy (0, 3): the compound is encrypted, so there is
+    /// nothing to scan either way; it is opaque, not malformed.
+    Opaque,
 }
 
-/// `gss_proc`/`gss_service` carry the request's RPCSEC_GSS credential combination
-/// (header on the request side, xidmap on the response). Only the (0, 2) combination
-/// the full record path unwraps is unwrapped here, so both always see the same compound.
-pub fn gss_compound_scan_data(
-    gss_proc: u32, gss_service: u32, prog_data: &[u8],
-) -> GssCompoundScan<'_> {
-    if gss_proc == 0 && gss_service == 2 {
-        match parse_rpc_gssapi_integrity(prog_data) {
+/// `gss` is the request's RPCSEC_GSS credential combination (header on the
+/// request side, xidmap on the response; None: non-GSS). Only (0, 2) is
+/// unwrapped, (0, 3) is opaque; another GSS combination is definitive
+/// malformed, never Incomplete
+pub fn gss_compound_scan_data(gss: Option<(u32, u32)>, prog_data: &[u8]) -> GssCompoundScan<'_> {
+    match gss {
+        None => GssCompoundScan::Compound(prog_data),
+        // rpc_gss_svc_none (RFC 2203): no integrity/privacy wrap
+        Some((0, 1)) => GssCompoundScan::Compound(prog_data),
+        Some((0, 2)) => match parse_rpc_gssapi_integrity(prog_data) {
             Ok((_rem, ref rec)) => GssCompoundScan::Compound(rec.data),
             Err(Err::Incomplete(_)) => GssCompoundScan::EnvelopeIncomplete,
             Err(_) => GssCompoundScan::EnvelopeMalformed,
-        }
-    } else {
-        GssCompoundScan::Compound(prog_data)
+        },
+        // rpc_gss_svc_privacy: the payload is encrypted, in both directions
+        Some((0, 3)) => GssCompoundScan::Opaque,
+        Some(_) => GssCompoundScan::EnvelopeMalformed,
     }
 }
 
@@ -504,7 +510,7 @@ mod tests {
         envelope.extend_from_slice(&((compound.len()) as u32).to_be_bytes()); // len
         envelope.extend_from_slice(&1u32.to_be_bytes()); // seqnum
         envelope.extend_from_slice(compound); // data
-        let r = gss_compound_scan_data(0, 2, &envelope[..]);
+        let r = gss_compound_scan_data(Some((0, 2)), &envelope[..]);
         match r {
             GssCompoundScan::Compound(d) => assert_eq!(d, compound),
             _ => panic!("unexpected {:?}", r),
@@ -512,18 +518,39 @@ mod tests {
     }
 
     #[test]
+    fn test_gss_compound_scan_data_service_none() {
+        // (0, 1): rpc_gss_svc_none (RFC 2203) -- the data is not
+        // wrapped, the raw compound is scanned as-is
+        let prog: &[u8] = &[0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02];
+        assert_eq!(
+            gss_compound_scan_data(Some((0, 1)), prog),
+            GssCompoundScan::Compound(prog)
+        );
+    }
+
+    #[test]
+    fn test_gss_compound_scan_data_privacy() {
+        // rpc_gss_svc_privacy: encrypted, opaque to the scan
+        let prog: &[u8] = &[0x00, 0x00, 0x00, 0x08, 0xde, 0xad, 0xbe, 0xef];
+        assert_eq!(
+            gss_compound_scan_data(Some((0, 3)), prog),
+            GssCompoundScan::Opaque
+        );
+    }
+
+    #[test]
     fn test_gss_compound_scan_data_no_wrapper() {
         // non-GSS requests: prog_data is scanned as-is
         let prog: &[u8] = &[0x00, 0x00, 0x00, 0x02];
         assert_eq!(
-            gss_compound_scan_data(0, 0, prog),
+            gss_compound_scan_data(None, prog),
             GssCompoundScan::Compound(prog)
         );
-        // other GSS combinations are not unwrapped (the full record path
-        // does not unwrap them either)
+        // a GSS combination the full record path does not unwrap: definitive
+        // malformed (the full path rejects it the same way), never Incomplete
         assert_eq!(
-            gss_compound_scan_data(1, 0, prog),
-            GssCompoundScan::Compound(prog)
+            gss_compound_scan_data(Some((1, 0)), prog),
+            GssCompoundScan::EnvelopeMalformed
         );
     }
 
@@ -535,7 +562,7 @@ mod tests {
         envelope.extend_from_slice(&100u32.to_be_bytes());
         envelope.extend_from_slice(&1u32.to_be_bytes());
         assert_eq!(
-            gss_compound_scan_data(0, 2, &envelope[..]),
+            gss_compound_scan_data(Some((0, 2)), &envelope[..]),
             GssCompoundScan::EnvelopeIncomplete
         );
     }
@@ -549,7 +576,7 @@ mod tests {
         envelope.extend_from_slice(&1u32.to_be_bytes());
         envelope.extend_from_slice(&[0u8; 16]);
         assert_eq!(
-            gss_compound_scan_data(0, 2, &envelope[..]),
+            gss_compound_scan_data(Some((0, 2)), &envelope[..]),
             GssCompoundScan::EnvelopeMalformed
         );
     }
