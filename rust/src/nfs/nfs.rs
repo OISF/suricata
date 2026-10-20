@@ -112,12 +112,21 @@ pub static mut NFS_CFG_MAX_READ_QUEUE_CNT: u32 = 64;
 pub static mut NFS_CFG_MAX_WRITE_QUEUE_SIZE: u32 = 67108864;
 /// Max queued (out-of-order) write chunks. 0 = no limit.
 pub static mut NFS_CFG_MAX_WRITE_QUEUE_CNT: u32 = 64;
+/// Default max size of a single WRITE request / READ response (16 MiB);
+/// also the fallback bound when the size limits are disabled.
+pub const NFS_MAX_RW_SIZE_DEFAULT: u32 = 16777216;
 /// Max claimed size of a single WRITE request (bytes). Larger requests
 /// are rejected with an event and their payload remainder skipped.
-pub static mut NFS_CFG_MAX_WRITE_SIZE: u32 = 16777216;
+pub static mut NFS_CFG_MAX_WRITE_SIZE: u32 = NFS_MAX_RW_SIZE_DEFAULT;
 /// Max data size of a single READ response (bytes). Larger responses
 /// are rejected with an event.
-pub static mut NFS_CFG_MAX_READ_SIZE: u32 = 16777216;
+pub static mut NFS_CFG_MAX_READ_SIZE: u32 = NFS_MAX_RW_SIZE_DEFAULT;
+/// Default bound for buffering a partial v3 metadata reply (16 MiB).
+pub const NFS_MAX_METADATA_SIZE_DEFAULT: u32 = 16777216;
+/// Max size of a partial v3 LOOKUP/READDIRPLUS/CREATE reply that may be
+/// buffered toward its RPC record claim, so the handle/name mapping is kept.
+/// Separate from max-read-size, which bounds READ data only.
+pub static mut NFS_CFG_MAX_METADATA_SIZE: u32 = NFS_MAX_METADATA_SIZE_DEFAULT;
 
 #[derive(AppLayerFrameType)]
 pub enum NFSFrameType {
@@ -2541,20 +2550,36 @@ impl NFSState {
         &mut self, flow: *mut Flow, base_input: &'b [u8], cur_i: &'b [u8], phdr: &RpcPacketHeader,
         rec_size: usize,
     ) -> AppLayerResult {
-        // A partial reply that cannot carry file data must never be buffered
-        // toward its claimed length (31-bit, attacker-controlled): a
-        // legitimate reply always follows its request on this flow, so an
-        // unknown xid or a non-file procedure (only READ replies carry file
-        // data) means the record is unsolicited or a lost request's reply.
-        // Skip to the claimed record boundary instead.
+        // A partial reply that cannot carry file data must never buffer toward
+        // its 31-bit claim: skip to the record boundary instead. Exception: v3
+        // LOOKUP/READDIRPLUS/CREATE carry the filename mapping (bounded on the claim)
         match parse_rpc_reply(cur_i, false) {
             Ok((_, ref hdr)) => {
-                let carries_file_data = self
-                    .requestmap
-                    .get(&hdr.hdr.xid)
+                let xm = self.requestmap.get(&hdr.hdr.xid);
+                let carries_file_data = xm
                     .map(|xm| xm.procedure == NFSPROC3_READ || xm.procedure == NFSPROC4_COMPOUND)
                     .unwrap_or(false);
-                if !carries_file_data {
+                // hdr.prog_data_size is the remaining claim (rec_size minus the
+                // header), so the rec_size bound covers it; a limit of 0 falls
+                // back to the default so the buffering always stays bounded
+                let max_metadata = unsafe { NFS_CFG_MAX_METADATA_SIZE };
+                // the metadata-specific knob (not max-read-size, which bounds
+                // READ data); the +64 covers the RPC header / compound head
+                // the claim carries beyond the metadata payload
+                let claim_bound = (if max_metadata == 0 {
+                    NFS_MAX_METADATA_SIZE_DEFAULT
+                } else {
+                    max_metadata
+                }) as u64
+                    + 64;
+                let metadata_bounded = xm.is_some_and(|xm| {
+                    xm.progver == 3
+                        && (xm.procedure == NFSPROC3_LOOKUP
+                            || xm.procedure == NFSPROC3_READDIRPLUS
+                            || xm.procedure == NFSPROC3_CREATE)
+                        && (rec_size as u64) <= claim_bound
+                });
+                if !carries_file_data && !metadata_bounded {
                     let pending = hdr
                         .prog_data_size
                         .saturating_sub(hdr.prog_data.len() as u32);
@@ -2568,8 +2593,9 @@ impl NFSState {
                 }
             }
             Err(Err::Incomplete(_)) => {
-                // not enough header bytes yet: keep buffering (bounded by the
-                // 28-byte header) and fall through to the incomplete handling
+                // not enough header bytes yet: keep buffering (the header
+                // is bounded by the 4 KiB verifier) and fall through to
+                // the incomplete handling
             }
             Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
                 self.set_event(NFSEvent::MalformedData);
@@ -3376,6 +3402,24 @@ unsafe fn load_nfs_limit_config() {
             },
             Err(_) => {
                 SCLogError!("Invalid max-read-size value");
+            }
+        }
+    }
+    let retval = conf_get("app-layer.protocols.nfs.max-metadata-size");
+    if let Some(val) = retval {
+        match get_memval(val) {
+            Ok(v) => match u32::try_from(v) {
+                Ok(v32) => {
+                    // 0 falls back to the default at the use site: partial
+                    // metadata replies are always bounded
+                    NFS_CFG_MAX_METADATA_SIZE = v32;
+                }
+                Err(_) => {
+                    SCLogError!("Invalid max-metadata-size value (too large)");
+                }
+            },
+            Err(_) => {
+                SCLogError!("Invalid max-metadata-size value");
             }
         }
     }

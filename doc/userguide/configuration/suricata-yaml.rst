@@ -1910,6 +1910,7 @@ order file data.
       enabled: yes
       max-read-size: 16mb
       max-write-size: 16mb
+      max-metadata-size: 16mb
 
       max-read-queue-size: 64mb
       max-read-queue-cnt: 64
@@ -1924,6 +1925,12 @@ much data. A value of 0 disables the checks.
 The `max-write-size` option can be set to control the max size of accepted
 WRITE request records. Events will be raised if a WRITE request claims too
 much data. A value of 0 disables the checks.
+
+The `max-metadata-size` option can be set to control how much of a partial
+NFSv3 LOOKUP, READDIRPLUS or CREATE reply may be buffered towards the size its
+RPC record claims, so the file handle to filename mapping is kept. A value of 0
+falls back to the default of 16mb: this limit cannot be disabled. It is
+separate from `max-read-size`, which only bounds READ data.
 
 For file tracking the parser queues up out of order file data per file
 transaction. To avoid using too much memory the parser allows for limiting
