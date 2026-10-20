@@ -45,6 +45,9 @@ enum DetectContentInspectionType {
 // #define DETECT_CI_FLAGS_DCE_LE  BIT_U8(2)   /**< DCERPC record in little endian */
 // #define DETECT_CI_FLAGS_DCE_BE  BIT_U8(3)   /**< DCERPC record in big endian */
 #define DETECT_CI_FLAGS_ERROR BIT_U8(4) /**< transformation/decode error occurred */
+/** buffer is one window of a body or file that is inspected in several parts,
+ *  so a transform error may come from where the window was cut */
+#define DETECT_CI_FLAGS_PARTIAL BIT_U8(5)
 
 /** buffer is a single, non-streaming, buffer. Data sent to the content
  *  inspection function contains both start and end of the data. */

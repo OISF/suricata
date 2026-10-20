@@ -394,8 +394,11 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
     } else if (smd->type == DETECT_ABSENT || smd->type == DETECT_TRANSFORM_RESULT) {
         const DetectAbsentData *dad = (const DetectAbsentData *)smd->ctx;
         switch (dad->mode) {
+            /* An error on part of a body or file may come from where the
+             * window was cut, so must_error and error_or only count errors on
+             * a buffer inspected in one piece. must_succeed still blocks. */
             case DETECT_ABSENT_MUST_ERROR:
-                if (flags & DETECT_CI_FLAGS_ERROR) {
+                if ((flags & DETECT_CI_FLAGS_ERROR) && !(flags & DETECT_CI_FLAGS_PARTIAL)) {
                     SCLogDebug("transform_result: must_error: error flag match");
                     goto final_match;
                 }
@@ -403,7 +406,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             case DETECT_ABSENT_ONLY:
                 goto no_match;
             case DETECT_ABSENT_ERROR_OR:
-                if (flags & DETECT_CI_FLAGS_ERROR) {
+                if ((flags & DETECT_CI_FLAGS_ERROR) && !(flags & DETECT_CI_FLAGS_PARTIAL)) {
                     SCLogDebug("transform_result: error_or: error flag match");
                     goto final_match;
                 }
