@@ -230,7 +230,7 @@ bool DetectAbsentValidateContentCallback(
                    "buffer");
         return false;
     }
-    if (has_fast_pattern) {
+    if (has_fast_pattern && absent->mode != DETECT_ABSENT_MUST_SUCCEED) {
         SCLogError("signature can't have %s and fast_pattern on the same buffer", kw);
         return false;
     }
@@ -1072,13 +1072,13 @@ static int DetectAbsentTestParse04(void)
             "sid:6;)");
     FAIL_IF(s != NULL);
 
-    /* transform_result: must_succeed + fast_pattern on the same buffer should fail */
+    /* transform_result: must_succeed allows fast_pattern on the same buffer */
     s = DetectEngineAppendSig(de_ctx,
             "alert http any any -> any any "
             "(msg:\"must_succeed + fast_pattern\"; http.uri; "
             "from_base64: mode strict; transform_result: must_succeed; content:\"x\"; "
             "fast_pattern; sid:7;)");
-    FAIL_IF(s != NULL);
+    FAIL_IF_NULL(s);
 
     /* fast_pattern appearing before absent on the same buffer should still fail
      * (the simplified walk is order-independent for fast_pattern detection) */
@@ -1134,6 +1134,44 @@ static int DetectAbsentTestParse05(void)
     PASS;
 }
 
+/** \test content after transform_result: must_succeed can be the fast_pattern;
+ *        content after error_or cannot */
+static int DetectAbsentTestParse06(void)
+{
+    const struct {
+        const char *sig;
+        bool mpm;
+    } tests[] = {
+        { "alert http any any -> any any (http.uri; from_base64; "
+          "transform_result: must_succeed; content:\"evil\"; sid:1;)",
+                true },
+        { "alert http any any -> any any (http.uri; from_base64; "
+          "transform_result: error_or; content:\"evil\"; sid:2;)",
+                false },
+    };
+
+    for (size_t i = 0; i < ARRAY_SIZE(tests); i++) {
+        DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+        FAIL_IF_NULL(de_ctx);
+        de_ctx->flags |= DE_QUIET;
+
+        Signature *s = DetectEngineAppendSig(de_ctx, tests[i].sig);
+        FAIL_IF_NULL(s);
+        FAIL_IF_NOT(s->init_data->buffer_index == 1);
+
+        bool mpm = false;
+        for (SigMatch *sm = s->init_data->buffers[0].head; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_CONTENT &&
+                    (((const DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_MPM))
+                mpm = true;
+        }
+        FAIL_IF_NOT(mpm == tests[i].mpm);
+
+        DetectEngineCtxFree(de_ctx);
+    }
+    PASS;
+}
+
 void DetectAbsentRegisterTests(void)
 {
     UtRegisterTest("DetectAbsentTestParse01", DetectAbsentTestParse01);
@@ -1141,5 +1179,6 @@ void DetectAbsentRegisterTests(void)
     UtRegisterTest("DetectAbsentTestParse03", DetectAbsentTestParse03);
     UtRegisterTest("DetectAbsentTestParse04", DetectAbsentTestParse04);
     UtRegisterTest("DetectAbsentTestParse05", DetectAbsentTestParse05);
+    UtRegisterTest("DetectAbsentTestParse06", DetectAbsentTestParse06);
 }
 #endif
