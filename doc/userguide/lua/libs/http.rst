@@ -41,12 +41,8 @@ HTTP is transaction based, and the current transaction must be obtained before u
       print(err)
   end
 
-All other functions are methods on the transaction table.
-
-.. note::
-
-  The header functions below cover the header section only. HTTP trailer fields are not
-  reachable from Lua; match them with the ``http.trailer`` buffers in a rule instead.
+All other functions are methods on the transaction table. Header functions cover the
+header section; trailer fields have the functions at the end of this page.
 
 Transaction Methods
 ~~~~~~~~~~~~~~~~~~~
@@ -176,6 +172,49 @@ Example::
   local tx = http.get_tx()
   http_response_headers = tx:response_headers()
   print(http_response_headers)
+
+``request_trailer()``
+^^^^^^^^^^^^^^^^^^^^^
+
+Get the value of an HTTP request trailer field by name, or nil and an error if the
+transaction has no field of that name. Names are matched case insensitively.
+
+Example::
+
+  local tx = http.get_tx()
+  local value, err = tx:request_trailer("X-Trailed")
+
+``response_trailer()``
+^^^^^^^^^^^^^^^^^^^^^^
+
+Get the value of an HTTP response trailer field by name.
+
+``request_trailers()``
+^^^^^^^^^^^^^^^^^^^^^^
+
+Get all HTTP request trailer fields as a table.
+
+Example::
+
+  local tx = http.get_tx()
+  for name, value in pairs(tx:request_trailers()) do
+      print(name, value)
+  end
+
+``response_trailers()``
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Get all HTTP response trailer fields as a table.
+
+``request_trailers_raw()``
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Get the raw HTTP request trailer block, as it appeared on the wire.
+
+``response_trailers_raw()``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Get the raw HTTP response trailer block, as it appeared on the wire.
 
 ``request_body()``
 ^^^^^^^^^^^^^^^^^^

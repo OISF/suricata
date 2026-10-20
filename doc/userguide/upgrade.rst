@@ -69,11 +69,14 @@ Major Changes
   ``http.header_names`` or a field keyword such as ``http.user_agent`` stops matching
   and needs one of the trailer buffers. This also closes a hole where a trailer could
   extend a header value that detection and logging had already accepted.
-  For HTTP/1 they also drop out of the ``http.request_headers`` and
-  ``http.response_headers`` EVE arrays; no EVE key for trailer fields exists yet.
-  The Lua http library loses them the same way: ``tx:request_header()``,
-  ``tx:request_headers()``, ``tx:request_headers_raw()`` and the response twins read the
-  header tables and the raw header buffer, and that library has no trailer accessor.
+  EVE output still covers them: with ``dump-all-headers`` set they appear in the
+  ``http.request_headers`` and ``http.response_headers`` arrays as entries of their own,
+  instead of being appended to the value of a header field that shares their name. So a name
+  used in both blocks is listed twice, once per block. No EVE key for trailer fields exists
+  yet.
+  The Lua http library has accessors of its own for them now: ``tx:request_trailer()``,
+  ``tx:request_trailers()``, ``tx:request_trailers_raw()`` and the response twins, next to
+  the header functions that keep reading the header section only.
 
 - A HTTP/1 header block spanning several packets is no longer re-inspected while it is still
   arriving: a rule on ``http.header`` or ``http.header.raw`` now alerts once per transaction
