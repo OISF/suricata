@@ -1502,8 +1502,19 @@ impl NFSState {
             "REQUEST {} partial v4 COMPOUND rejected: structural scan error",
             r.hdr.xid
         );
-        // A definitive structural error from the buffered bytes: log a malformed
-        // tx and skip the record (bounded fallback, no buffering toward the claim).
+        // Mirror the full record path: register the xid so a matching reply
+        // is processed like any other v4 request.
+        let xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
+        self.requestmap.put(r.hdr.xid, xidmap);
+        self.reject_v4_malformed_request_record(r);
+    }
+
+    /// Log a malformed tx for a v4 COMPOUND request record that never reached
+    /// the compound parser and skip to its boundary. An event that does not
+    /// land on a tx does not exist: set_event marks the newest tx, which is
+    /// another RPC's when the flow has one, and none on a flow that has not.
+    /// Callers own the requestmap entry (a GSS record must keep its creds).
+    pub(crate) fn reject_v4_malformed_request_record(&mut self, r: &RpcPacket<'_>) {
         let mut tx = self.new_tx();
         tx.xid = r.hdr.xid;
         tx.procedure = r.procedure;
@@ -1515,10 +1526,6 @@ impl NFSState {
         tx.tx_data.updated_ts = true;
         tx.tx_data.updated_tc = true;
         self.transactions.push(tx);
-        // Mirror the full record path: register the xid so a matching reply
-        // is processed like any other v4 request.
-        let xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
-        self.requestmap.put(r.hdr.xid, xidmap);
         // Skip to the RPC record boundary without buffering the claimed rest
         // of the record.
         let pending = record_tail(r.prog_data_size, r.prog_data.len());
@@ -1597,6 +1604,50 @@ impl NFSState {
         self.tc_chunk_fh.clear();
         SCLogDebug!(
             "v4 COMPOUND reply malformed (record claim {}): skipping {} stream bytes",
+            r.prog_data_size,
+            pending
+        );
+    }
+
+    /// The RPCSEC_GSS unwrap of a v4 COMPOUND reply record failed. The event
+    /// belongs on the tx that owns the xid; with none fall back to a rejected
+    /// tx of its own - a compound that opens no request tx (PUTFH+GETATTR, a
+    /// SEQUENCE-led v4.1 compound) takes that branch on every bad reply, so it
+    /// must carry the procedure the xidmap recorded.
+    pub(crate) fn reject_v4_gss_reply_unwrap(&mut self, r: &RpcReplyPacket<'_>, procedure: u32) {
+        // same tx the reply belongs to (cf. get_tx_by_xid); position first so
+        // the fallback push is not fighting a borrow
+        let known = self
+            .transactions
+            .iter()
+            .position(|tx| !tx.is_file_tx && tx.xid == r.hdr.xid);
+        if let Some(i) = known {
+            let tx = &mut self.transactions[i];
+            tx.tx_data.set_event(NFSEvent::MalformedData as u8);
+            tx.response_done = true;
+            tx.tx_data.updated_ts = true;
+            tx.tx_data.updated_tc = true;
+        } else {
+            let mut tx = self.new_tx();
+            tx.xid = r.hdr.xid;
+            tx.procedure = procedure;
+            tx.nfs_version = self.nfs_version;
+            tx.request_done = true;
+            tx.response_done = true;
+            tx.is_file_closed = true;
+            tx.tx_data.set_event(NFSEvent::MalformedData as u8);
+            tx.tx_data.updated_ts = true;
+            tx.tx_data.updated_tc = true;
+            self.transactions.push(tx);
+        }
+        let pending = record_tail(r.prog_data_size, r.prog_data.len());
+        self.set_skip(Direction::ToClient, pending);
+        self.tc_chunk_xid = 0;
+        self.tc_chunk_left = 0;
+        self.tc_chunk_tail = 0;
+        self.tc_chunk_fh.clear();
+        SCLogDebug!(
+            "v4 COMPOUND GSS unwrap failed (record claim {}): skipping {} stream bytes",
             r.prog_data_size,
             pending
         );
@@ -4057,6 +4108,142 @@ mod tests {
         unsafe {
             NFS_CFG_MAX_WRITE_SIZE = NFS_MAX_RW_SIZE_DEFAULT;
         }
+    }
+
+    /// A CALL record with RPCSEC_GSS creds (procedure 0 = RPCSEC_GSS_DATA, the
+    /// given service) and `envelope` as prog_data.
+    fn gss_v4_record(xid: u32, service: u32, envelope: &[u8]) -> Vec<u8> {
+        let mut creds: Vec<u8> = Vec::new();
+        creds.extend_from_slice(&be32(1)); // rpc_gss_version
+        creds.extend_from_slice(&be32(0)); // procedure: RPCSEC_GSS_DATA
+        creds.extend_from_slice(&be32(1)); // sequence number
+        creds.extend_from_slice(&be32(service));
+        creds.extend_from_slice(&be32(16)); // context handle length
+        creds.extend_from_slice(&[0u8; 16]);
+        let mut body: Vec<u8> = Vec::new();
+        body.extend_from_slice(&be32(2)); // rpcver
+        body.extend_from_slice(&be32(100003)); // program: NFS
+        body.extend_from_slice(&be32(4)); // progver
+        body.extend_from_slice(&be32(NFSPROC4_COMPOUND)); // procedure
+        body.extend_from_slice(&be32(6)); // creds flavor: RPCSEC_GSS
+        body.extend_from_slice(&be32(creds.len() as u32));
+        body.extend_from_slice(&creds);
+        body.extend_from_slice(&be32(0)); // verifier flavor: NULL
+        body.extend_from_slice(&be32(0)); // verifier length
+        let frag_len = (4 + 4 + body.len() + envelope.len()) as u32;
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&(frag_len | 0x8000_0000).to_be_bytes());
+        buf.extend_from_slice(&be32(xid));
+        buf.extend_from_slice(&be32(1)); // msgtype: CALL
+        buf.extend_from_slice(&body);
+        buf.extend_from_slice(envelope);
+        buf
+    }
+
+    /// Integrity envelope per RFC 2203 5.3.2.2: length of the wrapped body
+    /// (sequence number + arguments), sequence number, arguments, checksum.
+    fn gss_envelope(len: u32, data: &[u8]) -> Vec<u8> {
+        let mut v = Vec::new();
+        v.extend_from_slice(&be32(len));
+        v.extend_from_slice(&be32(1));
+        v.extend_from_slice(data);
+        v
+    }
+
+    fn gss_v4_reply_record(xid: u32, envelope: &[u8]) -> Vec<u8> {
+        let mut body: Vec<u8> = Vec::new();
+        body.extend_from_slice(&be32(xid));
+        body.extend_from_slice(&be32(1)); // msgtype: REPLY
+        body.extend_from_slice(&be32(0)); // reply_state: ACCEPTED
+        body.extend_from_slice(&be32(0)); // verifier flavor: NULL
+        body.extend_from_slice(&be32(0)); // verifier length
+        body.extend_from_slice(&be32(0)); // accept_state
+        let frag_len = (body.len() + envelope.len()) as u32;
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&(frag_len | 0x8000_0000).to_be_bytes());
+        buf.extend_from_slice(&body);
+        buf.extend_from_slice(envelope);
+        buf
+    }
+
+    #[test]
+    fn test_v4_gss_envelope_over_bound_rejected() {
+        // The envelope length fails the credentials bound: a definitive
+        // malformed record. The arm used to only set_event, which labels the
+        // newest tx and does nothing at all when the state has none, so the
+        // record left no trace and the compound was never parsed.
+        let buf = gss_v4_record(
+            0x5101,
+            2,
+            &gss_envelope(RPC_MAX_CREDS_SIZE, &compound_head(0)),
+        );
+        let mut state = NFSState::new();
+        let (_, pkt) = parse_rpc(&buf, true).expect("record parses");
+        state.process_request_record_v4(&pkt);
+
+        reject_tx(&state, false, NFSPROC4_COMPOUND);
+        assert_eq!(state.transactions[0].xid, 0x5101);
+        assert_eq!(state.skip_ts, 0);
+        // the xid stays registered, with its gss combination, so the reply of
+        // this call is not taken for a plain compound
+        assert!(state.requestmap.peek(&0x5101).is_some());
+    }
+
+    #[test]
+    fn test_v4_gss_envelope_past_record_rejected() {
+        // In range but beyond the record: the unwrap is incomplete and the
+        // whole record is in hand, so nothing more can arrive for it
+        let buf = gss_v4_record(0x5102, 2, &gss_envelope(3000, &[]));
+        let mut state = NFSState::new();
+        let (_, pkt) = parse_rpc(&buf, true).expect("record parses");
+        state.process_request_record_v4(&pkt);
+
+        reject_tx(&state, false, NFSPROC4_COMPOUND);
+        assert_eq!(state.transactions[0].xid, 0x5102);
+        assert_eq!(state.skip_ts, 0);
+    }
+
+    #[test]
+    fn test_v4_gss_reply_unwrap_rejects_its_own_tx() {
+        // An async mount has several txs open at once; set_event marks the last,
+        // which is a different call than the one being rejected. The shape that
+        // names the malformed reject (flags set, list not grown) must land on
+        // the tx owning the xid.
+        let mut state = NFSState::new();
+        for xid in [0x6100u32, 0x6101] {
+            let mut tx = state.new_tx();
+            tx.xid = xid;
+            state.transactions.push(tx);
+        }
+        let buf = gss_v4_reply_record(0x6100, &gss_envelope(RPC_MAX_CREDS_SIZE, &[]));
+        let (_, pkt) = parse_rpc_reply(&buf, true).expect("reply parses");
+        state.reject_v4_gss_reply_unwrap(&pkt, NFSPROC4_COMPOUND);
+
+        assert_eq!(state.transactions.len(), 2, "no extra tx for a known xid");
+        assert!(
+            state.transactions[0].response_done,
+            "event on the owning tx"
+        );
+        assert!(
+            !state.transactions[1].response_done,
+            "other call left alone"
+        );
+        assert_eq!(state.skip_tc, 0);
+    }
+
+    #[test]
+    fn test_v4_gss_reply_unwrap_without_tx() {
+        // a compound that opens no request tx (PUTFH+GETATTR, SEQUENCE-led
+        // v4.1) takes this branch on every bad reply: the reject tx must carry
+        // the procedure from the xidmap, not the 0 that reads as NULL
+        let mut state = NFSState::new();
+        let buf = gss_v4_reply_record(0x6200, &gss_envelope(8, &[]));
+        let (_, pkt) = parse_rpc_reply(&buf, true).expect("reply parses");
+        state.reject_v4_gss_reply_unwrap(&pkt, NFSPROC4_COMPOUND);
+
+        reject_tx(&state, false, NFSPROC4_COMPOUND);
+        assert_eq!(state.transactions[0].xid, 0x6200);
+        assert_eq!(state.skip_tc, 0);
     }
 }
 
