@@ -1021,7 +1021,7 @@ fn evaluate_stub_params(
     if stub_len == 0 {
         return 0;
     }
-    if stub_len == lenleft && (fragtype == 0 || (fragtype & PFC_LAST_FRAG > 0)) {
+    if stub_len == lenleft && (fragtype & PFC_LAST_FRAG > 0) {
         *stub_data_buffer_reset = true;
     }
 
