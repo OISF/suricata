@@ -24,6 +24,9 @@ use petgraph::Direction;
 use std::collections::{HashMap, HashSet};
 use std::os::raw::c_void;
 
+/// Must match DETECT_FLOWBITS_CMD_SET in src/detect-flowbits.h
+const DETECT_FLOWBITS_CMD_SET: u8 = 0;
+
 /// Special Graph Node storing flowbit or signature
 #[derive(Debug, Copy, Clone)]
 struct SCGNode {
@@ -197,26 +200,25 @@ fn try_resolve_one_cycle(graph: &mut StableDiGraph<SCGNode, SCGEdge>) -> bool {
             /* store cycle edges to inspect their commands (weights) later */
             edge_map.insert(edge_idx, cmd);
         }
-        /* Find if the cycle causing edges are made up of differing weights */
-        let distinct_weights = edge_map.values().copied().collect::<HashSet<u8>>().len();
-        debug_validate_bug_on!(distinct_weights == 0);
-        if distinct_weights > 1 {
-            /* Find and remove the edge with highest weight (lowest priority) */
-            if let Some((cur_e, _)) = edge_map.iter().max_by_key(|(_, &weight)| weight) {
-                graph.remove_edge(*cur_e);
-                return true;
-            }
-        } else {
-            /* Valid cycle with same weights -- can't resolve */
-            let mut sids: Vec<_> = scc_set.iter().map(|a| graph[*a].sid).collect();
-            sids.sort_unstable();
-            SCLogError!(
-                "Cyclic dependency found between flowbits from signatures: {:?}",
-                sids
-            );
-            return false;
+        debug_validate_bug_on!(edge_map.is_empty());
+        /* An unset -> isnotset edge is not a hard dependency: isnotset already
+         * matches before the bit was ever set, so drop such an edge if the
+         * cycle has one */
+        if let Some((cur_e, _)) = edge_map
+            .iter()
+            .find(|(_, &cmd)| cmd != DETECT_FLOWBITS_CMD_SET)
+        {
+            graph.remove_edge(*cur_e);
+            return true;
         }
-        break;
+        /* Valid cycle made of set edges only -- can't resolve */
+        let mut sids: Vec<_> = scc_set.iter().map(|a| graph[*a].sid).collect();
+        sids.sort_unstable();
+        SCLogError!(
+            "Cyclic dependency found between flowbits from signatures: {:?}",
+            sids
+        );
+        return false;
     }
 
     /* couldn't resolve */
