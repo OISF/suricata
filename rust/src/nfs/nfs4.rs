@@ -362,17 +362,14 @@ impl NFSState {
                             SCLogDebug!("GSS INTEGRITY wrapper: {:?}", rec);
                             data = rec.data;
                         }
-                        Err(Err::Incomplete(_n)) => {
-                            SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITY: INCOMPLETE {:?}", _n);
-                            self.set_event(NFSEvent::MalformedData);
-                            return;
-                        }
-                        Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
+                        Err(Err::Incomplete(_)) | Err(Err::Error(_)) | Err(Err::Failure(_)) => {
                             SCLogDebug!(
-                                "NFSPROC4_COMPOUND/GSS INTEGRITY: Parsing failed: {:?}",
-                                _e
+                                "RPCSEC_GSS: integrity envelope could not be unwrapped (v4 compound call)"
                             );
-                            self.set_event(NFSEvent::MalformedData);
+                            // Keep the gss creds in the map: the reply of this
+                            // xid is wrapped the same way and must be unwrapped.
+                            self.requestmap.put(r.hdr.xid, xidmap);
+                            self.reject_v4_malformed_request_record(r);
                             return;
                         }
                     }
@@ -505,14 +502,11 @@ impl NFSState {
                         SCLogDebug!("GSS INTEGRITY wrapper: {:?}", rec);
                         data = rec.data;
                     }
-                    Err(Err::Incomplete(_n)) => {
-                        SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITY: INCOMPLETE {:?}", _n);
-                        self.set_event(NFSEvent::MalformedData);
-                        return;
-                    }
-                    Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
-                        SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITY: Parsing failed: {:?}", _e);
-                        self.set_event(NFSEvent::MalformedData);
+                    Err(Err::Incomplete(_)) | Err(Err::Error(_)) | Err(Err::Failure(_)) => {
+                        SCLogDebug!(
+                            "RPCSEC_GSS: integrity envelope could not be unwrapped (v4 compound reply)"
+                        );
+                        self.reject_v4_gss_reply_unwrap(r, xidmap.procedure);
                         return;
                     }
                 }
