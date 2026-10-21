@@ -110,6 +110,9 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         const enum DetectContentInspectionType inspection_mode)
 {
     SCEnter();
+    // every caller passes a keyword list, and the recursion below stops at
+    // its last entry; the profiling calls rely on that to read smd->type
+    DEBUG_VALIDATE_BUG_ON(smd == NULL);
     KEYWORD_PROFILING_START;
 
     ctx->recursion.count++;
@@ -119,7 +122,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
     }
 
     // we want the ability to match on bsize: 0
-    if (smd == NULL || buffer == NULL) {
+    if (buffer == NULL) {
         KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
         SCReturnInt(0);
     }
