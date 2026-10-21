@@ -30,6 +30,9 @@
 #include "direct.h"
 #include "util-ip.h"
 
+#include <fcntl.h>
+#include <io.h>
+
 void setenv(const char *name, const char *value, int overwrite)
 {
     if (overwrite || NULL == getenv(name)) {
@@ -119,5 +122,85 @@ int inet_pton(int af, const char *src, void *dst)
     return -1;
 }
 #endif
+
+/**
+ * \brief Open a file for writing.
+ *
+ * Like fopen() with a mode of "a" or "w", but also opens the file with
+ * FILE_SHARE_DELETE, which fopen() does not. This allows the file to be
+ * renamed or deleted while open, for example so log files can be rotated by
+ * external tools, then reopened by Suricata.
+ *
+ * \param path The file path to open
+ * \param mode "a" to append or "w" to truncate
+ * \retval FILE* on success
+ * \retval NULL on error with errno set
+ */
+FILE *SCWin32Fopen(const char *path, const char *mode)
+{
+    bool append;
+    if (strcmp(mode, "a") == 0) {
+        append = true;
+    } else if (strcmp(mode, "w") == 0) {
+        append = false;
+    } else {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    HANDLE h =
+            CreateFileA(path, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    NULL, append ? OPEN_ALWAYS : CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h == INVALID_HANDLE_VALUE) {
+        switch (GetLastError()) {
+            case ERROR_FILE_NOT_FOUND:
+            case ERROR_PATH_NOT_FOUND:
+                errno = ENOENT;
+                break;
+            case ERROR_ACCESS_DENIED:
+            case ERROR_SHARING_VIOLATION:
+            case ERROR_LOCK_VIOLATION:
+                errno = EACCES;
+                break;
+            case ERROR_INVALID_NAME:
+            case ERROR_BAD_PATHNAME:
+            case ERROR_DIRECTORY:
+                errno = EINVAL;
+                break;
+            case ERROR_FILENAME_EXCED_RANGE:
+                errno = ENAMETOOLONG;
+                break;
+            case ERROR_TOO_MANY_OPEN_FILES:
+                errno = EMFILE;
+                break;
+            case ERROR_DISK_FULL:
+            case ERROR_HANDLE_DISK_FULL:
+                errno = ENOSPC;
+                break;
+            default:
+                errno = EIO;
+                break;
+        }
+        return NULL;
+    }
+
+    /* Text mode, to match fopen() without a 'b' mode. */
+    int fd = _open_osfhandle((intptr_t)h, _O_TEXT | (append ? _O_APPEND : 0));
+    if (fd == -1) {
+        CloseHandle(h);
+        return NULL;
+    }
+
+    FILE *fp = _fdopen(fd, mode);
+    if (fp == NULL) {
+        /* Also closes the underlying handle. */
+        int err = errno;
+        _close(fd);
+        errno = err;
+        return NULL;
+    }
+
+    return fp;
+}
 
 #endif /* OS_WIN32 */

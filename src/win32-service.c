@@ -30,7 +30,19 @@
 #include "win32-service.h"
 #include "util-debug.h"
 
+#include <sddl.h>
+
+/* The default service DACL, but without SERVICE_USER_DEFINED_CONTROL (CR) for
+ * interactive (IU) and service (SU) users, so only SYSTEM and Administrators
+ * can send user-defined control codes. */
+#define SERVICE_SDDL                                                                               \
+    "D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)"                           \
+    "(A;;CCLCSWLORC;;;IU)(A;;CCLCSWLORC;;;SU)"
+
 static SERVICE_STATUS_HANDLE service_status_handle = 0;
+
+/* Pending SC_SERVICE_REQUEST_* flags, handled by the main loop. */
+static SC_ATOMIC_DECLARE(uint32_t, service_requests);
 
 static int service_argc = 0;
 
@@ -81,10 +93,32 @@ static void SCAtExitHandler(void)
 }
 
 /**
+ * \brief Get and clear the pending service control requests.
+ *
+ * \retval SC_SERVICE_REQUEST_* flags
+ */
+uint32_t SCServiceTakeRequests(void)
+{
+    return SC_ATOMIC_AND(service_requests, 0);
+}
+
+/**
  * \brief Service handler
  */
 static DWORD WINAPI SCServiceCtrlHandlerEx(DWORD code, DWORD etype, LPVOID edata, LPVOID context)
 {
+    if (code == SC_SERVICE_CONTROL_RELOAD_RULES) {
+        /* Defer logging to the main loop, after logging initialization. */
+        SC_ATOMIC_OR(service_requests, SC_SERVICE_REQUEST_RELOAD_RULES);
+        return NO_ERROR;
+    }
+
+    if (code == SC_SERVICE_CONTROL_REOPEN_LOG_FILES) {
+        /* Defer logging to the main loop, after logging initialization. */
+        SC_ATOMIC_OR(service_requests, SC_SERVICE_REQUEST_REOPEN_LOG_FILES);
+        return NO_ERROR;
+    }
+
     if (code == SERVICE_CONTROL_SHUTDOWN || code == SERVICE_CONTROL_STOP) {
         SERVICE_STATUS status = {
             SERVICE_WIN32,
@@ -203,6 +237,33 @@ int SCServiceInit(int argc, char **argv)
 }
 
 /**
+ * \brief Restrict who can send user-defined control codes to the service.
+ *
+ * By default, interactive and service users can send user-defined control
+ * codes to a service. Restrict this to SYSTEM and Administrators as these
+ * codes will be used for runtime control of Suricata, such as rule reloads.
+ */
+static int SCServiceSetSecurity(SC_HANDLE service)
+{
+    PSECURITY_DESCRIPTOR sd = NULL;
+    int ret = 0;
+
+    if (!ConvertStringSecurityDescriptorToSecurityDescriptorA(
+                SERVICE_SDDL, SDDL_REVISION_1, &sd, NULL)) {
+        SCLogError("Can't create service security descriptor: %d", (int)GetLastError());
+        return -1;
+    }
+
+    if (!SetServiceObjectSecurity(service, DACL_SECURITY_INFORMATION, sd)) {
+        SCLogError("Can't set service security descriptor: %d", (int)GetLastError());
+        ret = -1;
+    }
+
+    LocalFree(sd);
+    return ret;
+}
+
+/**
  * \brief Install suricata as service
  *
  * \param argc num of arguments
@@ -266,6 +327,11 @@ int SCServiceInstall(int argc, char **argv)
 
         if (service == NULL) {
             SCLogError("Can't create service: %d", (int)GetLastError());
+            break;
+        }
+
+        if (SCServiceSetSecurity(service) != 0) {
+            DeleteService(service);
             break;
         }
 
