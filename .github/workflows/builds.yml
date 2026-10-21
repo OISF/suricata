@@ -107,7 +107,6 @@ jobs:
                 jansson-devel \
                 jq \
                 libtool \
-                libyaml-devel \
                 libnfnetlink-devel \
                 libnetfilter_queue-devel \
                 libnet-devel \
@@ -303,7 +302,6 @@ jobs:
                 jansson-devel \
                 jq \
                 libtool \
-                libyaml-devel \
                 libnfnetlink-devel \
                 libnetfilter_queue-devel \
                 libnet-devel \
@@ -510,7 +508,6 @@ jobs:
                 jansson-devel \
                 jq \
                 libtool \
-                libyaml-devel \
                 libnfnetlink-devel \
                 libnetfilter_queue-devel \
                 libnet-devel \
@@ -673,7 +670,6 @@ jobs:
                 jansson-devel \
                 jq \
                 libtool \
-                libyaml-devel \
                 libnfnetlink-devel \
                 libnetfilter_queue-devel \
                 libnet-devel \
@@ -761,7 +757,6 @@ jobs:
                 jansson-devel \
                 jq \
                 libtool \
-                libyaml-devel \
                 libnfnetlink-devel \
                 libnetfilter_queue-devel \
                 libnet-devel \
@@ -864,7 +859,6 @@ jobs:
                 jq \
                 libasan \
                 libtool \
-                libyaml-devel \
                 libnfnetlink-devel \
                 libnetfilter_queue-devel \
                 libnet-devel \
@@ -965,7 +959,6 @@ jobs:
                 jq \
                 libasan \
                 libtool \
-                libyaml-devel \
                 libnfnetlink-devel \
                 libnetfilter_queue-devel \
                 libnet-devel \
@@ -1065,7 +1058,6 @@ jobs:
                 jq \
                 libasan \
                 libtool \
-                libyaml-devel \
                 libnfnetlink-devel \
                 libnetfilter_queue-devel \
                 libnet-devel \
@@ -1187,7 +1179,6 @@ jobs:
                 jq \
                 libasan \
                 libtool \
-                libyaml-devel \
                 libnfnetlink-devel \
                 libnetfilter_queue-devel \
                 libnet-devel \
@@ -1288,7 +1279,6 @@ jobs:
                 hwloc-devel \
                 libasan \
                 libtool \
-                libyaml-devel \
                 libnfnetlink-devel \
                 libnetfilter_queue-devel \
                 libnet-devel \
@@ -1405,7 +1395,6 @@ jobs:
                 libpcre2-dev \
                 libpython3.12 \
                 libtool \
-                libyaml-dev \
                 llvm-14-dev \
                 make \
                 parallel \
@@ -1483,7 +1472,6 @@ jobs:
                 libpcre2-dev \
                 libpython3.12 \
                 libtool \
-                libyaml-dev \
                 llvm-14-dev \
                 make \
                 parallel \
@@ -1545,8 +1533,6 @@ jobs:
                 libtool \
                 libpcap-dev \
                 libnet1-dev \
-                libyaml-0-2 \
-                libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
@@ -1708,8 +1694,6 @@ jobs:
                 libtool \
                 libpcap-dev \
                 libnet1-dev \
-                libyaml-0-2 \
-                libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
@@ -1820,8 +1804,6 @@ jobs:
                 libtool \
                 libpcap-dev \
                 libnet1-dev \
-                libyaml-0-2 \
-                libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
@@ -1997,8 +1979,6 @@ jobs:
                 libtool \
                 libpcap-dev \
                 libnet1-dev \
-                libyaml-0-2 \
-                libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
@@ -2085,8 +2065,6 @@ jobs:
                 libtool \
                 libpcap-dev \
                 libnet1-dev \
-                libyaml-0-2 \
-                libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
@@ -2273,8 +2251,6 @@ jobs:
                 libtool \
                 libpcap-dev \
                 libnet1-dev \
-                libyaml-0-2 \
-                libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
@@ -2392,8 +2368,6 @@ jobs:
                 libtool \
                 libpcap-dev \
                 libnet1-dev \
-                libyaml-0-2 \
-                libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
@@ -2498,8 +2472,6 @@ jobs:
                 libtool \
                 libpcap-dev \
                 libnet1-dev \
-                libyaml-0-2 \
-                libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
@@ -2580,8 +2552,6 @@ jobs:
                 libtool \
                 libpcap-dev \
                 libnet1-dev \
-                libyaml-0-2 \
-                libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
@@ -2654,8 +2624,6 @@ jobs:
                 libtool \
                 libpcap-dev \
                 libnet1-dev \
-                libyaml-0-2 \
-                libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
@@ -2740,8 +2708,6 @@ jobs:
                 libtool \
                 libpcap-dev \
                 libnet1-dev \
-                libyaml-0-2 \
-                libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
@@ -2807,8 +2773,6 @@ jobs:
                   libtool \
                   libpcap-dev \
                   libnet1-dev \
-                  libyaml-0-2 \
-                  libyaml-dev \
                   libcap-ng-dev \
                   libcap-ng0 \
                   libmagic-dev \
@@ -2984,8 +2948,6 @@ jobs:
                 libtool \
                 libpcap-dev \
                 libnet1-dev \
-                libyaml-0-2 \
-                libyaml-dev \
                 libcap-ng-dev \
                 libcap-ng0 \
                 libmagic-dev \
@@ -3104,8 +3066,6 @@ jobs:
               libtool \
               libpcap-dev \
               libnet1-dev \
-              libyaml-0-2 \
-              libyaml-dev \
               libcap-ng-dev \
               libcap-ng0 \
               libmagic-dev \
@@ -3196,8 +3156,6 @@ jobs:
               libtool \
               libpcap-dev \
               libnet1-dev \
-              libyaml-0-2 \
-              libyaml-dev \
               libcap-ng-dev \
               libcap-ng0 \
               libmagic-dev \
@@ -3316,8 +3274,6 @@ jobs:
               libtool \
               libpcap-dev \
               libnet1-dev \
-              libyaml-0-2 \
-              libyaml-dev \
               libcap-ng-dev \
               libcap-ng0 \
               libmagic-dev \
@@ -3398,8 +3354,6 @@ jobs:
               libtool \
               libpcap-dev \
               libnet1-dev \
-              libyaml-0-2 \
-              libyaml-dev \
               libcap-ng-dev \
               libcap-ng0 \
               libmagic-dev \
@@ -3469,7 +3423,6 @@ jobs:
           jq \
           libnet \
           libtool \
-          libyaml \
           pcre2 \
           pkg-config \
           python \
@@ -3573,7 +3526,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-libxml2
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool pcre2-devel jansson-devel make mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-libxml2
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
@@ -3630,7 +3583,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool pcre2-devel jansson-devel make mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
@@ -3687,7 +3640,6 @@ jobs:
             mingw-w64-ucrt-x86_64-jq
             mingw-w64-ucrt-x86_64-libpcap
             mingw-w64-ucrt-x86_64-libtool
-            mingw-w64-ucrt-x86_64-libyaml
             mingw-w64-ucrt-x86_64-pcre2
             mingw-w64-ucrt-x86_64-python-yaml
             mingw-w64-ucrt-x86_64-rust
@@ -3735,7 +3687,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
+          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool pcre2-devel jansson-devel make mingw-w64-x86_64-pcre2 mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
       # hack: install our own cbindgen system wide as we can't get the
       # preinstalled one to be picked up by configure
       - name: cbindgen
@@ -3798,7 +3750,6 @@ jobs:
                 hwloc-devel \
                 jansson-devel \
                 libtool \
-                libyaml-devel \
                 libnfnetlink-devel \
                 libnetfilter_queue-devel \
                 libnet-devel \

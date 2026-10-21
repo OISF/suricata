@@ -28,8 +28,6 @@ apt -y install \
     libtool \
     libpcap-dev \
     libnet1-dev \
-    libyaml-0-2 \
-    libyaml-dev \
     libcap-ng-dev \
     libcap-ng0 \
     libmagic-dev \

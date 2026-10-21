@@ -228,6 +228,9 @@ int BuildCpusetWithCallback(
 {
     SCConfNode *lnode;
     TAILQ_FOREACH(lnode, &node->head, next) {
+        if (lnode->val == NULL || lnode->val[0] == '\0') {
+            continue;
+        }
         char *sep = NULL;
         uint32_t i;
         uint32_t a, b;
@@ -538,6 +541,9 @@ static int SetupPerIfaceAffinity(ThreadsAffinityType *taf, SCConfNode *affinity)
 
     SCConfNode *iface_node;
     TAILQ_FOREACH (iface_node, &per_iface_node->head, next) {
+        if (iface_node->val == NULL || iface_node->val[0] == '\0') {
+            continue;
+        }
         if (strcmp(iface_node->val, "interface") == 0) {
             if (SetupSingleIfaceAffinity(taf, iface_node) < 0) {
                 return -1;
@@ -1982,7 +1988,8 @@ static int ThreadingAffinityTest26(void)
 
 /**
  * \brief Test mixed format configurations in same file
- * Combination of new and deprecated formats
+ * Combination of new and deprecated formats, which is not valid YAML:
+ * nothing is loaded and the defaults apply.
  */
 static int ThreadingAffinityTest27(void)
 {
@@ -1999,14 +2006,13 @@ static int ThreadingAffinityTest27(void)
                          "    - worker-cpu-set:\n" // Deprecated format
                          "        cpu: [ 1, 2 ]\n";
 
-    SCConfYamlLoadString(config, strlen(config));
+    FAIL_IF(SCConfYamlLoadString(config, strlen(config)) != -1);
     AffinitySetupLoadFromConfig();
 
     ThreadsAffinityType *mgmt_taf = &thread_affinity[MANAGEMENT_CPU_SET];
     ThreadsAffinityType *worker_taf = &thread_affinity[WORKER_CPU_SET];
-    // The first format should be picked-up and the other should be ignored
-    // For ignored formats, CPU_SET is initliazed as all cores
-    FAIL_IF(CPU_COUNT(&mgmt_taf->cpu_set) != 1 ||
+    // Nothing was loaded, so both CPU_SETs are initialized as all cores
+    FAIL_IF(CPU_COUNT(&mgmt_taf->cpu_set) != UtilCpuGetNumProcessorsOnline() ||
             CPU_COUNT(&worker_taf->cpu_set) != UtilCpuGetNumProcessorsOnline());
 
     SCConfDeInit();

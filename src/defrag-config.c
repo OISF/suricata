@@ -123,6 +123,9 @@ static void DefragParseParameters(SCConfNode *n)
         if (strcasecmp("address", si->name) == 0) {
             SCConfNode *pval;
             TAILQ_FOREACH(pval, &si->head, next) {
+                if (pval->val == NULL || pval->val[0] == '\0') {
+                    continue;
+                }
                 DefragPolicyAddHostInfo(pval->val, timeout);
             }
         }

@@ -1,0 +1,7 @@
+%YAML 1.1
+---
+vars.address-groups.HOME_NET: "10.10.10.10/32"
+vars.port-groups.FTP_PORTS: "[21,2121]"
+override-me: from-include
+nested:
+  key: value

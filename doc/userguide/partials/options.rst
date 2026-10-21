@@ -289,14 +289,19 @@
 
      --set default-log-dir=/var/tmp
 
-   This option cannot be used to add new entries to a list in the
-   configuration file, such as a new output. It can only be used to
-   modify a value in a list that already exists.
-
-   For example, to disable the ``eve-log`` in the default
-   configuration file::
+   An item of a list is addressed by its index, starting at 0. For
+   example, to disable the ``eve-log`` in the default configuration
+   file::
 
      --set outputs.1.eve-log.enabled=no
+
+   An index equal to the length of the list adds a new item to the
+   end of the list, so with 10 outputs::
+
+     --set outputs.10.syslog.enabled=yes
+
+   adds an 11th. A larger index is an error, as is setting a value on a
+   list or a section itself, such as ``--set outputs=...``.
 
    Also note that the index values may change as the ``suricata.yaml``
    is updated.

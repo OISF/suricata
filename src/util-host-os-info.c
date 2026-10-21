@@ -287,6 +287,9 @@ void SCHInfoLoadFromConfig(void)
     TAILQ_FOREACH(policy, &root->head, next) {
         SCConfNode *host;
         TAILQ_FOREACH(host, &policy->head, next) {
+            if (host->val == NULL || host->val[0] == '\0') {
+                continue;
+            }
             int is_ipv4 = 1;
             if (host->val != NULL && strchr(host->val, ':') != NULL)
                 is_ipv4 = 0;

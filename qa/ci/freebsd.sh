@@ -23,7 +23,6 @@ prepare()
         jansson \
         libpcap \
         libtool \
-        libyaml \
         pcre2 \
         pkgconf \
         python3 \

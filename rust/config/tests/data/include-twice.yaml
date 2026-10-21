@@ -1,0 +1,2 @@
+include: [include-twice-inc.yaml, include-twice-inc.yaml]
+again: !include include-twice-inc.yaml

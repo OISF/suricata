@@ -2020,6 +2020,9 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, SCConfNode *s, struct 
             SCConfNode *pval;
             /* Addresses */
             TAILQ_FOREACH(pval, &p->head, next) {
+                if (pval->val == NULL || pval->val[0] == '\0') {
+                    continue;
+                }
                 SCLogDebug("LIBHTP server %s: %s=%s", s->name, p->name, pval->val);
                 /* IPV6 or IPV4? */
                 if (strchr(pval->val, ':') != NULL) {

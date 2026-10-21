@@ -27,7 +27,6 @@ prepare()
         jq \
         libmagic \
         libtool \
-        libyaml \
         lz4 \
         pcre2 \
         py3-yaml \

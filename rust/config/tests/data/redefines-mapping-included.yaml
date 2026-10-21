@@ -1,0 +1,5 @@
+outputs:
+  - fast:
+      enabled: yes
+mapping:
+  c: 3

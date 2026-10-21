@@ -1,0 +1,2 @@
+from-b: 1
+shared: from-b

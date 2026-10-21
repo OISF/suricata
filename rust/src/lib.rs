@@ -54,6 +54,8 @@
 
 #[macro_use]
 extern crate suricata_ffi;
+// For the symbols of its C interface, used by conf-yaml-loader.c.
+extern crate suricata_config;
 #[macro_use]
 extern crate bitflags;
 extern crate byteorder;

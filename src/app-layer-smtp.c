@@ -429,6 +429,9 @@ static void SMTPConfigure(void) {
             SCConfNode *scheme = NULL;
 
             TAILQ_FOREACH (scheme, &extract_urls_schemes->head, next) {
+                if (scheme->val == NULL || scheme->val[0] == '\0') {
+                    continue;
+                }
                 size_t scheme_len = strlen(scheme->val);
                 if (scheme_len > UINT8_MAX - SCHEME_SUFFIX_LEN) {
                     FatalError("extract-urls-schemes entry '%s' is too long", scheme->val);

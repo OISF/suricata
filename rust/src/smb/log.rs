@@ -597,6 +597,11 @@ pub extern "C" fn SCSmbLogParseConfig(conf: *const SCConfNode) -> u64 {
                 break;
             }
             let nodeu = node.unwrap();
+            if nodeu.value().is_empty() {
+                // Skip an entry without a value, like "- # disabled".
+                node = nodeu.next();
+                continue;
+            }
             if let Some(f) = get_smb_log_type_from_str(nodeu.value()) {
                 r |= f;
             } else {

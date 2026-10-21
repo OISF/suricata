@@ -6,10 +6,14 @@
 #![allow(clippy::let_and_return)]
 #![allow(clippy::uninlined_format_args)]
 
+use std::path::PathBuf;
+
 use clap::Parser;
 use clap::Subcommand;
+use clap::ValueEnum;
 use tracing::Level;
 
+mod config;
 mod filestore;
 
 #[derive(Parser, Debug)]
@@ -31,8 +35,56 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    /// Configuration commands
+    Config(ConfigCommand),
+
     /// Filestore management commands
     Filestore(FilestoreCommand),
+}
+
+#[derive(Parser, Debug)]
+struct ConfigCommand {
+    #[command(subcommand)]
+    command: ConfigCommands,
+}
+
+#[derive(Subcommand, Debug)]
+enum ConfigCommands {
+    /// Load a configuration like Suricata does and print it
+    Print(ConfigPrintArgs),
+}
+
+#[derive(Parser, Debug)]
+struct ConfigPrintArgs {
+    #[arg(
+        short = 'c',
+        value_name = "FILE",
+        required = true,
+        help = "path to the configuration file"
+    )]
+    config: PathBuf,
+    #[arg(
+        long,
+        value_name = "FILE",
+        help = "additional configuration file, may be used more than once"
+    )]
+    include: Vec<PathBuf>,
+    #[arg(
+        long,
+        value_name = "PATH=VALUE",
+        help = "override a configuration value, may be used more than once"
+    )]
+    set: Vec<String>,
+    #[arg(long, value_enum, default_value_t = ConfigFormat::Yaml, help = "output format")]
+    format: ConfigFormat,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum ConfigFormat {
+    /// YAML
+    Yaml,
+    /// The format of suricata --dump-config
+    Flat,
 }
 
 #[derive(Parser, Debug)]
@@ -57,7 +109,14 @@ struct FilestorePruneArgs {
     age: String,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() {
+    if let Err(err) = run() {
+        eprintln!("Error: {err}");
+        std::process::exit(1);
+    }
+}
+
+fn run() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     let log_level = if cli.quiet {
@@ -67,9 +126,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         Level::INFO
     };
-    tracing_subscriber::fmt().with_max_level(log_level).init();
+    tracing_subscriber::fmt()
+        .with_max_level(log_level)
+        .with_writer(std::io::stderr)
+        .init();
 
     match cli.command {
+        Commands::Config(config) => match config.command {
+            ConfigCommands::Print(args) => crate::config::print::print(args),
+        },
         Commands::Filestore(filestore) => match filestore.command {
             FilestoreCommands::Prune(args) => crate::filestore::prune::prune(args),
         },

@@ -1,0 +1,10 @@
+outputs:
+  - eve-log:
+      enabled: yes
+      types:
+        - alert
+        - dns
+mapping:
+  a: 1
+  b: 2
+include: redefines-mapping-included.yaml
