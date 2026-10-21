@@ -207,9 +207,14 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> (u32, bool) {
                         ctx.filename.truncate(out_len as usize);
                     } else {
                         ctx.filename = Vec::with_capacity(filename.len());
+                        let mut unescape = false;
                         for c in filename {
-                            // unescape
-                            if *c != b'\\' {
+                            if unescape {
+                                ctx.filename.push(*c);
+                                unescape = false;
+                            } else if *c == b'\\' {
+                                unescape = true;
+                            } else {
                                 ctx.filename.push(*c);
                             }
                         }
@@ -245,9 +250,14 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> (u32, bool) {
                         ctx.filename.truncate(out_len as usize);
                     } else {
                         ctx.filename = Vec::with_capacity(filename.len());
+                        let mut unescape = false;
                         for c in filename {
-                            // unescape
-                            if *c != b'\\' {
+                            if unescape {
+                                ctx.filename.push(*c);
+                                unescape = false;
+                            } else if *c == b'\\' {
+                                unescape = true;
+                            } else {
                                 ctx.filename.push(*c);
                             }
                         }
@@ -272,9 +282,14 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> (u32, bool) {
                 } else {
                     boundary.push(b'-');
                     boundary.push(b'-');
+                    let mut unescape = false;
                     for c in value.1 {
-                        // unescape
-                        if *c != b'\\' {
+                        if unescape {
+                            boundary.push(*c);
+                            unescape = false;
+                        } else if *c == b'\\' {
+                            unescape = true;
+                        } else {
                             boundary.push(*c);
                         }
                     }

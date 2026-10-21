@@ -338,9 +338,14 @@ fn mime_parse_headers<'a>(
                                 ctx.filename.truncate(out_len as usize);
                             } else {
                                 ctx.filename = Vec::with_capacity(filename.1.len());
+                                let mut unescape = false;
                                 for c in filename.1 {
-                                    // unescape
-                                    if *c != b'\\' {
+                                    if unescape {
+                                        ctx.filename.push(*c);
+                                        unescape = false;
+                                    } else if *c == b'\\' {
+                                        unescape = true;
+                                    } else {
                                         ctx.filename.push(*c);
                                     }
                                 }
@@ -510,9 +515,14 @@ pub fn mime_state_init(i: &[u8]) -> Option<MimeStateHTTP> {
             } else {
                 r.boundary.push(b'-');
                 r.boundary.push(b'-');
+                let mut unescape = false;
                 for c in value.1 {
-                    // unescape
-                    if *c != b'\\' {
+                    if unescape {
+                        r.boundary.push(*c);
+                        unescape = false;
+                    } else if *c == b'\\' {
+                        unescape = true;
+                    } else {
                         r.boundary.push(*c);
                     }
                 }
