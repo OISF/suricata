@@ -6573,19 +6573,16 @@ static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
         }
 
         if (check_ts) {
-            int32_t result = 0;
-
-            SCLogDebug("ts %"PRIu32", last_ts %"PRIu32"", ts, last_ts);
-
+            /* Linux, and every policy when stream.liberal-timestamps is enabled (the
+             * default), accepts a TSval one tick behind the stream timestamp. */
+            uint32_t tolerance = 0;
             if (receiver_stream->os_policy == OS_POLICY_LINUX || stream_config.liberal_timestamps) {
-                /* Linux accepts TS which are off by one.*/
-                result = (int32_t) ((ts - last_ts) + 1);
-            } else {
-                result = (int32_t) (ts - last_ts);
+                tolerance = 1;
             }
 
-            SCLogDebug("result %" PRIi32 ", p->ts(secs) %" PRIuMAX "", result,
-                    (uintmax_t)SCTIME_SECS(p->ts));
+            SCLogDebug("ts %" PRIu32 ", last_ts %" PRIu32 ", tolerance %" PRIu32
+                       ", p->ts(secs) %" PRIuMAX "",
+                    ts, last_ts, tolerance, (uintmax_t)SCTIME_SECS(p->ts));
 
             if (last_pkt_ts == 0 &&
                     (ssn->flags & STREAMTCP_FLAG_MIDSTREAM))
@@ -6593,10 +6590,10 @@ static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
                 last_pkt_ts = (uint32_t)SCTIME_SECS(p->ts);
             }
 
-            if (result < 0) {
+            if (TS_LT(ts, last_ts - tolerance)) {
                 SCLogDebug("timestamp is not valid last_ts "
-                           "%" PRIu32 " p->tcpvars->ts %" PRIu32 " result "
-                           "%" PRId32 "", last_ts, ts, result);
+                           "%" PRIu32 " p->tcpvars->ts %" PRIu32 "",
+                        last_ts, ts);
                 /* candidate for rejection */
                 ret = 0;
             } else if ((sender_stream->last_ts != 0) &&
@@ -6717,19 +6714,16 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
         }
 
         if (check_ts) {
-            int32_t result = 0;
-
-            SCLogDebug("ts %"PRIu32", last_ts %"PRIu32"", ts, sender_stream->last_ts);
-
+            /* Linux, and every policy when stream.liberal-timestamps is enabled (the
+             * default), accepts a TSval one tick behind the stream timestamp. */
+            uint32_t tolerance = 0;
             if (receiver_stream->os_policy == OS_POLICY_LINUX || stream_config.liberal_timestamps) {
-                /* Linux accepts TS which are off by one.*/
-                result = (int32_t) ((ts - sender_stream->last_ts) + 1);
-            } else {
-                result = (int32_t) (ts - sender_stream->last_ts);
+                tolerance = 1;
             }
 
-            SCLogDebug("result %" PRIi32 ", p->ts(sec) %" PRIuMAX "", result,
-                    (uintmax_t)SCTIME_SECS(p->ts));
+            SCLogDebug("ts %" PRIu32 ", last_ts %" PRIu32 ", tolerance %" PRIu32
+                       ", p->ts(sec) %" PRIuMAX "",
+                    ts, sender_stream->last_ts, tolerance, (uintmax_t)SCTIME_SECS(p->ts));
 
             if (sender_stream->last_pkt_ts == 0 &&
                     (ssn->flags & STREAMTCP_FLAG_MIDSTREAM))
@@ -6737,10 +6731,10 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
                 sender_stream->last_pkt_ts = (uint32_t)SCTIME_SECS(p->ts);
             }
 
-            if (result < 0) {
+            if (TS_LT(ts, sender_stream->last_ts - tolerance)) {
                 SCLogDebug("timestamp is not valid sender_stream->last_ts "
-                           "%" PRIu32 " p->tcpvars->ts %" PRIu32 " result "
-                           "%" PRId32 "", sender_stream->last_ts, ts, result);
+                           "%" PRIu32 " p->tcpvars->ts %" PRIu32 "",
+                        sender_stream->last_ts, ts);
                 /* candidate for rejection */
                 ret = 0;
             } else if ((sender_stream->last_ts != 0) &&
