@@ -186,26 +186,19 @@ pub const MIME_ANOM_LONG_BOUNDARY: u32 = 0x80;
 pub const MIME_ANOM_LONG_FILENAME: u32 = 0x100;
 
 fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> (u32, bool) {
-    let mut sections_values = Vec::new();
     let mut warnings = 0;
     let mut encap = false;
     for h in &ctx.headers[ctx.main_headers_nb..] {
         if mime::slice_equals_lowercase(&h.name, b"content-disposition") {
             if ctx.filename.is_empty() {
-                if let Some(value) =
-                    mime::mime_find_header_token(&h.value, b"filename", &mut sections_values)
-                {
-                    let value = if value.len() > mime::RS_MIME_MAX_TOKEN_LEN {
+                if let Some(mut value) = mime::mime_find_header_token(&h.value, b"filename") {
+                    if value.len() > mime::RS_MIME_MAX_TOKEN_LEN {
                         warnings |= MIME_ANOM_LONG_FILENAME;
-                        &value[..mime::RS_MIME_MAX_TOKEN_LEN]
-                    } else {
-                        value
-                    };
-                    ctx.filename.extend_from_slice(value);
-                    let mut newname = Vec::new();
-                    newname.extend_from_slice(value);
-                    ctx.attachments.push(newname);
-                    sections_values.clear();
+                        value.truncate(mime::RS_MIME_MAX_TOKEN_LEN);
+                        value.shrink_to_fit();
+                    }
+                    ctx.filename.extend_from_slice(&value);
+                    ctx.attachments.push(value);
                 }
             }
         } else if mime::slice_equals_lowercase(&h.name, b"content-transfer-encoding") {
@@ -217,35 +210,26 @@ fn mime_smtp_process_headers(ctx: &mut MimeStateSMTP) -> (u32, bool) {
             }
         } else if mime::slice_equals_lowercase(&h.name, b"content-type") {
             if ctx.filename.is_empty() {
-                if let Some(value) =
-                    mime::mime_find_header_token(&h.value, b"name", &mut sections_values)
-                {
-                    let value = if value.len() > mime::RS_MIME_MAX_TOKEN_LEN {
+                if let Some(mut value) = mime::mime_find_header_token(&h.value, b"name") {
+                    if value.len() > mime::RS_MIME_MAX_TOKEN_LEN {
                         warnings |= MIME_ANOM_LONG_FILENAME;
-                        &value[..mime::RS_MIME_MAX_TOKEN_LEN]
-                    } else {
-                        value
-                    };
-                    ctx.filename.extend_from_slice(value);
-                    let mut newname = Vec::new();
-                    newname.extend_from_slice(value);
-                    ctx.attachments.push(newname);
-                    sections_values.clear();
+                        value.truncate(mime::RS_MIME_MAX_TOKEN_LEN);
+                        value.shrink_to_fit();
+                    }
+                    ctx.filename.extend_from_slice(&value);
+                    ctx.attachments.push(value);
                 }
             }
-            if let Some(value) =
-                mime::mime_find_header_token(&h.value, b"boundary", &mut sections_values)
-            {
+            if let Some(value) = mime::mime_find_header_token(&h.value, b"boundary") {
                 // start wih 2 additional hyphens
                 let mut boundary = Vec::new();
                 boundary.push(b'-');
                 boundary.push(b'-');
-                boundary.extend_from_slice(value);
+                boundary.extend_from_slice(&value);
                 ctx.boundaries.push(boundary);
                 if value.len() > MAX_BOUNDARY_LEN {
                     warnings |= MIME_ANOM_LONG_BOUNDARY;
                 }
-                sections_values.clear();
             }
             let ct = if let Some(x) = h.value.iter().position(|&x| x == b';') {
                 &h.value[..x]
