@@ -78,11 +78,59 @@ fn is_mime_space(ch: u8) -> bool {
     ch == 0x20 || ch == 0x09 || ch == 0x0a || ch == 0x0d
 }
 
+// arbitrary value to avoid quadratic complexity
+const MIME_MAX_CHARSETLANG_LEN: usize = 64;
+
+fn is_attribute_char(c: u8) -> bool {
+    match c {
+        0..0x20 => false,
+        0x80.. => false,
+        b'(' | b')' | b'<' | b'>' | b'@' | b',' | b';' | b':' | b'\\' | b'"' | b'/' | b'['
+        | b']' | b'?' | b'=' | b'*' | b'\'' | b'%' => false,
+        _ => true,
+    }
+}
+
+fn mime_parse_token_name(input: &[u8]) -> IResult<&[u8], &[u8]> {
+    // handle RFC2331 part 4 "Parameter Value Character Set and Language Information"
+    let mut star = false;
+    for i in 0..input.len() {
+        match input[i] {
+            b'=' => {
+                if !star {
+                    return Ok((&input[i + 1..], &input[..i]));
+                }
+                let mut single_quotes = false;
+                for j in i + 1..input.len() {
+                    if input[j] == b'\'' {
+                        if single_quotes {
+                            return Ok((&input[j + 1..], &input[..i - 1]));
+                        }
+                        single_quotes = true;
+                    } else if j - i - 1 > MIME_MAX_CHARSETLANG_LEN {
+                        // maybe we should raise an anomaly here
+                        break;
+                    } else if !is_attribute_char(input[j]) {
+                        break;
+                    }
+                }
+                return Ok((&input[i + 1..], &input[..i - 1]));
+            }
+            b'*' => {
+                star = true;
+            }
+            _ => {
+                star = false;
+            }
+        }
+    }
+    Err(Err::Error(make_error(input, ErrorKind::Tag)))
+}
+
 pub fn mime_parse_header_token_name(input: &[u8]) -> IResult<&[u8], &[u8]> {
     // from RFC2047 : like ch.is_ascii_whitespace but without 0x0c FORM-FEED
     let (input, _) = take_while(is_mime_space).parse(input)?;
-    let (input, name) = take_until("=").parse(input)?;
-    let (input, _) = char('=').parse(input)?;
+    let (input, name) = mime_parse_token_name(input)?;
     return Ok((input, name));
 }
 
@@ -555,5 +603,47 @@ mod test {
         )
         .unwrap();
         assert_eq!(multi, b"123");
+
+        let multi = mime_find_header_token(
+            "attachment; filename*=us-ascii'en-us'shell.php".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(multi, b"shell.php");
+
+        let multi = mime_find_header_token(
+            "attachment; filename*='en-us'shell.php".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(multi, b"shell.php");
+
+        let multi = mime_find_header_token(
+            "attachment; filename*=us-ascii''shell.php".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(multi, b"shell.php");
+
+        let multi = mime_find_header_token(
+            "attachment; filename=first; filename*=us-ascii''second;".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(multi, b"first");
+
+        let multi = mime_find_header_token(
+            "attachment; filename*=us-ascii''first; filename=second;".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(multi, b"first");
+
+        let multi = mime_find_header_token(
+            "attachment; filename*0*=us-ascii'en-us'shell; filename*1=\".php\"".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(multi, b"shell.php");
     }
 }
