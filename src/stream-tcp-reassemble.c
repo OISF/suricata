@@ -296,8 +296,6 @@ static void *TcpSegmentPoolAlloc(void)
             SCFree(seg);
             return NULL;
         }
-
-        StreamTcpReassembleIncrMemuse(memuse);
     } else {
         seg->pcap_hdr_storage = NULL;
     }
@@ -3193,6 +3191,36 @@ static int StreamTcpReassembleTest44(void)
     PASS;
 }
 
+/** \test Test that one TcpSegmentPoolAlloc(), TcpSegmentPoolInit(),
+ *        TcpSegmentPoolCleanup() cycle leaves tcp.reassembly_memuse unchanged
+ *        when TCP session dumping is enabled, so the pcap hdr storage is
+ *        counted once and subtracted once. */
+static int StreamTcpReassembleTestMemusePcapHdrStorage(void)
+{
+    StreamTcpInitConfig(true);
+
+    const int dump_enabled = g_tcp_session_dump_enabled;
+    g_tcp_session_dump_enabled = 1;
+
+    const uint64_t memuse = StreamTcpReassembleMemuseGlobalCounter();
+
+    /* what PoolGet() does when it has to create a new element */
+    TcpSegment *seg = TcpSegmentPoolAlloc();
+    FAIL_IF_NULL(seg);
+    FAIL_IF_NOT(TcpSegmentPoolInit(seg) == 1);
+    FAIL_IF_NULL(seg->pcap_hdr_storage);
+
+    /* and what PoolReturn() does when it cannot hand the element back */
+    TcpSegmentPoolCleanup(seg);
+    SCFree(seg);
+
+    FAIL_IF_NOT(StreamTcpReassembleMemuseGlobalCounter() == memuse);
+
+    g_tcp_session_dump_enabled = dump_enabled;
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
 /**
  *  \test   Test to make sure that reassembly_depth is enforced.
  *
@@ -3794,6 +3822,8 @@ void StreamTcpReassembleRegisterTests(void)
                    StreamTcpReassembleTest40);
     UtRegisterTest("StreamTcpReassembleTest44 -- Memcap Test",
                    StreamTcpReassembleTest44);
+    UtRegisterTest("StreamTcpReassembleTestMemusePcapHdrStorage -- pcap hdr storage memuse",
+            StreamTcpReassembleTestMemusePcapHdrStorage);
     UtRegisterTest("StreamTcpReassembleTest45 -- Depth Test",
                    StreamTcpReassembleTest45);
     UtRegisterTest("StreamTcpReassembleTest46 -- Depth Test",
