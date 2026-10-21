@@ -2896,6 +2896,7 @@ static bool DetectRuleValidateTable(const Signature *s)
     return true;
 }
 
+/** \brief validate the constraints specific to firewall rules */
 static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Signature *s)
 {
     if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_NOT_SET) {
@@ -2943,6 +2944,13 @@ static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Sign
                     s->id);
             return false;
         }
+    }
+    /* bypass is applied at match time, before detection_filter is evaluated */
+    if ((s->flags & SIG_FLAG_BYPASS) && DetectGetLastSMByListId(s, DETECT_SM_LIST_THRESHOLD,
+                                                DETECT_DETECTION_FILTER, -1) != NULL) {
+        SCLogError("rule %u: bypass is not supported with \'detection_filter\' in firewall rules",
+                s->id);
+        return false;
     }
 
     return true;
