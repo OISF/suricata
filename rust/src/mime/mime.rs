@@ -79,11 +79,46 @@ fn is_mime_space(ch: u8) -> bool {
     ch == 0x20 || ch == 0x09 || ch == 0x0a || ch == 0x0d
 }
 
-pub fn mime_parse_header_token_name(input: &[u8]) -> IResult<&[u8], &[u8]> {
+// arbitrary value to avoid quadratic complexity
+const MIME_MAX_CHARSETLANG_LEN: usize = 64;
+
+fn is_attribute_char(c: u8) -> bool {
+    match c {
+        0..0x20 => false,
+        0x80.. => false,
+        b'(' | b')' | b'<' | b'>' | b'@' | b',' | b';' | b':' | b'\\' | b'"' | b'/' | b'['
+        | b']' | b'?' | b'=' | b'*' | b'\'' | b'%' => false,
+        _ => true,
+    }
+}
+
+fn mime_parse_token_name(input: &[u8]) -> IResult<&[u8], (bool, &[u8])> {
+    // handle RFC2331 part 4 "Parameter Value Character Set and Language Information"
+    let mut star = false;
+    for i in 0..input.len() {
+        match input[i] {
+            b'=' => {
+                if star {
+                    return Ok((&input[i + 1..], (star, &input[..i - 1])));
+                } else {
+                    return Ok((&input[i + 1..], (star, &input[..i])));
+                }
+            }
+            b'*' => {
+                star = true;
+            }
+            _ => {
+                star = false;
+            }
+        }
+    }
+    Err(Err::Error(make_error(input, ErrorKind::Tag)))
+}
+
+pub fn mime_parse_header_token_name(input: &[u8]) -> IResult<&[u8], (bool, &[u8])> {
     // from RFC2047 : like ch.is_ascii_whitespace but without 0x0c FORM-FEED
     let (input, _) = take_while(is_mime_space).parse(input)?;
-    let (input, name) = take_until("=").parse(input)?;
-    let (input, _) = char('=').parse(input)?;
+    let (input, name) = mime_parse_token_name(input)?;
     return Ok((input, name));
 }
 
@@ -95,11 +130,31 @@ pub fn mime_skip_header_token_value(input: &[u8]) -> IResult<&[u8], ()> {
     return Ok((input, ()));
 }
 
-pub fn mime_parse_header_token_value(input: &[u8]) -> IResult<&[u8], Vec<u8>> {
+pub fn mime_parse_header_token_value(input: &[u8], star: bool) -> IResult<&[u8], Vec<u8>> {
     let (input, value) =
         alt((mime_parse_value_delimited, mime_parse_value_until_semicolon)).parse(input)?;
     let (input, _) = take_while(is_mime_space).parse(input)?;
     let (input, _) = opt(complete(char(';'))).parse(input)?;
+    if star {
+        let mut single_quotes = false;
+        let mut start = 0;
+        for j in 0..value.len() {
+            if value[j] == b'\'' {
+                if single_quotes {
+                    start = j + 1;
+                    break;
+                }
+                single_quotes = true;
+            } else if j > MIME_MAX_CHARSETLANG_LEN {
+                break;
+            } else if !is_attribute_char(value[j]) {
+                break;
+            }
+        }
+        let mut decoded = Vec::new();
+        decoded.extend_from_slice(&value[start..]);
+        return Ok((input, decoded));
+    }
     return Ok((input, value));
 }
 
@@ -120,14 +175,14 @@ pub fn mime_find_header_token(header: &[u8], token: &[u8]) -> Option<Vec<u8>> {
         match mime_parse_header_token_name(input) {
             Ok((rem, name)) => {
                 let prev = input;
-                if name == token {
-                    if let Ok((_, value)) = mime_parse_header_token_value(rem) {
+                if name.1 == token {
+                    if let Ok((_, value)) = mime_parse_header_token_value(rem, name.0) {
                         return Some(value);
                     } else {
                         return None;
                     }
-                } else if name == current_section_slice {
-                    if let Ok((rem2, value)) = mime_parse_header_token_value(rem) {
+                } else if name.1 == current_section_slice {
+                    if let Ok((rem2, value)) = mime_parse_header_token_value(rem, name.0) {
                         sections_values.extend_from_slice(&value);
                         input = rem2;
                     } else {
@@ -138,10 +193,10 @@ pub fn mime_find_header_token(header: &[u8], token: &[u8]) -> Option<Vec<u8>> {
                     current_section_slice.truncate(current_section_slice.len() - nbdigits);
                     current_section_slice
                         .extend_from_slice(current_section_seen.to_string().as_bytes());
-                } else if name.len() > token.len() && &name[..token.len()] == token {
+                } else if name.1.len() > token.len() && &name.1[..token.len()] == token {
                     // prefix
-                    if let Ok((rem2, value)) = mime_parse_header_token_value(rem) {
-                        sections.insert(name, value);
+                    if let Ok((rem2, value)) = mime_parse_header_token_value(rem, name.0) {
+                        sections.insert(name.1, value);
                         input = rem2;
                     } else {
                         return None;
@@ -578,5 +633,54 @@ mod test {
         )
         .unwrap();
         assert_eq!(multi, b"123456");
+
+        let multi = mime_find_header_token(
+            "attachment; filename*=us-ascii'en-us'shell.php".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(multi, b"shell.php");
+
+        let multi = mime_find_header_token(
+            "attachment; filename*='en-us'shell.php".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(multi, b"shell.php");
+
+        let multi = mime_find_header_token(
+            "attachment; filename*=us-ascii''shell.php".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(multi, b"shell.php");
+
+        let multi = mime_find_header_token(
+            "attachment; filename=first; filename*=us-ascii''second;".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(multi, b"first");
+
+        let multi = mime_find_header_token(
+            "attachment; filename*=us-ascii''first; filename=second;".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(multi, b"first");
+
+        let multi = mime_find_header_token(
+            "attachment; filename*0*=us-ascii'en-us'shell; filename*1=\".php\"".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(multi, b"shell.php");
+
+        let quote_after_lang = mime_find_header_token(
+            "attachment; name=\"f\"; x*=a''\"; filename=\"shell.php\"".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(quote_after_lang, b"shell.php");
     }
 }
