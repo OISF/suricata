@@ -261,6 +261,13 @@ enum TcpState {
 #define SEQ_MIN(a, b) (SEQ_LT((a), (b)) ? (a) : (b))
 #define SEQ_MAX(a, b) (SEQ_GT((a), (b)) ? (a) : (b))
 
+/* Macros for comparing TCP timestamps (TSval) which are 32-bit serial numbers
+ * (ticks) that wrap (RFC 7323 5.2).
+ * a is at or after b (TS_GEQ) when it is less than 2^31 ticks ahead of b,
+ * otherwise it is before b (TS_LT) */
+#define TS_LT(a, b)  ((uint32_t)((a) - (b)) > INT32_MAX)
+#define TS_GEQ(a, b) ((uint32_t)((a) - (b)) <= INT32_MAX)
+
 #define STREAMTCP_SET_RA_BASE_SEQ(stream, seq) { \
     do { \
         (stream)->base_seq = (seq) + 1;    \
