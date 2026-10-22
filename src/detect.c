@@ -885,12 +885,26 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
                     *r++ = match_array[x];
                     SCLogDebug("appended %u", match_array[x]->id);
                 }
-                /* append the prefilter results, then sort it */
+                /* Append the prefilter results, then sort it. The iids are
+                 * sorted, so duplicates are adjacent: the engines can report the
+                 * same rule for more than one queued item, and det_ctx->replace
+                 * only has room for the total number of rules. */
+                SigIntId previous_id = (SigIntId)-1;
                 for (uint32_t x = 0; x < det_ctx->pmq.rule_id_array_cnt; x++) {
-                    SCLogDebug("adding iid %u", det_ctx->pmq.rule_id_array[x]);
-                    Signature *ts = de_ctx->sig_array[det_ctx->pmq.rule_id_array[x]];
+                    const SigIntId iid = det_ctx->pmq.rule_id_array[x];
+                    SCLogDebug("adding iid %u", iid);
+                    if (iid == previous_id) {
+                        continue;
+                    }
+                    previous_id = iid;
+                    Signature *ts = de_ctx->sig_array[iid];
                     SCLogDebug("adding id %u", ts->id);
                     if (ts->app_inspect == NULL) {
+                        /* det_ctx->replace has one slot per rule: a result that
+                         * is already in the list would be written past its end. */
+                        if (unlikely(match_cnt >= de_ctx->sig_array_len)) {
+                            break;
+                        }
                         *r++ = ts;
                         match_cnt++;
                     }
@@ -917,9 +931,12 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
                 next_s = *match_array++;
                 next_sflags = next_s->flags;
                 SCLogDebug("%u rules added", det_ctx->pmq.rule_id_array_cnt);
-                det_ctx->post_rule_work_queue.len = 0;
-                PMQ_RESET(&det_ctx->pmq);
             }
+            /* Consume the queue in all cases: a rule group without post-rule
+             * match engines leaves pmq empty, and then the work of earlier
+             * packets would pile up until it no longer fits. */
+            det_ctx->post_rule_work_queue.len = 0;
+            PMQ_RESET(&det_ctx->pmq);
         }
 
         /* firewall logic in the packet:filter table:
