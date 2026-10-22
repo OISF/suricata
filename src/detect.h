@@ -1367,6 +1367,10 @@ typedef struct DetectEngineThreadCtx_ {
     bool tx_id_set;
     /** ID of the transaction currently being inspected. */
     uint64_t tx_id;
+    /** Transaction data of the transaction currently being inspected, as the
+     *  app-layer parser knows it (the flow's own transaction, not an inner one
+     *  handed to a keyword). Valid while tx_id_set is true. */
+    struct AppLayerTxData *tx_data;
     int64_t frame_id;
     uint64_t frame_inspect_progress; /**< used to set Frame::inspect_progress after all inspection
                                         on a frame is complete. */
