@@ -1324,6 +1324,9 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint16_t file_no_match = 0;
     bool mpm_before_progress = false;   // is mpm engine before progress?
     bool mpm_in_progress = false;       // is mpm engine in a buffer we will revisit?
+    /* a firewall rule missed on a buffer of the tx's current state, which is not
+     * complete: the buffer can still grow, so the miss is not final */
+    bool fw_in_progress = false;
 
     TRACE_SID_TXS(s->id, tx, "starting %s", direction ? "toclient" : "toserver");
 
@@ -1476,6 +1479,14 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 file_no_match = 1;
             }
             /* implied DETECT_ENGINE_INSPECT_SIG_NO_MATCH */
+            /* only an engine that reads a buffer: the hook's generic list reads
+             * variables, which the rules before this one already set or not */
+            if (match == DETECT_ENGINE_INSPECT_SIG_NO_MATCH && engine->v2.GetData != NULL &&
+                    (s->flags & (SIG_FLAG_FIREWALL | SIG_FLAG_FW_HOOK_LTE)) == SIG_FLAG_FIREWALL &&
+                    engine->progress == tx->tx_progress && tx->tx_progress < tx->tx_end_state &&
+                    (p->flags & PKT_PSEUDO_DETECTLOG_FLUSH) == 0) {
+                fw_in_progress = true;
+            }
             if (engine->mpm && mpm_before_progress) {
                 inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                 inspect_flags |= BIT_U32(engine->id);
@@ -1551,7 +1562,9 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
         } else {
             if (inspect_flags == 0) {
                 TRACE_SID_TXS(s->id, tx, "no match: inspect_flags %08x", inspect_flags);
-                return -1;
+                /* nothing stored: a rule without a prefilter is in the list on every
+                 * update, so it is revisited like a fast pattern in progress is */
+                return fw_in_progress ? -2 : -1;
             }
         }
     }
