@@ -99,24 +99,11 @@ fn mime_parse_token_name(input: &[u8]) -> IResult<&[u8], (bool, &[u8])> {
     for i in 0..input.len() {
         match input[i] {
             b'=' => {
-                if !star {
+                if star {
+                    return Ok((&input[i + 1..], (star, &input[..i - 1])));
+                } else {
                     return Ok((&input[i + 1..], (star, &input[..i])));
                 }
-                let mut single_quotes = false;
-                for j in i + 1..input.len() {
-                    if input[j] == b'\'' {
-                        if single_quotes {
-                            return Ok((&input[j + 1..], (star, &input[..i - 1])));
-                        }
-                        single_quotes = true;
-                    } else if j - i - 1 > MIME_MAX_CHARSETLANG_LEN {
-                        // maybe we should raise an anomaly here
-                        break;
-                    } else if !is_attribute_char(input[j]) {
-                        break;
-                    }
-                }
-                return Ok((&input[i + 1..], (star, &input[..i - 1])));
             }
             b'*' => {
                 star = true;
@@ -150,8 +137,23 @@ pub fn mime_parse_header_token_value(input: &[u8], star: bool) -> IResult<&[u8],
     let (input, _) = take_while(is_mime_space).parse(input)?;
     let (input, _) = opt(complete(char(';'))).parse(input)?;
     if star {
-        let mut decoded = vec![0; value.len()];
-        let out_len = url_decode_transform_do(&value, &mut decoded, false);
+        let mut single_quotes = false;
+        let mut start = 0;
+        for j in 0..value.len() {
+            if value[j] == b'\'' {
+                if single_quotes {
+                    start = j + 1;
+                    break;
+                }
+                single_quotes = true;
+            } else if j > MIME_MAX_CHARSETLANG_LEN {
+                break;
+            } else if !is_attribute_char(value[j]) {
+                break;
+            }
+        }
+        let mut decoded = vec![0; value.len() - start];
+        let out_len = url_decode_transform_do(&value[start..], &mut decoded, false);
         decoded.truncate(out_len as usize);
         return Ok((input, decoded));
     }
@@ -690,5 +692,12 @@ mod test {
         )
         .unwrap();
         assert_eq!(multi_encoded, b"shell.php");
+
+        let quote_after_lang = mime_find_header_token(
+            "attachment; name=\"f\"; x*=a''\"; filename=\"shell.php\"".as_bytes(),
+            "filename".as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(quote_after_lang, b"shell.php");
     }
 }
