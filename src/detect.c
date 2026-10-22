@@ -2556,6 +2556,16 @@ static void DetectRunTxFirewallRuleStatefulReApplyMatch(DetectEngineThreadCtx *d
     }
 }
 
+/** \brief Called on every way out of an inspected transaction.
+ */
+static inline void DetectRunTxClearInspected(DetectEngineThreadCtx *det_ctx)
+{
+    det_ctx->tx_id = 0;
+    det_ctx->tx_id_set = false;
+    det_ctx->tx_data = NULL;
+    det_ctx->p = NULL;
+}
+
 static void DetectRunTx(ThreadVars *tv,
                     DetectEngineCtx *de_ctx,
                     DetectEngineThreadCtx *det_ctx,
@@ -2607,6 +2617,7 @@ static void DetectRunTx(ThreadVars *tv,
 
         det_ctx->tx_id = tx.tx_id;
         det_ctx->tx_id_set = true;
+        det_ctx->tx_data = tx.tx_data_ptr;
         det_ctx->p = p;
 
         bool do_sort = false; // do we need to sort the tx candidate list?
@@ -2744,6 +2755,7 @@ static void DetectRunTx(ThreadVars *tv,
                     det_ctx, p, f, &tx, alproto, flow_flags, array_idx);
             if (r == 1) {
                 SCLogDebug("done");
+                DetectRunTxClearInspected(det_ctx);
                 return;
             } else if (r == 2) {
                 goto next_tx_fw; /* next tx, need to clean up buffers */
@@ -2869,6 +2881,7 @@ static void DetectRunTx(ThreadVars *tv,
                 if ((s->flags & SIG_FLAG_FIREWALL) != 0 &&
                         DetectRunTxFirewallRuleNoMatch(det_ctx, s, &tx, &fw_state, p, flow_flags) ==
                                 1) {
+                    DetectRunTxClearInspected(det_ctx);
                     return;
                 }
             } /* r == -2: no match, but not final: the rule is revisited, so a
@@ -2924,10 +2937,6 @@ static void DetectRunTx(ThreadVars *tv,
             }
         }
 
-        det_ctx->tx_id = 0;
-        det_ctx->tx_id_set = false;
-        det_ctx->p = NULL;
-
         /* see if we have any updated state to store in the tx */
 
         /* this side of the tx is done */
@@ -2953,6 +2962,7 @@ static void DetectRunTx(ThreadVars *tv,
             StoreDetectProgress(&tx, flow_flags, tx.detect_progress);
         }
     next_tx_fw:
+        DetectRunTxClearInspected(det_ctx);
         InspectionBufferClean(det_ctx);
 
     next:

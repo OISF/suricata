@@ -157,20 +157,27 @@ static int DetectXbitMatchIPPair(Packet *p, const DetectXbitsData *xd)
     return 0;
 }
 
+/** \internal
+ *  \brief get the data of the transaction that holds the transaction bits
+ *  \retval tx data of the transaction under inspection, NULL if none is set
+ */
+static AppLayerTxData *DetectXbitGetTxData(DetectEngineThreadCtx *det_ctx)
+{
+    if (!det_ctx->tx_id_set)
+        return NULL;
+    return det_ctx->tx_data;
+}
+
 static int DetectXbitPostMatchTx(
         DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s, const DetectXbitsData *xd)
 {
     if (p->flow == NULL)
         return 0;
-    if (!det_ctx->tx_id_set)
-        return 0;
-    Flow *f = p->flow;
-    void *txv = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, det_ctx->tx_id);
-    if (txv == NULL)
-        return 0;
-    AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
-
     if (xd->cmd != DETECT_XBITS_CMD_SET)
+        return 0;
+
+    AppLayerTxData *txd = DetectXbitGetTxData(det_ctx);
+    if (txd == NULL)
         return 0;
 
     SCLogDebug("sid %u: post-match SET for bit %u on tx:%" PRIu64 ", txd:%p", s->id, xd->idx,
@@ -214,7 +221,9 @@ static int DetectXbitTxMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t fl
     const DetectXbitsData *xd = (const DetectXbitsData *)ctx;
     DEBUG_VALIDATE_BUG_ON(xd == NULL);
 
-    AppLayerTxData *txd = AppLayerParserGetTxData(f->proto, f->alproto, txv);
+    AppLayerTxData *txd = DetectXbitGetTxData(det_ctx);
+    if (txd == NULL)
+        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 
     SCLogDebug("sid:%u: tx:%" PRIu64 ", txd->txbits:%p", s->id, det_ctx->tx_id, txd->txbits);
     int r = TxBitIsset(txd, xd->idx);
