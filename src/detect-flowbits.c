@@ -51,6 +51,10 @@
 #include "util-var-name.h"
 #include "util-debug.h"
 #include "util-conf.h"
+#ifdef UNITTESTS
+#include "util-unittest-helper.h"
+#include "detect-engine-alert.h"
+#endif
 
 #define PARSE_REGEX         "^([a-z]+)(?:,\\s*(.*))?"
 static DetectParseRegex parse_regex;
@@ -1747,6 +1751,76 @@ static int FlowBitsTestSig07(void)
     PASS;
 }
 
+/** \test the post-rule-match work queue must be consumed by every packet, also
+ *  when the rule group the work is queued in has no post-rule-match engines. */
+static int FlowBitsTestPostRuleMatchQueue01(void)
+{
+    uint8_t buf[] = "AAAA";
+    Packet *p1 = UTHBuildPacketSrcDstPorts(buf, sizeof(buf) - 1, IPPROTO_UDP, 41424, 81);
+    FAIL_IF_NULL(p1);
+    Packet *p2 = UTHBuildPacketSrcDstPorts(buf, sizeof(buf) - 1, IPPROTO_UDP, 41425, 80);
+    FAIL_IF_NULL(p2);
+
+    Flow *f1 = UTHBuildFlow(AF_INET, "192.168.1.5", "192.168.1.1", 41424, 81);
+    FAIL_IF_NULL(f1);
+    Flow *f2 = UTHBuildFlow(AF_INET, "192.168.1.5", "192.168.1.1", 41425, 80);
+    FAIL_IF_NULL(f2);
+    /* both packets start a flow, as the 'set' rule is a flow start rule */
+    p1->flow = f1;
+    p1->flags |= PKT_HAS_FLOW;
+    p1->flowflags |= FLOW_PKT_TOSERVER | FLOW_PKT_TOSERVER_FIRST;
+    p1->pkt_hooks |= BIT_U16(SIGNATURE_HOOK_PKT_FLOW_START);
+    p2->flow = f2;
+    p2->flags |= PKT_HAS_FLOW;
+    p2->flowflags |= FLOW_PKT_TOSERVER | FLOW_PKT_TOSERVER_FIRST;
+    p2->pkt_hooks |= BIT_U16(SIGNATURE_HOOK_PKT_FLOW_START);
+
+    ThreadVars th_v;
+    memset(&th_v, 0, sizeof(th_v));
+    StatsThreadInit(&th_v.stats);
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    /* the multi port 'set' rule shares the port 80 group with the 'isset' rule
+     * and has a group of its own for the other ports. */
+    de_ctx->sig_list =
+            SigInit(de_ctx, "alert udp any any -> any any (msg:\"set\"; content:\"AAAA\"; "
+                            "flowbits:set,fb.queue; sid:1;)");
+    FAIL_IF_NULL(de_ctx->sig_list);
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert udp any any -> any 80 (msg:\"isset\"; "
+                                             "flowbits:isset,fb.queue; prefilter; sid:2;)");
+    FAIL_IF_NULL(de_ctx->sig_list->next);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    /* port 81: no 'isset' rule in this group, so nothing to run but the
+     * queued work may not survive the packet. */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(!PacketAlertCheck(p1, 1));
+    FAIL_IF(PacketAlertCheck(p1, 2));
+    FAIL_IF(det_ctx->post_rule_work_queue.len != 0);
+
+    /* port 80: the bit is set by sid:1 in this very packet. */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(!PacketAlertCheck(p2, 1));
+    FAIL_IF(!PacketAlertCheck(p2, 2));
+    FAIL_IF(det_ctx->post_rule_work_queue.len != 0);
+    FAIL_IF(p2->alerts.cnt != 2);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    UTHFreeFlow(f1);
+    UTHFreeFlow(f2);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    StatsThreadCleanup(&th_v.stats);
+    PASS;
+}
+
 /**
  * \brief this function registers unit tests for FlowBits
  */
@@ -1760,5 +1834,6 @@ void FlowBitsRegisterTests(void)
     UtRegisterTest("FlowBitsTestSig05", FlowBitsTestSig05);
     UtRegisterTest("FlowBitsTestSig06", FlowBitsTestSig06);
     UtRegisterTest("FlowBitsTestSig07", FlowBitsTestSig07);
+    UtRegisterTest("FlowBitsTestPostRuleMatchQueue01", FlowBitsTestPostRuleMatchQueue01);
 }
 #endif /* UNITTESTS */
