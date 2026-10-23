@@ -654,26 +654,26 @@ static bool EBPFBypassCheckHalfFlow(Flow *f, FlowBypassInfo *fc,
  * Update lastts in the flow and do accounting
  *
  * */
-bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
+bool EBPFBypassUpdate(Flow *f, void *fcv, SCTime_t ts, bool shutdown)
 {
-    EBPFBypassData *eb = (EBPFBypassData *)data;
+    FlowBypassInfo *fc = (FlowBypassInfo *)fcv;
+    EBPFBypassData *eb = (EBPFBypassData *)fc->bypass_data;
     if (eb == NULL) {
-        return false;
-    }
-    FlowBypassInfo *fc = SCFlowGetStorageById(f, GetFlowBypassInfoID());
-    if (fc == NULL) {
         return false;
     }
     bool activity = EBPFBypassCheckHalfFlow(f, fc, eb, eb->key[0], 0);
     activity |= EBPFBypassCheckHalfFlow(f, fc, eb, eb->key[1], 1);
     if (!activity) {
         SCLogDebug("Delete entry: %u (%" PRIu64 ")", FLOW_IS_IPV6(f), FlowGetId(f));
-        /* delete the entries if no time update */
-        EBPFDeleteKey(eb->mapfd, eb->key[0]);
-        EBPFDeleteKey(eb->mapfd, eb->key[1]);
+        // shutdown means flow was not timed out, but we want an update anyways
+        if (!shutdown) {
+            /* delete the entries if no time update */
+            EBPFDeleteKey(eb->mapfd, eb->key[0]);
+            EBPFDeleteKey(eb->mapfd, eb->key[1]);
+        }
         SCLogDebug("Done delete entry: %u", FLOW_IS_IPV6(f));
     } else {
-        f->lastts = SCTIME_FROM_SECS(tsec);
+        f->lastts = ts;
         return true;
     }
     return false;

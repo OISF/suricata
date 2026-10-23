@@ -89,7 +89,7 @@ void EBPFBuildCPUSet(SCConfNode *node, char *iface);
 int EBPFSetPeerIface(const char *iface, const char *out_iface);
 
 int EBPFUpdateFlow(Flow *f, Packet *p, void *data);
-bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec);
+bool EBPFBypassUpdate(Flow *f, void *fc, SCTime_t ts, bool shutdown);
 void EBPFBypassFree(void *data);
 
 void EBPFDeleteKey(int fd, void *key);
