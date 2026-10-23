@@ -46,6 +46,9 @@ Major Changes
 - Default value for ``stream.reassembly.depth`` when the value is not specified in
   suricata.yaml is now 1 MiB instead of 0/unlimited.
 - LLMNR protocol parser, logger and sticky buffers are implemented.
+- ERSPAN Type III (GRE protocol type ``0x22EB``) is now decoded. Only
+  Ethernet frames are supported; other frame types set the
+  ``erspan.unsupported_encapsulation`` decoder event.
 - ``pgsql`` is no longer enabled by default. Previously, if the
   ``app-layer.protocols.pgsql`` section was absent from suricata.yaml, the
   parser would be enabled. It's now disabled by default. Simply enabling its EVE
