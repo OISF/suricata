@@ -48,9 +48,13 @@ The enum can have a suricata attribute, which is a list of named values
 - enum_string_style can be:
   - UPPERCASE : uppercase is used for logging and parsing
   - LOG_UPPERCASE : uppercase is only used for logging, snake_case for parsing
+  - PascalCase : the variant name is used as is for logging, parsing is case insensitive
 
 With UPPERCASE
 ExampleEnum::BestValueEver.to_str() is "BESTVALUEEVER" (without underscores)
+
+With PascalCase
+ExampleEnum::BestValueEver.to_str() is "BestValueEver"
 */
 
 extern crate proc_macro;
@@ -105,6 +109,11 @@ where
                 match &enum_string_style[..] {
                     "UPPERCASE" => {
                         names.push(v.ident.to_string().to_ascii_uppercase());
+                        names_upper.push(v.ident.to_string().to_ascii_uppercase());
+                        names_lower.push(v.ident.to_string().to_ascii_lowercase());
+                    }
+                    "PascalCase" => {
+                        names.push(v.ident.to_string());
                         names_upper.push(v.ident.to_string().to_ascii_uppercase());
                         names_lower.push(v.ident.to_string().to_ascii_lowercase());
                     }

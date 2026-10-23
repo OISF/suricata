@@ -4110,7 +4110,12 @@
                                     "type": "string"
                                 },
                                 "raw": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "modbus.subfunction"
+                                        ]
+                                    }
                                 }
                             }
                         },
@@ -4121,7 +4126,12 @@
                             "type": "string"
                         },
                         "function_raw": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "modbus.function"
+                                ]
+                            }
                         },
                         "mei": {
                             "type": "object",
@@ -4139,35 +4149,84 @@
                             }
                         },
                         "protocol_id": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "modbus.protocol_id"
+                                ]
+                            }
                         },
                         "read": {
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
                                 "address": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "modbus.read.address"
+                                        ]
+                                    }
                                 },
                                 "quantity": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "modbus.read.quantity"
+                                        ]
+                                    }
                                 }
                             }
                         },
                         "transaction_id": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "modbus.transaction_id"
+                                ]
+                            }
                         },
                         "unit_id": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "modbus.unit_id"
+                                ]
+                            }
                         },
                         "write": {
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
                                 "address": {
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "modbus.write.address"
+                                        ]
+                                    }
+                                },
+                                "and_mask": {
                                     "type": "integer"
                                 },
                                 "data": {
+                                    "type": ["string", "number"],
+                                    "suricata": {
+                                        "keywords": [
+                                            "modbus.write.value"
+                                        ]
+                                    }
+                                },
+                                "or_mask": {
                                     "type": "integer"
+                                },
+                                "quantity": {
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "modbus.write.quantity"
+                                        ]
+                                    }
                                 }
                             }
                         }
@@ -4197,7 +4256,12 @@
                                     "type": "string"
                                 },
                                 "raw": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "modbus.subfunction"
+                                        ]
+                                    }
                                 }
                             }
                         },
@@ -4212,7 +4276,12 @@
                                     "type": "string"
                                 },
                                 "raw": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "modbus.exception_code"
+                                        ]
+                                    }
                                 }
                             }
                         },
@@ -4220,10 +4289,20 @@
                             "type": "string"
                         },
                         "function_raw": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "modbus.function"
+                                ]
+                            }
                         },
                         "protocol_id": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "modbus.protocol_id"
+                                ]
+                            }
                         },
                         "read": {
                             "type": "object",
@@ -4235,19 +4314,46 @@
                             }
                         },
                         "transaction_id": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "modbus.transaction_id"
+                                ]
+                            }
                         },
                         "unit_id": {
-                            "type": "integer"
+                            "type": "integer",
+                            "suricata": {
+                                "keywords": [
+                                    "modbus.unit_id"
+                                ]
+                            }
                         },
                         "write": {
                             "type": "object",
                             "additionalProperties": false,
                             "properties": {
                                 "address": {
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "modbus.write.address"
+                                        ]
+                                    }
+                                },
+                                "and_mask": {
                                     "type": "integer"
                                 },
                                 "data": {
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "modbus.write.value",
+                                            "modbus.write.quantity"
+                                        ]
+                                    }
+                                },
+                                "or_mask": {
                                     "type": "integer"
                                 }
                             }
