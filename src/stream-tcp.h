@@ -112,6 +112,8 @@ typedef struct StreamTcpThread_ {
     StatsCounterId counter_tcp_wrong_thread;
     /** ack for unseen data */
     StatsCounterId counter_tcp_ack_unseen_data;
+    /** async sessions */
+    StatsCounterId counter_tcp_async_stream;
 
     /** tcp reassembly thread data */
     TcpReassemblyThreadCtx *ra_ctx;
