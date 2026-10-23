@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -61,6 +61,7 @@
 #define DETECT_CONTENT_MPM              BIT_U32(20)
 #define DETECT_CONTENT_WITHIN2DEPTH     BIT_U32(21)
 #define DETECT_CONTENT_DISTANCE2OFFSET  BIT_U32(22)
+#define DETECT_CONTENT_BSIZE2DEPTH      BIT_U32(23)
 
 /** a relative match to this content is next, used in matching phase */
 #define DETECT_CONTENT_RELATIVE_NEXT    (DETECT_CONTENT_WITHIN_NEXT|DETECT_CONTENT_DISTANCE_NEXT)
@@ -131,8 +132,8 @@ void DetectContentPropagateLimits(Signature *s);
 
 void DetectContentPatternPrettyPrint(
         const uint8_t *pat, const uint16_t pat_len, char *str, size_t str_len);
-void SigParseRequiredContentSize(
-        const Signature *s, const uint64_t max, const SigMatch *sm, int *len, int *offset);
+void SigParseRequiredContentSize(const Signature *s, const uint64_t max, const SigMatch *sm,
+        bool count_negated, int *len, int *offset);
 int DetectContentConvertToNocase(DetectEngineCtx *de_ctx, DetectContentData *cd);
 
 #endif /* SURICATA_DETECT_CONTENT_H */

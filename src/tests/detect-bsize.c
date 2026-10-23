@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2022 Open Information Security Foundation
+/* Copyright (C) 2017-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -156,13 +156,109 @@ static int DetectBsizeSigTest01(void)
               "sid:17;)");
     TEST_FAIL("alert http any any -> any any (http.uri; content:\"abc\"; offset:65535; bsize:3; "
               "sid:18;)");
-    TEST_FAIL("alert http any any -> any any (http.user_agent; content:\"Suricata-UA\"; bsize:11; "
-              "content:!\"abc\"; distance:2; within:3;  sid: 19;)");
+    /* a negated content's window may reach past the bsize: a buffer too short
+     * for the window satisfies the negation */
+    TEST_OK("alert http any any -> any any (http.user_agent; content:\"Suricata-UA\"; bsize:11; "
+            "content:!\"abc\"; distance:2; within:3;  sid: 19;)");
+    TEST_OK("alert http any any -> any any (http.uri; content:\"/\"; content:!\"admin\"; "
+            "within:100; bsize:>0; bsize:<32; sid:20;)");
+    /* a negative distance after a skipped negated content can't need fewer
+     * than zero bytes */
+    TEST_OK("alert dns any any -> any any (dns.query; content:!\"bad\"; content:\".\"; "
+            "distance:-2; bsize:5; sid:21;)");
     PASS;
 }
 
 #undef TEST_OK
 #undef TEST_FAIL
+
+/* the n-th content of a signature's first app-layer inspect engine, after
+ * SigGroupBuild has run */
+static const DetectContentData *BsizeTestContent(const Signature *s, int n)
+{
+    if (s->app_inspect == NULL)
+        return NULL;
+    for (const SigMatchData *smd = s->app_inspect->smd;; smd++) {
+        if (smd->type == DETECT_CONTENT && n-- == 0)
+            return (const DetectContentData *)smd->ctx;
+        if (smd->is_last)
+            break;
+    }
+    return NULL;
+}
+
+/* bsize applied as a depth: which contents get it, and the startswith and
+ * endswith flags for a lone content whose length equals an exact bsize */
+static int DetectBsizeSigTest02(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *exact = DetectEngineAppendSig(
+            de_ctx, "alert dns any any -> any any (dns.query; content:\"abc\"; bsize:3; sid:1;)");
+    FAIL_IF_NULL(exact);
+    Signature *lt = DetectEngineAppendSig(
+            de_ctx, "alert dns any any -> any any (dns.query; content:\"abc\"; bsize:<10; sid:2;)");
+    FAIL_IF_NULL(lt);
+    Signature *var = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any (dns.query; byte_extract:1,0,n; content:\"abc\"; "
+            "depth:n; bsize:<10; sid:3;)");
+    FAIL_IF_NULL(var);
+    Signature *toolong = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any (dns.query; content:\"a\"; content:\"bbbbbbbbbb\"; "
+            "bsize:5; sid:4;)");
+    FAIL_IF_NULL(toolong);
+    Signature *user = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any (dns.query; content:\"abc\"; depth:5; bsize:<10; "
+            "sid:5;)");
+    FAIL_IF_NULL(user);
+
+    SigGroupBuild(de_ctx);
+
+    /* exact bsize equal to the lone content's length: depth and anchoring */
+    const DetectContentData *cd = BsizeTestContent(exact, 0);
+    FAIL_IF_NULL(cd);
+    FAIL_IF_NOT(cd->depth == 3);
+    FAIL_IF_NOT(cd->flags & DETECT_CONTENT_DEPTH);
+    FAIL_IF_NOT(cd->flags & DETECT_CONTENT_BSIZE2DEPTH);
+    FAIL_IF_NOT(cd->flags & DETECT_CONTENT_STARTS_WITH);
+    FAIL_IF_NOT(cd->flags & DETECT_CONTENT_ENDS_WITH);
+
+    /* bsize:<10: depth 10, no anchoring */
+    cd = BsizeTestContent(lt, 0);
+    FAIL_IF_NULL(cd);
+    FAIL_IF_NOT(cd->depth == 10);
+    FAIL_IF_NOT(cd->flags & DETECT_CONTENT_BSIZE2DEPTH);
+    FAIL_IF(cd->flags & DETECT_CONTENT_STARTS_WITH);
+    FAIL_IF(cd->flags & DETECT_CONTENT_ENDS_WITH);
+
+    /* depth from a byte_extract variable: the index stays, no bsize depth */
+    cd = BsizeTestContent(var, 0);
+    FAIL_IF_NULL(cd);
+    FAIL_IF_NOT(cd->flags & DETECT_CONTENT_DEPTH_VAR);
+    FAIL_IF(cd->flags & DETECT_CONTENT_BSIZE2DEPTH);
+    FAIL_IF_NOT(cd->depth == 0);
+
+    /* a content longer than the bound gets no depth; the one that fits does */
+    cd = BsizeTestContent(toolong, 0);
+    FAIL_IF_NULL(cd);
+    FAIL_IF_NOT(cd->depth == 5);
+    FAIL_IF_NOT(cd->flags & DETECT_CONTENT_BSIZE2DEPTH);
+    cd = BsizeTestContent(toolong, 1);
+    FAIL_IF_NULL(cd);
+    FAIL_IF(cd->flags & DETECT_CONTENT_DEPTH);
+    FAIL_IF(cd->flags & DETECT_CONTENT_BSIZE2DEPTH);
+
+    /* a smaller user depth is kept */
+    cd = BsizeTestContent(user, 0);
+    FAIL_IF_NULL(cd);
+    FAIL_IF_NOT(cd->depth == 5);
+    FAIL_IF(cd->flags & DETECT_CONTENT_BSIZE2DEPTH);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
 
 static void DetectBsizeRegisterTests(void)
 {
@@ -172,4 +268,5 @@ static void DetectBsizeRegisterTests(void)
     UtRegisterTest("DetectBsizeTest04 RA", DetectBsizeTest04);
 
     UtRegisterTest("DetectBsizeSigTest01", DetectBsizeSigTest01);
+    UtRegisterTest("DetectBsizeSigTest02", DetectBsizeSigTest02);
 }
