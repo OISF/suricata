@@ -1137,7 +1137,7 @@ impl HTTP2State {
                             buf.stream_id = 0;
                             buf.data.clear();
                         }
-                        hs.end_stream = buf.end_stream;
+                        hs.end_stream = same && buf.end_stream;
                         if same {
                             buf.end_stream = false;
                         }
@@ -1774,5 +1774,177 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
         SCLogDebug!("Rust doh2 parser registered.");
     } else {
         SCLogNotice!("Protocol detector and parser disabled for DOH2.");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn frame_header(ftype: parser::HTTP2FrameType, flags: u8) -> parser::HTTP2FrameHeader {
+        parser::HTTP2FrameHeader {
+            length: 1,
+            ftype: ftype as u8,
+            flags,
+            reserved: 0,
+            stream_id: 1,
+        }
+    }
+
+    #[test]
+    fn test_http2_continuation_progress() {
+        use HTTP2TransactionState::*;
+
+        for (dir, half_closed, peer_closed) in [
+            (Direction::ToServer, HTTP2StateHalfClosedClient, HTTP2StateHalfClosedServer),
+            (Direction::ToClient, HTTP2StateHalfClosedServer, HTTP2StateHalfClosedClient),
+        ] {
+            for end_stream in [false, true] {
+                for peer_first in [false, true] {
+                    let mut state = HTTP2State::new();
+                    let mut tx = HTTP2Transaction::new();
+                    let initial = if peer_first { peer_closed } else { HTTP2StateOpen };
+                    tx.state = initial;
+                    let mut reass_limit_reached = false;
+                    let flags = if end_stream { parser::HTTP2_FLAG_HEADER_EOS } else { 0 };
+                    let header = frame_header(parser::HTTP2FrameType::Headers, flags);
+                    let (data, events) = state.parse_frame_data(
+                        &header, &[0x82], true, dir, &mut reass_limit_reached,
+                    );
+                    assert!(events.is_empty());
+                    tx.handle_frame(&header, &data, dir);
+                    assert_eq!(tx.state, initial);
+
+                    let header = frame_header(parser::HTTP2FrameType::Continuation, 0);
+                    let (data, events) = state.parse_frame_data(
+                        &header, &[0x86], true, dir, &mut reass_limit_reached,
+                    );
+                    assert!(events.is_empty());
+                    assert!(matches!(&data, HTTP2FrameTypeData::CONTINUATION(c) if !c.end_stream));
+                    tx.handle_frame(&header, &data, dir);
+                    assert_eq!(tx.state, initial);
+
+                    let header = frame_header(
+                        parser::HTTP2FrameType::Continuation, parser::HTTP2_FLAG_HEADER_END_HEADERS,
+                    );
+                    let (data, events) = state.parse_frame_data(
+                        &header, &[0x84], true, dir, &mut reass_limit_reached,
+                    );
+                    assert!(events.is_empty());
+                    assert!(matches!(&data, HTTP2FrameTypeData::CONTINUATION(c)
+                        if c.end_stream == end_stream));
+                    tx.handle_frame(&header, &data, dir);
+                    let expected = if end_stream {
+                        if peer_first { HTTP2StateClosed } else { half_closed }
+                    } else {
+                        initial
+                    };
+                    assert_eq!(tx.state, expected);
+                    assert!(!reass_limit_reached);
+                    let buf = if dir == Direction::ToClient {
+                        &state.s2c_buf
+                    } else {
+                        &state.c2s_buf
+                    };
+                    assert_eq!(buf.stream_id, 0);
+                    assert!(buf.data.is_empty());
+                    assert!(!buf.end_stream);
+
+                    if end_stream && !peer_first {
+                        let peer_dir = if dir == Direction::ToServer {
+                            Direction::ToClient
+                        } else {
+                            Direction::ToServer
+                        };
+                        let header = frame_header(
+                            parser::HTTP2FrameType::Data, parser::HTTP2_FLAG_HEADER_EOS,
+                        );
+                        tx.handle_frame(&header, &HTTP2FrameTypeData::DATA, peer_dir);
+                        assert_eq!(tx.state, HTTP2StateClosed);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_http2_orphan_continuation_end_stream() {
+        for dir in [Direction::ToServer, Direction::ToClient] {
+            let mut state = HTTP2State::new();
+            let mut reass_limit_reached = false;
+            let header = frame_header(parser::HTTP2FrameType::Headers, parser::HTTP2_FLAG_HEADER_EOS);
+            let (_, events) = state.parse_frame_data(
+                &header, &[0x82], true, dir, &mut reass_limit_reached,
+            );
+            assert!(events.is_empty());
+
+            let mut header = frame_header(
+                parser::HTTP2FrameType::Continuation, parser::HTTP2_FLAG_HEADER_END_HEADERS,
+            );
+            header.stream_id = 3;
+            let (data, events) = state.parse_frame_data(
+                &header, &[0x88], true, dir, &mut reass_limit_reached,
+            );
+            assert!(events.iter().any(|e| matches!(e, HTTP2Event::ContinuationWithoutHeaders)));
+            // An orphan continuation must not close another stream using stream 1's flag.
+            assert!(matches!(&data, HTTP2FrameTypeData::CONTINUATION(c) if !c.end_stream));
+            let buf = if dir == Direction::ToClient {
+                &state.s2c_buf
+            } else {
+                &state.c2s_buf
+            };
+            assert_eq!(buf.stream_id, 1);
+            assert!(buf.end_stream);
+
+            header.stream_id = 1;
+            let (data, events) = state.parse_frame_data(
+                &header, &[0x84], true, dir, &mut reass_limit_reached,
+            );
+            assert!(events.is_empty());
+            assert!(matches!(&data, HTTP2FrameTypeData::CONTINUATION(c) if c.end_stream));
+        }
+    }
+
+    #[test]
+    fn test_http2_complete_headers_and_data_progress() {
+        use HTTP2TransactionState::*;
+
+        for (dir, half_closed) in [
+            (Direction::ToServer, HTTP2StateHalfClosedClient),
+            (Direction::ToClient, HTTP2StateHalfClosedServer),
+        ] {
+            let mut tx = HTTP2Transaction::new();
+            tx.state = HTTP2StateOpen;
+            let header = frame_header(
+                parser::HTTP2FrameType::Continuation, parser::HTTP2_FLAG_HEADER_EOS,
+            );
+            let data = HTTP2FrameTypeData::CONTINUATION(parser::HTTP2FrameContinuation {
+                blocks: Vec::new(),
+                end_stream: false,
+            });
+            // END_STREAM is inherited from HEADERS, not read from CONTINUATION flags.
+            tx.handle_frame(&header, &data, dir);
+            assert_eq!(tx.state, HTTP2StateOpen);
+
+            let data = HTTP2FrameTypeData::HEADERS(parser::HTTP2FrameHeaders {
+                padlength: None,
+                priority: None,
+                blocks: Vec::new(),
+            });
+            let header = frame_header(
+                parser::HTTP2FrameType::Headers,
+                parser::HTTP2_FLAG_HEADER_EOS | parser::HTTP2_FLAG_HEADER_END_HEADERS,
+            );
+            tx.handle_frame(&header, &data, dir);
+            assert_eq!(tx.state, half_closed);
+            // Duplicate END_STREAM must not close the other direction.
+            tx.handle_frame(&header, &data, dir);
+            assert_eq!(tx.state, half_closed);
+
+            tx.state = HTTP2StateOpen;
+            let header = frame_header(parser::HTTP2FrameType::Data, parser::HTTP2_FLAG_HEADER_EOS);
+            tx.handle_frame(&header, &HTTP2FrameTypeData::DATA, dir);
+            assert_eq!(tx.state, half_closed);
+        }
     }
 }
