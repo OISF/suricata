@@ -254,6 +254,12 @@ keywords.
 .. note:: The ``http.host`` keyword normalizes the host header contents. If a
   host name has uppercase characters, those would be changed to lowercase.
 
+.. note:: For HTTP/2 the value comes from the ``:authority`` pseudo-header, or from
+  the ``Host`` header field when the request has no ``:authority``. Both are taken from
+  the header section of the request only: a trailer cannot change the host. Pseudo-header
+  fields are not allowed in trailers (RFC 9113 8.1) and routing fields such as ``Host``
+  stay out of them (RFC 9110 6.5.1).
+
 Normalization Example::
 
   GET /index.html HTTP/1.1

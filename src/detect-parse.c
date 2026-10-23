@@ -2777,14 +2777,43 @@ SigMatchData* SigMatchList2DataArray(SigMatch *head)
 
 extern int g_skip_prefilter;
 
+/** \internal
+ *  \brief does a packet condition of the rule read a variable that a rule
+ *         matching earlier on the same packet can set
+ *
+ *  The list is the variable readers, not only those a firewall rule can use today.
+ */
+static bool SigPacketMatchReadsVars(const Signature *s)
+{
+    for (const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL;
+            sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_FLOWBITS:
+            case DETECT_XBITS:
+            case DETECT_HOSTBITS:
+            case DETECT_FLOWINT:
+            case DETECT_FLOWVAR:
+            case DETECT_PKTVAR:
+            case DETECT_LUA:
+                return true;
+        }
+    }
+    return false;
+}
+
 static void SigSetupPrefilter(DetectEngineCtx *de_ctx, Signature *s)
 {
     SCEnter();
     SCLogDebug("s %u: set up prefilter/mpm", s->id);
     DEBUG_VALIDATE_BUG_ON(s->init_data->mpm_sm != NULL);
 
-    if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
-        SCLogDebug("no prefilter for SIG_FLAG_FW_HOOK_LTE sig");
+    /* An LTE rule that the prefilter does not add at its hook is pending, and the walk
+     * decides at its start whether that rule is still in the running
+     * (DetectFwLtePendingRule()). A variable that a rule earlier in the same walk sets
+     * is only known when the walk reaches the rule, so a rule that reads one gets no
+     * prefilter: it is a candidate on every update and inspected in order. */
+    if ((s->flags & SIG_FLAG_FW_HOOK_LTE) && SigPacketMatchReadsVars(s)) {
+        SCLogDebug("%u: no prefilter for a SIG_FLAG_FW_HOOK_LTE sig reading variables", s->id);
         SCReturn;
     }
 
@@ -2910,6 +2939,13 @@ static bool DetectFirewallRuleValidate(const DetectEngineCtx *de_ctx, const Sign
         }
     }
     if (s->flags & SIG_FLAG_FW_HOOK_LTE) {
+        if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {
+            SCLogError("rule %u: the auto-accept notation ('<hook') cannot match the raw "
+                       "stream: its match must come from a buffer of that hook, so that a "
+                       "miss at the hook is final",
+                    s->id);
+            return false;
+        }
         if (!(((s->action & ACTION_ACCEPT) != 0) &&
                     (s->action_scope == ACTION_SCOPE_FLOW || s->action_scope == ACTION_SCOPE_TX ||
                             s->action_scope == ACTION_SCOPE_HOOK))) {

@@ -80,6 +80,9 @@ uint8_t AppLayerParserGetTxEndState(uint8_t ipproto, AppProto alproto, void *tx,
 /** progress values need to stay under this. */
 #define APP_LAYER_MAX_PROGRESS 48
 
+/** maximum number of sub-states a parser can register (ids 1 to N-1) */
+#define APP_LAYER_MAX_SUB_STATES 8
+
 /***** transaction handling *****/
 
 int AppLayerParserSetup(void);
@@ -211,14 +214,10 @@ typedef struct AppLayerTxData {
     uint8_t detect_progress_tc;
 
     /// Type of transaction. Meaning is defined by the parser. Used to
-    /// select a state machine. 0 means it is not used.
+    /// select a state machine. 0 means it is not used. A non-zero value is
+    /// also the sub-state id registered by the parser, whose completion is
+    /// the tx's end state.
     uint8_t tx_type;
-    /// End of TX progress values
-    ///
-    /// toserver end of tx progress value
-    uint8_t tx_type_eop_ts;
-    /// toclient end of tx progress value
-    uint8_t tx_type_eop_tc;
 
     DetectEngineState *de_state;
     AppLayerDecoderEvents *events;
@@ -304,7 +303,7 @@ void AppLayerParserRegisterGetStateFuncs(uint8_t ipproto, AppProto alproto,
 /** \brief register state<>name funcs for a substate */
 void SCAppLayerParserRegisterGetTxSubStateFuncs(AppProto alproto, const uint8_t sub_state,
         AppLayerParserGetStateIdByNameFn GetIdByNameFunc,
-        AppLayerParserGetStateNameByIdFn GetNameByIdFunc);
+        AppLayerParserGetStateNameByIdFn GetNameByIdFunc, uint8_t completion);
 
 void AppLayerParserRegisterTxDataFunc(uint8_t ipproto, AppProto alproto,
         AppLayerTxData *(*GetTxData)(void *tx));

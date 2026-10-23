@@ -663,8 +663,13 @@ static void AppendFrameInspectEngine(DetectEngineCtx *de_ctx,
     }
     if (mpm_list == u->sm_list) {
         SCLogDebug("%s is mpm", DetectEngineBufferTypeGetNameById(de_ctx, u->sm_list));
-        prepend = true;
-        new_engine->mpm = true;
+        /* defensive only: the frame path has no mpm finality handling in the walk, so
+         * the flag would just reorder this engine ahead of the others. Keep the LTE
+         * rule in progress order like the stream and app engines. */
+        if ((s->flags & SIG_FLAG_FW_HOOK_LTE) == 0) {
+            prepend = true;
+            new_engine->mpm = true;
+        }
     }
 
     new_engine->type = u->type;
@@ -772,9 +777,16 @@ static void AppendAppInspectEngine(DetectEngineCtx *de_ctx,
     bool prepend = false;
     if (mpm_list == t->sm_list) {
         SCLogDebug("%s is mpm", DetectEngineBufferTypeGetNameById(de_ctx, t->sm_list));
-        prepend = true;
-        *head_is_mpm = true;
-        new_engine->mpm = true;
+        /* An LTE rule must keep its engines in progress order: the pass through
+         * engines cover the states below the hook, and a not yet reached hook has
+         * to stay a partial match instead of breaking out as a no match. The mpm
+         * flag is left off as well: it would make a no match above the hook final
+         * (`mpm_before_progress`), while LTE rules rely on the buffers own eof. */
+        if ((s->flags & SIG_FLAG_FW_HOOK_LTE) == 0) {
+            prepend = true;
+            *head_is_mpm = true;
+            new_engine->mpm = true;
+        }
     }
 
     new_engine->alproto = t->alproto;
@@ -2127,10 +2139,12 @@ int DetectEngineReloadIsIdle(void)
 /** \internal
  *  \brief is the engine's data final for this tx?
  *
- *  Past the engine's phase the answer is yes; at or beyond the tx end state it
- *  is final too, even for engines registered at the completion state (no P+1).
- *  AppLayerParserGetStateProgress() returns the end progress for disrupted
- *  flows, so progress == end stays a valid finality signal there.
+ *  Past the engine's phase the answer is yes: a rule hooked below is a candidate
+ *  in the list at those updates, so it is inspected there without needing the
+ *  engine kept open. At or beyond the tx end state it is final too, even for
+ *  engines registered at the completion state (no P+1). AppLayerParserGetStateProgress() returns
+ *  the end progress for disrupted flows, so progress == end stays a valid
+ *  finality signal there.
  */
 static bool DetectTxCompleted(
         Flow *f, void *txv, uint8_t flags, const DetectEngineAppInspectionEngine *engine)
@@ -3843,6 +3857,7 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
         SCFree(det_ctx->replace);
 
     RuleMatchCandidateTxArrayFree(det_ctx);
+    DetectPrefilterLteWindowFree(det_ctx);
 
     AlertQueueFree(det_ctx);
 

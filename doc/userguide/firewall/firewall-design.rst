@@ -284,6 +284,42 @@ ruleset was actually::
 
 This logic only applies to the ``app:filter`` table.
 
+While such a rule is still pending - it ran the states before its hook without
+matching, but a buffer of its hook can still grow - a rule hooked at a higher
+state is still evaluated once the transaction has moved past the pending rule's
+hook; while the transaction is at or before that hook the walk stops, so no
+higher state's policy can decide the flow early. A rule of a higher id at the
+pending rule's own hook is inspected in the same walk: a rule which cannot be
+decided by this update must not stall the hook for the rules which can. The price
+is that such a rule's action - a ``drop:flow``, say - decides the flow before the
+pending accept resolves. ``ruletype-firewall-616`` pins it; ``ruletype-firewall-623`` pins
+the other half, that nothing at all decides an update in which the transaction has not yet
+reached the pending rule's hook.
+A higher-hook rule inspects
+the buffers of every state below its own hook, so its match covers the pending
+rule and its action decides the flow: when it matches, the pending rule's later
+no-match does not apply the default policy of its own state.
+
+A sub-state's buffers can also grow after the transaction moved past the rule's
+hook: a http2 trailer HEADERS frame updates the header lists above the
+``request_headers`` hook. Such a rule is not kept open for that update; it is
+brought in as a candidate, so the growth is covered without deferring the states
+below the hook. The fast pattern at the hook decides there: above it a
+group is retired once its rules are, so a rule whose buffer is final at that
+point is not run again. A group whose buffer can still be rewritten is not: all
+of its rules go into the list at that update, and with them the default policies
+of the states they cover. A rule that would stay open because a *stream* match
+can still arrive cannot use the notation at all, see the limitations below.
+
+The bound is the transaction's end state. For a parser with per-direction sub-
+states that can be later than the direction's own close - a http2 stream
+completes when both sides closed, while its request buffers are final once the
+client sent END_STREAM - so the bound can lag the point where a miss really is
+final. What that costs is one more update at which a group is tested before its
+retirement settles; for the http2 cases measured it changes no decision and no
+packet, and it keeps one bound for every protocol instead of a per-direction
+one per parser.
+
 Firewall pipeline
 -----------------
 
@@ -434,3 +470,76 @@ reaches them::
 
 A ``<`` hook rule at the protocol's first state (progress 0) is accepted and is
 equivalent to the plain hook form, as there are no prior states to auto-accept.
+
+The pending window
+------------------
+
+Two words for two sets of rules, both rebuilt on every update of a transaction:
+
+* the *group* of a hook: the LTE rules registered for one progress state of the
+  transaction, held as a list of rule ids in one prefilter engine.
+* the *pending window*: the rules of that group the fast pattern did not add as
+  candidates at the hook state. It is a set of rules, not a range of progress states;
+  the states only say when the set is filled and when it is dropped.
+
+An LTE rule has no say below its hook, and at its hook the fast pattern decides which
+of them are worth inspecting. The rules the pattern did not add hold the hook open:
+they are not candidates, so the walk cannot decide them, but the default policy cannot
+resolve the hook either.
+
+An LTE rule with a packet condition on a variable that a rule can set (``flowbits``,
+``xbits``) gets no fast pattern. Whether it is still in the running is only known once
+the rules before it in the walk have run, so it is a candidate on every update and the
+walk inspects it in order.
+
+::
+
+    progress   0 ............ H (hook) C (a miss becomes final)
+               |              |        |
+    window     | empty        | filled | emptied here
+    (a set of  |              |        |
+     rules)    |              |        |
+               v              v        v
+    policy     while the window is not empty the hook is left unresolved, so a match
+               anywhere else takes it and only an empty outcome falls through to the
+               default policy
+
+Two moments, for the rules of a group hooked at ``H``:
+
+* at ``H``: the pattern runs; matches go to the candidate list, the rules it did not
+  add are the window and the hook stays pending.
+* at ``C``: a miss is final for the group's rules whose buffers are complete at
+  ``H``. The window contributes its last rule only, so that any other match still
+  wins the state and the policy decides when nothing does. A group that also holds
+  a rule whose pattern can still grow above ``C`` is not retired there, so the
+  retirement cannot apply a default policy through it. Tracking such a rule keeps
+  its hook, so a rule which can never resolve does not hold it open for the whole
+  transaction. When no candidate takes an id above them, the walk takes the pending
+  rules at its end, so they are accounted for either way.
+
+``C`` is ``H + 1`` for the app buffers of a protocol which declares no sub-states: an
+app hooked rule can only hold patterns of buffers whose engine sits at its hook, so such
+a buffer cannot grow once the transaction has moved past it. One case does grow: an
+app buffer of a protocol declaring sub-states, because a frame can rewrite it above the
+hook -- an http2 trailer HEADERS frame updates the header list buffers. The rules of such
+a group are not retired to their last one: no pattern covers that update, so all of them
+are inspected there. A rule
+with no fast pattern at all has no update which brings it, so a group which holds one is
+inspected whole there as well. A
+transaction that ends at or below ``H`` never opens a window: its end state decides,
+and a window opens only for a tx that keeps going past ``H``.
+
+LIMITATIONS
+-----------
+
+* A rule using the auto-accept notation (``<hook``) cannot match the raw stream: a
+  ``content`` or ``pcre`` on the stream (including a bare ``content`` before any sticky
+  buffer) makes the rule fail to load. The stream is the one buffer that keeps delivering
+  data above any hook, so a miss at the hook would not be final, and the retirement above
+  depends on it being so. Use the buffer keyword of the state you mean.
+* A message trailer rewrites the header lists above their hook, in HTTP/1
+  (``http.header``) and in HTTP/2 (a trailer HEADERS frame). A rule hooked below them
+  whose pattern only appears in the trailer is therefore retired at the first update
+  past the hook, and that state's default policy decides before the trailer is read -
+  for http2 that update is the first DATA frame. Main is under the same constraint.
+  This is a known gap, open with the design discussion of the retirement bound.
