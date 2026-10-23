@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -110,6 +110,9 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         const enum DetectContentInspectionType inspection_mode)
 {
     SCEnter();
+    // every caller passes a keyword list, and the recursion below stops at
+    // its last entry; the profiling calls rely on that to read smd->type
+    DEBUG_VALIDATE_BUG_ON(smd == NULL);
     KEYWORD_PROFILING_START;
 
     ctx->recursion.count++;
@@ -119,7 +122,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
     }
 
     // we want the ability to match on bsize: 0
-    if (smd == NULL || buffer == NULL) {
+    if (buffer == NULL) {
         KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
         SCReturnInt(0);
     }
@@ -391,13 +394,38 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                     prev_offset);
         } while(1);
 
-    } else if (smd->type == DETECT_ABSENT) {
-        const DetectAbsentData *id = (DetectAbsentData *)smd->ctx;
-        if (!id->or_else) {
-            // we match only on absent buffer
-            goto no_match;
+    } else if (smd->type == DETECT_ABSENT || smd->type == DETECT_TRANSFORM_RESULT) {
+        const DetectAbsentData *dad = (const DetectAbsentData *)smd->ctx;
+        switch (dad->mode) {
+            /* An error on part of a body or file may come from where the
+             * window was cut, so must_error and error_or only count errors on
+             * a buffer inspected in one piece. must_succeed still blocks. */
+            case DETECT_ABSENT_MUST_ERROR:
+                if ((flags & DETECT_CI_FLAGS_ERROR) && !(flags & DETECT_CI_FLAGS_PARTIAL)) {
+                    SCLogDebug("transform_result: must_error: error flag match");
+                    goto final_match;
+                }
+                goto no_match;
+            case DETECT_ABSENT_ONLY:
+                goto no_match;
+            case DETECT_ABSENT_ERROR_OR:
+                if ((flags & DETECT_CI_FLAGS_ERROR) && !(flags & DETECT_CI_FLAGS_PARTIAL)) {
+                    SCLogDebug("transform_result: error_or: error flag match");
+                    goto final_match;
+                }
+                /* fall through */
+            case DETECT_ABSENT_OR_ELSE:
+                goto match;
+            case DETECT_ABSENT_MUST_SUCCEED:
+                if (flags & DETECT_CI_FLAGS_ERROR) {
+                    SCLogDebug("transform_result: must_succeed: error flag, no match");
+                    goto no_match;
+                }
+                goto match;
+            default:
+                DEBUG_VALIDATE_BUG_ON(1);
+                goto no_match;
         }
-        goto match;
     } else if (smd->type == DETECT_ISDATAAT) {
         SCLogDebug("inspecting isdataat");
 
@@ -787,11 +815,18 @@ bool DetectEngineContentInspectionBuffer(DetectEngineCtx *de_ctx, DetectEngineTh
 
 bool DetectContentInspectionMatchOnAbsentBuffer(const SigMatchData *smd)
 {
-    // we will match on NULL buffers there is one absent
+    // match on NULL buffers if the buffer carries absent, or
+    // transform_result: error_or, which matches an absent buffer as
+    // absent: or_else does. must_succeed and must_error never match one.
     bool absent_data = false;
     while (1) {
         if (smd->type == DETECT_ABSENT) {
             absent_data = true;
+            break;
+        }
+        if (smd->type == DETECT_TRANSFORM_RESULT) {
+            const DetectAbsentData *dad = (const DetectAbsentData *)smd->ctx;
+            absent_data = dad->mode == DETECT_ABSENT_ERROR_OR;
             break;
         }
         if (smd->is_last) {
