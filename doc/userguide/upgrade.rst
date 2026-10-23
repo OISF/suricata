@@ -89,6 +89,7 @@ Major Changes
   explicit rule that catches the SNI-less case if you want to keep the
   drop (the reference SNI example in :doc:`firewall/firewall-example`
   keeps the drop by having no certificate-state accept).
+- Email keywords (except email.url) match on the IMAP protocol.
 
 Logging Changes
 ~~~~~~~~~~~~~~~
