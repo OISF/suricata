@@ -374,6 +374,49 @@ If one or more ``content`` keywords precedes ``bsize``, each occurrence of ``con
 will be inspected and an error will be raised if the content length and the bsize
 value prevent a match.
 
+An exact, ``<``, ``<=`` or range ``bsize`` also limits how far into the buffer a
+``content`` is searched. The buffer can't be longer than that bound, so a match
+can't end past it. The table shows the ``depth`` each ``content`` gets on a
+sticky buffer such as ``dns.query``:
+
++-----------------------------------------------------------+----------------------------------+
+| rule statement                                            | depth of the content             |
++===========================================================+==================================+
+| ``content:"abc"; bsize:10;``                              | 10                               |
++-----------------------------------------------------------+----------------------------------+
+| ``content:"abc"; bsize:<=10;``                            | 10                               |
++-----------------------------------------------------------+----------------------------------+
+| ``content:"abc"; bsize:5<>20;``                           | 20                               |
++-----------------------------------------------------------+----------------------------------+
+| ``content:"abc"; bsize:<20; bsize:<8;``                   | 8, the smallest bound            |
++-----------------------------------------------------------+----------------------------------+
+| ``content:"abc"; depth:5; bsize:10;``                     | 5, ``depth:5`` is smaller than   |
+|                                                           | ``bsize:10`` and is used         |
++-----------------------------------------------------------+----------------------------------+
+| ``content:"abc"; depth:20; bsize:10;``                    | 10, ``bsize:10`` replaces the    |
+|                                                           | larger ``depth:20``              |
++-----------------------------------------------------------+----------------------------------+
+| ``content:"google.com"; bsize:10;``                       | 10, and the content is also      |
+|                                                           | treated as ``startswith`` and    |
+|                                                           | ``endswith`` because it fills    |
+|                                                           | the buffer                       |
++-----------------------------------------------------------+----------------------------------+
+| ``content:"abc"; content:"def"; distance:0; bsize:10;``   | 10 for both, counted from the    |
+|                                                           | end of ``abc`` for ``def``       |
++-----------------------------------------------------------+----------------------------------+
+| ``content:"abc"; bsize:>10;``                             | none, ``>`` and ``>=`` have no   |
+|                                                           | upper bound                      |
++-----------------------------------------------------------+----------------------------------+
+| ``byte_extract:1,0,n; content:"abc"; depth:n; bsize:10;`` | the value of ``n``, unchanged    |
++-----------------------------------------------------------+----------------------------------+
+| ``content:"a"; content:!"bbbbbbbbbbbb"; bsize:10;``       | 10 for ``a``, none for the       |
+|                                                           | 12-byte content, which is longer |
+|                                                           | than ``bsize:10``                |
++-----------------------------------------------------------+----------------------------------+
+| ``content:"abc"; bsize:70000;``                           | none, bounds above 65535 aren't  |
+|                                                           | used                             |
++-----------------------------------------------------------+----------------------------------+
+
 Format::
 
   bsize:<number>;
