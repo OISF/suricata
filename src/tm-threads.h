@@ -27,6 +27,7 @@
 
 #include "tmqh-packetpool.h"
 #include "tm-threads-common.h"
+#include "tm-queuehandlers.h"
 #include "tm-modules.h"
 #include "flow.h" // for the FlowQueue
 
@@ -180,7 +181,7 @@ static inline bool TmThreadsHandleInjectedPackets(ThreadVars *tv)
                 TmThreadsSlotProcessPktFail(tv, extra_p);
                 break;
             }
-            tv->tmqh_out(tv, extra_p);
+            tv->TmqhOutFn(tv, extra_p);
         }
         return true;
     } else {
@@ -194,7 +195,7 @@ static inline bool TmThreadsHandleInjectedPackets(ThreadVars *tv)
 static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet *p)
 {
     if (s == NULL) {
-        tv->tmqh_out(tv, p);
+        tv->TmqhOutFn(tv, p);
         return TM_ECODE_OK;
     }
 
@@ -204,7 +205,7 @@ static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet 
         return TM_ECODE_FAILED;
     }
 
-    tv->tmqh_out(tv, p);
+    tv->TmqhOutFn(tv, p);
 
     TmThreadsHandleInjectedPackets(tv);
 
@@ -257,7 +258,7 @@ static inline void TmThreadsCaptureHandleTimeout(ThreadVars *tv, Packet *p)
     /* packet could have been passed to us that we won't use
      * return it to the pool. */
     if (p != NULL)
-        tv->tmqh_out(tv, p);
+        tv->TmqhOutFn(tv, p);
 }
 
 static inline void TmThreadsCaptureBreakLoop(ThreadVars *tv)
@@ -275,6 +276,18 @@ static inline void TmThreadsCaptureBreakLoop(ThreadVars *tv)
             tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(s->slot_data));
         }
         TmThreadsSetFlag(tv, THV_CAPTURE_INJECT_PKT);
+    }
+}
+
+static inline void TmThreadFlushOutQueue(ThreadVars *tv)
+{
+    if (tv->outctx != NULL && tv->outq_id != TMQH_NOT_SET) {
+        Tmqh *qh = TmqhGetQueueHandlerByID(tv->outq_id);
+        if (qh != NULL) {
+            if (qh->OutFlush != NULL) {
+                qh->OutFlush(tv);
+            }
+        }
     }
 }
 

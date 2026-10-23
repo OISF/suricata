@@ -32,9 +32,9 @@
 #include "tm-queuehandlers.h"
 #include "tmqh-simple.h"
 
-Packet *TmqhInputSimple(ThreadVars *t);
-void TmqhOutputSimple(ThreadVars *t, Packet *p);
-void TmqhInputSimpleShutdownHandler(ThreadVars *);
+static PacketQueueNoLock TmqhInputSimple(ThreadVars *t);
+static void TmqhOutputSimple(ThreadVars *t, Packet *p);
+static void TmqhInputSimpleShutdownHandler(ThreadVars *);
 
 void TmqhSimpleRegister (void)
 {
@@ -44,31 +44,24 @@ void TmqhSimpleRegister (void)
     tmqh_table[TMQH_SIMPLE].OutHandler = TmqhOutputSimple;
 }
 
-Packet *TmqhInputSimple(ThreadVars *t)
+PacketQueueNoLock TmqhInputSimple(ThreadVars *tv)
 {
-    PacketQueue *q = t->inq->pq;
+    StatsSyncCountersIfSignalled(&tv->stats);
 
-    StatsSyncCountersIfSignalled(&t->stats);
-
+    PacketQueue *q = tv->inq->pq;
     SCMutexLock(&q->mutex_q);
-
     if (q->len == 0) {
         /* if we have no packets in queue, wait... */
         SCCondWait(&q->cond_q, &q->mutex_q);
     }
-
-    if (q->len > 0) {
-        Packet *p = PacketDequeue(q);
-        SCMutexUnlock(&q->mutex_q);
-        return p;
-    } else {
-        /* return NULL if we have no pkt. Should only happen on signals. */
-        SCMutexUnlock(&q->mutex_q);
-        return NULL;
-    }
+    PacketQueueNoLock pq = { .top = q->top, .bot = q->bot, q->len };
+    q->bot = q->top = NULL;
+    q->len = 0;
+    SCMutexUnlock(&q->mutex_q);
+    return pq;
 }
 
-void TmqhInputSimpleShutdownHandler(ThreadVars *tv)
+static void TmqhInputSimpleShutdownHandler(ThreadVars *tv)
 {
     int i;
 
@@ -83,7 +76,7 @@ void TmqhInputSimpleShutdownHandler(ThreadVars *tv)
     }
 }
 
-void TmqhOutputSimple(ThreadVars *t, Packet *p)
+static void TmqhOutputSimple(ThreadVars *t, Packet *p)
 {
     SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, BOOL2STR(p->pool == NULL));
 
