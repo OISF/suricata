@@ -1054,7 +1054,7 @@ void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
                         continue;
                     }
 
-                    if (DetectProtoContainsProto(s->proto, PacketGetIPProto(p)) == 0) {
+                    if (DetectProtoContainsProto(s->proto, SCPacketGetIPProto(p)) == 0) {
                         SCLogDebug("proto didn't match");
                         continue;
                     }
