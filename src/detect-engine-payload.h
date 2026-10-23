@@ -28,6 +28,7 @@ int PrefilterPktPayloadRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx);
 int PrefilterPktStreamRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterPktStreamRegisterNoMpm(DetectEngineCtx *de_ctx, SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 uint8_t DetectEngineInspectPacketPayload(
         DetectEngineCtx *, DetectEngineThreadCtx *, const Signature *, Flow *, Packet *);
