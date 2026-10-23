@@ -94,6 +94,8 @@ pub struct SMBTransactionDCERPC {
     pub res_cmd: u8,
     pub res_set: bool,
     pub call_id: u32,
+    pub req_is_fragmented: bool,
+    pub resp_is_fragmented: bool,
     pub frag_cnt_ts: u16,
     pub frag_cnt_tc: u16,
     pub stub_data_ts: Vec<u8>,
@@ -263,6 +265,7 @@ pub fn smb_write_dcerpc_record(
                                 SCLogDebug!("first frag size {}", recr.data.len());
                                 tdn.opnum = recr.opnum;
                                 tdn.context_id = recr.context_id;
+                                tdn.req_is_fragmented = !(dcer.first_frag && dcer.last_frag);
                                 tdn.frag_cnt_ts = tdn.frag_cnt_ts.saturating_add(1);
                                 let max_size = cfg_max_stub_size() as usize;
                                 if tdn.stub_data_ts.len() + recr.data.len() < max_size {
@@ -452,6 +455,7 @@ fn dcerpc_response_handle(tx: &mut SMBTransaction, vercmd: SMBVerCmdStat, dcer: 
                 if let Some(SMBTransactionTypeData::DCERPC(ref mut tdn)) = tx.type_data {
                     SCLogDebug!("CMD 11 found at tx {}", tx.id);
                     tdn.set_result(DCERPC_TYPE_RESPONSE);
+                    tdn.resp_is_fragmented = !(dcer.first_frag && dcer.last_frag);
                     let max_size = cfg_max_stub_size() as usize;
                     tdn.frag_cnt_tc = tdn.frag_cnt_tc.saturating_add(1);
                     if tdn.stub_data_tc.len() + respr.data.len() < max_size {
