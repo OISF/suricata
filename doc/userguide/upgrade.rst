@@ -90,6 +90,12 @@ Major Changes
   drop (the reference SNI example in :doc:`firewall/firewall-example`
   keeps the drop by having no certificate-state accept).
 
+Detection Changes
+~~~~~~~~~~~~~~~~~
+- Without ``any_frag``, ``dcerpc.iface`` now requires ``PFC_FIRST_FRAG`` on
+  the request PDU instead of on the BIND PDU, matching Snort. See ticket
+  `#8577 <https://redmine.openinfosecfoundation.org/issues/8577>`_.
+
 Logging Changes
 ~~~~~~~~~~~~~~~
 - The ssh eve record now carries the per-direction fields
