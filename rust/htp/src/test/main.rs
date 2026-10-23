@@ -771,6 +771,96 @@ fn ResponseTrailerData() {
     assert_eq!(4, *tx.user_data::<i32>().unwrap());
 }
 
+/// Trailer fields must stay out of the header table: a name that appears in both sections
+/// would otherwise be combined into one header value.
+#[test]
+fn RequestTrailersKeptOutOfHeaders() {
+    let cfg = TestConfig();
+    let mut t = Test::new(cfg);
+    assert!(t.run_file("27-request-trailer-raw.t").is_ok());
+    let tx = t.connp.tx(0).unwrap();
+    assert_eq!(
+        b"1",
+        tx.request_headers
+            .get_nocase("Cookie")
+            .unwrap()
+            .value
+            .as_slice()
+    );
+    assert_eq!(1, tx.request_trailers.size());
+    assert_eq!(
+        b"2",
+        tx.request_trailers
+            .get_nocase("Cookie")
+            .unwrap()
+            .value
+            .as_slice()
+    );
+}
+
+/// The header repetition cap must also bound trailer values: a peer that repeats one
+/// trailer name forever would otherwise grow a single value without limit.
+#[test]
+fn RequestTrailerRepeatsCapped() {
+    let cfg = TestConfig();
+    let mut t = Test::new(cfg);
+    assert!(t.run_file("30-request-trailer-repeats.t").is_ok());
+    let tx = t.connp.tx(0).unwrap();
+    let v = tx
+        .request_trailers
+        .get_nocase("A")
+        .unwrap()
+        .value
+        .as_slice();
+    assert_eq!(
+        1,
+        v.iter()
+            .take(1)
+            .filter(|&&c| c == b'A' || c == b'v')
+            .count()
+    );
+    assert_eq!(66, bytecount(v, b'v'));
+    assert!(tx.request_trailers.size() == 1);
+}
+
+#[test]
+fn ResponseTrailerRepeatsCapped() {
+    let cfg = TestConfig();
+    let mut t = Test::new(cfg);
+    assert!(t.run_file("31-response-trailer-repeats.t").is_ok());
+    let tx = t.connp.tx(0).unwrap();
+    let v = tx
+        .response_trailers
+        .get_nocase("A")
+        .unwrap()
+        .value
+        .as_slice();
+    assert_eq!(66, bytecount(v, b'v'));
+    assert!(tx.response_trailers.size() == 1);
+}
+
+fn bytecount(hay: &[u8], needle: u8) -> usize {
+    hay.iter().filter(|&&c| c == needle).count()
+}
+
+#[test]
+fn ResponseTrailersKeptOutOfHeaders() {
+    let cfg = TestConfig();
+    let mut t = Test::new(cfg);
+    assert!(t.run_file("29-response-trailer-raw.t").is_ok());
+    let tx = t.connp.tx(0).unwrap();
+    assert!(tx.response_headers.get_nocase("Set-Cookie").is_none());
+    assert_eq!(2, tx.response_trailers.size());
+    assert_eq!(
+        b"name=value",
+        tx.response_trailers
+            .get_nocase("Set-Cookie")
+            .unwrap()
+            .value
+            .as_slice()
+    );
+}
+
 #[test]
 fn GetIPv6() {
     let mut t = Test::new(TestConfig());

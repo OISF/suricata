@@ -1550,6 +1550,10 @@ pub type AppLayerParserGetStateIdByNameFn = ::std::option::Option<
 pub type AppLayerParserGetStateNameByIdFn = ::std::option::Option<
     unsafe extern "C" fn(id: ::std::os::raw::c_int, direction: u8) -> *const ::std::os::raw::c_char,
 >;
+#[doc = "  \\param id progress value id to get the default firewall policy for\n  \\param direction STREAM_TOSERVER/STREAM_TOCLIENT\n  \\retval policy string such as \"accept:hook\", NULL to use the generic default"]
+pub type AppLayerParserGetStatePolicyByIdFn = ::std::option::Option<
+    unsafe extern "C" fn(id: ::std::os::raw::c_int, direction: u8) -> *const ::std::os::raw::c_char,
+>;
 pub type AppLayerParserGetFrameIdByNameFn = ::std::option::Option<
     unsafe extern "C" fn(frame_name: *const ::std::os::raw::c_char) -> ::std::os::raw::c_int,
 >;
@@ -1567,10 +1571,11 @@ extern "C" {
     pub fn SCAppLayerParserRegisterLogger(ipproto: u8, alproto: AppProto);
 }
 extern "C" {
-    #[doc = " \\brief register state<>name funcs for a substate"]
+    #[doc = " \\brief register state<>name funcs, the completion state and an optional\n         per-state default firewall policy for a substate"]
     pub fn SCAppLayerParserRegisterGetTxSubStateFuncs(
         alproto: AppProto, sub_state: u8, GetIdByNameFunc: AppLayerParserGetStateIdByNameFn,
-        GetNameByIdFunc: AppLayerParserGetStateNameByIdFn,
+        GetNameByIdFunc: AppLayerParserGetStateNameByIdFn, completion: u8,
+        GetPolicyFunc: AppLayerParserGetStatePolicyByIdFn,
     );
 }
 extern "C" {

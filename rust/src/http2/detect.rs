@@ -268,6 +268,23 @@ fn http2_detect_sizeupdate_match(
     return 0;
 }
 
+/// Blocks of frames holding header-section fields. Kept separate from
+/// http2_header_blocks so that the HPACK size-update matching still sees every frame.
+fn http2_header_section_blocks(frame: &HTTP2Frame) -> Option<&[parser::HTTP2FrameHeaderBlock]> {
+    if frame.is_trailer {
+        return None;
+    }
+    http2_header_blocks(frame)
+}
+
+/// Blocks of frames holding trailer-section fields.
+fn http2_trailer_section_blocks(frame: &HTTP2Frame) -> Option<&[parser::HTTP2FrameHeaderBlock]> {
+    if frame.is_trailer {
+        return http2_header_blocks(frame);
+    }
+    None
+}
+
 fn http2_header_blocks(frame: &HTTP2Frame) -> Option<&[parser::HTTP2FrameHeaderBlock]> {
     match &frame.data {
         HTTP2FrameTypeData::HEADERS(hd) => {
@@ -328,7 +345,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaderName(
     match direction.into() {
         Direction::ToServer => {
             for i in 0..tx.frames_ts.len() {
-                if let Some(blocks) = http2_header_blocks(&tx.frames_ts[i]) {
+                if let Some(blocks) = http2_header_section_blocks(&tx.frames_ts[i]) {
                     if nb < pos + blocks.len() as u32 {
                         let value = &blocks[(nb - pos) as usize].name;
                         *buffer = value.as_ptr(); //unsafe
@@ -342,7 +359,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaderName(
         }
         Direction::ToClient => {
             for i in 0..tx.frames_tc.len() {
-                if let Some(blocks) = http2_header_blocks(&tx.frames_tc[i]) {
+                if let Some(blocks) = http2_header_section_blocks(&tx.frames_tc[i]) {
                     if nb < pos + blocks.len() as u32 {
                         let value = &blocks[(nb - pos) as usize].name;
                         *buffer = value.as_ptr(); //unsafe
@@ -367,7 +384,7 @@ fn http2_frames_get_header_firstvalue<'a>(
         &tx.frames_tc
     };
     for frame in frames {
-        if let Some(blocks) = http2_header_blocks(frame) {
+        if let Some(blocks) = http2_header_section_blocks(frame) {
             for block in blocks.iter() {
                 if block.name.as_ref() == name.as_bytes() {
                     return Ok(&block.value);
@@ -391,7 +408,7 @@ pub fn http2_frames_get_header_value_vec(
         &tx.frames_tc
     };
     for frame in frames {
-        if let Some(blocks) = http2_header_blocks(frame) {
+        if let Some(blocks) = http2_header_section_blocks(frame) {
             for block in blocks.iter() {
                 if block.name.as_ref() == name.as_bytes() {
                     if found == 0 {
@@ -434,7 +451,7 @@ fn http2_frames_get_header_value<'a>(
         &tx.frames_tc
     };
     for frame in frames {
-        if let Some(blocks) = http2_header_blocks(frame) {
+        if let Some(blocks) = http2_header_section_blocks(frame) {
             for block in blocks.iter() {
                 if block.name.as_ref() == name.as_bytes() {
                     if found == 0 {
@@ -797,7 +814,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaderNames(
         &tx.frames_tc
     };
     for frame in frames {
-        if let Some(blocks) = http2_header_blocks(frame) {
+        if let Some(blocks) = http2_header_section_blocks(frame) {
             for block in blocks.iter() {
                 // we do not escape linefeeds in headers names
                 tbuf.data.extend_from_slice(&block.name);
@@ -860,7 +877,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaders(
         &tx.frames_tc
     };
     for frame in frames {
-        if let Some(blocks) = http2_header_blocks(frame) {
+        if let Some(blocks) = http2_header_section_blocks(frame) {
             for block in blocks.iter() {
                 if !http2_header_iscookie(direction.into(), &block.name) {
                     // we do not escape linefeeds nor : in headers names
@@ -894,7 +911,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeadersRaw(
         &tx.frames_tc
     };
     for frame in frames {
-        if let Some(blocks) = http2_header_blocks(frame) {
+        if let Some(blocks) = http2_header_section_blocks(frame) {
             for block in blocks.iter() {
                 // we do not escape linefeeds nor : in headers names
                 tbuf.data.extend_from_slice(&block.name);
@@ -905,6 +922,97 @@ pub unsafe extern "C" fn SCHttp2TxGetHeadersRaw(
         }
     }
     if !tbuf.data.is_empty() {
+        *buffer = tbuf.data.as_ptr(); //unsafe
+        *buffer_len = tbuf.data.len() as u32;
+        return 1;
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2TxGetTrailers(
+    tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+    tbuf: *mut c_void,
+) -> u8 {
+    let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
+    tbuf.data.clear();
+    let frames = if direction & Direction::ToServer as u8 != 0 {
+        &tx.frames_ts
+    } else {
+        &tx.frames_tc
+    };
+    for frame in frames {
+        if let Some(blocks) = http2_trailer_section_blocks(frame) {
+            for block in blocks.iter() {
+                tbuf.data.extend_from_slice(&block.name);
+                tbuf.data.extend_from_slice(b": ");
+                tbuf.data
+                    .extend_from_slice(http2_header_trimspaces(&block.value));
+                tbuf.data.extend_from_slice(b"\r\n");
+            }
+        }
+    }
+    if !tbuf.data.is_empty() {
+        *buffer = tbuf.data.as_ptr(); //unsafe
+        *buffer_len = tbuf.data.len() as u32;
+        return 1;
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2TxGetTrailersRaw(
+    tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+    tbuf: *mut c_void,
+) -> u8 {
+    let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
+    tbuf.data.clear();
+    let frames = if direction & Direction::ToServer as u8 != 0 {
+        &tx.frames_ts
+    } else {
+        &tx.frames_tc
+    };
+    for frame in frames {
+        if let Some(blocks) = http2_trailer_section_blocks(frame) {
+            for block in blocks.iter() {
+                tbuf.data.extend_from_slice(&block.name);
+                tbuf.data.extend_from_slice(b": ");
+                tbuf.data.extend_from_slice(&block.value);
+                tbuf.data.extend_from_slice(b"\r\n");
+            }
+        }
+    }
+    if !tbuf.data.is_empty() {
+        *buffer = tbuf.data.as_ptr(); //unsafe
+        *buffer_len = tbuf.data.len() as u32;
+        return 1;
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2TxGetTrailerNames(
+    tx: &mut HTTP2Transaction, direction: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+    tbuf: *mut c_void,
+) -> u8 {
+    let tbuf = cast_pointer!(tbuf, DetectThreadBuf);
+    tbuf.data.clear();
+    tbuf.data.extend_from_slice(b"\r\n");
+    let frames = if direction & Direction::ToServer as u8 != 0 {
+        &tx.frames_ts
+    } else {
+        &tx.frames_tc
+    };
+    for frame in frames {
+        if let Some(blocks) = http2_trailer_section_blocks(frame) {
+            for block in blocks.iter() {
+                tbuf.data.extend_from_slice(&block.name);
+                tbuf.data.extend_from_slice(b"\r\n");
+            }
+        }
+    }
+    if tbuf.data.len() > 2 {
+        tbuf.data.extend_from_slice(b"\r\n");
         *buffer = tbuf.data.as_ptr(); //unsafe
         *buffer_len = tbuf.data.len() as u32;
         return 1;
@@ -939,7 +1047,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeader(
     match direction.into() {
         Direction::ToServer => {
             for i in 0..tx.frames_ts.len() {
-                if let Some(blocks) = http2_header_blocks(&tx.frames_ts[i]) {
+                if let Some(blocks) = http2_header_section_blocks(&tx.frames_ts[i]) {
                     if nb < pos + blocks.len() as u32 {
                         if nb as usize == tbuf.data.len() {
                             tbuf.data.push(Vec::new());
@@ -957,7 +1065,7 @@ pub unsafe extern "C" fn SCHttp2TxGetHeader(
         }
         Direction::ToClient => {
             for i in 0..tx.frames_tc.len() {
-                if let Some(blocks) = http2_header_blocks(&tx.frames_tc[i]) {
+                if let Some(blocks) = http2_header_section_blocks(&tx.frames_tc[i]) {
                     if nb < pos + blocks.len() as u32 {
                         if nb as usize == tbuf.data.len() {
                             tbuf.data.push(Vec::new());
@@ -1005,6 +1113,7 @@ fn http2_tx_set_header(state: &mut HTTP2State, name: &[u8], input: &[u8]) {
     tx.frames_ts.push(HTTP2Frame {
         header: head,
         data: txdata,
+        is_trailer: false,
     });
     //we do not expect more data from client
     if let HTTP2Progress::STREAM(ref mut stream_tx) = tx.progress {
@@ -1052,6 +1161,7 @@ fn http2_tx_set_settings(state: &mut HTTP2State, input: &[u8]) {
                     tx.frames_ts.push(HTTP2Frame {
                         header: head,
                         data: txdata,
+                        is_trailer: false,
                     });
                 }
                 Err(_) => {
@@ -1168,6 +1278,7 @@ mod tests {
         tx.frames_ts.push(HTTP2Frame {
             header: head,
             data: txdata,
+            is_trailer: false,
         });
         match http2_frames_get_header_value(&tx, Direction::ToServer, "Host") {
             Some(Http2Header::Multiple(x)) => {
