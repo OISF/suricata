@@ -1376,6 +1376,10 @@ security:
         - /usr/
         - /etc/
         - @e_sysconfdir@
+    # Unix sockets (or directories of sockets) Suricata connects to, such
+    # as EVE unix_stream/unix_dgram or Redis over a unix socket.
+    #unix-sockets:
+    #  - /run/redis/redis.sock
 
   lua:
     # Allow Lua rules. Enabled by default.
