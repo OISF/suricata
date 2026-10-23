@@ -1,4 +1,4 @@
-/* Copyright (C) 2019-2021 Open Information Security Foundation
+/* Copyright (C) 2019-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -106,6 +106,12 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
     const bool log_stream = log_type & LOG_JSON_STREAM_TYPE;
     const bool log_decode = log_type & LOG_JSON_DECODE_TYPE;
 
+    /* decoding stopped at an ethertype with no decoder: log that ethertype
+     * in every record for the packet */
+    uint16_t ethertype = 0;
+    const bool has_ethertype = ENGINE_ISSET_EVENT(p, ETHERNET_UNKNOWN_ETHERTYPE) &&
+                               DecodeGetUnknownEthertype(p, &ethertype);
+
     for (int i = 0; i < p->events.cnt; i++) {
         uint8_t event_code = p->events.events[i];
         bool is_decode = EVENT_IS_DECODER_PACKET_ERROR(event_code);
@@ -137,6 +143,10 @@ static int AnomalyDecodeEventJson(ThreadVars *tv, JsonAnomalyLogThread *aft,
 
         /* Close anomaly object. */
         SCJbClose(js);
+
+        if (has_ethertype) {
+            SCJbSetUint(js, "unknown_ether_type", ethertype);
+        }
 
         if (aft->json_output_ctx->flags & LOG_JSON_PACKETHDR) {
             EvePacket(p, js, GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);

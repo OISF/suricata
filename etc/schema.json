@@ -9626,6 +9626,10 @@
         "tx_id": {
             "type": "integer"
         },
+        "unknown_ether_type": {
+            "type": "integer",
+            "description": "The ethertype the decoder could not handle, in alert and anomaly records for packets with the decoder.ethernet.unknown_ethertype event"
+        },
         "verdict": {
             "$ref": "#/$defs/verdict_type"
         },
