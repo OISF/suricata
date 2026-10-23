@@ -309,6 +309,64 @@ And in Rust:
         return 0;
     }
 
+Per-Transaction Byte Value Cache
+================================
+
+A rule can produce a value with ``byte_extract`` or ``byte_math`` in one
+buffer and use it in another, for example take a number from ``http.uri``
+and feed it to a ``byte_test`` in ``http.stat_code``. The value has to
+last until the consumer runs, and ``det_ctx->byte_values`` alone does not
+provide that: it is one array per worker thread, indexed by ``local_id``,
+and every signature and every transaction the worker inspects writes to
+it.
+
+A value can be overwritten in three ways. In a bidirectional (``=>``)
+rule on a flow with pipelined HTTP requests, every transaction's toserver
+buffers are inspected before any toclient buffer, so the second
+transaction's ``byte_extract`` runs after the first one's producer and
+before the first one's toclient consumer. In a unidirectional rule whose
+producer and consumer sit at different progress levels, the consumer may
+not run until a later packet, and another transaction on the same worker
+can be inspected in between. The producer is not run again to make up for
+it: once an inspect engine is done, its id is recorded in the signature's
+``inspect_flags`` and the engine is skipped when the rule resumes. And
+because every signature numbers its byte variables from 0, a second
+signature that extracts from the same transaction writes the same slot.
+
+So the transaction's ``DetectEngineState`` carries a list with one entry
+per signature that has produced byte values on that transaction. An
+entry holds the signature's internal id and one value per byte variable
+in the signature, indexed by ``local_id``.
+
+``DetectRunTxInspectRule()`` uses the list for signatures that have byte
+variables (``s->byte_var_count``). Before the signature's packet matches
+and engines run, it copies the signature's entry into
+``det_ctx->byte_values``. A signature with no entry gets its slots
+cleared, so a consumer that runs ahead of its producer reads 0 and not a
+value left by another signature or transaction. ``byte_extract`` and
+``byte_math`` set ``det_ctx->byte_vars_dirty`` when they write a value,
+and wherever the function stores inspect state for a dirty signature it
+also copies the values into the signature's entry, allocating it on
+first use. Those are the passes after which completed engines are
+skipped. A pass that stores no state starts over on the next packet and
+produces its values again, so nothing is kept for it.
+
+The list is freed with the ``DetectEngineState``, and by
+``ResetTxState`` on a detect engine reload, since signature ids and
+local ids belong to the ruleset that produced the values.
+
+Rules inspected on the packet or frame path have no transaction to keep
+values on, and a value lasts for that one inspection. Nothing clears
+their slots first, and nothing needs to: a variable has to be produced
+earlier in the rule than it is used, the packet engines run in rule
+order, and a frame rule inspects one buffer, so a consumer there always
+follows its producer.
+
+The functions involved are ``DetectEngineStateRestoreByteVars()`` and
+``DetectEngineStateSaveByteVars()`` in ``detect-engine-state.c``, and
+``DetectRunTxLoadByteVars()`` and ``DetectRunTxKeepByteVars()`` in
+``detect.c``.
+
 Work In Progress changes
 ========================
 

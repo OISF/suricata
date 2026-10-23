@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -34,7 +34,11 @@
 #ifndef SURICATA_DETECT_ENGINE_STATE_H
 #define SURICATA_DETECT_ENGINE_STATE_H
 
-// forward declaration for bindgen
+/* forward declarations */
+typedef struct DetectEngineThreadCtx_ DetectEngineThreadCtx;
+typedef struct Signature_ Signature;
+
+/* forward declaration for bindgen */
 #define SigIntId uint32_t
 
 #define DETECT_ENGINE_INSPECT_SIG_NO_MATCH 0
@@ -92,8 +96,16 @@ typedef struct DetectEngineStateDirection_ {
     /* coccinelle: DetectEngineStateDirection:flags:DETECT_ENGINE_STATE_FLAG_ */
 } DetectEngineStateDirection;
 
+/* byte_extract and byte_math values one signature produced on a transaction.
+ * Defined in detect-engine-state.c. */
+struct DeStateByteVars_;
+
 typedef struct DetectEngineState_ {
     DetectEngineStateDirection dir_state[2];
+
+    /** byte variable values, one entry per signature that produced any on
+     *  this transaction. Not tied to a direction. */
+    struct DeStateByteVars_ *byte_vars;
 } DetectEngineState;
 
 /**
@@ -109,6 +121,12 @@ DetectEngineState *DetectEngineStateAlloc(void);
  * \param state DetectEngineState instance to free.
  */
 void SCDetectEngineStateFree(DetectEngineState *state);
+
+void DetectEngineStateRestoreByteVars(
+        DetectEngineThreadCtx *det_ctx, const DetectEngineState *state, const Signature *s);
+
+void DetectEngineStateSaveByteVars(
+        const DetectEngineThreadCtx *det_ctx, DetectEngineState *state, const Signature *s);
 
 #endif /* SURICATA_DETECT_ENGINE_STATE_H */
 

@@ -314,12 +314,13 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const c
         }
     }
 
-    SigMatch *prev_bed_sm = DetectGetLastSMByListId(s, sm_list,
-            DETECT_BYTE_EXTRACT, -1);
-    if (prev_bed_sm == NULL)
-        data->local_id = 0;
-    else
-        data->local_id = ((SCDetectByteExtractData *)prev_bed_sm->ctx)->local_id + 1;
+    if (s->init_data->byte_var_next_id > UINT8_MAX) {
+        SCLogError("too many byte_extract and byte_math variables in one rule; "
+                   "at most %d are supported",
+                UINT8_MAX + 1);
+        goto error;
+    }
+    data->local_id = (uint8_t)s->init_data->byte_var_next_id++;
     if (data->local_id > de_ctx->byte_extract_max_local_id)
         de_ctx->byte_extract_max_local_id = data->local_id;
 
@@ -1813,7 +1814,7 @@ static int DetectByteExtractTest42(void)
             bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
-    if (bed->local_id != 1) {
+    if (bed->local_id != 2) {
         result = 0;
         goto end;
     }
@@ -1853,7 +1854,7 @@ static int DetectByteExtractTest42(void)
             bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
-    if (bed->local_id != 0) {
+    if (bed->local_id != 1) {
         result = 0;
         goto end;
     }
@@ -3826,7 +3827,7 @@ static int DetectByteExtractTest60(void)
             bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
-    if (bed1->local_id != 0) {
+    if (bed1->local_id != 1) {
         result = 0;
         goto end;
     }
@@ -3947,7 +3948,7 @@ static int DetectByteExtractTest61(void)
             bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
         goto end;
     }
-    if (bed1->local_id != 0) {
+    if (bed1->local_id != 1) {
         result = 0;
         goto end;
     }
@@ -4083,6 +4084,92 @@ static int DetectByteExtractTestParseNoBase(void)
     return result;
 }
 
+/** \test byte_extract and byte_math in one signature take their local_id from
+ *        one counter, across keyword kinds and across buffers */
+static int DetectByteExtractTestLocalIdPerSignature(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = de_ctx->sig_list = SigInit(de_ctx,
+            "alert tcp any any -> any any (content:\"one\"; "
+            "byte_extract:4,0,two,string,hex; "
+            "byte_math:bytes 4, offset 0, oper +, rvalue two, result three, string hex; "
+            "uricontent:\"four\"; "
+            "byte_extract:4,0,five,string,hex,relative; "
+            "sid:1;)");
+    FAIL_IF_NULL(s);
+
+    /* payload list: content, byte_extract "two", byte_math "three" */
+    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
+    FAIL_IF_NULL(sm);
+    sm = sm->next;
+    FAIL_IF_NULL(sm);
+    FAIL_IF(sm->type != DETECT_BYTE_EXTRACT);
+    FAIL_IF(((SCDetectByteExtractData *)sm->ctx)->local_id != 0);
+    sm = sm->next;
+    FAIL_IF_NULL(sm);
+    FAIL_IF(sm->type != DETECT_BYTEMATH);
+
+    /* uri buffer: content, byte_extract "five". "three" took id 1 */
+    sm = DetectBufferGetFirstSigMatch(s, g_http_uri_buffer_id);
+    FAIL_IF_NULL(sm);
+    sm = sm->next;
+    FAIL_IF_NULL(sm);
+    FAIL_IF(sm->type != DETECT_BYTE_EXTRACT);
+    FAIL_IF(((SCDetectByteExtractData *)sm->ctx)->local_id != 2);
+
+    FAIL_IF(s->byte_var_count != 3);
+    FAIL_IF(de_ctx->byte_extract_max_local_id != 2);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/** \brief signature text with \a n byte_extract keywords */
+static char *DetectByteExtractTestManyVars(const int n)
+{
+    const size_t size = 128 + (size_t)n * 32;
+    char *str = SCCalloc(1, size);
+    if (str == NULL)
+        return NULL;
+    strlcat(str, "alert tcp any any -> any any (content:\"one\"; ", size);
+    for (int i = 0; i < n; i++) {
+        char var[32];
+        snprintf(var, sizeof(var), "byte_extract:1,0,v%d; ", i);
+        strlcat(str, var, size);
+    }
+    strlcat(str, "sid:1;)", size);
+    return str;
+}
+
+/** \test local_id is a uint8_t: 256 byte variables load, the 257th is refused */
+static int DetectByteExtractTestMaxVars(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    char *str = DetectByteExtractTestManyVars(256);
+    FAIL_IF_NULL(str);
+    Signature *s = SigInit(de_ctx, str);
+    SCFree(str);
+    FAIL_IF_NULL(s);
+    FAIL_IF(s->byte_var_count != 256);
+    FAIL_IF(de_ctx->byte_extract_max_local_id != 255);
+    SigFree(de_ctx, s);
+
+    str = DetectByteExtractTestManyVars(257);
+    FAIL_IF_NULL(str);
+    s = SigInit(de_ctx, str);
+    SCFree(str);
+    FAIL_IF_NOT_NULL(s);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 static void DetectByteExtractRegisterTests(void)
 {
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
@@ -4159,6 +4246,9 @@ static void DetectByteExtractRegisterTests(void)
     UtRegisterTest("DetectByteExtractTest61", DetectByteExtractTest61);
     UtRegisterTest("DetectByteExtractTest62", DetectByteExtractTest62);
     UtRegisterTest("DetectByteExtractTest63", DetectByteExtractTest63);
+    UtRegisterTest(
+            "DetectByteExtractTestLocalIdPerSignature", DetectByteExtractTestLocalIdPerSignature);
+    UtRegisterTest("DetectByteExtractTestMaxVars", DetectByteExtractTestMaxVars);
 
     UtRegisterTest("DetectByteExtractTestParseNoBase",
                    DetectByteExtractTestParseNoBase);

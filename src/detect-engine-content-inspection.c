@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2023 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -593,6 +593,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
         SCLogDebug("[BE] Fetched value for index %d: %"PRIu64,
                    bed->local_id, det_ctx->byte_values[bed->local_id]);
+        det_ctx->byte_vars_dirty = true;
         goto match;
 
     } else if (smd->type == DETECT_BYTEMATH) {
@@ -629,6 +630,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
         SCLogDebug("[BM] Fetched value for index %d: %"PRIu64,
                    bmd->local_id, det_ctx->byte_values[bmd->local_id]);
+        det_ctx->byte_vars_dirty = true;
         goto match;
 
     } else if (smd->type == DETECT_BSIZE) {
