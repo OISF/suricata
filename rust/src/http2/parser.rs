@@ -734,13 +734,23 @@ pub fn http2_parse_frame_push_promise<'a>(
 #[derive(Clone, Debug)]
 pub struct HTTP2FrameContinuation {
     pub blocks: Vec<HTTP2FrameHeaderBlock>,
+    // not in the contination frame itself,
+    // but inherited from parent headers frame,
+    // so as to update progress
+    pub end_stream: bool,
 }
 
 pub fn http2_parse_frame_continuation<'a>(
     input: &'a [u8], dyn_headers: &mut HTTP2DynTable,
 ) -> IResult<&'a [u8], HTTP2FrameContinuation> {
     let (i3, blocks) = http2_parse_headers_blocks(input, dyn_headers)?;
-    return Ok((i3, HTTP2FrameContinuation { blocks }));
+    return Ok((
+        i3,
+        HTTP2FrameContinuation {
+            blocks,
+            end_stream: false,
+        },
+    ));
 }
 
 #[repr(u16)]
