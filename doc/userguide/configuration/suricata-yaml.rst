@@ -2028,6 +2028,48 @@ present, and ``encryption-handling`` is not, ``false`` is interpreted as
 ``encryption-handling: track-only`` and ``true`` is interpreted as
 ``encryption-handling: bypass``.
 
+QUIC
+~~~~
+
+QUIC maintains independent Initial parsing contexts for connections sharing
+the same UDP flow. Each context has its own connection IDs, Initial keys,
+CRYPTO reassembly buffers, Hello progress, and Retry state.
+
+::
+
+    quic:
+      enabled: yes
+      max-connections: 64
+      connection-idle-timeout: 60
+      encryption-handling: track-only
+
+``max-connections`` limits the number of retained contexts per UDP flow.
+Completed contexts can be evicted to admit a new validated Initial. If all
+retained contexts are unfinished, a new context is rejected and the
+``quic.too_many_connections`` event is raised. Existing contexts remain intact.
+Each direction's CRYPTO buffer is limited to less than 65535 bytes; exceeding
+this limit raises ``quic.crypto_frag_too_long``.
+
+``connection-idle-timeout`` is a positive number of seconds, measured using
+packet timestamps. Expiration is checked when the flow receives another
+datagram. Completed Hello buffers are released immediately; lightweight
+connection records remain available for retransmission suppression until
+expiration or eviction. All contexts are freed with their UDP flow.
+
+The default ``track-only`` policy preserves QUIC parsing and transaction
+inspection for subsequent connections while disabling raw payload inspection
+after all currently tracked contexts have processed both Hellos. ``full``
+retains raw payload inspection as well. Neither policy adds Handshake or
+1-RTT decryption support.
+
+Explicit ``bypass`` waits until all currently tracked contexts have processed
+both Hellos, then bypasses the entire UDP flow. Connections first observed
+after bypass cannot be inspected. This setting trades subsequent connection
+visibility for performance.
+
+Connection contexts are local to a UDP flow. Migration and connection
+association across different UDP flows are not supported.
+
 SSH
 ~~~
 

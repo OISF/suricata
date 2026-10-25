@@ -1283,6 +1283,10 @@ app-layer:
 
     quic:
       enabled: yes
+      # Maximum independent QUIC connections tracked per UDP flow.
+      #max-connections: 64
+      # Remove idle connection contexts after this many seconds.
+      #connection-idle-timeout: 60
       # see tls for the different values
       #encryption-handling: track-only
 
