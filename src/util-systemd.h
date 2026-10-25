@@ -10,6 +10,7 @@
 #ifndef SURICATA_UTIL_SYSTEMD_H
 #define SURICATA_UTIL_SYSTEMD_H
 
+int SystemDNotifyConnect(void);
 int SystemDNotifyReady(void);
 
 #endif /* SURICATA_UTIL_SYSTEMD_H */

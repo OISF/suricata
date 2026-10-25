@@ -3196,6 +3196,13 @@ void SuricataInit(void)
 
     SCOnLoggingReady();
 
+#ifdef SYSTEMD_NOTIFY
+    /* Connect now: the readiness notification is sent once the sandbox is
+     * in place, which may not allow connecting to the socket anymore. */
+    if (SystemDNotifyConnect() < 0) {
+        SCLogWarning("failed to connect to systemd notify socket");
+    }
+#endif
     LandlockSandboxing(&suricata);
 
     PostConfLoadedDetectSetup(&suricata);

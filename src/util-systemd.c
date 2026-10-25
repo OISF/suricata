@@ -32,7 +32,18 @@ static void closep(int *fd)
     *fd = -1;
 }
 
-static int Notify(const char *message)
+/* Socket connected in advance by SystemDNotifyConnect(), -1 if there is none.
+ * Only used by the main thread. */
+static int notify_fd = -1;
+
+/**
+ * \brief Connect to the systemd notify socket
+ *
+ * \param out_fd set to the connected socket on success
+ * \retval 1 if connected, 0 if there is no socket to notify, negative errno
+ *         on error
+ */
+static int NotifyConnect(int *out_fd)
 {
     union sockaddr_union {
         struct sockaddr sa;
@@ -40,20 +51,12 @@ static int Notify(const char *message)
     } socket_addr = {
         .sun.sun_family = AF_UNIX,
     };
-    size_t path_length, message_length;
-    _cleanup_(closep) int fd = -1;
+    size_t path_length;
     const char *socket_path;
 
     socket_path = getenv("NOTIFY_SOCKET");
     if (!socket_path)
         return 0; /* Not running under systemd? Nothing to do */
-
-    if (!message)
-        return -EINVAL;
-
-    message_length = strlen(message);
-    if (message_length == 0)
-        return -EINVAL;
 
     /* Only AF_UNIX is supported, with path or abstract sockets */
     if (socket_path[0] != '/' && socket_path[0] != '@')
@@ -70,19 +73,63 @@ static int Notify(const char *message)
     if (socket_addr.sun.sun_path[0] == '@')
         socket_addr.sun.sun_path[0] = 0;
 
-    fd = socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+    int fd = socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
     if (fd < 0)
         return -errno;
 
     if (connect(fd, &socket_addr.sa,
-                offsetof(struct sockaddr_un, sun_path) + (uint32_t)path_length) != 0)
-        return -errno;
+                offsetof(struct sockaddr_un, sun_path) + (uint32_t)path_length) != 0) {
+        int err = errno;
+        close(fd);
+        return -err;
+    }
+
+    *out_fd = fd;
+    return 1;
+}
+
+static int Notify(const char *message)
+{
+    size_t message_length;
+    /* use the socket connected in advance if any, it is closed after use */
+    _cleanup_(closep) int fd = notify_fd;
+    notify_fd = -1;
+
+    if (fd < 0) {
+        int r = NotifyConnect(&fd);
+        if (r <= 0)
+            return r;
+    }
+
+    if (!message)
+        return -EINVAL;
+
+    message_length = strlen(message);
+    if (message_length == 0)
+        return -EINVAL;
 
     ssize_t written = write(fd, message, message_length);
     if (written != (ssize_t)message_length)
         return written < 0 ? -errno : -EPROTO;
 
     return 1; /* Notified! */
+}
+
+/**
+ * \brief Connect to the systemd notify socket ahead of the notification
+ *
+ * To be called before the process is sandboxed, as connecting to the socket
+ * may not be allowed afterwards. The connected socket is used and closed by
+ * the next notification.
+ *
+ * \retval 1 if connected, 0 if there is no socket to notify, negative errno
+ *         on error
+ */
+int SystemDNotifyConnect(void)
+{
+    if (notify_fd >= 0)
+        return 1;
+    return NotifyConnect(&notify_fd);
 }
 
 int SystemDNotifyReady(void)
