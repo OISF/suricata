@@ -511,6 +511,14 @@ void LandlockSandboxing(SCInstance *suri)
         }
     }
 
+    /* systemd readiness notification is sent after the sandbox is enforced,
+     * so allow connecting to a pathname NOTIFY_SOCKET (abstract sockets
+     * starting with '@' are not subject to Landlock filesystem rules). */
+    const char *notify_socket = getenv("NOTIFY_SOCKET");
+    if (notify_socket != NULL && notify_socket[0] == '/') {
+        SCLandlockGrantUnixSocket(ruleset, notify_socket);
+    }
+
     LandlockSandboxingApplyNetPorts(
             ruleset, "security.landlock.network.connect.tcp", SCLandlockGrantNetConnectTCP);
     LandlockSandboxingApplyNetPorts(
