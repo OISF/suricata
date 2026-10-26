@@ -1829,7 +1829,7 @@ static int HTPCallbackResponseComplete(const htp_connp_t *connp, htp_tx_t *tx)
         /* any 2XX status response implies that the connection will become
            a tunnel immediately after this packet (RFC 7230, 3.3.3). */
         if ((htp_tx_response_status_number(tx) >= 200) &&
-                (htp_tx_response_status_number(tx) < 300) && (hstate->transaction_cnt == 1)) {
+                (htp_tx_response_status_number(tx) < 300)) {
             uint16_t dp = 0;
             if (htp_tx_request_port_number(tx) != -1) {
                 dp = (uint16_t)htp_tx_request_port_number(tx);
