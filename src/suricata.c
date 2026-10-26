@@ -2760,7 +2760,6 @@ int PostConfLoadedSetup(SCInstance *suri)
         }
     }
     if (suri->is_firewall) {
-        SCLogWarning("firewall mode is EXPERIMENTAL and subject to change");
         EngineModeSetFirewall();
     }
 
