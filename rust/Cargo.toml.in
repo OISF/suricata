@@ -45,7 +45,7 @@ serde = { version = "1.0.219", default-features = false, features = ["std", "der
 serde_json = { version = "1.0.140", default-features = false, features = ["std"] }
 suricata-sys = { path = "sys", version = "@PACKAGE_VERSION@" }
 time = "=0.3.41"
-zstd = { version = "~0.13.3", default-features = false, features = ["arrays", "zdict_builder"] }
+zstd = { version = "~0.14.3", default-features = false, features = ["arrays", "zdict_builder"] }
 
 [lib]
 crate-type = ["staticlib", "rlib"]
