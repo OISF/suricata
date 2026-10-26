@@ -2348,7 +2348,7 @@ reference-config-file: @e_sysconfdir@reference.config
 # threshold-file: @e_sysconfdir@threshold.config
 
 ##
-## Suricata as a Firewall options (experimental)
+## Suricata as a Firewall options
 ##
 firewall:
   # toggle to enable firewall mode

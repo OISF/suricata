@@ -1,8 +1,6 @@
 Firewall Ruleset Examples
 =========================
 
-.. note:: In Suricata 8 the firewall mode is experimental and subject to change.
-
 HTTP
 ----
 
