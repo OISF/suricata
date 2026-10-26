@@ -2858,8 +2858,8 @@ use of.
     vista: []
     windows2k3: []
 
-Suricata as a Firewall options (experimental)
----------------------------------------------
+Suricata as a Firewall options
+------------------------------
 
 It is possible to run Suricata as a firewall.
 Please read :ref:`Firewall Mode Design <firewall mode design>` before using this.
