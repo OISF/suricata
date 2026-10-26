@@ -865,8 +865,9 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
         } else if (have_fw_rules) {
             /* fw mode, we skip anything after the fw rules if:
              * - flow pass is set
-             * - packet pass (e.g. exception policy) */
-            if (p->flags & PKT_NOPACKET_INSPECTION ||
+             * - packet pass (e.g. exception policy)
+             * - a fw rule bypassed the flow */
+            if (p->flags & (PKT_NOPACKET_INSPECTION | PKT_FW_BYPASSED) ||
                     (pflow != NULL && pflow->flags & (FLOW_ACTION_PASS))) {
                 SCLogDebug("skipping firewall rule %u", s->id);
                 break_out_of_packet_filter = true;
@@ -2843,6 +2844,11 @@ static void DetectRunTx(ThreadVars *tv,
                     flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", tx.tx_progress,
                     tx.detect_progress, tx.detect_progress_orig, s->app_progress_hook);
 
+            /* a fw rule bypassed the flow: threat detection must not run */
+            if ((p->flags & PKT_FW_BYPASSED) && (s->flags & SIG_FLAG_FIREWALL) == 0) {
+                continue;
+            }
+
             if (have_fw_rules) {
                 const enum DetectTxFirewallFlowControl fw_r = DetectRunTxPreCheckFirewallPolicy(
                         det_ctx, p, &tx, flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT), s, i,
@@ -3230,8 +3236,10 @@ static void DetectFlow(ThreadVars *tv,
         SCReturn;
     }
 
-    /* in firewall mode, we still need to run the fw rulesets even for exception policy pass */
-    bool skip = (p->flags & PKT_NOPACKET_INSPECTION || f->flags & (FLOW_ACTION_PASS));
+    /* in firewall mode, we still need to run the fw rulesets even for exception policy pass.
+     * A fw bypass from an earlier hook (pre_stream) is terminating. */
+    bool skip = (p->flags & (PKT_NOPACKET_INSPECTION | PKT_FW_BYPASSED) ||
+                 f->flags & (FLOW_ACTION_PASS));
     if (EngineModeIsFirewall() && (f->flags & FLOW_ACTION_ACCEPT) == 0) {
         skip = false;
     }
