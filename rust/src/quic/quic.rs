@@ -266,7 +266,8 @@ impl QuicState {
             if header.ty != QuicType::Initial {
                 // Non-Initial packets cannot introduce a connection. A CID
                 // learned only from encrypted 1-RTT traffic is also unknown here.
-                if !header.version.is_gquic()
+                if header.ty != QuicType::VersionNegotiation
+                    && !header.version.is_gquic()
                     && !self.connections.is_empty()
                     && !self
                         .connections
