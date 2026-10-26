@@ -47,6 +47,8 @@ def maybe_load_dataset_bytes(rules_file: Path, argument: str) -> bytes:
 
     dataset_name = match.group(2)
     dataset_path = (rules_file.parent / dataset_name).resolve()
+    if not dataset_path.is_file():
+        return b""
     try:
         return dataset_path.read_bytes()
     except OSError:
