@@ -19,7 +19,7 @@
 
 use std::{ffi::CString, path::Path};
 
-use suricata_sys::sys::{SCError, SCLogMessage};
+use suricata_sys::sys::SCError;
 use suricata_sys::sys::{SCFatalErrorOnInitStatic, SCLogLevel};
 
 /// The Suricata log-level.
@@ -66,12 +66,13 @@ pub fn sclog(level: SCLogLevel, file: &str, line: u32, function: &str, message: 
 }
 
 /// SCLogMessage wrapper.
+#[cfg(not(any(test, feature = "testing")))]
 pub fn log_message(
     level: SCLogLevel, filename: &str, line: std::os::raw::c_uint, function: &str, module: &str,
     message: &str,
 ) -> SCError {
     unsafe {
-        SCLogMessage(
+        suricata_sys::sys::SCLogMessage(
             level,
             to_safe_cstring(filename).as_ptr(),
             line,
@@ -80,6 +81,17 @@ pub fn log_message(
             to_safe_cstring(message).as_ptr(),
         )
     }
+}
+
+/// Unit tests do not link the C library: print instead of calling
+/// SCLogMessage, like the fallback in the suricata crate's debug.rs.
+#[cfg(any(test, feature = "testing"))]
+pub fn log_message(
+    level: SCLogLevel, filename: &str, line: std::os::raw::c_uint, _function: &str, _module: &str,
+    message: &str,
+) -> SCError {
+    println!("{}:{} <{:?}> -- {}", filename, line, level, message);
+    SCError::SC_OK
 }
 
 // Convert a &str into a CString by first stripping NUL bytes.
