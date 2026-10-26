@@ -3,8 +3,6 @@
 Firewall Mode Design
 ********************
 
-.. note:: In Suricata 8 the firewall mode is experimental and subject to change.
-
 The firewall mode in Suricata allows the use of a ruleset that has different
 properties than the default "threat detection" rulesets:
 
