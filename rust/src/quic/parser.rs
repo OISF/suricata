@@ -46,7 +46,7 @@ impl QuicVersion {
     pub const Q046: QuicVersion = QuicVersion(0x51303436);
     pub const V2: QuicVersion = QuicVersion(0x6b3343cf);
 
-    fn is_gquic(&self) -> bool {
+    pub(super) fn is_gquic(&self) -> bool {
         *self == QuicVersion::Q043
             || *self == QuicVersion::Q044
             || *self == QuicVersion::Q045
@@ -338,11 +338,17 @@ impl QuicHeader {
                 let (rest, dcid) = take(dcid_len as usize)(rest)?;
 
                 let (rest, scid_len) = be_u8(rest)?;
+                if (version == QuicVersion(1) || version == QuicVersion::V2)
+                    && (dcid_len > 20 || scid_len > 20)
+                {
+                    return Err(nom8::Err::Error(QuicError::InvalidPacket));
+                }
                 let (rest, scid) = take(scid_len as usize)(rest)?;
                 (rest, dcid.to_vec(), scid.to_vec())
             };
 
-            let mut has_length = false;
+            let mut has_length =
+                !version.is_gquic() && matches!(ty, QuicType::Handshake | QuicType::ZeroRTT);
             let rest = match ty {
                 QuicType::Initial => {
                     if version.is_gquic() {
@@ -358,7 +364,10 @@ impl QuicHeader {
                     }
                 }
                 QuicType::Retry => {
-                    // opaque retry token and 16 bytes retry integrity tag
+                    // An IETF Retry requires a nonempty token and a 16-byte tag.
+                    if !version.is_gquic() && rest.len() <= 16 {
+                        return Err(nom8::Err::Error(QuicError::InvalidPacket));
+                    }
                     &rest[rest.len()..]
                 }
                 _ => rest,
@@ -396,10 +405,8 @@ impl QuicHeader {
 }
 
 impl QuicData {
-    pub(crate) fn from_bytes(
-        input: &[u8], past_frag: &[u8], past_fraglen: u32,
-    ) -> Result<QuicData, QuicError> {
-        let (_, frames) = Frame::decode_frames(input, past_frag, past_fraglen)?;
+    pub(crate) fn from_bytes(input: &[u8]) -> Result<QuicData, QuicError> {
+        let (_, frames) = Frame::decode_frames(input)?;
         Ok(QuicData { frames })
     }
 }
@@ -473,8 +480,7 @@ mod tests {
             header
         );
 
-        let past_frag = Vec::new();
-        let data = QuicData::from_bytes(rest, &past_frag, 0).unwrap();
+        let data = QuicData::from_bytes(rest).unwrap();
         assert_eq!(
             QuicData {
                 frames: vec![Frame::Stream(Stream {
