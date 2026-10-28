@@ -59,6 +59,12 @@ Other Changes
   by default, set with ``max-preliminary-responses``. Past the limit, the
   ``ftp.too_many_preliminary_responses`` event is raised. See
   :ref:`suricata-yaml-configure-ftp`.
+- Lua rule scripts calling ``string.dump`` now raise an error, like the other blocked sandbox functions.
+- flowvar.register, flowint.register and bytevar.map are now init-only: calls outside init() fail, and over-limit registrations fail before adding a name store entry.
+- security.lua.max-bytes: 0 now means unlimited; previously the per-call cap equaled the steady usage and every non-zero allocation failed, silently disabling all Lua rules. A negative limit is now rejected at rule setup.
+- The base64 encode and decode functions now return binary-safe strings; results containing NUL bytes were previously truncated.
+- flow:app_layer_proto() now returns "unknown" for unknown application-layer protocols instead of nil.
+- A new transform.lua stats block (errors, blocked_function_errors, instruction_limit_errors, memory_limit_errors) is exposed in /stats and etc/schema.json, and transform failures log one rate-limited warning per script.
 
 EVE Changes
 ~~~~~~~~~~~
