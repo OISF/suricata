@@ -2125,6 +2125,15 @@ incompatible with ``decode-mime``. If both are enabled,
         # extract messages in raw format from SMTP
         raw-extraction: true
 
+BDAT chunked messages
+~~~~~~~~~~~~~~~~~~~~~
+
+A chunked message is closed by a ``BDAT <n> LAST`` command. Moving on to another
+command once a chunk has been delivered, or ending the connection there, raises
+``smtp.bdat_last_missing``; ending it with a chunk only partly delivered raises
+``smtp.bdat_incomplete_chunk``. ``RSET``, ``QUIT`` and a mid-session ``HELO`` or
+``EHLO`` drop the message the way ``LAST`` ends it, so they raise nothing.
+
 Maximum transactions
 ~~~~~~~~~~~~~~~~~~~~
 

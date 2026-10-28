@@ -147,6 +147,8 @@ SCEnumCharMap smtp_decoder_event_table[] = {
     { "DUPLICATE_FIELDS", SMTP_DECODER_EVENT_DUPLICATE_FIELDS },
     { "UNPARSABLE_CONTENT", SMTP_DECODER_EVENT_UNPARSABLE_CONTENT },
     { "TRUNCATED_LINE", SMTP_DECODER_EVENT_TRUNCATED_LINE },
+    { "BDAT_LAST_MISSING", SMTP_DECODER_EVENT_BDAT_LAST_MISSING },
+    { "BDAT_INCOMPLETE_CHUNK", SMTP_DECODER_EVENT_BDAT_INCOMPLETE_CHUNK },
     { NULL, -1 },
 };
 
@@ -781,6 +783,32 @@ static int SMTPInsertCommandIntoCommandBuffer(
     return 0;
 }
 
+/* is a chunked message still open, i.e. a BDAT chunk whose transaction has not
+ * been closed by the "BDAT <n> LAST" that ends the message? */
+static bool SMTPBdatMessageIsOpen(const SMTPState *state)
+{
+    if (state->current_command != SMTP_COMMAND_BDAT &&
+            state->current_command != SMTP_COMMAND_BDAT_LAST) {
+        return false;
+    }
+    return state->curr_tx != NULL && !SMTPTransactionRequestIsComplete(state->curr_tx);
+}
+
+/* does the command drop a chunked message the way "BDAT <n> LAST" would end it?
+ * RSET and QUIT are listed in RFC 3030 4.3 as ending the message, and a
+ * mid-session HELO/EHLO resets the state as if a RSET had come (RFC 5321
+ * 4.1.4). */
+static bool SMTPCommandDropsBdatMessage(const SMTPLine *line)
+{
+    if (line->len < 4 || (line->len > 4 && line->buf[4] != ' ')) {
+        return false;
+    }
+    return SCMemcmpLowercase("rset", line->buf, 4) == 0 ||
+           SCMemcmpLowercase("quit", line->buf, 4) == 0 ||
+           SCMemcmpLowercase("helo", line->buf, 4) == 0 ||
+           SCMemcmpLowercase("ehlo", line->buf, 4) == 0;
+}
+
 static int SMTPProcessCommandBDAT(SMTPState *state, SMTPTransaction *tx, const SMTPLine *line)
 {
     SCEnter();
@@ -977,6 +1005,21 @@ static inline bool IsReplyToCommand(const SMTPState *state, const uint8_t cmd)
     return (state->cmds_idx < state->cmds_cnt && state->cmds[state->cmds_idx] == cmd);
 }
 
+/* A BDAT the server rejects will not be followed by its advertised chunk, so
+ * close the message instead of leaving it pending. A 4xx/5xx line that only
+ * continues a multiline reply is not a rejection yet. */
+static inline void SMTPBdatHandleRejection(
+        const SMTPState *state, SMTPTransaction *tx, const enum SMTPCode code)
+{
+    /* the reply enum is laid out by class: 2xx, 3xx, 4xx and 5xx. The queue test
+     * keeps this to the command being replied to: for an earlier BDAT in a
+     * pipelined group the later chunk is still arriving and must not be cut off. */
+    if (tx != NULL && code >= SMTP_REPLY_401 && state->cmds_idx + 1 == state->cmds_cnt &&
+            !(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
+        SMTPTransactionCompleteTS(tx);
+    }
+}
+
 static int SMTPProcessReply(
         SMTPState *state, Flow *f, SMTPThreadCtx *td, SMTPInput *input, const SMTPLine *line)
 {
@@ -1088,6 +1131,7 @@ static int SMTPProcessReply(
             state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
         }
         SMTPSetProgressTC(reply_tx, SMTP_RESPONSE_DATA);
+        SMTPBdatHandleRejection(state, reply_tx, reply_code);
     } else if (IsReplyToCommand(state, SMTP_COMMAND_BDAT_LAST)) {
         if ((state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) &&
                 state->current_command == SMTP_COMMAND_BDAT_LAST &&
@@ -1095,6 +1139,7 @@ static int SMTPProcessReply(
             // The server replied before receiving the entire chunk.
             state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
         }
+        SMTPBdatHandleRejection(state, reply_tx, reply_code);
         if (reply_tx && !(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
             SMTPTransactionCompleteTC(reply_tx);
         }
@@ -1325,6 +1370,21 @@ static int SMTPProcessRequest(
     if (line->len == 0 && line->delim_len == 0) {
         return 0;
     }
+    /* a chunked message is ended by "BDAT <n> LAST": another command once the
+     * last chunk is delivered means that never happened. An under-delivered
+     * chunk is only reported at the end of the stream, as the server may answer
+     * a BDAT before all of its octets have arrived. */
+    if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE) &&
+            SMTPBdatMessageIsOpen(state) && state->bdat_chunk_idx >= state->bdat_chunk_len &&
+            !(line->len >= 4 && SCMemcmpLowercase("bdat", line->buf, 4) == 0)) {
+        /* the sender is done with the message either way; only moving on to a
+         * command that does not drop it makes the missing LAST an anomaly */
+        if (!SMTPCommandDropsBdatMessage(line)) {
+            SMTPSetEvent(state, SMTP_DECODER_EVENT_BDAT_LAST_MISSING);
+        }
+        SMTPTransactionCompleteTS(state->curr_tx);
+    }
+
     const bool no_new_tx = NoNewTx(state, line);
     if ((state->curr_tx == NULL && (state->tx_cnt == 0 || !no_new_tx)) ||
             (SMTPTransactionRequestIsComplete(state->curr_tx) && !no_new_tx)) {
@@ -1628,6 +1688,14 @@ static AppLayerResult SMTPParse(uint8_t direction, Flow *f, SMTPState *state,
             ((direction == 0 && SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS)) ||
                     (direction == 1 &&
                             SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC)))) {
+        /* the sender ended the stream without completing the chunk it promised */
+        if (direction == 0 && SMTPBdatMessageIsOpen(state)) {
+            if (state->bdat_chunk_idx < state->bdat_chunk_len) {
+                SMTPSetEvent(state, SMTP_DECODER_EVENT_BDAT_INCOMPLETE_CHUNK);
+            } else {
+                SMTPSetEvent(state, SMTP_DECODER_EVENT_BDAT_LAST_MISSING);
+            }
+        }
         SCReturnStruct(APP_LAYER_OK);
     } else if (input_buf == NULL || input_len == 0) {
         SCReturnStruct(APP_LAYER_OK);
@@ -4512,6 +4580,356 @@ end:
     return result;
 }
 
+/* greeting plus one envelope, the starting point of the BDAT tests below */
+static int SMTPParserBdatSetup(Flow *f, SMTPState **smtp_state, AppLayerParserThreadCtx *alp_tctx)
+{
+    static uint8_t welcome[] = "220 mail.example.com ESMTP\r\n";
+    static uint8_t mail[] = "MAIL FROM:<alice@example.com>\r\n";
+    static uint8_t rcpt[] = "RCPT TO:<bob@example.com>\r\n";
+
+    FAIL_IF(AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_SMTP, STREAM_TOCLIENT, welcome,
+                    sizeof(welcome) - 1) != 0);
+    FAIL_IF(AppLayerParserParse(
+                    NULL, alp_tctx, f, ALPROTO_SMTP, STREAM_TOSERVER, mail, sizeof(mail) - 1) != 0);
+    FAIL_IF(AppLayerParserParse(
+                    NULL, alp_tctx, f, ALPROTO_SMTP, STREAM_TOSERVER, rcpt, sizeof(rcpt) - 1) != 0);
+
+    *smtp_state = f->alstate;
+    FAIL_IF_NULL(*smtp_state);
+
+    PASS;
+}
+
+/* how often the event was raised on the transaction */
+static uint8_t SMTPParserEventCount(SMTPState *state, uint64_t tx_id, uint8_t event)
+{
+    SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, state, tx_id);
+    const AppLayerDecoderEvents *devents = tx != NULL ? tx->tx_data.events : NULL;
+    uint8_t count = 0;
+    for (uint8_t i = 0; devents != NULL && i < devents->cnt; i++) {
+        count += devents->events[i] == event;
+    }
+    return count;
+}
+
+static bool SMTPParserHasEvent(SMTPState *state, uint64_t tx_id, uint8_t event)
+{
+    return SMTPParserEventCount(state, tx_id, event) > 0;
+}
+
+/* has the request side of the transaction been closed, i.e. is the message it
+ * carries over? */
+static bool SMTPParserRequestIsComplete(SMTPState *state, uint64_t tx_id)
+{
+    SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, state, tx_id);
+    return tx != NULL && SMTPTransactionRequestIsComplete(tx);
+}
+
+/**
+ * \test Test that a chunked message which is never closed by "BDAT <n> LAST"
+ *       is flagged and does not absorb the next message.
+ */
+static int SMTPParserTest15(void)
+{
+    Flow f;
+    TcpSession ssn;
+    SMTPState *smtp_state = NULL;
+    int r = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SMTP;
+
+    StreamTcpInitConfig(true);
+    SMTPTestInitConfig();
+
+    FAIL_IF_NOT(SMTPParserBdatSetup(&f, &smtp_state, alp_tctx));
+
+    static uint8_t bdat[] = "BDAT 6\r\n";
+    static uint8_t chunk[] = "abcdef";
+    static uint8_t mail2[] = "MAIL FROM:<carol@example.com>\r\n";
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, bdat, sizeof(bdat) - 1);
+    FAIL_IF(r != 0);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, chunk, sizeof(chunk) - 1);
+    FAIL_IF(r != 0);
+
+    FAIL_IF(SMTPParserHasEvent(smtp_state, 0, SMTP_DECODER_EVENT_BDAT_LAST_MISSING));
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, mail2, sizeof(mail2) - 1);
+    FAIL_IF(r != 0);
+
+    FAIL_IF(!SMTPParserHasEvent(smtp_state, 0, SMTP_DECODER_EVENT_BDAT_LAST_MISSING));
+
+    FAIL_IF(smtp_state->tx_cnt != 2);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/**
+ * \test Test that a chunk shorter than declared is flagged once the sender
+ *       stops the stream.
+ */
+static int SMTPParserTest16(void)
+{
+    Flow f;
+    TcpSession ssn;
+    SMTPState *smtp_state = NULL;
+    int r = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SMTP;
+
+    StreamTcpInitConfig(true);
+    SMTPTestInitConfig();
+
+    FAIL_IF_NOT(SMTPParserBdatSetup(&f, &smtp_state, alp_tctx));
+
+    static uint8_t bdat[] = "BDAT 100\r\n";
+    static uint8_t chunk[] = "0123456789";
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, bdat, sizeof(bdat) - 1);
+    FAIL_IF(r != 0);
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, chunk, sizeof(chunk) - 1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER | STREAM_EOF, NULL, 0);
+    FAIL_IF(r != 0);
+
+    FAIL_IF(!SMTPParserHasEvent(smtp_state, 0, SMTP_DECODER_EVENT_BDAT_INCOMPLETE_CHUNK));
+
+    FAIL_IF(SMTPParserHasEvent(smtp_state, 0, SMTP_DECODER_EVENT_BDAT_LAST_MISSING));
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/**
+ * \test Test that a BDAT command the server rejects does not read as a
+ *       chunking anomaly: the client never sends the advertised chunk.
+ */
+static int SMTPParserTest18(void)
+{
+    Flow f;
+    TcpSession ssn;
+    SMTPState *smtp_state = NULL;
+    int r = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SMTP;
+
+    StreamTcpInitConfig(true);
+    SMTPTestInitConfig();
+
+    FAIL_IF_NOT(SMTPParserBdatSetup(&f, &smtp_state, alp_tctx));
+
+    static uint8_t ok[] = "250 2.1.0 Ok\r\n";
+    static uint8_t bdat[] = "BDAT 1000\r\n";
+    static uint8_t rejected[] = "552 5.3.4 Message size exceeds limit\r\n";
+    static uint8_t mail2[] = "MAIL FROM:<carol@example.com>\r\n";
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, ok, sizeof(ok) - 1);
+    FAIL_IF(r != 0);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, ok, sizeof(ok) - 1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, bdat, sizeof(bdat) - 1);
+    FAIL_IF(r != 0);
+
+    FAIL_IF(!(smtp_state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE));
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, rejected, sizeof(rejected) - 1);
+    FAIL_IF(r != 0);
+
+    FAIL_IF(smtp_state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE);
+
+    /* the rejected BDAT leaves no message pending */
+    FAIL_IF(!SMTPParserRequestIsComplete(smtp_state, 0));
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, mail2, sizeof(mail2) - 1);
+    FAIL_IF(r != 0);
+
+    FAIL_IF(SMTPParserHasEvent(smtp_state, 0, SMTP_DECODER_EVENT_BDAT_LAST_MISSING));
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER | STREAM_EOF, NULL, 0);
+    FAIL_IF(r != 0);
+
+    FAIL_IF(SMTPParserHasEvent(smtp_state, 0, SMTP_DECODER_EVENT_BDAT_INCOMPLETE_CHUNK));
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/**
+ * \test Test that a chunked message dropped by RSET is not reported as a
+ *       missing "BDAT <n> LAST" (RFC 3030 4.3).
+ */
+static int SMTPParserTest19(void)
+{
+    Flow f;
+    TcpSession ssn;
+    SMTPState *smtp_state = NULL;
+    int r = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SMTP;
+
+    StreamTcpInitConfig(true);
+    SMTPTestInitConfig();
+
+    FAIL_IF_NOT(SMTPParserBdatSetup(&f, &smtp_state, alp_tctx));
+
+    static uint8_t ok[] = "250 2.1.0 Ok\r\n";
+    static uint8_t bdat[] = "BDAT 20\r\n";
+    static uint8_t chunk[] = "01234567890123456789";
+    static uint8_t rset[] = "RSET\r\n";
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, ok, sizeof(ok) - 1);
+    FAIL_IF(r != 0);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, ok, sizeof(ok) - 1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, bdat, sizeof(bdat) - 1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, chunk, sizeof(chunk) - 1);
+    FAIL_IF(r != 0);
+
+    FAIL_IF(smtp_state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE);
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, ok, sizeof(ok) - 1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, rset, sizeof(rset) - 1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, ok, sizeof(ok) - 1);
+    FAIL_IF(r != 0);
+
+    /* the message is over, and the RSET is still part of its transaction */
+    FAIL_IF(SMTPParserHasEvent(smtp_state, 0, SMTP_DECODER_EVENT_BDAT_LAST_MISSING));
+
+    FAIL_IF(smtp_state->tx_cnt != 1);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/**
+ * \test Test that a chunked message the server rejects with a 552, its chunk
+ *       already delivered, is not reported as a missing "BDAT <n> LAST".
+ */
+static int SMTPParserTest20(void)
+{
+    Flow f;
+    TcpSession ssn;
+    SMTPState *smtp_state = NULL;
+    int r = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SMTP;
+
+    StreamTcpInitConfig(true);
+    SMTPTestInitConfig();
+
+    FAIL_IF_NOT(SMTPParserBdatSetup(&f, &smtp_state, alp_tctx));
+
+    static uint8_t ok[] = "250 2.1.0 Ok\r\n";
+    static uint8_t bdat[] = "BDAT 20\r\n";
+    static uint8_t chunk[] = "01234567890123456789";
+    static uint8_t rejected[] = "552 5.3.4 Message size exceeds limit\r\n";
+    static uint8_t quit[] = "QUIT\r\n";
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, ok, sizeof(ok) - 1);
+    FAIL_IF(r != 0);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, ok, sizeof(ok) - 1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, bdat, sizeof(bdat) - 1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, chunk, sizeof(chunk) - 1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOCLIENT, rejected, sizeof(rejected) - 1);
+    FAIL_IF(r != 0);
+
+    /* the rejected chunked message is over, and the QUIT is still part of it */
+    FAIL_IF(!SMTPParserRequestIsComplete(smtp_state, 0));
+
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, quit, sizeof(quit) - 1);
+    FAIL_IF(r != 0);
+
+    FAIL_IF(SMTPParserHasEvent(smtp_state, 0, SMTP_DECODER_EVENT_BDAT_LAST_MISSING));
+
+    FAIL_IF(smtp_state->tx_cnt != 1);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void SMTPParserRegisterTests(void)
@@ -4526,5 +4944,10 @@ void SMTPParserRegisterTests(void)
     UtRegisterTest("SMTPParserTest12", SMTPParserTest12);
     UtRegisterTest("SMTPParserTest13", SMTPParserTest13);
     UtRegisterTest("SMTPParserTest14", SMTPParserTest14);
+    UtRegisterTest("SMTPParserTest15", SMTPParserTest15);
+    UtRegisterTest("SMTPParserTest16", SMTPParserTest16);
+    UtRegisterTest("SMTPParserTest18", SMTPParserTest18);
+    UtRegisterTest("SMTPParserTest19", SMTPParserTest19);
+    UtRegisterTest("SMTPParserTest20", SMTPParserTest20);
 #endif /* UNITTESTS */
 }
