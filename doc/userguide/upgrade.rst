@@ -80,8 +80,8 @@ Other Changes
 EVE Changes
 ~~~~~~~~~~~
 
-- NFS eve records are now logged in the flow direction, like SMB, HTTP and
-  DNS records: a record completed on a reply carries the client as
+- NFS eve records are now logged in the flow direction, like SMB and HTTP
+  records: a record completed on a reply carries the client as
   ``src_ip``/``src_port`` where earlier 8.0.x logged the packet's addresses.
   Filters that matched responses on ``src_port 2049`` need ``dest_port 2049`` now.
 
