@@ -1854,6 +1854,9 @@ static int FlowBitsTestPostRuleMatchQueue01(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+    /* Unlike main, the legacy UTHFreeFlow only frees the allocation. */
+    FLOW_DESTROY(f1);
+    FLOW_DESTROY(f2);
     UTHFreeFlow(f1);
     UTHFreeFlow(f2);
     UTHFreePackets(&p1, 1);
