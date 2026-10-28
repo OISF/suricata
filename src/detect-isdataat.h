@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -34,14 +34,25 @@ typedef struct DetectIsdataatData_ {
     uint8_t flags; /* isdataat options*/
 } DetectIsdataatData;
 
+enum DetectAbsentMode {
+    DETECT_ABSENT_ONLY,        /**< match only on absent buffer */
+    DETECT_ABSENT_OR_ELSE,     /**< match on absent buffer or fall through to next keywords */
+    DETECT_ABSENT_ERROR_OR,    /**< match on transform error or fall through to next keywords */
+    DETECT_ABSENT_MUST_ERROR,  /**< match only on transform error */
+    DETECT_ABSENT_MUST_SUCCEED /**< reject on transform error, fall through to next keywords on
+                                  success */
+};
+
 typedef struct DetectAbsentData_ {
-    /** absent or try to match with other keywords (false means only absent) */
-    bool or_else;
+    enum DetectAbsentMode mode;
 } DetectAbsentData;
 
 /* prototypes */
 void DetectIsdataatRegister (void);
 
-bool DetectAbsentValidateContentCallback(const Signature *s, const SignatureInitDataBuffer *);
+bool DetectAbsentValidateContentCallback(
+        const DetectEngineCtx *de_ctx, const Signature *s, const SignatureInitDataBuffer *);
+
+const char *DetectAbsentModeStr(enum DetectAbsentMode mode);
 
 #endif /* SURICATA_DETECT_ISDATAAT_H */

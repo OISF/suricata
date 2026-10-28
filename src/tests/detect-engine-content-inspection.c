@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -28,6 +28,7 @@
 #include "../flow.h"
 #include "../detect.h"
 #include "detect-engine-build.h"
+#include "../detect-engine.h"
 
 extern thread_local uint32_t ut_inspection_recursion_counter;
 
@@ -316,6 +317,185 @@ static int DetectEngineContentInspectionTest17(void)
     TEST_FOOTER;
 }
 
+/** \test SCInspectionBufferSetError keeps the data, and setting the buffer up
+ *        again clears the error flag */
+static int DetectEngineContentInspectionTest18(void)
+{
+    const uint8_t data[] = "Zm9vYmFy!!";
+    const uint32_t data_len = sizeof(data) - 1;
+    InspectionBuffer buffer;
+    memset(&buffer, 0, sizeof(buffer));
+#ifdef DEBUG_VALIDATION
+    buffer.multi = true;
+#endif
+
+    InspectionBufferSetupMulti(NULL, &buffer, NULL, data, data_len);
+    FAIL_IF(buffer.flags & DETECT_CI_FLAGS_ERROR);
+    SCInspectionBufferSetError(&buffer);
+    FAIL_IF_NOT(buffer.flags & DETECT_CI_FLAGS_ERROR);
+    FAIL_IF_NOT(buffer.inspect == data);
+    FAIL_IF_NOT(buffer.inspect_len == data_len);
+    FAIL_IF_NOT(buffer.initialized);
+
+    InspectionBufferSetupMulti(NULL, &buffer, NULL, data, data_len);
+    FAIL_IF(buffer.flags & DETECT_CI_FLAGS_ERROR);
+
+    SCInspectionBufferSetError(&buffer);
+    buffer.initialized = false;
+    InspectionBufferSetupMultiEmpty(&buffer);
+    FAIL_IF(buffer.flags & DETECT_CI_FLAGS_ERROR);
+
+    /* the error flag must not share a bit with the start/end flags or with
+     * the DCE_LE/DCE_BE flags that rust/src/dcerpc/detect.rs sets */
+    FAIL_IF(DETECT_CI_FLAGS_ERROR & (DETECT_CI_FLAGS_SINGLE | BIT_U8(2) | BIT_U8(3)));
+
+    InspectionBufferFree(&buffer);
+    PASS;
+}
+
+/** \test from_base64 decodes into the scratch buffer when the input is
+ *        elsewhere, and flags an error and keeps the input when it cannot get
+ *        room for the decoded bytes */
+static int DetectEngineContentInspectionTest19(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+    Signature *s =
+            DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                          "(http.uri; from_base64; content:\"foo\"; sid:1;)");
+    FAIL_IF_NULL(s);
+    const DetectBufferType *map =
+            DetectEngineBufferTypeGetById(de_ctx, s->init_data->buffers[0].id);
+    FAIL_IF_NULL(map);
+    FAIL_IF_NOT(map->transforms.cnt == 1);
+
+    const uint8_t data[] = "Zm9vYmFy";
+    const uint32_t data_len = sizeof(data) - 1;
+    InspectionBuffer buffer;
+
+    memset(&buffer, 0, sizeof(buffer));
+#ifdef DEBUG_VALIDATION
+    buffer.multi = true;
+#endif
+    InspectionBufferSetupMulti(NULL, &buffer, &map->transforms, data, data_len);
+    FAIL_IF(buffer.flags & DETECT_CI_FLAGS_ERROR);
+    FAIL_IF_NOT(buffer.inspect == buffer.buf);
+    FAIL_IF_NOT(buffer.inspect_len == 6);
+    FAIL_IF_NOT(memcmp(buffer.inspect, "foobar", 6) == 0);
+    InspectionBufferFree(&buffer);
+    memset(&buffer, 0, sizeof(buffer));
+#ifdef DEBUG_VALIDATION
+    buffer.multi = true;
+#endif
+    /* SCInspectionBufferCheckAndExpand returns buf without reallocating when
+     * size is large enough, so a NULL buf here stands in for a failed
+     * SCRealloc */
+    buffer.size = 4096;
+
+    InspectionBufferSetupMulti(NULL, &buffer, &map->transforms, data, data_len);
+    FAIL_IF_NOT(buffer.flags & DETECT_CI_FLAGS_ERROR);
+    FAIL_IF_NOT(buffer.inspect == data);
+    FAIL_IF_NOT(buffer.inspect_len == data_len);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/** \test pcrexform flags an error and keeps the input when it cannot get room
+ *        for the capture */
+static int DetectEngineContentInspectionTest20(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                                                 "(http.uri; pcrexform:\"^/(.*)$\"; "
+                                                 "content:\"foo\"; sid:1;)");
+    FAIL_IF_NULL(s);
+    const DetectBufferType *map =
+            DetectEngineBufferTypeGetById(de_ctx, s->init_data->buffers[0].id);
+    FAIL_IF_NULL(map);
+    FAIL_IF_NOT(map->transforms.cnt == 1);
+
+    const uint8_t data[] = "/foobar";
+    const uint32_t data_len = sizeof(data) - 1;
+    InspectionBuffer buffer;
+    memset(&buffer, 0, sizeof(buffer));
+#ifdef DEBUG_VALIDATION
+    buffer.multi = true;
+#endif
+    /* as in DetectEngineContentInspectionTest19, a NULL buf with a large
+     * enough size stands in for a failed SCRealloc */
+    buffer.size = 4096;
+
+    InspectionBufferSetupMulti(NULL, &buffer, &map->transforms, data, data_len);
+    FAIL_IF_NOT(buffer.flags & DETECT_CI_FLAGS_ERROR);
+    FAIL_IF_NOT(buffer.inspect == data);
+    FAIL_IF_NOT(buffer.inspect_len == data_len);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/** \brief set up a buffer with data and run the transforms of the first
+ *         buffer in the rule over it */
+static InspectionBuffer *ContentInspectionTestTransform(DetectEngineCtx *de_ctx, const char *rule,
+        InspectionBuffer *buffer, const uint8_t *data, uint32_t data_len)
+{
+    Signature *s = DetectEngineAppendSig(de_ctx, rule);
+    if (s == NULL)
+        return NULL;
+    const DetectBufferType *map =
+            DetectEngineBufferTypeGetById(de_ctx, s->init_data->buffers[0].id);
+    if (map == NULL)
+        return NULL;
+    memset(buffer, 0, sizeof(*buffer));
+#ifdef DEBUG_VALIDATION
+    buffer->multi = true;
+#endif
+    InspectionBufferSetupMulti(NULL, buffer, &map->transforms, data, data_len);
+    return buffer;
+}
+
+/** \test pcrexform with an empty capture leaves an empty buffer and no error */
+static int DetectEngineContentInspectionTest21(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+    const uint8_t data[] = "/";
+    InspectionBuffer buffer;
+    FAIL_IF_NULL(ContentInspectionTestTransform(de_ctx,
+            "alert http any any -> any any (http.uri; pcrexform:\"^/(.*)$\"; "
+            "content:\"x\"; sid:1;)",
+            &buffer, data, sizeof(data) - 1));
+    FAIL_IF_NOT(buffer.inspect_len == 0);
+    FAIL_IF(buffer.flags & DETECT_CI_FLAGS_ERROR);
+    InspectionBufferFree(&buffer);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/** \test pcrexform leaves an empty buffer alone and flags no error */
+static int DetectEngineContentInspectionTest22(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+    const uint8_t data[] = "";
+    InspectionBuffer buffer;
+    FAIL_IF_NULL(ContentInspectionTestTransform(de_ctx,
+            "alert http any any -> any any (http.uri; pcrexform:\"^(x.*)$\"; "
+            "content:\"x\"; sid:1;)",
+            &buffer, data, 0));
+    FAIL_IF_NOT(buffer.inspect_len == 0);
+    FAIL_IF(buffer.flags & DETECT_CI_FLAGS_ERROR);
+    InspectionBufferFree(&buffer);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 void DetectEngineContentInspectionRegisterTests(void)
 {
     UtRegisterTest("DetectEngineContentInspectionTest01",
@@ -348,6 +528,16 @@ void DetectEngineContentInspectionRegisterTests(void)
             DetectEngineContentInspectionTest14);
     UtRegisterTest("DetectEngineContentInspectionTest17 negative distance",
             DetectEngineContentInspectionTest17);
+    UtRegisterTest(
+            "DetectEngineContentInspectionTest18 error flag", DetectEngineContentInspectionTest18);
+    UtRegisterTest("DetectEngineContentInspectionTest19 from_base64 allocation failure",
+            DetectEngineContentInspectionTest19);
+    UtRegisterTest("DetectEngineContentInspectionTest20 pcrexform allocation failure",
+            DetectEngineContentInspectionTest20);
+    UtRegisterTest("DetectEngineContentInspectionTest21 pcrexform empty capture",
+            DetectEngineContentInspectionTest21);
+    UtRegisterTest("DetectEngineContentInspectionTest22 pcrexform empty input",
+            DetectEngineContentInspectionTest22);
 }
 
 #undef TEST_HEADER

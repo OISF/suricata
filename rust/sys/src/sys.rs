@@ -26,6 +26,7 @@ pub const SIGMATCH_INFO_BITFLAGS_UINT: u32 = 1048576;
 pub const SIGMATCH_BAN_FIREWALL_RULE: u32 = 2097152;
 pub const SIGMATCH_BAN_FIREWALL_MODE: u32 = 4194304;
 pub const SIGMATCH_BAN_TD_FIREWALL_MODE: u32 = 16777216;
+pub const SIGMATCH_TRANSFORM_CAN_FAIL: u32 = 33554432;
 pub type __intmax_t = ::std::os::raw::c_long;
 pub type intmax_t = __intmax_t;
 #[repr(u32)]
@@ -743,6 +744,9 @@ extern "C" {
 }
 extern "C" {
     pub fn SCInspectionBufferTruncate(buffer: *mut InspectionBuffer, buf_len: u32);
+}
+extern "C" {
+    pub fn SCInspectionBufferSetError(buffer: *mut InspectionBuffer);
 }
 extern "C" {
     pub fn SCInspectionBufferGet(
