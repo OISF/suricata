@@ -34,5 +34,6 @@ alert smtp any any -> any any (msg:"SURICATA SMTP failed protocol change"; flow:
 alert smtp any any -> any any (msg:"SURICATA SMTP invalid BDAT command"; flow:established,to_server; app-layer-event:smtp.invalid_bdat; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220022; rev:1;)
 alert smtp any any -> any any (msg:"SURICATA SMTP chunked message not ended by BDAT LAST"; flow:established,to_server; app-layer-event:smtp.bdat_last_missing; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220024; rev:1;)
 alert smtp any any -> any any (msg:"SURICATA SMTP BDAT chunk shorter than declared"; flow:established,to_server; app-layer-event:smtp.bdat_incomplete_chunk; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220025; rev:1;)
+alert smtp any any -> any any (msg:"SURICATA SMTP BDAT declares a chunk length above the configured limit"; flow:established,to_server; app-layer-event:smtp.bdat_max_chunk_len_exceeded; flowint:smtp.anomaly.count,+,1; classtype:protocol-command-decode; sid:2220026; rev:1;)
 
-# next sid 2220026
+# next sid 2220027

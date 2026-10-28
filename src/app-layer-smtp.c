@@ -94,6 +94,9 @@
 #define SMTP_COMMAND_BDAT_LAST 8
 
 #define SMTP_DEFAULT_MAX_TX 256
+/* 1GB: well past any chunking sender (chunk sizes sit in the MB range) while
+ * still bounding the stuck-in-data-mode case of an absurd declared length */
+#define SMTP_DEFAULT_MAX_BDAT_CHUNK_LEN (1024u * 1024u * 1024u)
 
 /* command buffer tx id for commands with no owning transaction */
 #define SMTP_NO_TX_ID UINT64_MAX
@@ -149,6 +152,7 @@ SCEnumCharMap smtp_decoder_event_table[] = {
     { "TRUNCATED_LINE", SMTP_DECODER_EVENT_TRUNCATED_LINE },
     { "BDAT_LAST_MISSING", SMTP_DECODER_EVENT_BDAT_LAST_MISSING },
     { "BDAT_INCOMPLETE_CHUNK", SMTP_DECODER_EVENT_BDAT_INCOMPLETE_CHUNK },
+    { "BDAT_MAX_CHUNK_LEN_EXCEEDED", SMTP_DECODER_EVENT_BDAT_MAX_CHUNK_LEN_EXCEEDED },
     { NULL, -1 },
 };
 
@@ -532,6 +536,18 @@ static void SMTPConfigure(void) {
                     str);
         }
         smtp_config.max_tx = value;
+    }
+
+    smtp_config.max_bdat_chunk_len = SMTP_DEFAULT_MAX_BDAT_CHUNK_LEN;
+    if (SCConfGetNonNull("app-layer.protocols.smtp.max-bdat-chunk-len", &str) == 1) {
+        uint32_t v = 0;
+        if (ParseSizeStringU32(str, &v) < 0) {
+            SCLogWarning("max-bdat-chunk-len value cannot be deduced: %s,"
+                         " keeping default",
+                    str);
+        } else {
+            smtp_config.max_bdat_chunk_len = v;
+        }
     }
 
     SCReturn;
@@ -1220,6 +1236,13 @@ static int SMTPParseCommandBDAT(SMTPState *state, const SMTPLine *line, bool *la
     }
     state->bdat_chunk_idx = 0;
 
+    if (smtp_config.max_bdat_chunk_len > 0 &&
+            state->bdat_chunk_len > smtp_config.max_bdat_chunk_len) {
+        /* Report the declaration, but keep it: the octets behind the command
+         * are still the chunk the server waits for, so dropping out of data
+         * mode here would read them as commands. */
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_BDAT_MAX_CHUNK_LEN_EXCEEDED);
+    }
     i += parsed;
     if (i < line->len && line->buf[i] != ' ') {
         return -1;
@@ -2273,6 +2296,7 @@ static void SMTPTestInitConfig(void)
     smtp_config.content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE;
 
     smtp_config.max_tx = SMTP_DEFAULT_MAX_TX;
+    smtp_config.max_bdat_chunk_len = SMTP_DEFAULT_MAX_BDAT_CHUNK_LEN;
 
     smtp_config.sbcfg.buf_size = FILEDATA_CONTENT_INSPECT_WINDOW;
 }
@@ -4729,6 +4753,52 @@ static int SMTPParserTest16(void)
 }
 
 /**
+ * \test Test that a declared chunk length above the configured limit is flagged
+ *       and that the declared chunk still frames the stream.
+ */
+static int SMTPParserTest17(void)
+{
+    Flow f;
+    TcpSession ssn;
+    SMTPState *smtp_state = NULL;
+    int r = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SMTP;
+
+    StreamTcpInitConfig(true);
+    SMTPTestInitConfig();
+
+    FAIL_IF_NOT(SMTPParserBdatSetup(&f, &smtp_state, alp_tctx));
+
+    smtp_config.max_bdat_chunk_len = 100;
+    static uint8_t bdat[] = "BDAT 4000000000\r\n";
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, bdat, sizeof(bdat) - 1);
+    smtp_config.max_bdat_chunk_len = SMTP_DEFAULT_MAX_BDAT_CHUNK_LEN;
+    FAIL_IF(r != 0);
+
+    FAIL_IF(!SMTPParserHasEvent(smtp_state, 0, SMTP_DECODER_EVENT_BDAT_MAX_CHUNK_LEN_EXCEEDED));
+
+    /* the declaration stands: the octets behind it are still the chunk the
+     * server waits for, so the parser must keep waiting for them */
+    FAIL_IF(smtp_state->bdat_chunk_len != 4000000000u);
+    FAIL_IF(!(smtp_state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE));
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
+
+/**
  * \test Test that a BDAT command the server rejects does not read as a
  *       chunking anomaly: the client never sends the advertised chunk.
  */
@@ -4930,6 +5000,60 @@ static int SMTPParserTest20(void)
     PASS;
 }
 
+/**
+ * \test Test that the octets behind a chunk declaration above the limit are
+ *       still chunk data, not commands.
+ */
+static int SMTPParserTest21(void)
+{
+    Flow f;
+    TcpSession ssn;
+    SMTPState *smtp_state = NULL;
+    int r = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SMTP;
+
+    StreamTcpInitConfig(true);
+    SMTPTestInitConfig();
+
+    FAIL_IF_NOT(SMTPParserBdatSetup(&f, &smtp_state, alp_tctx));
+
+    smtp_config.max_bdat_chunk_len = 100;
+    static uint8_t bdat[] = "BDAT 4000000000\r\n";
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, bdat, sizeof(bdat) - 1);
+    smtp_config.max_bdat_chunk_len = SMTP_DEFAULT_MAX_BDAT_CHUNK_LEN;
+    FAIL_IF(r != 0);
+
+    static uint8_t chunk[] = "MAIL FROM:<carol@example.com>\r\n";
+    r = AppLayerParserParse(
+            NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, chunk, sizeof(chunk) - 1);
+    FAIL_IF(r != 0);
+
+    /* the octets are chunk data: no second envelope, no new transaction and no
+     * abandoned message, and the declaration is still flagged just once */
+    FAIL_IF(SMTPParserHasEvent(smtp_state, 0, SMTP_DECODER_EVENT_DUPLICATE_FIELDS));
+
+    FAIL_IF(SMTPParserHasEvent(smtp_state, 0, SMTP_DECODER_EVENT_BDAT_LAST_MISSING));
+
+    FAIL_IF(smtp_state->tx_cnt != 1);
+
+    FAIL_IF(SMTPParserEventCount(smtp_state, 0, SMTP_DECODER_EVENT_BDAT_MAX_CHUNK_LEN_EXCEEDED) !=
+            1);
+
+    FLOW_DESTROY(&f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(true);
+    PASS;
+}
 #endif /* UNITTESTS */
 
 void SMTPParserRegisterTests(void)
@@ -4946,8 +5070,10 @@ void SMTPParserRegisterTests(void)
     UtRegisterTest("SMTPParserTest14", SMTPParserTest14);
     UtRegisterTest("SMTPParserTest15", SMTPParserTest15);
     UtRegisterTest("SMTPParserTest16", SMTPParserTest16);
+    UtRegisterTest("SMTPParserTest17", SMTPParserTest17);
     UtRegisterTest("SMTPParserTest18", SMTPParserTest18);
     UtRegisterTest("SMTPParserTest19", SMTPParserTest19);
     UtRegisterTest("SMTPParserTest20", SMTPParserTest20);
+    UtRegisterTest("SMTPParserTest21", SMTPParserTest21);
 #endif /* UNITTESTS */
 }

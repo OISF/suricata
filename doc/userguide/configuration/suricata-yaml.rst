@@ -2134,6 +2134,18 @@ command once a chunk has been delivered, or ending the connection there, raises
 ``smtp.bdat_incomplete_chunk``. ``RSET``, ``QUIT`` and a mid-session ``HELO`` or
 ``EHLO`` drop the message the way ``LAST`` ends it, so they raise nothing.
 
+A client using CHUNKING announces the size of its message data with a ``BDAT``
+command. ``max-bdat-chunk-len`` caps what a single command may declare: a larger
+value raises ``smtp.bdat_max_chunk_len_exceeded``. The declaration itself stands,
+so the octets behind the command are still read as the chunk it announces and not
+as commands. The default is 1 GB, far above the chunk sizes in use; set it to 0
+to disable the check.
+
+::
+
+      smtp:
+        max-bdat-chunk-len: 1 GB
+
 Maximum transactions
 ~~~~~~~~~~~~~~~~~~~~
 

@@ -64,6 +64,7 @@ enum {
 
     SMTP_DECODER_EVENT_BDAT_LAST_MISSING,
     SMTP_DECODER_EVENT_BDAT_INCOMPLETE_CHUNK,
+    SMTP_DECODER_EVENT_BDAT_MAX_CHUNK_LEN_EXCEEDED,
 };
 
 typedef struct SMTPString_ {
@@ -125,6 +126,8 @@ typedef struct SMTPConfig {
     uint32_t content_inspect_min_size;
     uint32_t content_inspect_window;
     uint64_t max_tx;
+    /** 0 means no limit on the octet count a BDAT command may declare */
+    uint32_t max_bdat_chunk_len;
 
     bool raw_extraction;
 
