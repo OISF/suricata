@@ -759,6 +759,10 @@ static inline void PacketAlertFinalizeProcessQueue(
         } else if (p->alerts.cnt < packet_alert_max) {
             /* pass w/o alert found, we're done. Alert is not logged. */
             if ((pa->action & (ACTION_PASS | ACTION_ALERT)) == ACTION_PASS) {
+                /* Stable verdict logging reads this uncounted pass slot. It must
+                 * not own context: the queue releases that below. */
+                p->alerts.alerts[p->alerts.cnt] = *pa;
+                p->alerts.alerts[p->alerts.cnt].json_info = NULL;
                 SCLogDebug("sid:%u: is a pass rule, so break out of loop", s->id);
                 if (!have_fw_rules)
                     break;
