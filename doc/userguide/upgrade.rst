@@ -41,6 +41,8 @@ Default Changes
 ~~~~~~~~~~~~~~~
 
 - ``http2`` default value for max-streams is now 256 (instead of 4096).
+- An absent configuration value for ``stream.reassembly.urgent.policy`` is now treated as ``oob`` instead of ``inline``.
+- An absent configuration value for ``stream.reassembly.urgent.oob-limit-policy`` is now treated as ``drop`` instead of ``inline``.
 
 EVE Changes
 ~~~~~~~~~~~
@@ -72,11 +74,6 @@ Deprecations
 
 Upgrading to 8.0.5
 ------------------
-
-Default Changes
-~~~~~~~~~~~~~~~
-- An absent configuration value for ``stream.reassembly.urgent.policy`` is now treated as ``oob`` instead of ``inline``.
-- An absent configuration value for ``stream.reassembly.urgent.oob-limit-policy`` is now treated as ``drop`` instead of ``inline``.
 
 Other Changes
 ~~~~~~~~~~~~~
