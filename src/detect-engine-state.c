@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -37,6 +37,7 @@
  */
 
 #include "suricata-common.h"
+#include "util-validate.h"
 
 #include "decode.h"
 
@@ -75,6 +76,38 @@ static inline int StateIsValid(uint16_t alproto, void *alstate)
         }
     }
     return 0;
+}
+
+/** \brief byte_extract and byte_math values one signature produced on a tx
+ *
+ *  det_ctx->byte_values is indexed by local_id, and every signature numbers
+ *  its variables from 0, so values kept on the transaction have to be kept
+ *  per signature. */
+typedef struct DeStateByteVars_ {
+    struct DeStateByteVars_ *next;
+    SigIntId iid;      /**< internal id of the signature the values belong to */
+    uint16_t count;    /**< number of elements in values */
+    uint64_t values[]; /**< indexed by local_id */
+} DeStateByteVars;
+
+static DeStateByteVars *DeStateByteVarsFind(const DetectEngineState *state, const SigIntId iid)
+{
+    for (DeStateByteVars *bv = state->byte_vars; bv != NULL; bv = bv->next) {
+        if (bv->iid == iid)
+            return bv;
+    }
+    return NULL;
+}
+
+static void DeStateByteVarsFree(DetectEngineState *state)
+{
+    DeStateByteVars *bv = state->byte_vars;
+    while (bv != NULL) {
+        DeStateByteVars *next = bv->next;
+        SCFree(bv);
+        bv = next;
+    }
+    state->byte_vars = NULL;
 }
 
 static DeStateStore *DeStateStoreAlloc(void)
@@ -170,6 +203,7 @@ void SCDetectEngineStateFree(DetectEngineState *state)
     DeStateStore *store_next;
     int i = 0;
 
+    DeStateByteVarsFree(state);
     for (i = 0; i < 2; i++) {
         store = state->dir_state[i].head;
         while (store != NULL) {
@@ -234,6 +268,61 @@ void DetectRunStoreStateTx(
     SCLogDebug("Stored for TX %"PRIu64, tx_id);
 }
 
+/**
+ * \brief Load a signature's byte variable values before it is inspected
+ *
+ * Copies the values the signature produced on this transaction during an
+ * earlier pass into det_ctx->byte_values. When there are none the signature's
+ * slots are cleared, so a consumer running ahead of its producer reads 0 rather
+ * than what another signature or transaction left behind.
+ *
+ * \param det_ctx Thread detection context
+ * \param state   The transaction's detection state, may be NULL
+ * \param s       The signature about to be inspected
+ */
+void DetectEngineStateRestoreByteVars(
+        DetectEngineThreadCtx *det_ctx, const DetectEngineState *state, const Signature *s)
+{
+    DEBUG_VALIDATE_BUG_ON(det_ctx->byte_values == NULL);
+
+    const DeStateByteVars *bv = state != NULL ? DeStateByteVarsFind(state, s->iid) : NULL;
+    if (bv == NULL) {
+        memset(det_ctx->byte_values, 0, s->byte_var_count * sizeof(uint64_t));
+        return;
+    }
+
+    DEBUG_VALIDATE_BUG_ON(bv->count != s->byte_var_count);
+    const uint16_t count = MIN(bv->count, s->byte_var_count);
+    memcpy(det_ctx->byte_values, bv->values, count * sizeof(uint64_t));
+}
+
+/**
+ * \brief Keep a signature's byte variable values on the transaction
+ *
+ * \param det_ctx Thread detection context holding the values
+ * \param state   The transaction's detection state
+ * \param s       The signature that produced the values
+ */
+void DetectEngineStateSaveByteVars(
+        const DetectEngineThreadCtx *det_ctx, DetectEngineState *state, const Signature *s)
+{
+    DeStateByteVars *bv = DeStateByteVarsFind(state, s->iid);
+    if (bv == NULL) {
+        bv = SCCalloc(1, sizeof(*bv) + s->byte_var_count * sizeof(uint64_t));
+        if (unlikely(bv == NULL)) {
+            SCLogDebug("sid %u: byte variable values not kept, allocation failed", s->id);
+            return;
+        }
+        bv->iid = s->iid;
+        bv->count = s->byte_var_count;
+        bv->next = state->byte_vars;
+        state->byte_vars = bv;
+    }
+
+    const uint16_t count = MIN(bv->count, s->byte_var_count);
+    memcpy(bv->values, det_ctx->byte_values, count * sizeof(uint64_t));
+}
+
 static inline void ResetTxState(DetectEngineState *s)
 {
     if (s) {
@@ -248,6 +337,9 @@ static inline void ResetTxState(DetectEngineState *s)
         s->dir_state[1].flags = 0;
         /* reset 'cur' back to the list head */
         s->dir_state[1].cur = s->dir_state[1].head;
+        /* signature internal ids and local_ids belong to the ruleset that
+         * produced the values */
+        DeStateByteVarsFree(s);
     }
 }
 
@@ -1458,6 +1550,189 @@ static int DeStateSigTest10(void)
     PASS;
 }
 
+/** \brief det_ctx with room for \a n byte values, all set to \a fill */
+static DetectEngineThreadCtx *DeStateByteVarsTestDetCtx(const uint32_t n, const uint64_t fill)
+{
+    DetectEngineThreadCtx *det_ctx = SCCalloc(1, sizeof(*det_ctx));
+    if (det_ctx == NULL)
+        return NULL;
+    det_ctx->byte_values = SCCalloc(n, sizeof(*det_ctx->byte_values));
+    if (det_ctx->byte_values == NULL) {
+        SCFree(det_ctx);
+        return NULL;
+    }
+    for (uint32_t i = 0; i < n; i++)
+        det_ctx->byte_values[i] = fill;
+    return det_ctx;
+}
+
+static void DeStateByteVarsTestDetCtxFree(DetectEngineThreadCtx *det_ctx)
+{
+    SCFree(det_ctx->byte_values);
+    SCFree(det_ctx);
+}
+
+/** \test values saved for a signature come back, and only into its slots */
+static int DeStateByteVarsTest01(void)
+{
+    DetectEngineState *state = DetectEngineStateAlloc();
+    FAIL_IF_NULL(state);
+    DetectEngineThreadCtx *det_ctx = DeStateByteVarsTestDetCtx(3, 0);
+    FAIL_IF_NULL(det_ctx);
+
+    Signature s;
+    memset(&s, 0, sizeof(s));
+    s.iid = 7;
+    s.byte_var_count = 2;
+
+    det_ctx->byte_values[0] = 11;
+    det_ctx->byte_values[1] = 22;
+    DetectEngineStateSaveByteVars(det_ctx, state, &s);
+    FAIL_IF_NULL(state->byte_vars);
+
+    /* another signature or transaction used the thread's array in between */
+    det_ctx->byte_values[0] = 99;
+    det_ctx->byte_values[1] = 98;
+    det_ctx->byte_values[2] = 97;
+
+    DetectEngineStateRestoreByteVars(det_ctx, state, &s);
+    FAIL_IF(det_ctx->byte_values[0] != 11);
+    FAIL_IF(det_ctx->byte_values[1] != 22);
+    /* not one of this signature's slots */
+    FAIL_IF(det_ctx->byte_values[2] != 97);
+
+    DeStateByteVarsTestDetCtxFree(det_ctx);
+    SCDetectEngineStateFree(state);
+    PASS;
+}
+
+/** \test a signature without an entry gets its slots cleared, with a state
+ *        that holds other entries, an empty state and no state at all */
+static int DeStateByteVarsTest02(void)
+{
+    DetectEngineState *state = DetectEngineStateAlloc();
+    FAIL_IF_NULL(state);
+    DetectEngineThreadCtx *det_ctx = DeStateByteVarsTestDetCtx(3, 55);
+    FAIL_IF_NULL(det_ctx);
+
+    Signature other;
+    memset(&other, 0, sizeof(other));
+    other.iid = 1;
+    other.byte_var_count = 1;
+    Signature s;
+    memset(&s, 0, sizeof(s));
+    s.iid = 2;
+    s.byte_var_count = 2;
+
+    /* empty state */
+    DetectEngineStateRestoreByteVars(det_ctx, state, &s);
+    FAIL_IF(det_ctx->byte_values[0] != 0 || det_ctx->byte_values[1] != 0);
+    FAIL_IF(det_ctx->byte_values[2] != 55);
+
+    /* state with an entry for another signature only */
+    det_ctx->byte_values[0] = 55;
+    DetectEngineStateSaveByteVars(det_ctx, state, &other);
+    det_ctx->byte_values[1] = 55;
+    DetectEngineStateRestoreByteVars(det_ctx, state, &s);
+    FAIL_IF(det_ctx->byte_values[0] != 0 || det_ctx->byte_values[1] != 0);
+
+    /* no state */
+    det_ctx->byte_values[0] = 55;
+    det_ctx->byte_values[1] = 55;
+    DetectEngineStateRestoreByteVars(det_ctx, NULL, &s);
+    FAIL_IF(det_ctx->byte_values[0] != 0 || det_ctx->byte_values[1] != 0);
+    FAIL_IF(det_ctx->byte_values[2] != 55);
+
+    DeStateByteVarsTestDetCtxFree(det_ctx);
+    SCDetectEngineStateFree(state);
+    PASS;
+}
+
+/** \test two signatures using local_id 0 on one transaction keep their own
+ *        value, and saving again updates the entry instead of adding one */
+static int DeStateByteVarsTest03(void)
+{
+    DetectEngineState *state = DetectEngineStateAlloc();
+    FAIL_IF_NULL(state);
+    DetectEngineThreadCtx *det_ctx = DeStateByteVarsTestDetCtx(1, 0);
+    FAIL_IF_NULL(det_ctx);
+
+    Signature a;
+    memset(&a, 0, sizeof(a));
+    a.iid = 10;
+    a.byte_var_count = 1;
+    Signature b;
+    memset(&b, 0, sizeof(b));
+    b.iid = 20;
+    b.byte_var_count = 1;
+
+    det_ctx->byte_values[0] = 5;
+    DetectEngineStateSaveByteVars(det_ctx, state, &a);
+    det_ctx->byte_values[0] = 99;
+    DetectEngineStateSaveByteVars(det_ctx, state, &b);
+
+    DetectEngineStateRestoreByteVars(det_ctx, state, &a);
+    FAIL_IF(det_ctx->byte_values[0] != 5);
+    DetectEngineStateRestoreByteVars(det_ctx, state, &b);
+    FAIL_IF(det_ctx->byte_values[0] != 99);
+
+    det_ctx->byte_values[0] = 6;
+    DetectEngineStateSaveByteVars(det_ctx, state, &a);
+    DetectEngineStateRestoreByteVars(det_ctx, state, &b);
+    FAIL_IF(det_ctx->byte_values[0] != 99);
+    DetectEngineStateRestoreByteVars(det_ctx, state, &a);
+    FAIL_IF(det_ctx->byte_values[0] != 6);
+
+    uint32_t entries = 0;
+    for (const DeStateByteVars *bv = state->byte_vars; bv != NULL; bv = bv->next)
+        entries++;
+    FAIL_IF(entries != 2);
+
+    DeStateByteVarsTestDetCtxFree(det_ctx);
+    SCDetectEngineStateFree(state);
+    PASS;
+}
+
+/** \test a ruleset reload drops the values: signature and local ids belong to
+ *        the ruleset that produced them */
+static int DeStateByteVarsTest04(void)
+{
+    DetectEngineState *state = DetectEngineStateAlloc();
+    FAIL_IF_NULL(state);
+    DetectEngineThreadCtx *det_ctx = DeStateByteVarsTestDetCtx(2, 0);
+    FAIL_IF_NULL(det_ctx);
+
+    Signature s;
+    memset(&s, 0, sizeof(s));
+    s.iid = 3;
+    s.byte_var_count = 2;
+
+    det_ctx->byte_values[0] = 1;
+    det_ctx->byte_values[1] = 2;
+    DetectEngineStateSaveByteVars(det_ctx, state, &s);
+    FAIL_IF_NULL(state->byte_vars);
+
+    ResetTxState(state);
+    FAIL_IF_NOT_NULL(state->byte_vars);
+
+    /* the same internal id under the new ruleset starts from nothing */
+    det_ctx->byte_values[0] = 9;
+    det_ctx->byte_values[1] = 9;
+    DetectEngineStateRestoreByteVars(det_ctx, state, &s);
+    FAIL_IF(det_ctx->byte_values[0] != 0 || det_ctx->byte_values[1] != 0);
+
+    /* and the state is usable again */
+    det_ctx->byte_values[0] = 4;
+    DetectEngineStateSaveByteVars(det_ctx, state, &s);
+    det_ctx->byte_values[0] = 9;
+    DetectEngineStateRestoreByteVars(det_ctx, state, &s);
+    FAIL_IF(det_ctx->byte_values[0] != 4);
+
+    DeStateByteVarsTestDetCtxFree(det_ctx);
+    SCDetectEngineStateFree(state);
+    PASS;
+}
+
 #endif
 
 void DeStateRegisterTests(void)
@@ -1466,6 +1741,10 @@ void DeStateRegisterTests(void)
     UtRegisterTest("DeStateTest01", DeStateTest01);
     UtRegisterTest("DeStateTest02", DeStateTest02);
     UtRegisterTest("DeStateTest03", DeStateTest03);
+    UtRegisterTest("DeStateByteVarsTest01", DeStateByteVarsTest01);
+    UtRegisterTest("DeStateByteVarsTest02", DeStateByteVarsTest02);
+    UtRegisterTest("DeStateByteVarsTest03", DeStateByteVarsTest03);
+    UtRegisterTest("DeStateByteVarsTest04", DeStateByteVarsTest04);
     UtRegisterTest("DeStateSigTest01", DeStateSigTest01);
     UtRegisterTest("DeStateSigTest02", DeStateSigTest02);
     UtRegisterTest("DeStateSigTest03", DeStateSigTest03);

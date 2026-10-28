@@ -357,11 +357,12 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
         offset = NULL;
     }
 
-    /* 'ends with' scenario */
-    if (prev_pm != NULL && prev_pm->type == DETECT_CONTENT &&
-        idad->dataat == 1 &&
-        (idad->flags & (ISDATAAT_RELATIVE|ISDATAAT_NEGATED)) == (ISDATAAT_RELATIVE|ISDATAAT_NEGATED))
-    {
+    /* 'ends with' scenario. Only for a literal offset: with ISDATAAT_OFFSET_VAR
+     * dataat holds a byte variable's local id, and an id of 1 says nothing
+     * about how many bytes the check will ask for at match time. */
+    if (prev_pm != NULL && prev_pm->type == DETECT_CONTENT && idad->dataat == 1 &&
+            (idad->flags & (ISDATAAT_RELATIVE | ISDATAAT_NEGATED | ISDATAAT_OFFSET_VAR)) ==
+                    (ISDATAAT_RELATIVE | ISDATAAT_NEGATED)) {
         DetectIsdataatFree(de_ctx, idad);
         DetectContentData *cd = (DetectContentData *)prev_pm->ctx;
         cd->flags |= DETECT_CONTENT_ENDS_WITH;

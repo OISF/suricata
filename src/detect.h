@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -676,6 +676,12 @@ typedef struct SignatureInitData_ {
     /* highest list/buffer id which holds a DETECT_CONTENT */
     uint32_t max_content_list_id;
 
+    /* next local_id to hand to a byte_extract or byte_math in this
+     * signature. Slots are unique per signature, across every buffer and
+     * both keyword types, so a value produced in one buffer is not
+     * overwritten by a producer in another. */
+    uint32_t byte_var_next_id;
+
     /* inter-signature state dependency */
     bool is_rule_state_dependant;
     uint32_t *rule_state_dependant_sids_array;
@@ -731,6 +737,10 @@ typedef struct Signature_ {
      *  states (http2 stream/global, DoH2); 0 when the hook has no sub state.
      *  Signatures are zero initialized, so unused stays 0. */
     uint8_t sub_state;
+
+    /** number of byte_extract and byte_math variables in this signature; their
+     *  local_ids are 0 to byte_var_count - 1 */
+    uint16_t byte_var_count;
 
     DetectMatchAddressIPv4 *addr_dst_match4;
     DetectMatchAddressIPv4 *addr_src_match4;
@@ -1074,7 +1084,7 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_stream;
 
     /* the max local id used amongst all sigs */
-    int32_t byte_extract_max_local_id;
+    uint32_t byte_extract_max_local_id;
 
     /** version of the detect engine. The version is incremented on reloads */
     uint32_t version;
@@ -1388,6 +1398,9 @@ typedef struct DetectEngineThreadCtx_ {
 
     /* true if tx_id is set */
     bool tx_id_set;
+    /** true once byte_extract or byte_math wrote byte_values for the signature
+     *  being inspected; tells DetectRunTxInspectRule the values need keeping */
+    bool byte_vars_dirty;
     /** ID of the transaction currently being inspected. */
     uint64_t tx_id;
     int64_t frame_id;

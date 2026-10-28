@@ -380,13 +380,13 @@ static int DetectByteMathSetup(DetectEngineCtx *de_ctx, Signature *s, const char
         rvalue = NULL;
     }
 
-    SigMatch *prev_bmd_sm = DetectGetLastSMByListId(s, sm_list,
-            DETECT_BYTEMATH, -1);
-    if (prev_bmd_sm == NULL) {
-        data->local_id = 0;
-    } else {
-        data->local_id = ((DetectByteMathData *)prev_bmd_sm->ctx)->local_id + 1;
+    if (s->init_data->byte_var_next_id > UINT8_MAX) {
+        SCLogError("too many byte_extract and byte_math variables in one rule; "
+                   "at most %d are supported",
+                UINT8_MAX + 1);
+        goto error;
     }
+    data->local_id = (uint8_t)s->init_data->byte_var_next_id++;
     if (data->local_id > de_ctx->byte_extract_max_local_id) {
         de_ctx->byte_extract_max_local_id = data->local_id;
     }

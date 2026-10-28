@@ -1293,6 +1293,37 @@ void *DetectGetInnerTx(void *tx_ptr, AppProto alproto, AppProto engine_alproto, 
     return tx_ptr;
 }
 
+/** \brief load the byte values a signature produced on this tx earlier
+ *
+ *  det_ctx->byte_values is written by every signature and transaction on this
+ *  thread, and the signature's producer engines may be done and not run again.
+ *  Has to precede anything that reads a byte variable, packet matches included.
+ */
+static inline void DetectRunTxLoadByteVars(
+        DetectEngineThreadCtx *det_ctx, const DetectTransaction *tx, const Signature *s)
+{
+    if (s->byte_var_count == 0)
+        return;
+    det_ctx->byte_vars_dirty = false;
+    DetectEngineStateRestoreByteVars(det_ctx, tx->tx_data_ptr->de_state, s);
+}
+
+/** \brief keep the byte values a signature produced with its inspect state
+ *
+ *  Called where inspect state is stored for the signature: those are the
+ *  passes after which its completed engines, producers included, are skipped.
+ *  A pass that stores nothing starts over and produces the values again.
+ */
+static inline void DetectRunTxKeepByteVars(
+        const DetectEngineThreadCtx *det_ctx, DetectTransaction *tx, const Signature *s)
+{
+    if (s->byte_var_count == 0 || !det_ctx->byte_vars_dirty)
+        return;
+    DetectEngineState *de_state = tx->tx_data_ptr->de_state;
+    if (de_state != NULL)
+        DetectEngineStateSaveByteVars(det_ctx, de_state, s);
+}
+
 /** \internal
  *  \brief inspect a rule against a transaction
  *
@@ -1336,6 +1367,7 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
             TRACE_SID_TXS(s->id, tx, "DetectRunInspectRuleHeader() no match");
             return -1;
         }
+        DetectRunTxLoadByteVars(det_ctx, tx, s);
         if (!DetectEnginePktInspectionRun(tv, det_ctx, s, f, p, NULL)) {
             TRACE_SID_TXS(s->id, tx, "DetectEnginePktInspectionRun no match");
             return -1;
@@ -1347,6 +1379,7 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
         }
     } else {
         TRACE_SID_TXS(s->id, tx, "continue, inspect_flags %x", inspect_flags);
+        DetectRunTxLoadByteVars(det_ctx, tx, s);
     }
 
     const DetectEngineAppInspectionEngine *engine = s->app_inspect;
@@ -1511,6 +1544,7 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
     if (stored_flags) {
         *stored_flags = inspect_flags;
         TRACE_SID_TXS(s->id, tx, "continue inspect flags %08x", inspect_flags);
+        DetectRunTxKeepByteVars(det_ctx, tx, s);
     } else {
         // store... or? If tx is done we might not want to come back to this tx
 
@@ -1529,6 +1563,7 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
                  */
                 DetectRunStoreStateTx(scratch->sgh, f, tx->tx_ptr, tx->tx_id, s,
                         inspect_flags, flow_flags, file_no_match);
+                DetectRunTxKeepByteVars(det_ctx, tx, s);
             }
         } else if ((inspect_flags & DE_STATE_FLAG_FULL_INSPECT) && mpm_before_progress) {
             TRACE_SID_TXS(s->id, tx, "no need to store match sig, "
@@ -1539,6 +1574,7 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
                         "we may have to revisit anyway");
                 DetectRunStoreStateTx(scratch->sgh, f, tx->tx_ptr, tx->tx_id, s,
                         inspect_flags, flow_flags, file_no_match);
+                DetectRunTxKeepByteVars(det_ctx, tx, s);
             }
         } else if ((inspect_flags & DE_STATE_FLAG_FULL_INSPECT) == 0 && mpm_in_progress) {
             TRACE_SID_TXS(s->id, tx, "no need to store no-match sig, "
@@ -1548,6 +1584,7 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
             TRACE_SID_TXS(s->id, tx, "storing state: flags %08x", inspect_flags);
             DetectRunStoreStateTx(scratch->sgh, f, tx->tx_ptr, tx->tx_id, s,
                     inspect_flags, flow_flags, file_no_match);
+            DetectRunTxKeepByteVars(det_ctx, tx, s);
         } else {
             if (inspect_flags == 0) {
                 TRACE_SID_TXS(s->id, tx, "no match: inspect_flags %08x", inspect_flags);
