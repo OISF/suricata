@@ -2143,6 +2143,10 @@ typedef struct Thread_ {
 
     SC_ATOMIC_DECLARE(SCTime_t, pktts); /**< current packet time of this thread
                                          *   (offline mode) */
+    /* Only bumped in the offline modes: TimeSetByThread() returns early when
+     * live, which is also the only caller of TmThreadsGetMinimalTimestamp().
+     * So 0 means pktts is still the stamp from the init pass. */
+    uint64_t npkts;         /**< packets this thread ran through FlowWorker */
     SCTime_t sys_sec_stamp; /**< timestamp in real system
                              *   time when the pktts was last updated. */
     SCSpinlock spin;
@@ -2157,6 +2161,9 @@ typedef struct Threads_ {
 static bool thread_store_sealed = false;
 static Threads thread_store = { NULL, 0, 0 };
 static SCMutex thread_store_lock = SCMUTEX_INITIALIZER;
+/* Last clock handed out by TmThreadsGetMinimalTimestamp(). Used when no packet
+ * thread is left to read, see the comment there. Zero until the first stamp. */
+static SC_ATOMIC_DECLARE(SCTime_t, last_min_ts);
 
 void TmThreadsSealThreads(void)
 {
@@ -2200,6 +2207,7 @@ void TmThreadsListThreads(void)
  */
 int TmThreadsRegisterThread(ThreadVars *tv, const int type)
 {
+    static SCTime_t nullts = SCTIME_INITIALIZER;
     SCMutexLock(&thread_store_lock);
     DEBUG_VALIDATE_BUG_ON(thread_store_sealed);
     if (thread_store.threads == NULL) {
@@ -2217,6 +2225,14 @@ int TmThreadsRegisterThread(ThreadVars *tv, const int type)
             t->name = tv->name;
             t->type = type;
             t->tv = tv;
+            /* unregister only clears in_use, so drop the state of a previous
+             * owner of this slot: else the new thread looks like one that has
+             * already run packets in this file, and, worse, like one whose clock
+             * is already known. The clock fields are what TimeModeIsReady() and
+             * the offline minimum read. */
+            t->npkts = 0;
+            SC_ATOMIC_SET(t->pktts, nullts);
+            t->sys_sec_stamp = nullts;
             t->in_use = 1;
             SCSpinUnlock(&t->spin);
 
@@ -2289,6 +2305,7 @@ void TmThreadsSetThreadTimestamp(const int id, const SCTime_t ts)
     Thread *t = &thread_store.threads[idx];
     SCSpinLock(&t->spin);
     SC_ATOMIC_SET(t->pktts, ts);
+    t->npkts++;
 
 #ifdef DEBUG
     if (t->sys_sec_stamp.secs != 0) {
@@ -2309,8 +2326,10 @@ bool TmThreadsTimeSubsysIsReady(void)
     bool ready = true;
     for (size_t s = 0; s < thread_store.threads_size; s++) {
         Thread *t = &thread_store.threads[s];
+        /* a slot freed by an unregistering thread says nothing about the
+         * entries after it */
         if (!t->in_use) {
-            break;
+            continue;
         }
         SCSpinLock(&t->spin);
         if (t->type != TVT_PPT) {
@@ -2330,10 +2349,13 @@ bool TmThreadsTimeSubsysIsReady(void)
 void TmThreadsInitThreadsTimestamp(const SCTime_t ts)
 {
     SCTime_t now = SCTimeGetTime();
+    /* re-anchor per file, so a new pcap cannot inherit the tail of the last one
+     * through the remembered clock */
+    SC_ATOMIC_SET(last_min_ts, ts);
     for (size_t s = 0; s < thread_store.threads_size; s++) {
         Thread *t = &thread_store.threads[s];
         if (!t->in_use) {
-            break;
+            continue;
         }
         SCSpinLock(&t->spin);
         if (t->type != TVT_PPT) {
@@ -2341,6 +2363,9 @@ void TmThreadsInitThreadsTimestamp(const SCTime_t ts)
             continue;
         }
         SC_ATOMIC_SET(t->pktts, ts);
+        /* the stamp is again the one from this pass, whatever the thread did
+         * in an earlier pcap of a directory or of a unix-socket run */
+        t->npkts = 0;
         t->sys_sec_stamp = now;
         SCSpinUnlock(&t->spin);
     }
@@ -2354,17 +2379,54 @@ SCTime_t TmThreadsGetThreadTime(const int idx)
     return SC_ATOMIC_GET(t->pktts);
 }
 
+/* How far behind a packet thread may be before it stops holding the clock back.
+ * For a thread that has never run a packet the window is measured in *packet*
+ * time: its stamp came from the init pass and cannot move, and in file replay a
+ * whole run can finish inside 5 s of host time (see TimeModeSetOffline), so a
+ * host-time window would leave the result down to the speed of the machine. For
+ * a thread that did run packets the window stays in host time as before: a
+ * worker that keeps consuming packets must keep global expiry from running
+ * ahead of its packets. Freshness moves per packet, so a worker stuck inside
+ * one packet past the window reads as sleeping and is dropped; telling that
+ * apart needs a mid-packet flag. When no thread passes its window at all, see
+ * the fallback at the end of TmThreadsGetMinimalTimestamp(). */
+#define TIME_STALE_THRESHOLD_SECS 5
+
 void TmThreadsGetMinimalTimestamp(struct timeval *ts)
 {
     struct timeval local = { 0 };
     static SCTime_t nullts = SCTIME_INITIALIZER;
     bool set = false;
+    /* oldest stamp still allowed by the packet time rule, used when no thread
+     * is fresh in host time, see the fallback below */
+    SCTime_t fallback = nullts;
+    bool fallback_set = false;
     SCTime_t now = SCTimeGetTime();
+
+    /* Newest packet time of any packet thread. No locking: pktts is only
+     * written atomically, in_use and type are set once at registration. A
+     * thread read mid-update can only make this pass see a newer max. */
+    SCTime_t maxts = nullts;
+    for (size_t s = 0; s < thread_store.threads_size; s++) {
+        Thread *t = &thread_store.threads[s];
+        /* unregistering clears a slot in place, so a hole tells us nothing
+         * about the entries after it */
+        if (t->in_use == 0) {
+            continue;
+        }
+        if (t->type != TVT_PPT) {
+            continue;
+        }
+        SCTime_t pktts = SC_ATOMIC_GET(t->pktts);
+        if (SCTIME_CMP_GT(pktts, maxts)) {
+            maxts = pktts;
+        }
+    }
 
     for (size_t s = 0; s < thread_store.threads_size; s++) {
         Thread *t = &thread_store.threads[s];
         if (t->in_use == 0) {
-            break;
+            continue;
         }
         SCSpinLock(&t->spin);
         /* only packet threads set timestamps based on packets */
@@ -2374,9 +2436,34 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts)
         }
         SCTime_t pktts = SC_ATOMIC_GET(t->pktts);
         if (SCTIME_CMP_NEQ(pktts, nullts)) {
-            SCTime_t sys_sec_stamp = SCTIME_ADD_SECS(t->sys_sec_stamp, 5);
-            /* ignore sleeping threads */
-            if (SCTIME_CMP_LT(sys_sec_stamp, now)) {
+            /* out of the min and out of the fallback */
+            bool never_used_and_behind = false;
+            /* out of the min only */
+            bool sleeping = false;
+            if (t->npkts == 0) {
+                /* Never ran a packet, so pktts is the value the init pass gave
+                 * every thread and it will never move. In offline mode a whole
+                 * run can finish inside the host-time window, which would let
+                 * such a thread pin time for the run: measure the window in
+                 * packet time instead. */
+                SCTime_t win = SCTIME_ADD_SECS(pktts, TIME_STALE_THRESHOLD_SECS);
+                never_used_and_behind = SCTIME_CMP_LT(win, maxts);
+            } else {
+                /* The thread did process packets, but has not touched one for
+                 * 5s of host time: treat it as sleeping as before. A worker
+                 * that keeps consuming packets stays in the min: dropping it
+                 * would let global expiry (thresholds, defrag, hosts,
+                 * ipports) run ahead of its packets. The stamp moves per
+                 * packet, so one stuck inside a single packet past the window
+                 * reads as sleeping and is dropped, busy or not. */
+                SCTime_t stale = SCTIME_ADD_SECS(t->sys_sec_stamp, TIME_STALE_THRESHOLD_SECS);
+                sleeping = SCTIME_CMP_LT(stale, now);
+            }
+            if (!never_used_and_behind && (!fallback_set || SCTIME_CMP_LT(pktts, fallback))) {
+                fallback = pktts;
+                fallback_set = true;
+            }
+            if (never_used_and_behind || sleeping) {
                 SCSpinUnlock(&t->spin);
                 continue;
             }
@@ -2390,6 +2477,33 @@ void TmThreadsGetMinimalTimestamp(struct timeval *ts)
             }
         }
         SCSpinUnlock(&t->spin);
+    }
+    if (!set && fallback_set) {
+        /* No packet thread is fresh: nothing has touched a packet for the whole
+         * window. That is normal at the end of a file replay, where the flows
+         * are closed by pseudo packets and those never set a thread timestamp
+         * (see FlowWorker), so the drain runs on a clock of its own. Returning
+         * 0 there leaves the tail of the replay stamped 1970, and where the
+         * drain starts relative to the window is a function of the host: seen
+         * as flow events stamped 1970-01-01 on a slow FreeBSD runner. Hold the
+         * clock at the oldest stamp the packet time rule still allows instead:
+         * that is never ahead of what the fresh set would have given, since it
+         * is a minimum over a superset. */
+        SCTIME_TO_TIMEVAL(&local, fallback);
+    }
+    if (!set && !fallback_set) {
+        /* No packet thread registered at all: the workers unregister on their
+         * way out while the flow manager is still writing the last flow
+         * records. 0 there stamps that tail 1970, and whether a host gets there
+         * before the sweep finishes is a race. Repeat the last clock instead: it
+         * is a packet time from this run, so it cannot be ahead of any packet. */
+        SCTime_t last = SC_ATOMIC_GET(last_min_ts);
+        if (SCTIME_CMP_NEQ(last, nullts)) {
+            SCTIME_TO_TIMEVAL(&local, last);
+        }
+    }
+    if (set || fallback_set) {
+        SC_ATOMIC_SET(last_min_ts, SCTIME_FROM_TIMEVAL(&local));
     }
     *ts = local;
     SCLogDebug("ts->tv_sec %"PRIuMAX, (uintmax_t)ts->tv_sec);
@@ -2498,10 +2612,286 @@ static int TmThreadsTestWaitForUnpause02(void)
     PASS;
 }
 
+static int TmThreadsTestMinimalTimestamp01(void)
+{
+    ThreadVars th_v[3];
+    int ids[3];
+    SCTime_t base = SCTIME_FROM_SECS(1000);
+
+    /* all threads within the stale window: the oldest one sets the time */
+    for (int i = 0; i < 3; i++) {
+        memset(&th_v[i], 0, sizeof(th_v[i]));
+        th_v[i].type = TVT_PPT;
+        strlcpy(th_v[i].name, "W#0t", sizeof(th_v[i].name));
+        ids[i] = TmThreadsRegisterThread(&th_v[i], TVT_PPT);
+        FAIL_IF(ids[i] <= 0);
+        TmThreadsSetThreadTimestamp(ids[i], SCTIME_ADD_SECS(base, i * 2));
+    }
+
+    struct timeval ts;
+    TmThreadsGetMinimalTimestamp(&ts);
+    FAIL_IF_NOT(ts.tv_sec == 1000);
+
+    for (int i = 0; i < 3; i++)
+        TmThreadsUnregisterThread(ids[i]);
+    PASS;
+}
+
+static int TmThreadsTestMinimalTimestamp02(void)
+{
+    ThreadVars th_v[3];
+    int ids[3];
+    SCTime_t base = SCTIME_FROM_SECS(1000);
+    /* seconds behind the newest thread. All three have run packets, so all
+     * three hold the clock back: a worker with a backlog must not be dropped
+     * just because the file moved on without it. */
+    const int lag[3] = { 30, 3, 0 };
+
+    for (int i = 0; i < 3; i++) {
+        memset(&th_v[i], 0, sizeof(th_v[i]));
+        th_v[i].type = TVT_PPT;
+        strlcpy(th_v[i].name, "W#0t", sizeof(th_v[i].name));
+        ids[i] = TmThreadsRegisterThread(&th_v[i], TVT_PPT);
+        FAIL_IF(ids[i] <= 0);
+        TmThreadsSetThreadTimestamp(ids[i], SCTIME_ADD_SECS(base, 30 - lag[i]));
+    }
+
+    struct timeval ts;
+    TmThreadsGetMinimalTimestamp(&ts);
+    FAIL_IF_NOT(ts.tv_sec == 1000);
+
+    for (int i = 0; i < 3; i++)
+        TmThreadsUnregisterThread(ids[i]);
+    PASS;
+}
+
+static int TmThreadsTestMinimalTimestamp03(void)
+{
+    ThreadVars th_v[2];
+    int ids[2];
+    SCTime_t base = SCTIME_FROM_SECS(1000);
+
+    /* exactly on the window boundary still counts, so the comparison is
+     * inclusive: only a thread further behind than the window is dropped */
+    for (int i = 0; i < 2; i++) {
+        memset(&th_v[i], 0, sizeof(th_v[i]));
+        th_v[i].type = TVT_PPT;
+        strlcpy(th_v[i].name, "W#0t", sizeof(th_v[i].name));
+        ids[i] = TmThreadsRegisterThread(&th_v[i], TVT_PPT);
+        FAIL_IF(ids[i] <= 0);
+    }
+    TmThreadsInitThreadsTimestamp(base);
+    TmThreadsSetThreadTimestamp(ids[1], SCTIME_ADD_SECS(base, TIME_STALE_THRESHOLD_SECS));
+
+    struct timeval ts;
+    TmThreadsGetMinimalTimestamp(&ts);
+    FAIL_IF_NOT(ts.tv_sec == 1000);
+
+    for (int i = 0; i < 2; i++)
+        TmThreadsUnregisterThread(ids[i]);
+    PASS;
+}
+
+static int TmThreadsTestMinimalTimestamp04(void)
+{
+    ThreadVars th_v[3];
+    int ids[3];
+    SCTime_t base = SCTIME_FROM_SECS(1000);
+
+    /* The offline case: every thread gets the first packet's stamp, then the
+     * scheduler hands the file to one of them. The two that never get work
+     * must stop holding the clock back once the file is past the window,
+     * no matter how fast the host replays. */
+    for (int i = 0; i < 3; i++) {
+        memset(&th_v[i], 0, sizeof(th_v[i]));
+        th_v[i].type = TVT_PPT;
+        strlcpy(th_v[i].name, "W#0t", sizeof(th_v[i].name));
+        ids[i] = TmThreadsRegisterThread(&th_v[i], TVT_PPT);
+        FAIL_IF(ids[i] <= 0);
+    }
+    TmThreadsInitThreadsTimestamp(base);
+    TmThreadsSetThreadTimestamp(ids[2], SCTIME_ADD_SECS(base, 30));
+
+    struct timeval ts;
+    TmThreadsGetMinimalTimestamp(&ts);
+    FAIL_IF_NOT(ts.tv_sec == 1030);
+
+    for (int i = 0; i < 3; i++)
+        TmThreadsUnregisterThread(ids[i]);
+    PASS;
+}
+
+static int TmThreadsTestMinimalTimestamp05(void)
+{
+    ThreadVars th_v[2];
+    int ids[2], reuse_id;
+    SCTime_t base = SCTIME_FROM_SECS(1000);
+
+    /* A slot is recycled while the store stays alive, as between the pcaps of
+     * a unix-socket run. The thread taking it over has run no packets, so it
+     * must not inherit the clock-holding of whoever used the slot before. */
+    for (int i = 0; i < 2; i++) {
+        memset(&th_v[i], 0, sizeof(th_v[i]));
+        th_v[i].type = TVT_PPT;
+        strlcpy(th_v[i].name, "W#0t", sizeof(th_v[i].name));
+        ids[i] = TmThreadsRegisterThread(&th_v[i], TVT_PPT);
+        FAIL_IF(ids[i] <= 0);
+    }
+
+    TmThreadsSetThreadTimestamp(ids[0], base);
+    TmThreadsUnregisterThread(ids[0]);
+    reuse_id = TmThreadsRegisterThread(&th_v[0], TVT_PPT);
+    FAIL_IF_NOT(reuse_id == ids[0]);
+
+    TmThreadsSetThreadTimestamp(ids[1], SCTIME_ADD_SECS(base, 30));
+
+    struct timeval ts;
+    TmThreadsGetMinimalTimestamp(&ts);
+    FAIL_IF_NOT(ts.tv_sec == 1030);
+
+    TmThreadsUnregisterThread(ids[0]);
+    TmThreadsUnregisterThread(ids[1]);
+    PASS;
+}
+
+static int TmThreadsTestMinimalTimestamp06(void)
+{
+    ThreadVars th_v[2];
+    int ids[2];
+    SCTime_t base = SCTIME_FROM_SECS(1000);
+
+    /* The tail of a file replay: the flows are closed by pseudo packets, which
+     * set no thread timestamp, so a drain slower than the window leaves every
+     * thread stale in host time. The clock must then stay in the file instead
+     * of falling back to 0, and a thread that never ran a packet must not get
+     * to pin it at the start of the file either. */
+    for (int i = 0; i < 2; i++) {
+        memset(&th_v[i], 0, sizeof(th_v[i]));
+        th_v[i].type = TVT_PPT;
+        strlcpy(th_v[i].name, "W#0t", sizeof(th_v[i].name));
+        ids[i] = TmThreadsRegisterThread(&th_v[i], TVT_PPT);
+        FAIL_IF(ids[i] <= 0);
+    }
+    TmThreadsInitThreadsTimestamp(base);
+    TmThreadsSetThreadTimestamp(ids[1], SCTIME_ADD_SECS(base, 30));
+
+    /* the one thread that ran packets has not touched one for a whole window */
+    Thread *t = &thread_store.threads[ids[1] - 1];
+    SCSpinLock(&t->spin);
+    t->sys_sec_stamp.secs = SCTIME_SECS(SCTimeGetTime()) - (TIME_STALE_THRESHOLD_SECS + 1);
+    SCSpinUnlock(&t->spin);
+
+    struct timeval ts;
+    TmThreadsGetMinimalTimestamp(&ts);
+    FAIL_IF_NOT(ts.tv_sec == 1030);
+
+    for (int i = 0; i < 2; i++)
+        TmThreadsUnregisterThread(ids[i]);
+    PASS;
+}
+
+static int TmThreadsTestMinimalTimestamp07(void)
+{
+    ThreadVars th_v_ppt, th_v_mgmt;
+    SCTime_t nullts = SCTIME_INITIALIZER;
+    SCTime_t base = SCTIME_FROM_SECS(1000);
+
+    /* The very end of a run: the last worker unregisters while the flow manager
+     * is still writing flow records, so there is no packet thread left to take a
+     * minimum of. The clock has to repeat what it last handed out. */
+    memset(&th_v_ppt, 0, sizeof(th_v_ppt));
+    memset(&th_v_mgmt, 0, sizeof(th_v_mgmt));
+    th_v_ppt.type = TVT_PPT;
+    th_v_mgmt.type = TVT_MGMT;
+    strlcpy(th_v_ppt.name, "W#0t", sizeof(th_v_ppt.name));
+    strlcpy(th_v_mgmt.name, "FM", sizeof(th_v_mgmt.name));
+    int id_ppt = TmThreadsRegisterThread(&th_v_ppt, TVT_PPT);
+    FAIL_IF(id_ppt <= 0);
+    int id_mgmt = TmThreadsRegisterThread(&th_v_mgmt, TVT_MGMT);
+    FAIL_IF(id_mgmt <= 0);
+    /* the mgmt thread has to sit after the hole the worker leaves */
+    FAIL_IF_NOT(id_ppt < id_mgmt);
+
+    TmThreadsSetThreadTimestamp(id_ppt, base);
+    struct timeval ts;
+    TmThreadsGetMinimalTimestamp(&ts);
+    FAIL_IF_NOT(ts.tv_sec == 1000);
+
+    TmThreadsUnregisterThread(id_ppt);
+    memset(&ts, 0, sizeof(ts));
+    TmThreadsGetMinimalTimestamp(&ts);
+    FAIL_IF_NOT(ts.tv_sec == 1000);
+
+    TmThreadsUnregisterThread(id_mgmt);
+    memset(&ts, 0, sizeof(ts));
+    TmThreadsGetMinimalTimestamp(&ts);
+    FAIL_IF_NOT(ts.tv_sec == 1000);
+
+    /* do not leave the mark set for the tests that follow */
+    TmThreadsInitThreadsTimestamp(nullts);
+    PASS;
+}
+
+static int TmThreadsTestMinimalTimestamp08(void)
+{
+    ThreadVars th_v[2];
+    SCTime_t nullts = SCTIME_INITIALIZER;
+    int ids[2], reuse_id;
+
+    /* A unix-socket session outlives each pcap it replays: the threads are torn
+     * down and recreated into slots that still hold the clock fields of the
+     * previous run, and while that is going on the store has holes in it. The
+     * flow manager waits on TimeModeIsReady() before it prunes anything, so a
+     * recycled slot must not look like a thread that has timed a packet, and a
+     * hole must not hide the threads after it. */
+    for (int i = 0; i < 2; i++) {
+        memset(&th_v[i], 0, sizeof(th_v[i]));
+        th_v[i].type = TVT_PPT;
+        strlcpy(th_v[i].name, "W#0t", sizeof(th_v[i].name));
+        ids[i] = TmThreadsRegisterThread(&th_v[i], TVT_PPT);
+        FAIL_IF(ids[i] <= 0);
+    }
+    TmThreadsSetThreadTimestamp(ids[0], SCTIME_FROM_SECS(1000));
+    FAIL_IF_NOT(TmThreadsTimeSubsysIsReady() == false);
+
+    /* slot 0 freed, so the check has to look past the hole to the thread that
+     * has timed nothing yet */
+    TmThreadsUnregisterThread(ids[0]);
+    FAIL_IF(TmThreadsTimeSubsysIsReady());
+
+    TmThreadsSetThreadTimestamp(ids[1], SCTIME_FROM_SECS(1000));
+    FAIL_IF_NOT(TmThreadsTimeSubsysIsReady());
+
+    /* a thread taking slot 0 over has to start out as one that knows no time */
+    reuse_id = TmThreadsRegisterThread(&th_v[0], TVT_PPT);
+    FAIL_IF(reuse_id != ids[0]);
+    FAIL_IF(TmThreadsTimeSubsysIsReady());
+
+    /* the first packet of the new file anchors time for everyone again */
+    TmThreadsInitThreadsTimestamp(SCTIME_FROM_SECS(2000));
+    FAIL_IF_NOT(TmThreadsTimeSubsysIsReady());
+    struct timeval ts;
+    TmThreadsGetMinimalTimestamp(&ts);
+    FAIL_IF(ts.tv_sec != 2000);
+
+    TmThreadsUnregisterThread(reuse_id);
+    TmThreadsUnregisterThread(ids[1]);
+    TmThreadsInitThreadsTimestamp(nullts);
+    PASS;
+}
+
 void TmThreadsRegisterTests(void)
 {
     UtRegisterTest("TmThreadsTestWaitForUnpause01", TmThreadsTestWaitForUnpause01);
     UtRegisterTest("TmThreadsTestWaitForUnpause02", TmThreadsTestWaitForUnpause02);
+    UtRegisterTest("TmThreadsTestMinimalTimestamp01", TmThreadsTestMinimalTimestamp01);
+    UtRegisterTest("TmThreadsTestMinimalTimestamp02", TmThreadsTestMinimalTimestamp02);
+    UtRegisterTest("TmThreadsTestMinimalTimestamp03", TmThreadsTestMinimalTimestamp03);
+    UtRegisterTest("TmThreadsTestMinimalTimestamp04", TmThreadsTestMinimalTimestamp04);
+    UtRegisterTest("TmThreadsTestMinimalTimestamp05", TmThreadsTestMinimalTimestamp05);
+    UtRegisterTest("TmThreadsTestMinimalTimestamp06", TmThreadsTestMinimalTimestamp06);
+    UtRegisterTest("TmThreadsTestMinimalTimestamp07", TmThreadsTestMinimalTimestamp07);
+    UtRegisterTest("TmThreadsTestMinimalTimestamp08", TmThreadsTestMinimalTimestamp08);
 }
 
 #endif /* UNITTESTS */
