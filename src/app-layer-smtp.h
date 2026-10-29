@@ -102,6 +102,17 @@ typedef struct SMTPTransaction_ {
     bool is_data;
     /** the mime decoding parser state */
     MimeStateSMTP *mime_state;
+    /** the mime parser belongs to a BDAT message, not to a DATA one */
+    bool bdat_mime;
+    /** BDAT body line under assembly: chunk octets are not line delimited, so a MIME
+     *  line can straddle a chunk or segment edge. Owned by the tx. */
+    uint8_t *bdat_line;
+    uint32_t bdat_line_len;
+    bool bdat_discard; /* rest of a line past SMTP_LINE_BUFFER_LIMIT, dropped to its LF */
+    /** a chunk of the current message declared more octets than max-bdat-chunk-len: its
+     *  octets are counted and skipped as data, but never MIME parsed nor file extracted.
+     *  Set for a command that parses, and ends with the message it was declared in. */
+    bool bdat_oversize;
 
     /* MAIL FROM parameters */
     uint8_t *mail_from;

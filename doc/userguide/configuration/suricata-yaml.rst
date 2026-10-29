@@ -2125,21 +2125,14 @@ incompatible with ``decode-mime``. If both are enabled,
         # extract messages in raw format from SMTP
         raw-extraction: true
 
-BDAT chunked messages
-~~~~~~~~~~~~~~~~~~~~~
-
-A chunked message is closed by a ``BDAT <n> LAST`` command. Moving on to another
-command once a chunk has been delivered, or ending the connection there, raises
-``smtp.bdat_last_missing``; ending it with a chunk only partly delivered raises
-``smtp.bdat_incomplete_chunk``. ``RSET``, ``QUIT`` and a mid-session ``HELO`` or
-``EHLO`` drop the message the way ``LAST`` ends it, so they raise nothing.
-
 A client using CHUNKING announces the size of its message data with a ``BDAT``
-command. ``max-bdat-chunk-len`` caps what a single command may declare: a larger
-value raises ``smtp.bdat_max_chunk_len_exceeded``. The declaration itself stands,
-so the octets behind the command are still read as the chunk it announces and not
-as commands. The default is 1 GB, far above the chunk sizes in use; set it to 0
-to disable the check.
+command. The configuration parameter ``max-bdat-chunk-len`` caps the length a
+single ``BDAT`` command may declare. An event
+``smtp.bdat_max_chunk_len_exceeded`` will be emitted when a declaration exceeds
+the limit. A ``BDAT`` command that does not parse at all is reported as
+``smtp.invalid_bdat`` instead, since no chunk follows it. This configuration
+parameter has a ``1 GB`` default value. It can be set to ``0`` to disable the
+check.
 
 ::
 
