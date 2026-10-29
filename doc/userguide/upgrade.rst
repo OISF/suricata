@@ -51,6 +51,11 @@ Default Changes
 - ``http2`` default value for max-streams is now 256 (instead of 4096).
 - An absent configuration value for ``stream.reassembly.urgent.policy`` is now treated as ``oob`` instead of ``inline``.
 - An absent configuration value for ``stream.reassembly.urgent.oob-limit-policy`` is now treated as ``drop`` instead of ``inline``.
+- New setting ``app-layer.protocols.http2.brotli-memcap`` limits the memory
+  used for HTTP/2 brotli decompression, summed over all flows. The default is
+  256 MiB; previously there was no limit. When the limit is reached,
+  decompression of the affected stream stops and the
+  ``http2.failed_decompression`` event is raised.
 
 Other Changes
 ~~~~~~~~~~~~~
@@ -65,6 +70,12 @@ Other Changes
 - The base64 encode and decode functions now return binary-safe strings; results containing NUL bytes were previously truncated.
 - flow:app_layer_proto() now returns "unknown" for unknown application-layer protocols instead of nil.
 - A new transform.lua stats block (errors, blocked_function_errors, instruction_limit_errors, memory_limit_errors) is exposed in /stats and etc/schema.json, and transform failures log one rate-limited warning per script.
+- ``security.lua.max-bytes`` now also counts memory a Lua script keeps between
+  calls (globals, upvalues, cached tables), on top of its setup-time
+  footprint. Previously the limit was re-based on every call, so retained
+  memory was never counted. Scripts that accumulate state can now hit the
+  limit: the call fails, ``detect.lua.memory_limit_errors`` is incremented and
+  the rule does not match. Raise ``max-bytes`` for such scripts.
 
 EVE Changes
 ~~~~~~~~~~~
