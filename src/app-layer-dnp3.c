@@ -905,6 +905,24 @@ done:
 }
 
 /**
+ * \brief Close the open transactions of one direction after a TCP gap.
+ *
+ * A gap can fall inside a multi-segment fragment. Its later segments
+ * are lost, and since the transport sequence number wraps every 64
+ * segments, a segment of a later fragment could otherwise be appended
+ * to the stale transaction.
+ */
+static void DNP3GapCloseTxs(DNP3State *dnp3, bool request)
+{
+    DNP3Transaction *tx;
+    TAILQ_FOREACH (tx, &dnp3->tx_list, next) {
+        if (tx->is_request == request && !tx->done) {
+            tx->done = 1;
+        }
+    }
+}
+
+/**
  * \brief Handle DNP3 request user data.
  *
  * \param dnp3 the current DNP3State
@@ -1104,6 +1122,11 @@ static int DNP3HandleRequestLinkLayer(
         DNP3LinkHeader *header = (DNP3LinkHeader *)input;
 
         if (!DNP3CheckStartBytes(header)) {
+            if (dnp3->request_gap) {
+                /* After a gap the data may start mid-frame. */
+                DNP3Resync(&input, &input_len, &processed);
+                continue;
+            }
             /* Terminal error condition. */
             SCReturnInt(-1);
         }
@@ -1124,6 +1147,7 @@ static int DNP3HandleRequestLinkLayer(
             /* Insufficient data, just break - will wait for more data. */
             break;
         }
+        dnp3->request_gap = 0; /* back in sync */
 
         /* Ignore non-user data for now. */
         if (!DNP3IsUserData(header)) {
@@ -1173,6 +1197,14 @@ static AppLayerResult DNP3ParseRequest(Flow *f, void *state, AppLayerParserState
 
     const uint8_t *input = StreamSliceGetData(&stream_slice);
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
+
+    if (input == NULL && input_len > 0) {
+        /* A TCP gap: drop the partial frame and resynchronize. */
+        DNP3BufferReset(buffer);
+        DNP3GapCloseTxs(dnp3, true);
+        dnp3->request_gap = 1;
+        SCReturnStruct(APP_LAYER_OK);
+    }
 
     if (input_len == 0) {
         SCReturnStruct(APP_LAYER_OK);
@@ -1238,6 +1270,11 @@ static int DNP3HandleResponseLinkLayer(
         DNP3LinkHeader *header = (DNP3LinkHeader *)input;
 
         if (!DNP3CheckStartBytes(header)) {
+            if (dnp3->response_gap) {
+                /* After a gap the data may start mid-frame. */
+                DNP3Resync(&input, &input_len, &processed);
+                continue;
+            }
             /* Terminal error condition. */
             SCReturnInt(-1);
         }
@@ -1259,6 +1296,7 @@ static int DNP3HandleResponseLinkLayer(
             /* Insufficient data, just break - will wait for more data. */
             break;
         }
+        dnp3->response_gap = 0; /* back in sync */
 
         /* Only handle user data frames for now. */
         if (!DNP3IsUserData(header)) {
@@ -1310,6 +1348,14 @@ static AppLayerResult DNP3ParseResponse(Flow *f, void *state, AppLayerParserStat
 
     const uint8_t *input = StreamSliceGetData(&stream_slice);
     uint32_t input_len = StreamSliceGetDataLen(&stream_slice);
+
+    if (input == NULL && input_len > 0) {
+        /* A TCP gap: drop the partial frame and resynchronize. */
+        DNP3BufferReset(buffer);
+        DNP3GapCloseTxs(dnp3, false);
+        dnp3->response_gap = 1;
+        SCReturnStruct(APP_LAYER_OK);
+    }
 
     if (buffer->len) {
         if (!DNP3BufferAdd(buffer, input, input_len)) {
@@ -1678,6 +1724,13 @@ void RegisterDNP3Parsers(void)
                 dnp3_max_objects = (uint64_t)value;
             }
         }
+
+        /* On a TCP gap (a segment the engine never saw, e.g. a capture drop)
+         * the partial frame is discarded and the parser resynchronizes on the
+         * next link-layer start bytes, as it already does after a bad header
+         * CRC, instead of ending DNP3 parsing for the rest of the flow. */
+        AppLayerParserRegisterOptionFlags(
+                IPPROTO_TCP, ALPROTO_DNP3, APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
     } else {
         SCLogConfig("Parser disabled for protocol %s. "
             "Protocol detection still on.", proto_name);
