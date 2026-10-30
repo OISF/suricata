@@ -51,7 +51,7 @@ IPPairHashRow *ippair_hash;
 static IPPairQueue ippair_spare_q;
 IPPairConfig ippair_config;
 SC_ATOMIC_DECLARE(uint64_t,ippair_memuse);
-SC_ATOMIC_DECLARE(uint32_t,ippair_counter);
+SC_ATOMIC_DECLARE(uint64_t, ippair_active);
 SC_ATOMIC_DECLARE(uint32_t,ippair_prune_idx);
 
 /** size of the ippair object. Maybe updated in IPPairInitConfig to include
@@ -95,10 +95,16 @@ uint64_t IPPairGetMemuse(void)
     return memusecopy;
 }
 
+uint64_t IPPairGetActive(void)
+{
+    uint64_t ippair_activecopy = SC_ATOMIC_GET(ippair_active);
+    return ippair_activecopy;
+}
+
 void IPPairMoveToSpare(IPPair *h)
 {
     IPPairEnqueue(&ippair_spare_q, h);
-    (void) SC_ATOMIC_SUB(ippair_counter, 1);
+    (void)SC_ATOMIC_SUB(ippair_active, 1);
 }
 
 IPPair *IPPairAlloc(void)
@@ -169,7 +175,8 @@ void IPPairInitConfig(bool quiet)
 
     memset(&ippair_config,  0, sizeof(ippair_config));
     //SC_ATOMIC_INIT(flow_flags);
-    SC_ATOMIC_INIT(ippair_counter);
+    SC_ATOMIC_INIT(ippair_active);
+    SC_ATOMIC_SET(ippair_active, 0);
     SC_ATOMIC_INIT(ippair_memuse);
     SC_ATOMIC_INIT(ippair_prune_idx);
     SC_ATOMIC_INIT(ippair_config.memcap);
@@ -490,7 +497,7 @@ static IPPair *IPPairGetNew(Address *a, Address *b)
         /* ippair is initialized (recycled) but *unlocked* */
     }
 
-    (void) SC_ATOMIC_ADD(ippair_counter, 1);
+    (void)SC_ATOMIC_ADD(ippair_active, 1);
     SCMutexLock(&h->m);
     return h;
 }
