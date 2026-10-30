@@ -1200,7 +1200,7 @@ void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
     SCReturn;
 }
 
-static void IPOnlyPrepareUpdateBitarray(const IPOnlyCIDRItem *src, SigNumArray *sna)
+static void IPOnlySigNumArrayUpdate(const IPOnlyCIDRItem *src, SigNumArray *sna)
 {
     uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
     if (src->negated > 0)
@@ -1209,6 +1209,11 @@ static void IPOnlyPrepareUpdateBitarray(const IPOnlyCIDRItem *src, SigNumArray *
     else
         /* Set it */
         sna->array[src->signum / 8] |= tmp;
+}
+
+static void IPOnlyPrepareUpdateBitarray(const IPOnlyCIDRItem *src, NodeUserData *nud)
+{
+    IPOnlySigNumArrayUpdate(src, &nud->sids);
 }
 
 /**
@@ -1265,7 +1270,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 
                     /* Not found, insert a new one */
                     NodeUserData *nud = NodeUserDataNew(de_ctx, &de_ctx->io_ctx);
-                    IPOnlyPrepareUpdateBitarray(src, &nud->sids);
+                    IPOnlyPrepareUpdateBitarray(src, nud);
 
                     if (src->netmask == 32)
                         node4 = SCRadix4AddKeyIPV4(&de_ctx->io_ctx.tree_ipv4src,
@@ -1281,7 +1286,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 
                     /* Found, copy the sig num table, add this signum and insert */
                     NodeUserData *nud = NodeUserDataCopy((NodeUserData *)user_data);
-                    IPOnlyPrepareUpdateBitarray(src, &nud->sids);
+                    IPOnlyPrepareUpdateBitarray(src, nud);
 
                     if (src->netmask == 32)
                         node4 = SCRadix4AddKeyIPV4(&de_ctx->io_ctx.tree_ipv4src,
@@ -1303,7 +1308,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 
                 /* it's already inserted. Update it */
                 NodeUserData *nud = (NodeUserData *)user_data;
-                IPOnlyPrepareUpdateBitarray(src, &nud->sids);
+                IPOnlyPrepareUpdateBitarray(src, nud);
             }
         } else if (src->family == AF_INET6) {
             SCLogDebug("To IPv6");
@@ -1322,7 +1327,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                 if (user_data == NULL) {
                     /* Not found, insert a new one */
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
-                    IPOnlyPrepareUpdateBitarray(src, sna);
+                    IPOnlySigNumArrayUpdate(src, sna);
 
                     if (src->netmask == 128)
                         node6 = SCRadix6AddKeyIPV6(&de_ctx->io_ctx.tree_ipv6src,
@@ -1336,7 +1341,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                 } else {
                     /* Found, copy the sig num table, add this signum and insert */
                     SigNumArray *sna = SigNumArrayCopy((SigNumArray *)user_data);
-                    IPOnlyPrepareUpdateBitarray(src, sna);
+                    IPOnlySigNumArrayUpdate(src, sna);
 
                     if (src->netmask == 128)
                         node6 = SCRadix6AddKeyIPV6(&de_ctx->io_ctx.tree_ipv6src,
@@ -1351,7 +1356,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
             } else {
                 /* it's already inserted. Update it */
                 SigNumArray *sna = (SigNumArray *)user_data;
-                IPOnlyPrepareUpdateBitarray(src, sna);
+                IPOnlySigNumArrayUpdate(src, sna);
             }
         }
         IPOnlyCIDRItem *tmpaux = src;
@@ -1390,7 +1395,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 
                     /** Not found, insert a new one */
                     NodeUserData *nud = NodeUserDataNew(de_ctx, &de_ctx->io_ctx);
-                    IPOnlyPrepareUpdateBitarray(dst, &nud->sids);
+                    IPOnlyPrepareUpdateBitarray(dst, nud);
 
                     if (dst->netmask == 32)
                         node4 = SCRadix4AddKeyIPV4(&de_ctx->io_ctx.tree_ipv4dst,
@@ -1406,7 +1411,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 
                     /* Found, copy the sig num table, add this signum and insert */
                     NodeUserData *nud = NodeUserDataCopy((NodeUserData *)user_data);
-                    IPOnlyPrepareUpdateBitarray(dst, &nud->sids);
+                    IPOnlyPrepareUpdateBitarray(dst, nud);
 
                     if (dst->netmask == 32)
                         node4 = SCRadix4AddKeyIPV4(&de_ctx->io_ctx.tree_ipv4dst,
@@ -1424,7 +1429,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 
                 /* it's already inserted. Update it */
                 NodeUserData *nud = (NodeUserData *)user_data;
-                IPOnlyPrepareUpdateBitarray(dst, &nud->sids);
+                IPOnlyPrepareUpdateBitarray(dst, nud);
             }
         } else if (dst->family == AF_INET6) {
             SCLogDebug("To IPv6");
@@ -1445,7 +1450,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                 if (user_data == NULL) {
                     /* Not found, insert a new one */
                     SigNumArray *sna = SigNumArrayNew(de_ctx, &de_ctx->io_ctx);
-                    IPOnlyPrepareUpdateBitarray(dst, sna);
+                    IPOnlySigNumArrayUpdate(dst, sna);
 
                     if (dst->netmask == 128)
                         node6 = SCRadix6AddKeyIPV6(&de_ctx->io_ctx.tree_ipv6dst,
@@ -1459,7 +1464,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
                 } else {
                     /* Found, copy the sig num table, add this signum and insert */
                     SigNumArray *sna = SigNumArrayCopy((SigNumArray *)user_data);
-                    IPOnlyPrepareUpdateBitarray(dst, sna);
+                    IPOnlySigNumArrayUpdate(dst, sna);
 
                     if (dst->netmask == 128)
                         node6 = SCRadix6AddKeyIPV6(&de_ctx->io_ctx.tree_ipv6dst,
@@ -1474,7 +1479,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
             } else {
                 /* it's already inserted. Update it */
                 SigNumArray *sna = (SigNumArray *)user_data;
-                IPOnlyPrepareUpdateBitarray(dst, sna);
+                IPOnlySigNumArrayUpdate(dst, sna);
             }
         }
         IPOnlyCIDRItem *tmpaux = dst;
