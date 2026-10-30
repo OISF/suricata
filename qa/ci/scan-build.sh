@@ -53,8 +53,9 @@ apt -y install \
     zlib1g \
     zlib1g-dev
 
-./scripts/bundle.sh
-./autogen.sh
+if [ -f ./autogen.sh ]; then
+    ./autogen.sh
+fi
 
 scan-build-22 ./configure --enable-warnings --enable-dpdk --enable-nfqueue --enable-nflog
 
