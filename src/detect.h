@@ -1359,13 +1359,12 @@ typedef struct DetectEngineThreadCtx_ {
      * marker + writing signature, cleared per run for the slots the run
      * wrote; an unwritten slot reads as unset (nil) to scripts */
     ByteVarSlot *byte_values;
-    /* highest slot index written this run, -1 if none; the per-run
-     * clear only walks up to it */
-    int32_t byte_values_max;
 
     SigJsonContent *json_content;
     uint8_t json_content_capacity;
     uint8_t json_content_len;
+    /* true if tx_id is set */
+    bool tx_id_set;
 
     /* counter for the filestore array below -- up here for cache reasons. */
     uint16_t filestore_cnt;
@@ -1399,8 +1398,6 @@ typedef struct DetectEngineThreadCtx_ {
         uint32_t *to_clear_queue;
     } multi_inspect;
 
-    /* true if tx_id is set */
-    bool tx_id_set;
     /** ID of the transaction currently being inspected. */
     uint64_t tx_id;
     /** Transaction data of the transaction currently being inspected, as the
@@ -1433,6 +1430,9 @@ typedef struct DetectEngineThreadCtx_ {
 
     RuleMatchCandidateTx *tx_candidates;
     uint32_t tx_candidates_size;
+    /* highest slot index written this run, -1 if none; the per-run
+     * clear only walks up to it */
+    int32_t byte_values_max;
 
     /** Per hook LTE coverage of the current tx walk. Kept here instead of in
      *  the per-tx firewall state so IDS traffic does not pay to clear it.
