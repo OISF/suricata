@@ -935,7 +935,7 @@ app-layer:
       # max-string-length: 4 KB
     mqtt:
       enabled: yes
-      # max-msg-length: 1 MiB
+      # max-msg-length: 1 MB
       # subscribe-topic-match-limit: 100
       # unsubscribe-topic-match-limit: 100
       # Maximum number of live MQTT transactions per flow
@@ -988,19 +988,19 @@ app-layer:
       enabled: yes
       # Maximum number of live DCERPC transactions per flow
       # max-tx: 1024
-      #max-stub-size: 1MiB
+      #max-stub-size: 1MB
 
     ftp:
       enabled: yes
-      # memcap: 64 MiB
+      # memcap: 64 MB
       # max-tx: 1024
       # Maximum number of preliminary (1xx) responses kept per transaction.
       # max-preliminary-responses: 16
     websocket:
       #enabled: yes
-      # Maximum used payload size, the rest is skipped
+      # Maximum used payload size in bytes, the rest is skipped
       # Also applies as a maximum for uncompressed data
-      # max-payload-size: 64 KiB
+      # max-payload-size: 65535
     rdp:
       #enabled: yes
     ssh:
@@ -1028,7 +1028,7 @@ app-layer:
       # Maximum number of frames per tx
       #max-frames: 65536
       # Maximum data to decompress if the decompress ratio is too high
-      #compression-bomb-limit: 1MiB
+      #compression-bomb-limit: 1MB
     smtp:
       enabled: yes
       raw-extraction: no
@@ -1086,7 +1086,7 @@ app-layer:
       # Stream reassembly size for SMB streams. By default track it completely.
       #stream-depth: 0
       #dcerpc:
-      #  max-stub-size: 1MiB
+      #  max-stub-size: 1MB
 
     nfs:
       enabled: yes
