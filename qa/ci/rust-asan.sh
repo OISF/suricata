@@ -77,7 +77,9 @@ dnf -y install \
 curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly-${NIGHTLY} --profile minimal -y
 . "${HOME}/.cargo/env"
 
-./autogen.sh
+if [ -f ./autogen.sh ]; then
+    ./autogen.sh
+fi
 
 CFLAGS="${CFLAGS[@]}" LDFLAGS="${LDFLAGS[@]}" \
     ./configure --enable-warnings --enable-debug --enable-unittests --disable-shared

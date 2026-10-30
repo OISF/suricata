@@ -46,7 +46,9 @@ run()
         exit 1
     fi
 
-    ./autogen.sh
+    if [ -f ./autogen.sh ]; then
+        ./autogen.sh
+    fi
     CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests
     gmake -j "${CPUS}"
     ./src/suricata -u -l /tmp/
