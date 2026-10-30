@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -33,12 +33,18 @@ typedef struct TmqhFlowMode_ {
  *  \param queues array of queue id's this flow handler outputs to */
 typedef struct TmqhFlowCtx_ {
     uint16_t size;
+
+    /* last for round robin non-flow distributions */
     uint16_t last;
 
+    uint16_t last_flow_qid;
+    uint32_t last_flow_hash_cnt;
+    uint32_t last_flow_hash_cnt_max;
+    PacketQueueNoLock last_flow_hash_queue;
     TmqhFlowMode *queues;
 } TmqhFlowCtx;
 
-void TmqhFlowRegister (void);
+void TmqhFlowRegister(void);
 void TmqhFlowRegisterTests(void);
 
 void TmqhFlowPrintAutofpHandler(void);
