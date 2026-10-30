@@ -1213,7 +1213,15 @@ static void IPOnlySigNumArrayUpdate(const IPOnlyCIDRItem *src, SigNumArray *sna)
 
 static void IPOnlyPrepareUpdateBitarray(const IPOnlyCIDRItem *src, NodeUserData *nud)
 {
-    IPOnlySigNumArrayUpdate(src, &nud->sids);
+    uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
+    if (src->negated > 0) {
+        /* Unset it */
+        nud->sids.array[src->signum / 8] &= ~tmp;
+        nud->negated_sids.array[src->signum / 8] |= tmp;
+    } else {
+        /* Set it */
+        nud->sids.array[src->signum / 8] |= tmp;
+    }
 }
 
 /**
