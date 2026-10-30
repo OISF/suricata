@@ -337,8 +337,8 @@ static void DNP3PushObjectPoints(lua_State *luastate, DNP3Object *object, uint32
     LuaDnp3Points *pts =
             (LuaDnp3Points *)SCLuaNewUserData(luastate, SCLUA_TUD_DNP3_POINTS, sizeof(*pts));
     if (pts == NULL) {
-        /* SCLuaNewUserData returns instead of raising on OOM; fail
-         * closed: the caller's settable sees nil */
+        /* defensive: lua_newuserdata raises on OOM; checked like
+         * the other SCLuaNewUserData call sites */
         lua_pushnil(luastate);
         return;
     }
