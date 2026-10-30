@@ -1857,7 +1857,7 @@ Several options are available for limiting record sizes and data chunk tracking.
       max-write-queue-cnt: 16
 
       dcerpc:
-        max-stub-size: 1MiB
+        max-stub-size: 1MB
 
 The `max-read-size` option can be set to control the max size of accepted
 READ records. Events will be raised if a READ request asks for too much data
@@ -1871,7 +1871,7 @@ Additionally if the `max-read-size` or `max-write-size` values in the
 "negotiate protocol response" exceeds this limit an event will also be raised.
 
 To control the size of the DCERPC stub data, `dcerpc.max-stub-size` should be
-used. It is by default set to 1MiB.
+used. It is by default set to 1MB.
 
 For file tracking, extraction and file data inspection the parser queues up
 out of order data chunks for both READs and WRITEs. To avoid using too much
@@ -1995,7 +1995,7 @@ Configure DCERPC
 
 DCERPC has one parameter that can be customized.
 `max-stub-size` is used to control the stub data size of a DCERPC request/response. By
-default, it is set to 1MiB.
+default, it is set to 1MB.
 
 
 Configure HTTP2
