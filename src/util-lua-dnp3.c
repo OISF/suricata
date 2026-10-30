@@ -99,6 +99,9 @@ static int Dnp3PointsLen(lua_State *luastate)
      * check here: a stale handle still reports the count */
     LuaDnp3Points *pts =
             SCLuaCheckUserDataPayload(luastate, 1, DNP3_POINTS_MT, SCLUA_TUD_DNP3_POINTS);
+    if (pts == NULL) {
+        return luaL_error(luastate, "invalid dnp3 points handle");
+    }
     lua_pushinteger(luastate, pts->n_points);
     return 1;
 }
