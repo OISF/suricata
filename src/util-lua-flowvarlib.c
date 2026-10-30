@@ -59,6 +59,9 @@ static int LuaFlowvarRegister(lua_State *L)
         return luaL_error(L, "too many flowvars registered");
     }
     uint32_t *flowvar_id = SCLuaNewUserData(L, SCLUA_TUD_FLOWVAR, sizeof(*flowvar_id));
+    if (flowvar_id == NULL) {
+        return luaL_error(L, "failed to allocate flowvar");
+    }
     *flowvar_id = VarNameStoreRegister(name, VAR_TYPE_FLOW_VAR);
     if (*flowvar_id == 0) {
         return luaL_error(L, "failed to register flowvar");
@@ -75,6 +78,9 @@ static int LuaFlowvarGet(lua_State *L)
 {
     const char *name = luaL_checkstring(L, 1);
     uint32_t *flowvar_id = SCLuaNewUserData(L, SCLUA_TUD_FLOWVAR, sizeof(*flowvar_id));
+    if (flowvar_id == NULL) {
+        return luaL_error(L, "failed to allocate flowvar");
+    }
     *flowvar_id = VarNameStoreLookupByName(name, VAR_TYPE_FLOW_VAR);
     if (*flowvar_id == 0) {
         return luaL_error(L, "flowvar does not exist");
