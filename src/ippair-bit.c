@@ -127,6 +127,16 @@ static void IPPairBitRemove(IPPair *h, uint32_t idx)
     }
 }
 
+/** \retval true if the bit is present, expired or not; its expiry in \a expire */
+bool IPPairBitGetExpire(IPPair *h, uint32_t idx, SCTime_t *expire)
+{
+    const XBit *fb = IPPairBitGet(h, idx);
+    if (fb == NULL)
+        return false;
+    *expire = fb->expire;
+    return true;
+}
+
 void IPPairBitSet(IPPair *h, uint32_t idx, SCTime_t expire)
 {
     XBit *fb = IPPairBitGet(h, idx);
