@@ -886,6 +886,8 @@ typedef struct DetectEngineIPOnlyCtx_ {
      * stored in the radix trees */
     uint32_t *sig_mapping;
     uint32_t sig_mapping_size;
+
+    bool has_negated;
 } DetectEngineIPOnlyCtx;
 
 typedef struct DetectEngineLookupFlow_ {
