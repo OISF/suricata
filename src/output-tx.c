@@ -303,6 +303,9 @@ static void OutputTxLogCallLoggers(ThreadVars *tv, OutputTxLoggerThreadData *op_
     DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
     // DEBUG_VALIDATE_BUG_ON(logger == NULL && store == NULL);
 
+    uint32_t unlogged_subtypes = 0;
+    bool has_logger_for_tx_type = false;
+
     while (logger && store) {
         DEBUG_VALIDATE_BUG_ON(logger->LogFunc == NULL);
         DEBUG_VALIDATE_BUG_ON(logger->alproto != alproto);
@@ -321,8 +324,11 @@ static void OutputTxLogCallLoggers(ThreadVars *tv, OutputTxLoggerThreadData *op_
                 SCLogDebug("logger:%s flow:%s: skip logger for wrong sub state: logger %u tx %u",
                         AppProtoToString(logger->alproto), AppProtoToString(alproto),
                         logger->sub_state, txd->tx_type);
+                unlogged_subtypes |= BIT_U32(logger->logger_id);
                 goto next_logger;
             }
+            // we have a logger for this tx type
+            has_logger_for_tx_type = true;
 
             if (eof) {
                 SCLogDebug("EOF, so log now");
@@ -359,6 +365,10 @@ static void OutputTxLogCallLoggers(ThreadVars *tv, OutputTxLoggerThreadData *op_
 
         DEBUG_VALIDATE_BUG_ON(logger == NULL && store != NULL);
         DEBUG_VALIDATE_BUG_ON(logger != NULL && store == NULL);
+    }
+    if (!has_logger_for_tx_type) {
+        // May happen for http2 when websocket logging is disabled
+        ctx->tx_logged |= unlogged_subtypes;
     }
 }
 
