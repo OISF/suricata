@@ -51,6 +51,9 @@ static const File *LuaFileRefResolve(lua_State *L, const struct LuaFile *lf)
         return NULL;
     }
     const Flow *f = LuaStateGetFlow(L);
+    if (f == NULL) {
+        return NULL;
+    }
     AppLayerGetFileState gfs = AppLayerParserGetTxFiles(f, tx, lf->direction);
     if (gfs.fc == NULL) {
         return NULL;
