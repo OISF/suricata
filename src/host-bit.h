@@ -33,6 +33,7 @@ void HostBitRegisterTests(void);
 int HostHasHostBits(Host *host);
 int HostBitsTimedoutCheck(Host *h, SCTime_t ts);
 
+bool HostBitGetExpire(Host *, uint32_t, SCTime_t *);
 void HostBitSet(Host *, uint32_t, SCTime_t);
 void HostBitUnset(Host *, uint32_t);
 void HostBitToggle(Host *, uint32_t, SCTime_t);
