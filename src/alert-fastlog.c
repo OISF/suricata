@@ -125,15 +125,15 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
 
     char proto[16] = "";
     const char *protoptr;
-    if (SCProtoNameValid(PacketGetIPProto(p))) {
-        protoptr = known_proto[PacketGetIPProto(p)];
+    if (SCProtoNameValid(SCPacketGetIPProto(p))) {
+        protoptr = known_proto[SCPacketGetIPProto(p)];
     } else {
-        snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, PacketGetIPProto(p));
+        snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, SCPacketGetIPProto(p));
         protoptr = proto;
     }
     uint16_t src_port_or_icmp = p->sp;
     uint16_t dst_port_or_icmp = p->dp;
-    if (PacketGetIPProto(p) == IPPROTO_ICMP || PacketGetIPProto(p) == IPPROTO_ICMPV6) {
+    if (SCPacketGetIPProto(p) == IPPROTO_ICMP || SCPacketGetIPProto(p) == IPPROTO_ICMPV6) {
         src_port_or_icmp = p->icmp_s.type;
         dst_port_or_icmp = p->icmp_s.code;
     }

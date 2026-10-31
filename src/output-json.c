@@ -557,10 +557,10 @@ void JsonAddrInfoInit(const Packet *p, enum SCOutputJsonLogDirection dir, JsonAd
             break;
     }
 
-    if (SCProtoNameValid(PacketGetIPProto(p))) {
-        strlcpy(addr->proto, known_proto[PacketGetIPProto(p)], sizeof(addr->proto));
+    if (SCProtoNameValid(SCPacketGetIPProto(p))) {
+        strlcpy(addr->proto, known_proto[SCPacketGetIPProto(p)], sizeof(addr->proto));
     } else {
-        snprintf(addr->proto, sizeof(addr->proto), "%" PRIu32, PacketGetIPProto(p));
+        snprintf(addr->proto, sizeof(addr->proto), "%" PRIu32, SCPacketGetIPProto(p));
     }
 }
 
