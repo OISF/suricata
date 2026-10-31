@@ -255,6 +255,10 @@ typedef struct DNP3State_ {
                                  * incomplete response PDUs received
                                  * over TCP. */
 
+    uint8_t request_gap;  /**< A TCP gap in the request direction:
+                           * resynchronize on the next start bytes. */
+    uint8_t response_gap; /**< The same for the response direction. */
+
 } DNP3State;
 
 void RegisterDNP3Parsers(void);
