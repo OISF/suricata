@@ -99,6 +99,9 @@ static int Dnp3PointsLen(lua_State *luastate)
      * check here: a stale handle still reports the count */
     LuaDnp3Points *pts =
             SCLuaCheckUserDataPayload(luastate, 1, DNP3_POINTS_MT, SCLUA_TUD_DNP3_POINTS);
+    if (pts == NULL) {
+        return luaL_error(luastate, "invalid dnp3 points handle");
+    }
     lua_pushinteger(luastate, pts->n_points);
     return 1;
 }
@@ -337,8 +340,8 @@ static void DNP3PushObjectPoints(lua_State *luastate, DNP3Object *object, uint32
     LuaDnp3Points *pts =
             (LuaDnp3Points *)SCLuaNewUserData(luastate, SCLUA_TUD_DNP3_POINTS, sizeof(*pts));
     if (pts == NULL) {
-        /* SCLuaNewUserData returns instead of raising on OOM; fail
-         * closed: the caller's settable sees nil */
+        /* defensive: lua_newuserdata raises on OOM; checked like
+         * the other SCLuaNewUserData call sites */
         lua_pushnil(luastate);
         return;
     }
