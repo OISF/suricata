@@ -59,6 +59,22 @@ Examples::
 
 dcerpc.opnum can since suricata 9 use an :ref:`unsigned 16-bits integer <rules-integer-keywords>`.
 
+dcerpc.flags
+------------
+
+Match on the flags in a DCERPC header. The value is an
+:ref:`unsigned 16-bit integer <rules-integer-keywords>`.
+
+The 16-bit value carries the PFC flags of the transaction. Over TCP the low
+byte holds ``pfc_flags``; over UDP the low byte holds ``flags1`` and the high
+byte holds ``flags2``.
+
+Examples::
+
+  dcerpc.flags:0x03;
+  dcerpc.flags:&0x03=0x03;
+
+
 dcerpc.stub_data
 ----------------
 
