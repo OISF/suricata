@@ -399,8 +399,9 @@ enum PacketDropReason {
     PKT_DROP_REASON_STREAM_MIDSTREAM,
     PKT_DROP_REASON_STREAM_REASSEMBLY,
     PKT_DROP_REASON_STREAM_URG,
-    PKT_DROP_REASON_NFQ_ERROR,    /**< no nfq verdict, must be error */
-    PKT_DROP_REASON_INNER_PACKET, /**< drop issued by inner (tunnel) packet */
+    PKT_DROP_REASON_NFQ_ERROR,     /**< no nfq verdict, must be error */
+    PKT_DROP_REASON_CAPTURE_ERROR, /**< capture can't receive or forward the packet in full */
+    PKT_DROP_REASON_INNER_PACKET,  /**< drop issued by inner (tunnel) packet */
 /** If more non-firewall drop reasons are added, make sure not to "break" PKT_DROP_REASON_NON_FW_MAX
  */
 /* Limiter for non-firewall drop reasons. */
