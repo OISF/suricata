@@ -29,24 +29,6 @@
 #include "util-dpdk.h"
 #include "util-debug.h"
 
-/**
- * Determines if the port is Bond or not by evaluating device driver name
- * @param pid port ID
- * @return 0 - the device si Bond PMD, 1 - regular device, <0 error
- */
-int32_t BondingIsBond(uint16_t pid)
-{
-    struct rte_eth_dev_info di;
-    int32_t ret = rte_eth_dev_info_get(pid, &di);
-    if (ret < 0) {
-        SCLogError("%s: unable to get device info (err: %s)", DPDKGetPortNameByPortID(pid),
-                rte_strerror(-ret));
-        return ret;
-    }
-
-    return strcmp(di.driver_name, "net_bonding") == 0 ? 0 : 1;
-}
-
 uint16_t BondingMemberDevicesGet(
         uint16_t bond_pid, uint16_t bonded_devs[], uint16_t bonded_devs_length)
 {

@@ -36,7 +36,7 @@ run_test "IDS: auto mempool, auto cache (1 thread)" \
     --interface-cfg-set net_null0.threads=1 \
     --interface-cfg-set net_null0.mempool-size=auto \
     --interface-cfg-set net_null0.mempool-cache-size=auto \
-    --suricata-log-check-grep "1 packet mempools of size 63, cache size 21" \
+    --suricata-log-check-grep "1 packet mempools of size 127, cache size 1" \
     --expect-start \
     "$IDS_YAML"
 
@@ -44,23 +44,23 @@ run_test "IDS: auto mempool, auto cache (2 threads)" \
     --interface-cfg-set net_null0.threads=2 \
     --interface-cfg-set net_null0.mempool-size=auto \
     --interface-cfg-set net_null0.mempool-cache-size=auto \
-    --suricata-log-check-grep "2 packet mempools of size 63, cache size 21" \
+    --suricata-log-check-grep "2 packet mempools of size 127, cache size 1" \
     --expect-start \
     "$IDS_YAML"
 
-run_test "IDS: auto mempool, static cache=1 (1 thread)" \
+run_test "IDS: static mempool=1023, static cache=31 (1 thread)" \
     --interface-cfg-set net_null0.threads=1 \
-    --interface-cfg-set net_null0.mempool-size=auto \
-    --interface-cfg-set net_null0.mempool-cache-size=1 \
-    --suricata-log-check-grep "1 packet mempools of size 63, cache size 1" \
+    --interface-cfg-set net_null0.mempool-size=1023 \
+    --interface-cfg-set net_null0.mempool-cache-size=31 \
+    --suricata-log-check-grep "1 packet mempools of size 1023, cache size 31" \
     --expect-start \
     "$IDS_YAML"
 
-run_test "IDS: auto mempool, static cache=1 (2 threads)" \
+run_test "IDS: static mempool=1023, static cache=7 (2 threads)" \
     --interface-cfg-set net_null0.threads=2 \
-    --interface-cfg-set net_null0.mempool-size=auto \
-    --interface-cfg-set net_null0.mempool-cache-size=1 \
-    --suricata-log-check-grep "2 packet mempools of size 63, cache size 1" \
+    --interface-cfg-set net_null0.mempool-size=1023 \
+    --interface-cfg-set net_null0.mempool-cache-size=7 \
+    --suricata-log-check-grep "2 packet mempools of size 511, cache size 7" \
     --expect-start \
     "$IDS_YAML"
 
@@ -101,30 +101,31 @@ run_test "IDS: static mempool=1023, auto cache (2 threads)" \
 run_test "IDS: mempool too small (fail)" \
     --interface-cfg-set net_null0.threads=1 \
     --interface-cfg-set net_null0.mempool-size=15 \
-    --suricata-log-check-grep "mempool size is likely too small" \
+    --suricata-log-check-grep "mempool size is too small; set to \"auto\" or adjust to the value of \"127\"" \
     --expect-fail \
     "$IDS_YAML"
 
 run_test "IDS: mempool too small for queues (fail)" \
     --interface-cfg-set net_null0.threads=2 \
     --interface-cfg-set net_null0.mempool-size=1 \
-    --suricata-log-check-grep "mempool size is likely too small" \
+    --suricata-log-check-grep "mempool size is too small; set to \"auto\" or adjust to the value of \"255\"" \
     --expect-fail \
     "$IDS_YAML"
 
-# power-of-two boundary: 32 is exactly nb_rx_desc + nb_tx_desc, must not undercount
-run_test "IDS: static mempool=32, power-of-two boundary (fail)" \
-    --interface-cfg-set net_null0.threads=1 \
-    --interface-cfg-set net_null0.mempool-size=32 \
-    --suricata-log-check-grep "mempool size is likely too small" \
-    --expect-fail \
-    "$IDS_YAML"
-
-run_test "IDS: static mempool=64, power-of-two boundary (1 thread)" \
+# power-of-two boundary: 64 is exactly nb_rx_desc + nb_tx_desc + one RX burst,
+# must not undercount
+run_test "IDS: static mempool=64, power-of-two boundary (fail)" \
     --interface-cfg-set net_null0.threads=1 \
     --interface-cfg-set net_null0.mempool-size=64 \
+    --suricata-log-check-grep "mempool size is too small; set to \"auto\" or adjust to the value of \"127\"" \
+    --expect-fail \
+    "$IDS_YAML"
+
+run_test "IDS: static mempool=128, power-of-two boundary (1 thread)" \
+    --interface-cfg-set net_null0.threads=1 \
+    --interface-cfg-set net_null0.mempool-size=128 \
     --interface-cfg-set net_null0.mempool-cache-size=auto \
-    --suricata-log-check-grep "1 packet mempools of size 63, cache size 21" \
+    --suricata-log-check-grep "1 packet mempools of size 127, cache size 1" \
     --expect-start \
     "$IDS_YAML"
 
@@ -145,7 +146,7 @@ run_test "Bond: auto mempool, auto cache (1 thread)" \
     --interface-cfg-set net_bonding0.threads=1 \
     --interface-cfg-set net_bonding0.mempool-size=auto \
     --interface-cfg-set net_bonding0.mempool-cache-size=auto \
-    --suricata-log-check-grep "1 packet mempools of size 127, cache size 1" \
+    --suricata-log-check-grep "1 packet mempools of size 255, cache size 85" \
     --expect-start \
     "$BOND_YAML"
 
@@ -153,23 +154,23 @@ run_test "Bond: auto mempool, auto cache (2 threads)" \
     --interface-cfg-set net_bonding0.threads=2 \
     --interface-cfg-set net_bonding0.mempool-size=auto \
     --interface-cfg-set net_bonding0.mempool-cache-size=auto \
-    --suricata-log-check-grep "2 packet mempools of size 127, cache size 1" \
+    --suricata-log-check-grep "2 packet mempools of size 255, cache size 85" \
     --expect-start \
     "$BOND_YAML"
 
-run_test "Bond: auto mempool, static cache=7 (1 thread)" \
+run_test "Bond: auto mempool, static cache=17 (1 thread)" \
     --interface-cfg-set net_bonding0.threads=1 \
     --interface-cfg-set net_bonding0.mempool-size=auto \
-    --interface-cfg-set net_bonding0.mempool-cache-size=7 \
-    --suricata-log-check-grep "1 packet mempools of size 127, cache size 7" \
+    --interface-cfg-set net_bonding0.mempool-cache-size=17 \
+    --suricata-log-check-grep "1 packet mempools of size 255, cache size 17" \
     --expect-start \
     "$BOND_YAML"
 
-run_test "Bond: auto mempool, static cache=7 (2 threads)" \
+run_test "Bond: auto mempool, static cache=17 (2 threads)" \
     --interface-cfg-set net_bonding0.threads=2 \
     --interface-cfg-set net_bonding0.mempool-size=auto \
-    --interface-cfg-set net_bonding0.mempool-cache-size=7 \
-    --suricata-log-check-grep "2 packet mempools of size 127, cache size 7" \
+    --interface-cfg-set net_bonding0.mempool-cache-size=17 \
+    --suricata-log-check-grep "2 packet mempools of size 255, cache size 17" \
     --expect-start \
     "$BOND_YAML"
 
@@ -200,7 +201,7 @@ run_test "Bond: static mempool=1023, auto cache (2 threads)" \
 run_test "Bond: mempool too small (fail)" \
     --interface-cfg-set net_bonding0.threads=1 \
     --interface-cfg-set net_bonding0.mempool-size=15 \
-    --suricata-log-check-grep "mempool size is likely too small" \
+    --suricata-log-check-grep "mempool size is too small; set to \"auto\" or adjust to the value of \"255\"" \
     --expect-fail \
     "$BOND_YAML"
 
