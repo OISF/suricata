@@ -1,0 +1,259 @@
+/* Copyright (C) 2026 Open Information Security Foundation
+*
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
+
+// Author: Shivani Bhardwaj <shivani@oisf.net>
+
+use petgraph::algo::{is_cyclic_directed, tarjan_scc};
+use petgraph::graph::{GraphError, NodeIndex};
+use petgraph::stable_graph::StableDiGraph;
+use petgraph::Direction;
+use std::collections::{HashMap, HashSet};
+use std::os::raw::c_void;
+
+/// Must match DETECT_FLOWBITS_CMD_SET in src/detect-flowbits.h
+const DETECT_FLOWBITS_CMD_SET: u8 = 0;
+
+/// Special Graph Node storing flowbit or signature
+#[derive(Debug, Copy, Clone)]
+struct SCGNode {
+    sid: u32,
+    nidx: NodeIndex, /* Graph's internal node index */
+}
+
+/// Edge object to determine a genuine cycle breaker
+#[derive(Debug, Copy, Clone)]
+struct SCGEdge {
+    cmd: u8,
+    fb_id: u32,
+}
+
+#[derive(Debug)]
+struct FlowbitSidStore {
+    graph: StableDiGraph<SCGNode, SCGEdge>,
+    iid_map: HashMap<u32, NodeIndex>,
+    edge_set: HashSet<(u32, u32, u8, u32)>,
+}
+
+/// Function to create an empty directed Graph
+#[no_mangle]
+pub unsafe extern "C" fn SCCreateDirectedGraph() -> *mut c_void {
+    // StableDiGraph is the ideal choice here for there is removal of
+    // nodes in the line later and this type of graph guarantees to
+    // not re-use any existing node indices
+    let fb_sid_store = FlowbitSidStore {
+        graph: StableDiGraph::new(),
+        iid_map: HashMap::new(),
+        edge_set: HashSet::new(),
+    };
+
+    /* Make an opaque pointer for C as nothing is changed there */
+    return Box::into_raw(Box::new(fb_sid_store)) as *mut c_void;
+}
+
+/// Drop the directed Graph. Called from C.
+#[no_mangle]
+pub unsafe extern "C" fn SCFreeDirectedGraph(store: *mut c_void) {
+    let _ = Box::from_raw(store as *mut FlowbitSidStore);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCGetOrCreateNodeGraph(graph: *mut c_void, iid: u32, sid: u32) -> i64 {
+    let g = &mut *(graph as *mut FlowbitSidStore);
+
+    let Some(node_idx) = get_or_create_node(g, iid, sid) else {
+        SCLogError!("Error adding node; Graph is at full capacity");
+        return -2;
+    };
+
+    node_idx.index() as i64
+}
+
+/// Function to get or create a node and add an appropriate directed
+/// edge based on its type
+#[no_mangle]
+pub unsafe extern "C" fn SCCreateNodeEdgeDirectedGraph(
+    fss_void: *mut c_void, from: u32, to: u32, cmd: u8, fb_id: u32,
+) -> i64 {
+    let fss = &mut *(fss_void as *mut FlowbitSidStore);
+
+    let from_idx = NodeIndex::from(from);
+    let to_idx = NodeIndex::from(to);
+
+    if !fss.edge_set.insert((from, to, cmd, fb_id)) {
+        SCLogDebug!(
+            "Skipped duplicate edge from {:?} -> {:?} for flowbit {:?} with command: {:?}",
+            from,
+            to,
+            fb_id,
+            cmd
+        );
+        return 0;
+    }
+
+    match fss
+        .graph
+        .try_add_edge(from_idx, to_idx, SCGEdge { cmd, fb_id })
+    {
+        /* edge from a flowbit setter to a flowbit reader */
+        Ok(_) => {
+            SCLogDebug!(
+                "Created an edge from {:?} -> {:?} for flowbit {:?} with command: {:?}",
+                from,
+                to,
+                fb_id,
+                cmd
+            );
+        }
+        Err(GraphError::EdgeIxLimit) => {
+            SCLogError!("Error adding edge; Graph is at full capacity");
+            return -2;
+        }
+        Err(GraphError::NodeOutBounds) => {
+            SCLogError!("Error adding edge; node does not exist");
+            return -2;
+        }
+        Err(_) => {
+            SCLogError!("Error adding edge to the Graph");
+            return -2;
+        }
+    }
+
+    return 0;
+}
+
+fn check_cycle_update_graph(graph: &mut StableDiGraph<SCGNode, SCGEdge>) -> i8 {
+    let max_stack_size: usize = 100;
+
+    /* A self loop comes from a signature checking a flowbit it sets itself.
+     * It never blocks that signature, so remove all of them upfront instead
+     * of spending a try on each one */
+    graph.retain_edges(|g, e| g.edge_endpoints(e).is_none_or(|(src, tgt)| src != tgt));
+
+    for _i in 0..max_stack_size {
+        /* Check graph for any cycles */
+        if !is_cyclic_directed(&*graph) {
+            SCLogDebug!("no cycles after {} tries", _i);
+            return 0;
+        }
+
+        SCLogDebug!("Found a cycle in i {}. Checking if it's valid..", _i);
+
+        if !try_resolve_one_cycle(graph) {
+            /* If we can't resolve any cycle, we're stuck */
+            SCLogDebug!("Unable to resolve cycles after {} tries", _i);
+            return -1;
+        }
+    }
+
+    SCLogDebug!(
+        "Maximum tries ({}) reached while trying to resolve cycles",
+        max_stack_size
+    );
+    return -1;
+}
+
+fn try_resolve_one_cycle(graph: &mut StableDiGraph<SCGNode, SCGEdge>) -> bool {
+    let sccs = tarjan_scc(&*graph);
+    let mut edge_map: HashMap<petgraph::graph::EdgeIndex, u8> = HashMap::new();
+
+    /* Find the first multi-node SCC; self loops were already removed so a
+     * single node SCC is never part of a cycle */
+    for scc in sccs {
+        if scc.len() == 1 {
+            continue;
+        }
+
+        SCLogDebug!("Current scc: {:?}", scc);
+        let scc_set: HashSet<_> = scc.iter().copied().collect();
+        let edge_indices: Vec<_> = graph.edge_indices().collect();
+
+        for edge_idx in edge_indices {
+            let Some((_src, tgt)) = graph.edge_endpoints(edge_idx) else {
+                continue;
+            };
+            if !(scc_set.contains(&_src) && scc_set.contains(&tgt)) {
+                continue;
+            }
+            let SCGEdge { cmd, fb_id } = graph[edge_idx];
+            let same_bit_setters = graph
+                .edges_directed(tgt, Direction::Incoming)
+                .filter(|e| e.weight().fb_id == fb_id)
+                .count();
+            if same_bit_setters > 1 {
+                graph.remove_edge(edge_idx);
+                return true;
+            }
+            /* store cycle edges to inspect their commands (weights) later */
+            edge_map.insert(edge_idx, cmd);
+        }
+        debug_validate_bug_on!(edge_map.is_empty());
+        /* An unset -> isnotset edge is not a hard dependency: isnotset already
+         * matches before the bit was ever set, so drop such an edge if the
+         * cycle has one */
+        if let Some((cur_e, _)) = edge_map
+            .iter()
+            .find(|(_, &cmd)| cmd != DETECT_FLOWBITS_CMD_SET)
+        {
+            graph.remove_edge(*cur_e);
+            return true;
+        }
+        /* Valid cycle made of set edges only -- can't resolve */
+        let mut sids: Vec<_> = scc_set.iter().map(|a| graph[*a].sid).collect();
+        sids.sort_unstable();
+        SCLogError!(
+            "Cyclic dependency found between flowbits from signatures: {:?}",
+            sids
+        );
+        return false;
+    }
+
+    /* couldn't resolve */
+    false
+}
+
+/// Check the graph for flowbit dependencies that cannot be met at runtime
+#[no_mangle]
+pub unsafe extern "C" fn SCCheckFlowbitDependencies(fss_void: *mut c_void) -> i8 {
+    SCLogDebug!("Checking flowbit dependencies");
+    let fss = &mut *(fss_void as *mut FlowbitSidStore);
+
+    if check_cycle_update_graph(&mut fss.graph) == -1 {
+        SCLogDebug!("Couldn't do anything to fix the graph. Retreating..");
+        return -1;
+    }
+
+    return 0;
+}
+
+fn get_or_create_node(fss: &mut FlowbitSidStore, iid: u32, sid: u32) -> Option<NodeIndex> {
+    if let Some(&nidx) = fss.iid_map.get(&iid) {
+        return Some(nidx); /* O(1) */
+    }
+    let nd = SCGNode {
+        sid,
+        nidx: NodeIndex::from(u32::MAX),
+    };
+    if let Ok(idx) = fss.graph.try_add_node(nd) {
+        /* O(1) */
+        fss.graph[idx].nidx = idx;
+        fss.iid_map.insert(iid, idx);
+        SCLogDebug!("Created node: {:?}", fss.graph[idx]);
+        return Some(idx);
+    }
+
+    None
+}

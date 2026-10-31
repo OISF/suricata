@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2025 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -621,6 +621,107 @@ int DetectFlowbitsAnalyzeSignature(const Signature *s, struct FBAnalyzer *fba)
     return 0;
 }
 
+static int CreateGraphFromFlowbitAnalyzer(void *graph, const struct FBAnalyzer *fba)
+{
+    // varnamestore ids start at 1
+    for (uint32_t x = 1; x < fba->array_size; x++) {
+        const struct FBAnalyze *fa = &fba->array[x];
+        for (uint32_t i = 0; i < fa->isset_iids_idx; i++) {
+            SCLogDebug("Getting or creating node for sid: %u", fa->isset_iids[i].sid);
+            int64_t to =
+                    SCGetOrCreateNodeGraph(graph, fa->isset_iids[i].iid, fa->isset_iids[i].sid);
+            if (to < 0) {
+                SCLogError("Couldn't create or get a node in the graph for sid: %u",
+                        fa->isset_iids[i].sid);
+                return -1;
+            }
+            SCLogDebug("added node: %" PRId64, to);
+            for (uint32_t y = 0; y < fa->set_iids_idx; y++) {
+                SCLogDebug("Getting or creating node for sid: %u", fa->set_iids[y].sid);
+                int64_t from =
+                        SCGetOrCreateNodeGraph(graph, fa->set_iids[y].iid, fa->set_iids[y].sid);
+                if (from < 0) {
+                    SCLogError("Couldn't create or get a node in the graph for sid: %u",
+                            fa->set_iids[y].sid);
+                    return -1;
+                }
+                SCLogDebug("added node: %" PRId64, from);
+                if (SCCreateNodeEdgeDirectedGraph(
+                            graph, (uint32_t)from, (uint32_t)to, DETECT_FLOWBITS_CMD_SET, x) < 0) {
+                    SCLogDebug(
+                            "Flowbits signatures that are unsatisfiable at runtime found: %u, %u",
+                            fa->isset_iids[i].sid, fa->set_iids[y].sid);
+                    return -1;
+                }
+            }
+        }
+    }
+
+    for (uint32_t x = 1; x < fba->array_size; x++) {
+        const struct FBAnalyze *fa = &fba->array[x];
+        for (uint32_t i = 0; i < fa->isnotset_iids_idx; i++) {
+            int64_t to = SCGetOrCreateNodeGraph(
+                    graph, fa->isnotset_iids[i].iid, fa->isnotset_iids[i].sid);
+            if (to < 0) {
+                SCLogError("Couldn't create or get a node in the graph for sid: %u",
+                        fa->isnotset_iids[i].sid);
+                return -1;
+            }
+            SCLogDebug("added node: %" PRId64, to);
+            for (uint32_t y = 0; y < fa->unset_iids_idx; y++) {
+                int64_t from =
+                        SCGetOrCreateNodeGraph(graph, fa->unset_iids[y].iid, fa->unset_iids[y].sid);
+                if (from < 0) {
+                    SCLogError("Couldn't create or get a node in the graph for sid: %u",
+                            fa->unset_iids[y].sid);
+                    return -1;
+                }
+                SCLogDebug("added node: %" PRId64, from);
+                if (SCCreateNodeEdgeDirectedGraph(graph, (uint32_t)from, (uint32_t)to,
+                            DETECT_FLOWBITS_CMD_UNSET, x) < 0) {
+                    SCLogDebug(
+                            "Flowbits signatures that are unsatisfiable at runtime found: %u, %u",
+                            fa->isnotset_iids[i].sid, fa->unset_iids[y].sid);
+                    return -1;
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * \brief Check flowbit dependencies for issues
+ *
+ * Builds the flowbit dependency graph from the analyzer array and checks it
+ * for dependencies that cannot be met at runtime.
+ *
+ * \param fba filled flowbit analyzer array
+ *
+ * \retval 0 if no issues were found
+ * \retval -1 on error
+ */
+static int DetectFlowbitsCheckDependencies(const struct FBAnalyzer *fba)
+{
+    void *graph = SCCreateDirectedGraph();
+    if (CreateGraphFromFlowbitAnalyzer(graph, fba) < 0) {
+        SCLogError("Could not create Flowbit Analyzer Graph");
+        goto error;
+    }
+    if (SCCheckFlowbitDependencies(graph) < 0) {
+        goto error;
+    }
+
+    SCFreeDirectedGraph(graph);
+    return 0;
+
+error:
+    SCLogError("Error resolving flowbit dependencies");
+    SCFreeDirectedGraph(graph);
+    return -1;
+}
+
 int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
 {
     const uint32_t max_fb_id = de_ctx->max_fb_id;
@@ -650,6 +751,9 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
             return -1;
         }
     }
+
+    /* check for flowbit dependencies that cannot be met at runtime */
+    (void)DetectFlowbitsCheckDependencies(&fba);
 
     /* walk array to see if all bits make sense */
     for (uint32_t i = 0; i < array_size; i++) {
