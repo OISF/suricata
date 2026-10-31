@@ -319,6 +319,13 @@ static int TcpSegmentPoolInit(void *data)
                 sizeof(TcpSegmentPcapHdrStorage) + sizeof(char) * TCPSEG_PKT_HDR_DEFAULT_SIZE;
         seg->pcap_hdr_storage = pcap_hdr;
         if (StreamTcpReassembleCheckMemcap(sizeof(TcpSegment) + memuse) == 0) {
+            /* the pool frees the segment without calling
+             * TcpSegmentPoolCleanup(), so free the storage here */
+            if (pcap_hdr != NULL) {
+                SCFree(pcap_hdr->pkt_hdr);
+                SCFree(pcap_hdr);
+                seg->pcap_hdr_storage = NULL;
+            }
             return 0;
         }
         StreamTcpReassembleIncrMemuse(memuse);
@@ -3221,6 +3228,45 @@ static int StreamTcpReassembleTestMemusePcapHdrStorage(void)
     PASS;
 }
 
+/** \test Test that a failed memcap check in TcpSegmentPoolInit() frees the
+ *        pcap hdr storage that TcpSegmentPoolAlloc() allocated. The pool
+ *        frees the segment without calling TcpSegmentPoolCleanup() when
+ *        Init() fails. */
+static int StreamTcpReassembleTestPcapHdrStorageInitFail(void)
+{
+    StreamTcpInitConfig(true);
+
+    const int dump_enabled = g_tcp_session_dump_enabled;
+    g_tcp_session_dump_enabled = 1;
+
+    const uint64_t memuse = StreamTcpReassembleMemuseGlobalCounter();
+    const uint64_t memcap = SC_ATOMIC_GET(stream_config.reassembly_memcap);
+
+    TcpSegment *seg = TcpSegmentPoolAlloc();
+    const bool alloc_ok = seg != NULL && seg->pcap_hdr_storage != NULL;
+    int init_ret = -1;
+    bool storage_freed = false;
+    /* leave no room for the segment so the Init() memcap check fails */
+    if (alloc_ok && StreamTcpReassembleSetMemcap(memuse + 1) == 1) {
+        init_ret = TcpSegmentPoolInit(seg);
+        storage_freed = seg->pcap_hdr_storage == NULL;
+    }
+    SCFree(seg);
+    const uint64_t memuse_after = StreamTcpReassembleMemuseGlobalCounter();
+
+    /* restore the globals before checking, so a failure here does not
+     * leave a tiny memcap and dumping enabled for later tests */
+    SC_ATOMIC_SET(stream_config.reassembly_memcap, memcap);
+    g_tcp_session_dump_enabled = dump_enabled;
+    StreamTcpFreeConfig(true);
+
+    FAIL_IF_NOT(alloc_ok);
+    FAIL_IF_NOT(init_ret == 0);
+    FAIL_IF_NOT(storage_freed);
+    FAIL_IF_NOT(memuse_after == memuse);
+    PASS;
+}
+
 /**
  *  \test   Test to make sure that reassembly_depth is enforced.
  *
@@ -3824,6 +3870,8 @@ void StreamTcpReassembleRegisterTests(void)
                    StreamTcpReassembleTest44);
     UtRegisterTest("StreamTcpReassembleTestMemusePcapHdrStorage -- pcap hdr storage memuse",
             StreamTcpReassembleTestMemusePcapHdrStorage);
+    UtRegisterTest("StreamTcpReassembleTestPcapHdrStorageInitFail -- pcap hdr storage init fail",
+            StreamTcpReassembleTestPcapHdrStorageInitFail);
     UtRegisterTest("StreamTcpReassembleTest45 -- Depth Test",
                    StreamTcpReassembleTest45);
     UtRegisterTest("StreamTcpReassembleTest46 -- Depth Test",
