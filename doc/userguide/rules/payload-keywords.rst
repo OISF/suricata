@@ -374,6 +374,14 @@ If one or more ``content`` keywords precedes ``bsize``, each occurrence of ``con
 will be inspected and an error will be raised if the content length and the bsize
 value prevent a match.
 
+An exact, ``<``, ``<=`` or range ``bsize`` also limits how far into the buffer a
+``content`` is searched: a buffer is no longer than that bound, so a match can't
+end past it. For a ``content`` with ``distance`` or ``within``, the limit counts
+from the end of the previous match, so it is looser. The limit isn't applied to
+a ``content`` whose ``depth`` or ``offset`` comes from ``byte_extract``, to one
+that can't fit within the bound, or when the bound is larger than 65535.
+``bsize:>N`` and ``bsize:>=N`` have no upper bound and don't limit the search.
+
 Format::
 
   bsize:<number>;
