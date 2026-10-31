@@ -2836,6 +2836,37 @@
                 }
             }
         },
+        "imap": {
+            "type": "object",
+            "description": "IMAP transaction data",
+            "additionalProperties": false,
+            "properties": {
+                "requests": {
+                    "type": "array",
+                    "description": "Array of IMAP request lines in this transaction",
+                    "items": {
+                        "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "imap.request"
+                        ]
+                    }
+                },
+                "responses": {
+                    "type": "array",
+                    "description": "Array of IMAP response lines in this transaction",
+                    "items": {
+                        "type": "string"
+                    },
+                    "suricata": {
+                        "keywords": [
+                            "imap.response"
+                        ]
+                    }
+                }
+            }
+        },
         "in_iface": {
             "type": "string"
         },

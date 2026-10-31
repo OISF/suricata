@@ -1,0 +1,8 @@
+# IMAP app layer event rules
+#
+# SID's fall in the 2244000+ range. See rules/README.md
+
+alert imap any any -> any any (msg:"SURICATA IMAP too many transactions"; app-layer-event:imap.too_many_transactions; classtype:protocol-command-decode; sid:2244000; rev:1;)
+alert imap any any -> any any (msg:"SURICATA IMAP invalid data"; app-layer-event:imap.invalid_data; classtype:protocol-command-decode; sid:2244001; rev:1;)
+alert imap any any -> any any (msg:"SURICATA IMAP line too long"; app-layer-event:imap.line_too_long; classtype:protocol-command-decode; sid:2244002; rev:1;)
+alert imap any any -> any any (msg:"SURICATA IMAP data limit reached"; app-layer-event:imap.data_limit_reached; classtype:protocol-command-decode; sid:2244003; rev:1;)
