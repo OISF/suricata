@@ -1309,11 +1309,19 @@ typedef struct DetectEngineThreadCtx_ {
     ThreadVars *tv;
 
     uint32_t mt_det_ctxs_cnt;
+    /* explicit padding: keeps implicit padding below the scan-build
+     * optin.performance.Padding threshold */
+#if __WORDSIZE == 64
+    uint8_t _pad0[4];
+#endif
     struct DetectEngineThreadCtx_ **mt_det_ctxs;
     HashTable *mt_det_ctxs_hash;
 
     struct DetectEngineTenantMapping_ *tenant_array;
     uint32_t tenant_array_size;
+#if __WORDSIZE == 64
+    uint8_t _pad1[4];
+#endif
 
     uint32_t (*TenantGetId)(const void *, const Packet *p);
 
@@ -1339,6 +1347,9 @@ typedef struct DetectEngineThreadCtx_ {
     /* highest slot index written this run, -1 if none; the per-run
      * clear only walks up to it */
     int32_t byte_values_max;
+#if __WORDSIZE == 64
+    uint8_t _pad2[4];
+#endif
 
     SigJsonContent *json_content;
     uint8_t json_content_capacity;
@@ -1359,6 +1370,9 @@ typedef struct DetectEngineThreadCtx_ {
 #endif
     /** id for firewall discarded alerts counter */
     uint16_t counter_firewall_discarded_alerts;
+#if !defined(PROFILING) && __WORDSIZE == 64
+    uint8_t _pad3[4];
+#endif
 
     struct {
         InspectionBuffer *buffers;
@@ -1378,6 +1392,9 @@ typedef struct DetectEngineThreadCtx_ {
 
     /* true if tx_id is set */
     bool tx_id_set;
+#if __WORDSIZE == 64
+    uint8_t _pad4[7];
+#endif
     /** ID of the transaction currently being inspected. */
     uint64_t tx_id;
     /** Transaction data of the transaction currently being inspected, as the
@@ -1407,6 +1424,9 @@ typedef struct DetectEngineThreadCtx_ {
 
     RuleMatchCandidateTx *tx_candidates;
     uint32_t tx_candidates_size;
+#if __WORDSIZE == 64
+    uint8_t _pad5[4];
+#endif
 
     MpmThreadCtx mtc; /**< thread ctx for the mpm */
     /* work queue for post-rule matching affecting prefilter */
@@ -1461,6 +1481,9 @@ typedef struct DetectEngineThreadCtx_ {
 
     /** stats id for luaxform memory limit errors */
     uint16_t lua_transform_memory_limit_errors;
+#if __WORDSIZE == 64
+    uint8_t _pad6[6];
+#endif
 
 #ifdef DEBUG
     uint64_t pkt_stream_add_cnt;
