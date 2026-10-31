@@ -185,6 +185,9 @@ Other Changes
   from unbounded to 2048. Configuration options, ``max-tx``,
   ``max-points``, and ``max-objects`` have been added for users who
   may need to change these defaults.
+- ``modbus`` now recovers from TCP gaps. A gap no longer ends Modbus parsing
+  for the rest of the flow: the parser resumes at the next plausible MBAP
+  header.
 - Hyperscan caching (`detect.sgh-mpm-caching`), when enabled, prunes
   cache files that have not been used in the last 7 days by default.
   See :ref:`Hyperscan caching configuration
