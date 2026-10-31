@@ -378,6 +378,11 @@ pub struct Transaction {
     pub(crate) request_entity_len: u64,
     /// Parsed request headers.
     pub(crate) request_headers: Headers,
+    /// Trailer fields of a chunked request. Kept out of ``request_headers`` so that a
+    /// header keyword never silently gains trailer data.
+    pub(crate) request_trailers: Headers,
+    /// Set once the last chunk is parsed; the fields that follow go to ``request_trailers``.
+    pub(crate) request_in_trailers: bool,
     /// Request transfer coding. Can be one of UNKNOWN (body presence not
     /// determined yet), IDENTITY, CHUNKED, NO_BODY,
     /// and UNRECOGNIZED.
@@ -451,6 +456,10 @@ pub struct Transaction {
     pub(crate) seen_100continue: bool,
     /// Parsed response headers. Contains instances of Header.
     pub(crate) response_headers: Headers,
+    /// Trailer fields of a chunked response, kept apart from ``response_headers``.
+    pub(crate) response_trailers: Headers,
+    /// Set once the last chunk is parsed; the fields that follow go to ``response_trailers``.
+    pub(crate) response_in_trailers: bool,
     /// Is this a response a HTTP/2.0 upgrade?
     pub(crate) is_http_2_upgrade: bool,
 
@@ -545,6 +554,7 @@ impl std::fmt::Debug for Transaction {
             .field("request_message_len", &self.request_message_len)
             .field("request_entity_len", &self.request_entity_len)
             .field("request_headers", &self.request_headers)
+            .field("request_trailers", &self.request_trailers)
             .field("request_transfer_coding", &self.request_transfer_coding)
             .field("request_content_encoding", &self.request_content_encoding)
             .field(
@@ -635,6 +645,8 @@ impl Transaction {
             request_message_len: 0,
             request_entity_len: 0,
             request_headers: Headers::with_capacity(32),
+            request_trailers: Headers::with_capacity(8),
+            request_in_trailers: false,
             request_transfer_coding: HtpTransferCoding::Unknown,
             request_content_encoding: HtpContentEncoding::None,
             request_content_encoding_processing: HtpContentEncoding::None,
@@ -659,6 +671,8 @@ impl Transaction {
             response_message: None,
             seen_100continue: false,
             response_headers: Headers::with_capacity(32),
+            response_trailers: Headers::with_capacity(8),
+            response_in_trailers: false,
             is_http_2_upgrade: false,
             response_message_len: 0,
             response_entity_len: 0,

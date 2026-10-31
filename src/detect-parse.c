@@ -3038,9 +3038,8 @@ static int SigValidateCheckBuffers(
             app_buffers_evaluated++;
 
             if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
-                /* only allow rules to use the hook for engines at that
-                 * exact progress for now. We make an exception for generic
-                 * engines like app-layer-event. */
+                /* the hook selects protocol and sub-state; the buffer state is
+                 * checked against the hook state below */
                 if (!(AppProtoEqualsStrict(s->alproto, app->alproto) ||
                             app->alproto == ALPROTO_UNKNOWN)) {
                     SCLogDebug("%u:%s: for buffer %s skip engine %s alproto %s", s->id,
@@ -3084,16 +3083,43 @@ static int SigValidateCheckBuffers(
             }
 
             if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
-                if ((s->flags & SIG_FLAG_TOSERVER) && (app->dir == 0) &&
-                        app->progress != s->init_data->hook.t.app.app_progress) {
-                    SCLogError("engine progress value %d doesn't match hook %u", app->progress,
-                            s->init_data->hook.t.app.app_progress);
-                    SCReturnInt(0);
-                }
-                if ((s->flags & SIG_FLAG_TOCLIENT) && (app->dir == 1) &&
-                        app->progress != s->init_data->hook.t.app.app_progress) {
-                    SCLogError("engine progress value doesn't match hook");
-                    SCReturnInt(0);
+                const uint8_t hook_progress = s->init_data->hook.t.app.app_progress;
+                const bool dir_match = (app->dir == 0 && (s->flags & SIG_FLAG_TOSERVER)) ||
+                                       (app->dir == 1 && (s->flags & SIG_FLAG_TOCLIENT));
+                if (dir_match) {
+                    /* Engines run from their own state on, so a buffer finishing before the
+                     * hook is decided there: the hook bounds the buffer state, it does not
+                     * delay evaluation. After the hook the match could land outside the hook
+                     * window, so that stays rejected. Generic engines (app-layer-event,
+                     * app-layer-state) sit at progress 0 in every protocol, so an upper bound
+                     * would admit them under any hook and the hook would gate nothing: they
+                     * keep the exact state requirement.
+                     * A firewall rule is only a candidate at its hook, so an exact hook below
+                     * its buffer's completion state can never be decided: refuse it instead of
+                     * loading a rule that does nothing. Threat rules keep working in either
+                     * mode, they are inspected from the buffer's state on. The '<' form is held
+                     * to the same bound: its top state is the hook checked here, so a buffer
+                     * completing below the bound is refused as well. */
+                    if (app->alproto == ALPROTO_UNKNOWN) {
+                        if (app->progress != hook_progress) {
+                            SCLogError("buffer %s is not protocol specific, needs the hook at "
+                                       "state %u",
+                                    bt->name, app->progress);
+                            SCReturnInt(0);
+                        }
+                    } else if (app->progress > hook_progress) {
+                        SCLogError("buffer %s completes in state %u, after the hooked state %u",
+                                bt->name, app->progress, hook_progress);
+                        SCReturnInt(0);
+                    } else if (app->progress < hook_progress && (s->flags & SIG_FLAG_FIREWALL)) {
+                        SCLogError("buffer %s completes in state %u, before the hooked state %u: "
+                                   "a firewall rule is only evaluated at its hook, so it could "
+                                   "never match. Hook at state %u, or use a buffer that completes "
+                                   "at state %u.",
+                                bt->name, app->progress, hook_progress, app->progress,
+                                hook_progress);
+                        SCReturnInt(0);
+                    }
                 }
             }
 
@@ -4473,9 +4499,29 @@ static int DoParseAppPolicy(const char *prefix, const AppProto app_proto, const 
     app_pol->progress = state;
     app_pol->direction = (uint8_t)direction;
     /* init to drop:flow by default, will be overwritten by ResolveFirewallPolicy if there
-     * is a config for this hook. */
+     * is a config for this hook. A parser may ask for another built-in for one of its states
+     * (see AppLayerParserGetSubStateProgressPolicy), typically a state added late, which
+     * must not start dropping flows as soon as it is reached. */
     app_pol->policy.action = ACTION_DROP;
     app_pol->policy.action_scope = ACTION_SCOPE_FLOW;
+    if (sub_state != 0) {
+        const char *builtin = AppLayerParserGetSubStateProgressPolicy(
+                app_proto, sub_state, state, (uint8_t)direction);
+        if (builtin != NULL) {
+            /* parse into fresh locals: SigParseActionDo accumulates, so feeding it the
+             * seeded drop:flow would look like a second action with another scope */
+            uint8_t action = 0, action_scope = 0;
+            if (SigParseActionDo(builtin, 0, true, &action, &action_scope) < 0 ||
+                    !FirewallScopeValidForClass(action_scope, DETECT_FIREWALL_POLICY_CLASS_APP)) {
+                SCLogError("%s: invalid default policy \"%s\" for state %u", app_proto_str, builtin,
+                        state);
+                SCFree(app_pol);
+                return -1;
+            }
+            app_pol->policy.action = action;
+            app_pol->policy.action_scope = action_scope;
+        }
+    }
 
     int r = ResolveFirewallPolicy(&app_pol->policy, DETECT_FIREWALL_POLICY_CLASS_APP, &chain);
     if (r < 0) {
