@@ -437,13 +437,6 @@ struct PacketL2 {
     } hdrs;
 };
 
-enum PacketL3Types {
-    PACKET_L3_UNKNOWN = 0,
-    PACKET_L3_IPV4,
-    PACKET_L3_IPV6,
-    PACKET_L3_ARP,
-};
-
 struct PacketL3 {
     enum PacketL3Types type;
     /* Checksum for IP packets. */

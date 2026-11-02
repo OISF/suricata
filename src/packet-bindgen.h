@@ -21,7 +21,15 @@
 typedef struct Packet_ Packet;
 typedef struct Flow_ Flow;
 
+enum PacketL3Types {
+    PACKET_L3_UNKNOWN = 0,
+    PACKET_L3_IPV4,
+    PACKET_L3_IPV6,
+    PACKET_L3_ARP,
+};
+
 uint8_t SCPacketGetIPProto(const Packet *p);
+enum PacketL3Types SCPacketGetL3Type(const Packet *p);
 const uint8_t *SCPacketGetL3(const Packet *p, uint32_t *len);
 Flow *SCPacketGetFlow(const Packet *p);
 void SCPacketGetTimeAsParts(const Packet *p, uint64_t *secs, uint64_t *usecs);

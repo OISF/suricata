@@ -224,6 +224,16 @@ uint8_t SCPacketGetIPProto(const Packet *p)
 }
 
 /**
+ * \brief Get the type of the packet's L3 layer.
+ *
+ * \retval PACKET_L3_UNKNOWN The packet is NULL or has no decoded L3 layer.
+ */
+enum PacketL3Types SCPacketGetL3Type(const Packet *p)
+{
+    return p == NULL ? PACKET_L3_UNKNOWN : p->l3.type;
+}
+
+/**
  * \brief Get the L3 packet data, starting at the L3 header.
  *
  * The returned data is borrowed from p and is valid only while its packet

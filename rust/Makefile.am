@@ -158,6 +158,7 @@ if HAVE_BINDGEN
 		--allowlist-function 'SC.*' \
 		--allowlist-var 'SC.*' \
 		--allowlist-var 'SIGMATCH.*' \
+		--allowlist-type 'PacketL3Types' \
 		--opaque-type 'SCConfNode' \
 		--allowlist-type 'ThreadVars.?' \
 		--opaque-type 'ThreadVars.?' \
