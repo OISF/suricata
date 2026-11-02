@@ -22,10 +22,11 @@ use std::os::raw::c_void;
 use std::time::Duration;
 
 use suricata_sys::sys::{
-    self, Packet, SCFlowGetStorageById, SCFlowRegisterFinishCallback, SCFlowRegisterInitCallback,
+    self, SCFlowGetStorageById, SCFlowRegisterFinishCallback, SCFlowRegisterInitCallback,
     SCFlowRegisterUpdateCallback, SCFlowSetStorageById, SCFlowStorageId, SCFlowStorageRegister,
 };
 
+use crate::packet::Packet;
 use crate::thread::ThreadVars;
 
 /// A safe wrapper around a Suricata `sys::Flow` pointer.
@@ -264,13 +265,14 @@ impl<T: Send + 'static> FlowStorage<T> {
 ///
 /// # Safety
 ///
-/// The callback receives raw pointers from Suricata. These pointers are only
-/// valid for the duration of the callback invocation and must not be stored.
+/// The callback receives wrappers over raw pointers from Suricata. These are
+/// only valid for the duration of the callback invocation and must not be
+/// stored.
 ///
 /// The callback must not panic.
 pub fn register_init_callback<F>(callback: F) -> Result<(), &'static str>
 where
-    F: Fn(&mut ThreadVars, &mut Flow, *const Packet) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, &mut Flow, &Packet) + Send + Sync + 'static,
 {
     let user = Box::into_raw(Box::new(callback)) as *mut c_void;
     if unsafe { SCFlowRegisterInitCallback(Some(init_callback_wrapper::<F>), user) } {
@@ -293,13 +295,14 @@ where
 ///
 /// # Safety
 ///
-/// The callback receives raw pointers from Suricata. These pointers are only
-/// valid for the duration of the callback invocation and must not be stored.
+/// The callback receives wrappers over raw pointers from Suricata. These are
+/// only valid for the duration of the callback invocation and must not be
+/// stored.
 ///
 /// The callback must not panic.
 pub fn register_update_callback<F>(callback: F) -> Result<(), &'static str>
 where
-    F: Fn(&mut ThreadVars, &mut Flow, *mut Packet) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, &mut Flow, &Packet) + Send + Sync + 'static,
 {
     let user = Box::into_raw(Box::new(callback)) as *mut c_void;
     if unsafe { SCFlowRegisterUpdateCallback(Some(update_callback_wrapper::<F>), user) } {
@@ -340,25 +343,27 @@ where
 }
 
 unsafe extern "C" fn init_callback_wrapper<F>(
-    tv: *mut sys::ThreadVars, f: *mut sys::Flow, p: *const Packet, user: *mut c_void,
+    tv: *mut sys::ThreadVars, f: *mut sys::Flow, p: *const sys::Packet, user: *mut c_void,
 ) where
-    F: Fn(&mut ThreadVars, &mut Flow, *const Packet) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, &mut Flow, &Packet) + Send + Sync + 'static,
 {
     let callback = &*(user as *const F);
     let mut tv = ThreadVars::from_ptr(tv);
     let mut f = Flow::from_ptr(f);
-    callback(&mut tv, &mut f, p);
+    let p = Packet::from_ptr(p);
+    callback(&mut tv, &mut f, &p);
 }
 
 unsafe extern "C" fn update_callback_wrapper<F>(
-    tv: *mut sys::ThreadVars, f: *mut sys::Flow, p: *mut Packet, user: *mut c_void,
+    tv: *mut sys::ThreadVars, f: *mut sys::Flow, p: *mut sys::Packet, user: *mut c_void,
 ) where
-    F: Fn(&mut ThreadVars, &mut Flow, *mut Packet) + Send + Sync + 'static,
+    F: Fn(&mut ThreadVars, &mut Flow, &Packet) + Send + Sync + 'static,
 {
     let callback = &*(user as *const F);
     let mut tv = ThreadVars::from_ptr(tv);
     let mut f = Flow::from_ptr(f);
-    callback(&mut tv, &mut f, p);
+    let p = Packet::from_ptr(p);
+    callback(&mut tv, &mut f, &p);
 }
 
 unsafe extern "C" fn finish_callback_wrapper<F>(

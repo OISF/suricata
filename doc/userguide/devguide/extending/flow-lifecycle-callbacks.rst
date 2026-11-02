@@ -105,16 +105,16 @@ The Rust wrappers register closures or function items and return
 .. code-block:: rust
 
    use suricata_ffi::flow::{self, Flow};
+   use suricata_ffi::packet::Packet;
    use suricata_ffi::thread::ThreadVars;
-   use suricata_sys::sys::Packet;
    use suricata_ffi::SCLogNotice;
 
-   fn flow_init(_tv: &mut ThreadVars, f: &mut Flow, _p: *const Packet) {
+   fn flow_init(_tv: &mut ThreadVars, f: &mut Flow, _p: &Packet) {
        SCLogNotice!("flow initialized: {:p}", f.as_ptr());
    }
 
-   fn flow_update(_tv: &mut ThreadVars, f: &mut Flow, p: *mut Packet) {
-       SCLogNotice!("flow updated: {:p} packet: {:p}", f.as_ptr(), p);
+   fn flow_update(_tv: &mut ThreadVars, f: &mut Flow, p: &Packet) {
+       SCLogNotice!("flow updated: {:p} packet ip_proto: {}", f.as_ptr(), p.ip_protocol());
    }
 
    fn flow_finish(_tv: &mut ThreadVars, f: &mut Flow) {
@@ -128,9 +128,10 @@ The Rust wrappers register closures or function items and return
        Ok(())
    }
 
-The raw pointers passed into callbacks are only valid for the duration
-of the callback invocation and must not be stored. Rust callbacks must
-not panic.
+The ``ThreadVars``, ``Flow`` and ``Packet`` wrappers passed into
+callbacks are only valid for the duration of the callback invocation and
+must not be stored. ``Packet`` is read-only, see ``suricata_ffi::packet``
+for its accessors. Rust callbacks must not panic.
 
 Flow Storage
 ============
@@ -147,8 +148,8 @@ initialization.
 .. code-block:: rust
 
    use suricata_ffi::flow::{self, Flow, FlowStorage};
+   use suricata_ffi::packet::Packet;
    use suricata_ffi::thread::ThreadVars;
-   use suricata_sys::sys::Packet;
 
    #[derive(Default)]
    struct FlowState {
@@ -164,11 +165,11 @@ the flow's storage is freed.
 
 .. code-block:: rust
 
-   fn on_flow_init(storage: FlowStorage<FlowState>, _tv: &mut ThreadVars, f: &mut Flow, _p: *const Packet) {
+   fn on_flow_init(storage: FlowStorage<FlowState>, _tv: &mut ThreadVars, f: &mut Flow, _p: &Packet) {
        let _ = storage.get_or_insert_with(f, FlowState::default);
    }
 
-   fn on_flow_update(storage: FlowStorage<FlowState>, _tv: &mut ThreadVars, f: &mut Flow, _p: *mut Packet) {
+   fn on_flow_update(storage: FlowStorage<FlowState>, _tv: &mut ThreadVars, f: &mut Flow, _p: &Packet) {
        if let Some(state) = storage.get_mut(f) {
            state.packets += 1;
        }
