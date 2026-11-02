@@ -200,3 +200,7 @@ int SCPluginRegisterAppLayer(SCAppLayerPlugin *plugin)
     return 0;
 }
 #endif
+
+#ifdef UNITTESTS
+#include "tests/util-plugin.c"
+#endif
