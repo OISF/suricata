@@ -887,7 +887,11 @@ typedef struct DetectEngineIPOnlyCtx_ {
     uint32_t *sig_mapping;
     uint32_t sig_mapping_size;
 
-    bool has_negated;
+    bool has_negated_src;
+    bool has_negated_dst;
+
+    struct SigNumArray_ *negated_universe_src;
+    struct SigNumArray_ *negated_universe_dst;
 } DetectEngineIPOnlyCtx;
 
 typedef struct DetectEngineLookupFlow_ {

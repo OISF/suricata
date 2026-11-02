@@ -667,6 +667,16 @@ static NodeUserData *NodeUserDataNew(DetectEngineCtx *de_ctx, DetectEngineIPOnly
     }
     new->sids.size = io_ctx->max_idx / 8 + 1;
 
+    /* negated_sids is indexed by mapped_signum, the same space as sids, so
+     * size it like sids; only needed when the ruleset has negated sigs. */
+    if (io_ctx->has_negated_src || io_ctx->has_negated_dst) {
+        new->negated_sids.array = SCCalloc(1, io_ctx->max_idx / 8 + 1);
+        if (new->negated_sids.array == NULL) {
+            exit(EXIT_FAILURE);
+        }
+        new->negated_sids.size = io_ctx->max_idx / 8 + 1;
+    }
+
     SCLogDebug("max idx= %u", io_ctx->max_idx);
 
     return new;
@@ -688,6 +698,17 @@ static NodeUserData *NodeUserDataCopy(NodeUserData *orig)
     }
 
     memcpy(new->sids.array, orig->sids.array, orig->sids.size);
+
+    /* carry the negation bits down the tree too, if present */
+    if (orig->negated_sids.array != NULL) {
+        new->negated_sids.size = orig->negated_sids.size;
+        new->negated_sids.array = SCMalloc(orig->negated_sids.size);
+        if (new->negated_sids.array == NULL) {
+            exit(EXIT_FAILURE);
+        }
+        memcpy(new->negated_sids.array, orig->negated_sids.array, orig->negated_sids.size);
+    }
+
     return new;
 }
 
@@ -994,7 +1015,11 @@ void IPOnlyInit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx)
     }
     io_ctx->sig_mapping_size = 0;
 
-    io_ctx->has_negated = false;
+    io_ctx->has_negated_src = false;
+    io_ctx->has_negated_dst = false;
+
+    io_ctx->negated_universe_src = NULL;
+    io_ctx->negated_universe_dst = NULL;
 }
 
 SigIntId IPOnlyTrackSigNum(DetectEngineIPOnlyCtx *io_ctx, SigIntId signum)
@@ -1037,6 +1062,11 @@ void IPOnlyDeinit(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx)
     if (io_ctx->sig_mapping != NULL)
         SCFree(io_ctx->sig_mapping);
     io_ctx->sig_mapping = NULL;
+
+    SigNumArrayFree(io_ctx->negated_universe_src);
+    io_ctx->negated_universe_src = NULL;
+    SigNumArrayFree(io_ctx->negated_universe_dst);
+    io_ctx->negated_universe_dst = NULL;
 }
 
 static inline int IPOnlyMatchCompatSMs(
@@ -1197,6 +1227,7 @@ void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
             }
         }
     }
+
     SCReturn;
 }
 
@@ -1215,13 +1246,44 @@ static void IPOnlyPrepareUpdateBitarray(const IPOnlyCIDRItem *src, NodeUserData 
 {
     uint8_t tmp = (uint8_t)(1 << (src->signum % 8));
     if (src->negated > 0) {
-        /* Unset it */
+        /* Clear the positive sid bit for this node and record the negation in
+         * negated_sids; both are in sig_mapping (mapped_signum) space */
         nud->sids.array[src->signum / 8] &= ~tmp;
         nud->negated_sids.array[src->signum / 8] |= tmp;
     } else {
         /* Set it */
         nud->sids.array[src->signum / 8] |= tmp;
     }
+}
+
+/**
+ * \brief Build, in sig_mapping (mapped_signum) space, the set of all sigs that
+ *        carry a negated IPv4 address in one direction, by OR-ing the mapped
+ *        signum of every negated IPv4 CIDR item of that direction's list.
+ *
+ * \param list the merged IPOnlyCIDRItem list for a direction (ip_src or ip_dst)
+ * \param max_idx the highest mapped signum, used to size the bitarray
+ *
+ * \retval SigNumArray the universe (caller frees it with SigNumArrayFree)
+ */
+static SigNumArray *IPOnlyNegatedUniverseNew(const IPOnlyCIDRItem *list, uint32_t max_idx)
+{
+    SigNumArray *u = SCCalloc(1, sizeof(*u));
+    if (unlikely(u == NULL)) {
+        FatalError("Fatal error encountered in IPOnlyNegatedUniverseNew. Exiting...");
+    }
+    u->size = max_idx / 8 + 1;
+    u->array = SCCalloc(1, u->size);
+    if (u->array == NULL) {
+        exit(EXIT_FAILURE);
+    }
+
+    for (const IPOnlyCIDRItem *it = list; it != NULL; it = it->next) {
+        if (it->negated && it->family == AF_INET)
+            u->array[it->signum / 8] |= (uint8_t)(1 << (it->signum % 8));
+    }
+
+    return u;
 }
 
 /**
@@ -1243,6 +1305,16 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx)
 
     IPOnlyCIDRListQSort(&de_ctx->io_ctx.ip_src);
     IPOnlyCIDRListQSort(&de_ctx->io_ctx.ip_dst);
+
+    /* The set of all negated sigs per direction, in mapped_signum space, read
+     * off the lists before the tree-building loops consume them. Only built
+     * when that direction actually has negated sigs. */
+    if (de_ctx->io_ctx.has_negated_src)
+        de_ctx->io_ctx.negated_universe_src = (struct SigNumArray_ *)IPOnlyNegatedUniverseNew(
+                de_ctx->io_ctx.ip_src, de_ctx->io_ctx.max_idx);
+    if (de_ctx->io_ctx.has_negated_dst)
+        de_ctx->io_ctx.negated_universe_dst = (struct SigNumArray_ *)IPOnlyNegatedUniverseNew(
+                de_ctx->io_ctx.ip_dst, de_ctx->io_ctx.max_idx);
 
     SCRadix4Node *node4 = NULL;
     SCRadix6Node *node6 = NULL;
@@ -1530,11 +1602,12 @@ void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
     SCLogDebug("Adding IPs from rule: %" PRIu32 " (%s) as %" PRIu32 " mapped to %" PRIu32 "\n",
             s->id, s->msg, s->iid, mapped_signum);
 
-    /* Track signatures that carry negated IP addresses separately */
-    if (IPOnlyCIDRListHasNegation(s->init_data->cidr_src) ||
-            IPOnlyCIDRListHasNegation(s->init_data->cidr_dst)) {
-        io_ctx->has_negated = true;
-    }
+    /* Track signatures that carry negated IP addresses separately, per
+     * direction so the src/dst radix trees can be consulted independently */
+    if (IPOnlyCIDRListHasNegation(s->init_data->cidr_src))
+        io_ctx->has_negated_src = true;
+    if (IPOnlyCIDRListHasNegation(s->init_data->cidr_dst))
+        io_ctx->has_negated_dst = true;
     /* Set the internal signum to the list before merging */
     IPOnlyCIDRListSetSigNum(s->init_data->cidr_src, mapped_signum);
 
