@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2024 Open Information Security Foundation
+/* Copyright (C) 2013-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -127,6 +127,10 @@
 #include "source-windivert.h"
 #endif
 
+#ifdef HAVE_AF_PACKET
+#include "source-af-packet.h"
+#endif
+
 #endif /* UNITTESTS */
 
 void TmqhSetup (void);
@@ -221,6 +225,9 @@ static void RegisterUnittests(void)
 #endif
 #ifdef WINDIVERT
     SourceWinDivertRegisterTests();
+#endif
+#ifdef HAVE_AF_PACKET
+    SourceAFPRegisterTests();
 #endif
     SCProtoNameRegisterTests();
     FileRegisterTests();
