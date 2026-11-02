@@ -182,21 +182,27 @@ static void AppLayerProtoDetectPEGetIpprotos(AppProto alproto,
 /** \internal
  *  \brief Handle SPM search for Signature
  *  \param buflen full size of the input buffer
- *  \param searchlen pattern matching portion of buffer */
+ *  \param searchlen pattern matching portion of buffer
+ *  \param pp_pending[out] set if the probing parser needs more data, or can't
+ *         run yet */
 static AppProto AppLayerProtoDetectPMMatchSignature(const AppLayerProtoDetectPMSignature *s,
         AppLayerProtoDetectThreadCtx *tctx, Flow *f, uint8_t flags, const uint8_t *buf,
-        uint32_t buflen, uint16_t searchlen, bool *rflow)
+        uint32_t buflen, uint16_t searchlen, bool *rflow, bool *pp_pending)
 {
     SCEnter();
 
     if (s->cd->offset > searchlen) {
         SCLogDebug("s->co->offset (%"PRIu16") > searchlen (%"PRIu16")",
                    s->cd->offset, searchlen);
+        if (s->PPFunc != NULL)
+            *pp_pending = true;
         SCReturnUInt(ALPROTO_UNKNOWN);
     }
     if (s->cd->depth > searchlen) {
         SCLogDebug("s->co->depth (%"PRIu16") > searchlen (%"PRIu16")",
                    s->cd->depth, searchlen);
+        if (s->PPFunc != NULL)
+            *pp_pending = true;
         SCReturnUInt(ALPROTO_UNKNOWN);
     }
 
@@ -227,6 +233,7 @@ static AppProto AppLayerProtoDetectPMMatchSignature(const AppLayerProtoDetectPMS
         if (s->pp_min_depth > buflen) {
             SCLogDebug("PP can't be run yet as pp_min_depth %u > buflen %u",
                     s->pp_min_depth, buflen);
+            *pp_pending = true;
             SCReturnInt(ALPROTO_UNKNOWN);
         }
 
@@ -246,6 +253,7 @@ static AppProto AppLayerProtoDetectPMMatchSignature(const AppLayerProtoDetectPMS
                 SCLogDebug("depth reached and answer inconclusive: fail");
                 SCReturnUInt(ALPROTO_FAILED);
             }
+            *pp_pending = true;
             SCReturnUInt(ALPROTO_UNKNOWN);
         }
     }
@@ -253,14 +261,16 @@ static AppProto AppLayerProtoDetectPMMatchSignature(const AppLayerProtoDetectPMS
 }
 
 /**
+ *  \param pp_pending[out] set if a probing parser needs more data
  *  \retval 0 no matches
  *  \retval -1 no matches, mpm depth reached
  */
 static inline int PMGetProtoInspect(AppLayerProtoDetectThreadCtx *tctx,
         AppLayerProtoDetectPMCtx *pm_ctx, MpmThreadCtx *mpm_tctx, Flow *f, const uint8_t *buf,
-        uint32_t buflen, uint8_t flags, AppProto *pm_results, bool *rflow)
+        uint32_t buflen, uint8_t flags, AppProto *pm_results, bool *rflow, bool *pp_pending)
 {
     int pm_matches = 0;
+    bool pp_match = false;
 
     // maxdepth is u16, so minimum is u16
     uint16_t searchlen = (uint16_t)MIN(buflen, pm_ctx->mpm_ctx.maxdepth);
@@ -286,8 +296,21 @@ static inline int PMGetProtoInspect(AppLayerProtoDetectThreadCtx *tctx,
     for (uint32_t cnt = 0; cnt < tctx->pmq.rule_id_array_cnt; cnt++) {
         const AppLayerProtoDetectPMSignature *s = pm_ctx->map[tctx->pmq.rule_id_array[cnt]];
         while (s != NULL) {
+            /* a match confirmed by a probing parser is more specific than a
+             * plain pattern match, e.g. a SIP OPTIONS request also matches
+             * the HTTP "OPTIONS " pattern */
+            if (pp_match && s->PPFunc == NULL) {
+                s = s->next;
+                continue;
+            }
             AppProto proto = AppLayerProtoDetectPMMatchSignature(
-                    s, tctx, f, flags, buf, buflen, searchlen, rflow);
+                    s, tctx, f, flags, buf, buflen, searchlen, rflow, pp_pending);
+            if (AppProtoIsValid(proto) && s->PPFunc != NULL && !pp_match) {
+                /* discard the plain pattern matches found so far */
+                pp_match = true;
+                pm_matches = 0;
+                memset(pm_results_bf, 0, sizeof(pm_results_bf));
+            }
 
             /* store each unique proto once */
             if (AppProtoIsValid(proto) &&
@@ -299,7 +322,13 @@ static inline int PMGetProtoInspect(AppLayerProtoDetectThreadCtx *tctx,
             s = s->next;
         }
     }
-    if (pm_matches == 0 && buflen >= pm_ctx->pp_max_len) {
+    /* a probing parser that needs more data may still confirm its protocol,
+     * so don't settle for a plain pattern match yet */
+    if (!pp_match && *pp_pending) {
+        pm_matches = 0;
+        *rflow = false;
+    }
+    if (pm_matches == 0 && !*pp_pending && buflen >= pm_ctx->pp_max_len) {
         pm_matches = -2;
     }
     PmqReset(&tctx->pmq);
@@ -320,6 +349,7 @@ static AppProto AppLayerProtoDetectPMGetProto(AppLayerProtoDetectThreadCtx *tctx
     AppLayerProtoDetectPMCtx *pm_ctx;
     MpmThreadCtx *mpm_tctx;
     int m = -1;
+    bool pp_pending = false;
 
     if (f->protomap >= FLOW_PROTO_DEFAULT) {
         pm_results[0] = ALPROTO_FAILED;
@@ -334,14 +364,21 @@ static AppProto AppLayerProtoDetectPMGetProto(AppLayerProtoDetectThreadCtx *tctx
         mpm_tctx = &tctx->mpm_tctx[f->protomap][1];
     }
     if (likely(pm_ctx->mpm_ctx.pattern_cnt > 0)) {
-        m = PMGetProtoInspect(tctx, pm_ctx, mpm_tctx, f, buf, buflen, flags, pm_results, rflow);
+        m = PMGetProtoInspect(
+                tctx, pm_ctx, mpm_tctx, f, buf, buflen, flags, pm_results, rflow, &pp_pending);
     }
     /* pattern found, yay */
     if (m > 0) {
         FLOW_SET_PM_DONE(f, flags);
         SCReturnUInt((uint16_t)m);
 
-    /* handle non-found in non-midstream case */
+    } else if (pp_pending) {
+        /* a probing parser needs more data: wait for it, also in the
+         * midstream case, instead of trying the patterns of the other
+         * direction */
+        SCReturnUInt(0);
+
+        /* handle non-found in non-midstream case */
     } else if (!stream_config.midstream) {
         /* we can give up if mpm gave no results and its search depth
          * was reached. */
@@ -366,9 +403,10 @@ static AppProto AppLayerProtoDetectPMGetProto(AppLayerProtoDetectThreadCtx *tctx
                    "*patterns for the other side");
 
         int om = -1;
+        bool other_pp_pending = false;
         if (likely(pm_ctx->mpm_ctx.pattern_cnt > 0)) {
-            om = PMGetProtoInspect(
-                    tctx, pm_ctx, mpm_tctx, f, buf, buflen, flags, pm_results, rflow);
+            om = PMGetProtoInspect(tctx, pm_ctx, mpm_tctx, f, buf, buflen, flags, pm_results, rflow,
+                    &other_pp_pending);
         }
         /* found! */
         if (om > 0) {
@@ -3559,6 +3597,154 @@ static int AppLayerProtoDetectTest19(void)
      return result;
 }
 
+/** \brief probing parser for test 20, deciding on the first URI byte */
+static AppProto AppLayerProtoDetectTest20ProbingParser(
+        const Flow *f, uint8_t flags, const uint8_t *input, uint32_t input_len, uint8_t *rdir)
+{
+    if (input_len < 9)
+        return ALPROTO_UNKNOWN;
+    return input[8] == 's' ? ALPROTO_SIP : ALPROTO_FAILED;
+}
+
+/**
+ * \test a pattern match confirmed by a probing parser takes precedence over a
+ *       plain pattern match, which waits while the probing parser can't decide
+ */
+static int AppLayerProtoDetectTest20(void)
+{
+    AppLayerProtoDetectUnittestCtxBackup();
+    AppLayerProtoDetectSetup();
+
+    uint8_t l7data_sip[] = "OPTIONS sip:a@b SIP/2.0\r\n";
+    uint8_t l7data_http[] = "OPTIONS / HTTP/1.1\r\n";
+    AppProto pm_results[g_alproto_max];
+    memset(pm_results, 0, sizeof(pm_results));
+    Flow f;
+    memset(&f, 0x00, sizeof(f));
+    f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
+
+    SCAppLayerProtoDetectPMRegisterPatternCI(
+            IPPROTO_TCP, ALPROTO_HTTP1, "OPTIONS|20|", 8, 0, STREAM_TOSERVER);
+    SCAppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SIP, "OPTIONS", 7, 0,
+            STREAM_TOSERVER, AppLayerProtoDetectTest20ProbingParser, 0, 64);
+
+    AppLayerProtoDetectPrepareState();
+    AppLayerProtoDetectThreadCtx *alpd_tctx = AppLayerProtoDetectGetCtxThread();
+    FAIL_IF_NULL(alpd_tctx);
+
+    /* the probing parser can't decide yet: don't settle for the plain pattern */
+    bool rdir = false;
+    uint32_t cnt = AppLayerProtoDetectPMGetProto(
+            alpd_tctx, &f, l7data_sip, 8, STREAM_TOSERVER, pm_results, &rdir);
+    FAIL_IF(cnt != 0);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+
+    /* both patterns match, the probing parser confirmed its protocol */
+    cnt = AppLayerProtoDetectPMGetProto(
+            alpd_tctx, &f, l7data_sip, sizeof(l7data_sip) - 1, STREAM_TOSERVER, pm_results, &rdir);
+    FAIL_IF(cnt != 1);
+    FAIL_IF(pm_results[0] != ALPROTO_SIP);
+    FAIL_IF(rdir);
+
+    /* the probing parser rejected the data */
+    memset(&f, 0x00, sizeof(f));
+    f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
+    cnt = AppLayerProtoDetectPMGetProto(alpd_tctx, &f, l7data_http, sizeof(l7data_http) - 1,
+            STREAM_TOSERVER, pm_results, &rdir);
+    FAIL_IF(cnt != 1);
+    FAIL_IF(pm_results[0] != ALPROTO_HTTP1);
+    FAIL_IF(rdir);
+
+    AppLayerProtoDetectDestroyCtxThread(alpd_tctx);
+    AppLayerProtoDetectDeSetup();
+    AppLayerProtoDetectUnittestCtxRestore();
+    PASS;
+}
+
+/**
+ * \test in midstream mode, the patterns of the other direction are not tried
+ *       while a probing parser needs more data
+ */
+static int AppLayerProtoDetectTest21(void)
+{
+    AppLayerProtoDetectUnittestCtxBackup();
+    AppLayerProtoDetectSetup();
+
+    uint8_t l7data[] = "OPTIONS ";
+    AppProto pm_results[g_alproto_max];
+    memset(pm_results, 0, sizeof(pm_results));
+    Flow f;
+    memset(&f, 0x00, sizeof(f));
+    f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
+
+    SCAppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SIP, "OPTIONS", 7, 0,
+            STREAM_TOSERVER, AppLayerProtoDetectTest20ProbingParser, 0, 64);
+    SCAppLayerProtoDetectPMRegisterPatternCI(
+            IPPROTO_TCP, ALPROTO_HTTP1, "OPTIONS|20|", 8, 0, STREAM_TOCLIENT);
+
+    AppLayerProtoDetectPrepareState();
+    AppLayerProtoDetectThreadCtx *alpd_tctx = AppLayerProtoDetectGetCtxThread();
+    FAIL_IF_NULL(alpd_tctx);
+
+    bool midstream = stream_config.midstream;
+    stream_config.midstream = true;
+    bool rdir = false;
+    uint32_t cnt = AppLayerProtoDetectPMGetProto(
+            alpd_tctx, &f, l7data, sizeof(l7data) - 1, STREAM_TOSERVER, pm_results, &rdir);
+    stream_config.midstream = midstream;
+    FAIL_IF(cnt != 0);
+    FAIL_IF(rdir);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+
+    AppLayerProtoDetectDestroyCtxThread(alpd_tctx);
+    AppLayerProtoDetectDeSetup();
+    AppLayerProtoDetectUnittestCtxRestore();
+    PASS;
+}
+
+/**
+ * \test a probing parser whose pattern depth is not reached yet holds back
+ *       a plain pattern match
+ */
+static int AppLayerProtoDetectTest22(void)
+{
+    AppLayerProtoDetectUnittestCtxBackup();
+    AppLayerProtoDetectSetup();
+
+    uint8_t l7data[] = "OPTIONS sip:";
+    AppProto pm_results[g_alproto_max];
+    memset(pm_results, 0, sizeof(pm_results));
+    Flow f;
+    memset(&f, 0x00, sizeof(f));
+    f.protomap = FlowGetProtoMapping(IPPROTO_TCP);
+
+    SCAppLayerProtoDetectPMRegisterPatternCI(
+            IPPROTO_TCP, ALPROTO_HTTP1, "OPTIONS|20|", 8, 0, STREAM_TOSERVER);
+    SCAppLayerProtoDetectPMRegisterPatternCSwPP(IPPROTO_TCP, ALPROTO_SIP, "OPTIONS", 12, 0,
+            STREAM_TOSERVER, AppLayerProtoDetectTest20ProbingParser, 0, 64);
+
+    AppLayerProtoDetectPrepareState();
+    AppLayerProtoDetectThreadCtx *alpd_tctx = AppLayerProtoDetectGetCtxThread();
+    FAIL_IF_NULL(alpd_tctx);
+
+    /* the SIP pattern is found but its depth is not reached yet */
+    bool rdir = false;
+    uint32_t cnt = AppLayerProtoDetectPMGetProto(
+            alpd_tctx, &f, l7data, sizeof(l7data) - 2, STREAM_TOSERVER, pm_results, &rdir);
+    FAIL_IF(cnt != 0);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+
+    cnt = AppLayerProtoDetectPMGetProto(
+            alpd_tctx, &f, l7data, sizeof(l7data) - 1, STREAM_TOSERVER, pm_results, &rdir);
+    FAIL_IF(cnt != 1);
+    FAIL_IF(pm_results[0] != ALPROTO_SIP);
+
+    AppLayerProtoDetectDestroyCtxThread(alpd_tctx);
+    AppLayerProtoDetectDeSetup();
+    AppLayerProtoDetectUnittestCtxRestore();
+    PASS;
+}
+
 void AppLayerProtoDetectUnittestsRegister(void)
 {
     SCEnter();
@@ -3582,6 +3768,9 @@ void AppLayerProtoDetectUnittestsRegister(void)
     UtRegisterTest("AppLayerProtoDetectTest17", AppLayerProtoDetectTest17);
     UtRegisterTest("AppLayerProtoDetectTest18", AppLayerProtoDetectTest18);
     UtRegisterTest("AppLayerProtoDetectTest19", AppLayerProtoDetectTest19);
+    UtRegisterTest("AppLayerProtoDetectTest20", AppLayerProtoDetectTest20);
+    UtRegisterTest("AppLayerProtoDetectTest21", AppLayerProtoDetectTest21);
+    UtRegisterTest("AppLayerProtoDetectTest22", AppLayerProtoDetectTest22);
 
     SCReturn;
 }
