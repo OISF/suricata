@@ -23,6 +23,7 @@ pub mod direction;
 pub mod eve;
 pub mod flow;
 pub mod jsonbuilder;
+pub mod packet;
 pub mod plugin;
 pub mod thread;
 
