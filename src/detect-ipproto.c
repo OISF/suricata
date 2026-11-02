@@ -161,16 +161,12 @@ error:
 
 static int DetectIPProtoTypePresentForOP(Signature *s, uint8_t op)
 {
-    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
-    DetectIPProtoData *data;
-
-    while (sm != NULL) {
-        if (sm->type == DETECT_IPPROTO) {
-            data = (DetectIPProtoData *)sm->ctx;
-            if (data->op == op)
-                return 1;
-        }
-        sm = sm->next;
+    for (const SigMatch *sm =
+                    SCDetectSignatureGetLastSMByType(s, DETECT_SM_LIST_MATCH, DETECT_IPPROTO);
+            sm != NULL; sm = SCSigMatchGetPrevByType(sm, DETECT_IPPROTO)) {
+        const DetectIPProtoData *data = (const DetectIPProtoData *)SCSigMatchGetCtx(sm);
+        if (data->op == op)
+            return 1;
     }
 
     return 0;
