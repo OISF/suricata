@@ -68,6 +68,21 @@ Example::
 
   dcerpc.stub_data; content:"123456";
 
+dcerpc.is_fragmented
+--------------------
+
+Match on whether a DCERPC PDU is fragmented. It takes a boolean value.
+
+Syntax::
+
+  dcerpc.is_fragmented: true|false;
+
+Example:
+
+.. container:: example-rule
+
+  alert dcerpc any any -> any any (:example-rule-options:`dcerpc.is_fragmented: true;` sid: 1;)
+
 
 Additional information
 ----------------------
