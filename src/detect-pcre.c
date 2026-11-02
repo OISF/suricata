@@ -371,7 +371,18 @@ static int DetectPcreSetList(int list, int set)
 
 static bool DetectPcreHasUnicodeCluster(const char *re)
 {
-    return strstr(re, "\\X") != NULL;
+    bool escaping = false;
+    for (const char *p = re; *p != 0; p++) {
+        if (escaping) {
+            if (*p == 'X') {
+                return true;
+            }
+            escaping = false;
+        } else if (*p == '\\') {
+            escaping = true;
+        }
+    }
+    return false;
 }
 
 static int DetectPcreHasUpperCase(const char *re)
