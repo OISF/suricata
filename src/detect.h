@@ -187,6 +187,7 @@ typedef struct DetectAddressHead_ {
     DetectAddress *ipv6_head;
 
     bool contains_range;
+    bool single_negated_host;
 } DetectAddressHead;
 
 

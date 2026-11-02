@@ -1093,7 +1093,13 @@ static inline int IPOnlyMatchCompatSMs(
 static SigNumArray *IPOnlySrcMatchArrayNew(
         const DetectEngineIPOnlyCtx *io_ctx, const NodeUserData *src)
 {
-    const SigNumArray *sids = &src->sids;
+    const SigNumArray *universe = (SigNumArray *)io_ctx->negated_universe_src;
+    const SigNumArray *sids = (src != NULL) ? &src->sids : NULL;
+
+    /* both bitarrays are sized max_idx/8+1; take whichever we have */
+    const uint32_t size = (sids != NULL) ? sids->size : (universe != NULL ? universe->size : 0);
+    if (size == 0)
+        return NULL;
 
     /* KNOWN ISSUE (perf): this bitarray is allocated fresh for every matching
      * IPv4 packet on the detection hot path; it should fill a per-thread scratch
@@ -1103,23 +1109,23 @@ static SigNumArray *IPOnlySrcMatchArrayNew(
     if (unlikely(new == NULL)) {
         FatalError("Fatal error encountered in IPOnlySrcMatchArrayNew. Exiting...");
     }
-    new->size = sids->size;
-    new->array = SCMalloc(sids->size);
+    new->size = size;
+    new->array = SCMalloc(size);
     if (new->array == NULL) {
         exit(EXIT_FAILURE);
     }
 
-    const SigNumArray *universe = (SigNumArray *)io_ctx->negated_universe_src;
     for (uint32_t u = 0; u < new->size; u++) {
+        /* the node's positive matches (none without a node) */
+        const uint8_t pos = (sids != NULL) ? sids->array[u] : 0;
         /* every src-negated sig (mapped_signum space) */
         const uint8_t neg_all = (universe != NULL) ? universe->array[u] : 0;
-
         /* the src-negated sigs excluded at this node (the packet's src falls
          * inside their negated range); negated_sids may be unallocated */
         const uint8_t neg_here =
-                (src->negated_sids.array != NULL) ? src->negated_sids.array[u] : 0;
+                (src != NULL && src->negated_sids.array != NULL) ? src->negated_sids.array[u] : 0;
 
-        new->array[u] = (uint8_t)((sids->array[u] | neg_all) & ~neg_here);
+        new->array[u] = (uint8_t)((pos | neg_all) & ~neg_here);
     }
 
     return new;
@@ -1128,7 +1134,13 @@ static SigNumArray *IPOnlySrcMatchArrayNew(
 static SigNumArray *IPOnlyDstMatchArrayNew(
         const DetectEngineIPOnlyCtx *io_ctx, const NodeUserData *dst)
 {
-    const SigNumArray *sids = &dst->sids;
+    const SigNumArray *universe = (SigNumArray *)io_ctx->negated_universe_dst;
+    const SigNumArray *sids = (dst != NULL) ? &dst->sids : NULL;
+
+    /* both bitarrays are sized max_idx/8+1; take whichever we have */
+    const uint32_t size = (sids != NULL) ? sids->size : (universe != NULL ? universe->size : 0);
+    if (size == 0)
+        return NULL;
 
     /* KNOWN ISSUE (perf): this bitarray is allocated fresh for every matching
      * IPv4 packet on the detection hot path; it should fill a per-thread scratch
@@ -1138,23 +1150,23 @@ static SigNumArray *IPOnlyDstMatchArrayNew(
     if (unlikely(new == NULL)) {
         FatalError("Fatal error encountered in IPOnlyDstMatchArrayNew. Exiting...");
     }
-    new->size = sids->size;
-    new->array = SCMalloc(sids->size);
+    new->size = size;
+    new->array = SCMalloc(size);
     if (new->array == NULL) {
         exit(EXIT_FAILURE);
     }
 
-    const SigNumArray *universe = (SigNumArray *)io_ctx->negated_universe_dst;
     for (uint32_t u = 0; u < new->size; u++) {
+        /* the node's positive matches (none without a node) */
+        const uint8_t pos = (sids != NULL) ? sids->array[u] : 0;
         /* every dst-negated sig (mapped_signum space) */
         const uint8_t neg_all = (universe != NULL) ? universe->array[u] : 0;
-
         /* the dst-negated sigs excluded at this node (the packet's dst falls
          * inside their negated range); negated_sids may be unallocated */
         const uint8_t neg_here =
-                (dst->negated_sids.array != NULL) ? dst->negated_sids.array[u] : 0;
+                (dst != NULL && dst->negated_sids.array != NULL) ? dst->negated_sids.array[u] : 0;
 
-        new->array[u] = (uint8_t)((sids->array[u] | neg_all) & ~neg_here);
+        new->array[u] = (uint8_t)((pos | neg_all) & ~neg_here);
     }
 
     return new;
@@ -1196,17 +1208,20 @@ void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
                 &io_ctx->tree_ipv6dst, (uint8_t *)&GET_IPV6_DST_ADDR(p), &user_data_dst);
     }
 
-    /* The IPv4 trees store a NodeUserData per node; reach its sids bitarray.
-     * The IPv6 trees still store a bare SigNumArray. */
+    /* The IPv4 trees store a NodeUserData per node; fold the node (if any) and
+     * the negated universe into a per-packet match bitarray. We build it even
+     * when the lookup found no node, as long as there are negated sigs in this
+     * direction: a negated sig matches any address not in its range, including
+     * one that hits no node. The IPv6 trees still store a bare SigNumArray. */
     if (p->src.family == AF_INET) {
-        if (user_data_src != NULL)
+        if (user_data_src != NULL || io_ctx->negated_universe_src != NULL)
             src = src_scratch = IPOnlySrcMatchArrayNew(io_ctx, (NodeUserData *)user_data_src);
     } else {
         src = user_data_src;
     }
 
     if (p->dst.family == AF_INET) {
-        if (user_data_dst != NULL)
+        if (user_data_dst != NULL || io_ctx->negated_universe_dst != NULL)
             dst = dst_scratch = IPOnlyDstMatchArrayNew(io_ctx, (NodeUserData *)user_data_dst);
     } else {
         dst = user_data_dst;
