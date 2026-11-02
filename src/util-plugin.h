@@ -26,4 +26,6 @@ SCCapturePlugin *SCPluginFindCaptureByName(const char *name);
 
 bool RegisterPlugin(SCPlugin *, void *);
 
+void UtilPluginRegisterTests(void);
+
 #endif /* SURICATA_UTIL_PLUGIN_H */
