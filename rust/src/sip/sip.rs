@@ -530,6 +530,8 @@ unsafe extern "C" fn sip_parse_response_tcp(
     state.parse_response_tcp(flow, stream_slice)
 }
 
+const SIP_PROBE_MAX_LEN: u16 = 1024;
+
 unsafe extern "C" fn sip_probing_parser(
     _f: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
 ) -> AppProto {
@@ -545,6 +547,12 @@ unsafe extern "C" fn sip_probing_parser(
 }
 
 fn register_pattern_probe(proto: u8) -> i8 {
+    // over TCP wait for the end of the request line, a datagram is complete
+    let pp_max_depth = if proto == IPPROTO_TCP {
+        SIP_PROBE_MAX_LEN
+    } else {
+        0
+    };
     let methods_with_probe: Vec<&str> = vec![
         "ACK\0",
         "INFO\0",
@@ -590,7 +598,7 @@ fn register_pattern_probe(proto: u8) -> i8 {
                 Direction::ToServer as u8,
                 Some(sip_probing_parser),
                 0,
-                0,
+                pp_max_depth,
             );
         }
 
