@@ -146,7 +146,8 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
         return;
     if (flowctx == NULL || flowctx->ndpi_flow == NULL)
         return;
-    if (!(PacketIsIPv4(p) || PacketIsIPv6(p)))
+    const enum PacketL3Types l3_type = SCPacketGetL3Type(p);
+    if (l3_type != PACKET_L3_IPV4 && l3_type != PACKET_L3_IPV6)
         return;
 
     const uint8_t *ip_ptr = SCPacketGetL3(p, &ip_len);
