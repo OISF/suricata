@@ -321,20 +321,19 @@ static bool nDPIProtocolDataHasConflicts(
 
 static int DetectnDPIProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    DetectnDPIProtocolData *data = DetectnDPIProtocolParse(arg, s->init_data->negated);
+    DetectnDPIProtocolData *data = DetectnDPIProtocolParse(arg, SCDetectSignatureIsNegated(s));
     if (data == NULL)
         goto error;
 
-    SigMatch *tsm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
-    for (; tsm != NULL; tsm = tsm->next) {
-        if (tsm->type == ndpi_protocol_keyword_id) {
-            const DetectnDPIProtocolData *them = (const DetectnDPIProtocolData *)tsm->ctx;
+    const SigMatch *tsm =
+            SCDetectSignatureGetLastSMByType(s, DETECT_SM_LIST_MATCH, ndpi_protocol_keyword_id);
+    for (; tsm != NULL; tsm = SCSigMatchGetPrevByType(tsm, ndpi_protocol_keyword_id)) {
+        const DetectnDPIProtocolData *them = (const DetectnDPIProtocolData *)SCSigMatchGetCtx(tsm);
 
-            if (nDPIProtocolDataHasConflicts(data, them)) {
-                SCLogError("can't mix "
-                           "positive ndpi-protocol match with negated");
-                goto error;
-            }
+        if (nDPIProtocolDataHasConflicts(data, them)) {
+            SCLogError("can't mix "
+                       "positive ndpi-protocol match with negated");
+            goto error;
         }
     }
 
@@ -461,20 +460,19 @@ static bool nDPIRiskDataHasConflicts(const DetectnDPIRiskData *us, const Detectn
 
 static int DetectnDPIRiskSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    DetectnDPIRiskData *data = DetectnDPIRiskParse(arg, s->init_data->negated);
+    DetectnDPIRiskData *data = DetectnDPIRiskParse(arg, SCDetectSignatureIsNegated(s));
     if (data == NULL)
         goto error;
 
-    SigMatch *tsm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
-    for (; tsm != NULL; tsm = tsm->next) {
-        if (tsm->type == ndpi_risk_keyword_id) {
-            const DetectnDPIRiskData *them = (const DetectnDPIRiskData *)tsm->ctx;
+    const SigMatch *tsm =
+            SCDetectSignatureGetLastSMByType(s, DETECT_SM_LIST_MATCH, ndpi_risk_keyword_id);
+    for (; tsm != NULL; tsm = SCSigMatchGetPrevByType(tsm, ndpi_risk_keyword_id)) {
+        const DetectnDPIRiskData *them = (const DetectnDPIRiskData *)SCSigMatchGetCtx(tsm);
 
-            if (nDPIRiskDataHasConflicts(data, them)) {
-                SCLogError("can't mix "
-                           "positive ndpi-risk match with negated");
-                goto error;
-            }
+        if (nDPIRiskDataHasConflicts(data, them)) {
+            SCLogError("can't mix "
+                       "positive ndpi-risk match with negated");
+            goto error;
         }
     }
 
@@ -538,34 +536,36 @@ static void EveCallback(ThreadVars *tv, const Packet *p, Flow *f, SCJsonBuilder 
 
 static void NdpInitRiskKeyword(void)
 {
-    /* SCSigTableAppLiteElmt and SCDetectHelperKeywordRegister don't yet
-     * support all the fields required to register the nDPI keywords,
-     * missing the (packet) Match callback,
-     * so we'll just register with an empty keyword specifier to get
-     * the ID, then fill in the ID. */
-    ndpi_protocol_keyword_id = SCDetectHelperNewKeywordId();
+    const SCSigTableAppLiteElmt protocol_kw = {
+        .name = "ndpi-protocol",
+        .desc = "match on the detected nDPI protocol",
+        .url = "/rules/ndpi-protocol.html",
+        .flags = SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_HANDLE_NEGATION,
+        .Setup = DetectnDPIProtocolSetup,
+        .Free = DetectnDPIProtocolFree,
+    };
+    ndpi_protocol_keyword_id = SCDetectHelperKeywordRegister(&protocol_kw);
+    if (ndpi_protocol_keyword_id == UINT16_MAX) {
+        FatalError("Failed to register ndpi-protocol keyword");
+    }
+    SCDetectHelperKeywordPacketMatchRegister(
+            ndpi_protocol_keyword_id, DetectnDPIProtocolPacketMatch);
     SCLogDebug("Registered new ndpi-protocol keyword with ID %" PRIu32, ndpi_protocol_keyword_id);
 
-    sigmatch_table[ndpi_protocol_keyword_id].name = "ndpi-protocol";
-    sigmatch_table[ndpi_protocol_keyword_id].desc = "match on the detected nDPI protocol";
-    sigmatch_table[ndpi_protocol_keyword_id].url = "/rules/ndpi-protocol.html";
-    sigmatch_table[ndpi_protocol_keyword_id].Match = DetectnDPIProtocolPacketMatch;
-    sigmatch_table[ndpi_protocol_keyword_id].Setup = DetectnDPIProtocolSetup;
-    sigmatch_table[ndpi_protocol_keyword_id].Free = DetectnDPIProtocolFree;
-    sigmatch_table[ndpi_protocol_keyword_id].flags =
-            (SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_HANDLE_NEGATION);
-
-    ndpi_risk_keyword_id = SCDetectHelperNewKeywordId();
+    const SCSigTableAppLiteElmt risk_kw = {
+        .name = "ndpi-risk",
+        .desc = "match on the detected nDPI risk",
+        .url = "/rules/ndpi-risk.html",
+        .flags = SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_HANDLE_NEGATION,
+        .Setup = DetectnDPIRiskSetup,
+        .Free = DetectnDPIRiskFree,
+    };
+    ndpi_risk_keyword_id = SCDetectHelperKeywordRegister(&risk_kw);
+    if (ndpi_risk_keyword_id == UINT16_MAX) {
+        FatalError("Failed to register ndpi-risk keyword");
+    }
+    SCDetectHelperKeywordPacketMatchRegister(ndpi_risk_keyword_id, DetectnDPIRiskPacketMatch);
     SCLogDebug("Registered new ndpi-risk keyword with ID %" PRIu32, ndpi_risk_keyword_id);
-
-    sigmatch_table[ndpi_risk_keyword_id].name = "ndpi-risk";
-    sigmatch_table[ndpi_risk_keyword_id].desc = "match on the detected nDPI risk";
-    sigmatch_table[ndpi_risk_keyword_id].url = "/rules/ndpi-risk.html";
-    sigmatch_table[ndpi_risk_keyword_id].Match = DetectnDPIRiskPacketMatch;
-    sigmatch_table[ndpi_risk_keyword_id].Setup = DetectnDPIRiskSetup;
-    sigmatch_table[ndpi_risk_keyword_id].Free = DetectnDPIRiskFree;
-    sigmatch_table[ndpi_risk_keyword_id].flags =
-            (SIGMATCH_QUOTES_OPTIONAL | SIGMATCH_HANDLE_NEGATION);
 }
 
 static void NdpiInit(void)
