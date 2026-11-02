@@ -248,6 +248,12 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     pcre2_match_data *match =
             (pcre2_match_data *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, pe->thread_ctx_id);
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    det_ctx->fuzzed_pcre_len += len;
+    if (det_ctx->fuzzed_pcre_len > 0x20000) { // 128 kilobytes
+        SCReturnInt(0);
+    }
+#endif
     ret = DetectPcreExec(det_ctx, pe, (char *)ptr, len, start_offset, 0, match);
     SCLogDebug("ret %d (negating %s)", ret, (pe->flags & DETECT_PCRE_NEGATE) ? "set" : "not set");
 
