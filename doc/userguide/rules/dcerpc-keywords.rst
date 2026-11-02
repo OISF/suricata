@@ -68,6 +68,18 @@ Example::
 
   dcerpc.stub_data; content:"123456";
 
+dcerpc.hdr
+----------
+
+Match on the DCERPC header. It is a 'sticky buffer'.
+
+Multi-byte header fields appear in the byte order advertised in the header's
+data representation.
+
+Example::
+
+  dcerpc.hdr; content:"|10|"; offset:4; depth:1;
+
 
 Additional information
 ----------------------
