@@ -118,14 +118,11 @@ static inline int DetectFlowbitValidateDo(
         Signature *s, uint8_t cmd, uint8_t cmd2, uint32_t idx, bool err)
 {
     bool postmatch = DetectFlowbitIsPostmatch(cmd);
-    SigMatch *list = postmatch ? s->init_data->smlists[DETECT_SM_LIST_POSTMATCH]
-                               : s->init_data->smlists[DETECT_SM_LIST_MATCH];
+    int list = postmatch ? DETECT_SM_LIST_POSTMATCH : DETECT_SM_LIST_MATCH;
 
-    for (SigMatch *sm = list; sm != NULL; sm = sm->next) {
-        if (sm->type != DETECT_FLOWBITS)
-            continue;
-
-        DetectFlowbitsData *fd = (DetectFlowbitsData *)sm->ctx;
+    for (const SigMatch *sm = SCDetectSignatureGetLastSMByType(s, list, DETECT_FLOWBITS);
+            sm != NULL; sm = SCSigMatchGetPrevByType(sm, DETECT_FLOWBITS)) {
+        const DetectFlowbitsData *fd = (const DetectFlowbitsData *)SCSigMatchGetCtx(sm);
         if ((fd->idx == idx) && (fd->cmd == cmd)) {
             if (err) {
                 SCLogError("invalid flowbit command combination in the same signature: isset and "
