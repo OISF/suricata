@@ -27,6 +27,7 @@
 #ifdef UNITTESTS
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "util-plugin.h"
 #include "detect-engine-alert.h"
 #include "detect-engine-address.h"
 #include "detect-engine-proto.h"
@@ -200,6 +201,7 @@ static void RegisterUnittests(void)
     DeStateRegisterTests();
     MemcmpRegisterTests();
     DetectEngineRegisterTests();
+    UtilPluginRegisterTests();
     SCLogRegisterTests();
     MagicRegisterTests();
     UtilMiscRegisterTests();

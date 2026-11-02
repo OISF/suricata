@@ -1181,6 +1181,7 @@ EXTRA_DIST = \
 	tests/detect-engine-content-inspection.c \
 	tests/detect-icmpv4hdr.c \
 	tests/detect-parse.c \
+	tests/util-plugin.c \
 	tests/stream-tcp-reassemble.c \
 	tests/detect-file-data.c \
 	tests/detect-http-client-body.c \
