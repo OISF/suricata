@@ -2019,8 +2019,19 @@ extern "C" {
         Free: ::std::option::Option<unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void)>,
     ) -> SCFlowStorageId;
 }
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum PacketL3Types {
+    PACKET_L3_UNKNOWN = 0,
+    PACKET_L3_IPV4 = 1,
+    PACKET_L3_IPV6 = 2,
+    PACKET_L3_ARP = 3,
+}
 extern "C" {
     pub fn SCPacketGetIPProto(p: *const Packet) -> u8;
+}
+extern "C" {
+    pub fn SCPacketGetL3Type(p: *const Packet) -> PacketL3Types;
 }
 extern "C" {
     pub fn SCPacketGetL3(p: *const Packet, len: *mut u32) -> *const u8;
