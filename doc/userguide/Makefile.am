@@ -59,19 +59,22 @@ EXTRA_DIST += userguide.pdf
 endif
 
 SPHINX_BUILD = sphinx-build -q
+# One doctrees dir per builder: make -j can run these in parallel and
+# concurrent sphinx runs sharing one env dir corrupt each other
+# (flaky "toctree contains ref to nonexisting file" failures).
 
 html: _generated
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
 	version=$(PACKAGE_VERSION) \
-		$(SPHINX_BUILD) -W -b html -d _build/doctrees \
+		$(SPHINX_BUILD) -W -b html -d _build/doctrees-html \
 		$(top_srcdir)/doc/userguide _build/html
 
 _build/latex/Suricata.pdf: _generated
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
 	version=$(PACKAGE_VERSION) \
-		$(SPHINX_BUILD) -W -b latex -d _build/doctrees \
+		$(SPHINX_BUILD) -W -b latex -d _build/doctrees-latex \
 		$(top_srcdir)/doc/userguide _build/latex
 # The Sphinx generated Makefile is GNU Make specific, so just do what
 # it does here - yes, multiple passes of pdflatex is required.
@@ -92,7 +95,7 @@ _build/man: _generated manpages/suricata.rst manpages/suricatasc.rst manpages/su
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
 	version=$(PACKAGE_VERSION) \
-		$(SPHINX_BUILD) -W -b man -d _build/doctrees \
+		$(SPHINX_BUILD) -W -b man -d _build/doctrees-man \
 		$(top_srcdir)/doc/userguide _build/man
 	touch _build/man
 
