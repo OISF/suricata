@@ -1090,6 +1090,76 @@ static inline int IPOnlyMatchCompatSMs(
     return 1;
 }
 
+static SigNumArray *IPOnlySrcMatchArrayNew(
+        const DetectEngineIPOnlyCtx *io_ctx, const NodeUserData *src)
+{
+    const SigNumArray *sids = &src->sids;
+
+    /* KNOWN ISSUE (perf): this bitarray is allocated fresh for every matching
+     * IPv4 packet on the detection hot path; it should fill a per-thread scratch
+     * buffer sized once at thread init. Deferred: DetectEngineThreadCtx has no
+     * padding hole wide enough for the required pointer. */
+    SigNumArray *new = SCCalloc(1, sizeof(*new));
+    if (unlikely(new == NULL)) {
+        FatalError("Fatal error encountered in IPOnlySrcMatchArrayNew. Exiting...");
+    }
+    new->size = sids->size;
+    new->array = SCMalloc(sids->size);
+    if (new->array == NULL) {
+        exit(EXIT_FAILURE);
+    }
+
+    const SigNumArray *universe = (SigNumArray *)io_ctx->negated_universe_src;
+    for (uint32_t u = 0; u < new->size; u++) {
+        /* every src-negated sig (mapped_signum space) */
+        const uint8_t neg_all = (universe != NULL) ? universe->array[u] : 0;
+
+        /* the src-negated sigs excluded at this node (the packet's src falls
+         * inside their negated range); negated_sids may be unallocated */
+        const uint8_t neg_here =
+                (src->negated_sids.array != NULL) ? src->negated_sids.array[u] : 0;
+
+        new->array[u] = (uint8_t)((sids->array[u] | neg_all) & ~neg_here);
+    }
+
+    return new;
+}
+
+static SigNumArray *IPOnlyDstMatchArrayNew(
+        const DetectEngineIPOnlyCtx *io_ctx, const NodeUserData *dst)
+{
+    const SigNumArray *sids = &dst->sids;
+
+    /* KNOWN ISSUE (perf): this bitarray is allocated fresh for every matching
+     * IPv4 packet on the detection hot path; it should fill a per-thread scratch
+     * buffer sized once at thread init. Deferred: DetectEngineThreadCtx has no
+     * padding hole wide enough for the required pointer. */
+    SigNumArray *new = SCCalloc(1, sizeof(*new));
+    if (unlikely(new == NULL)) {
+        FatalError("Fatal error encountered in IPOnlyDstMatchArrayNew. Exiting...");
+    }
+    new->size = sids->size;
+    new->array = SCMalloc(sids->size);
+    if (new->array == NULL) {
+        exit(EXIT_FAILURE);
+    }
+
+    const SigNumArray *universe = (SigNumArray *)io_ctx->negated_universe_dst;
+    for (uint32_t u = 0; u < new->size; u++) {
+        /* every dst-negated sig (mapped_signum space) */
+        const uint8_t neg_all = (universe != NULL) ? universe->array[u] : 0;
+
+        /* the dst-negated sigs excluded at this node (the packet's dst falls
+         * inside their negated range); negated_sids may be unallocated */
+        const uint8_t neg_here =
+                (dst->negated_sids.array != NULL) ? dst->negated_sids.array[u] : 0;
+
+        new->array[u] = (uint8_t)((sids->array[u] | neg_all) & ~neg_here);
+    }
+
+    return new;
+}
+
 /**
  * \brief Match a packet against the IP Only detection engine contexts
  *
@@ -1103,6 +1173,9 @@ void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
 {
     SigNumArray *src = NULL;
     SigNumArray *dst = NULL;
+    /* heap-allocated match arrays (IPv4), owned here and freed before return */
+    SigNumArray *src_scratch = NULL;
+    SigNumArray *dst_scratch = NULL;
     void *user_data_src = NULL, *user_data_dst = NULL;
 
     SCEnter();
@@ -1125,18 +1198,27 @@ void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
 
     /* The IPv4 trees store a NodeUserData per node; reach its sids bitarray.
      * The IPv6 trees still store a bare SigNumArray. */
-    if (p->src.family == AF_INET)
-        src = (user_data_src != NULL) ? &((NodeUserData *)user_data_src)->sids : NULL;
-    else
+    if (p->src.family == AF_INET) {
+        if (user_data_src != NULL)
+            src = src_scratch = IPOnlySrcMatchArrayNew(io_ctx, (NodeUserData *)user_data_src);
+    } else {
         src = user_data_src;
+    }
 
-    if (p->dst.family == AF_INET)
-        dst = (user_data_dst != NULL) ? &((NodeUserData *)user_data_dst)->sids : NULL;
-    else
+    if (p->dst.family == AF_INET) {
+        if (user_data_dst != NULL)
+            dst = dst_scratch = IPOnlyDstMatchArrayNew(io_ctx, (NodeUserData *)user_data_dst);
+    } else {
         dst = user_data_dst;
+    }
 
-    if (src == NULL || dst == NULL)
+    if (src == NULL || dst == NULL) {
+        if (src_scratch != NULL)
+            SigNumArrayFree(src_scratch);
+        if (dst_scratch != NULL)
+            SigNumArrayFree(dst_scratch);
         SCReturn;
+    }
 
     for (uint32_t u = 0; u < src->size; u++) {
         SCLogDebug("And %"PRIu8" & %"PRIu8, src->array[u], dst->array[u]);
@@ -1228,6 +1310,12 @@ void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *de_ctx,
         }
     }
 
+    /* KNOWN ISSUE (perf): per-packet free of the hot-path match arrays
+     * allocated by IPOnly{Src,Dst}MatchArrayNew (see the note there) */
+    if (src_scratch != NULL)
+        SigNumArrayFree(src_scratch);
+    if (dst_scratch != NULL)
+        SigNumArrayFree(dst_scratch);
     SCReturn;
 }
 
