@@ -23,9 +23,10 @@ use suricata_sys::sys::{
     SCEveFileTypeThreadDeinitFunc, SCEveFileTypeThreadInitFunc, SCEveFileTypeWriteFunc,
     SCEveRegisterCallback, SCRegisterEveFileType,
 };
-pub use suricata_sys::sys::{Packet, SCEveUserCallbackFn, SCJsonBuilder};
+pub use suricata_sys::sys::{SCEveUserCallbackFn, SCJsonBuilder};
 
 use crate::flow::Flow;
+use crate::packet::Packet;
 use crate::thread::ThreadVars;
 
 pub struct EveFileType {
@@ -82,7 +83,7 @@ impl EveFileType {
 ///
 /// The callback receives:
 /// - `tv`: the `ThreadVars` for the thread performing the logging
-/// - `p`: the `Packet`, if available
+/// - `p`: the `Packet`, if available (`None` when no packet is associated)
 /// - `f`: the `Flow`, if available (`None` when no flow is associated)
 /// - `jb`: the JSON builder for the current EVE record
 ///
@@ -106,16 +107,16 @@ impl EveFileType {
 ///
 /// # Safety
 ///
-/// The callback receives raw pointers from Suricata. These pointers
-/// are only valid for the duration of the callback invocation and
-/// must not be stored.
+/// The callback receives wrappers over raw pointers from Suricata.
+/// These are only valid for the duration of the callback invocation
+/// and must not be stored.
 ///
 /// The callback must not panic.
 pub fn register_callback<F>(callback: F) -> Result<(), &'static str>
 where
     F: Fn(
             &mut ThreadVars,
-            *const Packet,
+            Option<&Packet>,
             Option<&mut Flow>,
             &mut crate::jsonbuilder::JsonBuilder,
         ) -> Result<(), crate::jsonbuilder::Error>
@@ -137,12 +138,12 @@ where
 /// Internal wrapper used to adapt the C EVE callback to a Rust
 /// closure callback.
 unsafe extern "C" fn callback_wrapper<F>(
-    tv: *mut sys::ThreadVars, p: *const Packet, f: *mut sys::Flow, jb: *mut SCJsonBuilder,
+    tv: *mut sys::ThreadVars, p: *const sys::Packet, f: *mut sys::Flow, jb: *mut SCJsonBuilder,
     user: *mut c_void,
 ) where
     F: Fn(
             &mut ThreadVars,
-            *const Packet,
+            Option<&Packet>,
             Option<&mut Flow>,
             &mut crate::jsonbuilder::JsonBuilder,
         ) -> Result<(), crate::jsonbuilder::Error>
@@ -157,9 +158,14 @@ unsafe extern "C" fn callback_wrapper<F>(
     } else {
         Some(Flow::from_ptr(f))
     };
+    let packet = if p.is_null() {
+        None
+    } else {
+        Some(Packet::from_ptr(p))
+    };
     let mut jb = crate::jsonbuilder::JsonBuilder::from_raw(jb);
     let mark = jb.get_mark();
-    if callback(&mut tv, p, flow.as_mut(), &mut jb).is_err() {
+    if callback(&mut tv, packet.as_ref(), flow.as_mut(), &mut jb).is_err() {
         let _ = jb.restore_mark(&mark);
     }
 }

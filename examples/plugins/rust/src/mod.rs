@@ -3,9 +3,10 @@ use std::ptr::null_mut;
 use suricata_ffi::eve::{self, SCJsonBuilder};
 use suricata_ffi::flow::{self, Flow, FlowStorage};
 use suricata_ffi::jsonbuilder::JsonBuilder;
+use suricata_ffi::packet::{Packet, PacketL3Types};
 use suricata_ffi::thread::{self, ThreadStorage, ThreadVars};
 use suricata_ffi::{SCLogError, SCLogNotice, SCLogWarning};
-use suricata_sys::sys::{self, Packet, SCEveRegisterCallback, SCPlugin};
+use suricata_sys::sys::{self, SCEveRegisterCallback, SCPlugin};
 
 /// Per-thread state stored in Suricata thread storage.
 #[derive(Default)]
@@ -76,7 +77,7 @@ fn register_thread_callbacks(storage: ThreadStorage<ThreadState>) -> Result<(), 
 
 unsafe extern "C" fn log_eve_raw(
     _tv: *mut sys::ThreadVars,
-    _p: *const Packet,
+    _p: *const sys::Packet,
     _f: *mut sys::Flow,
     jb: *mut SCJsonBuilder,
     _user: *mut std::os::raw::c_void,
@@ -90,13 +91,30 @@ unsafe extern "C" fn log_eve_raw(
 fn log_eve_wrapped(
     flow_storage: FlowStorage<FlowState>,
     _tv: &mut ThreadVars,
-    _p: *const Packet,
+    p: Option<&Packet>,
     f: Option<&mut Flow>,
     jb: &mut JsonBuilder,
 ) -> Result<(), suricata_ffi::jsonbuilder::Error> {
     jb.open_object("rust_wrapped")?;
     jb.set_string("example", "eve-callback")?;
     jb.set_string("has_flow", if f.is_some() { "true" } else { "false" })?;
+
+    // If we have a packet, show the `Packet` wrapper accessors.
+    if let Some(p) = p {
+        let l3_type = match p.l3_type() {
+            PacketL3Types::PACKET_L3_IPV4 => "ipv4",
+            PacketL3Types::PACKET_L3_IPV6 => "ipv6",
+            PacketL3Types::PACKET_L3_ARP => "arp",
+            PacketL3Types::PACKET_L3_UNKNOWN => "unknown",
+        };
+
+        jb.open_object("packet_accessors")?;
+        jb.set_uint("ip_proto", p.ip_protocol() as u64)?;
+        jb.set_string("l3_type", l3_type)?;
+        jb.set_uint("l3_len", p.l3().map_or(0, |l3| l3.len()) as u64)?;
+        jb.set_uint("timestamp", p.timestamp().as_secs())?;
+        jb.close()?;
+    }
 
     // If we have a flow, show the `Flow` wrapper accessors and log something
     // from flow storage.
@@ -148,7 +166,7 @@ fn log_flow_init(
     flow_storage: FlowStorage<FlowState>,
     tv: &mut ThreadVars,
     f: &mut Flow,
-    _p: *const Packet,
+    _p: &Packet,
 ) {
     // Count flows seen by this thread using the per-thread storage.
     let flows = match thread_storage.get_mut(tv) {
@@ -176,7 +194,7 @@ fn log_flow_update(
     flow_storage: FlowStorage<FlowState>,
     _tv: &mut ThreadVars,
     f: &mut Flow,
-    _p: *mut Packet,
+    _p: &Packet,
 ) {
     // Count packets seen on this flow using the per-flow storage.
     let packets = match flow_storage.get_mut(f) {
