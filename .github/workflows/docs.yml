@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cache ~/.cargo
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -51,7 +51,7 @@ jobs:
           cargo install --target x86_64-unknown-linux-musl --debug cbindgen
           cp $HOME/.cargo/bin/cbindgen .
       - name: Uploading prep archive
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: cbindgen
           path: .
@@ -64,7 +64,7 @@ jobs:
     steps:
       # Cache Rust stuff.
       - name: Cache cargo registry
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.cargo
           key: ${{ github.job }}-cargo
@@ -113,13 +113,13 @@ jobs:
               texlive-latex-extra \
               zlib1g \
               zlib1g-dev
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - run: git config --global --add safe.directory /__w/suricata/suricata
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: prep
           path: prep
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: cbindgen
           path: prep
