@@ -3197,6 +3197,28 @@ jobs:
           python3 $(which suricata-update) -V
       - run: suricatasc -h
 
+  freebsd-15-1:
+    name: FreeBSD 15.1
+    runs-on: ubuntu-latest
+    needs: [prepare-deps]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Downloading prep archive
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: prep
+          path: prep
+      - uses: vmactions/freebsd-vm@c46abacb49f09938ca4e1702d15d836285d694cc
+        with:
+          release: "15.1"
+          arch: x86_64
+          usesh: true
+          sync: rsync
+          copyback: false
+          envs: "DEFAULT_CFLAGS"
+          prepare: ./qa/ci/freebsd.sh prepare
+          run: ./qa/ci/freebsd.sh run
+
   openbsd-7-9:
     name: OpenBSD 7.9
     runs-on: ubuntu-latest
