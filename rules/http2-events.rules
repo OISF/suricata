@@ -32,3 +32,4 @@ alert http2 any any -> any any (msg:"SURICATA HTTP2 continuation without headers
 alert http2 any any -> any any (msg:"SURICATA HTTP2 too long repeated headers"; flow:established; app-layer-event:http2.too_long_repeated_headers; classtype:protocol-command-decode; sid:2290023; rev:1;)
 alert http2 any any -> any any (msg:"SURICATA HTTP2 different hosts"; flow:established,to_server; app-layer-event:http2.different_hosts; classtype:protocol-command-decode; sid:2290024; rev:1;)
 alert http2 any any -> any any (msg:"SURICATA HTTP2 different authorities"; flow:established,to_server; app-layer-event:http2.different_authorities; classtype:protocol-command-decode; sid:2290025; rev:1;)
+alert http2 any any -> any any (msg:"SURICATA HTTP2 multiple client header frames"; flow:established,to_server; app-layer-event:http2.multiple_client_header_frames; classtype:protocol-command-decode; sid:2290026; rev:1;)
