@@ -50,51 +50,11 @@ Major Changes
   also covers FTP-DATA file buffering. An invalid value also keeps the 64 MiB
   default. Set it to ``0`` to remove the limit.
 - LLMNR protocol parser, logger and sticky buffers are implemented.
-- A rule with an app-layer state hook can now use buffers that complete in an earlier
-  state: a rule hooked at ``http1:request_trailer`` matching on ``http.header`` loads, where
-  it was rejected before with "engine progress value doesn't match hook". The buffer is
-  inspected from its own state on, so the hook limits which buffers a rule may use rather
-  than when the data is looked at. Buffers that complete after the hooked state are still
-  rejected. A firewall rule - one loaded through ``firewall.rule-files`` - whose exact state
-  hook sits above the state where its buffer completes is refused at load: it is only
-  evaluated at its hook, so it could never match. The ``<state`` hook form is held to the same
-  bound: its top state is checked the same way, so a rule whose buffer completes below the
-  bound no longer loads either. Concretely, a firewall rule pairing ``http.header.raw`` with
-  ``<request_body`` or with a ``request_body``/``response_body`` hook loaded before this
-  change, because that buffer's engine was registered one state after the block completed;
-  it now needs the ``request_headers`` hook or bound.
-- HTTP trailer fields are no longer part of the header buffers. They have buffers of
-  their own: ``http.trailer``, ``http.trailer.raw`` and ``http.trailer_names``. A rule
-  that matched trailer content through ``http.header``, ``http.header.raw``,
-  ``http.header_names`` or a field keyword such as ``http.user_agent`` stops matching
-  and needs one of the trailer buffers. This also closes a hole where a trailer could
-  extend a header value that detection and logging had already accepted.
-  EVE output still covers them: with ``dump-all-headers`` set they appear in the
-  ``http.request_headers`` and ``http.response_headers`` arrays as entries of their own,
-  instead of being appended to the value of a header field that shares their name. So a name
-  used in both blocks is listed twice, once per block. No EVE key for trailer fields exists
-  yet.
-  The Lua http library has accessors of its own for them now: ``tx:request_trailer()``,
-  ``tx:request_trailers()``, ``tx:request_trailers_raw()`` and the response twins, next to
-  the header functions that keep reading the header section only.
+- HTTP trailer fields are no longer matched by the header buffers: they gained
+  buffers, keywords, stream states and Lua accessors of their own, and an HTTP/1
+  header block spanning packets is now inspected once per transaction. See the
+  Keyword changes and Logging changes sections below.
 
-- A HTTP/1 header block spanning several packets is no longer re-inspected while it is still
-  arriving: a rule on ``http.header`` or ``http.header.raw`` now alerts once per transaction
-  instead of once per inspection round. Which transactions alert is unchanged, so alert counts
-  drop on captures where such a block arrived in pieces. This is what makes a negated match or a
-  ``within:`` distance on a header buffer decide on the whole block.
-
-- HTTP/2 gained a transaction state for the trailer block,
-  ``http2:stream:request_trailers`` and ``http2:stream:response_trailers``, between
-  ``..._data`` and ``..._closed``. Firewall rules with a state range spanning them (for
-  example ``http2:stream:request_complete<``) now cover one more state. The new states
-  start out with the built-in default policy ``accept:hook`` instead of ``drop:flow``,
-  so streams carrying trailers are not blocked before a policy is chosen.
-
-- HTTP/2 trailer fields keep being logged in the ``http.request_headers`` and
-  ``http.response_headers`` arrays, as with HTTP/1: what changed for them is detection only,
-  through the buffers and the new stream states above. As with HTTP/1 there is no EVE key for
-  trailer fields yet.
 - ``pgsql`` is no longer enabled by default. Previously, if the
   ``app-layer.protocols.pgsql`` section was absent from suricata.yaml, the
   parser would be enabled. It's now disabled by default. Simply enabling its EVE
@@ -181,6 +141,12 @@ Logging Changes
   ``src_ip``/``src_port`` where 8.x logged the packet's addresses. Filters
   that matched responses on ``src_port 2049`` need ``dest_port 2049`` now.
 
+- HTTP/1 trailer fields appear in the ``http.request_headers`` and
+  ``http.response_headers`` arrays when ``dump-all-headers`` is set, as entries
+  of their own, instead of being appended to the value of a header field that
+  shares their name. So a name used in both blocks is listed twice, once per
+  block.
+
 Removals
 ~~~~~~~~
 
@@ -209,6 +175,34 @@ Keyword Changes
   and the new ``error`` / ``state`` fields of the ssh eve record.
   See :doc:`rules/ssh-keywords` for the full state and failure
   semantics.
+
+- HTTP trailer fields are no longer part of the header buffers; they have
+  ``http.trailer``, ``http.trailer.raw`` and ``http.trailer_names``. Rules that
+  matched trailer content through ``http.header``, ``http.header.raw``,
+  ``http.header_names``, ``http.request_header``, ``http.response_header``
+  (alias ``http2.header``), ``http2.header_name`` or a field keyword such as
+  ``http.user_agent`` no longer match there and need a trailer buffer. The Lua
+  http library gains ``tx:request_trailer()``, ``tx:request_trailers()``,
+  ``tx:request_trailers_raw()`` and the response twins.
+
+- A rule with an app-layer state hook can use buffers that complete in an
+  earlier state: ``alert http1:request_trailer ...; http.header;`` now loads,
+  where it was rejected before. Buffers that complete after the hooked state
+  are still rejected. Firewall rules are stricter, since they are only
+  evaluated at their hook: a rule whose buffer completes below its hook - or
+  below its ``<state`` bound - no longer loads at all. See
+  :ref:`explicit-rule-hooks` for the details.
+
+- HTTP/2 gained a transaction state for the trailer block,
+  ``http2:stream:request_trailers`` and ``http2:stream:response_trailers``,
+  between ``..._data`` and ``..._closed``. Firewall rules with a state range
+  spanning them (for example ``http2:stream:<request_complete``) now cover one
+  more state; the new states default to ``accept:hook``, not ``drop:flow``.
+
+- A HTTP/1 header block spanning several packets is inspected once per
+  transaction instead of once per reassembly round, so alert counts drop on
+  captures where such a block arrives in pieces. Which transactions alert is
+  unchanged.
 
 Default Changes
 ~~~~~~~~~~~~~~~
