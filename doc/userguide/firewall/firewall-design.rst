@@ -368,6 +368,8 @@ The example below accepts ARP again, using this mechanism.
     accept:packet ether:all any any -> any any (ether.hdr; content:"|08 06|"; offset:12; depth:2; sid:1;)
 
 
+.. _firewall-default-policies:
+
 Default policies
 ================
 
