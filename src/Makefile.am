@@ -343,7 +343,6 @@ noinst_HEADERS = \
 	log-stats.h \
 	log-tcp-data.h \
 	log-tlsstore.h \
-	output-eve-bindgen.h \
 	output-eve-null.h \
 	output-eve-stream.h \
 	output-eve-syslog.h \
