@@ -298,6 +298,7 @@ pub struct HTTP2Transaction {
     // in case these headers come in 2 different frames
     last_authority: Rc<Vec<u8>>,
     last_host: Rc<Vec<u8>>,
+    has_client_header_frame: bool,
 
     pub frames_tc: Vec<HTTP2Frame>,
     pub frames_ts: Vec<HTTP2Frame>,
@@ -336,6 +337,7 @@ impl HTTP2Transaction {
             frames_ts: Vec::new(),
             last_authority: Rc::new(Vec::new()),
             last_host: Rc::new(Vec::new()),
+            has_client_header_frame: false,
             decoder: decompression::HTTP2Decoder::new(),
             file_range: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
@@ -595,6 +597,12 @@ impl HTTP2Transaction {
             HTTP2FrameTypeData::HEADERS(hs) => {
                 if dir == Direction::ToClient {
                     self.child_stream_id = 0;
+                } else {
+                    if self.has_client_header_frame {
+                        self.set_event(HTTP2Event::MultipleClientHeaderFrames);
+                    } else {
+                        self.has_client_header_frame = true;
+                    }
                 }
                 r = self.handle_headers(&hs.blocks, dir);
             }
@@ -760,6 +768,7 @@ pub enum HTTP2Event {
     TooLongRepeatedHeaders,
     DifferentHosts,
     DifferentAuthorities,
+    MultipleClientHeaderFrames,
 }
 
 pub struct HTTP2DynTable {
