@@ -2219,12 +2219,23 @@ int SigPrepareStage4(DetectEngineCtx *de_ctx)
  * A threat detection rule can match a packet that a firewall rule then
  * bypasses. The alert is dropped during alert finalization, but the post-match
  * list has already run at match time. Flow-scoped entries are harmless -- the
- * flow is leaving inspection -- but the packet mark outlives it, so it is held
- * back until the verdict is known.
+ * flow is leaving inspection -- but host, ip-pair and packet-mark state
+ * outlive it. Host and ip-pair bits are applied at match time, so later rules
+ * on the same packet see them, and undone on bypass. The packet mark has no
+ * same-packet reader, so it is held back until the verdict is known.
  */
 static uint8_t PostMatchFwMode(const SigMatchData *smd)
 {
     switch (smd->type) {
+        case DETECT_XBITS: {
+            const DetectXbitsData *xd = (const DetectXbitsData *)smd->ctx;
+            /* tx-scoped bits die with the bypassed flow */
+            if (xd->type == VAR_TYPE_TX_BIT)
+                return DETECT_POSTMATCH_FW_NONE;
+            return DETECT_POSTMATCH_FW_UNDO;
+        }
+        case DETECT_HOSTBITS:
+            return DETECT_POSTMATCH_FW_UNDO;
         case DETECT_MARK:
             return DETECT_POSTMATCH_FW_DEFER;
         default:
