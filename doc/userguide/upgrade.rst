@@ -141,11 +141,12 @@ Logging Changes
   ``src_ip``/``src_port`` where 8.x logged the packet's addresses. Filters
   that matched responses on ``src_port 2049`` need ``dest_port 2049`` now.
 
-- HTTP/1 trailer fields appear in the ``http.request_headers`` and
-  ``http.response_headers`` arrays when ``dump-all-headers`` is set, as entries
-  of their own, instead of being appended to the value of a header field that
-  shares their name. So a name used in both blocks is listed twice, once per
-  block.
+- HTTP trailer fields are logged in dedicated ``http.request_trailers`` and
+  ``http.response_trailers`` arrays, for HTTP/1 and HTTP/2 alike. HTTP/1 trailer
+  fields also keep appearing in ``http.request_headers`` / ``http.response_headers``
+  (under ``dump-all-headers``) as entries of their own, instead of being appended to
+  the value of a header field that shares their name; there a name used in both
+  blocks is listed twice, once per block.
 
 Removals
 ~~~~~~~~

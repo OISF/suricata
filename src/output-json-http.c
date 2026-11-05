@@ -378,6 +378,20 @@ static void EveHttpLogJSONHeaders(
         // Close array.
         SCJbClose(js);
     }
+
+    /* Dedicated trailer key: the header array above keeps pre-trailer-split visibility, this
+     * one lets a consumer tell the blocks apart without diffing them. */
+    if (trailers != NULL) {
+        SCJsonBuilderMark tmark = { 0, 0, 0 };
+        SCJbGetMark(js, &tmark);
+        SCJbOpenArray(
+                js, direction & LOG_HTTP_REQ_HEADERS ? "request_trailers" : "response_trailers");
+        if (EveHttpLogJSONHeaderTable(js, trailers, direction, http_ctx)) {
+            SCJbClose(js);
+        } else {
+            SCJbRestoreMark(js, &tmark);
+        }
+    }
 }
 
 static void BodyPrintableBuffer(SCJsonBuilder *js, HtpBody *body, const char *key)
