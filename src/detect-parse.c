@@ -961,12 +961,20 @@ static int DetectSetupDirection(Signature *s, char **str, bool only_dir)
  *
  *  It is valid to call this before the keyword's value, if any, has been parsed.
  *
- * \retval false if the keyword is not supported in firewall mode
+ * \retval false if the keyword or its action and/or action scope is not supported
+ * in firewall mode
  */
-static bool SigParseFirewallRuleAllowed(uint32_t sig_flags, const char *optname)
+static bool SigParseFirewallRuleAllowed(
+        uint32_t sig_flags, uint8_t action, uint8_t action_scope, const char *optname)
 {
     if ((sig_flags & SIGMATCH_BAN_FIREWALL_RULE) != 0) {
         SCLogError("keyword \'%s\' is not supported with firewall rules", optname);
+        return false;
+    }
+    if ((sig_flags & SIGMATCH_FIREWALL_ACCEPT_FLOW_ONLY) != 0 &&
+            !((action & ACTION_ACCEPT) != 0 && action_scope == (uint8_t)ACTION_SCOPE_FLOW)) {
+        SCLogError(
+                "keyword \'%s\' is only supported in firewall rules with \'accept:flow\'", optname);
         return false;
     }
     /* for most cases, firewall rules should be allowed */
@@ -1073,7 +1081,8 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
 #undef URL
     }
 
-    if (s->init_data->firewall_rule && !SigParseFirewallRuleAllowed(st->flags, optname)) {
+    if (s->init_data->firewall_rule &&
+            !SigParseFirewallRuleAllowed(st->flags, s->action, s->action_scope, optname)) {
         goto error;
     }
 
