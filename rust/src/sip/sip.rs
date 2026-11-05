@@ -533,14 +533,21 @@ unsafe extern "C" fn sip_parse_response_tcp(
 const SIP_PROBE_MAX_LEN: u16 = 1024;
 
 unsafe extern "C" fn sip_probing_parser(
-    _f: *const Flow, _direction: u8, input: *const u8, input_len: u32, _rdir: *mut u8,
+    _f: *const Flow, _direction: u8, input: *const u8, input_len: u32, rdir: *mut u8,
 ) -> AppProto {
     if input.is_null() || input_len == 0 {
         return ALPROTO_UNKNOWN;
     }
     let buf = std::slice::from_raw_parts(input, input_len as usize);
     match sip_probe_protocol(buf) {
-        Ok(_) => ALPROTO_SIP,
+        Ok(_) => {
+            // registered with the request patterns: a request may be seen
+            // first in the other direction when picked up midstream
+            if !buf.starts_with(b"SIP/") {
+                *rdir = Direction::ToServer.into();
+            }
+            ALPROTO_SIP
+        }
         Err(Err::Incomplete(_)) => ALPROTO_UNKNOWN,
         Err(_) => ALPROTO_FAILED,
     }
