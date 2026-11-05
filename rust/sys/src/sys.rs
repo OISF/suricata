@@ -635,6 +635,23 @@ extern "C" {
         tv: *mut ThreadVars, p: *const Packet, f: *mut Flow, jb: *mut SCJsonBuilder,
     );
 }
+impl DetectSigmatchListEnum {
+    pub const DETECT_SM_LIST_DYNAMIC_START: DetectSigmatchListEnum =
+        DetectSigmatchListEnum::DETECT_SM_LIST_MAX;
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum DetectSigmatchListEnum {
+    DETECT_SM_LIST_MATCH = 0,
+    DETECT_SM_LIST_PMATCH = 1,
+    DETECT_SM_LIST_BASE64_DATA = 2,
+    DETECT_SM_LIST_POSTMATCH = 3,
+    #[doc = "< post-detection tagging"]
+    DETECT_SM_LIST_TMATCH = 4,
+    DETECT_SM_LIST_SUPPRESS = 5,
+    DETECT_SM_LIST_THRESHOLD = 6,
+    DETECT_SM_LIST_MAX = 7,
+}
 extern "C" {
     pub fn SCSigTablePreRegister(
         KeywordsRegister: ::std::option::Option<unsafe extern "C" fn()>,
@@ -887,6 +904,19 @@ extern "C" {
     pub fn SCDetectHelperKeywordRegister(kw: *const SCSigTableAppLiteElmt) -> u16;
 }
 extern "C" {
+    pub fn SCDetectHelperKeywordPacketMatchRegister(
+        kwid: u16,
+        Match: ::std::option::Option<
+            unsafe extern "C" fn(
+                arg1: *mut DetectEngineThreadCtx,
+                arg2: *mut Packet,
+                arg3: *const Signature,
+                arg4: *const SigMatchCtx,
+            ) -> ::std::os::raw::c_int,
+        >,
+    );
+}
+extern "C" {
     pub fn SCDetectHelperKeywordAliasRegister(kwid: u16, alias: *const ::std::os::raw::c_char);
 }
 extern "C" {
@@ -1028,9 +1058,23 @@ extern "C" {
     pub fn SCDetectGetLastSMFromLists(s: *const Signature, ...) -> *mut SigMatch;
 }
 extern "C" {
+    pub fn SCDetectSignatureGetLastSMByType(
+        s: *const Signature, list_id: ::std::os::raw::c_int, type_: u16,
+    ) -> *const SigMatch;
+}
+extern "C" {
+    pub fn SCSigMatchGetPrevByType(sm: *const SigMatch, type_: u16) -> *const SigMatch;
+}
+extern "C" {
+    pub fn SCSigMatchGetCtx(sm: *const SigMatch) -> *const SigMatchCtx;
+}
+extern "C" {
     pub fn SCDetectSignatureSetAppProto(
         s: *mut Signature, alproto: AppProto,
     ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn SCDetectSignatureIsNegated(s: *const Signature) -> bool;
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -1957,6 +2001,18 @@ extern "C" {
         name: *const ::std::os::raw::c_char,
         Free: ::std::option::Option<unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void)>,
     ) -> SCFlowStorageId;
+}
+extern "C" {
+    pub fn SCPacketGetIPProto(p: *const Packet) -> u8;
+}
+extern "C" {
+    pub fn SCPacketGetL3(p: *const Packet, len: *mut u32) -> *const u8;
+}
+extern "C" {
+    pub fn SCPacketGetFlow(p: *const Packet) -> *const Flow;
+}
+extern "C" {
+    pub fn SCPacketGetTimeAsParts(p: *const Packet, secs: *mut u64, usecs: *mut u64);
 }
 #[doc = " \\brief Function type for thread intialization callbacks.\n\n Once registered by SCThreadRegisterInitCallback, this function will\n be called for every thread being initialized during Suricata\n startup.\n\n \\param tv The ThreadVars struct that has just been initialized.\n \\param user The user data provided when registering the callback."]
 pub type SCThreadInitCallbackFn = ::std::option::Option<

@@ -316,7 +316,7 @@ const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx,
     /* select the flow_gh */
     const int dir = (p->flowflags & FLOW_PKT_TOCLIENT) == 0;
 
-    int proto = PacketGetIPProto(p);
+    int proto = SCPacketGetIPProto(p);
     if (proto == IPPROTO_TCP) {
         DetectPort *list = de_ctx->flow_gh[dir].tcp;
         SCLogDebug("tcp toserver %p, tcp toclient %p: going to use %p", de_ctx->flow_gh[1].tcp,
@@ -456,7 +456,7 @@ static inline void DetectRunGetRuleGroup(
         bool use_flow_sgh = false;
         /* Get the stored sgh from the flow (if any). Make sure we're not using
          * the sgh for icmp error packets part of the same stream. */
-        if (PacketGetIPProto(p) == pflow->proto) { /* filter out icmp */
+        if (SCPacketGetIPProto(p) == pflow->proto) { /* filter out icmp */
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_GETSGH);
             if ((p->flowflags & FLOW_PKT_TOSERVER) && (pflow->flags & FLOW_SGH_TOSERVER)) {
                 sgh = pflow->sgh_toserver;
@@ -551,7 +551,7 @@ static inline bool DetectRunInspectRuleHeader(
             SCLogDebug("ip version didn't match");
             return false;
         }
-        if (DetectProtoContainsProto(s->proto, PacketGetIPProto(p)) == 0) {
+        if (DetectProtoContainsProto(s->proto, SCPacketGetIPProto(p)) == 0) {
             SCLogDebug("proto didn't match");
             if (PacketIsEthernet(p) &&
                     (s_proto_flags & (DETECT_PROTO_ETHERNET | DETECT_PROTO_ARP))) {
