@@ -806,6 +806,18 @@ Event with ``dump-all-headers`` set to "both":
               "name": "Date",
               "value": "Wed, 25 Mar 2015 15:40:41 GMT"
           },
+      ],
+      "request_trailers": [
+          {
+              "name": "X-Checksum",
+              "value": "bletch"
+          },
+      ],
+      "response_trailers": [
+          {
+              "name": "grpc-message",
+              "value": "OK"
+          },
       ]
   }
 

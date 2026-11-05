@@ -32,16 +32,28 @@ enum HeaderName {
     ContentLength,
 }
 
+/// A trailer section may repeat a field, so its arrays keep repeats, but only up
+/// to this many bytes of repeated names and values per direction. The bound is
+/// the #6900 guard: without it a 16 KB block of one-byte HPACK references makes
+/// every EVE record of the transaction too large to write.
+const HTTP2_MAX_TRAILER_LOG_REPEATS: usize = 65536;
+
 fn log_http2_headers<'a>(
     blocks: &'a [parser::HTTP2FrameHeaderBlock], js: &mut JsonBuilder,
     common: &mut HashMap<HeaderName, &'a Vec<u8>>, repeated: &mut HTTP2RepeatedHeaders,
-) -> Result<(), JsonError> {
+    fill_common: bool, trailer_repeats: bool,
+) -> Result<bool, JsonError> {
     let mut has_auth = false;
+    let mut wrote = false;
     for block in blocks {
         // delay js.start_object() because we skip suplicate headers
         match block.error {
             parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess => {
-                if repeated.add(block) {
+                // a header section treats a repeated dynamic table entry as a
+                // repeat; a trailer section logs repeats up to the byte budget
+                if repeated.add(block)
+                    && (!trailer_repeats || repeated.size > HTTP2_MAX_TRAILER_LOG_REPEATS)
+                {
                     continue;
                 }
                 js.start_object()?;
@@ -49,26 +61,26 @@ fn log_http2_headers<'a>(
                 js.set_string_from_bytes("value", &block.value)?;
                 if let Ok(name) = std::str::from_utf8(&block.name) {
                     match name.to_lowercase().as_ref() {
-                        ":method" => {
+                        ":method" if fill_common => {
                             common.insert(HeaderName::Method, &block.value);
                         }
-                        ":path" => {
+                        ":path" if fill_common => {
                             common.insert(HeaderName::Path, &block.value);
                         }
-                        ":status" => {
+                        ":status" if fill_common => {
                             common.insert(HeaderName::Status, &block.value);
                         }
-                        "user-agent" => {
+                        "user-agent" if fill_common => {
                             common.insert(HeaderName::UserAgent, &block.value);
                         }
-                        ":authority" => {
+                        ":authority" if fill_common => {
                             has_auth = true;
                             common.insert(HeaderName::Host, &block.value);
                         }
-                        "host" if !has_auth => {
+                        "host" if fill_common && !has_auth => {
                             common.insert(HeaderName::Host, &block.value);
                         }
-                        "content-length" => {
+                        "content-length" if fill_common => {
                             common.insert(HeaderName::ContentLength, &block.value);
                         }
                         _ => {}
@@ -85,8 +97,9 @@ fn log_http2_headers<'a>(
             }
         }
         js.close()?;
+        wrote = true;
     }
-    return Ok(());
+    return Ok(wrote);
 }
 
 fn log_headers<'a>(
@@ -97,16 +110,39 @@ fn log_headers<'a>(
     let mut repeated = HTTP2RepeatedHeaders::default();
     for frame in frames {
         match &frame.data {
+            // trailer fields are logged here too, but must not overwrite the
+            // header-derived metadata: a trailer user-agent is not the UA
             HTTP2FrameTypeData::HEADERS(hd) => {
-                log_http2_headers(&hd.blocks, js, common, &mut repeated)?;
+                log_http2_headers(
+                    &hd.blocks,
+                    js,
+                    common,
+                    &mut repeated,
+                    !frame.is_trailer,
+                    false,
+                )?;
                 has_headers = true;
             }
             HTTP2FrameTypeData::PUSHPROMISE(hd) => {
-                log_http2_headers(&hd.blocks, js, common, &mut repeated)?;
+                log_http2_headers(
+                    &hd.blocks,
+                    js,
+                    common,
+                    &mut repeated,
+                    !frame.is_trailer,
+                    false,
+                )?;
                 has_headers = true;
             }
             HTTP2FrameTypeData::CONTINUATION(hd) => {
-                log_http2_headers(&hd.blocks, js, common, &mut repeated)?;
+                log_http2_headers(
+                    &hd.blocks,
+                    js,
+                    common,
+                    &mut repeated,
+                    !frame.is_trailer,
+                    false,
+                )?;
                 has_headers = true;
             }
             _ => {}
@@ -200,6 +236,34 @@ fn log_http2_frames(frames: &[HTTP2Frame], js: &mut JsonBuilder) -> Result<bool,
     return Ok(has_settings || has_error_code || has_priority);
 }
 
+fn log_trailers(frames: &Vec<HTTP2Frame>, js: &mut JsonBuilder) -> Result<bool, JsonError> {
+    let mut wrote = false;
+    let mut unused: HashMap<HeaderName, &Vec<u8>> = HashMap::new();
+    let mut repeated = HTTP2RepeatedHeaders::default();
+    for frame in frames {
+        if !frame.is_trailer {
+            continue;
+        }
+        match &frame.data {
+            // a trailer block can hold no field, and an empty array breaks the item schema
+            HTTP2FrameTypeData::HEADERS(hd) => {
+                wrote |=
+                    log_http2_headers(&hd.blocks, js, &mut unused, &mut repeated, false, true)?;
+            }
+            HTTP2FrameTypeData::PUSHPROMISE(hd) => {
+                wrote |=
+                    log_http2_headers(&hd.blocks, js, &mut unused, &mut repeated, false, true)?;
+            }
+            HTTP2FrameTypeData::CONTINUATION(hd) => {
+                wrote |=
+                    log_http2_headers(&hd.blocks, js, &mut unused, &mut repeated, false, true)?;
+            }
+            _ => {}
+        }
+    }
+    Ok(wrote)
+}
+
 fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonError> {
     js.open_object("http")?;
     js.set_string("version", "2")?;
@@ -226,6 +290,20 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
         has_headers = true;
     } else {
         js.restore_mark(&mark)?;
+    }
+
+    // Dedicated trailer arrays, split out of the header blocks by frame classification.
+    for (key, frames) in [
+        ("request_trailers", &tx.frames_ts),
+        ("response_trailers", &tx.frames_tc),
+    ] {
+        let mark = js.get_mark();
+        js.open_array(key)?;
+        if log_trailers(frames, js)? {
+            js.close()?;
+        } else {
+            js.restore_mark(&mark)?;
+        }
     }
 
     for (name, value) in common {
