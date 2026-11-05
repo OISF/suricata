@@ -215,6 +215,97 @@ static int DetectXbitMatch (DetectEngineThreadCtx *det_ctx, Packet *p, const Sig
     return 0;
 }
 
+/** \internal
+ *  \brief get the packet's src or dst host, locked
+ *  \retval h host, or NULL if it is not in the host table */
+static Host *DetectXbitsUndoLockHost(Packet *p, uint8_t tracker)
+{
+    Host **h = tracker == DETECT_XBITS_TRACK_IPSRC ? &p->host_src : &p->host_dst;
+    if (*h == NULL)
+        *h = HostLookupHostFromHash(tracker == DETECT_XBITS_TRACK_IPSRC ? &p->src : &p->dst);
+    else
+        HostLock(*h);
+    return *h;
+}
+
+/**
+ * \brief Journal the prior state of a TD host/ip-pair bit before it is written,
+ * so DetectXbitsUndoFinalize can restore it if the firewall bypasses the packet.
+ *
+ * \retval true if the write may go ahead; false if it could not be journaled
+ */
+bool DetectXbitsUndoRecord(DetectEngineThreadCtx *det_ctx, Packet *p, const SigMatchCtx *ctx)
+{
+    const DetectXbitsData *xd = (const DetectXbitsData *)ctx;
+
+    if (det_ctx->xbits_undo_size == det_ctx->xbits_undo_capacity) {
+        if (det_ctx->xbits_undo_capacity == UINT16_MAX)
+            return false;
+        const uint32_t new_cap =
+                MIN(MAX(8, 2 * (uint32_t)det_ctx->xbits_undo_capacity), UINT16_MAX);
+        DetectXbitsUndo *tmp = SCRealloc(det_ctx->xbits_undo, new_cap * sizeof(*tmp));
+        if (tmp == NULL)
+            return false;
+        det_ctx->xbits_undo = tmp;
+        det_ctx->xbits_undo_capacity = (uint16_t)new_cap;
+    }
+
+    DetectXbitsUndo *u = &det_ctx->xbits_undo[det_ctx->xbits_undo_size];
+    u->idx = xd->idx;
+    u->tracker = xd->tracker;
+    u->was_set = false;
+    if (xd->tracker == DETECT_XBITS_TRACK_IPPAIR) {
+        IPPair *pair = IPPairLookupIPPairFromHash(&p->src, &p->dst);
+        if (pair != NULL) {
+            u->was_set = IPPairBitGetExpire(pair, xd->idx, &u->expire);
+            IPPairRelease(pair);
+        }
+    } else {
+        Host *h = DetectXbitsUndoLockHost(p, xd->tracker);
+        if (h != NULL) {
+            u->was_set = HostBitGetExpire(h, xd->idx, &u->expire);
+            HostUnlock(h);
+        }
+    }
+    det_ctx->xbits_undo_size++;
+    return true;
+}
+
+/**
+ * \brief Undo the journaled TD host/ip-pair bit writes if the firewall bypassed
+ * the packet, and reset the journal.
+ */
+void DetectXbitsUndoFinalize(DetectEngineThreadCtx *det_ctx, Packet *p)
+{
+    if (det_ctx->xbits_undo_size == 0)
+        return;
+
+    if (p->flags & PKT_FW_BYPASSED) {
+        /* newest first, so the oldest snapshot of a bit is restored last */
+        for (uint16_t i = det_ctx->xbits_undo_size; i > 0; i--) {
+            const DetectXbitsUndo *u = &det_ctx->xbits_undo[i - 1];
+            if (u->tracker == DETECT_XBITS_TRACK_IPPAIR) {
+                IPPair *pair = IPPairLookupIPPairFromHash(&p->src, &p->dst);
+                if (pair == NULL)
+                    continue;
+                IPPairBitUnset(pair, u->idx);
+                if (u->was_set)
+                    IPPairBitSet(pair, u->idx, u->expire);
+                IPPairRelease(pair);
+            } else {
+                Host *h = DetectXbitsUndoLockHost(p, u->tracker);
+                if (h == NULL)
+                    continue;
+                HostBitUnset(h, u->idx);
+                if (u->was_set)
+                    HostBitSet(h, u->idx, u->expire);
+                HostUnlock(h);
+            }
+        }
+    }
+    det_ctx->xbits_undo_size = 0;
+}
+
 static int DetectXbitTxMatch(DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state,
         void *txv, const Signature *s, const SigMatchCtx *ctx)
 {
