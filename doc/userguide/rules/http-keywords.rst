@@ -1300,6 +1300,11 @@ Example HTTP Request::
   ``HEADERS`` block with no ``DATA`` in between is a trailer block, while 1xx informational
   responses are not.
 
+.. note:: Trailer fields are logged separately from headers in the
+  ``http.request_trailers`` and ``http.response_trailers`` arrays of the ``http`` event,
+  for HTTP/1 and HTTP/2. HTTP/1 writes them only with ``dump-all-headers``, or with
+  ``custom`` and the arrays listed.
+
 .. _http.trailer_names:
 
 http.trailer_names

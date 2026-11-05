@@ -2557,6 +2557,42 @@
                         }
                     }
                 },
+                "request_trailers": {
+                    "type": "array",
+                    "description": "HTTP request trailer fields, logged separately from the request header array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "suricata": {
+                                    "keywords": [
+                                        "http.trailer_names"
+                                    ]
+                                }
+                            },
+                            "table_size_update": {
+                                "type": "integer",
+                                "suricata": {
+                                    "keywords": [
+                                        "http2.size_update"
+                                    ]
+                                }
+                            },
+                            "value": {
+                                "type": "string",
+                                "suricata": {
+                                    "keywords": [
+                                        "http.trailer",
+                                        "http.trailer.raw"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
                 "response_headers": {
                     "type": "array",
                     "minItems": 1,
@@ -2577,6 +2613,42 @@
                             },
                             "value": {
                                 "type": "string"
+                            }
+                        }
+                    }
+                },
+                "response_trailers": {
+                    "type": "array",
+                    "description": "HTTP response trailer fields, logged separately from the response header array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "suricata": {
+                                    "keywords": [
+                                        "http.trailer_names"
+                                    ]
+                                }
+                            },
+                            "table_size_update": {
+                                "type": "integer",
+                                "suricata": {
+                                    "keywords": [
+                                        "http2.size_update"
+                                    ]
+                                }
+                            },
+                            "value": {
+                                "type": "string",
+                                "suricata": {
+                                    "keywords": [
+                                        "http.trailer",
+                                        "http.trailer.raw"
+                                    ]
+                                }
                             }
                         }
                     }
