@@ -32,6 +32,7 @@
 #include "threadvars.h"
 #include "util-debug.h"
 #include "decode-events.h"
+#include "packet-bindgen.h"
 #include "util-exception-policy-types.h"
 #include "util-datalink.h"
 #ifdef PROFILING
@@ -434,13 +435,6 @@ struct PacketL2 {
     union L2Hdrs {
         EthernetHdr *ethh;
     } hdrs;
-};
-
-enum PacketL3Types {
-    PACKET_L3_UNKNOWN = 0,
-    PACKET_L3_IPV4,
-    PACKET_L3_IPV6,
-    PACKET_L3_ARP,
 };
 
 struct PacketL3 {

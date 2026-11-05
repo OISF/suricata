@@ -134,12 +134,11 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
 
     /* Ignore packets that have a different protocol than the
      * flow. This can happen with ICMP unreachable packets. */
-    if (p->proto != flow_proto) {
+    if (SCPacketGetIPProto(p) != flow_proto) {
         return;
     }
 
-    uint16_t ip_len = 0;
-    void *ip_ptr = NULL;
+    uint32_t ip_len = 0;
     struct NdpiThreadContext *threadctx = NdpiGetThreadContext(tv);
     struct NdpiFlowContext *flowctx = NdpiGetFlowContext(f);
 
@@ -147,19 +146,16 @@ static void OnFlowUpdate(ThreadVars *tv, Flow *f, Packet *p, void *_data)
         return;
     if (flowctx == NULL || flowctx->ndpi_flow == NULL)
         return;
+    const enum PacketL3Types l3_type = SCPacketGetL3Type(p);
+    if (l3_type != PACKET_L3_IPV4 && l3_type != PACKET_L3_IPV6)
+        return;
 
-    if (PacketIsIPv4(p)) {
-        const IPV4Hdr *ip4h = PacketGetIPv4(p);
-        ip_len = IPV4_GET_RAW_IPLEN(ip4h);
-        ip_ptr = (void *)PacketGetIPv4(p);
-    } else if (PacketIsIPv6(p)) {
-        const IPV6Hdr *ip6h = PacketGetIPv6(p);
-        ip_len = IPV6_HEADER_LEN + IPV6_GET_RAW_PLEN(ip6h);
-        ip_ptr = (void *)PacketGetIPv6(p);
-    }
+    const uint8_t *ip_ptr = SCPacketGetL3(p, &ip_len);
 
     if (!flowctx->detection_completed && ip_ptr != NULL && ip_len > 0) {
-        uint64_t time_ms = ((uint64_t)p->ts.secs) * 1000 + p->ts.usecs / 1000;
+        uint64_t secs = 0, usecs = 0;
+        SCPacketGetTimeAsParts(p, &secs, &usecs);
+        uint64_t time_ms = secs * 1000 + usecs / 1000;
 
         SCLogDebug("Performing nDPI detection...");
 
@@ -225,7 +221,7 @@ static int DetectnDPIProtocolPacketMatch(
 {
     SCEnter();
 
-    const Flow *f = p->flow;
+    const Flow *f = SCPacketGetFlow(p);
     if (f == NULL) {
         SCLogDebug("packet %" PRIu64 ": no flow", PcapPacketCntGet(p));
         SCReturnInt(0);
@@ -360,7 +356,7 @@ static int DetectnDPIRiskPacketMatch(
 {
     SCEnter();
 
-    const Flow *f = p->flow;
+    const Flow *f = SCPacketGetFlow(p);
     if (f == NULL) {
         SCLogDebug("packet %" PRIu64 ": no flow", PcapPacketCntGet(p));
         SCReturnInt(0);

@@ -55,8 +55,8 @@ function pointer plus ``user`` pointer.
 The closure receives:
 
 - ``tv``: the ``ThreadVars`` for the thread performing the logging
-- ``p``: the ``Packet``, if available
-- ``f``: the ``Flow``, if available
+- ``p``: the ``Packet``, if available (``Option<&Packet>``)
+- ``f``: the ``Flow``, if available (``Option<&mut Flow>``)
 - ``jb``: a Rust ``JsonBuilder`` wrapper for the current EVE record
 
 Unlike the C API, the Rust callback returns ``Result<(), Error>``. If it
@@ -76,8 +76,8 @@ returns ``Err``, any JSON emitted by that callback is discarded.
 The Rust callback is invoked at the same point, but it receives a
 ``JsonBuilder`` wrapper instead of a raw ``SCJsonBuilder`` pointer.
 
-The raw pointers passed into the callback are only valid for the
-duration of the callback and must not be stored. The callback must also
+The wrappers passed into the callback are only valid for the duration
+of the callback and must not be stored. The callback must also
 not panic.
 
 This API is safe for library and plugins.
