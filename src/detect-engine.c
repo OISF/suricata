@@ -3884,6 +3884,7 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     RuleMatchCandidateTxArrayFree(det_ctx);
 
     AlertQueueFree(det_ctx);
+    SCFree(det_ctx->xbits_undo);
 
     if (det_ctx->post_rule_work_queue.q)
         SCFree(det_ctx->post_rule_work_queue.q);

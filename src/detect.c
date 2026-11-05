@@ -60,6 +60,7 @@
 #include "detect-filestore.h"
 #include "detect-flowvar.h"
 #include "detect-replace.h"
+#include "detect-xbits.h"
 
 #include "util-validate.h"
 #include "util-detect.h"
@@ -271,7 +272,12 @@ void DetectRunPostMatch(
         SCLogDebug("running match functions, sm %p", smd);
 
         while (1) {
-            if (smd->fw_postmatch != DETECT_POSTMATCH_FW_DEFER) {
+            bool run = true;
+            if (smd->fw_postmatch == DETECT_POSTMATCH_FW_DEFER)
+                run = false;
+            else if (smd->fw_postmatch == DETECT_POSTMATCH_FW_UNDO)
+                run = DetectXbitsUndoRecord(det_ctx, p, smd->ctx);
+            if (run) {
                 KEYWORD_PROFILING_START;
                 (void)sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx);
                 KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
@@ -1175,6 +1181,7 @@ static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_ALERT);
     PacketAlertFinalize(de_ctx, det_ctx, p);
+    DetectXbitsUndoFinalize(det_ctx, p);
     if (p->alerts.cnt > 0) {
         StatsCounterAddI64(&tv->stats, det_ctx->counter_alerts, (uint64_t)p->alerts.cnt);
     }
