@@ -157,7 +157,12 @@ fn log_request(
                 length: _,
                 payload,
             }) => {
-                ctx.set_string_from_bytes(js, "sasl_response", payload)?;
+                // SCRAM client-final carries the ClientProof
+                if flags & PGSQL_LOG_PASSWORDS != 0 {
+                    ctx.set_string_from_bytes(js, "sasl_response", payload)?;
+                } else {
+                    js.set_bool("sasl_response_redacted", true)?;
+                }
             }
             PgsqlFEMessage::SimpleQuery(RegularPacket {
                 identifier: _,
