@@ -366,6 +366,7 @@ noinst_HEADERS = \
 	output-json-frame.h \
 	output-json-ftp.h \
 	output-json-http.h \
+	output-json-http2.h \
 	output-json-ike.h \
 	output-json-llmnr.h \
 	output-json-mdns.h \
@@ -938,6 +939,7 @@ libsuricata_c_a_SOURCES = \
 	output-json-frame.c \
 	output-json-ftp.c \
 	output-json-http.c \
+	output-json-http2.c \
 	output-json-ike.c \
 	output-json-llmnr.c \
 	output-json-mdns.c \

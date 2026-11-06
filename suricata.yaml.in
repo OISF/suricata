@@ -366,7 +366,9 @@ outputs:
                                        # Note that the size is also bounded by
                                        # the maximum parsed message size (see
                                        # app-layer configuration)
-        - http2
+        - http2:
+            # sensitive-headers: yes    # log cookie/authorization header values.
+                                       # Disabled by default; they are redacted.
         # dns over http2
         - doh2
         - pgsql:

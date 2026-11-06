@@ -52,6 +52,7 @@
 #include "output-json-drop.h"
 #include "output-eve-stream.h"
 #include "output-json-http.h"
+#include "output-json-http2.h"
 #include "output-json-dns.h"
 #include "output-json-mdns.h"
 #include "log-tlsstore.h"
@@ -1012,7 +1013,13 @@ static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return TM_ECODE_FAILED;
     }
 
-    if (!al->LogTx(tx, js)) {
+    bool logged;
+    if (f->alproto == ALPROTO_HTTP2) {
+        logged = SCHttp2LogJsonFlags(tx, js, thread->ctx->http2_sensitive_headers);
+    } else {
+        logged = al->LogTx(tx, js);
+    }
+    if (!logged) {
         goto error;
     }
 
@@ -1094,11 +1101,11 @@ void OutputRegisterLoggers(void)
     /* http log */
     JsonHttpLogRegister();
     OutputRegisterTxSubModuleWithProgressSubState(LOGGER_JSON_TX, "eve-log", "LogHttp2Log::stream",
-            "eve-log.http2", OutputJsonLogInitSub, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            "eve-log.http2", JsonHttp2LogInitSub, ALPROTO_HTTP2, HTTP2TxTypeStream,
             JsonGenericDirFlowLogger, HTTP2ProgClosed, HTTP2ProgClosed, JsonLogThreadInit,
             JsonLogThreadDeinit);
     OutputRegisterTxSubModuleWithProgressSubState(LOGGER_JSON_TX, "eve-log", "LogHttp2Log::global",
-            "eve-log.http2", OutputJsonLogInitSub, ALPROTO_HTTP2, HTTP2TxTypeGlobal,
+            "eve-log.http2", JsonHttp2LogInitSub, ALPROTO_HTTP2, HTTP2TxTypeGlobal,
             JsonGenericDirFlowLogger, HTTP2ProgGlobalComplete, HTTP2ProgGlobalComplete,
             JsonLogThreadInit, JsonLogThreadDeinit);
     /* tls log */

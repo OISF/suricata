@@ -80,6 +80,8 @@ typedef struct OutputJsonCtx_ {
     OutputJsonCommonSettings cfg;
     HttpXFFCfg *xff_cfg;
     SCEveFileType *filetype;
+    /* per eve-log output privacy opt-ins */
+    bool http2_sensitive_headers;
 } OutputJsonCtx;
 
 typedef struct OutputJsonThreadCtx_ {

@@ -70,7 +70,7 @@ impl HeaderLogBudget {
 fn log_http2_headers<'a>(
     blocks: &'a [parser::HTTP2FrameHeaderBlock], js: &mut JsonBuilder,
     common: &mut HashMap<HeaderName, &'a Vec<u8>>, repeated: &mut HTTP2RepeatedHeaders,
-    budget: &mut HeaderLogBudget,
+    budget: &mut HeaderLogBudget, sensitive_headers: bool,
 ) -> Result<bool, JsonError> {
     let mut has_auth = false;
     let mut emitted = false;
@@ -80,6 +80,7 @@ fn log_http2_headers<'a>(
                 if repeated.add(block) {
                     continue;
                 }
+                let mut sensitive = false;
                 if let Ok(name) = std::str::from_utf8(&block.name) {
                     match name.to_lowercase().as_ref() {
                         ":method" => {
@@ -104,8 +105,36 @@ fn log_http2_headers<'a>(
                         "content-length" => {
                             common.insert(HeaderName::ContentLength, &block.value);
                         }
+                        "cookie" | "authorization" | "proxy-authorization" | "set-cookie" => {
+                            sensitive = true;
+                        }
                         _ => {}
                     }
+                }
+                if sensitive && !sensitive_headers {
+                    if budget.remaining <= HTTP2_LOG_ENTRY_OVERHEAD {
+                        budget.truncated = true;
+                        continue;
+                    }
+                    let name_len = std::cmp::min(
+                        block.name.len(),
+                        std::cmp::min(
+                            HTTP2_LOG_MAX_HEADER_FIELD,
+                            budget.remaining - HTTP2_LOG_ENTRY_OVERHEAD,
+                        ),
+                    );
+                    if name_len < block.name.len() {
+                        budget.truncated = true;
+                    }
+                    if !budget.room(HTTP2_LOG_ENTRY_OVERHEAD + name_len) {
+                        continue;
+                    }
+                    emitted = true;
+                    js.start_object()?;
+                    js.set_string_from_bytes("name", &block.name[..name_len])?;
+                    js.set_bool("redacted", true)?;
+                    js.close()?;
+                    continue;
                 }
                 if budget.remaining <= HTTP2_LOG_ENTRY_OVERHEAD {
                     budget.truncated = true;
@@ -162,7 +191,7 @@ fn log_http2_headers<'a>(
 
 fn log_headers<'a>(
     frames: &'a Vec<HTTP2Frame>, js: &mut JsonBuilder,
-    common: &mut HashMap<HeaderName, &'a Vec<u8>>, truncated: &mut bool,
+    common: &mut HashMap<HeaderName, &'a Vec<u8>>, truncated: &mut bool, sensitive_headers: bool,
 ) -> Result<bool, JsonError> {
     let mut has_headers = false;
     let mut repeated = HTTP2RepeatedHeaders::default();
@@ -170,16 +199,34 @@ fn log_headers<'a>(
     for frame in frames {
         match &frame.data {
             HTTP2FrameTypeData::HEADERS(hd) => {
-                has_headers |=
-                    log_http2_headers(&hd.blocks, js, common, &mut repeated, &mut budget)?;
+                has_headers |= log_http2_headers(
+                    &hd.blocks,
+                    js,
+                    common,
+                    &mut repeated,
+                    &mut budget,
+                    sensitive_headers,
+                )?;
             }
             HTTP2FrameTypeData::PUSHPROMISE(hd) => {
-                has_headers |=
-                    log_http2_headers(&hd.blocks, js, common, &mut repeated, &mut budget)?;
+                has_headers |= log_http2_headers(
+                    &hd.blocks,
+                    js,
+                    common,
+                    &mut repeated,
+                    &mut budget,
+                    sensitive_headers,
+                )?;
             }
             HTTP2FrameTypeData::CONTINUATION(hd) => {
-                has_headers |=
-                    log_http2_headers(&hd.blocks, js, common, &mut repeated, &mut budget)?;
+                has_headers |= log_http2_headers(
+                    &hd.blocks,
+                    js,
+                    common,
+                    &mut repeated,
+                    &mut budget,
+                    sensitive_headers,
+                )?;
             }
             _ => {}
         }
@@ -281,7 +328,9 @@ fn log_http2_frames(
     return Ok(has_settings || has_error_code || has_priority);
 }
 
-fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonError> {
+fn log_http2(
+    tx: &HTTP2Transaction, js: &mut JsonBuilder, sensitive_headers: bool,
+) -> Result<bool, JsonError> {
     js.open_object("http")?;
     js.set_string("version", "2")?;
 
@@ -293,7 +342,13 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
     let mark = js.get_mark();
     let mut truncated = false;
     js.open_array("request_headers")?;
-    if log_headers(&tx.frames_ts, js, &mut common, &mut truncated)? {
+    if log_headers(
+        &tx.frames_ts,
+        js,
+        &mut common,
+        &mut truncated,
+        sensitive_headers,
+    )? {
         js.close()?;
         has_headers = true;
     } else {
@@ -307,7 +362,13 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
     let mark = js.get_mark();
     let mut truncated = false;
     js.open_array("response_headers")?;
-    if log_headers(&tx.frames_tc, js, &mut common, &mut truncated)? {
+    if log_headers(
+        &tx.frames_tc,
+        js,
+        &mut common,
+        &mut truncated,
+        sensitive_headers,
+    )? {
         js.close()?;
         has_headers = true;
     } else {
@@ -390,7 +451,18 @@ pub unsafe extern "C" fn SCHttp2LogJson(
     tx: *mut std::os::raw::c_void, js: &mut JsonBuilder,
 ) -> bool {
     let tx = cast_pointer!(tx, HTTP2Transaction);
-    if let Ok(x) = log_http2(tx, js) {
+    if let Ok(x) = log_http2(tx, js, false) {
+        return x;
+    }
+    return false;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2LogJsonFlags(
+    tx: *mut std::os::raw::c_void, js: &mut JsonBuilder, sensitive_headers: bool,
+) -> bool {
+    let tx = cast_pointer!(tx, HTTP2Transaction);
+    if let Ok(x) = log_http2(tx, js, sensitive_headers) {
         return x;
     }
     return false;
