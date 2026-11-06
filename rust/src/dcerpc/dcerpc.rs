@@ -171,6 +171,15 @@ pub fn get_resp_type_for_req(t: u8) -> u8 {
     }
 }
 
+/// Check if `resp` is a valid reply to `req`, including the failure replies
+pub fn is_resp_type_for_req(req: u8, resp: u8) -> bool {
+    match resp {
+        DCERPC_TYPE_FAULT => req == DCERPC_TYPE_REQUEST || req == DCERPC_TYPE_ALTER_CONTEXT,
+        DCERPC_TYPE_BINDNAK => req == DCERPC_TYPE_BIND,
+        _ => get_resp_type_for_req(req) == resp,
+    }
+}
+
 pub fn get_req_type_for_resp(t: u8) -> u8 {
     match t {
         DCERPC_TYPE_RESPONSE => DCERPC_TYPE_REQUEST,
@@ -457,7 +466,7 @@ impl DCERPCState {
                             continue;
                         }
                         /* do not match if the transaction's command does not match expected */
-                        if tx.resp_cmd != cmd && get_resp_type_for_req(tx.req_cmd) != cmd {
+                        if tx.resp_cmd != cmd && !is_resp_type_for_req(tx.req_cmd, cmd) {
                             continue;
                         }
                     }
@@ -1033,8 +1042,30 @@ impl DCERPCState {
                         return AppLayerResult::err();
                     }
                 }
+                DCERPC_TYPE_FAULT | DCERPC_TYPE_BINDNAK => {
+                    let tx = if let Some(tx) =
+                        self.get_tx_by_call_id(current_call_id, Direction::ToClient, hdrtype)
+                    {
+                        tx
+                    } else {
+                        let mut tx = self.create_tx(&hdr);
+                        /* a request matching a failure reply can't be paired later
+                         * so close the request side too */
+                        tx.req_done = true;
+                        self.transactions.push_back(tx);
+                        self.transactions.back_mut().unwrap()
+                    };
+                    tx.resp_cmd = hdrtype;
+                    tx.resp_seen = true;
+                    tx.resp_done = true;
+                    if let Some(flow) = self.flow {
+                        sc_app_layer_parser_trigger_raw_stream_inspection(
+                            flow,
+                            Direction::ToClient as i32,
+                        );
+                    }
+                }
                 DCERPC_TYPE_PING
-                | DCERPC_TYPE_FAULT
                 | DCERPC_TYPE_WORKING
                 | DCERPC_TYPE_NOCALL
                 | DCERPC_TYPE_REJECT
@@ -1042,7 +1073,6 @@ impl DCERPCState {
                 | DCERPC_TYPE_CL_CANCEL
                 | DCERPC_TYPE_FACK
                 | DCERPC_TYPE_CANCEL_ACK
-                | DCERPC_TYPE_BINDNAK
                 | DCERPC_TYPE_AUTH3
                 | DCERPC_TYPE_CO_CANCEL
                 | DCERPC_TYPE_ORPHANED
