@@ -9265,6 +9265,10 @@
                         ]
                     }
                 },
+                "certificate_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the certificate was cut by the TLS log limit"
+                },
                 "chain": {
                     "type": "array",
                     "minItems": 1,
@@ -9278,6 +9282,10 @@
                         ]
                     }
                 },
+                "chain_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the certificate chain was cut by the TLS log limit"
+                },
                 "client": {
                     "type": "object",
                     "additionalProperties": false,
@@ -9289,6 +9297,10 @@
                                     "tls.certs"
                                 ]
                             }
+                        },
+                        "certificate_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the client certificate was truncated by the log limits"
                         },
                         "chain": {
                             "type": "array",
@@ -9302,6 +9314,10 @@
                                     "tls.cert_chain_len"
                                 ]
                             }
+                        },
+                        "chain_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the client certificate chain was truncated by the log limits"
                         },
                         "fingerprint": {
                             "type": "string",
@@ -9384,6 +9400,10 @@
                         "type": "string"
                     }
                 },
+                "client_alpns_truncated": {
+                    "type": "boolean",
+                    "description": "Whether the client ALPN list was truncated by the log limits"
+                },
                 "client_handshake": {
                     "type": "object",
                     "additionalProperties": false,
@@ -9396,6 +9416,10 @@
                                 "type": "integer"
                             }
                         },
+                        "ciphers_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the cipher list was truncated by the log limits"
+                        },
                         "exts": {
                             "description": "TLS client extension(s)",
                             "type": "array",
@@ -9404,6 +9428,10 @@
                                 "type": "integer"
                             }
                         },
+                        "exts_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the extension list was truncated by the log limits"
+                        },
                         "sig_algs": {
                             "description": "TLS client signature algorithm(s)",
                             "type": "array",
@@ -9411,6 +9439,10 @@
                             "items": {
                                 "type": "integer"
                             }
+                        },
+                        "sig_algs_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the signature algorithm list was truncated by the log limits"
                         },
                         "version": {
                             "description": "TLS version in client hello",
@@ -9531,6 +9563,10 @@
                         "type": "string"
                     }
                 },
+                "server_alpns_truncated": {
+                    "type": "boolean",
+                    "description": "Whether the server ALPN list was truncated by the log limits"
+                },
                 "server_handshake": {
                     "type": "object",
                     "additionalProperties": false,
@@ -9546,6 +9582,10 @@
                             "items": {
                                 "type": "integer"
                             }
+                        },
+                        "exts_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the extension list was truncated by the log limits"
                         },
                         "version": {
                             "description": "TLS version in server hello",
@@ -9584,6 +9624,10 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "subjectaltname_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the subject alternative names were cut by the TLS log limit"
                 },
                 "version": {
                     "type": "string",
