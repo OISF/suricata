@@ -6191,6 +6191,10 @@
                                 "description": "Attribute's name and value"
                             }
                         },
+                        "attributes_redacted": {
+                            "type": "boolean",
+                            "description": "Whether keying material in SDP attributes was redacted"
+                        },
                         "bandwidths": {
                             "type": "array",
                             "description": "Proposed bandwidths to be used by the session or media",
@@ -6209,7 +6213,11 @@
                         },
                         "encryption_key": {
                             "type": "string",
-                            "description": "Field used to convey encryption keys if SDP is used over a secure channel"
+                            "description": "Field used to convey encryption keys if SDP is used over a secure channel. Not logged"
+                        },
+                        "encryption_key_redacted": {
+                            "type": "boolean",
+                            "description": "Whether the encryption key was redacted"
                         },
                         "media_descriptions": {
                             "type": "array",
@@ -6228,6 +6236,10 @@
                                             "description": "Attribute's name and value"
                                         }
                                     },
+                                    "attributes_redacted": {
+                                        "type": "boolean",
+                                        "description": "Whether keying material in SDP media attributes was redacted"
+                                    },
                                     "bandwidths": {
                                         "type": "array",
                                         "description": "A list of bandwidth proposed for a media",
@@ -6242,7 +6254,11 @@
                                     },
                                     "encryption_key": {
                                         "type": "string",
-                                        "description": "Field used to convey encryption keys if SDP is used over a secure channel"
+                                        "description": "Field used to convey encryption keys if SDP is used over a secure channel. Not logged"
+                                    },
+                                    "encryption_key_redacted": {
+                                        "type": "boolean",
+                                        "description": "Whether the encryption key was redacted"
                                     },
                                     "media": {
                                         "type": "string",
@@ -6304,6 +6320,10 @@
                         }
                     },
                     "description": "SDP message body"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the logged fields were truncated"
                 },
                 "uri": {
                     "type": "string"
