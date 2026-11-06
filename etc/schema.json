@@ -6843,7 +6843,8 @@
                                     "type": "string"
                                 },
                                 "string": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "KEXINIT algorithm name lists; cut at 8 KiB with an in-value marker"
                                 }
                             }
                         },
@@ -6875,7 +6876,8 @@
                                     "type": "string"
                                 },
                                 "string": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "KEXINIT algorithm name lists; cut at 8 KiB with an in-value marker"
                                 }
                             }
                         },
