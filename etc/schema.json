@@ -9705,10 +9705,12 @@
             "additionalProperties": false,
             "properties": {
                 "request": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Cut at 8 KiB with an in-value marker"
                 },
                 "response": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Cut at 8 KiB with an in-value marker"
                 }
             }
         },

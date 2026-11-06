@@ -19,13 +19,17 @@ use super::template::TemplateTransaction;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use std;
 
+// the wire length is a u32 parsed from the stream; keep a record well
+// below the whole-record drop bound
+const TEMPLATE_LOG_MAX_STRING: usize = 8 * 1024;
+
 fn log_template(tx: &TemplateTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.open_object("template")?;
     if let Some(ref request) = tx.request {
-        js.set_string("request", request)?;
+        js.set_string_limited("request", request, TEMPLATE_LOG_MAX_STRING)?;
     }
     if let Some(ref response) = tx.response {
-        js.set_string("response", response)?;
+        js.set_string_limited("response", response, TEMPLATE_LOG_MAX_STRING)?;
     }
     js.close()?;
     Ok(())
@@ -38,4 +42,21 @@ pub unsafe extern "C" fn SCTemplateLoggerLog(
     let tx = cast_pointer!(tx, TemplateTransaction);
     let js = cast_pointer!(js, JsonBuilder);
     log_template(tx, js).is_ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_template_strings_limited() {
+        let mut tx = TemplateTransaction::default();
+        tx.request = Some("a".repeat(TEMPLATE_LOG_MAX_STRING + 100));
+        tx.response = Some("b".repeat(TEMPLATE_LOG_MAX_STRING + 1));
+        let mut js = JsonBuilder::try_new_object().unwrap();
+        log_template(&tx, &mut js).unwrap();
+        let out = js.as_str();
+        assert!(out.contains("[truncated 100 additional bytes]"));
+        assert!(out.contains("[truncated 1 additional byte]"));
+    }
 }
