@@ -5444,6 +5444,10 @@
                         }
                     }
                 },
+                "cyu_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the CYU list was cut by the log limit"
+                },
                 "extensions": {
                     "type": "array",
                     "description": "list of extensions in hello",
@@ -5470,6 +5474,10 @@
                             }
                         }
                     }
+                },
+                "extensions_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the extension list or its values were cut by the log limit"
                 },
                 "ja3": {
                     "type": "object",
@@ -5512,6 +5520,10 @@
                 "sni": {
                     "type": "string",
                     "description": "Server Name Indication"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when a QUIC log field was cut by the log limit"
                 },
                 "ua": {
                     "type": "string",
