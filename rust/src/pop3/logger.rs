@@ -78,15 +78,36 @@ fn log_pop3(tx: &POP3Transaction, js: &mut JsonBuilder) -> Result<(), JsonError>
         let js_request = js.open_object("request")?;
         let command = request.keyword.to_string();
         js_request.set_string("command", &command)?;
-        let args_truncated = request.args.len() > POP3_LOG_MAX_ARRAY;
-        let js_args = js_request.open_array("args")?;
-        for arg in request.args.iter().take(POP3_LOG_MAX_ARRAY) {
-            budget.append(js_args, arg)?;
-        }
-        js_args.close()?;
-        if args_truncated {
-            js_request.set_bool("args_truncated", true)?;
-            budget.truncated = true;
+        // USER/PASS carry the password, AUTH PLAIN/XOAUTH2 and APOP carry a
+        // credential in the arguments; keep only the mechanism or user name.
+        let keep_args =
+            if command.eq_ignore_ascii_case("USER") || command.eq_ignore_ascii_case("PASS") {
+                Some(0)
+            } else if command.eq_ignore_ascii_case("AUTH") || command.eq_ignore_ascii_case("APOP") {
+                Some(1)
+            } else {
+                None
+            };
+        if let Some(keep) = keep_args {
+            if request.args.len() > keep {
+                js_request.set_bool("credentials_redacted", true)?;
+            }
+            if keep > 0 && !request.args.is_empty() {
+                let js_args = js_request.open_array("args")?;
+                budget.append(js_args, &request.args[0])?;
+                js_args.close()?;
+            }
+        } else {
+            let args_truncated = request.args.len() > POP3_LOG_MAX_ARRAY;
+            let js_args = js_request.open_array("args")?;
+            for arg in request.args.iter().take(POP3_LOG_MAX_ARRAY) {
+                budget.append(js_args, arg)?;
+            }
+            js_args.close()?;
+            if args_truncated {
+                js_request.set_bool("args_truncated", true)?;
+                budget.truncated = true;
+            }
         }
         js_request.close()?;
     }
