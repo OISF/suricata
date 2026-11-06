@@ -103,12 +103,20 @@ fn log_mqtt_user_properties(
 #[inline]
 fn log_mqtt_properties(
     js: &mut JsonBuilder, props: &[MQTTProperty], max_log_len: usize, st: &mut MqttLogState,
-    _flags: u32,
+    flags: u32,
 ) -> Result<(), JsonError> {
     js.open_object("properties")?;
     for prop in props {
         if st.over_budget(js) {
             break;
+        }
+        // enhanced authentication data is credential material (SCRAM proofs,
+        // bearer tokens) and follows the password opt-in
+        if let MQTTProperty::AUTHENTICATION_DATA(_) = prop {
+            if flags & MQTT_LOG_PASSWORDS == 0 {
+                js.set_bool("authentication_data_redacted", true)?;
+                continue;
+            }
         }
         prop.set_json(js, max_log_len)?;
     }

@@ -10424,6 +10424,10 @@
                 "authentication_data": {
                     "type": "string"
                 },
+                "authentication_data_redacted": {
+                    "type": "boolean",
+                    "description": "Whether MQTT enhanced authentication data was present and not logged"
+                },
                 "authentication_method": {
                     "type": "string"
                 },
