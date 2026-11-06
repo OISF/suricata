@@ -230,8 +230,8 @@ fn log_bind_request(
     if let AuthenticationChoice::Sasl(sasl) = &msg.authentication {
         js.open_object("sasl")?;
         ldap_set_string(budget, js, "mechanism", &sasl.mechanism.0)?;
-        if let Some(credentials) = &sasl.credentials {
-            ldap_set_bytes(budget, js, "credentials", credentials)?;
+        if sasl.credentials.is_some() {
+            js.set_bool("credentials_redacted", true)?;
         }
         js.close()?;
     }
@@ -389,8 +389,8 @@ fn log_bind_response(
 ) -> Result<(), JsonError> {
     js.open_object("bind_response")?;
     log_ldap_result(&msg.result, js, budget)?;
-    if let Some(creds) = &msg.server_sasl_creds {
-        ldap_set_bytes(budget, js, "server_sasl_creds", creds)?;
+    if msg.server_sasl_creds.is_some() {
+        js.set_bool("server_credentials_redacted", true)?;
     }
     js.close()?;
     Ok(())
