@@ -23,33 +23,93 @@ use super::pop3::POP3Transaction;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use std;
 
+const POP3_LOG_MAX_STRING: usize = 8 * 1024;
+const POP3_LOG_MAX_ARRAY: usize = 64;
+const POP3_LOG_MAX_BYTES: usize = 128 * 1024;
+
+struct Pop3LogBudget {
+    remaining: usize,
+    truncated: bool,
+}
+
+impl Pop3LogBudget {
+    fn new() -> Self {
+        Self {
+            remaining: POP3_LOG_MAX_BYTES,
+            truncated: false,
+        }
+    }
+
+    fn append(&mut self, js: &mut JsonBuilder, data: &[u8]) -> Result<(), JsonError> {
+        let len = data.len().min(POP3_LOG_MAX_STRING);
+        let cost = len + 8;
+        if cost > self.remaining {
+            self.truncated = true;
+            return Ok(());
+        }
+        self.remaining -= cost;
+        if len < data.len() {
+            self.truncated = true;
+        }
+        js.append_string_from_bytes_limited(data, POP3_LOG_MAX_STRING)?;
+        Ok(())
+    }
+
+    fn set(&mut self, js: &mut JsonBuilder, key: &str, data: &[u8]) -> Result<(), JsonError> {
+        let len = data.len().min(POP3_LOG_MAX_STRING);
+        let cost = len + 24;
+        if cost > self.remaining {
+            self.truncated = true;
+            return Ok(());
+        }
+        self.remaining -= cost;
+        if len < data.len() {
+            self.truncated = true;
+        }
+        js.set_string_from_bytes_limited(key, data, POP3_LOG_MAX_STRING)?;
+        Ok(())
+    }
+}
+
 fn log_pop3(tx: &POP3Transaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
+    let mut budget = Pop3LogBudget::new();
     js.open_object("pop3")?;
     if let Some(ref request) = tx.request {
         let js_request = js.open_object("request")?;
-        js_request.set_string("command", &request.keyword.to_string())?;
-
+        let command = request.keyword.to_string();
+        js_request.set_string("command", &command)?;
+        let args_truncated = request.args.len() > POP3_LOG_MAX_ARRAY;
         let js_args = js_request.open_array("args")?;
-        for arg in &request.args {
-            js_args.append_string_from_bytes(arg)?;
+        for arg in request.args.iter().take(POP3_LOG_MAX_ARRAY) {
+            budget.append(js_args, arg)?;
         }
         js_args.close()?;
+        if args_truncated {
+            js_request.set_bool("args_truncated", true)?;
+            budget.truncated = true;
+        }
         js_request.close()?;
     }
     if let Some(ref response) = tx.response {
         let js_response = js.open_object("response")?;
         js_response.set_bool("success", response.status == sawp_pop3::Status::OK)?;
         js_response.set_string("status", response.status.to_str())?;
-        js_response.set_string_from_bytes("header", &response.header)?;
-
+        budget.set(js_response, "header", &response.header)?;
+        let data_truncated = response.data.len() > POP3_LOG_MAX_ARRAY;
         let js_data = js_response.open_array("data")?;
-        for data in &response.data {
-            js_data.append_string_from_bytes(data)?;
+        for data in response.data.iter().take(POP3_LOG_MAX_ARRAY) {
+            budget.append(js_data, data)?;
         }
         js_data.close()?;
+        if data_truncated {
+            js_response.set_bool("data_truncated", true)?;
+            budget.truncated = true;
+        }
         js_response.close()?;
     }
-
+    if budget.truncated {
+        js.set_bool("truncated", true)?;
+    }
     js.close()?;
     Ok(())
 }

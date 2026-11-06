@@ -5702,9 +5702,17 @@
                                 "type": "string"
                             }
                         },
+                        "args_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the command arguments were truncated by the log limits"
+                        },
                         "command": {
                             "type": "string",
                             "description": "A pop3 command, for example `USER` or `STAT`"
+                        },
+                        "credentials_redacted": {
+                            "type": "boolean",
+                            "description": "Whether USER/PASS/AUTH/APOP credentials were present and not logged"
                         }
                     }
                 },
@@ -5718,6 +5726,10 @@
                                 "type": "string"
                             }
                         },
+                        "data_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the data was truncated by the log limits"
+                        },
                         "header": {
                             "type": "string",
                             "description": "First line of response"
@@ -5730,6 +5742,10 @@
                             "description": "Response indicated positive status ie +OK"
                         }
                     }
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the record was truncated by the log limits"
                 }
             }
         },
