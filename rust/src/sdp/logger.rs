@@ -52,8 +52,9 @@ pub(crate) fn sdp_log(
     if let Some(tz) = &msg.time_zone {
         budget.set_string(js, "timezone", tz)?;
     }
-    if let Some(enc_key) = &msg.encryption_key {
-        budget.set_string(js, "encryption_key", enc_key)?;
+    // k= carries keying material: never logged.
+    if msg.encryption_key.is_some() {
+        js.set_bool("encryption_key_redacted", true)?;
     }
     if let Some(attrs) = &msg.attributes {
         if log_attributes(attrs, js, budget)? {
@@ -109,8 +110,8 @@ fn log_media_description(
             if let Some(conn_data) = &m.connection_data {
                 budget.set_string(js, "connection_data", conn_data)?;
             }
-            if let Some(enc_key) = &m.encryption_key {
-                budget.set_string(js, "encryption_key", enc_key)?;
+            if m.encryption_key.is_some() {
+                js.set_bool("encryption_key_redacted", true)?;
             }
             if let Some(attrs) = &m.attributes {
                 if log_attributes(attrs, js, budget)? {
@@ -140,17 +141,42 @@ fn log_bandwidth(
     Ok(())
 }
 
+/// Redact keying material carried in attributes (SRTP SDES, MIKEY).
+fn redact_attribute(attr: &str) -> Option<String> {
+    let lower = attr.to_ascii_lowercase();
+    if lower.starts_with("crypto:") {
+        if let Some(pos) = lower.find("inline:") {
+            return Some(format!("{}[redacted]", &attr[..pos + "inline:".len()]));
+        }
+    }
+    if lower.starts_with("key-mgmt:") {
+        return Some("key-mgmt:[redacted]".to_string());
+    }
+    if let Some(pos) = lower.find("ice-pwd:") {
+        return Some(format!("{}[redacted]", &attr[..pos + "ice-pwd:".len()]));
+    }
+    None
+}
+
 fn log_attributes(
     attrs: &Vec<String>, js: &mut JsonBuilder, budget: &mut SipLogBudget,
 ) -> Result<bool, JsonError> {
+    let mut redacted = false;
     if !attrs.is_empty() && budget.spend(8) {
         js.open_array("attributes")?;
         for attr in attrs {
-            if !budget.append_string(js, attr)? {
+            let val = match redact_attribute(attr) {
+                Some(r) => {
+                    redacted = true;
+                    r
+                }
+                None => attr.clone(),
+            };
+            if !budget.append_string(js, &val)? {
                 break;
             }
         }
         js.close()?;
     }
-    Ok(false)
+    Ok(redacted)
 }
