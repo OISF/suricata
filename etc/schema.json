@@ -4725,7 +4725,12 @@
                             }
                         },
                         "password": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Not logged unless passwords are enabled in the eve-log mqtt section"
+                        },
+                        "password_redacted": {
+                            "type": "boolean",
+                            "description": "Whether a CONNECT password was present and not logged"
                         },
                         "properties": {
                             "$ref": "#/$defs/mqtt.properties"
@@ -5138,6 +5143,10 @@
                             }
                         }
                     }
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether messages or array items were dropped from the record by the log limits"
                 },
                 "unsuback": {
                     "type": "object",
