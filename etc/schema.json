@@ -990,6 +990,10 @@
                 "additionals": {
                     "$ref": "#/$defs/dns.additionals"
                 },
+                "additionals_truncated": {
+                    "type": "boolean",
+                    "description": "Whether additional records were dropped from the record by the log limits"
+                },
                 "answer": {
                     "type": "object",
                     "additionalProperties": false,
@@ -1051,6 +1055,10 @@
                                     ]
                                 }
                             },
+                            "rdata_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rdata value was truncated by the log limits"
+                            },
                             "rrname": {
                                 "type": "string",
                                 "suricata": {
@@ -1059,6 +1067,10 @@
                                         "dns.response.rrname"
                                     ]
                                 }
+                            },
+                            "rrname_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rrname value was truncated by the log limits"
                             },
                             "rrtype": {
                                 "type": "string"
@@ -1106,8 +1118,16 @@
                         }
                     }
                 },
+                "answers_truncated": {
+                    "type": "boolean",
+                    "description": "Whether answers were dropped from the record by the log limits"
+                },
                 "authorities": {
                     "$ref": "#/$defs/dns.authorities"
+                },
+                "authorities_truncated": {
+                    "type": "boolean",
+                    "description": "Whether authority records were dropped from the record by the log limits"
                 },
                 "flags": {
                     "type": "string"
@@ -1290,6 +1310,10 @@
                         }
                     }
                 },
+                "queries_truncated": {
+                    "type": "boolean",
+                    "description": "Whether queries were dropped from the record by the log limits"
+                },
                 "query": {
                     "type": "array",
                     "$comment": "EVE DNS v2 style query logging; as of Suricata 8 only used in DNS records when v2 logging is enabled, not used for DNS records logged as part of an event.",
@@ -1340,12 +1364,20 @@
                 "rrname": {
                     "type": "string"
                 },
+                "rrname_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true if the response rrname was too long and truncated by Suricata"
+                },
                 "rrtype": {
                     "type": "string"
                 },
                 "tc": {
                     "type": "boolean",
                     "description": "DNS truncation flag"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the record was truncated by the log limits"
                 },
                 "tx_id": {
                     "type": "integer"
@@ -3513,6 +3545,10 @@
                                 "description": "Pointer record",
                                 "type": "string"
                             },
+                            "rdata_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rdata value was truncated by the parser"
+                            },
                             "rrname": {
                                 "description": "Resource name of the record",
                                 "type": "string"
@@ -3543,6 +3579,10 @@
                             }
                         }
                     }
+                },
+                "additionals_truncated": {
+                    "type": "boolean",
+                    "description": "Whether additional records were dropped from the record by the log limits"
                 },
                 "answers": {
                     "description": "LLMNR answer records",
@@ -3579,6 +3619,10 @@
                             "ptr": {
                                 "description": "Pointer record",
                                 "type": "string"
+                            },
+                            "rdata_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rdata value was truncated by the parser"
                             },
                             "rrname": {
                                 "description": "Resource name of the record",
@@ -3657,6 +3701,10 @@
                         }
                     }
                 },
+                "answers_truncated": {
+                    "type": "boolean",
+                    "description": "Whether answers were dropped from the record by the log limits"
+                },
                 "authorities": {
                     "description": "LLMNR authority records",
                     "type": "array",
@@ -3693,6 +3741,10 @@
                                 "description": "Pointer record",
                                 "type": "string"
                             },
+                            "rdata_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rdata value was truncated by the parser"
+                            },
                             "rrname": {
                                 "description": "Resource name of the record",
                                 "type": "string"
@@ -3727,6 +3779,10 @@
                             }
                         }
                     }
+                },
+                "authorities_truncated": {
+                    "type": "boolean",
+                    "description": "Whether authority records were dropped from the record by the log limits"
                 },
                 "flags": {
                     "description": "LLMNR message flags",
@@ -3850,6 +3906,14 @@
                         }
                     }
                 },
+                "queries_truncated": {
+                    "type": "boolean",
+                    "description": "Whether queries were dropped from the record by the log limits"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the record was truncated by the log limits"
+                },
                 "tx_id": {
                     "description": "Internal transaction ID",
                     "type": "integer"
@@ -3878,8 +3942,36 @@
                     "minItems": 1,
                     "items": {
                         "type": "object",
-                        "additionalProperties": false,
+                        "additionalProperties": true,
                         "properties": {
+                            "a": {
+                                "type": "string",
+                                "description": "A record value"
+                            },
+                            "aaaa": {
+                                "type": "string",
+                                "description": "AAAA record value"
+                            },
+                            "cname": {
+                                "type": "string",
+                                "description": "CNAME record value"
+                            },
+                            "mx": {
+                                "type": "string",
+                                "description": "MX record value"
+                            },
+                            "ns": {
+                                "type": "string",
+                                "description": "NS record value"
+                            },
+                            "null": {
+                                "type": "string",
+                                "description": "NULL record value"
+                            },
+                            "opt": {
+                                "type": "array",
+                                "description": "OPT record value"
+                            },
                             "ptr": {
                                 "type": "string",
                                 "description": "Value of the requested PTR record",
@@ -3888,6 +3980,10 @@
                                         "mdns.response.rrname"
                                     ]
                                 }
+                            },
+                            "rdata_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rdata value was truncated by the log limits"
                             },
                             "rrname": {
                                 "type": "string",
@@ -3904,6 +4000,18 @@
                                 "type": "boolean",
                                 "$comment": "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
                             },
+                            "soa": {
+                                "type": "object",
+                                "description": "SOA record value"
+                            },
+                            "srv": {
+                                "type": "object",
+                                "description": "SRV record value"
+                            },
+                            "sshfp": {
+                                "type": "object",
+                                "description": "SSHFP record value"
+                            },
                             "txt": {
                                 "type": "array",
                                 "description": "Value of the requested TXT record",
@@ -3911,9 +4019,17 @@
                                 "items": {
                                     "type": "string"
                                 }
+                            },
+                            "unknown": {
+                                "type": "string",
+                                "description": "Unknown record value"
                             }
                         }
                     }
+                },
+                "additionals_truncated": {
+                    "type": "boolean",
+                    "description": "Whether additional records were dropped from the record by the log limits"
                 },
                 "answers": {
                     "description": "mDNS answer records",
@@ -3921,8 +4037,36 @@
                     "minItems": 1,
                     "items": {
                         "type": "object",
-                        "additionalProperties": false,
+                        "additionalProperties": true,
                         "properties": {
+                            "a": {
+                                "type": "string",
+                                "description": "A record value"
+                            },
+                            "aaaa": {
+                                "type": "string",
+                                "description": "AAAA record value"
+                            },
+                            "cname": {
+                                "type": "string",
+                                "description": "CNAME record value"
+                            },
+                            "mx": {
+                                "type": "string",
+                                "description": "MX record value"
+                            },
+                            "ns": {
+                                "type": "string",
+                                "description": "NS record value"
+                            },
+                            "null": {
+                                "type": "string",
+                                "description": "NULL record value"
+                            },
+                            "opt": {
+                                "type": "array",
+                                "description": "OPT record value"
+                            },
                             "ptr": {
                                 "type": "string",
                                 "description": "Value of the requested PTR record",
@@ -3932,6 +4076,10 @@
                                         "mdns.response.rrname"
                                     ]
                                 }
+                            },
+                            "rdata_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rdata value was truncated by the log limits"
                             },
                             "rrname": {
                                 "type": "string",
@@ -3948,6 +4096,18 @@
                                 "type": "boolean",
                                 "$comment": "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
                             },
+                            "soa": {
+                                "type": "object",
+                                "description": "SOA record value"
+                            },
+                            "srv": {
+                                "type": "object",
+                                "description": "SRV record value"
+                            },
+                            "sshfp": {
+                                "type": "object",
+                                "description": "SSHFP record value"
+                            },
                             "txt": {
                                 "type": "array",
                                 "description": "Value of the requested TXT record",
@@ -3955,9 +4115,17 @@
                                 "items": {
                                     "type": "string"
                                 }
+                            },
+                            "unknown": {
+                                "type": "string",
+                                "description": "Unknown record value"
                             }
                         }
                     }
+                },
+                "answers_truncated": {
+                    "type": "boolean",
+                    "description": "Whether answers were dropped from the record by the log limits"
                 },
                 "authorities": {
                     "description": "mDNS authority records",
@@ -3965,8 +4133,40 @@
                     "minItems": 1,
                     "items": {
                         "type": "object",
-                        "additionalProperties": false,
+                        "additionalProperties": true,
                         "properties": {
+                            "a": {
+                                "type": "string",
+                                "description": "A record value"
+                            },
+                            "aaaa": {
+                                "type": "string",
+                                "description": "AAAA record value"
+                            },
+                            "cname": {
+                                "type": "string",
+                                "description": "CNAME record value"
+                            },
+                            "mx": {
+                                "type": "string",
+                                "description": "MX record value"
+                            },
+                            "ns": {
+                                "type": "string",
+                                "description": "NS record value"
+                            },
+                            "null": {
+                                "type": "string",
+                                "description": "NULL record value"
+                            },
+                            "opt": {
+                                "type": "array",
+                                "description": "OPT record value"
+                            },
+                            "rdata_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rdata value was truncated by the log limits"
+                            },
                             "rrname": {
                                 "type": "string",
                                 "description": "Resource name of the record being returned",
@@ -3981,9 +4181,29 @@
                                 "description": "Name was truncated by Suricata due to length",
                                 "type": "boolean",
                                 "$comment": "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
+                            },
+                            "soa": {
+                                "type": "object",
+                                "description": "SOA record value"
+                            },
+                            "srv": {
+                                "type": "object",
+                                "description": "SRV record value"
+                            },
+                            "sshfp": {
+                                "type": "object",
+                                "description": "SSHFP record value"
+                            },
+                            "unknown": {
+                                "type": "string",
+                                "description": "Unknown record value"
                             }
                         }
                     }
+                },
+                "authorities_truncated": {
+                    "type": "boolean",
+                    "description": "Whether authority records were dropped from the record by the log limits"
                 },
                 "flags": {
                     "description": "mDNS message flags",
@@ -4059,9 +4279,17 @@
                         }
                     }
                 },
+                "queries_truncated": {
+                    "type": "boolean",
+                    "description": "Whether queries were dropped from the record by the log limits"
+                },
                 "rcode": {
                     "description": "mDNS reply (error) code",
                     "type": "integer"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the record was truncated by the log limits"
                 },
                 "type": {
                     "description": "Type of message, either a request or response",
@@ -9815,6 +10043,10 @@
                 "rname": {
                     "type": "string"
                 },
+                "rname_truncated": {
+                    "type": "boolean",
+                    "description": "Whether the SOA rname was too long and truncated by Suricata"
+                },
                 "serial": {
                     "type": "integer"
                 }
@@ -9895,6 +10127,10 @@
                             ]
                         }
                     },
+                    "rdata_truncated": {
+                        "type": "boolean",
+                        "description": "Whether the rdata value was truncated by the parser"
+                    },
                     "rrname": {
                         "type": "string",
                         "suricata": {
@@ -9904,8 +10140,24 @@
                             ]
                         }
                     },
+                    "rrname_truncated": {
+                        "type": "boolean",
+                        "description": "Whether the rrname was too long and truncated by Suricata"
+                    },
                     "rrtype": {
                         "type": "string"
+                    },
+                    "soa": {
+                        "$ref": "#/$defs/dns.soa",
+                        "description": "SOA record data"
+                    },
+                    "srv": {
+                        "type": "object",
+                        "description": "SRV record data"
+                    },
+                    "sshfp": {
+                        "type": "object",
+                        "description": "SSHFP record data"
                     },
                     "ttl": {
                         "type": "integer"
