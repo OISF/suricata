@@ -723,6 +723,10 @@
                     "type": "boolean",
                     "description": "Whether objects were dropped from the record by the log limits"
                 },
+                "password_redacted": {
+                    "type": "boolean",
+                    "description": "Whether a G70V2 password was present and redacted"
+                },
                 "points_truncated": {
                     "type": "boolean",
                     "description": "Whether points were dropped from the record by the log limits"

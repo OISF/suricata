@@ -172,8 +172,14 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             DNP3LogSetString(ctx, js, "data->{{field.name}}", data->{{field.name}},
                     sizeof(data->{{field.name}}));
 {% elif field.type in ["chararray", "dynchararray"] %}
+{% if field.name == "password" %}
+            if (data->{{field.len_field}} > 0) {
+                ctx->password_redacted = true;
+            }
+{% else %}
             DNP3LogSetStringFromBytes(ctx, js, "{{field.name}}",
                     (const uint8_t *)data->{{field.name}}, data->{{field.len_field}});
+{% endif %}
 {% elif field.type == "bstr8" %}
 {% for field in field.fields %}
             SCJbSetUint(js, "{{field.name}}", data->{{field.name}});

@@ -1337,8 +1337,9 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             SCJbSetUint(js, "authentication_key", data->authentication_key);
             DNP3LogSetStringFromBytes(ctx, js, "username",
                     (const uint8_t *)data->username, data->username_size);
-            DNP3LogSetStringFromBytes(ctx, js, "password",
-                    (const uint8_t *)data->password, data->password_size);
+            if (data->password_size > 0) {
+                ctx->password_redacted = true;
+            }
             break;
         }
         case DNP3_OBJECT_CODE(70, 3): {
