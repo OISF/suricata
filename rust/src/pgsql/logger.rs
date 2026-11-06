@@ -26,7 +26,60 @@ use std;
 
 pub const PGSQL_LOG_PASSWORDS: u32 = BIT_U32!(0);
 
-fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
+// logger-owned caps: per-record byte budget, message and field counts, and
+// a hard per-string maximum on top of the configured string-log-limit
+const PGSQL_LOG_MAX_STRING: usize = 64 * 1024;
+const PGSQL_LOG_MAX_BYTES: usize = 1024 * 1024;
+const PGSQL_LOG_MAX_MESSAGES: usize = 256;
+const PGSQL_LOG_MAX_FIELDS: usize = 64;
+
+struct PgsqlLogCtx {
+    max_string: usize,
+    remaining: usize,
+    messages: usize,
+    truncated: bool,
+}
+
+impl PgsqlLogCtx {
+    fn new(max_string: u32) -> Self {
+        let max_string = max_string as usize;
+        Self {
+            max_string: if max_string == 0 {
+                PGSQL_LOG_MAX_STRING
+            } else {
+                std::cmp::min(max_string, PGSQL_LOG_MAX_STRING)
+            },
+            remaining: PGSQL_LOG_MAX_BYTES,
+            messages: 0,
+            truncated: false,
+        }
+    }
+
+    fn set_string_from_bytes(
+        &mut self, js: &mut JsonBuilder, key: &str, val: &[u8],
+    ) -> Result<(), JsonError> {
+        if self.remaining <= 24 {
+            self.truncated = true;
+            return Ok(());
+        }
+        let limit = std::cmp::min(self.max_string, self.remaining - 24);
+        if limit == 0 {
+            self.truncated = true;
+            return Ok(());
+        }
+        if val.len() > limit {
+            self.truncated = true;
+        }
+        self.remaining -= std::cmp::min(val.len(), limit) + 24;
+        js.set_string_from_bytes_limited(key, val, limit)?;
+        Ok(())
+    }
+}
+
+fn log_pgsql(
+    tx: &PgsqlTransaction, flags: u32, max_log_len: u32, js: &mut JsonBuilder,
+) -> Result<(), JsonError> {
+    let mut ctx = PgsqlLogCtx::new(max_log_len);
     js.open_object("pgsql")?;
     js.set_uint("tx_id", tx.tx_id)?;
     if !tx.requests.is_empty() {
@@ -34,7 +87,7 @@ fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<
         // there should be no duplicated messages, and there should be no more than 2 requests per tx
         debug_validate_bug_on!(tx.requests.len() > 2);
         js.open_object("request")?;
-        log_request(tx, flags, js)?;
+        log_request(tx, flags, js, &mut ctx)?;
         js.close()?;
     } else if tx.responses.is_empty() {
         SCLogDebug!("Suricata created an empty PGSQL transaction");
@@ -46,14 +99,20 @@ fn log_pgsql(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<
 
     if !tx.responses.is_empty() {
         SCLogDebug!("Responses length: {}", tx.responses.len());
-        js.set_object("response", &log_response_object(tx)?)?;
+        let response = log_response_object(tx, &mut ctx)?;
+        js.set_object("response", &response)?;
+    }
+    if ctx.truncated {
+        js.set_bool("truncated", true)?;
     }
     js.close()?;
 
     Ok(())
 }
 
-fn log_request(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Result<(), JsonError> {
+fn log_request(
+    tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder, ctx: &mut PgsqlLogCtx,
+) -> Result<(), JsonError> {
     // CopyFail, ConsolidatedCopyDataIn, CopyDone
     let mut duplicated_messages: [u8; 3] = [0, 0, 0];
     for req in &tx.requests {
@@ -67,7 +126,7 @@ fn log_request(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Resul
             }) => {
                 let proto = format!("{}.{}", proto_major, proto_minor);
                 js.set_string("protocol_version", &proto)?;
-                js.set_object("startup_parameters", &log_startup_parameters(params)?)?;
+                js.set_object("startup_parameters", &log_startup_parameters(params, ctx)?)?;
             }
             PgsqlFEMessage::SSLRequest(_) => {
                 js.set_string("message", "SSL Request")?;
@@ -80,7 +139,7 @@ fn log_request(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Resul
                 sasl_param,
             }) => {
                 js.set_string("sasl_authentication_mechanism", auth_mechanism.to_str())?;
-                js.set_string_from_bytes("sasl_param", sasl_param)?;
+                ctx.set_string_from_bytes(js, "sasl_param", sasl_param)?;
             }
             PgsqlFEMessage::PasswordMessage(RegularPacket {
                 identifier: _,
@@ -88,7 +147,7 @@ fn log_request(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Resul
                 payload,
             }) => {
                 if flags & PGSQL_LOG_PASSWORDS != 0 {
-                    js.set_string_from_bytes(req.to_str(), payload)?;
+                    ctx.set_string_from_bytes(js, req.to_str(), payload)?;
                 } else {
                     js.set_bool("password_redacted", true)?;
                 }
@@ -98,21 +157,21 @@ fn log_request(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Resul
                 length: _,
                 payload,
             }) => {
-                js.set_string_from_bytes("sasl_response", payload)?;
+                ctx.set_string_from_bytes(js, "sasl_response", payload)?;
             }
             PgsqlFEMessage::SimpleQuery(RegularPacket {
                 identifier: _,
                 length: _,
                 payload,
             }) => {
-                js.set_string_from_bytes(req.to_str(), payload)?;
+                ctx.set_string_from_bytes(js, req.to_str(), payload)?;
             }
             PgsqlFEMessage::CopyFail(RegularPacket {
                 identifier: _,
                 length: _,
                 payload,
             }) => {
-                js.set_string_from_bytes(req.to_str(), payload)?;
+                ctx.set_string_from_bytes(js, req.to_str(), payload)?;
                 duplicated_messages[0] += 1;
                 debug_validate_bug_on!(duplicated_messages[0] > 1);
             }
@@ -154,22 +213,29 @@ fn log_request(tx: &PgsqlTransaction, flags: u32, js: &mut JsonBuilder) -> Resul
     Ok(())
 }
 
-fn log_response_object(tx: &PgsqlTransaction) -> Result<JsonBuilder, JsonError> {
+fn log_response_object(
+    tx: &PgsqlTransaction, ctx: &mut PgsqlLogCtx,
+) -> Result<JsonBuilder, JsonError> {
     let mut jb = JsonBuilder::try_new_object()?;
     let mut array_open = false;
     for response in &tx.responses {
+        if ctx.messages >= PGSQL_LOG_MAX_MESSAGES {
+            ctx.truncated = true;
+            break;
+        }
+        ctx.messages += 1;
         if let PgsqlBEMessage::ParameterStatus(msg) = response {
             if !array_open {
                 jb.open_array("parameter_status")?;
                 array_open = true;
             }
-            jb.append_object(&log_pgsql_param(&msg.param)?)?;
+            jb.append_object(&log_pgsql_param(&msg.param, ctx)?)?;
         } else {
             if array_open {
                 jb.close()?;
                 array_open = false;
             }
-            log_response(response, &mut jb)?;
+            log_response(response, &mut jb, ctx)?;
         }
     }
     if array_open {
@@ -180,7 +246,9 @@ fn log_response_object(tx: &PgsqlTransaction) -> Result<JsonBuilder, JsonError> 
     Ok(jb)
 }
 
-fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonError> {
+fn log_response(
+    res: &PgsqlBEMessage, jb: &mut JsonBuilder, ctx: &mut PgsqlLogCtx,
+) -> Result<(), JsonError> {
     match res {
         PgsqlBEMessage::SSLResponse(message) => {
             if let SSLResponseMessage::SSLAccepted = message {
@@ -199,7 +267,7 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             length: _,
             message_body,
         }) => {
-            log_error_notice_field_types(message_body, jb)?;
+            log_error_notice_field_types(message_body, jb, ctx)?;
         }
         PgsqlBEMessage::AuthenticationMD5Password(AuthenticationMessage {
             identifier: _,
@@ -224,7 +292,7 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             length: _,
             payload,
         }) => {
-            jb.set_string_from_bytes(res.to_str(), payload)?;
+            ctx.set_string_from_bytes(jb, res.to_str(), payload)?;
         }
         PgsqlBEMessage::UnknownMessageType(RegularPacket {
             identifier: _,
@@ -317,30 +385,40 @@ fn log_response(res: &PgsqlBEMessage, jb: &mut JsonBuilder) -> Result<(), JsonEr
             payload,
         }) => {
             jb.set_uint("pid", *pid)?;
-            jb.set_string_from_bytes("channel_name", channel_name)?;
-            jb.set_string_from_bytes("payload", payload)?;
+            ctx.set_string_from_bytes(jb, "channel_name", channel_name)?;
+            ctx.set_string_from_bytes(jb, "payload", payload)?;
         }
     }
     Ok(())
 }
 
 fn log_error_notice_field_types(
-    error_fields: &Vec<PgsqlErrorNoticeMessageField>, jb: &mut JsonBuilder,
+    error_fields: &Vec<PgsqlErrorNoticeMessageField>, jb: &mut JsonBuilder, ctx: &mut PgsqlLogCtx,
 ) -> Result<(), JsonError> {
-    for field in error_fields {
-        jb.set_string_from_bytes(field.field_type.to_str(), &field.field_value)?;
+    for (i, field) in error_fields.iter().enumerate() {
+        if i >= PGSQL_LOG_MAX_FIELDS {
+            ctx.truncated = true;
+            break;
+        }
+        ctx.set_string_from_bytes(jb, field.field_type.to_str(), &field.field_value)?;
     }
     Ok(())
 }
 
-fn log_startup_parameters(params: &PgsqlStartupParameters) -> Result<JsonBuilder, JsonError> {
+fn log_startup_parameters(
+    params: &PgsqlStartupParameters, ctx: &mut PgsqlLogCtx,
+) -> Result<JsonBuilder, JsonError> {
     let mut jb = JsonBuilder::try_new_object()?;
     // User is a mandatory field in a pgsql message
-    jb.set_string_from_bytes("user", &params.user.value)?;
+    ctx.set_string_from_bytes(&mut jb, "user", &params.user.value)?;
     if let Some(parameters) = &params.optional_params {
         jb.open_array("optional_parameters")?;
-        for parameter in parameters {
-            jb.append_object(&log_pgsql_param(parameter)?)?;
+        for (i, parameter) in parameters.iter().enumerate() {
+            if i >= PGSQL_LOG_MAX_FIELDS {
+                ctx.truncated = true;
+                break;
+            }
+            jb.append_object(&log_pgsql_param(parameter, ctx)?)?;
         }
         jb.close()?;
     }
@@ -348,21 +426,48 @@ fn log_startup_parameters(params: &PgsqlStartupParameters) -> Result<JsonBuilder
     Ok(jb)
 }
 
-fn log_pgsql_param(param: &PgsqlParameter) -> Result<JsonBuilder, JsonError> {
+fn log_pgsql_param(
+    param: &PgsqlParameter, ctx: &mut PgsqlLogCtx,
+) -> Result<JsonBuilder, JsonError> {
     let mut jb = JsonBuilder::try_new_object()?;
-    jb.set_string_from_bytes(param.name.to_str(), &param.value)?;
+    ctx.set_string_from_bytes(&mut jb, param.name.to_str(), &param.value)?;
     jb.close()?;
     Ok(jb)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn SCPgsqlLogger(
-    tx: *mut std::os::raw::c_void, flags: u32, js: &mut JsonBuilder,
+    tx: *mut std::os::raw::c_void, flags: u32, max_log_len: u32, js: &mut JsonBuilder,
 ) -> bool {
     let tx_pgsql = cast_pointer!(tx, PgsqlTransaction);
     SCLogDebug!(
         "----------- PGSQL rs_pgsql_logger call. Tx id is {:?}",
         tx_pgsql.tx_id
     );
-    log_pgsql(tx_pgsql, flags, js).is_ok()
+    log_pgsql(tx_pgsql, flags, max_log_len, js).is_ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_string_limit() {
+        let mut ctx = PgsqlLogCtx::new(4);
+        let mut js = JsonBuilder::try_new_object().unwrap();
+        ctx.set_string_from_bytes(&mut js, "query", b"abcdef")
+            .unwrap();
+        assert!(js.as_str().contains("[truncated 2 additional bytes]"));
+        assert!(ctx.truncated);
+    }
+
+    #[test]
+    fn test_budget_exhaustion() {
+        let mut ctx = PgsqlLogCtx::new(PGSQL_LOG_MAX_STRING as u32);
+        ctx.remaining = 10;
+        let mut js = JsonBuilder::try_new_object().unwrap();
+        ctx.set_string_from_bytes(&mut js, "query", b"abc").unwrap();
+        assert!(ctx.truncated);
+        assert_eq!(js.as_str(), "{");
+    }
 }

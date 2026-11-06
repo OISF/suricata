@@ -5474,6 +5474,10 @@
                                 }
                             }
                         },
+                        "copy_fail": {
+                            "type": "string",
+                            "description": "CopyFail message payload"
+                        },
                         "message": {
                             "type": "string"
                         },
@@ -5499,6 +5503,10 @@
                         },
                         "sasl_response": {
                             "type": "string"
+                        },
+                        "sasl_response_redacted": {
+                            "type": "boolean",
+                            "description": "Whether a SCRAM client-final response was present and not logged"
                         },
                         "secret_key": {
                             "type": "integer"
@@ -5558,11 +5566,27 @@
                         "authentication_sasl_final": {
                             "type": "string"
                         },
+                        "authentication_sspi": {
+                            "type": "string",
+                            "description": "AuthenticationSSPI message payload"
+                        },
+                        "channel_name": {
+                            "type": "string",
+                            "description": "Notification channel name"
+                        },
                         "code": {
                             "type": "string"
                         },
+                        "column_name": {
+                            "type": "string",
+                            "description": "Error or notice column name field value"
+                        },
                         "command_completed": {
                             "type": "string"
+                        },
+                        "constraint_name": {
+                            "type": "string",
+                            "description": "Error or notice constraint name field value"
                         },
                         "copy_data_out": {
                             "type": "object",
@@ -5615,11 +5639,31 @@
                         "data_size": {
                             "type": "integer"
                         },
+                        "data_type": {
+                            "type": "string",
+                            "description": "Error or notice data type field value"
+                        },
+                        "detail": {
+                            "type": "string",
+                            "description": "Error or notice detail field value"
+                        },
                         "field_count": {
                             "type": "integer"
                         },
                         "file": {
                             "type": "string"
+                        },
+                        "hint": {
+                            "type": "string",
+                            "description": "Error or notice hint field value"
+                        },
+                        "internal_position": {
+                            "type": "string",
+                            "description": "Error or notice internal position field value"
+                        },
+                        "internal_query": {
+                            "type": "string",
+                            "description": "Error or notice internal query field value"
                         },
                         "line": {
                             "type": "string"
@@ -5671,6 +5715,14 @@
                                 }
                             }
                         },
+                        "payload": {
+                            "type": "string",
+                            "description": "Notification payload"
+                        },
+                        "pid": {
+                            "type": "integer",
+                            "description": "Notification sender process id"
+                        },
                         "position": {
                             "type": "string",
                             "description": "String, representing a decimal ASCII integer, related to an error cursor position as an index to original PostgreSQL query string, as seen in an ErrorResponse message"
@@ -5686,6 +5738,10 @@
                             "type": "boolean",
                             "description": "True when the field count declared in a RowDescription message disagreed with the message body delimited by its length field"
                         },
+                        "schema_name": {
+                            "type": "string",
+                            "description": "Error or notice schema name field value"
+                        },
                         "secret_key": {
                             "type": "integer"
                         },
@@ -5698,11 +5754,23 @@
                         "ssl_accepted": {
                             "type": "boolean"
                         },
+                        "table_name": {
+                            "type": "string",
+                            "description": "Error or notice table name field value"
+                        },
+                        "unknown_field_type": {
+                            "type": "string",
+                            "description": "Error or notice unknown field type value"
+                        },
                         "where": {
                             "type": "string",
                             "description": "'where' field in an ErrorResponse PostgreSQL message, indicating the context in which the error occurred"
                         }
                     }
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether messages or fields were dropped from the record by the log limits"
                 },
                 "tx_id": {
                     "type": "integer"
