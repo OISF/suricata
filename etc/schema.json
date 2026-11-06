@@ -2485,6 +2485,10 @@
                     "type": "string",
                     "description": "The ascii-printable characters of the request body"
                 },
+                "http_request_body_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the logged request body is not the complete body: cut by http-body-log-limit or by the HTTP body limits"
+                },
                 "http_response_body": {
                     "type": "string",
                     "description": "Base64 of the response body",
@@ -2498,6 +2502,10 @@
                 "http_response_body_printable": {
                     "type": "string",
                     "description": "The ascii-printable characters of the response body"
+                },
+                "http_response_body_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the logged response body is not the complete body: cut by http-body-log-limit or by the HTTP body limits"
                 },
                 "http_user_agent": {
                     "type": "string",
@@ -2537,8 +2545,16 @@
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
+                            "error": {
+                                "type": "string",
+                                "description": "Header block decode status"
+                            },
                             "name": {
                                 "type": "string"
+                            },
+                            "redacted": {
+                                "type": "boolean",
+                                "description": "Whether the header value was redacted"
                             },
                             "table_size_update": {
                                 "type": "integer",
@@ -2554,6 +2570,10 @@
                         }
                     }
                 },
+                "request_headers_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the logged request headers were cut by the header log limit"
+                },
                 "response_headers": {
                     "type": "array",
                     "minItems": 1,
@@ -2561,8 +2581,16 @@
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
+                            "error": {
+                                "type": "string",
+                                "description": "Header block decode status"
+                            },
                             "name": {
                                 "type": "string"
+                            },
+                            "redacted": {
+                                "type": "boolean",
+                                "description": "Whether the header value was redacted"
                             },
                             "table_size_update": {
                                 "type": "integer",
@@ -2577,6 +2605,10 @@
                             }
                         }
                     }
+                },
+                "response_headers_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the logged response headers were cut by the header log limit"
                 },
                 "status": {
                     "type": "integer",
