@@ -20,10 +20,22 @@ use crate::dcerpc::load_interfaces::DCERPC_INTERFACE_MAP;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use uuid::Uuid;
 
+/// A reply implies a request, so a missing request was lost rather than absent.
+fn is_reply(cmd: u8) -> bool {
+    matches!(
+        cmd,
+        DCERPC_TYPE_RESPONSE
+            | DCERPC_TYPE_BINDACK
+            | DCERPC_TYPE_ALTER_CONTEXT_RESP
+            | DCERPC_TYPE_FAULT
+            | DCERPC_TYPE_BINDNAK
+    )
+}
+
 fn log_dcerpc_header_tcp(
     jsb: &mut JsonBuilder, state: &DCERPCState, tx: &DCERPCTransaction,
 ) -> Result<(), JsonError> {
-    if tx.req_done && !tx.req_lost {
+    if tx.req_seen && !tx.req_lost {
         jsb.set_string("request", &dcerpc_type_string(tx.req_cmd))?;
         match tx.req_cmd {
             DCERPC_TYPE_REQUEST => {
@@ -93,11 +105,11 @@ fn log_dcerpc_header_tcp(
             }
             _ => {}
         }
-    } else {
+    } else if tx.req_lost || is_reply(tx.resp_cmd) {
         jsb.set_string("request", "REQUEST_LOST")?;
     }
 
-    if tx.resp_done && !tx.resp_lost {
+    if tx.resp_seen && !tx.resp_lost {
         jsb.set_string("response", &dcerpc_type_string(tx.resp_cmd))?;
         #[allow(clippy::single_match)]
         match tx.resp_cmd {
@@ -109,7 +121,7 @@ fn log_dcerpc_header_tcp(
             }
             _ => {} // replicating behavior from smb
         }
-    } else {
+    } else if tx.resp_lost || get_resp_type_for_req(tx.req_cmd) != DCERPC_TYPE_UNKNOWN {
         jsb.set_string("response", "UNREPLIED")?;
     }
 
@@ -123,7 +135,7 @@ fn log_dcerpc_header_tcp(
 fn log_dcerpc_header_udp(
     jsb: &mut JsonBuilder, _state: &DCERPCUDPState, tx: &DCERPCTransaction,
 ) -> Result<(), JsonError> {
-    if tx.req_done && !tx.req_lost {
+    if tx.req_seen && !tx.req_lost {
         jsb.set_string("request", &dcerpc_type_string(tx.req_cmd))?;
         #[allow(clippy::single_match)]
         match tx.req_cmd {
@@ -136,11 +148,11 @@ fn log_dcerpc_header_udp(
             }
             _ => {}
         }
-    } else {
+    } else if tx.req_lost || is_reply(tx.resp_cmd) {
         jsb.set_string("request", "REQUEST_LOST")?;
     }
 
-    if tx.resp_done && !tx.resp_lost {
+    if tx.resp_seen && !tx.resp_lost {
         jsb.set_string("response", &dcerpc_type_string(tx.resp_cmd))?;
         #[allow(clippy::single_match)]
         match tx.resp_cmd {
@@ -152,7 +164,7 @@ fn log_dcerpc_header_udp(
             }
             _ => {} // replicating behavior from smb
         }
-    } else {
+    } else if tx.resp_lost || get_resp_type_for_req(tx.req_cmd) != DCERPC_TYPE_UNKNOWN {
         jsb.set_string("response", "UNREPLIED")?;
     }
     let activityuuid = Uuid::from_slice(tx.activityuuid.as_slice());
