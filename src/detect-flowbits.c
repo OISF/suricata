@@ -702,14 +702,14 @@ static int CreateGraphFromFlowbitAnalyzer(void *graph, const struct FBAnalyzer *
  * \retval 0 if no issues were found
  * \retval -1 on error
  */
-static int DetectFlowbitsCheckDependencies(const struct FBAnalyzer *fba)
+static int DetectFlowbitsCheckDependencies(const struct FBAnalyzer *fba, const bool strict)
 {
     void *graph = SCCreateDirectedGraph();
     if (CreateGraphFromFlowbitAnalyzer(graph, fba) < 0) {
         SCLogError("Could not create Flowbit Analyzer Graph");
         goto error;
     }
-    if (SCCheckFlowbitDependencies(graph) < 0) {
+    if (SCCheckFlowbitDependencies(graph, strict) < 0) {
         goto error;
     }
 
@@ -717,7 +717,11 @@ static int DetectFlowbitsCheckDependencies(const struct FBAnalyzer *fba)
     return 0;
 
 error:
-    SCLogError("Error resolving flowbit dependencies");
+    if (strict) {
+        SCLogError("Error resolving flowbit dependencies");
+    } else {
+        SCLogWarning("Error resolving flowbit dependencies");
+    }
     SCFreeDirectedGraph(graph);
     return -1;
 }
@@ -752,8 +756,13 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
         }
     }
 
-    /* check for flowbit dependencies that cannot be met at runtime */
-    (void)DetectFlowbitsCheckDependencies(&fba);
+    /* check for flowbit dependencies that cannot be met at runtime; only
+     * fatal if strict parsing was requested for flowbits */
+    const bool strict = SigMatchStrictEnabled(DETECT_FLOWBITS);
+    if (DetectFlowbitsCheckDependencies(&fba, strict) < 0 && strict) {
+        FBAnalyzerFree(&fba);
+        return -1;
+    }
 
     /* walk array to see if all bits make sense */
     for (uint32_t i = 0; i < array_size; i++) {

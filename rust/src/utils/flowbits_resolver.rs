@@ -135,7 +135,7 @@ pub unsafe extern "C" fn SCCreateNodeEdgeDirectedGraph(
     return 0;
 }
 
-fn check_cycle_update_graph(graph: &mut StableDiGraph<SCGNode, SCGEdge>) -> i8 {
+fn check_cycle_update_graph(graph: &mut StableDiGraph<SCGNode, SCGEdge>, strict: bool) -> i8 {
     let max_stack_size: usize = 100;
 
     /* A self loop comes from a signature checking a flowbit it sets itself.
@@ -152,7 +152,7 @@ fn check_cycle_update_graph(graph: &mut StableDiGraph<SCGNode, SCGEdge>) -> i8 {
 
         SCLogDebug!("Found a cycle in i {}. Checking if it's valid..", _i);
 
-        if !try_resolve_one_cycle(graph) {
+        if !try_resolve_one_cycle(graph, strict) {
             /* If we can't resolve any cycle, we're stuck */
             SCLogDebug!("Unable to resolve cycles after {} tries", _i);
             return -1;
@@ -166,7 +166,7 @@ fn check_cycle_update_graph(graph: &mut StableDiGraph<SCGNode, SCGEdge>) -> i8 {
     return -1;
 }
 
-fn try_resolve_one_cycle(graph: &mut StableDiGraph<SCGNode, SCGEdge>) -> bool {
+fn try_resolve_one_cycle(graph: &mut StableDiGraph<SCGNode, SCGEdge>, strict: bool) -> bool {
     let sccs = tarjan_scc(&*graph);
     let mut edge_map: HashMap<petgraph::graph::EdgeIndex, u8> = HashMap::new();
 
@@ -216,10 +216,17 @@ fn try_resolve_one_cycle(graph: &mut StableDiGraph<SCGNode, SCGEdge>) -> bool {
         sids.sort_unstable();
         sids.dedup();
         for sid in sids {
-            SCLogWarning!(
-                "rule sid:{} will never match: unsatisfiable cyclic flowbit dependency",
-                sid
-            );
+            if strict {
+                SCLogError!(
+                    "rule sid:{} will never match: unsatisfiable cyclic flowbit dependency",
+                    sid
+                );
+            } else {
+                SCLogWarning!(
+                    "rule sid:{} will never match: unsatisfiable cyclic flowbit dependency",
+                    sid
+                );
+            }
         }
         return false;
     }
@@ -230,11 +237,11 @@ fn try_resolve_one_cycle(graph: &mut StableDiGraph<SCGNode, SCGEdge>) -> bool {
 
 /// Check the graph for flowbit dependencies that cannot be met at runtime
 #[no_mangle]
-pub unsafe extern "C" fn SCCheckFlowbitDependencies(fss_void: *mut c_void) -> i8 {
+pub unsafe extern "C" fn SCCheckFlowbitDependencies(fss_void: *mut c_void, strict: bool) -> i8 {
     SCLogDebug!("Checking flowbit dependencies");
     let fss = &mut *(fss_void as *mut FlowbitSidStore);
 
-    if check_cycle_update_graph(&mut fss.graph) == -1 {
+    if check_cycle_update_graph(&mut fss.graph, strict) == -1 {
         SCLogDebug!("Couldn't do anything to fix the graph. Retreating..");
         return -1;
     }
