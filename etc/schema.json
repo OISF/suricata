@@ -6242,6 +6242,10 @@
                         "type": "string"
                     }
                 },
+                "client_dialects_truncated": {
+                    "type": "boolean",
+                    "description": "Whether the client dialect list was truncated by the log limits"
+                },
                 "client_guid": {
                     "type": "string"
                 },
@@ -6368,6 +6372,10 @@
                             "items": {
                                 "type": "string"
                             }
+                        },
+                        "snames_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the Kerberos service principal name component list was truncated by the log limits"
                         }
                     }
                 },
@@ -6499,6 +6507,10 @@
                 },
                 "tree_id": {
                     "type": "integer"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the record was truncated by the log limits"
                 }
             }
         },
