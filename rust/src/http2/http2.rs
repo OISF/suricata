@@ -622,6 +622,13 @@ impl HTTP2Transaction {
         //handle child_stream_id changes
         let mut r = None;
         let end_headers = header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0;
+        // Captured before this frame can close the block: the CONTINUATION ending a
+        // block this transaction opened is the one that must arm header-section state.
+        let block_was_open = if dir == Direction::ToServer {
+            self.open_block_trailer_ts.is_some()
+        } else {
+            self.open_block_trailer_tc.is_some()
+        };
         match data {
             HTTP2FrameTypeData::HEADERS(_) | HTTP2FrameTypeData::PUSHPROMISE(_) => {
                 let open = if dir == Direction::ToServer {
@@ -655,12 +662,7 @@ impl HTTP2Transaction {
             // A CONTINUATION may belong to a block this transaction never opened: a stray one,
             // or one routed here while it continues a PUSH_PROMISE on the child. Such a frame
             // must not arm header-section state, or a later real response reads as trailers.
-            let arms = !matches!(data, HTTP2FrameTypeData::CONTINUATION(_))
-                || if dir == Direction::ToServer {
-                    self.open_block_trailer_ts.is_some()
-                } else {
-                    self.open_block_trailer_tc.is_some()
-                };
+            let arms = !matches!(data, HTTP2FrameTypeData::CONTINUATION(_)) || block_was_open;
             if arms {
                 if dir == Direction::ToClient && Self::blocks_have_final_status(blocks) {
                     self.final_status_tc = true;
@@ -710,11 +712,23 @@ impl HTTP2Transaction {
             _ => {}
         }
         if let HTTP2Progress::STREAM(ref mut stream_tx) = self.progress {
-            // a trailer section is complete once its last block frame is in; the end of stream
-            // handling below takes precedence, it moves further. Use the caller's value: the
-            // arming above has already set headers_done for this frame, so re-evaluating here
-            // would turn the block that opens a stream into trailers.
-            if is_trailer && header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0 {
+            // A trailer section is complete once its last block frame is in and that block ends
+            // the stream. A trailer block without end-of-stream is malformed (RFC 9113 section
+            // 8.1) and may be followed by DATA, which the body engines must still see: leaving the
+            // direction at Data keeps their prefilters alive. END_STREAM rides on the HEADERS
+            // frame; a CONTINUATION carries it in end_stream instead, since its flags have no
+            // such bit. Use the caller's is_trailer: the arming above has set headers_done for
+            // this frame, so re-evaluating here would turn the block that opens a stream into
+            // trailers.
+            let block_ends_stream = match data {
+                HTTP2FrameTypeData::HEADERS(_) => header.flags & parser::HTTP2_FLAG_HEADER_EOS != 0,
+                HTTP2FrameTypeData::CONTINUATION(c) => c.end_stream,
+                _ => false,
+            };
+            if is_trailer
+                && block_ends_stream
+                && header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0
+            {
                 let st = if dir == Direction::ToServer {
                     &mut stream_tx.progress_ts
                 } else {
@@ -2395,12 +2409,14 @@ mod tests {
             Direction::ToServer,
             is_trailer,
         );
-        assert_eq!(progress_ts(&tx), HTTP2TxProgress::HTTP2ProgTrailers);
+        // no end-stream on the block, so the body must stay open for a lenient peer
+        assert_ne!(progress_ts(&tx), HTTP2TxProgress::HTTP2ProgTrailers);
     }
 
-    /// Trailers without end-stream stay in the trailer state until the stream closes.
+    /// A trailer block without end-stream must not finalize the body: DATA behind it is
+    /// still inspected, which the file and body engines rely on.
     #[test]
-    fn http2_trailers_without_end_stream() {
+    fn http2_trailers_without_end_stream_keep_body_open() {
         let mut tx = HTTP2Transaction::new();
         let end = parser::HTTP2_FLAG_HEADER_END_HEADERS;
         let hs = headers(&[(&b":method"[..], &b"POST"[..])]);
@@ -2426,7 +2442,56 @@ mod tests {
             Direction::ToServer,
             is_trailer,
         );
-        assert_eq!(progress_ts(&tx), HTTP2TxProgress::HTTP2ProgTrailers);
+        // the block is classified as trailers, but without end-stream it does not move
+        // the direction: a DATA frame behind it must still reach the body engines
+        assert!(is_trailer);
+        assert_ne!(progress_ts(&tx), HTTP2TxProgress::HTTP2ProgTrailers);
+    }
+
+    /// A trailer block split over HEADERS + CONTINUATION does not carry END_STREAM on the
+    /// CONTINUATION, whose flags have no such bit: the block's end-of-stream travels in
+    /// end_stream. Neither frame may move the direction to trailers without it.
+    #[test]
+    fn http2_split_trailers_without_end_stream_keep_body_open() {
+        let mut tx = HTTP2Transaction::new();
+        let end = parser::HTTP2_FLAG_HEADER_END_HEADERS;
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, end),
+            &headers(&[(&b":method"[..], &b"POST"[..])]),
+            Direction::ToServer,
+            false,
+        );
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Data as u8, 0),
+            &HTTP2FrameTypeData::DATA,
+            Direction::ToServer,
+            false,
+        );
+        let tr = headers(&[(&b"x-checksum"[..], &b"1"[..])]);
+        let is_trailer = tx.frame_is_trailer(&tr, Direction::ToServer);
+        assert!(is_trailer);
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, 0),
+            &tr,
+            Direction::ToServer,
+            is_trailer,
+        );
+        let c = HTTP2FrameTypeData::CONTINUATION(parser::HTTP2FrameContinuation {
+            blocks: blocks(&[(&b"x-checksum2"[..], &b"2"[..])]),
+            end_stream: false,
+        });
+        // some peers set the END_STREAM bit on the CONTINUATION too, where it has no
+        // meaning: only end_stream says whether the block ends the stream
+        tx.handle_frame(
+            &hdr(
+                parser::HTTP2FrameType::Continuation as u8,
+                end | parser::HTTP2_FLAG_HEADER_EOS,
+            ),
+            &c,
+            Direction::ToServer,
+            is_trailer,
+        );
+        assert_ne!(progress_ts(&tx), HTTP2TxProgress::HTTP2ProgTrailers);
     }
 
     /// A CONTINUATION continues the block that opened it. A PUSH_PROMISE issued while the
@@ -2478,6 +2543,31 @@ mod tests {
     /// A CONTINUATION that does not continue a block this transaction opened must not arm
     /// header-section state. Otherwise the real response following it is classified as
     /// trailers and vanishes from http.header, http.response_header and http.content_type.
+    /// The CONTINUATION that closes a block this transaction opened must still arm the
+    /// header-section state, so a trailer block that follows is recognised as trailers.
+    #[test]
+    fn http2_split_response_block_arms_the_trailer_state() {
+        let mut tx = HTTP2Transaction::new();
+        let end = parser::HTTP2_FLAG_HEADER_END_HEADERS;
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, 0),
+            &headers(&[(&b":status"[..], &b"200"[..])]),
+            Direction::ToClient,
+            false,
+        );
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Continuation as u8, end),
+            &HTTP2FrameTypeData::CONTINUATION(parser::HTTP2FrameContinuation {
+                blocks: blocks(&[(&b"content-type"[..], &b"text/plain"[..])]),
+                end_stream: false,
+            }),
+            Direction::ToClient,
+            false,
+        );
+        let tr = headers(&[(&b"grpc-status"[..], &b"0"[..])]);
+        assert!(tx.frame_is_trailer(&tr, Direction::ToClient));
+    }
+
     #[test]
     fn http2_stray_continuation_does_not_hide_the_response() {
         let mut tx = HTTP2Transaction::new();
