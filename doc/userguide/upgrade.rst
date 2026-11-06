@@ -217,6 +217,15 @@ Changes for Library Users and Plugin Developers
   specific run-mode. See the example, ``examples/lib/custom`` for an
   example. For more details, see
   https://redmine.openinfosecfoundation.org/issues/8259.
+- A probing parser registered with a pattern, using
+  ``SCAppLayerProtoDetectPMRegisterPatternCSwPP`` or
+  ``SCAppLayerProtoDetectPMRegisterPatternCIwPP``, is no longer called
+  again until the data reaches the largest maximum depth of all such
+  probing parsers. Pattern matching now ends once no pattern matched, no
+  probing parser is waiting for more data, and the data covers the depth
+  of all the patterns. A probing parser that needs more data than its
+  pattern must return ``ALPROTO_UNKNOWN`` within its maximum depth, or be
+  registered with a minimum depth, instead of ``ALPROTO_FAILED``.
 
 Upgrading to 8.0.1
 ------------------

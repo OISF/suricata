@@ -52,7 +52,11 @@ and then the probing parser also matches.
 A pattern confirmed by its probing parser takes precedence over a plain
 pattern of another protocol matching the same data (as for SIP and HTTP1
 OPTIONS requests). While such a probing parser needs more data, the plain
-matches are held back.
+matches are held back. A probing parser that needs more data than its
+pattern must say so, by returning ALPROTO_UNKNOWN within its maximum depth
+or by registering a minimum depth: pattern matching gives up once no
+pattern matched, no probing parser is waiting, and the data covers the
+depth of all the patterns.
 
 2. Probing parser
 
