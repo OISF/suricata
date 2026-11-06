@@ -2417,6 +2417,15 @@
                                 "has_multiple": {
                                     "type": "string"
                                 },
+                                "priority": {
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "http2.priority"
+                                        ]
+                                    },
+                                    "description": "Priority of the stream in the response frame"
+                                },
                                 "settings": {
                                     "type": "array",
                                     "minItems": 1,
@@ -2434,6 +2443,10 @@
                                     }
                                 }
                             }
+                        },
+                        "settings_truncated": {
+                            "type": "boolean",
+                            "description": "Set to true when the settings list was cut by the 128-entry log limit"
                         },
                         "stream_id": {
                             "type": "integer"

@@ -32,21 +32,54 @@ enum HeaderName {
     ContentLength,
 }
 
+// logger-owned caps: a header field is cut at 16 KiB, all headers of one
+// direction at 32 KiB; cuts are flagged on the record
+const HTTP2_LOG_MAX_HEADER_FIELD: usize = 16 * 1024;
+const HTTP2_LOG_MAX_HEADERS_SIZE: usize = 32 * 1024;
+const HTTP2_LOG_MAX_SETTINGS: usize = 128;
+// per-entry object/key overhead, also charged for size updates and errors
+const HTTP2_LOG_ENTRY_OVERHEAD: usize = 24;
+const HTTP2_LOG_MAX_ENTRIES: usize = 1024;
+
+struct HeaderLogBudget {
+    remaining: usize,
+    entries: usize,
+    truncated: bool,
+}
+
+impl HeaderLogBudget {
+    fn new() -> Self {
+        Self {
+            remaining: HTTP2_LOG_MAX_HEADERS_SIZE,
+            entries: 0,
+            truncated: false,
+        }
+    }
+
+    fn room(&mut self, cost: usize) -> bool {
+        if self.entries >= HTTP2_LOG_MAX_ENTRIES || cost > self.remaining {
+            self.truncated = true;
+            return false;
+        }
+        self.remaining -= cost;
+        self.entries += 1;
+        true
+    }
+}
+
 fn log_http2_headers<'a>(
     blocks: &'a [parser::HTTP2FrameHeaderBlock], js: &mut JsonBuilder,
     common: &mut HashMap<HeaderName, &'a Vec<u8>>, repeated: &mut HTTP2RepeatedHeaders,
-) -> Result<(), JsonError> {
+    budget: &mut HeaderLogBudget,
+) -> Result<bool, JsonError> {
     let mut has_auth = false;
+    let mut emitted = false;
     for block in blocks {
-        // delay js.start_object() because we skip suplicate headers
         match block.error {
             parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess => {
                 if repeated.add(block) {
                     continue;
                 }
-                js.start_object()?;
-                js.set_string_from_bytes("name", &block.name)?;
-                js.set_string_from_bytes("value", &block.value)?;
                 if let Ok(name) = std::str::from_utf8(&block.name) {
                     match name.to_lowercase().as_ref() {
                         ":method" => {
@@ -74,49 +107,92 @@ fn log_http2_headers<'a>(
                         _ => {}
                     }
                 }
+                if budget.remaining <= HTTP2_LOG_ENTRY_OVERHEAD {
+                    budget.truncated = true;
+                    continue;
+                }
+                let name_len = std::cmp::min(
+                    block.name.len(),
+                    std::cmp::min(
+                        HTTP2_LOG_MAX_HEADER_FIELD,
+                        budget.remaining - HTTP2_LOG_ENTRY_OVERHEAD,
+                    ),
+                );
+                if name_len < block.name.len() {
+                    budget.truncated = true;
+                }
+                let value_limit = std::cmp::min(
+                    block.value.len(),
+                    budget.remaining - HTTP2_LOG_ENTRY_OVERHEAD - name_len,
+                );
+                if value_limit < block.value.len() {
+                    budget.truncated = true;
+                }
+                if !budget.room(HTTP2_LOG_ENTRY_OVERHEAD + name_len + value_limit) {
+                    continue;
+                }
+                emitted = true;
+                js.start_object()?;
+                js.set_string_from_bytes("name", &block.name[..name_len])?;
+                js.set_string_from_bytes_limited("value", &block.value, value_limit)?;
+                js.close()?;
             }
             parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate => {
+                if !budget.room(HTTP2_LOG_ENTRY_OVERHEAD + 16) {
+                    continue;
+                }
+                emitted = true;
                 js.start_object()?;
                 js.set_uint("table_size_update", block.sizeupdate)?;
+                js.close()?;
             }
             _ => {
+                if !budget.room(HTTP2_LOG_ENTRY_OVERHEAD + 40) {
+                    continue;
+                }
+                emitted = true;
                 js.start_object()?;
                 js.set_string("error", &block.error.to_string())?;
+                js.close()?;
             }
         }
-        js.close()?;
     }
-    return Ok(());
+    return Ok(emitted);
 }
 
 fn log_headers<'a>(
     frames: &'a Vec<HTTP2Frame>, js: &mut JsonBuilder,
-    common: &mut HashMap<HeaderName, &'a Vec<u8>>,
+    common: &mut HashMap<HeaderName, &'a Vec<u8>>, truncated: &mut bool,
 ) -> Result<bool, JsonError> {
     let mut has_headers = false;
     let mut repeated = HTTP2RepeatedHeaders::default();
+    let mut budget = HeaderLogBudget::new();
     for frame in frames {
         match &frame.data {
             HTTP2FrameTypeData::HEADERS(hd) => {
-                log_http2_headers(&hd.blocks, js, common, &mut repeated)?;
-                has_headers = true;
+                has_headers |=
+                    log_http2_headers(&hd.blocks, js, common, &mut repeated, &mut budget)?;
             }
             HTTP2FrameTypeData::PUSHPROMISE(hd) => {
-                log_http2_headers(&hd.blocks, js, common, &mut repeated)?;
-                has_headers = true;
+                has_headers |=
+                    log_http2_headers(&hd.blocks, js, common, &mut repeated, &mut budget)?;
             }
             HTTP2FrameTypeData::CONTINUATION(hd) => {
-                log_http2_headers(&hd.blocks, js, common, &mut repeated)?;
-                has_headers = true;
+                has_headers |=
+                    log_http2_headers(&hd.blocks, js, common, &mut repeated, &mut budget)?;
             }
             _ => {}
         }
     }
+    *truncated = budget.truncated;
     Ok(has_headers)
 }
 
-fn log_http2_frames(frames: &[HTTP2Frame], js: &mut JsonBuilder) -> Result<bool, JsonError> {
+fn log_http2_frames(
+    frames: &[HTTP2Frame], js: &mut JsonBuilder, settings_truncated: &mut bool,
+) -> Result<bool, JsonError> {
     let mut has_settings = false;
+    let mut settings_count = 0usize;
     for frame in frames {
         if let HTTP2FrameTypeData::SETTINGS(set) = &frame.data {
             if set.is_empty() {
@@ -129,6 +205,11 @@ fn log_http2_frames(frames: &[HTTP2Frame], js: &mut JsonBuilder) -> Result<bool,
                 has_settings = true;
             }
             for e in set {
+                if settings_count >= HTTP2_LOG_MAX_SETTINGS {
+                    *settings_truncated = true;
+                    break;
+                }
+                settings_count += 1;
                 js.start_object()?;
                 js.set_string(
                     "settings_id",
@@ -210,37 +291,49 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
 
     // Request headers.
     let mark = js.get_mark();
+    let mut truncated = false;
     js.open_array("request_headers")?;
-    if log_headers(&tx.frames_ts, js, &mut common)? {
+    if log_headers(&tx.frames_ts, js, &mut common, &mut truncated)? {
         js.close()?;
         has_headers = true;
     } else {
         js.restore_mark(&mark)?;
     }
+    if truncated {
+        js.set_bool("request_headers_truncated", true)?;
+    }
 
     // Response headers.
     let mark = js.get_mark();
+    let mut truncated = false;
     js.open_array("response_headers")?;
-    if log_headers(&tx.frames_tc, js, &mut common)? {
+    if log_headers(&tx.frames_tc, js, &mut common, &mut truncated)? {
         js.close()?;
         has_headers = true;
     } else {
         js.restore_mark(&mark)?;
+    }
+    if truncated {
+        js.set_bool("response_headers_truncated", true)?;
     }
 
     for (name, value) in common {
         match name {
             HeaderName::Method => {
-                js.set_string_from_bytes("http_method", value)?;
+                js.set_string_from_bytes_limited("http_method", value, HTTP2_LOG_MAX_HEADER_FIELD)?;
             }
             HeaderName::Path => {
-                js.set_string_from_bytes("url", value)?;
+                js.set_string_from_bytes_limited("url", value, HTTP2_LOG_MAX_HEADER_FIELD)?;
             }
             HeaderName::Host => {
-                js.set_string_from_bytes("hostname", value)?;
+                js.set_string_from_bytes_limited("hostname", value, HTTP2_LOG_MAX_HEADER_FIELD)?;
             }
             HeaderName::UserAgent => {
-                js.set_string_from_bytes("http_user_agent", value)?;
+                js.set_string_from_bytes_limited(
+                    "http_user_agent",
+                    value,
+                    HTTP2_LOG_MAX_HEADER_FIELD,
+                )?;
             }
             HeaderName::ContentLength => {
                 if let Ok(value) = std::str::from_utf8(value) {
@@ -264,8 +357,9 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
 
     js.set_uint("stream_id", tx.stream_id as u64)?;
     let mark = js.get_mark();
+    let mut settings_truncated = false;
     js.open_object("request")?;
-    let has_request = log_http2_frames(&tx.frames_ts, js)?;
+    let has_request = log_http2_frames(&tx.frames_ts, js, &mut settings_truncated)?;
     if has_request {
         js.close()?;
     } else {
@@ -273,12 +367,16 @@ fn log_http2(tx: &HTTP2Transaction, js: &mut JsonBuilder) -> Result<bool, JsonEr
     }
 
     let mark = js.get_mark();
+    let mut settings_truncated_tc = false;
     js.open_object("response")?;
-    let has_response = log_http2_frames(&tx.frames_tc, js)?;
+    let has_response = log_http2_frames(&tx.frames_tc, js, &mut settings_truncated_tc)?;
     if has_response {
         js.close()?;
     } else {
         js.restore_mark(&mark)?;
+    }
+    if settings_truncated || settings_truncated_tc {
+        js.set_bool("settings_truncated", true)?;
     }
 
     js.close()?; // http2
