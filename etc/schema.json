@@ -719,6 +719,14 @@
                         ]
                     }
                 },
+                "objects_truncated": {
+                    "type": "boolean",
+                    "description": "Whether objects were dropped from the record by the log limits"
+                },
+                "points_truncated": {
+                    "type": "boolean",
+                    "description": "Whether points were dropped from the record by the log limits"
+                },
                 "request": {
                     "type": "object",
                     "additionalProperties": false,
@@ -971,6 +979,10 @@
                 },
                 "src": {
                     "type": "integer"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether string/byte fields or objects/points were dropped from the record by the log limits"
                 },
                 "type": {
                     "type": "string"
