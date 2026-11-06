@@ -576,6 +576,13 @@ impl HTTP2Transaction {
         //handle child_stream_id changes
         let mut r = None;
         let end_headers = header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0;
+        // Captured before this frame can close the block: the CONTINUATION ending a
+        // block this transaction opened is the one that must arm header-section state.
+        let block_was_open = if dir == Direction::ToServer {
+            self.open_block_trailer_ts.is_some()
+        } else {
+            self.open_block_trailer_tc.is_some()
+        };
         match data {
             HTTP2FrameTypeData::HEADERS(_) | HTTP2FrameTypeData::PUSHPROMISE(_) => {
                 let open = if dir == Direction::ToServer {
@@ -609,12 +616,7 @@ impl HTTP2Transaction {
             // A CONTINUATION may belong to a block this transaction never opened: a stray one,
             // or one routed here while it continues a PUSH_PROMISE on the child. Such a frame
             // must not arm header-section state, or a later real response reads as trailers.
-            let arms = !matches!(data, HTTP2FrameTypeData::CONTINUATION(_))
-                || if dir == Direction::ToServer {
-                    self.open_block_trailer_ts.is_some()
-                } else {
-                    self.open_block_trailer_tc.is_some()
-                };
+            let arms = !matches!(data, HTTP2FrameTypeData::CONTINUATION(_)) || block_was_open;
             if arms {
                 if dir == Direction::ToClient && Self::blocks_have_final_status(blocks) {
                     self.final_status_tc = true;
@@ -2436,6 +2438,31 @@ mod tests {
     /// A CONTINUATION that does not continue a block this transaction opened must not arm
     /// header-section state. Otherwise the real response following it is classified as
     /// trailers and vanishes from http.header, http.response_header and http.content_type.
+    /// The CONTINUATION that closes a block this transaction opened must still arm the
+    /// header-section state, so a trailer block that follows is recognised as trailers.
+    #[test]
+    fn http2_split_response_block_arms_the_trailer_state() {
+        let mut tx = HTTP2Transaction::new();
+        let end = parser::HTTP2_FLAG_HEADER_END_HEADERS;
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Headers as u8, 0),
+            &headers(&[(&b":status"[..], &b"200"[..])]),
+            Direction::ToClient,
+            false,
+        );
+        tx.handle_frame(
+            &hdr(parser::HTTP2FrameType::Continuation as u8, end),
+            &HTTP2FrameTypeData::CONTINUATION(parser::HTTP2FrameContinuation {
+                blocks: blocks(&[(&b"content-type"[..], &b"text/plain"[..])]),
+                end_stream: false,
+            }),
+            Direction::ToClient,
+            false,
+        );
+        let tr = headers(&[(&b"grpc-status"[..], &b"0"[..])]);
+        assert!(tx.frame_is_trailer(&tr, Direction::ToClient));
+    }
+
     #[test]
     fn http2_stray_continuation_does_not_hide_the_response() {
         let mut tx = HTTP2Transaction::new();
