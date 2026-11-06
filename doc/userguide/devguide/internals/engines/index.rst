@@ -49,6 +49,11 @@ An app-layer may also register a pattern with a probing parser, meaning
 that it will only recognise the protocol if: first the pattern is found,
 and then the probing parser also matches.
 
+A pattern confirmed by its probing parser takes precedence over a plain
+pattern of another protocol matching the same data (as for SIP and HTTP1
+OPTIONS requests). While such a probing parser needs more data, the plain
+matches are held back.
+
 2. Probing parser
 
 Each app-layer protocol may register arbitrary code to recognize a protocol.
