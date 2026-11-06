@@ -206,6 +206,7 @@ outputs:
                 #reference: false      # include reference information from the rule
             # http-body: yes           # Requires metadata; enable dumping of HTTP body in Base64
             # http-body-printable: yes # Requires metadata; enable dumping of HTTP body in printable format
+            # http-body-log-limit: 100 KiB # Max HTTP body bytes logged per direction
             # websocket-payload: yes   # Requires metadata; enable dumping of WebSocket Payload in Base64
             # websocket-payload-printable: yes # Requires metadata; enable dumping of WebSocket Payload in printable format
 
@@ -257,6 +258,14 @@ outputs:
             #packethdr: no
         - http:
             extended: yes     # enable this for extended logging information
+            # Cap per logged string field. Longer values are cut and end
+            # with "[truncated N additional bytes]".
+            #string-log-limit: 16 KiB
+            # Cap the total name+value bytes logged per direction when
+            # dumping headers; the record is marked when the cap is hit.
+            #header-log-limit: 32 KiB
+            # Bodies logged through alert payload are bounded by
+            # http-body-log-limit (eve-log.types.alert).
             # custom allows additional HTTP fields to be included in eve-log.
             # the example below adds three additional fields when uncommented
             #custom: [Accept-Encoding, Accept-Language, Authorization]
@@ -362,11 +371,12 @@ outputs:
             extended: no
         - ssh
         - mqtt:
-            # passwords: yes           # enable output of passwords
+            # passwords: yes           # enable output of passwords. Disabled by
+                                       # default; "password_redacted" is set instead.
             # string-log-limit: 1KiB   # limit size of logged strings in bytes.
                                        # Can be specified in KiB, MiB, GiB. Just a number
-                                       # is parsed as bytes. Default is 1 KiB.
-                                       # Use a value of 0 to disable limiting.
+                                       # is parsed as bytes. Default is 1 KiB, hard
+                                       # maximum 64 KiB. A value of 0 uses the hard cap.
                                        # Note that the size is also bounded by
                                        # the maximum parsed message size (see
                                        # app-layer configuration)
@@ -380,6 +390,8 @@ outputs:
             # passwords: yes           # enable output of passwords. Disabled by default
                                        # If a password message is seen but this setting
                                        # is disabled, "password_redacted": true is logged
+            # string-log-limit: 4KiB   # limit size of logged strings in bytes. Default 4 KiB,
+                                       # hard maximum 64 KiB
         - stats:
             totals: yes       # stats for all threads merged together
             threads: no       # per thread stats
@@ -1046,6 +1058,13 @@ app-layer:
       #max-table-size: 65536
       # Maximum reassembly size for header + continuation frames
       #max-reassembly-size: 102400
+      # Maximum decoded header-list size per header block (RFC 7540 6.5.2:
+      # name + value + 32); exceeding it raises HeaderListTooLarge
+      #max-header-list-size: 64 KiB
+      # Maximum number of headers per header block
+      #max-header-count: 1024
+      # Maximum size of a single header name + value
+      #max-header-field-size: 16 KiB
       # Maximum number of frames per tx
       #max-frames: 65536
       # Maximum data to decompress if the decompress ratio is too high
