@@ -776,9 +776,8 @@ int DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                 array[i].cnts[DETECT_FLOWBITS_CMD_SET] == 0) {
 
             const Signature *s = de_ctx->sig_array[array[i].isset_iids[0].iid];
-            SCLogWarning("flowbit '%s' is checked but not "
-                         "set. Checked in %u and %u other sigs",
-                    varname, s->id, array[i].isset_iids_idx - 1);
+            SCLogWarning(
+                    "flowbit '%s' is checked in sid: %u but not set in any rule", varname, s->id);
         }
         if (array[i].state_cnts[DETECT_FLOWBITS_CMD_ISSET] &&
             array[i].state_cnts[DETECT_FLOWBITS_CMD_SET] == 0)
