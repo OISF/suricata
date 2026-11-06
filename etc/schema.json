@@ -9724,7 +9724,8 @@
             "additionalProperties": false,
             "properties": {
                 "file": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Not logged unless filenames are enabled in the eve-log tftp section"
                 },
                 "mode": {
                     "type": "string"

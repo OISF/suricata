@@ -82,6 +82,7 @@ typedef struct OutputJsonCtx_ {
     SCEveFileType *filetype;
     /* per eve-log output privacy opt-ins */
     bool ftp_credentials;
+    bool tftp_filenames;
     bool http2_sensitive_headers;
 } OutputJsonCtx;
 

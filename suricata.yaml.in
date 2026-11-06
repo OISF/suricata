@@ -336,7 +336,9 @@ outputs:
             # restrict to only certain types in the following list
             #types: [file, tree_connect, negotiate, dcerpc, create,
             #  session_setup, ioctl, rename, set_file_path_info, generic]
-        - tftp
+        - tftp:
+            # filenames: yes           # log the transported file name.
+                                       # Disabled by default.
         - ike
         - dcerpc
         - krb5

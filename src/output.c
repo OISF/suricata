@@ -67,6 +67,7 @@
 #include "log-stats.h"
 #include "output-json-nfs.h"
 #include "output-json-ftp.h"
+#include "output-json-tftp.h"
 // for misplaced EveFTPDataAddMetadata
 #include "app-layer-ftp.h"
 #include "output-json-smb.h"
@@ -1016,6 +1017,8 @@ static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     bool logged;
     if (f->alproto == ALPROTO_FTP) {
         logged = EveFTPLogCommandTx(tx, js, thread->ctx->ftp_credentials);
+    } else if (f->alproto == ALPROTO_TFTP) {
+        logged = SCTftpLogJsonRequestFlags(tx, js, thread->ctx->tftp_filenames);
     } else if (f->alproto == ALPROTO_HTTP2) {
         logged = SCHttp2LogJsonFlags(tx, js, thread->ctx->http2_sensitive_headers);
     } else {
@@ -1153,7 +1156,7 @@ void OutputRegisterLoggers(void)
     JsonNFSLogRegister();
     /* TFTP JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTFTPLog", "eve-log.tftp",
-            OutputJsonLogInitSub, ALPROTO_TFTP, JsonGenericDirPacketLogger, JsonLogThreadInit,
+            JsonTftpLogInitSub, ALPROTO_TFTP, JsonGenericDirPacketLogger, JsonLogThreadInit,
             JsonLogThreadDeinit);
 
     SCLogDebug("TFTP JSON logger registered.");
