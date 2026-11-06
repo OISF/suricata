@@ -6065,7 +6065,12 @@
                                     "type": "string"
                                 },
                                 "response": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "Password-equivalent DES(password, challenge) digest. Not logged"
+                                },
+                                "response_redacted": {
+                                    "type": "boolean",
+                                    "description": "Whether a VNC-Auth response was present and not logged"
                                 }
                             }
                         }

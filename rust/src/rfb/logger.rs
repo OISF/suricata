@@ -58,11 +58,10 @@ fn log_rfb(tx: &RFBTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
                 js.set_string("challenge", &s)?;
             }
             if let Some(ref sr) = tx.ts_vnc_response {
-                let mut s = String::new();
-                for &byte in &sr.secret[..] {
-                    write!(&mut s, "{:02x}", byte).expect("Unable to write");
+                // the response is DES(password, challenge): do not log it
+                if !sr.secret.is_empty() {
+                    js.set_bool("response_redacted", true)?;
                 }
-                js.set_string("response", &s)?;
             }
             js.close()?;
         }
@@ -128,6 +127,34 @@ fn log_rfb(tx: &RFBTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
     js.close()?;
 
     return Ok(());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::rfb::parser::{ProtocolVersion, SecurityResult, VncAuth};
+
+    #[test]
+    fn test_vnc_response_redacted() {
+        let mut tx = RFBTransaction::default();
+        tx.chosen_security_type = Some(2);
+        tx.tc_server_protocol_version = Some(ProtocolVersion {
+            major: "003".to_string(),
+            minor: "008".to_string(),
+        });
+        tx.tc_vnc_challenge = Some(VncAuth {
+            secret: vec![0x41; 16],
+        });
+        tx.ts_vnc_response = Some(VncAuth {
+            secret: vec![0x7f; 16],
+        });
+        tx.tc_security_result = Some(SecurityResult { status: 0 });
+        let mut js = JsonBuilder::try_new_object().unwrap();
+        log_rfb(&tx, &mut js).unwrap();
+        let out = js.as_str();
+        assert!(out.contains("\"response_redacted\":true"));
+        assert!(!out.contains("7f7f7f7f"));
+    }
 }
 
 #[no_mangle]
