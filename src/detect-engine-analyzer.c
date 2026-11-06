@@ -1517,6 +1517,21 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     }
     SCJbClose(ctx.js);
 
+    if (s->type == SIG_TYPE_IPONLY && s->sm_arrays[DETECT_SM_LIST_THRESHOLD] != NULL) {
+        const SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_THRESHOLD];
+        while (1) {
+            if ((smd->type == DETECT_THRESHOLD || smd->type == DETECT_DETECTION_FILTER) &&
+                    ((const DetectThresholdData *)smd->ctx)->track == TRACK_FLOW) {
+                AnalyzerWarning(&ctx, (char *)"threshold by_flow with an IP Only rule "
+                                              "is ineffective for higher counts");
+                break;
+            }
+            if (smd->is_last)
+                break;
+            smd++;
+        }
+    }
+
     if (pkt_mpm || app_mpm) {
         SCJbOpenObject(ctx.js, "mpm");
 
