@@ -1459,6 +1459,10 @@
                         ]
                     }
                 },
+                "attachments_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the attachment list was cut by the log limit"
+                },
                 "body_md5": {
                     "type": "string"
                 },
@@ -1501,12 +1505,20 @@
                         "type": "string"
                     }
                 },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when an email field was cut by the log limit"
+                },
                 "url": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
                         "type": "string"
                     }
+                },
+                "urls_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the URL list was cut by the log limit"
                 },
                 "x_mailer": {
                     "type": "string"
@@ -6278,6 +6290,14 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "rcpt_to_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the recipient list was cut by the log limit"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when a SMTP field was cut by the log limit"
                 }
             }
         },
