@@ -101,7 +101,9 @@ direction is received on the other interface.
     dpdk:
       eal-params:
         proc-type: primary
-        vdev: 'net_bonding0,mode=0,slave=0000:04:00.0,slave=0000:04:00.1'
+        vdev: 'net_bonding0,mode=0,member=0000:04:00.0,member=0000:04:00.1'
+        # On DPDK versions lower than 23.11
+        #vdev: 'net_bonding0,mode=0,slave=0000:04:00.0,slave=0000:04:00.1'
 
       # DPDK capture support
       # RX queues (and TX queues in IPS mode) are assigned to cores in 1:1 ratio
