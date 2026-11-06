@@ -105,7 +105,6 @@ typedef struct AppLayerProtoDetectPMSignature_ {
 } AppLayerProtoDetectPMSignature;
 
 typedef struct AppLayerProtoDetectPMCtx_ {
-    uint16_t pp_max_len;
     uint16_t min_len;
     MpmCtx mpm_ctx;
 
@@ -328,7 +327,7 @@ static inline int PMGetProtoInspect(AppLayerProtoDetectThreadCtx *tctx,
         pm_matches = 0;
         *rflow = false;
     }
-    if (pm_matches == 0 && !*pp_pending && buflen >= pm_ctx->pp_max_len) {
+    if (pm_matches == 0 && !*pp_pending && buflen >= pm_ctx->mpm_ctx.maxdepth) {
         pm_matches = -2;
     }
     PmqReset(&tctx->pmq);
@@ -1412,8 +1411,6 @@ static int AppLayerProtoDetectPMRegisterPattern(uint8_t ipproto, AppProto alprot
     else
         ctx_pm = (AppLayerProtoDetectPMCtx *)&ctx_ipp->ctx_pm[1];
 
-    if (pp_max_depth > ctx_pm->pp_max_len)
-        ctx_pm->pp_max_len = pp_max_depth;
     if (depth < ctx_pm->min_len)
         ctx_pm->min_len = depth;
 
