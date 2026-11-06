@@ -325,7 +325,9 @@ outputs:
         #- dnp3
         - websocket
         #- enip
-        - ftp
+        - ftp:
+            # credentials: yes         # log USER/PASS command arguments.
+                                       # Disabled by default.
         - rdp
         - nfs
         #- ntp:

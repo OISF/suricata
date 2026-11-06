@@ -1014,7 +1014,9 @@ static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     }
 
     bool logged;
-    if (f->alproto == ALPROTO_HTTP2) {
+    if (f->alproto == ALPROTO_FTP) {
+        logged = EveFTPLogCommandTx(tx, js, thread->ctx->ftp_credentials);
+    } else if (f->alproto == ALPROTO_HTTP2) {
         logged = SCHttp2LogJsonFlags(tx, js, thread->ctx->http2_sensitive_headers);
     } else {
         logged = al->LogTx(tx, js);
@@ -1157,10 +1159,10 @@ void OutputRegisterLoggers(void)
     SCLogDebug("TFTP JSON logger registered.");
     /* FTP and FTP-DATA JSON loggers. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonFTPLog", "eve-log.ftp",
-            OutputJsonLogInitSub, ALPROTO_FTP, JsonGenericDirFlowLogger, JsonLogThreadInit,
+            JsonFTPLogInitSub, ALPROTO_FTP, JsonGenericDirFlowLogger, JsonLogThreadInit,
             JsonLogThreadDeinit);
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonFTPLog", "eve-log.ftp",
-            OutputJsonLogInitSub, ALPROTO_FTPDATA, JsonGenericDirFlowLogger, JsonLogThreadInit,
+            JsonFTPLogInitSub, ALPROTO_FTPDATA, JsonGenericDirFlowLogger, JsonLogThreadInit,
             JsonLogThreadDeinit);
     SCLogDebug("FTP JSON logger registered.");
 
