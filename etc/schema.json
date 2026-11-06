@@ -3083,7 +3083,12 @@
                                                 "keywords": [
                                                     "ldap.bind_request.sasl.credentials"
                                                 ]
-                                            }
+                                            },
+                                            "description": "Not logged since 9.0; credentials_redacted is set instead"
+                                        },
+                                        "credentials_redacted": {
+                                            "type": "boolean",
+                                            "description": "Whether SASL credentials were present and not logged"
                                         },
                                         "mechanism": {
                                             "type": "string",
@@ -3125,6 +3130,29 @@
                                     "type": "string"
                                 }
                             }
+                        },
+                        "controls": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "control_type": {
+                                        "type": "string",
+                                        "description": "Control type (OID)"
+                                    },
+                                    "control_value": {
+                                        "type": "string",
+                                        "description": "Hex-encoded control value"
+                                    },
+                                    "criticality": {
+                                        "type": "boolean",
+                                        "description": "Control criticality flag"
+                                    }
+                                }
+                            },
+                            "description": "Message controls"
                         },
                         "del_request": {
                             "type": "object",
@@ -3231,6 +3259,21 @@
                                 "deref_alias": {
                                     "type": "integer"
                                 },
+                                "filter": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "type": {
+                                            "type": "string",
+                                            "description": "Filter type"
+                                        },
+                                        "value": {
+                                            "type": "string",
+                                            "description": "Filter value (attribute description)"
+                                        }
+                                    },
+                                    "description": "Only present for present filters"
+                                },
                                 "scope": {
                                     "type": "integer"
                                 },
@@ -3297,8 +3340,13 @@
                                             ]
                                         }
                                     },
+                                    "server_credentials_redacted": {
+                                        "type": "boolean",
+                                        "description": "Whether server SASL credentials were present and not logged"
+                                    },
                                     "server_sasl_creds": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "Not logged since 9.0; server_credentials_redacted is set instead"
                                     }
                                 }
                             },
@@ -3321,6 +3369,29 @@
                                         }
                                     }
                                 }
+                            },
+                            "controls": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "control_type": {
+                                            "type": "string",
+                                            "description": "Control type (OID)"
+                                        },
+                                        "control_value": {
+                                            "type": "string",
+                                            "description": "Hex-encoded control value"
+                                        },
+                                        "criticality": {
+                                            "type": "boolean",
+                                            "description": "Control criticality flag"
+                                        }
+                                    }
+                                },
+                                "description": "Message controls"
                             },
                             "del_response": {
                                 "type": "object",
@@ -3482,6 +3553,10 @@
                             }
                         }
                     }
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the record was truncated by the log limits"
                 }
             }
         },
