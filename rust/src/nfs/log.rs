@@ -39,12 +39,18 @@ fn nfs_proc_name(state: &NFSState, tx: &NFSTransaction) -> String {
     format!("{}", tx.procedure)
 }
 
-#[no_mangle]
-pub extern "C" fn SCNfsTxLoggingIsFiltered(state: &mut NFSState, tx: &NFSTransaction) -> u8 {
+/// Filtering decision, with the config passed in so it can be tested
+/// without writing to the config statics.
+fn nfs_tx_is_filtered<'a, I>(
+    state: &NFSState, tx: &NFSTransaction, filter_set: bool, procs: I,
+) -> bool
+where
+    I: IntoIterator<Item = &'a String>,
+{
     // A tx created only to carry an app-layer event has no request and no
     // reply: logging it would invent a procedure (0, i.e. NULL).
     if tx.is_event_only {
-        return 1;
+        return true;
     }
     // When app-layer.protocols.nfs.filter is set -- even to an empty
     // list -- its procedure names (case-insensitive, matched against
@@ -52,22 +58,24 @@ pub extern "C" fn SCNfsTxLoggingIsFiltered(state: &mut NFSState, tx: &NFSTransac
     // kept out of the EVE output. When the key is absent the historical
     // default applies: v3 GETATTR is by far the most frequent procedure
     // and rarely interesting on its own, so it is filtered.
-    let filter_set = unsafe { NFS_CFG_FILTER_SET };
     if filter_set {
         let name = nfs_proc_name(state, tx).to_lowercase();
-        // The list is written once during config initialization and never
-        // mutated again; read it through a raw pointer to avoid the
-        // static_mut_refs lint on the shared reference.
-        let procs_ptr = std::ptr::addr_of!(NFS_CFG_FILTER_PROCS);
-        if unsafe { (*procs_ptr).iter().any(|p| p == &name) } {
-            return 1;
-        }
-        return 0;
+        return procs.into_iter().any(|p| p == &name);
     }
-    if state.nfs_version <= 3 && tx.procedure == NFSPROC3_GETATTR {
+    state.nfs_version <= 3 && tx.procedure == NFSPROC3_GETATTR
+}
+
+#[no_mangle]
+pub extern "C" fn SCNfsTxLoggingIsFiltered(state: &mut NFSState, tx: &NFSTransaction) -> u8 {
+    let filter_set = unsafe { NFS_CFG_FILTER_SET };
+    // The list is written once during config initialization and never
+    // mutated again; read it through a raw pointer to avoid the
+    // static_mut_refs lint on the shared reference.
+    let procs_ptr = std::ptr::addr_of!(NFS_CFG_FILTER_PROCS);
+    let filtered = unsafe { nfs_tx_is_filtered(state, tx, filter_set, (*procs_ptr).iter()) };
+    if filtered {
         return 1;
     }
-
     return 0;
 }
 
@@ -241,4 +249,106 @@ pub extern "C" fn SCNfsRpcLogJsonResponse(tx: &NFSTransaction, js: &mut JsonBuil
         return false;
     }
     rpc_log_response(tx, js).is_ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn state(version: u16) -> NFSState {
+        let mut s = NFSState::new();
+        s.nfs_version = version;
+        s
+    }
+
+    fn tx(procedure: u32) -> NFSTransaction {
+        let mut t = NFSTransaction::new();
+        t.procedure = procedure;
+        t
+    }
+
+    #[test]
+    fn test_tx_is_filtered_event_only() {
+        let mut t = tx(NFSPROC3_READ);
+        t.is_event_only = true;
+        assert!(nfs_tx_is_filtered(&state(3), &t, false, &[]));
+        assert!(nfs_tx_is_filtered(&state(3), &t, true, &[]));
+        // alert metadata must not render a procedure or status for a tx that
+        // stands for an event rather than a call
+        let mut st = state(3);
+        let mut js = JsonBuilder::try_new_object().unwrap();
+        assert!(!SCNfsLogJsonResponseMetadata(&mut st, &t, &mut js));
+        assert!(!SCNfsRpcLogJsonResponse(&t, &mut js));
+        // a parsed tx still renders both
+        let t2 = tx(NFSPROC3_READ);
+        assert!(SCNfsLogJsonResponseMetadata(&mut st, &t2, &mut js));
+        assert!(SCNfsRpcLogJsonResponse(&t2, &mut js));
+    }
+
+    #[test]
+    fn test_tx_is_filtered_default() {
+        // No filter configured: v3 GETATTR is the one thing dropped.
+        assert!(nfs_tx_is_filtered(
+            &state(3),
+            &tx(NFSPROC3_GETATTR),
+            false,
+            &[]
+        ));
+        assert!(nfs_tx_is_filtered(
+            &state(2),
+            &tx(NFSPROC3_GETATTR),
+            false,
+            &[]
+        ));
+        assert!(!nfs_tx_is_filtered(
+            &state(4),
+            &tx(NFSPROC4_GETATTR),
+            false,
+            &[]
+        ));
+        assert!(!nfs_tx_is_filtered(
+            &state(3),
+            &tx(NFSPROC3_READ),
+            false,
+            &[]
+        ));
+    }
+
+    #[test]
+    fn test_tx_is_filtered_config_list() {
+        // An explicit list replaces the default, including when empty.
+        let procs = vec!["getattr".to_string()];
+        assert!(nfs_tx_is_filtered(
+            &state(3),
+            &tx(NFSPROC3_GETATTR),
+            true,
+            &procs
+        ));
+        assert!(!nfs_tx_is_filtered(
+            &state(3),
+            &tx(NFSPROC3_READ),
+            true,
+            &procs
+        ));
+        assert!(!nfs_tx_is_filtered(
+            &state(3),
+            &tx(NFSPROC3_GETATTR),
+            true,
+            &[]
+        ));
+        // Names are matched per version, so the same word means the v4 op.
+        let procs = vec!["read".to_string()];
+        assert!(nfs_tx_is_filtered(
+            &state(4),
+            &tx(NFSPROC4_READ),
+            true,
+            &procs
+        ));
+        assert!(!nfs_tx_is_filtered(
+            &state(4),
+            &tx(NFSPROC4_WRITE),
+            true,
+            &procs
+        ));
+    }
 }

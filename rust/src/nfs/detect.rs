@@ -476,4 +476,40 @@ mod test {
             panic!("not right enum");
         }
     }
+
+    #[test]
+    fn test_sticky_buffer_getters() {
+        // nfs.name and nfs.handle read the transaction fields that the
+        // event logs as nfs.filename and hashes as nfs.hhash.
+        let mut tx = NFSTransaction::new();
+        let mut buf: *const u8 = std::ptr::null();
+        let mut len: u32 = 0;
+        // Empty: no match, and the buffer is handed back null.
+        assert!(!unsafe {
+            nfs_tx_get_name(&tx as *const _ as *const c_void, 0, &mut buf, &mut len)
+        });
+        assert!(buf.is_null() && len == 0);
+        assert!(!unsafe {
+            nfs_tx_get_handle(&tx as *const _ as *const c_void, 0, &mut buf, &mut len)
+        });
+        assert!(buf.is_null() && len == 0);
+        tx.file_name = b"secret.txt".to_vec();
+        tx.file_handle = vec![0u8, 1, 2, 3, 4, 5, 6, 7];
+        assert!(unsafe {
+            nfs_tx_get_name(&tx as *const _ as *const c_void, 0, &mut buf, &mut len)
+        });
+        assert_eq!(len as usize, tx.file_name.len());
+        assert_eq!(
+            unsafe { std::slice::from_raw_parts(buf, len as usize) },
+            b"secret.txt"
+        );
+        assert!(unsafe {
+            nfs_tx_get_handle(&tx as *const _ as *const c_void, 0, &mut buf, &mut len)
+        });
+        assert_eq!(len as usize, tx.file_handle.len());
+        assert_eq!(
+            unsafe { std::slice::from_raw_parts(buf, len as usize) },
+            &tx.file_handle[..]
+        );
+    }
 }
