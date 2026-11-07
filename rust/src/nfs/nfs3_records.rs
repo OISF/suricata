@@ -460,7 +460,9 @@ pub(crate) fn many0_nfs3_response_readdir_entries(
 
 /// nfsstring3 / nfspath3: length + string, 4-byte aligned
 fn parse_nfs3_name(i: &[u8]) -> IResult<&[u8], Vec<u8>> {
-    let (i, name_len) = verify(be_u32, |&v| v <= 1024)(i)?;
+    // no length bound: RFC 1813 3.2 puts none on filename3 or nfspath3, and
+    // take() already fails when the record runs out
+    let (i, name_len) = be_u32(i)?;
     let pad = if name_len % 4 == 0 {
         0
     } else {
