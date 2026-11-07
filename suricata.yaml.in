@@ -843,6 +843,9 @@ dpdk:
       # - ips: the same as tap mode but it also drops packets that are flagged by rules to be dropped
       copy-mode: none
       copy-iface: none # or PCIe address of the second interface
+      # tap/ips: forward segmented mbufs that cannot be merged into one mbuf
+      # instead of dropping them; this can select a slower TX path on some NICs
+      tx-segmented-mbufs: false
 
     - interface: default
       threads: auto
@@ -860,6 +863,7 @@ dpdk:
       tx-descriptors: auto
       copy-mode: none
       copy-iface: none
+      tx-segmented-mbufs: false
 
 
 # Cross platform libpcap capture support
