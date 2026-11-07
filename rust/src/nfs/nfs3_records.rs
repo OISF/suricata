@@ -20,9 +20,10 @@
 use crate::nfs::nfs_records::*;
 use nom7::bytes::streaming::take;
 use nom7::combinator::{complete, cond, rest, verify};
+use nom7::error::{make_error, ErrorKind};
 use nom7::multi::{length_data, many0};
 use nom7::number::streaming::{be_u32, be_u64};
-use nom7::IResult;
+use nom7::{Err, IResult};
 use std::cmp;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -243,6 +244,30 @@ pub fn parse_nfs3_request_lookup(i: &[u8]) -> IResult<&[u8], Nfs3RequestLookup<'
     Ok((i, req))
 }
 
+/// fattr3 (RFC 1813 3.2.4): 84 bytes. size/used are size3 = uint64
+/// (RFC 1813 3.1.2), so the attr block is 4 + 80.
+fn parse_nfs3_fattr3(i: &[u8]) -> IResult<&[u8], u32> {
+    let (i, ftype) = verify(be_u32, |&v| v <= 6)(i)?;
+    let (i, _attr) = take(80_usize)(i)?;
+    Ok((i, ftype))
+}
+
+/// post_op_attr (RFC 1813): a follows bool + the fattr3 when set.
+fn parse_nfs3_post_op_attr(i: &[u8]) -> IResult<&[u8], bool> {
+    let (i, follows) = verify(be_u32, |&v| v <= 1)(i)?;
+    let (i, _) = cond(follows == 1, parse_nfs3_fattr3)(i)?;
+    Ok((i, follows == 1))
+}
+
+/// wcc_data (RFC 1813 3.5.5): pre_op_attr (bool + wcc_attr {size,
+/// mtime, ctime} = 24 bytes when set) + post_op_attr.
+fn parse_nfs3_wcc_data(i: &[u8]) -> IResult<&[u8], ()> {
+    let (i, pre) = verify(be_u32, |&v| v <= 1)(i)?;
+    let (i, _) = cond(pre == 1, take(24_usize))(i)?;
+    let (i, _) = parse_nfs3_post_op_attr(i)?;
+    Ok((i, ()))
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Nfs3ResponseReaddirplusEntryC<'a> {
     pub name_vec: Vec<u8>,
@@ -326,6 +351,180 @@ pub fn parse_nfs3_request_readdirplus(i: &[u8]) -> IResult<&[u8], Nfs3RequestRea
         maxcount,
     };
     Ok((i, req))
+}
+
+// RFC 1813 3.12.1: same as READDIRPLUS without the dircount field
+#[derive(Debug, PartialEq, Eq)]
+pub struct Nfs3RequestReaddir<'a> {
+    pub handle: Nfs3Handle<'a>,
+    pub cookie: u64,
+    pub verifier: &'a [u8],
+    pub maxcount: u32,
+}
+
+pub fn parse_nfs3_request_readdir(i: &[u8]) -> IResult<&[u8], Nfs3RequestReaddir<'_>> {
+    let (i, handle) = parse_nfs3_handle(i)?;
+    let (i, cookie) = be_u64(i)?;
+    let (i, verifier) = take(8_usize)(i)?;
+    let (i, maxcount) = be_u32(i)?;
+    let req = Nfs3RequestReaddir {
+        handle,
+        cookie,
+        verifier,
+        maxcount,
+    };
+    Ok((i, req))
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Nfs3ResponseReaddirEntry {
+    pub name_vec: Vec<u8>,
+    pub cookie: u64,
+    pub file_id: u64,
+}
+
+/// entry3 (RFC 1813 3.3.15): fileid, name, cookie, post_op_attr.
+pub fn parse_nfs3_response_readdir_entry(i: &[u8]) -> IResult<&[u8], Nfs3ResponseReaddirEntry> {
+    let (i, file_id) = be_u64(i)?;
+    let (i, name_len) = verify(be_u32, |&v| v <= 1024)(i)?;
+    let (i, name_contents) = take(name_len as usize)(i)?;
+    let (i, _fill_bytes) = cond(name_len % 4 != 0, take(4 - (name_len % 4)))(i)?;
+    let (i, cookie) = be_u64(i)?;
+    let (i, _) = parse_nfs3_post_op_attr(i)?;
+    let entry = Nfs3ResponseReaddirEntry {
+        name_vec: name_contents.to_vec(),
+        cookie,
+        file_id,
+    };
+    Ok((i, entry))
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Nfs3ResponseReaddirEntryC {
+    pub entry: Option<Nfs3ResponseReaddirEntry>,
+}
+
+/// the value_follows prefix of the dirlist3 XDR pointer chain
+#[cfg(test)]
+fn parse_nfs3_response_readdir_entry_cond(i: &[u8]) -> IResult<&[u8], Nfs3ResponseReaddirEntryC> {
+    let (i, value_follows) = verify(be_u32, |&v| v <= 1)(i)?;
+    let (i, entry) = cond(value_follows == 1, parse_nfs3_response_readdir_entry)(i)?;
+    Ok((i, Nfs3ResponseReaddirEntryC { entry }))
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Nfs3ResponseReaddir<'a> {
+    pub status: u32,
+    /// dirlist3: the value_follows entry chain (eof at the tail)
+    pub data: &'a [u8],
+}
+
+/// READDIR3resok (RFC 1813 3.3.15): post_op_attr dir_attributes +
+/// cookieverf3 (8 bytes) + dirlist3; error replies carry only the status.
+pub fn parse_nfs3_response_readdir(i: &[u8]) -> IResult<&[u8], Nfs3ResponseReaddir<'_>> {
+    let (i, status) = be_u32(i)?;
+    let (i, data) = if status == 0 {
+        let (i, _) = parse_nfs3_post_op_attr(i)?;
+        let (i, _cookieverf) = take(8_usize)(i)?;
+        rest(i)?
+    } else {
+        rest(i)?
+    };
+    let resp = Nfs3ResponseReaddir { status, data };
+    Ok((i, resp))
+}
+
+/// the dirlist3 entry chain, flattened (the eof tail stays over)
+#[cfg(test)]
+pub(crate) fn many0_nfs3_response_readdir_entries(
+    input: &[u8],
+) -> IResult<&[u8], Vec<Nfs3ResponseReaddirEntry>> {
+    let (i, wrapped) = many0(complete(parse_nfs3_response_readdir_entry_cond))(input)?;
+    Ok((i, wrapped.into_iter().filter_map(|w| w.entry).collect()))
+}
+
+// RFC 1813 15.13: sattr3 -- each field is a follows-flag-optional value
+#[derive(Debug, PartialEq, Eq)]
+pub struct Nfs3SetAttr {
+    pub mode: Option<u32>,
+    pub uid: Option<u32>,
+    pub gid: Option<u32>,
+    pub size: Option<u64>,
+    pub mtime: Option<(u64, u32)>,
+    pub atime: Option<(u64, u32)>,
+    pub ctime: u32,
+}
+
+fn parse_nfs3_somtime(i: &[u8]) -> IResult<&[u8], (u64, u32)> {
+    let (i, sec) = be_u64(i)?;
+    let (i, nsec) = be_u32(i)?;
+    Ok((i, (sec, nsec)))
+}
+
+fn parse_nfs3_verf3(i: &[u8]) -> IResult<&[u8], &[u8]> {
+    // opaque<16>: length-prefixed, padded to 4 bytes
+    let (i, len) = verify(be_u32, |&v| v <= 16)(i)?;
+    let (i, data) = take(len as usize)(i)?;
+    let (i, _fill) = cond(len % 4 != 0, take(4 - (len % 4)))(i)?;
+    Ok((i, data))
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Nfs3RequestSetattr<'a> {
+    pub handle: Nfs3Handle<'a>,
+    pub attr: Nfs3SetAttr,
+}
+
+pub fn parse_nfs3_request_setattr(i: &[u8]) -> IResult<&[u8], Nfs3RequestSetattr<'_>> {
+    let (i, handle) = parse_nfs3_handle(i)?;
+    let (i, f) = verify(be_u32, |&v| v <= 1)(i)?;
+    let (i, mode) = cond(f == 1, be_u32)(i)?;
+    let (i, f) = verify(be_u32, |&v| v <= 1)(i)?;
+    let (i, uid) = cond(f == 1, be_u32)(i)?;
+    let (i, f) = verify(be_u32, |&v| v <= 1)(i)?;
+    let (i, gid) = cond(f == 1, be_u32)(i)?;
+    let (i, f) = verify(be_u32, |&v| v <= 1)(i)?;
+    let (i, size) = cond(f == 1, be_u64)(i)?;
+    let (i, f) = verify(be_u32, |&v| v <= 1)(i)?;
+    let (i, mtime) = cond(f == 1, parse_nfs3_somtime)(i)?;
+    let (i, f) = verify(be_u32, |&v| v <= 1)(i)?;
+    let (i, atime) = cond(f == 1, parse_nfs3_somtime)(i)?;
+    // ctimehow: SET_DONT (0) or SET_SERVER (1) in the XDR sense; the
+    // wire allows 0..=1, but accept the documented ctimehow range
+    let (i, ctime) = verify(be_u32, |&v| v <= 2)(i)?;
+    let attr = Nfs3SetAttr {
+        mode,
+        uid,
+        gid,
+        size,
+        mtime,
+        atime,
+        ctime,
+    };
+    let req = Nfs3RequestSetattr { handle, attr };
+    Ok((i, req))
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Nfs3ResponseSetattr<'a> {
+    pub status: u32,
+    pub wcc_before_verf: Option<&'a [u8]>,
+    pub wcc_after_verf: Option<&'a [u8]>,
+}
+
+// RFC 1813 3.5.5: wcc_data { before: weak_callback; after: weak_callback }
+pub fn parse_nfs3_response_setattr(i: &[u8]) -> IResult<&[u8], Nfs3ResponseSetattr<'_>> {
+    let (i, status) = be_u32(i)?;
+    let (i, f) = verify(be_u32, |&v| v <= 1)(i)?;
+    let (i, wcc_before_verf) = cond(f == 1, parse_nfs3_verf3)(i)?;
+    let (i, f) = verify(be_u32, |&v| v <= 1)(i)?;
+    let (i, wcc_after_verf) = cond(f == 1, parse_nfs3_verf3)(i)?;
+    let resp = Nfs3ResponseSetattr {
+        status,
+        wcc_before_verf,
+        wcc_after_verf,
+    };
+    Ok((i, resp))
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -485,6 +684,13 @@ pub fn parse_nfs3_response_fsinfo(i: &[u8]) -> IResult<&[u8], Nfs3Fsinfores> {
 #[cfg(test)]
 mod tests {
     use crate::nfs::nfs3_records::*;
+
+    // fattr3 (rfc 1813): ftype + 80 bytes of nfsv3attributes3 = 84 bytes
+    fn fattr3() -> Vec<u8> {
+        let mut v = 1u32.to_be_bytes().to_vec(); // NREG
+        v.extend(std::iter::repeat_n(0u8, 80));
+        v
+    }
 
     #[test]
     fn test_nfs3_response_fsinfo() {
@@ -1048,5 +1254,156 @@ mod tests {
         assert!(reply.eof);
         assert_eq!(reply.data_len, 11);
         assert_eq!(reply.data, "the b file\n".as_bytes());
+    }
+
+    #[test]
+    fn test_nfs3_request_readdir() {
+        // fh 16B "01..10" + cookie 8 + verf 8 + maxcount 8192
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&12u32.to_be_bytes()); // fh len
+        buf.extend(1..=12u8);
+        buf.extend_from_slice(&16u64.to_be_bytes());
+        buf.extend_from_slice(&[0u8; 8]);
+        buf.extend_from_slice(&8192u32.to_be_bytes());
+
+        let (r, req) = parse_nfs3_request_readdir(&buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(req.cookie, 16);
+        assert_eq!(req.maxcount, 8192);
+        assert_eq!(req.handle.value.len(), 12);
+    }
+
+    fn readdir_entry(name: &str, cookie: u64, file_id: u64) -> Vec<u8> {
+        // entry3 (rfc 1813): fileid, name, cookie, post_op_attr
+        let mut e: Vec<u8> = Vec::new();
+        e.extend_from_slice(&file_id.to_be_bytes());
+        let nl = name.len() as u32;
+        e.extend_from_slice(&nl.to_be_bytes());
+        e.extend_from_slice(name.as_bytes());
+        if nl % 4 != 0 {
+            e.extend(std::iter::repeat_n(0u8, 4 - (nl % 4) as usize));
+        }
+        e.extend_from_slice(&cookie.to_be_bytes());
+        e.extend_from_slice(&1u32.to_be_bytes()); // post_op_attr follows
+        e.extend_from_slice(&fattr3());
+        e
+    }
+
+    #[test]
+    fn test_nfs3_response_readdir() {
+        let e1 = readdir_entry("a", 1, 100);
+        let e2 = readdir_entry("b", 8, 200);
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&0u32.to_be_bytes()); // status
+        buf.extend_from_slice(&1u32.to_be_bytes()); // dir_attr follows
+        buf.extend_from_slice(&fattr3());
+        buf.extend_from_slice(&[0u8; 8]); // cookieverf
+        buf.extend_from_slice(&1u32.to_be_bytes()); // value_follows
+        buf.extend_from_slice(&e1);
+        buf.extend_from_slice(&1u32.to_be_bytes()); // value_follows
+        buf.extend_from_slice(&e2);
+        buf.extend_from_slice(&0u32.to_be_bytes()); // eof
+
+        let (r, resp) = parse_nfs3_response_readdir(&buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(resp.status, 0);
+        let (r, entries) = many0_nfs3_response_readdir_entries(resp.data).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].name_vec, b"a");
+        assert_eq!(entries[0].cookie, 1);
+        assert_eq!(entries[0].file_id, 100);
+        assert_eq!(entries[1].name_vec, b"b");
+    }
+
+    #[test]
+    fn test_nfs3_response_readdir_empty_and_malformed() {
+        // empty list: eof right after the header
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&0u32.to_be_bytes());
+        buf.extend_from_slice(&1u32.to_be_bytes());
+        buf.extend_from_slice(&fattr3());
+        buf.extend_from_slice(&[0u8; 8]);
+        buf.extend_from_slice(&0u32.to_be_bytes()); // eof
+        let (_, resp) = parse_nfs3_response_readdir(&buf).unwrap();
+        let (r, entries) = many0_nfs3_response_readdir_entries(resp.data).unwrap();
+        assert_eq!(r.len(), 0);
+        assert!(entries.is_empty());
+
+        // a spliced tail is left over: the walk stops early
+        let e1 = readdir_entry("a", 1, 100);
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&0u32.to_be_bytes());
+        buf.extend_from_slice(&1u32.to_be_bytes());
+        buf.extend_from_slice(&fattr3());
+        buf.extend_from_slice(&[0u8; 8]);
+        buf.extend_from_slice(&1u32.to_be_bytes());
+        buf.extend_from_slice(&e1);
+        buf.truncate(buf.len() - 44); // cut the entry mid-fattr
+        let (_, resp) = parse_nfs3_response_readdir(&buf).unwrap();
+        let (r, _) = many0_nfs3_response_readdir_entries(resp.data).unwrap();
+        assert!(!r.is_empty());
+    }
+
+    #[test]
+    fn test_nfs3_request_setattr() {
+        let mut buf: Vec<u8> = Vec::new();
+        // fh 12B
+        buf.extend_from_slice(&12u32.to_be_bytes());
+        buf.extend(1..=12u8);
+        // sattr3: mode set, uid set, gid set, size set, times unset,
+        // ctime SET_DONT (0)
+        buf.extend_from_slice(&1u32.to_be_bytes());
+        buf.extend_from_slice(&0o100644u32.to_be_bytes());
+        buf.extend_from_slice(&1u32.to_be_bytes());
+        buf.extend_from_slice(&1000u32.to_be_bytes());
+        buf.extend_from_slice(&1u32.to_be_bytes());
+        buf.extend_from_slice(&1000u32.to_be_bytes());
+        buf.extend_from_slice(&1u32.to_be_bytes());
+        buf.extend_from_slice(&4096u64.to_be_bytes());
+        buf.extend_from_slice(&0u32.to_be_bytes()); // mtime: not set
+        buf.extend_from_slice(&0u32.to_be_bytes()); // atime: not set
+        buf.extend_from_slice(&0u32.to_be_bytes()); // ctime: SET_DONT
+
+        let (r, req) = parse_nfs3_request_setattr(&buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(req.attr.mode, Some(0o100644));
+        assert_eq!(req.attr.uid, Some(1000));
+        assert_eq!(req.attr.gid, Some(1000));
+        assert_eq!(req.attr.size, Some(4096));
+        assert_eq!(req.attr.mtime, None);
+        assert_eq!(req.attr.atime, None);
+        assert_eq!(req.attr.ctime, 0);
+    }
+
+    #[test]
+    fn test_nfs3_response_setattr() {
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&0u32.to_be_bytes()); // status
+                                                    // wcc before: set, 8-byte verf
+        buf.extend_from_slice(&1u32.to_be_bytes());
+        buf.extend_from_slice(&8u32.to_be_bytes());
+        buf.extend_from_slice(&[1u8; 8]);
+        // wcc after: set, 10-byte verf (needs 2B padding)
+        buf.extend_from_slice(&1u32.to_be_bytes());
+        buf.extend_from_slice(&10u32.to_be_bytes());
+        buf.extend_from_slice(&[2u8; 10]);
+        buf.extend_from_slice(&[0u8; 2]);
+
+        let (r, resp) = parse_nfs3_response_setattr(&buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(resp.status, 0);
+        assert_eq!(resp.wcc_before_verf, Some(&[1u8; 8][..]));
+        assert_eq!(resp.wcc_after_verf, Some(&[2u8; 10][..]));
+
+        // both wcc absent, error status
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&1u32.to_be_bytes()); // status NFS3ERR_PERM
+        buf.extend_from_slice(&0u32.to_be_bytes());
+        buf.extend_from_slice(&0u32.to_be_bytes());
+        let (_, resp) = parse_nfs3_response_setattr(&buf).unwrap();
+        assert_eq!(resp.status, 1);
+        assert_eq!(resp.wcc_before_verf, None);
+        assert_eq!(resp.wcc_after_verf, None);
     }
 }

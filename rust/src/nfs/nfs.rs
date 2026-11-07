@@ -26,7 +26,8 @@ use std::num::NonZeroUsize;
 use nom7::{Err, Needed};
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPPParseConfPorts,
+    SCAppLayerParserSetStreamDepth, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCAppLayerProtoDetectPMRegisterPatternCSwPP, SCAppLayerProtoDetectPPParseConfPorts,
     SCAppLayerProtoDetectPPRegister, SCFileFlowFlagsToFlags,
 };
 
@@ -3770,6 +3771,20 @@ pub unsafe extern "C" fn SCRegisterNfsParser() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust nfs parser registered.");
+        // Unset keeps the global stream.reassembly.depth in charge; SMB's
+        // equivalent default is 0 (whole stream), but NFS has master tests
+        // that pin the depth-driven over-claim protections, so switching the
+        // default here would be a silent behaviour change for extraction.
+        if let Some(val) = conf_get("app-layer.protocols.nfs.stream-depth") {
+            match get_memval(val) {
+                Ok(retval) => {
+                    SCAppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_NFS, retval as u32);
+                }
+                Err(_) => {
+                    SCLogError!("Invalid stream-depth value");
+                }
+            }
+        }
         let retval = conf_get("app-layer.protocols.nfs.max-requests");
         if let Some(val) = retval {
             if let Ok(v) = val.parse::<usize>() {
