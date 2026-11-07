@@ -104,8 +104,6 @@ impl NFSState {
             }
         }
 
-        // READ and WRITE are handled in the file tx (WRITE in the request,
-        // READ at reply time); v2 has no COMMIT.
         // v2 WRITE stays a plain record: RFC 1094 has no COMMIT and no stable
         // flag, so a file transaction opened here would have no completion
         // signal, and the reconstruction split files at the 8192 byte record
