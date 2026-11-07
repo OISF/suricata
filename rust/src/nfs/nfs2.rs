@@ -120,6 +120,12 @@ impl NFSState {
             tx.procedure = r.procedure;
             tx.request_done = true;
             tx.file_name = xidmap.file_name.to_vec();
+            if tx.file_name.len() > NFS2_NAME_SPEC_MAX
+                || (r.procedure == NFSPROC2_RENAME && aux_file_name.len() > NFS2_NAME_SPEC_MAX)
+            {
+                // out of spec, but kept: detection still sees the whole name
+                tx.tx_data.set_event(NFSEvent::MalformedData as u8);
+            }
             tx.file_handle = xidmap.file_handle.to_vec();
             tx.nfs_version = r.progver as u16;
 

@@ -54,6 +54,15 @@ pub static mut SURICATA_NFS_FILE_CONFIG: Option<&'static SuricataFileContext> = 
 
 pub const NFS_MIN_FRAME_LEN: u16 = 32;
 
+/// RFC 1094 2.3.7 declares filename as `filename<MAXNAMLEN>` and 3.5 sets
+/// MAXNAMLEN to 255, so a longer v2 name is out of spec.
+///
+/// v3 names are not checked: RFC 1813 3.2 declares filename3<> and nfspath3<>
+/// unbounded and leaves rejection to NFS3ERR_NAMETOOLONG, so a long v3 name is
+/// valid traffic. Either way the name is kept for detection and the logger
+/// bounds what it writes.
+pub const NFS2_NAME_SPEC_MAX: usize = 255;
+
 static mut NFS_MAX_TX: usize = 1024;
 
 pub const RPC_TCP_PRE_CREDS: usize = 28;
