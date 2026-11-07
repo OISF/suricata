@@ -4911,7 +4911,7 @@
             "properties": {
                 "client_id": {
                     "type": "string",
-                    "description": "NFSv4.1 client identifier from EXCHANGE_ID, hex encoded"
+                    "description": "NFSv4 client id in hex: from the EXCHANGE_ID reply or the CREATE_SESSION request on v4.1, from the SETCLIENTID reply on v4.0"
                 },
                 "file_tx": {
                     "type": "boolean",
@@ -4919,15 +4919,20 @@
                 },
                 "filename": {
                     "type": "string",
-                    "description": "file name of the transaction when known, else empty; a name component, not a path"
+                    "description": "file name of the transaction when known, else empty; a name component, not a path",
+                    "suricata": {
+                        "keywords": [
+                            "nfs.name"
+                        ]
+                    }
                 },
                 "hhash": {
                     "type": "string",
-                    "description": "first bytes of the file handle, hashed to group transactions on the same file"
+                    "description": "CRC32 (IEEE) of the whole file handle in hex, for grouping transactions that touch the same file"
                 },
                 "id": {
                     "type": "integer",
-                    "description": "NFS transaction id, matches the tx_id of the flow record"
+                    "description": "NFS transaction id; alert and fileinfo records for the same transaction carry a tx_id one lower"
                 },
                 "minorversion": {
                     "type": "integer",
