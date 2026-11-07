@@ -161,11 +161,30 @@ Alerts attach to transactions, so a rule that uses NFS transaction keywords
 compounds that previously logged nothing. It still alerts once per compound,
 not once per operation; to pin a rule to one operation add ``nfs_procedure``.
 
+What the NFS logger writes is now bounded. RFC 1813 3.2 places no limit on the
+length of a v3 name, so one can be as large as the reassembly buffer allows:
+each string field is capped at 8 KiB and an ``nfs`` record at 128 KiB, a
+shortened value keeping a ``[truncated N additional bytes]`` marker, and a
+record whose budget ran out setting ``nfs.truncated`` (or ``rpc.truncated``)
+with each omitted field named by a ``*_truncated`` key. Only NFSv2 names are
+flagged at parse level: RFC 1094 bounds them to 255 bytes, and a longer one
+raises ``malformed_data`` while staying available to ``nfs.name`` and
+``nfs.filename``.
+
+NFS over TCP is no longer detected only on the configured ports. A pattern probe
+anchored on the ONC RPC call header finds calls on the to-server stream, and the
+probe confirms the program number and RPC header, so NFS on an unusual port now gets
+``app_proto: nfs``, produces ``nfs`` records and can match ``alert nfs`` rules
+where 8.x left the flow undetected. Other ONC RPC services (mountd, rpcbind,
+nlockmgr) are not claimed, their calls carry a different program number.
+
 New fields on the ``nfs`` records:
 
 * ``nfs.minorversion`` and ``nfs.client_id`` for NFSv4.1 session identity
 * ``nfs.status_code``, the numeric status next to ``nfs.status``; NFSv4
-  statuses are named from the v4 table instead of the v3 one
+  statuses are named from the v4 table instead of the v3 one. It is written only
+  where a reply status was seen, so unlike ``nfs.status`` it never reads 0 (OK)
+  for a transaction closed before its reply arrived.
 
 New events: ``fsinfo_too_large``, ``record_overflow``, ``file_overlap``,
 ``internal_error``, the direction sanity events, and ``malformed_data`` for
