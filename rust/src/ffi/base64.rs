@@ -1,4 +1,4 @@
-/* Copyright (C) 2021-2024 Open Information Security Foundation
+/* Copyright (C) 2021-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -80,10 +80,58 @@ pub unsafe extern "C" fn SCBase64DecodeBufferSize(input_len: u32) -> u32 {
     return get_decoded_buffer_size(input_len);
 }
 
+/// Base64 decode `input` into `output` in the given mode.
+///
+/// Returns the number of bytes written to `output`. `output` must be at least
+/// as long as `input`.
+pub fn base64_decode(input: &[u8], mode: SCBase64Mode, output: &mut [u8]) -> u32 {
+    if input.is_empty() {
+        return 0;
+    }
+
+    let mut num_decoded: u32 = 0;
+    let mut decoder = Decoder::new();
+    match mode {
+        SCBase64Mode::SCBase64ModeRFC2045 => {
+            if decode_rfc2045(&mut decoder, input, output, &mut num_decoded).is_err() {
+                debug_validate_bug_on!(num_decoded >= input.len() as u32);
+                return num_decoded;
+            }
+        }
+        SCBase64Mode::SCBase64ModeRFC4648 => {
+            if decode_rfc4648(&mut decoder, input, output, &mut num_decoded).is_err() {
+                debug_validate_bug_on!(num_decoded >= input.len() as u32);
+                return num_decoded;
+            }
+        }
+        SCBase64Mode::SCBase64ModeStrict => {
+            if let Ok(decoded_len) = STANDARD.decode_slice(input, output) {
+                num_decoded = decoded_len as u32;
+            }
+        }
+        SCBase64Mode::SCBase64ModeNoPad => {
+            if let Ok(decoded_len) = STANDARD_NO_PAD.decode_slice(input, output) {
+                num_decoded = decoded_len as u32;
+            }
+        }
+        SCBase64Mode::SCBase64ModePadOpt => {
+            let config = base64::engine::GeneralPurposeConfig::new()
+                .with_decode_padding_mode(base64::engine::DecodePaddingMode::Indifferent);
+            let decoder = base64::engine::GeneralPurpose::new(&base64::alphabet::STANDARD, config);
+            if let Ok(decoded_len) = decoder.decode_slice(input, output) {
+                num_decoded = decoded_len as u32;
+            }
+        }
+    }
+
+    debug_validate_bug_on!(num_decoded >= input.len() as u32);
+    return num_decoded;
+}
+
 /// Base64 decode a buffer.
 ///
 /// This method exposes the Rust base64 decoder to C and should not be called from
-/// Rust code.
+/// Rust code; use ``base64_decode`` instead.
 ///
 /// It allows decoding in the modes described by ``SCBase64Mode`` enum.
 #[no_mangle]
@@ -96,43 +144,7 @@ pub unsafe extern "C" fn SCBase64Decode(
 
     let in_vec = build_slice!(input, len);
     let out_vec = std::slice::from_raw_parts_mut(output, len);
-    let mut num_decoded: u32 = 0;
-    let mut decoder = Decoder::new();
-    match mode {
-        SCBase64Mode::SCBase64ModeRFC2045 => {
-            if decode_rfc2045(&mut decoder, in_vec, out_vec, &mut num_decoded).is_err() {
-                debug_validate_bug_on!(num_decoded >= len as u32);
-                return num_decoded;
-            }
-        }
-        SCBase64Mode::SCBase64ModeRFC4648 => {
-            if decode_rfc4648(&mut decoder, in_vec, out_vec, &mut num_decoded).is_err() {
-                debug_validate_bug_on!(num_decoded >= len as u32);
-                return num_decoded;
-            }
-        }
-        SCBase64Mode::SCBase64ModeStrict => {
-            if let Ok(decoded_len) = STANDARD.decode_slice(in_vec, out_vec) {
-                num_decoded = decoded_len as u32;
-            }
-        }
-        SCBase64Mode::SCBase64ModeNoPad => {
-            if let Ok(decoded_len) = STANDARD_NO_PAD.decode_slice(in_vec, out_vec) {
-                num_decoded = decoded_len as u32;
-            }
-        }
-        SCBase64Mode::SCBase64ModePadOpt => {
-            let config = base64::engine::GeneralPurposeConfig::new()
-                .with_decode_padding_mode(base64::engine::DecodePaddingMode::Indifferent);
-            let decoder = base64::engine::GeneralPurpose::new(&base64::alphabet::STANDARD, config);
-            if let Ok(decoded_len) = decoder.decode_slice(in_vec, out_vec) {
-                num_decoded = decoded_len as u32;
-            }
-        }
-    }
-
-    debug_validate_bug_on!(num_decoded >= len as u32);
-    return num_decoded;
+    base64_decode(in_vec, mode, out_vec)
 }
 
 /// Base64 encode a buffer with a provided mode.
@@ -193,4 +205,61 @@ pub unsafe extern "C" fn SCBase64Encode(
 #[no_mangle]
 pub extern "C" fn SCBase64EncodeBufferSize(len: c_ulong) -> c_ulong {
     (4 * ((len) + 2) / 3) + 1
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn decode(input: &[u8], mode: SCBase64Mode) -> Vec<u8> {
+        let mut output = vec![0u8; input.len()];
+        let n = base64_decode(input, mode, &mut output) as usize;
+        output.truncate(n);
+        output
+    }
+
+    #[test]
+    fn test_base64_decode_empty() {
+        assert!(decode(b"", SCBase64Mode::SCBase64ModeStrict).is_empty());
+        assert!(decode(b"", SCBase64Mode::SCBase64ModeRFC2045).is_empty());
+    }
+
+    #[test]
+    fn test_base64_decode_output_same_length_as_input() {
+        for mode in [
+            SCBase64Mode::SCBase64ModeRFC2045,
+            SCBase64Mode::SCBase64ModeRFC4648,
+            SCBase64Mode::SCBase64ModeStrict,
+            SCBase64Mode::SCBase64ModePadOpt,
+        ] {
+            assert_eq!(decode(b"Zm9vYmFy", mode), b"foobar");
+            assert_eq!(decode(b"Zm9vYmE=", mode), b"fooba");
+        }
+        assert_eq!(
+            decode(b"Zm9vYmE", SCBase64Mode::SCBase64ModeNoPad),
+            b"fooba"
+        );
+    }
+
+    #[test]
+    fn test_base64_decode_invalid_bytes() {
+        // strict, no-pad and pad-optional reject the whole input
+        assert!(decode(b"Zm9vYmFy!!YmF6", SCBase64Mode::SCBase64ModeStrict).is_empty());
+        assert!(decode(b"Zm9vYmFy!!YmF6", SCBase64Mode::SCBase64ModeNoPad).is_empty());
+        assert!(decode(b"Zm9vYmFy!!YmF6", SCBase64Mode::SCBase64ModePadOpt).is_empty());
+        // rfc4648 stops at the first invalid byte and keeps what it decoded
+        assert_eq!(
+            decode(b"Zm9vYmFy!!YmF6", SCBase64Mode::SCBase64ModeRFC4648),
+            b"foobar"
+        );
+        // rfc2045 skips invalid bytes
+        assert_eq!(
+            decode(b"Zm9vYmFy!!YmF6", SCBase64Mode::SCBase64ModeRFC2045),
+            b"foobarbaz"
+        );
+        assert_eq!(
+            decode(b"Zm 9v Ym Fy", SCBase64Mode::SCBase64ModeRFC2045),
+            b"foobar"
+        );
+    }
 }

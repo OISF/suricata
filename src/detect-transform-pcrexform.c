@@ -1,4 +1,4 @@
-/* Copyright (C) 2020 Open Information Security Foundation
+/* Copyright (C) 2020-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -71,7 +71,8 @@ void DetectTransformPcrexformRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TRANSFORM_PCREXFORM].RegisterTests = DetectTransformPcrexformRegisterTests;
 #endif
-    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].flags |= SIGMATCH_QUOTES_MANDATORY;
+    sigmatch_table[DETECT_TRANSFORM_PCREXFORM].flags |=
+            SIGMATCH_QUOTES_MANDATORY | SIGMATCH_TRANSFORM_CAN_FAIL;
 }
 
 static void DetectTransformPcrexformFree(DetectEngineCtx *de_ctx, void *ptr)
@@ -163,6 +164,11 @@ static void DetectTransformPcrexform(
     const uint32_t input_len = buffer->inspect_len;
     const DetectTransformPcrexformData *pxd = options;
 
+    /* nothing to extract from an empty buffer; leave it as it is, as
+     * from_base64 does */
+    if (input_len == 0)
+        return;
+
     pcre2_match_data *match = pcre2_match_data_create_from_pattern(pxd->regex, NULL);
     int ret = pcre2_match(pxd->regex, (PCRE2_SPTR8)input, input_len, 0, 0, match, pxd->context);
 
@@ -172,9 +178,24 @@ static void DetectTransformPcrexform(
         ret = pcre2_substring_get_bynumber(match, 1, (PCRE2_UCHAR8 **)&str, &caplen);
 
         if (ret >= 0) {
-            InspectionBufferCopy(buffer, (uint8_t *)str, (uint32_t)caplen);
+            if (caplen == 0) {
+                /* an empty capture leaves an empty buffer; InspectionBufferCopy
+                 * would keep the input when the buffer has no room yet */
+                buffer->inspect_len = 0;
+                buffer->initialized = true;
+            } else if (SCInspectionBufferCheckAndExpand(buffer, (uint32_t)caplen) == NULL) {
+                /* InspectionBufferCopy does not report a failed expand: it
+                 * skips the copy or copies only what fits */
+                SCInspectionBufferSetError(buffer);
+            } else {
+                InspectionBufferCopy(buffer, (uint8_t *)str, (uint32_t)caplen);
+            }
             pcre2_substring_free((PCRE2_UCHAR8 *)str);
+        } else {
+            SCInspectionBufferSetError(buffer);
         }
+    } else {
+        SCInspectionBufferSetError(buffer);
     }
     pcre2_match_data_free(match);
 }
