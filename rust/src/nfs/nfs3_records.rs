@@ -247,7 +247,10 @@ pub fn parse_nfs3_request_lookup(i: &[u8]) -> IResult<&[u8], Nfs3RequestLookup<'
 /// fattr3 (RFC 1813 3.2.4): 84 bytes. size/used are size3 = uint64
 /// (RFC 1813 3.1.2), so the attr block is 4 + 80.
 fn parse_nfs3_fattr3(i: &[u8]) -> IResult<&[u8], u32> {
-    let (i, ftype) = verify(be_u32, |&v| v <= 6)(i)?;
+    // RFC 1813 2.12 defines 1..=6 (NF3FIFO=6); RFC 1094 numbers FIFO 7 and
+    // servers emit 0 for "unknown" (and zero-filled attr blocks), so reject
+    // only what is clearly not a type. Mainline never validated this.
+    let (i, ftype) = verify(be_u32, |&v| v <= 7)(i)?;
     let (i, _attr) = take(80_usize)(i)?;
     Ok((i, ftype))
 }
@@ -395,14 +398,14 @@ pub struct Nfs3ResponseReaddirEntry {
     pub file_id: u64,
 }
 
-/// entry3 (RFC 1813 3.3.15): fileid, name, cookie, post_op_attr.
+/// entry3 (RFC 1813 3.3.15): fileid, name, cookie. No attributes: the
+/// attributes are only in entryplus3.
 pub fn parse_nfs3_response_readdir_entry(i: &[u8]) -> IResult<&[u8], Nfs3ResponseReaddirEntry> {
     let (i, file_id) = be_u64(i)?;
     let (i, name_len) = verify(be_u32, |&v| v <= 1024)(i)?;
     let (i, name_contents) = take(name_len as usize)(i)?;
     let (i, _fill_bytes) = cond(name_len % 4 != 0, take(4 - (name_len % 4)))(i)?;
     let (i, cookie) = be_u64(i)?;
-    let (i, _) = parse_nfs3_post_op_attr(i)?;
     let entry = Nfs3ResponseReaddirEntry {
         name_vec: name_contents.to_vec(),
         cookie,
@@ -1260,8 +1263,13 @@ mod tests {
 
         // fattr type out of range (the dir post_op_attr fattr starts at 8)
         let mut buf = rdp_reply_buf();
-        buf[8..12].copy_from_slice(&7u32.to_be_bytes());
+        buf[8..12].copy_from_slice(&8u32.to_be_bytes());
         assert!(parse_nfs3_response_readdirplus(&buf).is_err());
+
+        // NF3FIFO (7) is a valid ftype3 and must not stop the walk
+        let mut buf = rdp_reply_buf();
+        buf[8..12].copy_from_slice(&7u32.to_be_bytes());
+        assert!(parse_nfs3_response_readdirplus(&buf).is_ok());
 
         // entry name length beyond the nfsstring3 bound (the first entry's
         // name field: 100B header + 4B value_follows + 8B fileid)
@@ -1411,7 +1419,8 @@ mod tests {
     }
 
     fn readdir_entry(name: &str, cookie: u64, file_id: u64) -> Vec<u8> {
-        // entry3 (rfc 1813): fileid, name, cookie, post_op_attr
+        // entry3 (rfc 1813 3.3.15): fileid, name, cookie. No attributes:
+        // those are only in entryplus3.
         let mut e: Vec<u8> = Vec::new();
         e.extend_from_slice(&file_id.to_be_bytes());
         let nl = name.len() as u32;
@@ -1421,9 +1430,14 @@ mod tests {
             e.extend(std::iter::repeat_n(0u8, 4 - (nl % 4) as usize));
         }
         e.extend_from_slice(&cookie.to_be_bytes());
-        e.extend_from_slice(&1u32.to_be_bytes()); // post_op_attr follows
-        e.extend_from_slice(&fattr3());
         e
+    }
+
+    /// end of a dirlist3: the null next-entry pointer, then eof
+    fn dirlist_end(eof: bool) -> Vec<u8> {
+        let mut v = 0u32.to_be_bytes().to_vec();
+        v.extend_from_slice(&(eof as u32).to_be_bytes());
+        v
     }
 
     #[test]
@@ -1439,13 +1453,12 @@ mod tests {
         buf.extend_from_slice(&e1);
         buf.extend_from_slice(&1u32.to_be_bytes()); // value_follows
         buf.extend_from_slice(&e2);
-        buf.extend_from_slice(&0u32.to_be_bytes()); // eof
+        buf.extend_from_slice(&dirlist_end(false)); // next NULL + eof
 
         let (r, resp) = parse_nfs3_response_readdir(&buf).unwrap();
         assert_eq!(r.len(), 0);
         assert_eq!(resp.status, 0);
-        let (r, entries) = many0_nfs3_response_readdir_entries(resp.data).unwrap();
-        assert_eq!(r.len(), 0);
+        let (_, entries) = many0_nfs3_response_readdir_entries(resp.data).unwrap();
         assert_eq!(entries.len(), 2);
         assert_eq!(entries[0].name_vec, b"a");
         assert_eq!(entries[0].cookie, 1);
@@ -1461,14 +1474,14 @@ mod tests {
         buf.extend_from_slice(&1u32.to_be_bytes());
         buf.extend_from_slice(&fattr3());
         buf.extend_from_slice(&[0u8; 8]);
-        buf.extend_from_slice(&0u32.to_be_bytes()); // eof
+        buf.extend_from_slice(&dirlist_end(false)); // next NULL + eof
         let (_, resp) = parse_nfs3_response_readdir(&buf).unwrap();
-        let (r, entries) = many0_nfs3_response_readdir_entries(resp.data).unwrap();
-        assert_eq!(r.len(), 0);
+        let (_, entries) = many0_nfs3_response_readdir_entries(resp.data).unwrap();
         assert!(entries.is_empty());
 
         // a spliced tail is left over: the walk stops early
-        let e1 = readdir_entry("a", 1, 100);
+        let mut e1 = readdir_entry("a", 1, 100);
+        e1.truncate(e1.len() - 8); // cut the entry at its cookie
         let mut buf: Vec<u8> = Vec::new();
         buf.extend_from_slice(&0u32.to_be_bytes());
         buf.extend_from_slice(&1u32.to_be_bytes());
@@ -1476,7 +1489,6 @@ mod tests {
         buf.extend_from_slice(&[0u8; 8]);
         buf.extend_from_slice(&1u32.to_be_bytes());
         buf.extend_from_slice(&e1);
-        buf.truncate(buf.len() - 44); // cut the entry mid-fattr
         let (_, resp) = parse_nfs3_response_readdir(&buf).unwrap();
         let (r, _) = many0_nfs3_response_readdir_entries(resp.data).unwrap();
         assert!(!r.is_empty());

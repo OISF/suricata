@@ -1938,7 +1938,6 @@ order file data.
         - GETATTR
         - SETATTR
 
-      stream-depth: 0
 
 The `max-read-size` option can be set to control the max size of accepted
 READ responses. Events will be raised if READ responses claim or carry too
@@ -1982,8 +1981,9 @@ matched case insensitively. When not set, v3 GETATTR is filtered by
 default (it is the most frequent NFSv3 procedure and rarely interesting
 alone); set an empty list to log every procedure.
 
-`stream-depth` sets the stream reassembly size for NFS streams. By
-default the stream is tracked completely (0).
+`stream-depth` overrides the global `stream.reassembly.depth` for NFS
+streams. When unset the global value applies, as before; 0 tracks the
+stream completely.
 
 
 Configure DCERPC
