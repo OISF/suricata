@@ -2125,6 +2125,20 @@ incompatible with ``decode-mime``. If both are enabled,
         # extract messages in raw format from SMTP
         raw-extraction: true
 
+A client using CHUNKING announces the size of its message data with a ``BDAT``
+command. The configuration parameter ``max-bdat-chunk-len`` caps the length a
+single ``BDAT`` command may declare. An event
+``smtp.bdat_max_chunk_len_exceeded`` will be emitted when a declaration exceeds
+the limit. A ``BDAT`` command that does not parse at all is reported as
+``smtp.invalid_bdat`` instead, since no chunk follows it. This configuration
+parameter has a ``1 GB`` default value. It can be set to ``0`` to disable the
+check.
+
+::
+
+      smtp:
+        max-bdat-chunk-len: 1 GB
+
 Maximum transactions
 ~~~~~~~~~~~~~~~~~~~~
 

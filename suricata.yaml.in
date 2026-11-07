@@ -1049,6 +1049,10 @@ app-layer:
       raw-extraction: no
       # Maximum number of live SMTP transactions per flow
       # max-tx: 256
+      # Maximum chunk length a BDAT command may declare. A larger value is
+      # flagged as an anomaly, but the octets behind the command are still read
+      # as the chunk it declares. 0 disables the limit.
+      # max-bdat-chunk-len: 1 GB
       # Configure SMTP-MIME Decoder
       mime:
         # Decode MIME messages from SMTP transactions
