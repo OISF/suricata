@@ -4290,6 +4290,7 @@ pub unsafe extern "C" fn SCRegisterNfsUdpParser() {
 mod tests {
     use super::*;
     use std::sync::Mutex;
+
     // The queue-limit tests rewrite the shared NFS_CFG_* statics: serialize.
     static NFS_CFG_TEST_LOCK: Mutex<()> = Mutex::new(());
 
@@ -4744,6 +4745,8 @@ mod tests {
     #[test]
     fn test_nfs_write_extent() {
         // v3 (RFC 1813 3.3.11): fh len + fh + offset(8) + count + stable + data
+        // len = 24 + fh_len + file_len
+        // v3 (RFC 1813): fh len + fh + offset(8) + count + stable + data
         // len = 24 + fh_len + file_len
         assert_eq!(NFSState::nfs_write_extent(32, 6), 62);
         assert_eq!(NFSState::nfs_write_extent(0, 1024), 1048);

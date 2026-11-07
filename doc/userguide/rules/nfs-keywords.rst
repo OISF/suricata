@@ -43,13 +43,30 @@ Syntax::
 nfs.name
 --------
 
-This keyword allows to match the file name of the NFS transaction,
-when known. The name is learned from LOOKUP (and similar) requests
-and associated with the file handle; READ and WRITE transactions on
-that handle carry the name as well.
+Match on the name the NFS transaction carries, when known. The name is
+learned from LOOKUP and friends and associated with the file handle, so
+READ and WRITE transactions on that handle carry it too. It holds the same
+bytes as the ``nfs.filename`` field of the NFS event, and it is a name
+component, not a path: NFS names a file by handle once the directory walk
+is done.
 
-It is a sticky buffer: use ``content`` (and other content keywords)
-to match on it.
+Examples::
+
+  nfs.name; content:"secret.txt"; endswith;
+  nfs.name; content:".crypter"; nocase;
+
+``nfs.name`` is a 'sticky buffer'.
+
+``nfs.name`` can be used as ``fast_pattern``.
+
+For a READ or WRITE that opens a file, the generic :doc:`file-keywords`
+keyword ``file.name`` matches the same bytes: the file engine records the
+name at open. Prefer ``file.name`` there. ``nfs.name`` is the wider of the
+two: it also covers the requests that name a file without transferring it
+(LOOKUP, RENAME, READDIR, READLINK, SETATTR, COMMIT) and it works when file
+store is off. SMB, which this mirrors, registers no name buffer at all
+because its names always come with a file, a pipe (``smb.named_pipe``) or a
+share (``smb.share``); its file names are matched with ``file.name``.
 
 Signature Example:
 
@@ -68,6 +85,10 @@ them with hex escapes.
 
 It is a sticky buffer: use ``content`` with hex escapes to match on
 it.
+
+``nfs.handle`` can be used as ``fast_pattern``. The handle is the raw
+file handle; the NFS event logs a hash of it as ``nfs.hhash``, which is not
+what this buffer matches.
 
 Signature Example:
 

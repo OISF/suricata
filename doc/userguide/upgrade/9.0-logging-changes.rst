@@ -141,3 +141,60 @@ Example - Client Proposal
             }
           }
         }
+
+.. _9.0-nfs-logging-changes:
+
+NFS
+***
+
+More NFSv4 compounds are tracked as transactions. CLOSE, CREATE_SESSION,
+DELEGRETURN, DESTROY_CLIENTID, DESTROY_SESSION, EXCHANGE_ID, GETDEVINFO,
+LAYOUTGET, LAYOUTRETURN, RECLAIM_COMPLETE and SECINFO_NO_NAME no longer go
+unlogged: a compound carrying one of them now produces an ``nfs`` record where
+it produced none. Each compound still yields one transaction, for its main
+operation; READ and WRITE are tracked as file transactions in addition. A
+compound of only PUTFH and GETATTR opens no transaction, and a GETATTR after
+another operation stays that operation's attribute follow-up.
+
+Alerts attach to transactions, so a rule that uses NFS transaction keywords
+(``nfs_version``, ``nfs_procedure``, the file keywords) now also alerts for
+compounds that previously logged nothing. It still alerts once per compound,
+not once per operation; to pin a rule to one operation add ``nfs_procedure``.
+
+New fields on the ``nfs`` records:
+
+* ``nfs.minorversion`` and ``nfs.client_id`` for NFSv4.1 session identity
+* ``nfs.status_code``, the numeric status next to ``nfs.status``; NFSv4
+  statuses are named from the v4 table instead of the v3 one
+
+New events: ``fsinfo_too_large``, ``record_overflow``, ``file_overlap``,
+``internal_error``, the direction sanity events, and ``malformed_data`` for
+corrupted UDP records. Default rules for them ship in
+``rules/nfs-events.rules``.
+
+The keywords ``nfs.name`` and ``nfs.handle`` match on the file name and the
+file handle of NFS records.
+
+Status only when a reply carried one
+====================================
+
+An ``nfs`` record now omits ``nfs.status`` when no reply status has been
+seen, where before it was always logged and read as the default ``OK``.
+A WRITE whose last record is fully buffered is one such record: it is
+logged as the request is parsed, before any reply. A request whose reply
+never arrives, and a reply rejected at the RPC layer, are two more.
+Status is taken from the first reply record that carries one, whether or
+not that record ends the transfer: a READ that stops short of EOF, and an
+UNSTABLE WRITE that a later COMMIT closes, are logged with the status
+their own replies reported.
+Consumers reading the field should treat its absence as "no reply
+status".
+
+The ``fileinfo`` record for such a file is written when the file closes.
+It describes the file rather than an RPC reply, so its ``status`` still
+reads as ``OK`` even when the write turns out to have been rejected; the
+numeric ``status_code`` appears only once a reply status has been seen.
+Alerts that fire on a transaction standing for an event rather than a
+call - ``record_overflow`` and the direction events - now carry no
+``nfs`` or ``rpc`` block, since there is no procedure, status or valid
+transaction id to report.

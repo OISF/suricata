@@ -39,24 +39,16 @@ fn parse_req_gssapi(i: &[u8]) -> IResult<&[u8], Kerberos5Ticket, SecBlobError> {
     Ok((i, ap))
 }
 
-/// The compound's main op is the last significant op, with two carve-outs: a
-/// file-effect op (CREATE/REMOVE) anchors the compound, and a metadata-only
-/// op never displaces one - mainline parity.
+/// The compound's main op is the last significant op, except that a
+/// file-effect op (CREATE/REMOVE) anchors the compound and nothing but another
+/// anchor displaces it - mainline parity.
 fn v4_main_op_take(cur: u32, next: u32) -> u32 {
     let is_anchor = |op: u32| matches!(op, NFSPROC4_CREATE | NFSPROC4_REMOVE);
-    if is_secondary(next) || (is_anchor(cur) && !is_anchor(next)) {
+    if is_anchor(cur) && !is_anchor(next) {
         cur
     } else {
         next
     }
-}
-
-/// GETATTR is the metadata poll that trails nearly every compound (Linux
-/// sends ...,OPEN,GETFH,ACCESS,GETATTR and ...,WRITE,GETATTR). It names no
-/// object of its own, so it neither defines a transaction nor shadows one:
-/// a compound of only PUTFH and GETATTR opens no tx (sv-master pins this).
-fn is_secondary(op: u32) -> bool {
-    matches!(op, NFSPROC4_GETATTR)
 }
 
 impl NFSState {
@@ -386,8 +378,11 @@ impl NFSState {
                     main_opcode = v4_main_op_take(main_opcode, NFSPROC4_DELEGRETURN);
                 }
                 Nfs4RequestContent::GetAttr(ref _rd) => {
+                    // the metadata poll that trails nearly every compound: it names
+                    // no object of its own, so it is never taken as the main op. A
+                    // compound of only PUTFH and GETATTR opens no tx (sv-master pins
+                    // this), and after another op it is that op's attribute follow-up.
                     SCLogDebug!("GETATTRv4: {:?}", _rd);
-                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_GETATTR);
                 }
                 Nfs4RequestContent::SecInfoNoName(_rd) => {
                     SCLogDebug!("SECINFO_NO_NAMEv4: {:?}", _rd);
