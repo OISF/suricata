@@ -322,6 +322,7 @@ static const char *HtpStateGetStateNameById(const int id, const uint8_t directio
 
 static void *HTPStateGetTx(void *alstate, uint64_t tx_id);
 static int HTPStateGetAlstateProgress(void *tx, uint8_t direction);
+
 static uint64_t HTPStateGetTxCnt(void *alstate);
 #ifdef UNITTESTS
 static void HTPParserRegisterTests(void);
@@ -476,6 +477,10 @@ static void HtpTxUserDataFree(void *txud)
             HTPFree(htud->request_headers_raw, htud->request_headers_raw_len);
         if (htud->response_headers_raw)
             HTPFree(htud->response_headers_raw, htud->response_headers_raw_len);
+        if (htud->request_trailers_raw)
+            HTPFree(htud->request_trailers_raw, htud->request_trailers_raw_len);
+        if (htud->response_trailers_raw)
+            HTPFree(htud->response_trailers_raw, htud->response_trailers_raw_len);
         if (htud->mime_state)
             SCMimeStateFree(htud->mime_state);
         SCAppLayerTxDataCleanup(&htud->tx_data);
@@ -1605,22 +1610,6 @@ void HTPFreeConfig(void)
     SCReturn;
 }
 
-static int HTPCallbackRequestHasTrailer(const htp_connp_t *connp, htp_tx_t *tx)
-{
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    htud->tx_data.updated_ts = true;
-    htud->request_has_trailers = 1;
-    return HTP_STATUS_OK;
-}
-
-static int HTPCallbackResponseHasTrailer(const htp_connp_t *connp, htp_tx_t *tx)
-{
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    htud->tx_data.updated_tc = true;
-    htud->response_has_trailers = 1;
-    return HTP_STATUS_OK;
-}
-
 static void *HTPCallbackTxCreate(bool request)
 {
     HtpTxUserData *tx_ud = HTPCalloc(1, sizeof(HtpTxUserData));
@@ -1844,6 +1833,53 @@ static int HTPCallbackRequestLine(const htp_connp_t *connp, htp_tx_t *tx)
     return HTP_STATUS_OK;
 }
 
+/* The htp state completion hooks mark the block as finished. Progress is not delayed:
+ * the block buffers withhold their data until the bit is set, so detection never sees a
+ * header or trailer block that is still arriving. */
+static int HTPCallbackRequestHeaders(const htp_connp_t *connp, htp_tx_t *tx)
+{
+    SCEnter();
+    if (tx == NULL)
+        SCReturnInt(HTP_STATUS_ERROR);
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    if (tx_ud != NULL)
+        tx_ud->ts_hooks_done |= HTP_HOOK_TS_HEADERS;
+    SCReturnInt(HTP_STATUS_OK);
+}
+
+static int HTPCallbackRequestTrailer(const htp_connp_t *connp, htp_tx_t *tx)
+{
+    SCEnter();
+    if (tx == NULL)
+        SCReturnInt(HTP_STATUS_ERROR);
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    if (tx_ud != NULL)
+        tx_ud->ts_hooks_done |= HTP_HOOK_TS_TRAILER;
+    SCReturnInt(HTP_STATUS_OK);
+}
+
+static int HTPCallbackResponseHeaders(const htp_connp_t *connp, htp_tx_t *tx)
+{
+    SCEnter();
+    if (tx == NULL)
+        SCReturnInt(HTP_STATUS_ERROR);
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    if (tx_ud != NULL)
+        tx_ud->tc_hooks_done |= HTP_HOOK_TC_HEADERS;
+    SCReturnInt(HTP_STATUS_OK);
+}
+
+static int HTPCallbackResponseTrailer(const htp_connp_t *connp, htp_tx_t *tx)
+{
+    SCEnter();
+    if (tx == NULL)
+        SCReturnInt(HTP_STATUS_ERROR);
+    HtpTxUserData *tx_ud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    if (tx_ud != NULL)
+        tx_ud->tc_hooks_done |= HTP_HOOK_TC_TRAILER;
+    SCReturnInt(HTP_STATUS_OK);
+}
+
 static int HTPCallbackRequestHeaderData(const htp_connp_t *connp, htp_tx_data_t *tx_data)
 {
     void *ptmp;
@@ -1894,6 +1930,46 @@ static int HTPCallbackResponseHeaderData(const htp_connp_t *connp, htp_tx_data_t
     return HTP_STATUS_OK;
 }
 
+static void HTPAppendTrailerData(
+        HtpTxUserData *tx_ud, bool to_server, const uint8_t *data, size_t len)
+{
+    uint8_t **buf = to_server ? &tx_ud->request_trailers_raw : &tx_ud->response_trailers_raw;
+    uint32_t *buf_len =
+            to_server ? &tx_ud->request_trailers_raw_len : &tx_ud->response_trailers_raw_len;
+
+    void *ptmp = HTPRealloc(*buf, *buf_len, (size_t)*buf_len + len);
+    if (ptmp == NULL) {
+        return;
+    }
+    *buf = ptmp;
+    memcpy(*buf + *buf_len, data, len);
+    *buf_len += len;
+}
+
+static int HTPCallbackRequestTrailerData(const htp_connp_t *connp, htp_tx_data_t *tx_data)
+{
+    const htp_tx_t *tx = htp_tx_data_tx(tx_data);
+    if (htp_tx_data_is_empty(tx_data) || tx == NULL)
+        return HTP_STATUS_OK;
+
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    tx_ud->tx_data.updated_ts = true;
+    HTPAppendTrailerData(tx_ud, true, htp_tx_data_data(tx_data), htp_tx_data_len(tx_data));
+    return HTP_STATUS_OK;
+}
+
+static int HTPCallbackResponseTrailerData(const htp_connp_t *connp, htp_tx_data_t *tx_data)
+{
+    const htp_tx_t *tx = htp_tx_data_tx(tx_data);
+    if (htp_tx_data_is_empty(tx_data) || tx == NULL)
+        return HTP_STATUS_OK;
+
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    tx_ud->tx_data.updated_tc = true;
+    HTPAppendTrailerData(tx_ud, false, htp_tx_data_data(tx_data), htp_tx_data_len(tx_data));
+    return HTP_STATUS_OK;
+}
+
 /*
  * We have a similar set function called HTPConfigSetDefaultsPhase1.
  */
@@ -1915,12 +1991,13 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     cfg_prec->randomize_range = HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE;
 
     htp_config_register_request_header_data(cfg_prec->cfg, HTPCallbackRequestHeaderData);
-    htp_config_register_request_trailer_data(cfg_prec->cfg, HTPCallbackRequestHeaderData);
+    htp_config_register_request_trailer_data(cfg_prec->cfg, HTPCallbackRequestTrailerData);
+    htp_config_register_request_headers(cfg_prec->cfg, HTPCallbackRequestHeaders);
+    htp_config_register_request_trailer(cfg_prec->cfg, HTPCallbackRequestTrailer);
+    htp_config_register_response_headers(cfg_prec->cfg, HTPCallbackResponseHeaders);
+    htp_config_register_response_trailer(cfg_prec->cfg, HTPCallbackResponseTrailer);
     htp_config_register_response_header_data(cfg_prec->cfg, HTPCallbackResponseHeaderData);
-    htp_config_register_response_trailer_data(cfg_prec->cfg, HTPCallbackResponseHeaderData);
-
-    htp_config_register_request_trailer(cfg_prec->cfg, HTPCallbackRequestHasTrailer);
-    htp_config_register_response_trailer(cfg_prec->cfg, HTPCallbackResponseHasTrailer);
+    htp_config_register_response_trailer_data(cfg_prec->cfg, HTPCallbackResponseTrailerData);
 
     htp_config_register_request_body_data(cfg_prec->cfg, HTPCallbackRequestBodyData);
     htp_config_register_response_body_data(cfg_prec->cfg, HTPCallbackResponseBodyData);
@@ -5663,7 +5740,7 @@ static int HTPParserTest27(void)
 
     uint32_t len = 1000;
 
-    HtpTxUserData *tx_ud = SCMalloc(sizeof(HtpTxUserData));
+    HtpTxUserData *tx_ud = SCCalloc(1, sizeof(HtpTxUserData));
     FAIL_IF_NULL(tx_ud);
 
     tx_ud->tsflags |= HTP_STREAM_DEPTH_SET;

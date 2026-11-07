@@ -4383,6 +4383,74 @@ static int SigTestDropFlow03(void)
     PASS;
 }
 
+/** \test a state hooked rule may use a buffer that completes before the hooked
+ *        state, but not one that completes after it */
+static int SigTestStateHookBuffer01(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    /* Header data completes well before the trailer state, so the rule is decidable where
+     * the headers end. Inspection follows the buffer, not the hook: at runtime the alert
+     * fires where an unhooked rule would, even on a tx that never reaches the trailer
+     * state (SV rule-hooks/http1-state-hook-buffer-timing). On main the same rule fails
+     * to load: engine progress for http.header sits at the header state, the hook at the
+     * trailer state, and the two had to be equal. */
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert http1:request_trailer any any -> any any (flow:to_server; http.header; "
+            "content:\"a\"; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    /* body data only completes after the header state, so inspection would have to run
+     * past the hooked state, which stays disallowed. */
+    s = DetectEngineAppendSig(de_ctx,
+            "alert http1:request_headers any any -> any any (flow:to_server; http.request_body; "
+            "content:\"a\"; sid:2;)");
+    FAIL_IF_NOT_NULL(s);
+
+    /* The ticket case. Its fast pattern is queued by the leg for the buffer it came from,
+     * so both contents run at the buffer's own state and the hook gates nothing at
+     * runtime. The load-time check is the only hook/buffer tie. Rejecting this would
+     * leave the reported rule unloadable. */
+    s = DetectEngineAppendSig(de_ctx,
+            "alert http1:request_trailer any any -> any any (flow:to_server; http.header; "
+            "content:\"a\"; fast_pattern; content:\"b\"; sid:3;)");
+    FAIL_IF_NULL(s);
+
+    /* likewise to the client */
+    s = DetectEngineAppendSig(de_ctx,
+            "alert http1:response_trailer any any -> any any (flow:to_client; http.header; "
+            "content:\"a\"; sid:4;)");
+    FAIL_IF_NULL(s);
+
+    /* Firewall rules with a hook or LTE bound above the state where their buffer completes are
+     * refused at load: they are only evaluated at their hook, so they could never match. That
+     * path needs a firewall rule file, which DetectEngineAppendSig does not parse, so it is not
+     * covered here. */
+
+    /* generic engines are at progress 0 whatever the protocol, so they keep needing the
+     * hook at their own state: only the state 0 hooks can carry them, as before. */
+    s = DetectEngineAppendSig(de_ctx,
+            "alert http1:request_trailer any any -> any any (flow:to_server; "
+            "app-layer-event:http.request_header_host_invalid; sid:5;)");
+    FAIL_IF_NOT_NULL(s);
+
+    s = DetectEngineAppendSig(de_ctx,
+            "alert http1:request_started any any -> any any (flow:to_server; "
+            "app-layer-event:http.request_header_host_invalid; sid:6;)");
+    FAIL_IF_NULL(s);
+
+    /* a buffer completing in the hooked state itself needs no relaxation */
+    s = DetectEngineAppendSig(de_ctx,
+            "alert http1:request_trailer any any -> any any (flow:to_server; http.trailer; "
+            "content:\"X-Trailed\"; sid:7;)");
+    FAIL_IF_NULL(s);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 /** \test ICMP packet shouldn't be matching port based sig
  *        Bug #611 */
 static int SigTestPorts01(void)
@@ -4912,6 +4980,7 @@ void SigRegisterTests(void)
     UtRegisterTest("DetectAddressYamlParsing03", DetectAddressYamlParsing03);
     UtRegisterTest("DetectAddressYamlParsing04", DetectAddressYamlParsing04);
 
+    UtRegisterTest("SigTestStateHookBuffer01", SigTestStateHookBuffer01);
     UtRegisterTest("SigTestPorts01", SigTestPorts01);
     UtRegisterTest("SigTestBug01", SigTestBug01);
 
