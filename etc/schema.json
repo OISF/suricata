@@ -4926,6 +4926,10 @@
                         ]
                     }
                 },
+                "filename_truncated": {
+                    "type": "boolean",
+                    "description": "set when the name was not logged because the record budget was spent"
+                },
                 "hhash": {
                     "type": "string",
                     "description": "CRC32 (IEEE) of the whole file handle in hex, for grouping transactions that touch the same file"
@@ -4991,19 +4995,31 @@
                             "type": "string",
                             "description": "source name of the rename"
                         },
+                        "from_truncated": {
+                            "type": "boolean",
+                            "description": "set when the source name was shortened to fit the record budget"
+                        },
                         "to": {
                             "type": "string",
                             "description": "target name of the rename"
+                        },
+                        "to_truncated": {
+                            "type": "boolean",
+                            "description": "set when the target name was shortened to fit the record budget"
                         }
                     }
                 },
                 "status": {
                     "type": "string",
-                    "description": "NFS status of the reply as a name, only on responses"
+                    "description": "NFS status of the reply as a name, only on responses; in alert and fileinfo records an unobserved reply status is logged as OK, unlike status_code which is then omitted"
                 },
                 "status_code": {
                     "type": "integer",
                     "description": "NFS status of the reply as a number, only when the reply carries a status"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "set when the record hit the logger's size budget, so fields may be missing or shortened"
                 },
                 "type": {
                     "type": "string",
@@ -5766,6 +5782,10 @@
                         "machine_name": {
                             "type": "string"
                         },
+                        "machine_name_truncated": {
+                            "type": "boolean",
+                            "description": "set when the machine name was shortened to fit the record budget"
+                        },
                         "uid": {
                             "type": "integer"
                         }
@@ -5773,6 +5793,10 @@
                 },
                 "status": {
                     "type": "string"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "set when the rpc block hit the logger's size budget, so fields may be missing or shortened"
                 },
                 "xid": {
                     "type": "integer"
