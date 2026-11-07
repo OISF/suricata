@@ -39,16 +39,24 @@ fn parse_req_gssapi(i: &[u8]) -> IResult<&[u8], Kerberos5Ticket, SecBlobError> {
     Ok((i, ap))
 }
 
-/// The compound's main op is the last significant op; a file-effect op
-/// (CREATE/REMOVE) anchors the compound so a trailing metadata op (the
-/// common create/stat pattern) does not shadow it - mainline parity.
+/// The compound's main op is the last significant op, with two carve-outs: a
+/// file-effect op (CREATE/REMOVE) anchors the compound, and a metadata-only
+/// op never displaces one - mainline parity.
 fn v4_main_op_take(cur: u32, next: u32) -> u32 {
     let is_anchor = |op: u32| matches!(op, NFSPROC4_CREATE | NFSPROC4_REMOVE);
-    if is_anchor(cur) && !is_anchor(next) {
+    if is_secondary(next) || (is_anchor(cur) && !is_anchor(next)) {
         cur
     } else {
         next
     }
+}
+
+/// GETATTR is the metadata poll that trails nearly every compound (Linux
+/// sends ...,OPEN,GETFH,ACCESS,GETATTR and ...,WRITE,GETATTR). It names no
+/// object of its own, so it neither defines a transaction nor shadows one:
+/// a compound of only PUTFH and GETATTR opens no tx (sv-master pins this).
+fn is_secondary(op: u32) -> bool {
+    matches!(op, NFSPROC4_GETATTR)
 }
 
 impl NFSState {
@@ -631,7 +639,11 @@ impl NFSState {
                     // clientid4 assigned by the server (EXCHANGE_ID is
                     // the v4.2 way of establishing it).
                     if s == NFS4_OK {
-                        self.client_id = <[u8; 8]>::try_from(rd.client_id).ok();
+                        // keep an already observed id: a short field here
+                        // means "not carried", not "no id"
+                        if let Ok(id) = <[u8; 8]>::try_from(rd.client_id) {
+                            self.client_id = Some(id);
+                        }
                     }
                 }
                 Nfs4ResponseContent::SetClientId(s, client_id) => {
@@ -699,17 +711,17 @@ impl NFSState {
             }
         }
 
-        if main_opcode_status_set {
-            let resp_handle = Vec::new();
-            self.mark_response_tx_done(
-                flow,
-                r.hdr.xid,
-                r.reply_state,
-                main_opcode_status,
-                true,
-                &resp_handle,
-            );
-        }
+        // Complete the tx on every parsed reply. A server stops at the first
+        // failing op (RFC 7530 15.2), so an error in PUTFH or SEQUENCE leaves
+        // the main op's status word out of the reply: taking the compound
+        // status instead is what keeps the tx from staying open for good.
+        let status = if main_opcode_status_set {
+            main_opcode_status
+        } else {
+            cr.status
+        };
+        let resp_handle = Vec::new();
+        self.mark_response_tx_done(flow, r.hdr.xid, r.reply_state, status, true, &resp_handle);
     }
 
     pub fn process_reply_record_v4(
