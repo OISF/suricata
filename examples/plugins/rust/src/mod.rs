@@ -110,6 +110,8 @@ fn log_eve_wrapped(
 
         jb.open_object("packet_accessors")?;
         jb.set_uint("ip_proto", p.ip_protocol() as u64)?;
+        jb.set_string("to_server", if p.is_to_server() { "true" } else { "false" })?;
+        jb.set_string("to_client", if p.is_to_client() { "true" } else { "false" })?;
         jb.set_string("l3_type", l3_type)?;
         jb.set_uint("l3_len", p.l3().map_or(0, |l3| l3.len()) as u64)?;
         jb.set_uint("timestamp", p.timestamp().as_secs())?;

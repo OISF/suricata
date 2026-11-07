@@ -29,6 +29,8 @@ enum PacketL3Types {
 };
 
 uint8_t SCPacketGetIPProto(const Packet *p);
+bool SCPacketIsToServer(const Packet *p);
+bool SCPacketIsToClient(const Packet *p);
 enum PacketL3Types SCPacketGetL3Type(const Packet *p);
 const uint8_t *SCPacketGetL3(const Packet *p, uint32_t *len);
 Flow *SCPacketGetFlow(const Packet *p);

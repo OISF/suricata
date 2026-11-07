@@ -2031,6 +2031,12 @@ extern "C" {
     pub fn SCPacketGetIPProto(p: *const Packet) -> u8;
 }
 extern "C" {
+    pub fn SCPacketIsToServer(p: *const Packet) -> bool;
+}
+extern "C" {
+    pub fn SCPacketIsToClient(p: *const Packet) -> bool;
+}
+extern "C" {
     pub fn SCPacketGetL3Type(p: *const Packet) -> PacketL3Types;
 }
 extern "C" {

@@ -226,6 +226,26 @@ uint8_t SCPacketGetIPProto(const Packet *p)
 }
 
 /**
+ * \brief Test whether the packet is marked as flowing to the server.
+ *
+ * Requires a valid packet. Returns false when the direction flag is not set.
+ */
+bool SCPacketIsToServer(const Packet *p)
+{
+    return PKT_IS_TOSERVER(p);
+}
+
+/**
+ * \brief Test whether the packet is marked as flowing to the client.
+ *
+ * Requires a valid packet. Returns false when the direction flag is not set.
+ */
+bool SCPacketIsToClient(const Packet *p)
+{
+    return PKT_IS_TOCLIENT(p);
+}
+
+/**
  * \brief Get the type of the packet's L3 layer.
  *
  * \retval PACKET_L3_UNKNOWN The packet is NULL or has no decoded L3 layer.

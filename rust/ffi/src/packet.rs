@@ -61,6 +61,20 @@ impl<'a> Packet<'a> {
         unsafe { sys::SCPacketGetIPProto(self.p) }
     }
 
+    /// Return whether the packet is marked as flowing to the server.
+    ///
+    /// Returns false if the direction has not been established.
+    pub fn is_to_server(&self) -> bool {
+        unsafe { sys::SCPacketIsToServer(self.p) }
+    }
+
+    /// Return whether the packet is marked as flowing to the client.
+    ///
+    /// Returns false if the direction has not been established.
+    pub fn is_to_client(&self) -> bool {
+        unsafe { sys::SCPacketIsToClient(self.p) }
+    }
+
     /// Return the flow of the packet, or `None` if it has no flow.
     ///
     /// This takes `&mut self` so that the returned `Flow` is the only wrapper
