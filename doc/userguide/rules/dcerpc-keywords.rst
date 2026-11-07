@@ -59,6 +59,53 @@ Examples::
 
 dcerpc.opnum can since suricata 9 use an :ref:`unsigned 16-bits integer <rules-integer-keywords>`.
 
+dcerpc.ptype
+------------
+
+Match on the PDU type of a DCERPC header. On a to_server match the request PDU
+type is used, on a to_client match the response PDU type is used.
+
+The format of the keyword::
+
+  dcerpc.ptype:<u8>;
+  dcerpc.ptype:[>,<,!,=]<u8>;
+
+The PDU type values are:
+
+===== =====================
+Value PDU type
+===== =====================
+0     request
+1     ping
+2     response
+3     fault
+4     working
+5     nocall
+6     reject
+7     ack
+8     cl_cancel
+9     fack
+10    cancel_ack
+11    bind
+12    bind_ack
+13    bind_nak
+14    alter_context
+15    alter_context_resp
+16    auth3
+17    shutdown
+18    co_cancel
+19    orphaned
+20    rts
+===== =====================
+
+Examples::
+
+  dcerpc.ptype:11;
+  dcerpc.ptype:!0;
+  dcerpc.ptype:>10;
+
+dcerpc.ptype uses an :ref:`unsigned 8-bits integer <rules-integer-keywords>`.
+
 dcerpc.stub_data
 ----------------
 

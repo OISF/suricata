@@ -472,7 +472,12 @@
                     }
                 },
                 "request": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "dcerpc.ptype"
+                        ]
+                    }
                 },
                 "res": {
                     "type": "object",
@@ -487,7 +492,12 @@
                     }
                 },
                 "response": {
-                    "type": "string"
+                    "type": "string",
+                    "suricata": {
+                        "keywords": [
+                            "dcerpc.ptype"
+                        ]
+                    }
                 },
                 "rpc_version": {
                     "type": "string"

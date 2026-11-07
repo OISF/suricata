@@ -19,7 +19,10 @@ use crate::applayer::{self, *};
 use crate::core;
 use crate::dcerpc::dcerpc::{
     cfg_max_stub_size, get_alstate_progress, DCERPCTransaction, ALPROTO_DCERPC, DCERPC_MAX_TX,
-    DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, PARSER_NAME, PFCL1_FRAG, PFCL1_LASTFRAG,
+    DCERPC_TYPE_ACK, DCERPC_TYPE_CANCEL_ACK, DCERPC_TYPE_CL_CANCEL, DCERPC_TYPE_FACK,
+    DCERPC_TYPE_FAULT, DCERPC_TYPE_NOCALL, DCERPC_TYPE_PING, DCERPC_TYPE_REJECT,
+    DCERPC_TYPE_REQUEST, DCERPC_TYPE_RESPONSE, DCERPC_TYPE_WORKING, PARSER_NAME, PFCL1_FRAG,
+    PFCL1_LASTFRAG,
 };
 use crate::dcerpc::parser;
 use crate::direction::{Direction, DIR_BOTH};
@@ -163,8 +166,8 @@ impl DCERPCUDPState {
     }
 
     pub fn handle_fragment_data(&mut self, hdr: &DCERPCHdrUdp, input: &[u8]) -> bool {
-        if hdr.pkt_type != DCERPC_TYPE_REQUEST && hdr.pkt_type != DCERPC_TYPE_RESPONSE {
-            SCLogDebug!("Unrecognized packet type");
+        if hdr.pkt_type > DCERPC_TYPE_CANCEL_ACK {
+            SCLogDebug!("Unrecognized packet type: {}", hdr.pkt_type);
             return false;
         }
 
@@ -219,8 +222,32 @@ impl DCERPCUDPState {
                     }
                     return true;
                 }
+                /* Unhandled connectionless PDU types are not otherwise
+                 * processed; store the PDU type so dcerpc.ptype can match */
+                DCERPC_TYPE_PING | DCERPC_TYPE_ACK | DCERPC_TYPE_CL_CANCEL => {
+                    // client-to-server PDU types
+                    tx.req_cmd = hdr.pkt_type;
+                    tx.req_seen = true;
+                    tx.req_done = true;
+                    tx.resp_done = true;
+                    return true;
+                }
+                // server-to-client PDU types (fack is bidirectional in CL and
+                // is recorded here as a response)
+                DCERPC_TYPE_FAULT
+                | DCERPC_TYPE_WORKING
+                | DCERPC_TYPE_NOCALL
+                | DCERPC_TYPE_REJECT
+                | DCERPC_TYPE_FACK
+                | DCERPC_TYPE_CANCEL_ACK => {
+                    tx.resp_cmd = hdr.pkt_type;
+                    tx.resp_seen = true;
+                    tx.req_done = true;
+                    tx.resp_done = true;
+                    return true;
+                }
                 _ => {
-                    // unreachable
+                    // unreachable: pkt_type is guarded to 0..=10 above
                 }
             }
         }
