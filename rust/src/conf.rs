@@ -37,6 +37,7 @@ use suricata_sys::sys::SCConfGetNextNode;
 use suricata_sys::sys::SCConfGetNode;
 use suricata_sys::sys::SCConfGetValueNode;
 use suricata_sys::sys::SCConfNode;
+use suricata_sys::sys::SCConfNodeIsSequence;
 use suricata_sys::sys::SCConfNodeLookupChild;
 
 pub fn conf_get_node(key: &str) -> Option<ConfNode> {
@@ -145,6 +146,22 @@ impl ConfNode {
         }
         let value = std::str::from_utf8(unsafe { CStr::from_ptr(vptr).to_bytes() }).unwrap();
         return value;
+    }
+
+    /// The node value, or None when the node has no value (e.g. an
+    /// empty list). Null-safe unlike `value()`.
+    pub fn value_opt(&self) -> Option<&str> {
+        let vptr = unsafe { SCConfGetValueNode(self.conf) };
+        if vptr.is_null() {
+            return None;
+        }
+        std::str::from_utf8(unsafe { CStr::from_ptr(vptr).to_bytes() }).ok()
+    }
+
+    /// True when the node is a YAML list (sequence).
+    pub fn is_seq(&self) -> bool {
+        // via the C accessor: keep the struct layout in C, not in Rust
+        unsafe { SCConfNodeIsSequence(self.conf) == 1 }
     }
 
     pub fn get_child_value(&self, key: &str) -> Option<&str> {
