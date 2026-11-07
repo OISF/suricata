@@ -39,6 +39,18 @@ fn parse_req_gssapi(i: &[u8]) -> IResult<&[u8], Kerberos5Ticket, SecBlobError> {
     Ok((i, ap))
 }
 
+/// The compound's main op is the last significant op; a file-effect op
+/// (CREATE/REMOVE) anchors the compound so a trailing metadata op (the
+/// common create/stat pattern) does not shadow it - mainline parity.
+fn v4_main_op_take(cur: u32, next: u32) -> u32 {
+    let is_anchor = |op: u32| matches!(op, NFSPROC4_CREATE | NFSPROC4_REMOVE);
+    if is_anchor(cur) && !is_anchor(next) {
+        cur
+    } else {
+        next
+    }
+}
+
 impl NFSState {
     /* normal write: PUTFH (file handle), WRITE (write opts/data). File handle
      * is not part of the write record itself so we pass it in here. */
@@ -288,6 +300,7 @@ impl NFSState {
                 }
                 Nfs4RequestContent::Close(ref _rd) => {
                     SCLogDebug!("CLOSEv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_CLOSE);
                     if let Some(fh) = last_putfh {
                         self.close_v4(r, fh);
                     }
@@ -298,12 +311,56 @@ impl NFSState {
                         xidmap.file_handle = fh.to_vec();
                     }
                     xidmap.file_name = rd.filename.to_vec();
-                    main_opcode = NFSPROC4_CREATE;
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_CREATE);
+                }
+                Nfs4RequestContent::DelegReturn(ref _rd) => {
+                    SCLogDebug!("DELEGRETURNv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_DELEGRETURN);
+                }
+                Nfs4RequestContent::GetAttr(ref _rd) => {
+                    SCLogDebug!("GETATTRv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_GETATTR);
+                }
+                Nfs4RequestContent::SecInfoNoName(_rd) => {
+                    SCLogDebug!("SECINFO_NO_NAMEv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_SECINFO_NO_NAME);
+                }
+                Nfs4RequestContent::ReclaimComplete(_rd) => {
+                    SCLogDebug!("RECLAIM_COMPLETEv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_RECLAIM_COMPLETE);
+                }
+                Nfs4RequestContent::LayoutReturn(ref _rd) => {
+                    SCLogDebug!("LAYOUTRETURNv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_LAYOUTRETURN);
+                }
+                Nfs4RequestContent::LayoutGet(ref _rd) => {
+                    SCLogDebug!("LAYOUTGETv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_LAYOUTGET);
+                }
+                Nfs4RequestContent::GetDevInfo(ref _rd) => {
+                    SCLogDebug!("GETDEVINFOv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_GETDEVINFO);
+                }
+                Nfs4RequestContent::DestroyClientID(_rd) => {
+                    SCLogDebug!("DESTROY_CLIENTIDv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_DESTROY_CLIENTID);
+                }
+                Nfs4RequestContent::DestroySession(_rd) => {
+                    SCLogDebug!("DESTROY_SESSIONv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_DESTROY_SESSION);
+                }
+                Nfs4RequestContent::CreateSession(ref _rd) => {
+                    SCLogDebug!("CREATE_SESSIONv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_CREATE_SESSION);
+                }
+                Nfs4RequestContent::ExchangeId(ref _rd) => {
+                    SCLogDebug!("EXCHANGE_IDv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_EXCHANGE_ID);
                 }
                 Nfs4RequestContent::Remove(rd) => {
                     SCLogDebug!("REMOVEv4: {:?}", rd);
                     xidmap.file_name = rd.to_vec();
-                    main_opcode = NFSPROC4_REMOVE;
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_REMOVE);
                 }
                 Nfs4RequestContent::SetClientId(ref _rd) => {
                     SCLogDebug!(
@@ -408,8 +465,17 @@ impl NFSState {
         xidmap: &mut NFSRequestXidMap,
     ) {
         let mut insert_filename_with_getfh = false;
+        let mut main_op: u32 = 0;
         let mut main_opcode_status: u32 = 0;
         let mut main_opcode_status_set: bool = false;
+        // status of the winning (main) op; see v4_main_op_take
+        let mut take_main_op_status = |op: u32, s: u32| {
+            if v4_main_op_take(main_op, op) == op {
+                main_op = op;
+                main_opcode_status = s;
+                main_opcode_status_set = true;
+            }
+        };
 
         for c in &cr.commands {
             SCLogDebug!("c {:?}", c);
@@ -426,13 +492,73 @@ impl NFSState {
                 }
                 Nfs4ResponseContent::Remove(s) => {
                     SCLogDebug!("REMOVE4: status {}", s);
-                    main_opcode_status = s;
-                    main_opcode_status_set = true;
+
+                    take_main_op_status(NFSPROC4_REMOVE, s);
                 }
                 Nfs4ResponseContent::Create(s) => {
                     SCLogDebug!("CREATE4: status {}", s);
-                    main_opcode_status = s;
-                    main_opcode_status_set = true;
+
+                    take_main_op_status(NFSPROC4_CREATE, s);
+                }
+                Nfs4ResponseContent::DelegReturn(s) => {
+                    SCLogDebug!("DELEGRETURN4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_DELEGRETURN, s);
+                }
+                Nfs4ResponseContent::GetAttr(s, _) => {
+                    SCLogDebug!("GETATTR4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_GETATTR, s);
+                }
+                Nfs4ResponseContent::SecInfoNoName(s) => {
+                    SCLogDebug!("SECINFO_NO_NAME4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_SECINFO_NO_NAME, s);
+                }
+                Nfs4ResponseContent::ReclaimComplete(s) => {
+                    SCLogDebug!("RECLAIM_COMPLETE4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_RECLAIM_COMPLETE, s);
+                }
+                Nfs4ResponseContent::LayoutReturn(s) => {
+                    SCLogDebug!("LAYOUTRETURN4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_LAYOUTRETURN, s);
+                }
+                Nfs4ResponseContent::LayoutGet(s, _) => {
+                    SCLogDebug!("LAYOUTGET4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_LAYOUTGET, s);
+                }
+                Nfs4ResponseContent::GetDevInfo(s, _) => {
+                    SCLogDebug!("GETDEVINFO4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_GETDEVINFO, s);
+                }
+                Nfs4ResponseContent::DestroyClientID(s) => {
+                    SCLogDebug!("DESTROY_CLIENTID4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_DESTROY_CLIENTID, s);
+                }
+                Nfs4ResponseContent::DestroySession(s) => {
+                    SCLogDebug!("DESTROY_SESSION4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_DESTROY_SESSION, s);
+                }
+                Nfs4ResponseContent::CreateSession(s, _) => {
+                    SCLogDebug!("CREATE_SESSION4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_CREATE_SESSION, s);
+                }
+                Nfs4ResponseContent::ExchangeId(s, _) => {
+                    SCLogDebug!("EXCHANGE_ID4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_EXCHANGE_ID, s);
+                }
+                Nfs4ResponseContent::Close(s, _) => {
+                    SCLogDebug!("CLOSE4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_CLOSE, s);
                 }
                 Nfs4ResponseContent::Read(s, Some(ref rd)) => {
                     SCLogDebug!(
@@ -441,6 +567,7 @@ impl NFSState {
                         s,
                         rd.data.len()
                     );
+                    take_main_op_status(NFSPROC4_READ, s);
                     // convert record to generic read reply
                     let reply = NfsReplyRead {
                         status: s,
@@ -456,6 +583,15 @@ impl NFSState {
                 Nfs4ResponseContent::Open(_s, Some(ref _rd)) => {
                     SCLogDebug!("OPENv4: status {} opendata {:?}", _s, _rd);
                     insert_filename_with_getfh = true;
+                }
+                Nfs4ResponseContent::Write(s, _) => {
+                    // the WRITE op is the main op of a write compound: its
+                    // status, not the compound status, is what the file tx
+                    // must show, and UNSTABLE writes reach here as well
+                    take_main_op_status(NFSPROC4_WRITE, s);
+                }
+                Nfs4ResponseContent::Commit(s) => {
+                    take_main_op_status(NFSPROC4_COMMIT, s);
                 }
                 Nfs4ResponseContent::GetFH(_s, Some(ref rd)) if insert_filename_with_getfh => {
                     self.namemap
