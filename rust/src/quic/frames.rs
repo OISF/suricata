@@ -16,7 +16,6 @@
  */
 
 use super::error::QuicError;
-use super::quic::QUIC_MAX_CRYPTO_FRAG_LEN;
 use crate::handshake::HandshakeParams;
 use crate::quic::parser::quic_var_uint;
 use nom8::bytes::complete::take;
@@ -30,8 +29,7 @@ use std::fmt;
 use tls_parser::TlsMessage::Handshake;
 use tls_parser::TlsMessageHandshake::{ClientHello, ServerHello};
 use tls_parser::{
-    parse_tls_extensions, parse_tls_message_handshake, TlsCipherSuiteID, TlsExtension,
-    TlsExtensionType, TlsMessage,
+    parse_tls_extensions, TlsCipherSuiteID, TlsExtension, TlsExtensionType, TlsMessage,
 };
 
 /// Tuple of StreamTag and offset
@@ -316,7 +314,7 @@ fn quic_get_tls_extensions(
     return extv;
 }
 
-fn parse_quic_handshake(msg: TlsMessage) -> Option<Frame> {
+pub(super) fn parse_quic_handshake(msg: TlsMessage) -> Option<Frame> {
     if let Handshake(hs) = msg {
         match hs {
             ClientHello(ch) => {
@@ -385,37 +383,14 @@ fn parse_crypto_frame(input: &[u8]) -> IResult<&[u8], Frame, QuicError> {
     let (rest, length) = quic_var_uint(rest)?;
     let (rest, data) = take(length as usize)(rest)?;
 
-    if offset > 0 {
-        return Ok((
-            rest,
-            Frame::CryptoFrag(CryptoFrag {
-                offset,
-                length,
-                data: data.to_vec(),
-            }),
-        ));
-    }
-    // if we have offset 0, try quick path : parse directly
-    match parse_tls_message_handshake(data) {
-        Ok((_, msg)) => {
-            if let Some(c) = parse_quic_handshake(msg) {
-                return Ok((rest, c));
-            }
-        }
-        Err(nom7::Err::Incomplete(_)) => {
-            // offset 0 but incomplete : save it as a fragment for later reassembly
-            return Ok((
-                rest,
-                Frame::CryptoFrag(CryptoFrag {
-                    offset,
-                    length,
-                    data: data.to_vec(),
-                }),
-            ));
-        }
-        _ => {}
-    }
-    return Err(nom8::Err::Error(QuicError::InvalidPacket));
+    Ok((
+        rest,
+        Frame::CryptoFrag(CryptoFrag {
+            offset,
+            length,
+            data: data.to_vec(),
+        }),
+    ))
 }
 
 fn parse_tag(input: &[u8]) -> IResult<&[u8], StreamTag, QuicError> {
@@ -553,72 +528,7 @@ impl Frame {
         Ok((rest, value))
     }
 
-    pub(crate) fn decode_frames<'a>(
-        input: &'a [u8], past_frag: &'a [u8], past_fraglen: u32,
-    ) -> IResult<&'a [u8], Vec<Frame>, QuicError> {
-        let (rest, mut frames) =
-            all_consuming(many0(complete(Frame::decode_frame))).parse(input)?;
-
-        // we use the already seen past fragment data
-        let mut crypto_max_size = past_frag.len() as u64;
-        let mut crypto_total_size = 0;
-        // reassemble crypto fragments : first find total size
-        for f in &frames {
-            if let Frame::CryptoFrag(c) = f {
-                if crypto_max_size < c.offset + c.length {
-                    crypto_max_size = c.offset + c.length;
-                }
-                crypto_total_size += c.length;
-            }
-        }
-        if crypto_max_size > 0 && crypto_max_size < QUIC_MAX_CRYPTO_FRAG_LEN {
-            // we have some, and no gaps from offset 0
-            let mut d = vec![0; crypto_max_size as usize];
-            d[..past_frag.len()].clone_from_slice(past_frag);
-            for f in &frames {
-                if let Frame::CryptoFrag(c) = f {
-                    d[c.offset as usize..(c.offset + c.length) as usize].clone_from_slice(&c.data);
-                }
-            }
-            // check that we have enough data, some new data, and data for the first byte
-            if crypto_total_size + past_fraglen as u64 >= crypto_max_size && crypto_total_size > 0 {
-                match parse_tls_message_handshake(&d) {
-                    Ok((_, msg)) => {
-                        if let Some(c) = parse_quic_handshake(msg) {
-                            // add a parsed crypto frame
-                            frames.push(c);
-                        }
-                    }
-                    Err(nom7::Err::Incomplete(_)) => {
-                        // this means the current packet does not have all the hanshake data yet
-                        let frag = CryptoFrag {
-                            offset: crypto_total_size + past_fraglen as u64,
-                            length: d.len() as u64,
-                            data: d.to_vec(),
-                        };
-                        frames.push(Frame::CryptoFrag(frag));
-                    }
-                    _ => {}
-                }
-            } else {
-                // pass in offset the number of bytes set in data
-                let frag = CryptoFrag {
-                    offset: crypto_total_size + past_fraglen as u64,
-                    length: d.len() as u64,
-                    data: d.to_vec(),
-                };
-                frames.push(Frame::CryptoFrag(frag));
-            }
-        } else if crypto_max_size >= QUIC_MAX_CRYPTO_FRAG_LEN {
-            // just notice the engine that we have a big crypto fragment without supplying data
-            let frag = CryptoFrag {
-                offset: 0,
-                length: crypto_max_size,
-                data: Vec::new(),
-            };
-            frames.push(Frame::CryptoFrag(frag));
-        }
-
-        Ok((rest, frames))
+    pub(crate) fn decode_frames(input: &[u8]) -> IResult<&[u8], Vec<Frame>, QuicError> {
+        all_consuming(many0(complete(Frame::decode_frame))).parse(input)
     }
 }

@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+use super::parser::{quic_pkt_num, QuicHeader};
 use aes::cipher::{BlockEncrypt, KeyInit};
 use aes::Aes128;
 use aes_gcm::aead::AeadInPlace;
@@ -26,6 +27,11 @@ use std::convert::TryInto;
 pub const AES128_KEY_LEN: usize = 16;
 pub const AES128_TAG_LEN: usize = 16;
 pub const AES128_IV_LEN: usize = 12;
+const PKT_NUM_BUF_MAX_LEN: usize = 4;
+// RFC 9001 section 5.8.
+const RETRY_KEY_V1: [u8; 16] = [
+    0xbe, 0x0c, 0x69, 0x0b, 0x9f, 0x66, 0x57, 0x5a, 0x1d, 0x76, 0x6b, 0x54, 0xe3, 0x68, 0xc8, 0x4e,
+];
 
 pub struct HeaderProtectionKey(Aes128);
 
@@ -195,4 +201,235 @@ pub fn quic_keys_initial(version: u32, client_dst_connection_id: &[u8]) -> Optio
         local: DirectionalKeys::new(&server_secret, version),
         remote: DirectionalKeys::new(&client_secret, version),
     });
+}
+
+pub(super) fn decrypt_initial<'a>(
+    keys: &QuicKeys, to_server: bool, header: &QuicHeader, framebuf: &'a [u8], buf: &'a [u8],
+    hlen: usize, output: &'a mut Vec<u8>,
+) -> Result<usize, ()> {
+    let hkey = if to_server {
+        &keys.remote.header
+    } else {
+        &keys.local.header
+    };
+    if framebuf.len() < PKT_NUM_BUF_MAX_LEN + AES128_KEY_LEN {
+        return Err(());
+    }
+    let h2len = hlen + usize::from(header.length);
+    let mut h2 = Vec::with_capacity(h2len);
+    h2.extend_from_slice(&buf[..h2len]);
+    let mut h20 = h2[0];
+    let mut pktnum_buf = Vec::with_capacity(PKT_NUM_BUF_MAX_LEN);
+    pktnum_buf.extend_from_slice(&h2[hlen..hlen + PKT_NUM_BUF_MAX_LEN]);
+    let r1 = hkey.decrypt_in_place(
+        &h2[hlen + PKT_NUM_BUF_MAX_LEN..hlen + PKT_NUM_BUF_MAX_LEN + AES128_KEY_LEN],
+        &mut h20,
+        &mut pktnum_buf,
+    );
+    if r1.is_err() {
+        return Err(());
+    }
+    // mutate one at a time
+    h2[0] = h20;
+    let _ = &h2[hlen..hlen + 1 + ((h20 & 3) as usize)]
+        .copy_from_slice(&pktnum_buf[..1 + ((h20 & 3) as usize)]);
+    let pkt_num = quic_pkt_num(&h2[hlen..hlen + 1 + ((h20 & 3) as usize)]);
+    if framebuf.len() < 1 + ((h20 & 3) as usize) {
+        return Err(());
+    }
+    output.extend_from_slice(&framebuf[1 + ((h20 & 3) as usize)..]);
+    let pkey = if to_server {
+        &keys.remote.packet
+    } else {
+        &keys.local.packet
+    };
+    let r = pkey.decrypt_in_place(pkt_num, &h2[..hlen + 1 + ((h20 & 3) as usize)], output);
+    if let Ok(r2) = r {
+        return Ok(r2.len());
+    }
+    Err(())
+}
+
+/// Verify the Retry pseudo-packet, including the original client DCID.
+pub(super) fn verify_retry(version: u32, odcid: &[u8], packet: &[u8]) -> bool {
+    let (key, nonce) = match version {
+        1 | 0xff00_0021..=0xff00_0022 => (
+            RETRY_KEY_V1,
+            [
+                0x46, 0x15, 0x99, 0xd3, 0x5d, 0x63, 0x2b, 0xf2, 0x23, 0x98, 0x25, 0xbb,
+            ],
+        ),
+        0x6b3343cf => (
+            [
+                0x8f, 0xb4, 0xb0, 0x1b, 0x56, 0xac, 0x48, 0xe2, 0x60, 0xfb, 0xcb, 0xce, 0xad, 0x7c,
+                0xcc, 0x92,
+            ],
+            [
+                0xd8, 0x69, 0x69, 0xbc, 0x2d, 0x7c, 0x6d, 0x99, 0x90, 0xef, 0xb0, 0x4a,
+            ],
+        ),
+        // draft-ietf-quic-tls-27 and -28, section 5.8.
+        0xff00_001b..=0xff00_001c => (
+            [
+                0x4d, 0x32, 0xec, 0xdb, 0x2a, 0x21, 0x33, 0xc8, 0x41, 0xe4, 0x04, 0x3d, 0xf2, 0x7d,
+                0x44, 0x30,
+            ],
+            [
+                0x4d, 0x16, 0x11, 0xd0, 0x55, 0x13, 0xa5, 0x52, 0xc5, 0x87, 0xd5, 0x75,
+            ],
+        ),
+        0xff00_001d..=0xff00_0020 => (
+            [
+                0xcc, 0xce, 0x18, 0x7e, 0xd0, 0x9a, 0x09, 0xd0, 0x57, 0x28, 0x15, 0x5a, 0x6c, 0xb9,
+                0x6b, 0xe1,
+            ],
+            [
+                0xe5, 0x49, 0x30, 0xf9, 0x7f, 0x21, 0x36, 0xf0, 0x53, 0x0a, 0x8c, 0x1c,
+            ],
+        ),
+        _ => return false,
+    };
+    if packet.len() < AES128_TAG_LEN || odcid.len() > 20 {
+        return false;
+    }
+    let tag_pos = packet.len() - AES128_TAG_LEN;
+    let mut pseudo = Vec::with_capacity(1 + odcid.len() + tag_pos);
+    pseudo.push(odcid.len() as u8);
+    pseudo.extend_from_slice(odcid);
+    pseudo.extend_from_slice(&packet[..tag_pos]);
+    Aes128Gcm::new((&key).into())
+        .decrypt_in_place_detached((&nonce).into(), &pseudo, &mut [], packet[tag_pos..].into())
+        .is_ok()
+}
+
+#[cfg(test)]
+pub(super) mod test_packets {
+    use super::*;
+
+    pub fn varint(value: usize) -> Vec<u8> {
+        if value < 64 {
+            vec![value as u8]
+        } else {
+            ((value as u16) | 0x4000).to_be_bytes().to_vec()
+        }
+    }
+
+    pub fn initial(
+        version: u32, key_dcid: &[u8], dcid: &[u8], scid: &[u8], number: u32, client: bool,
+        offset: usize, data: &[u8],
+    ) -> Vec<u8> {
+        initial_with_token(
+            version,
+            key_dcid,
+            dcid,
+            scid,
+            number,
+            client,
+            offset,
+            data,
+            &[],
+        )
+    }
+
+    pub fn initial_with_token(
+        version: u32, key_dcid: &[u8], dcid: &[u8], scid: &[u8], number: u32, client: bool,
+        offset: usize, data: &[u8], token: &[u8],
+    ) -> Vec<u8> {
+        let keys = quic_keys_initial(version, key_dcid).unwrap();
+        let keys = if client { keys.remote } else { keys.local };
+        let mut plain = vec![6];
+        plain.extend(varint(offset));
+        plain.extend(varint(data.len()));
+        plain.extend_from_slice(data);
+        plain.resize(1160.max(plain.len()), 0);
+        let mut packet = vec![if version == 0x6b3343cf { 0xd3 } else { 0xc3 }];
+        packet.extend_from_slice(&version.to_be_bytes());
+        packet.push(dcid.len() as u8);
+        packet.extend_from_slice(dcid);
+        packet.push(scid.len() as u8);
+        packet.extend_from_slice(scid);
+        packet.extend(varint(token.len()));
+        packet.extend_from_slice(token);
+        packet.extend(varint(4 + plain.len() + 16));
+        let pn_offset = packet.len();
+        packet.extend_from_slice(&number.to_be_bytes());
+        let mut nonce = keys.packet.iv;
+        for (dst, src) in nonce[8..].iter_mut().zip(number.to_be_bytes()) {
+            *dst ^= src;
+        }
+        let tag = keys
+            .packet
+            .key
+            .encrypt_in_place_detached((&nonce).into(), &packet, &mut plain)
+            .unwrap();
+        packet.extend(plain);
+        packet.extend_from_slice(&tag);
+        let mut mask: [u8; 16] = packet[pn_offset + 4..pn_offset + 20].try_into().unwrap();
+        keys.header.0.encrypt_block((&mut mask).into());
+        packet[0] ^= mask[0] & 15;
+        for i in 0..4 {
+            packet[pn_offset + i] ^= mask[i + 1];
+        }
+        packet
+    }
+
+    pub fn retry(dcid: &[u8], scid: &[u8], odcid: &[u8]) -> Vec<u8> {
+        retry_with_version(1, dcid, scid, odcid)
+    }
+
+    pub fn retry_with_version(version: u32, dcid: &[u8], scid: &[u8], odcid: &[u8]) -> Vec<u8> {
+        let mut p = vec![0xf0];
+        p.extend_from_slice(&version.to_be_bytes());
+        p.push(dcid.len() as u8);
+        p.extend_from_slice(dcid);
+        p.push(scid.len() as u8);
+        p.extend_from_slice(scid);
+        p.extend_from_slice(b"retry-token");
+        let mut pseudo = vec![odcid.len() as u8];
+        pseudo.extend_from_slice(odcid);
+        pseudo.extend_from_slice(&p);
+        let (key, nonce) = match version {
+            1 => (
+                "be0c690b9f66575a1d766b54e368c84e",
+                "461599d35d632bf2239825bb",
+            ),
+            0xff00_001b | 0xff00_001c => (
+                "4d32ecdb2a2133c841e4043df27d4430",
+                "4d1611d05513a552c587d575",
+            ),
+            _ => panic!("unsupported Retry test version"),
+        };
+        let key = hex::decode(key).unwrap();
+        let nonce = hex::decode(nonce).unwrap();
+        let tag = Aes128Gcm::new_from_slice(&key)
+            .unwrap()
+            .encrypt_in_place_detached(nonce.as_slice().into(), &pseudo, &mut [])
+            .unwrap();
+        p.extend_from_slice(&tag);
+        p
+    }
+}
+
+#[cfg(test)]
+mod retry_vectors {
+    use super::verify_retry;
+
+    #[test]
+    fn rfc9001_and_rfc9369_retry_vectors() {
+        let odcid = hex::decode("8394c8f03e515708").unwrap();
+        for (version, text) in [
+            (
+                1,
+                "ff000000010008f067a5502a4262b5746f6b656e04a265ba2eff4d829058fb3f0f2496ba",
+            ),
+            (
+                0x6b3343cf,
+                "cf6b3343cf0008f067a5502a4262b5746f6b656ec8646ce8bfe33952d955543665dcc7b6",
+            ),
+        ] {
+            let packet = hex::decode(text).unwrap();
+            assert!(verify_retry(version, &odcid, &packet));
+            assert!(!verify_retry(version, &[0; 8], &packet));
+        }
+    }
 }
