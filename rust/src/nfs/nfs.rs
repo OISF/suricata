@@ -128,6 +128,14 @@ pub const NFS_MAX_METADATA_SIZE_DEFAULT: u32 = 16777216;
 /// Separate from max-read-size, which bounds READ data only.
 pub static mut NFS_CFG_MAX_METADATA_SIZE: u32 = NFS_MAX_METADATA_SIZE_DEFAULT;
 
+/// Sanity cap for the RPC record mark length field. The parser reads the
+/// field as raw 31 bits; legitimate marks can't claim more than ~1 MiB
+/// (v3 uses a 19-bit length field, v4 a 20-bit one) and no procedure can
+/// carry more than the 16 MiB max payload, so a claim above this is always
+/// forged and would otherwise drive TCP stream buffering toward the claimed
+/// size (attacker-rate-controlled app-layer stall + memory pin).
+const NFS_MAX_RECORD_LENGTH: usize = 16 * 1024 * 1024;
+
 #[derive(AppLayerFrameType)]
 pub enum NFSFrameType {
     RPCPdu,
@@ -165,6 +173,16 @@ pub enum NFSEvent {
     /// OOO file data exceeded the queue backstop (gapped stream); queued
     /// data truncated to bound memory
     TruncatedFileData = 10,
+    /// RPC record mark claims a length above the sanity cap; the record and
+    /// the rest of the flow are abandoned (the claim would drive stream
+    /// buffering toward the forged size, e.g. 2 GiB, with no way out)
+    RecordOverflow = 11,
+    /// READ response or WRITE request exceeds the max transfer size the
+    /// server advertised in FSINFO for this flow. Warn only (processing
+    /// continues): unlike the configured limits, exceeding the advertised
+    /// ceiling happens in the wild (non-compliant peers) and must not break
+    /// parsing
+    FsinfoTooLarge = 12,
 }
 
 #[derive(Debug)]
@@ -547,6 +565,13 @@ pub struct NFSState {
     ts_gap: bool, // last TS update was gap
     tc_gap: bool, // last TC update was gap
 
+    /// FSINFO-negotiated transfer ceilings for this flow (advisory, warn
+    /// only): max size of READ responses (rtmax) and WRITE requests (wtmax)
+    /// the server advertises. 0 = not observed. Only v3 sets these; v4
+    /// negotiates via GETATTR FATTR4_MAXREAD/MAXWRITE (unparsed).
+    pub fsinfo_max_read: u32,
+    pub fsinfo_max_write: u32,
+
     is_udp: bool,
 
     /// true as long as we have file txs that are in a post-gap
@@ -607,6 +632,8 @@ impl NFSState {
             check_post_gap_file_txs: false,
             post_gap_files_checked: false,
             nfs_version: 0,
+            fsinfo_max_read: 0,
+            fsinfo_max_write: 0,
             tx_id: 0,
             ts: 0,
         }
@@ -1295,6 +1322,12 @@ impl NFSState {
             return 0;
         }
 
+        // The FSINFO ceiling is advisory: non-compliant peers routinely
+        // exceed the advertised max transfer size in the wild, so flag it
+        // but keep processing (the configured limit above stays the hard
+        // security boundary).
+        let fsinfo_exceeded = self.fsinfo_max_write > 0 && w.count > self.fsinfo_max_write;
+
         let mut queue_exceeded = false;
         // what the record tail holds beyond the file data the tracker has not
         // seen: the XDR pad, at most 3 bytes. Anything else the record carries
@@ -1340,6 +1373,9 @@ impl NFSState {
                                 Direction::ToClient as i32,
                             );
                         }
+                    }
+                    if fsinfo_exceeded {
+                        tx.tx_data.set_event(NFSEvent::FsinfoTooLarge as u8);
                     }
                     true
                 } else {
@@ -1398,6 +1434,9 @@ impl NFSState {
             tx.xid = r.hdr.xid;
             tx.is_first = true;
             tx.nfs_version = r.progver as u16;
+            if fsinfo_exceeded {
+                tx.tx_data.set_event(NFSEvent::FsinfoTooLarge as u8);
+            }
         }
         if !self.is_udp {
             if queue_exceeded {
@@ -2199,6 +2238,11 @@ impl NFSState {
         let unbuffered = reply.data_len - reply.data.len() as u32;
         let stream_fill = cmp::min(tail.saturating_sub(unbuffered), 3);
 
+        // FSINFO ceiling, advisory (see the WRITE path): warn, don't
+        // reject. Only v3 sets fsinfo_max_read, so v4 replies never trip
+        // it.
+        let fsinfo_exceeded = self.fsinfo_max_read > 0 && reply.count > self.fsinfo_max_read;
+
         let mut queue_exceeded = false;
 
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToClient) {
@@ -2249,6 +2293,9 @@ impl NFSState {
                                 );
                             }
                         }
+                    }
+                    if fsinfo_exceeded {
+                        tx.tx_data.set_event(NFSEvent::FsinfoTooLarge as u8);
                     }
                     true
                 } else {
@@ -2316,6 +2363,9 @@ impl NFSState {
             };
             tx.xid = r.hdr.xid;
             tx.is_first = true;
+            if fsinfo_exceeded {
+                tx.tx_data.set_event(NFSEvent::FsinfoTooLarge as u8);
+            }
         }
         if !self.is_udp {
             if queue_exceeded {
@@ -2646,6 +2696,20 @@ impl NFSState {
                 Ok((_, ref rpc_phdr)) => {
                     let rec_size = (rpc_phdr.hdr.frag_len + 4) as usize;
 
+                    // A claim above the sanity cap is forged (legitimate marks
+                    // can't reach it). Trusting it would make the stream layer
+                    // buffer toward the claimed size in the incomplete loop
+                    // with no event and no way out; record framing is
+                    // unsalvageable, so abandon the flow.
+                    if rec_size > NFS_MAX_RECORD_LENGTH {
+                        self.set_event(NFSEvent::RecordOverflow);
+                        SCLogDebug!(
+                            "RPC record mark claims {} byte record; failing flow",
+                            rec_size
+                        );
+                        return AppLayerResult::err();
+                    }
+
                     // Handle partial records
                     if rec_size > cur_i.len() {
                         return self.parse_tcp_partial_data_ts(
@@ -2970,6 +3034,17 @@ impl NFSState {
             match parse_rpc_packet_header(cur_i) {
                 Ok((_, ref rpc_phdr)) => {
                     let rec_size = (rpc_phdr.frag_len + 4) as usize;
+                    // Claim above the sanity cap is forged; see the ToServer
+                    // path. Abandon the flow instead of buffering toward the
+                    // claimed size forever.
+                    if rec_size > NFS_MAX_RECORD_LENGTH {
+                        self.set_event(NFSEvent::RecordOverflow);
+                        SCLogDebug!(
+                            "RPC record mark claims {} byte record; failing flow",
+                            rec_size
+                        );
+                        return AppLayerResult::err();
+                    }
                     // see if we have all data available
                     if rec_size > cur_i.len() {
                         return self.parse_tcp_partial_data_tc(
