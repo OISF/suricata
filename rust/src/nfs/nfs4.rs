@@ -108,11 +108,25 @@ impl NFSState {
             return;
         }
 
+        // The FSINFO (v3) / GETATTR max* (v4) ceiling is advisory:
+        // non-compliant peers routinely exceed the advertised max
+        // transfer size in the wild, so flag it but keep processing
+        // (the configured limit above stays the hard security boundary).
+        let fsinfo_exceeded = self.fsinfo_max_write > 0 && w.write_len > self.fsinfo_max_write;
+
         let mut queue_exceeded = false;
 
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             Some(tx) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                    // same rule as v2/v3: a write starting below the
+                    // high-water mark overlaps data already tracked, and the
+                    // tracker keeps only the first copy
+                    if w.offset < tdf.file_tracker.tracked {
+                        tx.tx_data.set_event(NFSEvent::FileOverlap as u8);
+                        tx.tx_data.0.updated_ts = true;
+                        tx.tx_data.0.updated_tc = true;
+                    }
                     if let Some(event) =
                         write_queue_limit_event(&tdf.file_tracker, w.offset, w.data.len() as u64)
                     {
@@ -138,6 +152,9 @@ impl NFSState {
                             tx.is_last = true;
                             tx.response_done = true;
                         }
+                    }
+                    if fsinfo_exceeded {
+                        tx.tx_data.set_event(NFSEvent::FsinfoTooLarge as u8);
                     }
                 }
                 true
@@ -184,6 +201,9 @@ impl NFSState {
             tx.xid = r.hdr.xid;
             tx.is_first = true;
             tx.nfs_version = r.progver as u16;
+            if fsinfo_exceeded {
+                tx.tx_data.set_event(NFSEvent::FsinfoTooLarge as u8);
+            }
         }
         if queue_exceeded {
             // Don't buffer the rest of the record: skip to its RPC boundary.
@@ -505,10 +525,25 @@ impl NFSState {
 
                     take_main_op_status(NFSPROC4_DELEGRETURN, s);
                 }
-                Nfs4ResponseContent::GetAttr(s, _) => {
+                Nfs4ResponseContent::GetAttr(s, ref attrs) => {
                     SCLogDebug!("GETATTR4: status {}", s);
 
                     take_main_op_status(NFSPROC4_GETATTR, s);
+                    // The FATTR4_MAXREAD/MAXWRITE values in a GETATTR reply
+                    // are the v4 equivalent of v3 FSINFO: store the
+                    // advertised ceilings so transfers beyond them are
+                    // flagged with fsinfo_too_large. Advisory only -- the
+                    // configured limits stay the hard security boundary.
+                    if s == NFS4_OK {
+                        if let Some(ref a) = attrs {
+                            if let Some(v) = a.max_read {
+                                self.fsinfo_max_read = v;
+                            }
+                            if let Some(v) = a.max_write {
+                                self.fsinfo_max_write = v;
+                            }
+                        }
+                    }
                 }
                 Nfs4ResponseContent::SecInfoNoName(s) => {
                     SCLogDebug!("SECINFO_NO_NAME4: status {}", s);
