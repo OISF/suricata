@@ -1947,6 +1947,11 @@ The `max-write-size` option can be set to control the max size of accepted
 WRITE request records. Events will be raised if a WRITE request claims too
 much data. A value of 0 disables the checks.
 
+Disabling the two checks does not remove the bound on a single RPC record:
+an NFS record mark is a 31 bit byte count (RFC 5531 11), so a record claiming
+more than the width of that field (64 MiB floor) abandons the flow with the
+``record_overflow`` event either way.
+
 The `max-metadata-size` option can be set to control how much of a partial
 NFSv3 LOOKUP, READDIRPLUS or CREATE reply may be buffered towards the size its
 RPC record claims, so the file handle to filename mapping is kept. A value of 0

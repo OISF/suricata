@@ -92,6 +92,7 @@ impl NFSState {
             };
         } else if r.procedure == NFSPROC3_WRITE {
             if let Ok((_, rd)) = parse_nfs3_request_write(r.prog_data, true) {
+                xidmap.file_handle = rd.handle.value.to_vec();
                 self.process_write_record(flow, r, &rd);
             } else {
                 self.set_event(NFSEvent::MalformedData);
@@ -148,10 +149,12 @@ impl NFSState {
                         tdf.file_last_xid = r.hdr.xid;
                         tx.is_last = true;
                         tx.request_done = true;
-                        // The WRITE replies carried no file data and file txs
-                        // are invisible to the reply path's xid lookup, so
-                        // complete the response side here as well (COMMIT is
-                        // the explicit "all writes done" signal for this file).
+                        // The WRITE replies carried no file data, so nothing
+                        // is left to wait for: COMMIT is the explicit "all
+                        // writes done" signal for this file and closes the
+                        // response side. A write reply that arrives after the
+                        // COMMIT is logged too late to reach the record (see
+                        // the 9.0 logging notes).
                         tx.response_done = true;
                         tx.is_file_closed = true;
                     }
@@ -417,6 +420,11 @@ impl NFSState {
         );
 
         if xidmap.procedure != NFSPROC3_READ {
+            let write_handle = if xidmap.procedure == NFSPROC3_WRITE {
+                xidmap.file_handle.as_slice()
+            } else {
+                &[]
+            };
             self.mark_response_tx_done(
                 flow,
                 r.hdr.xid,
@@ -424,6 +432,7 @@ impl NFSState {
                 nfs_status,
                 nfs_status_set,
                 &resp_handle,
+                write_handle,
             );
         }
     }

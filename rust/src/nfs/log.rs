@@ -121,7 +121,16 @@ fn nfs_handle2crc(bytes: &[u8]) -> u32 {
 fn nfs_common_header(
     state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder,
 ) -> Result<(), JsonError> {
-    js.set_uint("version", state.nfs_version as u64)?;
+    // the transaction's own version when it has one: a record logged before
+    // the first reply would otherwise report 0
+    js.set_uint(
+        "version",
+        if tx.nfs_version != 0 {
+            tx.nfs_version as u64
+        } else {
+            state.nfs_version as u64
+        },
+    )?;
     js.set_string("procedure", &nfs_proc_name(state, tx).to_uppercase())?;
     let file_name = String::from_utf8_lossy(&tx.file_name);
     js.set_string("filename", &file_name)?;
@@ -138,7 +147,7 @@ fn nfs_common_header(
 }
 
 fn nfs_log_response(
-    state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder,
+    state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder, status_required: bool,
 ) -> Result<(), JsonError> {
     nfs_common_header(state, tx, js)?;
     js.set_string("type", "response")?;
@@ -149,7 +158,7 @@ fn nfs_log_response(
     // (e.g. 10008 is DELAY in v4, JUKEBOX in v3).
     // Only log the status when the reply actually carried a status word:
     // an empty status on a truncated reply would read as a fake OK
-    if tx.nfs_status_set {
+    if tx.nfs_status_set || !status_required {
         let status = if state.nfs_version == 4 {
             nfs4_status_string(tx.nfs_response_status)
         } else {
@@ -195,7 +204,22 @@ fn nfs_log_response(
 pub extern "C" fn SCNfsLogJsonResponse(
     state: &mut NFSState, tx: &NFSTransaction, js: &mut JsonBuilder,
 ) -> bool {
-    nfs_log_response(state, tx, js).is_ok()
+    nfs_log_response(state, tx, js, true).is_ok()
+}
+
+/// nfs block of an alert or fileinfo record: taken from the transaction while
+/// it may still be open (an alert can be raised on the request packet), so an
+/// unset status is reported as mainline does rather than dropped. Event-only
+/// transactions are skipped: nothing was parsed as a call, so the fields would
+/// be whatever the record mark happened to look like.
+#[no_mangle]
+pub extern "C" fn SCNfsLogJsonResponseMetadata(
+    state: &mut NFSState, tx: &NFSTransaction, js: &mut JsonBuilder,
+) -> bool {
+    if tx.is_event_only {
+        return false;
+    }
+    nfs_log_response(state, tx, js, false).is_ok()
 }
 
 fn rpc_log_response(tx: &NFSTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
@@ -212,5 +236,9 @@ fn rpc_log_response(tx: &NFSTransaction, js: &mut JsonBuilder) -> Result<(), Jso
 
 #[no_mangle]
 pub extern "C" fn SCNfsRpcLogJsonResponse(tx: &NFSTransaction, js: &mut JsonBuilder) -> bool {
+    // no RPC reply behind an event-only tx: xid and status would be invented
+    if tx.is_event_only {
+        return false;
+    }
     rpc_log_response(tx, js).is_ok()
 }
