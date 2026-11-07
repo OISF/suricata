@@ -167,11 +167,14 @@ fn nfs4_parse_getattr_attrs(i: &[u8]) -> IResult<&[u8], Nfs4Attr> {
         };
         if matches!(bit, FATTR4_MAXREAD | FATTR4_MAXWRITE) && rest.len() >= 8 {
             let v = u64::from_be_bytes(rest[..8].try_into().unwrap());
+            // attr4_type is a uint64; the ceilings are compared as u32, so
+            // saturate rather than wrap (a wrapped 2 GiB+1 would read as 1)
+            let v = u32::try_from(v).unwrap_or(u32::MAX);
             match bit {
                 FATTR4_MAXREAD => {
-                    max_read = Some(v as u32);
+                    max_read = Some(v);
                 }
-                _ => max_write = Some(v as u32),
+                _ => max_write = Some(v),
             }
         }
         if rest.len() < skip {

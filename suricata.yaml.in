@@ -1120,8 +1120,9 @@ app-layer:
       #filter:
       #  - GETATTR
 
-      # Stream reassembly size for NFS streams. By default track it completely.
-      #stream-depth: 0
+      # Stream reassembly size override for NFS streams. When unset the
+      # global stream.reassembly.depth applies.
+      #stream-depth: 1mb
     tftp:
       enabled: yes
     dns:
