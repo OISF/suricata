@@ -35,6 +35,11 @@ typedef enum { DPDK_COPY_MODE_NONE, DPDK_COPY_MODE_TAP, DPDK_COPY_MODE_IPS } Dpd
 
 #define DPDK_BURST_TX_WAIT_US 1
 
+#define DPDK_RX_BURST_SIZE           32U
+#define DPDK_RX_BURST_ALIGNMENT      8U // vectorized PMDs require power of 2, 4+
+#define DPDK_RX_DRAIN_BUDGET         1024U
+#define DPDK_BACKLOG_PROCESS_QUANTUM 8U
+
 /* DPDK Flags */
 // General flags
 #define DPDK_PROMISC   (1 << 0) /**< Promiscuous mode */
@@ -71,6 +76,7 @@ typedef struct DPDKIfaceConfig_ {
     uint16_t nb_rx_desc;
     uint16_t nb_tx_queues;
     uint16_t nb_tx_desc;
+    uint32_t rx_backlog_size;
     uint32_t queue_mempool_size;
     uint32_t mempool_cache_size;
     bool mempool_cache_size_auto; // auto cache size based on mempool size

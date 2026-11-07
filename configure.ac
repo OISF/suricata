@@ -1434,10 +1434,10 @@
         fi
 
         AC_DEFINE([HAVE_DPDK],[1],(DPDK support enabled))
-        PKG_CHECK_EXISTS(libdpdk >= 19.11, , [with_pkgconfig_libdpdk=no])
+        PKG_CHECK_EXISTS(libdpdk >= 21.11, , [with_pkgconfig_libdpdk=no])
         if test "$with_pkgconfig_libdpdk" = "no"; then
             echo
-            echo "   ERROR! libdpdk >= 19.11 not found by pkg-config, go get it"
+            echo "   ERROR! libdpdk >= 21.11 not found by pkg-config, go get it"
             echo "   from https://www.dpdk.org/ or your distribution:"
             echo
             echo "   Ubuntu: apt-get install dpdk-dev"
@@ -1452,11 +1452,7 @@
         if test ! -z "$(ldconfig -p | grep librte_net_bond)"; then
             AC_DEFINE([HAVE_DPDK_BOND],[1],(DPDK Bond PMD support enabled))
             enable_dpdk_bond_pmd="yes"
-            LIBS="${LIBS} -lrte_net_bond" # 20.11+
-        elif test ! -z "$(ldconfig -p | grep librte_pmd_bond)"; then
-            AC_DEFINE([HAVE_DPDK_BOND],[1],(DPDK Bond PMD support enabled))
-            enable_dpdk_bond_pmd="yes"
-            LIBS="${LIBS} -lrte_pmd_bond"
+            LIBS="${LIBS} -lrte_net_bond"
         else
             echo
             echo "  WARNING: DPDK Bond PMD was not found on your system, "

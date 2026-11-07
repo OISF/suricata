@@ -87,6 +87,7 @@
 #include "util-hash.h"
 #include "util-hashlist.h"
 #include "util-pool.h"
+#include "util-ring-buffer.h"
 #include "util-byte.h"
 #include "util-file.h"
 #include "util-proto-name.h"
@@ -146,6 +147,7 @@ static void RegisterUnittests(void)
     HashTableRegisterTests();
     HashListTableRegisterTests();
     PoolRegisterTests();
+    SCRingBufferRegisterTests();
     ByteRegisterTests();
     MpmRegisterTests();
     FlowBitRegisterTests();
