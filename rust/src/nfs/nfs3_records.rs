@@ -420,9 +420,104 @@ pub fn parse_nfs3_reply_read(i: &[u8], complete: bool) -> IResult<&[u8], NfsRepl
     Ok((i, reply))
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct Nfs3Fsinfores {
+    pub status: u32,
+    /// maximum size for reads (rtmax) that the server supports
+    pub rtm: u32,
+    /// recommended size for reads
+    pub rtpref: u32,
+    /// maximum size for writes (wtmax) that the server supports
+    pub wtm: u32,
+    /// recommended size for writes
+    pub wtpref: u32,
+    /// preferred transfer size for directory operations
+    pub dtpref: u32,
+    /// no-vec memory size
+    pub nvmem: u32,
+    /// maximum number of bytes per READDIR/READDIRPLUS
+    pub maxcount: u32,
+}
+
+pub fn parse_nfs3_response_fsinfo(i: &[u8]) -> IResult<&[u8], Nfs3Fsinfores> {
+    let (i, status) = be_u32(i)?;
+    if status == 0 {
+        // nfs3_fsinforesok: tsz rtm rtpref wtm wtpref dtpref nvmem maxcount
+        let (i, _tsz) = be_u32(i)?;
+        let (i, rtm) = be_u32(i)?;
+        let (i, rtpref) = be_u32(i)?;
+        let (i, wtm) = be_u32(i)?;
+        let (i, wtpref) = be_u32(i)?;
+        let (i, dtpref) = be_u32(i)?;
+        let (i, nvmem) = be_u32(i)?;
+        let (i, maxcount) = be_u32(i)?;
+        Ok((
+            i,
+            Nfs3Fsinfores {
+                status,
+                rtm,
+                rtpref,
+                wtm,
+                wtpref,
+                dtpref,
+                nvmem,
+                maxcount,
+            },
+        ))
+    } else {
+        Ok((
+            i,
+            Nfs3Fsinfores {
+                status,
+                rtm: 0,
+                rtpref: 0,
+                wtm: 0,
+                wtpref: 0,
+                dtpref: 0,
+                nvmem: 0,
+                maxcount: 0,
+            },
+        ))
+    }
+}
+
+/// Unit tests
 #[cfg(test)]
 mod tests {
     use crate::nfs::nfs3_records::*;
+
+    #[test]
+    fn test_nfs3_response_fsinfo() {
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, /*status: NFS3_OK (0)*/
+            0x00, 0x00, 0x00, 0x20, /*tsz: 32*/
+            0x00, 0x01, 0x00, 0x00, /*rtm (rtmax): 65536*/
+            0x00, 0x00, 0x04, 0x00, /*rtpref: 1024*/
+            0x00, 0x01, 0x00, 0x00, /*wtm (wtmax): 65536*/
+            0x00, 0x00, 0x04, 0x00, /*wtpref: 1024*/
+            0x00, 0x00, 0x04, 0x00, /*dtpref: 1024*/
+            0x00, 0x00, 0x08, 0x00, /*nvmem: 2048*/
+            0x00, 0x01, 0x00, 0x00, /*maxcount: 65536*/
+            0x00, /*streaming be_u32 lookahead guard*/
+        ];
+        let (_, response) = parse_nfs3_response_fsinfo(buf).unwrap();
+        assert_eq!(response.status, 0);
+        assert_eq!(response.rtm, 65536);
+        assert_eq!(response.rtpref, 1024);
+        assert_eq!(response.wtm, 65536);
+        assert_eq!(response.wtpref, 1024);
+        assert_eq!(response.dtpref, 1024);
+        assert_eq!(response.nvmem, 2048);
+        assert_eq!(response.maxcount, 65536);
+
+        // error status: no resok fields present
+        let errbuf: &[u8] = &[0x00, 0x00, 0x00, 0x05 /*status: NFS3ERR_IO (5)*/];
+        let (_, expected) = parse_nfs3_response_fsinfo(errbuf).unwrap();
+        assert_eq!(expected.status, 5);
+        assert_eq!(expected.rtm, 0);
+        assert_eq!(expected.wtm, 0);
+    }
 
     #[test]
     fn test_nfs3_response_create() {

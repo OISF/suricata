@@ -272,6 +272,26 @@ impl NFSState {
             } else {
                 self.set_event(NFSEvent::MalformedData);
             }
+        } else if xidmap.procedure == NFSPROC3_FSINFO {
+            // status from the record head, as READDIR and SETATTR do: a
+            // broken reply must not log as a fake OK
+            nfs_status = match parse_nfs3_response_fsinfo(r.prog_data) {
+                Ok((_, rd)) => {
+                    if rd.status == 0 {
+                        self.fsinfo_max_read = rd.rtm;
+                        self.fsinfo_max_write = rd.wtm;
+                        SCLogDebug!("FSINFO: max read {} max write {}", rd.rtm, rd.wtm);
+                    }
+                    rd.status
+                }
+                Err(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                    match be_u32(r.prog_data) as IResult<&[u8], _> {
+                        Ok((_, stat)) => stat,
+                        _ => 0,
+                    }
+                }
+            };
         }
         // for all other record types only parse the status
         else {
