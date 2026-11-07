@@ -92,6 +92,7 @@ impl NFSState {
             };
         } else if r.procedure == NFSPROC3_WRITE {
             if let Ok((_, rd)) = parse_nfs3_request_write(r.prog_data, true) {
+                xidmap.file_handle = rd.handle.value.to_vec();
                 self.process_write_record(flow, r, &rd);
             } else {
                 self.set_event(NFSEvent::MalformedData);
@@ -417,6 +418,11 @@ impl NFSState {
         );
 
         if xidmap.procedure != NFSPROC3_READ {
+            let write_handle = if xidmap.procedure == NFSPROC3_WRITE {
+                xidmap.file_handle.as_slice()
+            } else {
+                &[]
+            };
             self.mark_response_tx_done(
                 flow,
                 r.hdr.xid,
@@ -424,6 +430,7 @@ impl NFSState {
                 nfs_status,
                 nfs_status_set,
                 &resp_handle,
+                write_handle,
             );
         }
     }

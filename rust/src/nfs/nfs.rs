@@ -897,7 +897,7 @@ impl NFSState {
     // TODO maybe not enough users to justify a func
     pub fn mark_response_tx_done(
         &mut self, flow: *mut Flow, xid: u32, rpc_status: u32, nfs_status: u32,
-        nfs_status_set: bool, resp_handle: &[u8],
+        nfs_status_set: bool, resp_handle: &[u8], write_handle: &[u8],
     ) {
         if let Some(mytx) = self.get_tx_by_xid(xid) {
             mytx.tx_data.0.updated_tc = true;
@@ -918,17 +918,52 @@ impl NFSState {
                 mytx.response_done
             );
             sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
-        } else if let Some(tx) = self.get_write_file_tx_by_xid(xid) {
+        } else if let Some(tx) = self.get_write_file_tx(xid, write_handle) {
             // A WRITE reply belongs to a file tx, which is keyed by handle
             // and so invisible to get_tx_by_xid. Only the status travels
             // here: the done flags are the write path's (see
-            // process_write_record), so a reply must not close the tx.
-            tx.rpc_response_status = rpc_status;
-            tx.nfs_response_status = nfs_status;
-            tx.nfs_status_set = nfs_status_set;
-            tx.tx_data.0.updated_tc = true;
-            tx.tx_data.0.updated_ts = true;
+            // process_write_record), so a reply must not close the tx. No
+            // update flags either, they would pull an already logged tx back
+            // into the tx loop and reorder the tx ids alerts point at.
+            //
+            // First status seen wins, as on the read path, so a later OK
+            // reply cannot hide an earlier error.
+            if !tx.nfs_status_set {
+                tx.rpc_response_status = rpc_status;
+                tx.nfs_response_status = nfs_status;
+                tx.nfs_status_set = nfs_status_set;
+            }
         }
+    }
+
+    /// The file tx a WRITE reply belongs to.
+    ///
+    /// An open tx is found by handle: a write spread over several chunks has
+    /// several xids in flight, and the one logged last is not necessarily the
+    /// one being answered. A closed tx is still found by xid, which is how a
+    /// FILE_SYNC write is reached after being completed from the request.
+    fn get_write_file_tx(&mut self, xid: u32, handle: &[u8]) -> Option<&mut NFSTransaction> {
+        if !handle.is_empty() {
+            if let Some(i) = self.find_open_file_tx(handle) {
+                return self.transactions.get_mut(i);
+            }
+        }
+        self.get_write_file_tx_by_xid(xid)
+    }
+
+    /// Index of the open file tx for a handle, without touching any flag.
+    fn find_open_file_tx(&self, file_handle: &[u8]) -> Option<usize> {
+        let fh = file_handle.to_vec();
+        self.transactions.iter().position(|tx| {
+            if let Some(NFSTransactionTypeData::FILE(ref d)) = tx.type_data {
+                tx.is_file_tx
+                    && !tx.is_file_closed
+                    && d.direction == Direction::ToServer
+                    && tx.file_handle == fh
+            } else {
+                false
+            }
+        })
     }
 
     /// The file tx whose most recent WRITE chunk carried this xid.
@@ -1542,8 +1577,11 @@ impl NFSState {
                         );
                         tdf.chunk_count += 1;
                         tdf.note_chunk_data(w.offset, w.file_data.len() as u64);
+                        // The WRITE reply is matched to this tx by xid, and it
+                        // carries a status whether or not the write was
+                        // FILE_SYNC, so record the xid on every chunk.
+                        tdf.file_last_xid = r.hdr.xid;
                         if is_last {
-                            tdf.file_last_xid = r.hdr.xid;
                             tx.is_last = true;
                             // mainline: a FILE_SYNC write settles the response
                             // side of the file tx here (the reply path skips
@@ -1553,11 +1591,11 @@ impl NFSState {
                             if !is_partial {
                                 tx.request_done = true;
                                 tx.is_file_closed = true;
-                                sc_app_layer_parser_trigger_raw_stream_inspection(
-                                    flow,
-                                    Direction::ToClient as i32,
-                                );
                             }
+                            sc_app_layer_parser_trigger_raw_stream_inspection(
+                                flow,
+                                Direction::ToClient as i32,
+                            );
                         }
                     }
                     if fsinfo_exceeded {
@@ -1600,8 +1638,11 @@ impl NFSState {
                     );
                     tdf.note_chunk_data(w.offset, w.file_data.len() as u64);
                 }
-                if is_last && !queue_exceeded {
+                // see the branch above: the reply finds the tx by xid
+                if !queue_exceeded {
                     tdf.file_last_xid = r.hdr.xid;
+                }
+                if is_last && !queue_exceeded {
                     tx.is_last = true;
                     /* if this is a partial record we will close the tx
                      * when we've received the final data */
@@ -2146,15 +2187,9 @@ impl NFSState {
                                     tx.is_last = true;
                                 }
                                 tx.request_done = true;
-                                // WRITE reply path never reaches file txs (see
-                                // process_write_record), so complete the response
-                                // side here as well: without this a single-write
-                                // file transfer that finished in the chunk path
-                                // would only complete at flow teardown.
-                                tx.response_done = true;
                                 tx.is_file_closed = true;
                                 SCLogDebug!(
-                                    "TX {} is done now that the file track is ready",
+                                    "TX {} request is done now that the file track is ready",
                                     tx.id
                                 );
                                 if !flow.is_null() {
@@ -4673,6 +4708,37 @@ mod tests {
         reject_tx(&state, false, NFSPROC4_COMPOUND);
         assert_eq!(state.transactions[0].xid, 0x6200);
         assert_eq!(state.skip_tc, 0);
+    }
+
+    #[test]
+    fn test_write_reply_lands_on_the_open_file_tx() {
+        // The reply side finds a write's file tx through the xid of its last
+        // chunk. An UNSTABLE write is never marked last, so the xid has to be
+        // recorded on every chunk: without it an answered write logs with no
+        // status, and the reply must still not close the tx.
+        let mut state = NFSState::new();
+        let handle = b"handle".to_vec();
+        {
+            let tx = state.new_file_tx(&handle, b"f", Direction::ToServer);
+            tx.procedure = NFSPROC3_WRITE;
+            tx.request_done = true;
+            if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                tdf.file_last_xid = 0x99;
+            }
+        }
+        state.mark_response_tx_done(std::ptr::null_mut(), 0x99, 0, 5, true, &[], &[]);
+        let tx = &state.transactions[0];
+        assert!(tx.nfs_status_set);
+        assert_eq!(tx.nfs_response_status, 5);
+        assert!(!tx.response_done);
+
+        // A multi-chunk write has several xids in flight, so the reply to an
+        // earlier chunk is found by handle, and must not undo the status
+        // already seen.
+        state.mark_response_tx_done(std::ptr::null_mut(), 0x88, 0, 0, true, &[], &handle);
+        let tx = &state.transactions[0];
+        assert_eq!(tx.nfs_response_status, 5);
+        assert!(!tx.response_done);
     }
 
     #[test]

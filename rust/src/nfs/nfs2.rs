@@ -183,6 +183,11 @@ impl NFSState {
             r.prog_data.len()
         );
 
+        let write_handle = if xidmap.procedure == NFSPROC2_WRITE {
+            xidmap.file_handle.as_slice()
+        } else {
+            &[]
+        };
         self.mark_response_tx_done(
             flow,
             r.hdr.xid,
@@ -190,6 +195,7 @@ impl NFSState {
             nfs_status,
             nfs_status_set,
             &resp_handle,
+            write_handle,
         );
     }
 }

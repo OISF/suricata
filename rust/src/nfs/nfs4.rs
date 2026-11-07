@@ -156,16 +156,18 @@ impl NFSState {
                         );
                         tdf.chunk_count += 1;
                         tdf.note_chunk_data(w.offset, w.data.len() as u64);
+                        // the WRITE reply is matched to this tx by xid, and it
+                        // carries a status for UNSTABLE writes too
+                        tdf.file_last_xid = r.hdr.xid;
                         if is_last {
-                            tdf.file_last_xid = r.hdr.xid;
                             tx.is_last = true;
                             tx.request_done = true;
                             // Same is_last split-record handling as the new-tx
-                            // branch: only mark the response side (and close)
-                            // once the tracker is done. is_finished() also
+                            // branch: a partial record stays open and is
+                            // completed by the chunk path; is_finished() also
                             // covers an overlapping final write, which
                             // truncates the tracker while it stays open.
-                            if tdf.file_tracker.is_finished() {
+                            if w.data.len() >= w.write_len as usize {
                                 tx.response_done = true;
                                 tx.is_file_closed = true;
                             }
@@ -209,17 +211,18 @@ impl NFSState {
                     );
                     tdf.note_chunk_data(w.offset, w.data.len() as u64);
                 }
-                if is_last && !queue_exceeded {
+                // see above: the reply finds the tx by xid
+                if !queue_exceeded {
                     tdf.file_last_xid = r.hdr.xid;
+                }
+                if is_last && !queue_exceeded {
                     tx.is_last = true;
                     tx.request_done = true;
                     // Same is_last split-record handling as the v3 write
-                    // path: stay open until the tracker is done, and mark
-                    // the response side there (a WRITE reply carries no file
-                    // data and file txs are invisible to the reply path).
-                    // is_finished() also covers an overlapping final write,
-                    // which truncates the tracker while it stays open.
-                    if tdf.file_tracker.is_finished() {
+                    // path: a partial record stays open and completes in the
+                    // chunk path; is_finished() also covers an overlapping
+                    // final write, which truncates the tracker while open.
+                    if w.data.len() >= w.write_len as usize && tdf.file_tracker.is_finished() {
                         tx.response_done = true;
                         tx.is_file_closed = true;
                     }
@@ -353,6 +356,7 @@ impl NFSState {
                 Nfs4RequestContent::Write(ref rd) => {
                     SCLogDebug!("WRITEv4: {:?}", rd);
                     if let Some(fh) = last_putfh {
+                        xidmap.file_handle = fh.to_vec();
                         self.write_v4(r, rd, fh);
                     }
                 }
@@ -721,7 +725,20 @@ impl NFSState {
             cr.status
         };
         let resp_handle = Vec::new();
-        self.mark_response_tx_done(flow, r.hdr.xid, r.reply_state, status, true, &resp_handle);
+        let write_handle = if xidmap.procedure == NFSPROC4_WRITE {
+            xidmap.file_handle.as_slice()
+        } else {
+            &[]
+        };
+        self.mark_response_tx_done(
+            flow,
+            r.hdr.xid,
+            r.reply_state,
+            status,
+            true,
+            &resp_handle,
+            write_handle,
+        );
     }
 
     pub fn process_reply_record_v4(

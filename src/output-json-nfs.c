@@ -64,7 +64,7 @@ bool EveNFSAddMetadata(const Flow *f, uint64_t tx_id, SCJsonBuilder *jb)
     if (state) {
         NFSTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_NFS, state, tx_id);
         if (tx) {
-            return SCNfsLogJsonResponse(state, tx, jb);
+            return SCNfsLogJsonResponseMetadata(state, tx, jb);
         }
     }
     return false;

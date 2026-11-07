@@ -247,9 +247,9 @@ pub fn parse_nfs3_request_lookup(i: &[u8]) -> IResult<&[u8], Nfs3RequestLookup<'
 /// fattr3 (RFC 1813 3.2.4): 84 bytes. size/used are size3 = uint64
 /// (RFC 1813 3.1.2), so the attr block is 4 + 80.
 fn parse_nfs3_fattr3(i: &[u8]) -> IResult<&[u8], u32> {
-    // RFC 1813 2.12 defines 1..=6 (NF3FIFO=6); RFC 1094 numbers FIFO 7 and
-    // servers emit 0 for "unknown" (and zero-filled attr blocks), so reject
-    // only what is clearly not a type. Mainline never validated this.
+    // RFC 1813 2.6 numbers ftype3 0..=7 (NF3SOCK=6, NF3FIFO=7); RFC 1094 5.3
+    // stops at 5. Servers also emit 0 in zero-filled attr blocks, so reject
+    // only what cannot be a type. Mainline never validated this.
     let (i, ftype) = verify(be_u32, |&v| v <= 7)(i)?;
     let (i, _attr) = take(80_usize)(i)?;
     Ok((i, ftype))
