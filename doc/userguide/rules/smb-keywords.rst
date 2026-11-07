@@ -7,6 +7,10 @@ SMB Keywords
 
 SMB keywords used in both SMB1 and SMB2 protocols.
 
+SMB registers no name buffer of its own, because its names always come with a
+file, a pipe (``smb.named_pipe``) or a share (``smb.share``); SMB file names
+are matched with ``file.name`` (see :doc:`file-keywords`).
+
 smb.named_pipe
 --------------
 
