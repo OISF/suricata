@@ -49,7 +49,9 @@ impl NFSState {
         }
 
         if r.procedure == NFSPROC3_LOOKUP {
-            self.process_request_record_lookup(r, &mut xidmap);
+            if !self.process_request_record_lookup(r, &mut xidmap) {
+                malformed = true;
+            }
         } else if r.procedure == NFSPROC3_ACCESS {
             if let Ok((_, rd)) = parse_nfs3_request_access(r.prog_data) {
                 xidmap.file_handle = rd.handle.value.to_vec();

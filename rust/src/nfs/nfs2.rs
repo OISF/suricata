@@ -39,6 +39,9 @@ impl NFSState {
 
         let mut xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
         let mut aux_file_name = Vec::new();
+        // Raised on the transaction this record creates: set_event() would land on an
+        // older one, or on nothing at all for the first record of a flow.
+        let mut malformed = false;
 
         // v2 uses its own opcode space (RFC 1094): it must not be matched
         // against the NFSPROC3_* values (e.g. v2 LOOKUP is 4, v3 is 3;
@@ -57,13 +60,13 @@ impl NFSState {
                 xidmap.file_handle = rd.handle.value.to_vec();
                 self.xidmap_handle2name(&mut xidmap);
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                malformed = true;
             }
         } else if r.procedure == NFSPROC2_LOOKUP {
             if let Ok((_, rd)) = parse_nfs2_request_lookup(r.prog_data) {
                 xidmap.file_name = rd.name_vec;
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                malformed = true;
             }
         } else if r.procedure == NFSPROC2_CREATE
             || r.procedure == NFSPROC2_REMOVE
@@ -77,7 +80,7 @@ impl NFSState {
                 xidmap.file_handle = rd.handle.value.to_vec();
                 xidmap.file_name = rd.name_vec;
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                malformed = true;
             }
         } else if r.procedure == NFSPROC2_RENAME {
             if let Ok((_, rd)) = parse_nfs2_request_rename(r.prog_data) {
@@ -85,14 +88,14 @@ impl NFSState {
                 xidmap.file_name = rd.from_name_vec;
                 aux_file_name = rd.to_name_vec;
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                malformed = true;
             }
         } else if r.procedure == NFSPROC2_LINK {
             if let Ok((_, rd)) = parse_nfs2_request_link(r.prog_data) {
                 xidmap.file_handle = rd.linkdir.value.to_vec();
                 xidmap.file_name = rd.linkname_vec;
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                malformed = true;
             }
         } else if r.procedure == NFSPROC2_READ {
             if let Ok((_, rd)) = parse_nfs2_request_read(r.prog_data) {
@@ -110,6 +113,9 @@ impl NFSState {
         // limit. Only READ is tracked as a file.
         if r.procedure != NFSPROC2_READ {
             let mut tx = self.new_tx();
+            if malformed {
+                tx.tx_data.set_event(NFSEvent::MalformedData as u8);
+            }
             tx.xid = r.hdr.xid;
             tx.procedure = r.procedure;
             tx.request_done = true;
