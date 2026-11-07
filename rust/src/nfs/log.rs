@@ -41,6 +41,11 @@ fn nfs_proc_name(state: &NFSState, tx: &NFSTransaction) -> String {
 
 #[no_mangle]
 pub extern "C" fn SCNfsTxLoggingIsFiltered(state: &mut NFSState, tx: &NFSTransaction) -> u8 {
+    // A tx created only to carry an app-layer event has no request and no
+    // reply: logging it would invent a procedure (0, i.e. NULL).
+    if tx.is_event_only {
+        return 1;
+    }
     // When app-layer.protocols.nfs.filter is set -- even to an empty
     // list -- its procedure names (case-insensitive, matched against
     // the transaction's version) define exactly which transactions are
@@ -134,7 +139,34 @@ fn nfs_log_response(
     nfs_common_header(state, tx, js)?;
     js.set_string("type", "response")?;
 
-    js.set_string("status", &nfs3_status_string(tx.nfs_response_status))?;
+    // The status name depends on the version: v4 has its own error
+    // number space (RFC 7530 nfsstat4) that diverges from v3 in the
+    // 10000s, so naming a v4 status from the v3 table would be wrong
+    // (e.g. 10008 is DELAY in v4, JUKEBOX in v3).
+    // Only log the status when the reply actually carried a status word:
+    // an empty status on a truncated reply would read as a fake OK
+    if tx.nfs_status_set {
+        let status = if state.nfs_version == 4 {
+            nfs4_status_string(tx.nfs_response_status)
+        } else {
+            nfs3_status_string(tx.nfs_response_status)
+        };
+        js.set_string("status", &status)?;
+        // Numeric status code (SMB parity: status + status_code).
+        js.set_uint("status_code", tx.nfs_response_status as u64)?;
+    }
+
+    // v4 session identity (RFC 7530): the minor version of the
+    // compounds on this flow and the 8-byte client identifier
+    // (clientid4) when observed. Session id (v4.1 CREATE_SESSION
+    // ssn_id) is not logged: the CREATE_SESSION parser's field sizes
+    // diverge from the RFC (ssn_id read as 16 bytes, not 8).
+    if state.nfs_version == 4 {
+        js.set_uint("minorversion", state.minorversion as u64)?;
+        if let Some(ref cid) = state.client_id {
+            js.set_hex("client_id", cid)?;
+        }
+    }
 
     if nfs_is_read(state.nfs_version, tx.procedure) {
         js.open_object("read")?;

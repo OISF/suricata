@@ -40,6 +40,29 @@ pub enum NfsProc2 {
     STATFS = 17,
 }
 
+/* RFC 1094, section '2.2 Server Procedures' -- note the v2 opcode
+ * space differs from v3 (e.g. LOOKUP is 4 in v2, 3 in v3; WRITE is 8
+ * in v2, 7 in v3). The v2 state machine must match these, not the
+ * NFSPROC3_* values. */
+pub const NFSPROC2_NULL: u32 = 0;
+pub const NFSPROC2_GETATTR: u32 = 1;
+pub const NFSPROC2_SETATTR: u32 = 2;
+pub const NFSPROC2_ROOT: u32 = 3;
+pub const NFSPROC2_LOOKUP: u32 = 4;
+pub const NFSPROC2_READLINK: u32 = 5;
+pub const NFSPROC2_READ: u32 = 6;
+pub const NFSPROC2_WRITECACHE: u32 = 7;
+pub const NFSPROC2_WRITE: u32 = 8;
+pub const NFSPROC2_CREATE: u32 = 9;
+pub const NFSPROC2_REMOVE: u32 = 10;
+pub const NFSPROC2_RENAME: u32 = 11;
+pub const NFSPROC2_LINK: u32 = 12;
+pub const NFSPROC2_SYMLINK: u32 = 13;
+pub const NFSPROC2_MKDIR: u32 = 14;
+pub const NFSPROC2_RMDIR: u32 = 15;
+pub const NFSPROC2_READDIR: u32 = 16;
+pub const NFSPROC2_STATFS: u32 = 17;
+
 /* RFC 1813, section '3. Server Procedures' */
 pub const NFSPROC3_NULL: u32 = 0;
 pub const NFSPROC3_GETATTR: u32 = 1;
@@ -154,6 +177,86 @@ pub fn nfs3_status_string(status: u32) -> String {
         NFS3ERR_SERVERFAULT => "ERR_SERVERFAULT",
         NFS3ERR_BADTYPE => "ERR_BADTYPE",
         NFS3ERR_JUKEBOX => "ERR_JUKEBOX",
+        _ => {
+            return (status).to_string();
+        }
+    }
+    .to_string()
+}
+
+// NFSv4 (RFC 7530, section 13.1 "Error Definitions") defines its own
+// error number space. It reuses the NFSv3 values for the common errors
+// but diverges in the 10000s (e.g. 10008 is DELAY in v4 but JUKEBOX in
+// v3, and v4 adds SAME/DENIED/EXPIRED/... down to 10048). A v4 status
+// must therefore not be named from the v3 table.
+pub fn nfs4_status_string(status: u32) -> String {
+    match status {
+        0 => "OK",
+        1 => "ERR_PERM",
+        2 => "ERR_NOENT",
+        5 => "ERR_IO",
+        6 => "ERR_NXIO",
+        13 => "ERR_ACCESS",
+        17 => "ERR_EXIST",
+        18 => "ERR_XDEV",
+        20 => "ERR_NOTDIR",
+        21 => "ERR_ISDIR",
+        22 => "ERR_INVAL",
+        27 => "ERR_FBIG",
+        28 => "ERR_NOSPC",
+        30 => "ERR_ROFS",
+        31 => "ERR_MLINK",
+        63 => "ERR_NAMETOOLONG",
+        66 => "ERR_NOTEMPTY",
+        69 => "ERR_DQUOT",
+        70 => "ERR_STALE",
+        10001 => "ERR_BADHANDLE",
+        10003 => "ERR_BAD_COOKIE",
+        10004 => "ERR_NOTSUPP",
+        10005 => "ERR_TOOSMALL",
+        10006 => "ERR_SERVERFAULT",
+        10007 => "ERR_BADTYPE",
+        10008 => "ERR_DELAY",
+        10009 => "ERR_SAME",
+        10010 => "ERR_DENIED",
+        10011 => "ERR_EXPIRED",
+        10012 => "ERR_LOCKED",
+        10013 => "ERR_GRACE",
+        10014 => "ERR_FHEXPIRED",
+        10015 => "ERR_SHARE_DENIED",
+        10016 => "ERR_WRONGSEC",
+        10017 => "ERR_CLID_INUSE",
+        10018 => "ERR_RESOURCE",
+        10019 => "ERR_MOVED",
+        10020 => "ERR_NOFILEHANDLE",
+        10021 => "ERR_MINOR_VERS_MISMATCH",
+        10022 => "ERR_STALE_CLIENTID",
+        10023 => "ERR_STALE_STATEID",
+        10024 => "ERR_OLD_STATEID",
+        10025 => "ERR_BAD_STATEID",
+        10026 => "ERR_BAD_SEQID",
+        10027 => "ERR_NOT_SAME",
+        10028 => "ERR_LOCK_RANGE",
+        10029 => "ERR_SYMLINK",
+        10030 => "ERR_RESTOREFH",
+        10031 => "ERR_LEASE_MOVED",
+        10032 => "ERR_ATTRNOTSUPP",
+        10033 => "ERR_NO_GRACE",
+        10034 => "ERR_RECLAIM_BAD",
+        10035 => "ERR_RECLAIM_CONFLICT",
+        10036 => "ERR_BADXDR",
+        10037 => "ERR_LOCKS_HELD",
+        10038 => "ERR_OPENMODE",
+        10039 => "ERR_BADOWNER",
+        10040 => "ERR_BADCHAR",
+        10041 => "ERR_BADNAME",
+        10042 => "ERR_BAD_RANGE",
+        10043 => "ERR_LOCK_NOTSUPP",
+        10044 => "ERR_OP_ILLEGAL",
+        10045 => "ERR_DEADLOCK",
+        10046 => "ERR_FILE_OPEN",
+        10047 => "ERR_ADMIN_REVOKED",
+        10048 => "ERR_CB_PATH_DOWN",
         _ => {
             return (status).to_string();
         }
@@ -346,5 +449,23 @@ pub(super) fn nfs_is_rename(version: u16, proc: u32) -> bool {
         3 => proc == (NfsProc3::RENAME as u32),
         4 => proc == (NfsProc4::RENAME as u32),
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_nfs4_status_string() {
+        assert_eq!(nfs4_status_string(0), "OK");
+        assert_eq!(nfs4_status_string(1), "ERR_PERM");
+        assert_eq!(nfs4_status_string(70), "ERR_STALE");
+        // the v3/v4 divergence: 10008 is DELAY in v4, JUKEBOX in v3
+        assert_eq!(nfs4_status_string(10008), "ERR_DELAY");
+        assert_eq!(nfs3_status_string(10008), "ERR_JUKEBOX");
+        assert_eq!(nfs4_status_string(10048), "ERR_CB_PATH_DOWN");
+        // undefined value falls back to the numeric string
+        assert_eq!(nfs4_status_string(10049), "10049");
     }
 }

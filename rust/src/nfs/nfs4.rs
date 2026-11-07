@@ -285,6 +285,10 @@ impl NFSState {
         let mut main_opcode: u32 = 0;
         let mut aux_opcodes: Vec<u32> = Vec::new();
 
+        // v4 minor version of this COMPOUND: flow-level state so the
+        // records of this flow can carry it (SMB dialect parity).
+        self.minorversion = cr.minorversion;
+
         for c in &cr.commands {
             SCLogDebug!("c {:?}", c);
             match *c {
@@ -371,9 +375,12 @@ impl NFSState {
                     SCLogDebug!("DESTROY_SESSIONv4: {:?}", _rd);
                     main_opcode = v4_main_op_take(main_opcode, NFSPROC4_DESTROY_SESSION);
                 }
-                Nfs4RequestContent::CreateSession(ref _rd) => {
-                    SCLogDebug!("CREATE_SESSIONv4: {:?}", _rd);
+                Nfs4RequestContent::CreateSession(ref rd) => {
+                    SCLogDebug!("CREATE_SESSIONv4: {:?}", rd);
                     main_opcode = v4_main_op_take(main_opcode, NFSPROC4_CREATE_SESSION);
+                    // clientid4 (8 bytes) the client presents for this
+                    // session; keeps the flow-level client id current.
+                    self.client_id = <[u8; 8]>::try_from(rd.client_id).ok();
                 }
                 Nfs4RequestContent::ExchangeId(ref _rd) => {
                     SCLogDebug!("EXCHANGE_IDv4: {:?}", _rd);
@@ -587,10 +594,28 @@ impl NFSState {
 
                     take_main_op_status(NFSPROC4_CREATE_SESSION, s);
                 }
-                Nfs4ResponseContent::ExchangeId(s, _) => {
+                Nfs4ResponseContent::ExchangeId(s, Some(ref rd)) => {
                     SCLogDebug!("EXCHANGE_ID4: status {}", s);
 
                     take_main_op_status(NFSPROC4_EXCHANGE_ID, s);
+                    // clientid4 assigned by the server (EXCHANGE_ID is
+                    // the v4.2 way of establishing it).
+                    if s == NFS4_OK {
+                        self.client_id = <[u8; 8]>::try_from(rd.client_id).ok();
+                    }
+                }
+                Nfs4ResponseContent::SetClientId(s, client_id) => {
+                    SCLogDebug!("SETCLIENTID4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_SETCLIENTID, s);
+                    // clientid4 (8 bytes) assigned by the server:
+                    // flow-level v4 identity for the records that
+                    // follow. The request side creates no tx for
+                    // SETCLIENTID, so mark_response_tx_done below is a
+                    // silent no-op for it.
+                    if s == NFS4_OK {
+                        self.client_id = Some(client_id.to_be_bytes());
+                    }
                 }
                 Nfs4ResponseContent::Close(s, _) => {
                     SCLogDebug!("CLOSE4: status {}", s);
@@ -651,6 +676,7 @@ impl NFSState {
                 r.hdr.xid,
                 r.reply_state,
                 main_opcode_status,
+                true,
                 &resp_handle,
             );
         }
