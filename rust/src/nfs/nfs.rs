@@ -141,13 +141,30 @@ pub const NFS_MAX_METADATA_SIZE_DEFAULT: u32 = 16777216;
 /// Separate from max-read-size, which bounds READ data only.
 pub static mut NFS_CFG_MAX_METADATA_SIZE: u32 = NFS_MAX_METADATA_SIZE_DEFAULT;
 
-/// Sanity cap for the RPC record mark length field. The parser reads the
-/// field as raw 31 bits; legitimate marks can't claim more than ~1 MiB
-/// (v3 uses a 19-bit length field, v4 a 20-bit one) and no procedure can
-/// carry more than the 16 MiB max payload, so a claim above this is always
-/// forged and would otherwise drive TCP stream buffering toward the claimed
-/// size (attacker-rate-controlled app-layer stall + memory pin).
-const NFS_MAX_RECORD_LENGTH: usize = 16 * 1024 * 1024;
+/// Sanity cap for the RPC record mark length field: RFC 5531 11 defines it
+/// as 31 bits of byte count for every NFS version, so a forged mark can
+/// claim ~2 GiB and drive TCP stream buffering toward it (app-layer stall +
+/// memory pin). Floor independent of max-read-size/max-write-size: those are
+/// documented to be disabled by 0, but disabling them must not make the
+/// record framing unbounded. See record_length_cap.
+const NFS_MAX_RECORD_LENGTH: usize = 64 * 1024 * 1024;
+
+/// Largest record (mark + header) the parser will buffer: the floor, or a
+/// configured size limit above it, so that a user who raises max-write-size
+/// past the floor is not capped below their own setting.
+fn record_length_cap() -> usize {
+    let mut cap = NFS_MAX_RECORD_LENGTH;
+    for v in [
+        unsafe { NFS_CFG_MAX_READ_SIZE },
+        unsafe { NFS_CFG_MAX_WRITE_SIZE },
+        unsafe { NFS_CFG_MAX_METADATA_SIZE },
+    ] {
+        if v != 0 && v as usize >= cap {
+            cap = v as usize + 4;
+        }
+    }
+    cap
+}
 
 #[derive(AppLayerFrameType)]
 pub enum NFSFrameType {
@@ -901,9 +918,29 @@ impl NFSState {
                 mytx.response_done
             );
             sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
-        } else {
-            //SCLogNotice!("process_reply_record: not TX found for XID {}", r.hdr.xid);
+        } else if let Some(tx) = self.get_write_file_tx_by_xid(xid) {
+            // A WRITE reply belongs to a file tx, which is keyed by handle
+            // and so invisible to get_tx_by_xid. Only the status travels
+            // here: the done flags are the write path's (see
+            // process_write_record), so a reply must not close the tx.
+            tx.rpc_response_status = rpc_status;
+            tx.nfs_response_status = nfs_status;
+            tx.nfs_status_set = nfs_status_set;
+            tx.tx_data.0.updated_tc = true;
+            tx.tx_data.0.updated_ts = true;
         }
+    }
+
+    /// The file tx whose most recent WRITE chunk carried this xid.
+    fn get_write_file_tx_by_xid(&mut self, xid: u32) -> Option<&mut NFSTransaction> {
+        for tx in &mut self.transactions {
+            if let Some(NFSTransactionTypeData::FILE(ref tdf)) = tx.type_data {
+                if tx.is_file_tx && tdf.file_last_xid == xid && tdf.file_last_xid != 0 {
+                    return Some(tx);
+                }
+            }
+        }
+        None
     }
 
     fn add_rpc_udp_ts_pdu(
@@ -1262,6 +1299,13 @@ impl NFSState {
             r.prog_data.len()
         );
 
+        // set the flow version from the request: a transaction logged before
+        // the first reply (a WRITE completing on its request, a v2 WRITE)
+        // would otherwise report version 0
+        if self.nfs_version == 0 {
+            self.nfs_version = r.progver as u16;
+        }
+
         match r.progver {
             4 => {
                 self.add_nfs4_ts_frames(flow, stream_slice, r.prog_data, r.prog_data_size as i64);
@@ -1273,7 +1317,7 @@ impl NFSState {
             }
             2 => {
                 self.add_nfs_ts_frame(flow, stream_slice, r.prog_data, r.prog_data_size as i64);
-                self.process_request_record_v2(r)
+                self.process_request_record_v2(flow, r)
             }
             _ => {}
         }
@@ -1335,20 +1379,22 @@ impl NFSState {
         return None;
     }
 
+    /// WRITE argument extent within prog_data (RFC 1094 / RFC 1813):
+    /// v3 fh len + fh + offset(8) + count + stable + data len; the file data
+    /// is XDR opaque (length-prefixed) in both, XDR fill follows it.
+    pub fn nfs_write_extent(fh_len: u32, file_len: u32) -> u32 {
+        24u32.saturating_add(fh_len).saturating_add(file_len)
+    }
+
     pub fn process_write_record<'b>(
         &mut self, flow: *mut Flow, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>,
     ) -> u32 {
-        // the parsed extent within prog_data: fh len + fh + offset + count
-        // + stable + file_len + data; the XDR fill follows it when unaligned
-        let extent = 24u32
-            .saturating_add(w.handle.len)
-            .saturating_add(w.file_len);
+        // the parsed extent within prog_data (per-version, see the
+        // helper); the XDR fill follows it when unaligned.
+        let extent = Self::nfs_write_extent(w.handle.len, w.file_len);
 
         // for now assume that stable FILE_SYNC flags means a single chunk
         let is_last = w.stable == 2;
-        // a partial record's file tx must stay open (found by handle) until
-        // filetracker_update has received the rest of its data
-        let is_partial = w.file_data.len() < w.file_len as usize;
         let file_handle = w.handle.value.to_vec();
         let file_name = if let Some(name) = self.namemap.get(w.handle.value) {
             SCLogDebug!("WRITE name {:?}", name);
@@ -1409,7 +1455,7 @@ impl NFSState {
         let max_write_size = unsafe { NFS_CFG_MAX_WRITE_SIZE };
         if max_write_size != 0 && w.count > max_write_size {
             let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
-            tx.procedure = NFSPROC3_WRITE;
+            tx.procedure = r.procedure;
             tx.xid = r.hdr.xid;
             tx.is_first = true;
             tx.nfs_version = r.progver as u16;
@@ -1458,6 +1504,9 @@ impl NFSState {
         // file data or fill.
         let unbuffered = w.file_len - w.file_data.len() as u32;
         let stream_fill = cmp::min(tail.saturating_sub(unbuffered), 3);
+        // the record's file data is still to come: the tx completes in the
+        // chunk path, not here, or the pending bytes never reach the tracker
+        let is_partial = w.file_data.len() < w.file_len as usize;
 
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             Some(tx) => {
@@ -1496,15 +1545,19 @@ impl NFSState {
                         if is_last {
                             tdf.file_last_xid = r.hdr.xid;
                             tx.is_last = true;
-                            tx.request_done = true;
+                            // mainline: a FILE_SYNC write settles the response
+                            // side of the file tx here (the reply path skips
+                            // WRITE), and the request side either right here or,
+                            // for a record still pending, in the chunk path.
                             tx.response_done = true;
                             if !is_partial {
+                                tx.request_done = true;
                                 tx.is_file_closed = true;
+                                sc_app_layer_parser_trigger_raw_stream_inspection(
+                                    flow,
+                                    Direction::ToClient as i32,
+                                );
                             }
-                            sc_app_layer_parser_trigger_raw_stream_inspection(
-                                flow,
-                                Direction::ToClient as i32,
-                            );
                         }
                     }
                     if fsinfo_exceeded {
@@ -1547,8 +1600,6 @@ impl NFSState {
                     );
                     tdf.note_chunk_data(w.offset, w.file_data.len() as u64);
                 }
-                // Same deferral as the found arm: a partial record closes the
-                // tx when filetracker_update has the rest of its data
                 if is_last && !queue_exceeded {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.is_last = true;
@@ -1556,6 +1607,7 @@ impl NFSState {
                      * when we've received the final data */
                     if !is_partial {
                         tx.request_done = true;
+                        tx.response_done = true;
                         tx.is_file_closed = true;
                         sc_app_layer_parser_trigger_raw_stream_inspection(
                             flow,
@@ -1564,7 +1616,7 @@ impl NFSState {
                     }
                 }
             }
-            tx.procedure = NFSPROC3_WRITE;
+            tx.procedure = r.procedure;
             tx.xid = r.hdr.xid;
             tx.is_first = true;
             tx.nfs_version = r.progver as u16;
@@ -2094,9 +2146,15 @@ impl NFSState {
                                     tx.is_last = true;
                                 }
                                 tx.request_done = true;
+                                // WRITE reply path never reaches file txs (see
+                                // process_write_record), so complete the response
+                                // side here as well: without this a single-write
+                                // file transfer that finished in the chunk path
+                                // would only complete at flow teardown.
+                                tx.response_done = true;
                                 tx.is_file_closed = true;
                                 SCLogDebug!(
-                                    "TX {} request is done now that the file track is ready",
+                                    "TX {} is done now that the file track is ready",
                                     tx.id
                                 );
                                 if !flow.is_null() {
@@ -2892,17 +2950,22 @@ impl NFSState {
                     // not wired to detection or anomaly logging, but tx
                     // events are. Keep parsing.
                     if rpc_phdr.hdr.msgtype == 1 {
+                        // A REPLY answering a CALL this parser saw going to
+                        // client is the client's side of an NFSv4.1
+                        // backchannel (RFC 5661 2.10.3.1), not an anomaly.
+                        // Its body carries nothing the parser tracks, so the
+                        // record is consumed rather than parsed as a reply.
+                        if self.take_tc_call(rpc_phdr.hdr.xid) {
+                            SCLogDebug!("REPLY answers a to-client CALL: backchannel");
+                            let take = cmp::min(rec_size, cur_i.len());
+                            if take < rec_size {
+                                self.set_skip(Direction::ToServer, (rec_size - take) as u32);
+                            }
+                            cur_i = &cur_i[take..];
+                            continue;
+                        }
                         SCLogDebug!("REPLY seen in the to-server direction");
-                        let mut tx = self.new_tx();
-                        tx.xid = rpc_phdr.hdr.xid;
-                        tx.nfs_version = self.nfs_version;
-                        tx.request_done = true;
-                        tx.response_done = true;
-                        tx.is_file_closed = true;
-                        tx.tx_data.set_event(NFSEvent::ResponseToServer as u8);
-                        tx.tx_data.0.updated_ts = true;
-                        tx.tx_data.0.updated_tc = true;
-                        self.transactions.push(tx);
+                        self.set_event_new_tx(rpc_phdr.hdr.xid, NFSEvent::ResponseToServer);
                     }
 
                     // A claim above the sanity cap is forged (legitimate marks
@@ -2910,12 +2973,12 @@ impl NFSState {
                     // buffer toward the claimed size in the incomplete loop
                     // with no event and no way out; record framing is
                     // unsalvageable, so abandon the flow.
-                    if rec_size > NFS_MAX_RECORD_LENGTH {
-                        self.set_event(NFSEvent::RecordOverflow);
+                    if rec_size > record_length_cap() {
                         SCLogDebug!(
                             "RPC record mark claims {} byte record; failing flow",
                             rec_size
                         );
+                        self.set_event_new_tx(rpc_phdr.hdr.xid, NFSEvent::RecordOverflow);
                         return AppLayerResult::err();
                     }
 
@@ -3257,26 +3320,33 @@ impl NFSState {
                     // events are. Keep parsing.
                     if rpc_phdr.msgtype == 0 {
                         SCLogDebug!("CALL seen in the to-client direction");
-                        let mut tx = self.new_tx();
-                        tx.xid = rpc_phdr.xid;
-                        tx.nfs_version = self.nfs_version;
-                        tx.request_done = true;
-                        tx.response_done = true;
-                        tx.is_file_closed = true;
-                        tx.tx_data.set_event(NFSEvent::RequestToClient as u8);
-                        tx.tx_data.0.updated_ts = true;
-                        tx.tx_data.0.updated_tc = true;
-                        self.transactions.push(tx);
+                        self.note_tc_call(rpc_phdr.xid);
+                        // v4 has a backchannel: the server sends CB_ CALLs to
+                        // the client over the same connection, so this is not
+                        // an anomaly there (RFC 5661 2.10.3.1). v2/v3 do not,
+                        // so there it is. Either way the body is a callback
+                        // the parser does not track: consume the record
+                        // instead of parsing it as a reply (which would raise
+                        // a bogus malformed_data).
+                        if self.nfs_version < 4 {
+                            self.set_event_new_tx(rpc_phdr.xid, NFSEvent::RequestToClient);
+                        }
+                        let take = cmp::min(rec_size, cur_i.len());
+                        if take < rec_size {
+                            self.set_skip(Direction::ToClient, (rec_size - take) as u32);
+                        }
+                        cur_i = &cur_i[take..];
+                        continue;
                     }
                     // Claim above the sanity cap is forged; see the ToServer
                     // path. Abandon the flow instead of buffering toward the
                     // claimed size forever.
-                    if rec_size > NFS_MAX_RECORD_LENGTH {
-                        self.set_event(NFSEvent::RecordOverflow);
+                    if rec_size > record_length_cap() {
                         SCLogDebug!(
                             "RPC record mark claims {} byte record; failing flow",
                             rec_size
                         );
+                        self.set_event_new_tx(rpc_phdr.xid, NFSEvent::RecordOverflow);
                         return AppLayerResult::err();
                     }
                     // see if we have all data available
@@ -3370,7 +3440,7 @@ impl NFSState {
                                 rpc_record.prog_data,
                                 rpc_record.prog_data_size as i64,
                             );
-                            self.process_request_record_v2(rpc_record);
+                            self.process_request_record_v2(flow, rpc_record);
                         }
                         _ => {}
                     }
@@ -4082,11 +4152,9 @@ pub unsafe extern "C" fn SCRegisterNfsParser() {
             }
             // key present: the list (possibly empty) fully defines the
             // filter; an empty list logs everything
+            SCLogDebug!("nfs filter: procedures {:?}", &list);
             NFS_CFG_FILTER_SET = true;
             NFS_CFG_FILTER_PROCS = list;
-            for p in &NFS_CFG_FILTER_PROCS {
-                SCLogDebug!("nfs filter: procedure {}", p);
-            }
         }
         load_nfs_limit_config();
     } else {
@@ -4187,7 +4255,6 @@ pub unsafe extern "C" fn SCRegisterNfsUdpParser() {
 mod tests {
     use super::*;
     use std::sync::Mutex;
-
     // The queue-limit tests rewrite the shared NFS_CFG_* statics: serialize.
     static NFS_CFG_TEST_LOCK: Mutex<()> = Mutex::new(());
 
@@ -4606,6 +4673,14 @@ mod tests {
         reject_tx(&state, false, NFSPROC4_COMPOUND);
         assert_eq!(state.transactions[0].xid, 0x6200);
         assert_eq!(state.skip_tc, 0);
+    }
+
+    #[test]
+    fn test_nfs_write_extent() {
+        // v3 (RFC 1813 3.3.11): fh len + fh + offset(8) + count + stable + data
+        // len = 24 + fh_len + file_len
+        assert_eq!(NFSState::nfs_write_extent(32, 6), 62);
+        assert_eq!(NFSState::nfs_write_extent(0, 1024), 1048);
     }
 }
 

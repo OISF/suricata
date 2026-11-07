@@ -98,6 +98,39 @@ Transactions in the SMB implementation are `bidirectional`. There are different 
    that has a single DCEPRC request and its matching response
 
 
+NFS
+---
+
+The NFS parser supports NFSv2 and NFSv3 over UDP, and NFSv3 and NFSv4 over
+TCP. NFSv4 is not supported over UDP (RFC 7530 3.1 requires a reliable
+callback channel, so it is TCP only).
+
+NFS over TCP is detected without regard to the port: besides the port based
+probing parser, a pattern probe matches the ONC RPC call header (message type
+CALL, rpcvers 2) on the to-server stream, and the probe then confirms the NFS
+program number, version and procedure. So NFS on a non-default port is parsed
+and logged, and ``alert nfs`` rules apply to it, where 8.x left such a flow
+undetected. Traffic to the other ONC RPC services (mountd, rpcbind, nlockmgr) is
+not claimed: their calls carry a different program number, and replies carry
+none, which is why the probe is to-server only.
+
+Known limitation: NFSv2 over TCP is not protocol-detected. The RFCs permit
+NFSv2 to run over a TCP transport (record-marked ONC RPC), and the parser
+handles such traffic correctly when it reaches the parser (for example via a
+port-based or forced protocol match), but the protocol probe only accepts
+NFSv3 and NFSv4 on TCP. This is a deliberate limitation: NFSv2 over TCP is
+exceedingly rare in practice -- virtually all real-world NFSv2 traffic is
+carried over UDP, where it is detected and parsed normally.
+
+Rule Keywords
+^^^^^^^^^^^^^
+
+NFS rule keywords are documented in the rule guide :ref:`NFS Rule Keywords`.
+
+In addition to these specific keywords, file transactions can be inspected with
+the :ref:`File Rule Keywords`.
+
+
 Further Reading
 ~~~~~~~~~~~~~~~
 

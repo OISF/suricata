@@ -624,7 +624,7 @@ Event type: fileinfo
 --------------------
 
 Checksum values (``md5``, ``sha1`` and ``sha256``) and file state
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * The command line option ``disable-hashing`` disables all checksums.
 * Files with gaps (areas missing) and truncated files are reported with

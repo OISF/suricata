@@ -28,7 +28,7 @@ use nom7::IResult;
 
 impl NFSState {
     /// complete request record
-    pub fn process_request_record_v2(&mut self, r: &RpcPacket) {
+    pub fn process_request_record_v2(&mut self, _flow: *mut Flow, r: &RpcPacket) {
         SCLogDebug!(
             "NFSv2: REQUEST {} procedure {} ({}) blob size {}",
             r.hdr.xid,
@@ -104,10 +104,13 @@ impl NFSState {
             }
         }
 
-        // READ is handled in the file tx at reply time; v2 has no COMMIT.
-        // v2 WRITE creates a plain transaction here (full v2 write file
-        // reconstruction is not implemented).
-        if !(r.procedure == NFSPROC2_READ) {
+        // READ and WRITE are handled in the file tx (WRITE in the request,
+        // READ at reply time); v2 has no COMMIT.
+        // v2 WRITE stays a plain record: RFC 1094 has no COMMIT and no stable
+        // flag, so a file transaction opened here would have no completion
+        // signal, and the reconstruction split files at the 8192 byte record
+        // limit. Only READ is tracked as a file.
+        if r.procedure != NFSPROC2_READ {
             let mut tx = self.new_tx();
             tx.xid = r.hdr.xid;
             tx.procedure = r.procedure;
