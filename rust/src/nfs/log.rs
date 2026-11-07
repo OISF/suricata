@@ -22,6 +22,76 @@ use crate::nfs::types::*;
 use crc::crc32;
 use std::string::String;
 
+/// Bounds for what the NFS logger writes. Names reach the transaction whole so
+/// the `nfs.*` keywords can still match on them, which means the logger cannot
+/// trust their size: a name is only limited by stream reassembly otherwise.
+/// The per-record budget mirrors the DNS logger's (128 KiB); the per-string cap
+/// (8 KiB) is what a single name can cost.
+const NFS_LOG_MAX_RECORD_BYTES: usize = 128 * 1024;
+const NFS_LOG_MAX_STRING_BYTES: usize = 8 * 1024;
+/// Room for the `[truncated N additional bytes]` suffix a capped value carries.
+const NFS_LOG_MARKER_BYTES: usize = 48;
+
+pub(crate) struct NfsLogBudget {
+    remaining: usize,
+    truncated: bool,
+}
+
+impl NfsLogBudget {
+    fn new() -> Self {
+        Self {
+            remaining: NFS_LOG_MAX_RECORD_BYTES,
+            truncated: false,
+        }
+    }
+
+    /// Note a value that exceeds the per-field cap: it will be shortened at
+    /// emit, and the record has to say so.
+    fn note(&mut self, len: usize) {
+        if len > NFS_LOG_MAX_STRING_BYTES {
+            self.truncated = true;
+        }
+    }
+
+    /// Bytes a string field will actually take: what gets written, not what the
+    /// parser was handed. Charging the input length would drop a field the
+    /// budget still has room for.
+    fn charge(len: usize, key: &str) -> usize {
+        len.min(NFS_LOG_MAX_STRING_BYTES) + NFS_LOG_MARKER_BYTES + key.len() + 6
+    }
+
+    /// Account for a value about to be written; false once the budget is spent.
+    fn cost(&mut self, bytes: usize) -> bool {
+        if bytes > self.remaining {
+            self.truncated = true;
+            return false;
+        }
+        self.remaining -= bytes;
+        true
+    }
+}
+
+/// Write a caller-supplied string within the field cap and the record budget.
+/// `marker` names the boolean key to set when the budget refuses the value, so
+/// a dropped field is not read as an absent one.
+fn set_bounded_string(
+    budget: &mut NfsLogBudget, js: &mut JsonBuilder, key: &str, marker: Option<&str>, val: &str,
+) -> Result<(), JsonError> {
+    budget.note(val.len());
+    if !budget.cost(NfsLogBudget::charge(val.len(), key)) {
+        if let Some(m) = marker {
+            js.set_bool(m, true)?;
+        }
+        return Ok(());
+    }
+    if val.len() > NFS_LOG_MAX_STRING_BYTES {
+        js.set_string_limited(key, val, NFS_LOG_MAX_STRING_BYTES)?;
+    } else {
+        js.set_string(key, val)?;
+    }
+    Ok(())
+}
+
 /// The canonical procedure name for the transaction's version
 /// (e.g. "GETATTR"), or the numeric value when the procedure is unknown.
 fn nfs_proc_name(state: &NFSState, tx: &NFSTransaction) -> String {
@@ -79,9 +149,11 @@ pub extern "C" fn SCNfsTxLoggingIsFiltered(state: &mut NFSState, tx: &NFSTransac
     return 0;
 }
 
-fn nfs_rename_object(tx: &NFSTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
+fn nfs_rename_object(
+    tx: &NFSTransaction, js: &mut JsonBuilder, budget: &mut NfsLogBudget,
+) -> Result<(), JsonError> {
     let from_str = String::from_utf8_lossy(&tx.file_name);
-    js.set_string("from", &from_str)?;
+    set_bounded_string(budget, js, "from", Some("from_truncated"), &from_str)?;
 
     let to_vec = match tx.type_data {
         Some(NFSTransactionTypeData::RENAME(ref x)) => x.to_vec(),
@@ -89,13 +161,21 @@ fn nfs_rename_object(tx: &NFSTransaction, js: &mut JsonBuilder) -> Result<(), Js
     };
 
     let to_str = String::from_utf8_lossy(&to_vec);
-    js.set_string("to", &to_str)?;
+    set_bounded_string(budget, js, "to", Some("to_truncated"), &to_str)?;
     Ok(())
 }
 
-fn nfs_creds_object(tx: &NFSTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
+fn nfs_creds_object(
+    tx: &NFSTransaction, js: &mut JsonBuilder, budget: &mut NfsLogBudget,
+) -> Result<(), JsonError> {
     let mach_name = String::from_utf8_lossy(&tx.request_machine_name);
-    js.set_string("machine_name", &mach_name)?;
+    set_bounded_string(
+        budget,
+        js,
+        "machine_name",
+        Some("machine_name_truncated"),
+        &mach_name,
+    )?;
     js.set_uint("uid", tx.request_uid as u64)?;
     js.set_uint("gid", tx.request_gid as u64)?;
     Ok(())
@@ -127,7 +207,7 @@ fn nfs_handle2crc(bytes: &[u8]) -> u32 {
 }
 
 fn nfs_common_header(
-    state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder,
+    state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder, budget: &mut NfsLogBudget,
 ) -> Result<(), JsonError> {
     // the transaction's own version when it has one: a record logged before
     // the first reply would otherwise report 0
@@ -141,7 +221,13 @@ fn nfs_common_header(
     )?;
     js.set_string("procedure", &nfs_proc_name(state, tx).to_uppercase())?;
     let file_name = String::from_utf8_lossy(&tx.file_name);
-    js.set_string("filename", &file_name)?;
+    set_bounded_string(
+        budget,
+        js,
+        "filename",
+        Some("filename_truncated"),
+        &file_name,
+    )?;
 
     if !tx.file_handle.is_empty() {
         //js.set_string("handle", &nfs_handle2hex(&tx.file_handle));
@@ -157,7 +243,8 @@ fn nfs_common_header(
 fn nfs_log_response(
     state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder, status_required: bool,
 ) -> Result<(), JsonError> {
-    nfs_common_header(state, tx, js)?;
+    let mut budget = NfsLogBudget::new();
+    nfs_common_header(state, tx, js, &mut budget)?;
     js.set_string("type", "response")?;
 
     // The status name depends on the version: v4 has its own error
@@ -173,7 +260,12 @@ fn nfs_log_response(
             nfs3_status_string(tx.nfs_response_status)
         };
         js.set_string("status", &status)?;
-        // Numeric status code (SMB parity: status + status_code).
+    }
+    // Numeric status code (SMB parity: status + status_code), but only when a
+    // reply status was actually seen: 0 reads as NFS3_OK, and a transaction
+    // closed from the request side (v3 FILE_SYNC WRITE, v4 COMMIT) has no
+    // reply yet, so emitting it there would claim success.
+    if tx.nfs_status_set {
         js.set_uint("status_code", tx.nfs_response_status as u64)?;
     }
 
@@ -202,8 +294,11 @@ fn nfs_log_response(
         js.close()?;
     } else if nfs_is_rename(state.nfs_version, tx.procedure) {
         js.open_object("rename")?;
-        nfs_rename_object(tx, js)?;
+        nfs_rename_object(tx, js, &mut budget)?;
         js.close()?;
+    }
+    if budget.truncated {
+        js.set_bool("truncated", true)?;
     }
     Ok(())
 }
@@ -231,13 +326,17 @@ pub extern "C" fn SCNfsLogJsonResponseMetadata(
 }
 
 fn rpc_log_response(tx: &NFSTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
+    let mut budget = NfsLogBudget::new();
     js.set_uint("xid", tx.xid as u64)?;
     js.set_string("status", &rpc_status_string(tx.rpc_response_status))?;
     js.set_string("auth_type", &rpc_auth_type_string(tx.auth_type))?;
     if tx.auth_type == RPCAUTH_UNIX {
         js.open_object("creds")?;
-        nfs_creds_object(tx, js)?;
+        nfs_creds_object(tx, js, &mut budget)?;
         js.close()?;
+    }
+    if budget.truncated {
+        js.set_bool("truncated", true)?;
     }
     Ok(())
 }
@@ -350,5 +449,35 @@ mod tests {
             true,
             &procs
         ));
+    }
+
+    #[test]
+    fn test_budget_flags_oversized_string() {
+        let mut budget = NfsLogBudget::new();
+        budget.note(NFS_LOG_MAX_STRING_BYTES);
+        assert!(!budget.truncated);
+        budget.note(NFS_LOG_MAX_STRING_BYTES + 1);
+        assert!(budget.truncated);
+    }
+
+    #[test]
+    fn test_budget_charges_what_is_written_not_what_was_parsed() {
+        // a name longer than the field cap must not cost more than the cap: at
+        // 70 KiB the old charge dropped rename.from although the record was
+        // nowhere near the budget
+        assert!(NfsLogBudget::charge(70 * 1024, "filename") < 9 * 1024);
+        let mut budget = NfsLogBudget::new();
+        for key in ["filename", "from", "to", "machine_name"] {
+            assert!(budget.cost(NfsLogBudget::charge(64 * 1024, key)), "{key}");
+        }
+        assert!(!budget.truncated);
+    }
+
+    #[test]
+    fn test_budget_spends_down_to_the_record_limit() {
+        let mut budget = NfsLogBudget::new();
+        assert!(budget.cost(NFS_LOG_MAX_RECORD_BYTES));
+        assert!(!budget.cost(1));
+        assert!(budget.truncated);
     }
 }
