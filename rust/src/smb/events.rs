@@ -21,6 +21,13 @@ use crate::smb::smb::*;
 pub enum SMBEvent {
     InternalError,
     MalformedData,
+    /// Defined for parity with NFS's record_overflow, but never raised:
+    /// SMB record framing has no length claim that can drive unbounded
+    /// stream buffering. SMB1 (NetBIOS session) lengths are a 24-bit
+    /// field, which caps even a forged claim at ~16 MiB (the claim is
+    /// passed to incomplete()); SMB2/3 headers carry no message-size
+    /// field at all. NFS needs the event because its record mark is
+    /// 31-bit (RFC 5531 11), so a claim can reach ~2 GiB.
     RecordOverflow,
     MalformedNtlmsspRequest,
     MalformedNtlmsspResponse,

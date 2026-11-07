@@ -1934,6 +1934,10 @@ order file data.
       max-write-queue-size: 64mb
       max-write-queue-cnt: 64
 
+      filter:
+        - GETATTR
+        - SETATTR
+
       stream-depth: 0
 
 The `max-read-size` option can be set to control the max size of accepted
@@ -1972,6 +1976,11 @@ event is raised.
 
 `max-write-queue-size` and `max-write-queue-cnt` are as the READ variants,
 but then for WRITEs.
+
+The `filter` option lists procedure names to keep out of the EVE output,
+matched case insensitively. When not set, v3 GETATTR is filtered by
+default (it is the most frequent NFSv3 procedure and rarely interesting
+alone); set an empty list to log every procedure.
 
 `stream-depth` sets the stream reassembly size for NFS streams. By
 default the stream is tracked completely (0).

@@ -109,6 +109,13 @@ pub const NFS_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
 pub static mut NFS_CFG_MAX_REQ: usize = 512;
 pub static mut NFS_CFG_MAX_NAMES: usize = 512;
 
+/// Procedures filtered from the EVE output (lowercased names), as set
+/// via `app-layer.protocols.nfs.filter`. When the key is absent, the
+/// historical default applies instead: v3 GETATTR is filtered.
+pub static mut NFS_CFG_FILTER_PROCS: Vec<String> = Vec::new();
+/// Whether `app-layer.protocols.nfs.filter` was set at all.
+pub static mut NFS_CFG_FILTER_SET: bool = false;
+
 /// Max queued (out-of-order) read file data (bytes). 0 = no limit.
 pub static mut NFS_CFG_MAX_READ_QUEUE_SIZE: u32 = 67108864;
 /// Max queued (out-of-order) read chunks. 0 = no limit.
@@ -223,6 +230,15 @@ pub struct NFSTransactionFile {
     /// file tracker for a single file. Boxed so that we don't use
     /// as much space if we're not a file tx.
     pub file_tracker: FileTransferTracker,
+
+    /// offset of the first chunk seen on this file transaction (EVE)
+    pub first_offset: u64,
+
+    /// total file data bytes carried across all chunks (EVE)
+    pub total_bytes: u64,
+
+    /// READ: a chunk reported end-of-file (EVE)
+    pub eof: bool,
 }
 
 impl NFSTransactionFile {
@@ -231,6 +247,20 @@ impl NFSTransactionFile {
             file_tracker: FileTransferTracker::new(),
             ..Default::default()
         };
+    }
+
+    /// Note file data carried by a record chunk: aggregates the first
+    /// offset and the total byte count for the EVE record.
+    pub fn note_chunk_data(&mut self, offset: u64, data_len: u64) {
+        if self.chunk_count == 0 && self.total_bytes == 0 {
+            self.first_offset = offset;
+        }
+        self.total_bytes += data_len;
+    }
+
+    /// Note the end-of-file flag of a READ chunk.
+    pub fn note_eof(&mut self, eof: bool) {
+        self.eof |= eof;
     }
     pub fn update_file_flags(&mut self, flow_file_flags: u16) {
         let dir_flag = if self.direction == Direction::ToServer {
@@ -1379,6 +1409,7 @@ impl NFSState {
                             &r.hdr.xid,
                         );
                         tdf.chunk_count += 1;
+                        tdf.note_chunk_data(w.offset, w.file_data.len() as u64);
                         if is_last {
                             tdf.file_last_xid = r.hdr.xid;
                             tx.is_last = true;
@@ -1431,6 +1462,7 @@ impl NFSState {
                         is_last,
                         &r.hdr.xid,
                     );
+                    tdf.note_chunk_data(w.offset, w.file_data.len() as u64);
                 }
                 // Same deferral as the found arm: a partial record closes the
                 // tx when filetracker_update has the rest of its data
@@ -1949,6 +1981,9 @@ impl NFSState {
                         let is_last_chunk = tdf.file_tracker.get_chunk_is_last()
                             && !tdf.file_tracker.is_truncated();
                         let cs = filetracker_update(&mut tdf.file_tracker, data, gap_size);
+                        // file bytes only: on a record's last segment `data`
+                        // also carries XDR fill and the next pipelined record
+                        tdf.total_bytes += add;
                         /* see if we need to close the tx. A truncated tracker is
                          * never done, so also close it when the data of its last
                          * chunk is complete. */
@@ -2298,6 +2333,8 @@ impl NFSState {
                             &r.hdr.xid,
                         );
                         tdf.chunk_count += 1;
+                        tdf.note_chunk_data(chunk_offset, reply.data.len() as u64);
+                        tdf.note_eof(reply.eof);
                         if is_last {
                             tdf.file_last_xid = r.hdr.xid;
                             tx.rpc_response_status = r.reply_state;
@@ -2359,6 +2396,8 @@ impl NFSState {
                         is_last,
                         &r.hdr.xid,
                     );
+                    tdf.note_chunk_data(chunk_offset, reply.data.len() as u64);
+                    tdf.note_eof(reply.eof);
                 }
                 if is_last && !queue_exceeded {
                     tdf.file_last_xid = r.hdr.xid;
@@ -2552,6 +2591,13 @@ impl NFSState {
                         // we got here because rec_size > input, so we should never have
                         // remaining data
                         debug_validate_bug_on!(!_rem.is_empty());
+
+                        // this fast path bypasses process_request_record_v3,
+                        // so set the version here or the EVE record reports
+                        // version 0 and the v2 procedure names
+                        if self.nfs_version == 0 {
+                            self.nfs_version = hdr.progver as u16;
+                        }
 
                         match parse_nfs3_request_write(hdr.prog_data, false) {
                             Ok((_, ref w)) => {
@@ -3851,6 +3897,34 @@ pub unsafe extern "C" fn SCRegisterNfsParser() {
                 }
             } else {
                 SCLogError!("Invalid max-names value");
+            }
+        }
+        // Procedure filter: a YAML list of procedure names (or a single
+        // scalar) to keep out of the EVE output. When absent, the
+        // historical default applies: v3 GETATTR is filtered.
+        if let Some(node) = conf_get_node("app-layer.protocols.nfs.filter") {
+            let mut list = Vec::new();
+            if node.is_seq() {
+                if let Some(mut cur) = node.first() {
+                    loop {
+                        if let Some(v) = cur.value_opt() {
+                            list.push(v.to_lowercase());
+                        }
+                        match cur.next() {
+                            Some(n) => cur = n,
+                            None => break,
+                        }
+                    }
+                }
+            } else if let Some(v) = node.value_opt() {
+                list.push(v.to_lowercase());
+            }
+            // key present: the list (possibly empty) fully defines the
+            // filter; an empty list logs everything
+            NFS_CFG_FILTER_SET = true;
+            NFS_CFG_FILTER_PROCS = list;
+            for p in &NFS_CFG_FILTER_PROCS {
+                SCLogDebug!("nfs filter: procedure {}", p);
             }
         }
         load_nfs_limit_config();

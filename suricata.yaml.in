@@ -1109,6 +1109,17 @@ app-layer:
       enabled: yes
       # max-tx: 1024
 
+      # Procedures to keep out of the EVE output, by name (case
+      # insensitive), e.g.
+      #   filter:
+      #     - GETATTR
+      #     - SETATTR
+      # When not set, v3 GETATTR is filtered by default (it is the most
+      # frequent NFSv3 procedure and rarely interesting alone). Set an
+      # empty list to log every procedure.
+      #filter:
+      #  - GETATTR
+
       # Stream reassembly size for NFS streams. By default track it completely.
       #stream-depth: 0
     tftp:
