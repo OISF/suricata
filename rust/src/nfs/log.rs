@@ -22,10 +22,39 @@ use crate::nfs::types::*;
 use crc::crc32;
 use std::string::String;
 
+/// The canonical procedure name for the transaction's version
+/// (e.g. "GETATTR"), or the numeric value when the procedure is unknown.
+fn nfs_proc_name(state: &NFSState, tx: &NFSTransaction) -> String {
+    if state.nfs_version == 3 {
+        if let Some(proc) = NfsProc3::from_u(tx.procedure) {
+            return proc.to_str().to_string();
+        }
+    } else if state.nfs_version <= 2 {
+        if let Some(proc) = NfsProc2::from_u(tx.procedure) {
+            return proc.to_str().to_string();
+        }
+    } else if let Some(proc) = NfsProc4::from_u(tx.procedure) {
+        return proc.to_str().to_string();
+    }
+    format!("{}", tx.procedure)
+}
+
 #[no_mangle]
 pub extern "C" fn SCNfsTxLoggingIsFiltered(state: &mut NFSState, tx: &NFSTransaction) -> u8 {
-    // TODO probably best to make this configurable
-
+    // When app-layer.protocols.nfs.filter is set -- even to an empty
+    // list -- its procedure names (case-insensitive, matched against
+    // the transaction's version) define exactly which transactions are
+    // kept out of the EVE output. When the key is absent the historical
+    // default applies: v3 GETATTR is by far the most frequent procedure
+    // and rarely interesting on its own, so it is filtered.
+    let (procs, filter_set) = unsafe { (&NFS_CFG_FILTER_PROCS, NFS_CFG_FILTER_SET) };
+    if filter_set {
+        let name = nfs_proc_name(state, tx).to_lowercase();
+        if procs.iter().any(|p| p == &name) {
+            return 1;
+        }
+        return 0;
+    }
     if state.nfs_version <= 3 && tx.procedure == NFSPROC3_GETATTR {
         return 1;
     }
@@ -62,6 +91,8 @@ fn nfs_file_object(tx: &NFSTransaction, js: &mut JsonBuilder) -> Result<(), Json
     if let Some(NFSTransactionTypeData::FILE(ref tdf)) = tx.type_data {
         js.set_uint("last_xid", tdf.file_last_xid as u64)?;
         js.set_uint("chunks", tdf.chunk_count as u64)?;
+        js.set_uint("offset", tdf.first_offset)?;
+        js.set_uint("size", tdf.total_bytes)?;
     }
     Ok(())
 }
@@ -82,23 +113,7 @@ fn nfs_common_header(
     state: &NFSState, tx: &NFSTransaction, js: &mut JsonBuilder,
 ) -> Result<(), JsonError> {
     js.set_uint("version", state.nfs_version as u64)?;
-    if state.nfs_version == 3 {
-        if let Some(proc) = NfsProc3::from_u(tx.procedure) {
-            js.set_string("procedure", &proc.to_str().to_uppercase())?;
-        } else {
-            js.set_string("procedure", &format!("{}", tx.procedure))?;
-        }
-    } else if state.nfs_version <= 2 {
-        if let Some(proc) = NfsProc2::from_u(tx.procedure) {
-            js.set_string("procedure", &proc.to_str().to_uppercase())?;
-        } else {
-            js.set_string("procedure", &format!("{}", tx.procedure))?;
-        }
-    } else if let Some(proc) = NfsProc4::from_u(tx.procedure) {
-        js.set_string("procedure", &proc.to_str().to_uppercase())?;
-    } else {
-        js.set_string("procedure", &format!("{}", tx.procedure))?;
-    }
+    js.set_string("procedure", &nfs_proc_name(state, tx).to_uppercase())?;
     let file_name = String::from_utf8_lossy(&tx.file_name);
     js.set_string("filename", &file_name)?;
 
@@ -124,6 +139,9 @@ fn nfs_log_response(
     if nfs_is_read(state.nfs_version, tx.procedure) {
         js.open_object("read")?;
         nfs_file_object(tx, js)?;
+        if let Some(NFSTransactionTypeData::FILE(ref tdf)) = tx.type_data {
+            js.set_bool("eof", tdf.eof)?;
+        }
         js.close()?;
     } else if nfs_is_write(state.nfs_version, tx.procedure) {
         js.open_object("write")?;

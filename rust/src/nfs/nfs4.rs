@@ -147,6 +147,7 @@ impl NFSState {
                             &r.hdr.xid,
                         );
                         tdf.chunk_count += 1;
+                        tdf.note_chunk_data(w.offset, w.data.len() as u64);
                         if is_last {
                             tdf.file_last_xid = r.hdr.xid;
                             tx.is_last = true;
@@ -189,6 +190,7 @@ impl NFSState {
                         is_last,
                         &r.hdr.xid,
                     );
+                    tdf.note_chunk_data(w.offset, w.data.len() as u64);
                 }
                 if is_last && !queue_exceeded {
                     tdf.file_last_xid = r.hdr.xid;
