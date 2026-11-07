@@ -34,4 +34,13 @@ alert nfs any any -> any any (msg:"SURICATA NFS file overlap"; app-layer-event:n
 # reply for a request whose NFS version is not v2/v3/v4
 alert nfs any any -> any any (msg:"SURICATA NFS non existing version"; flow:to_client; app-layer-event:nfs.non_existing_version; classtype:protocol-command-decode; sid:2223013; rev:1;)
 
-# next sid is 2223014
+# internal parser error (stream-contract violation), to-server direction
+alert nfs any any -> any any (msg:"SURICATA NFS internal parser error"; flow:to_server; app-layer-event:nfs.internal_error; classtype:protocol-command-decode; sid:2223014; rev:1;)
+# internal parser error (stream-contract violation), to-client direction
+alert nfs any any -> any any (msg:"SURICATA NFS internal parser error"; flow:to_client; app-layer-event:nfs.internal_error; classtype:protocol-command-decode; sid:2223015; rev:1;)
+# a REPLY (response) was seen in the to-server direction
+alert nfs any any -> any any (msg:"SURICATA NFS wrong direction"; app-layer-event:nfs.response_to_server; classtype:protocol-command-decode; sid:2223016; rev:1;)
+# a CALL (request) was seen in the to-client direction
+alert nfs any any -> any any (msg:"SURICATA NFS wrong direction"; app-layer-event:nfs.request_to_client; classtype:protocol-command-decode; sid:2223017; rev:1;)
+
+# next sid is 2223018

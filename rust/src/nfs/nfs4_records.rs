@@ -715,18 +715,26 @@ fn parse_request_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent
 #[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestCompoundRecord<'a> {
     pub commands: Vec<Nfs4RequestContent<'a>>,
+    /// v4 minor version of this COMPOUND (0 = v4.0, 1 = v4.1, 2 = v4.2)
+    pub minorversion: u32,
 }
 
 pub fn parse_nfs4_request_compound(i: &[u8]) -> IResult<&[u8], Nfs4RequestCompoundRecord<'_>> {
     let (i, tag_len) = be_u32(i)?;
     let (i, _tag) = cond(tag_len > 0, take(tag_len as usize))(i)?;
-    let (i, _min_ver) = be_u32(i)?;
+    let (i, minorversion) = be_u32(i)?;
     let (i, ops_cnt) = be_u32(i)?;
     if ops_cnt as usize > NFSD_MAX_OPS_PER_COMPOUND {
         return Err(Err::Error(make_error(i, ErrorKind::Count)));
     }
     let (i, commands) = count(parse_request_compound_command, ops_cnt as usize)(i)?;
-    Ok((i, Nfs4RequestCompoundRecord { commands }))
+    Ok((
+        i,
+        Nfs4RequestCompoundRecord {
+            commands,
+            minorversion,
+        },
+    ))
 }
 
 // Self-contained leading-op advance for the scanners: declared length fields
@@ -1275,7 +1283,7 @@ pub enum Nfs4ResponseContent<'a> {
     ReadDir(u32, Option<Nfs4ResponseReaddir<'a>>),
     Remove(u32),
     DelegReturn(u32),
-    SetClientId(u32),
+    SetClientId(u32, u64),
     SetClientIdConfirm(u32),
     Create(u32),
     Commit(u32),
@@ -1757,9 +1765,9 @@ fn nfs4_res_delegreturn(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>> {
 
 fn nfs4_res_setclientid(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>> {
     let (i, status) = be_u32(i)?;
-    let (i, _client_id) = be_u64(i)?;
+    let (i, client_id) = be_u64(i)?;
     let (i, _verifier) = be_u32(i)?;
-    Ok((i, Nfs4ResponseContent::SetClientId(status)))
+    Ok((i, Nfs4ResponseContent::SetClientId(status, client_id)))
 }
 
 fn nfs4_res_setclientid_confirm(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>> {
@@ -2626,8 +2634,9 @@ mod tests {
 
         let (_, response) = nfs4_res_setclientid(&buf[4..]).unwrap();
         match response {
-            Nfs4ResponseContent::SetClientId(status) => {
+            Nfs4ResponseContent::SetClientId(status, client_id) => {
                 assert_eq!(status, 0);
+                assert_eq!(client_id, 0x1467_8c00_0000_0001);
             }
             _ => {
                 panic!("Failure");
@@ -3480,8 +3489,8 @@ mod tests {
 #[cfg(test)]
 mod nfs4_attrs_tests {
     use crate::nfs::nfs4_records::{
-        nfs4_parse_getattr_attrs, nfs4_res_getattr, Nfs4ResponseContent, FATTR4_MAXREAD,
-        FATTR4_MAXWRITE,
+        nfs4_parse_getattr_attrs, nfs4_res_getattr, parse_nfs4_request_compound,
+        Nfs4ResponseContent, FATTR4_MAXREAD, FATTR4_MAXWRITE,
     };
 
     #[test]
@@ -3532,5 +3541,18 @@ mod nfs4_attrs_tests {
         let (_, attr) = nfs4_parse_getattr_attrs(buf).unwrap();
         assert_eq!(attr.max_read, None);
         assert_eq!(attr.max_write, None);
+    }
+
+    #[test]
+    fn test_nfs4_request_compound_minorversion() {
+        // empty COMPOUND (no ops): tag_len=0, minorversion=2, ops_cnt=0
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, // tag_len
+            0x00, 0x00, 0x00, 0x02, // minorversion
+            0x00, 0x00, 0x00, 0x00, // ops_cnt
+        ];
+        let (_, rd) = parse_nfs4_request_compound(buf).unwrap();
+        assert_eq!(rd.minorversion, 2);
+        assert!(rd.commands.is_empty());
     }
 }

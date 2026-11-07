@@ -99,6 +99,90 @@ pub fn parse_nfs2_attribs(i: &[u8]) -> IResult<&[u8], Nfs2Attributes> {
     Ok((i, attrs))
 }
 
+/// A v2 name: a 4-byte length, the bytes, and 4-byte alignment padding.
+fn parse_nfs2_name(i: &[u8]) -> IResult<&[u8], Vec<u8>> {
+    let (i, name_len) = be_u32(i)?;
+    let (i, name) = take(name_len as usize)(i)?;
+    let (i, _fill) = cond(name_len % 4 != 0, take(4 - (name_len % 4)))(i)?;
+    Ok((i, name.to_vec()))
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Nfs2RequestHandleOp<'a> {
+    pub handle: Nfs2Handle<'a>,
+}
+
+/// GETATTR / SETATTR / READLINK / READDIR / STATFS: a 32-byte file
+/// handle (SETATTR's sattr2 and READDIR's cookie/count follow but are
+/// not needed for the transaction's file identity).
+pub fn parse_nfs2_request_handle_op(i: &[u8]) -> IResult<&[u8], Nfs2RequestHandleOp<'_>> {
+    let (i, handle) = parse_nfs2_handle(i)?;
+    Ok((i, Nfs2RequestHandleOp { handle }))
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Nfs2RequestNameOp<'a> {
+    pub handle: Nfs2Handle<'a>,
+    pub name_vec: Vec<u8>,
+}
+
+/// CREATE / REMOVE / RMDIR / SYMLINK / MKDIR: a 32-byte directory
+/// handle followed by the name (SYMLINK/CREATE/MKDIR carry more fields
+/// after the name that we don't need).
+pub fn parse_nfs2_request_name_op(i: &[u8]) -> IResult<&[u8], Nfs2RequestNameOp<'_>> {
+    let (i, handle) = parse_nfs2_handle(i)?;
+    let (i, name_vec) = parse_nfs2_name(i)?;
+    Ok((i, Nfs2RequestNameOp { handle, name_vec }))
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Nfs2RequestRename<'a> {
+    pub from_handle: Nfs2Handle<'a>,
+    pub from_name_vec: Vec<u8>,
+    pub to_handle: Nfs2Handle<'a>,
+    pub to_name_vec: Vec<u8>,
+}
+
+/// RENAME: fromdir + fromname + todir + toname.
+pub fn parse_nfs2_request_rename(i: &[u8]) -> IResult<&[u8], Nfs2RequestRename<'_>> {
+    let (i, from_handle) = parse_nfs2_handle(i)?;
+    let (i, from_name_vec) = parse_nfs2_name(i)?;
+    let (i, to_handle) = parse_nfs2_handle(i)?;
+    let (i, to_name_vec) = parse_nfs2_name(i)?;
+    Ok((
+        i,
+        Nfs2RequestRename {
+            from_handle,
+            from_name_vec,
+            to_handle,
+            to_name_vec,
+        },
+    ))
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Nfs2RequestLink<'a> {
+    pub handle: Nfs2Handle<'a>,
+    pub linkdir: Nfs2Handle<'a>,
+    pub linkname_vec: Vec<u8>,
+}
+
+/// LINK: the source fhandle, the destination directory, and the new
+/// link name.
+pub fn parse_nfs2_request_link(i: &[u8]) -> IResult<&[u8], Nfs2RequestLink<'_>> {
+    let (i, handle) = parse_nfs2_handle(i)?;
+    let (i, linkdir) = parse_nfs2_handle(i)?;
+    let (i, linkname_vec) = parse_nfs2_name(i)?;
+    Ok((
+        i,
+        Nfs2RequestLink {
+            handle,
+            linkdir,
+            linkname_vec,
+        },
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use crate::nfs::nfs2_records::*;
@@ -211,5 +295,66 @@ mod tests {
         assert_eq!(r.len(), 0);
         assert_eq!(res.atype, 1);
         assert_eq!(res.asize, 0);
+    }
+
+    // a 32-byte v2 file handle
+    fn fh() -> Vec<u8> {
+        let mut v = Vec::new();
+        for i in 0..32u8 {
+            v.push(i);
+        }
+        v
+    }
+    // a v2 name: u32 length + bytes + 4-byte pad
+    fn name(b: &[u8]) -> Vec<u8> {
+        let mut v = (b.len() as u32).to_be_bytes().to_vec();
+        v.extend_from_slice(b);
+        let pad = (4 - (b.len() % 4)) % 4;
+        v.extend(std::iter::repeat_n(0, pad));
+        v
+    }
+
+    #[test]
+    fn test_nfs2_request_create() {
+        let mut buf = fh();
+        buf.extend(name(b"newfile"));
+        let (r, req) = parse_nfs2_request_name_op(&buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(req.handle.value, &buf[..32]);
+        assert_eq!(req.name_vec, b"newfile".to_vec());
+    }
+
+    #[test]
+    fn test_nfs2_request_handle_op() {
+        let buf = fh();
+        let (r, req) = parse_nfs2_request_handle_op(&buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(req.handle.value, buf.as_slice());
+    }
+
+    #[test]
+    fn test_nfs2_request_rename() {
+        let mut buf = fh();
+        buf.extend(name(b"old")); // len 3, pad 1
+        buf.extend(fh());
+        buf.extend(name(b"new")); // len 3, pad 1
+        let (r, req) = parse_nfs2_request_rename(&buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(req.from_name_vec, b"old".to_vec());
+        assert_eq!(req.to_name_vec, b"new".to_vec());
+        assert_eq!(req.from_handle.value, &buf[..32]);
+        assert_eq!(req.to_handle.value, &buf[32 + 8..32 + 8 + 32]);
+    }
+
+    #[test]
+    fn test_nfs2_request_link() {
+        let mut buf = fh(); // source fhandle
+        buf.extend(fh()); // linkdir
+        buf.extend(name(b"lnk"));
+        let (r, req) = parse_nfs2_request_link(&buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(req.linkname_vec, b"lnk".to_vec());
+        assert_eq!(req.handle.value, &buf[..32]);
+        assert_eq!(req.linkdir.value, &buf[32..64]);
     }
 }
