@@ -52,6 +52,9 @@ pub struct ModbusTransaction {
 
     pub request: Option<Message>,
     pub response: Option<Message>,
+    /// The response was lost in a TCP gap: the transaction is complete
+    /// without it.
+    pub closed: bool,
 
     pub tx_data: AppLayerTxData,
 }
@@ -68,6 +71,7 @@ impl ModbusTransaction {
             id,
             request: None,
             response: None,
+            closed: false,
             tx_data: AppLayerTxData::new(),
         }
     }
@@ -101,6 +105,36 @@ pub struct ModbusState {
     pub transactions: Vec<ModbusTransaction>,
     tx_id: u64,
     givenup: bool, // Indicates flood
+    // A TCP gap was seen in this direction: parsing
+    // resumes at the next plausible MBAP header instead of ending the flow.
+    request_gap: bool,
+    response_gap: bool,
+    // Responses lost in a response-side gap: the next response that matches
+    // a request closes the older requests still waiting for one.
+    responses_lost: bool,
+}
+
+/// Offset of the first plausible Modbus/TCP ADU in `buf`: protocol id 0, a
+/// length the MBAP allows (2..=254: unit id, function code, up to 252 bytes)
+/// and a nonzero function code; when the ADU it announces ends inside `buf`
+/// with room for another MBAP header, that next header must be plausible too.
+/// Modbus has no start marker, so this is a heuristic: a false match holds up
+/// to 254 bytes as one bogus message before the parser errs and resyncs again.
+fn resync_offset(buf: &[u8]) -> Option<usize> {
+    let plausible = |b: &[u8]| -> bool {
+        b.len() >= 8
+            && b[2] == 0
+            && b[3] == 0
+            && (2..=254).contains(&u16::from_be_bytes([b[4], b[5]]))
+            && b[7] & 0x7f != 0
+    };
+    (0..buf.len().saturating_sub(7)).find(|&i| {
+        if !plausible(&buf[i..]) {
+            return false;
+        }
+        let next = i + 6 + u16::from_be_bytes([buf[i + 4], buf[i + 5]]) as usize;
+        next + 8 > buf.len() || plausible(&buf[next..])
+    })
 }
 
 impl State<ModbusTransaction> for ModbusState {
@@ -184,11 +218,66 @@ impl ModbusState {
         }
     }
 
+    /// A gap in this direction: resynchronize on what follows.
+    pub fn gap(&mut self, direction: Direction) {
+        match direction {
+            Direction::ToClient => {
+                self.response_gap = true;
+                self.responses_lost = true;
+            }
+            _ => self.request_gap = true,
+        }
+    }
+
+    /// A response matched the request of transaction `id`: after a gap,
+    /// close the older requests whose responses were lost.
+    fn response_matched(&mut self, id: u64) {
+        if self.responses_lost {
+            for tx in &mut self.transactions {
+                if tx.id < id && tx.request.is_some() && tx.response.is_none() {
+                    tx.closed = true;
+                    tx.tx_data.0.updated_tc = true;
+                }
+            }
+            self.responses_lost = false;
+        }
+    }
+
+    fn in_gap(&mut self, direction: &Direction) -> &mut bool {
+        match direction {
+            Direction::ToClient => &mut self.response_gap,
+            _ => &mut self.request_gap,
+        }
+    }
+
     pub fn parse(&mut self, flow: *mut Flow, input: &[u8], direction: Direction) -> AppLayerResult {
         let mut rest = input;
         while !rest.is_empty() {
+            if *self.in_gap(&direction) {
+                match resync_offset(rest) {
+                    Some(i) => rest = &rest[i..],
+                    None => {
+                        // keep a possible start of a header for the next slice
+                        let keep = rest.len().min(7);
+                        return AppLayerResult::incomplete(
+                            (input.len() - keep) as u32,
+                            keep as u32 + 1,
+                        );
+                    }
+                }
+            }
             match MODBUS_PARSER.parse(rest, direction.clone()) {
+                Ok((_, Some(ref msg)))
+                    if *self.in_gap(&direction)
+                        && msg
+                            .error_flags
+                            .intersects(ErrorFlags::PROTO_ID | ErrorFlags::DATA_LENGTH) =>
+                {
+                    // a false resync match: try from the next octet
+                    rest = &rest[1..];
+                }
                 Ok((inner_rest, Some(mut msg))) => {
+                    *self.in_gap(&direction) = false; // back in sync
                     match direction {
                         Direction::ToServer | Direction::Unknown => {
                             match self.find_response_and_validate(&mut msg) {
@@ -237,6 +326,8 @@ impl ModbusState {
                                 tx.tx_data.0.updated_tc = true;
                                 tx.tx_data.0.updated_ts = true;
                                 tx.response = Some(msg);
+                                let id = tx.id;
+                                self.response_matched(id);
                                 if !flow.is_null() {
                                     sc_app_layer_parser_trigger_raw_stream_inspection(
                                         flow,
@@ -300,6 +391,10 @@ impl ModbusState {
                         rest.len() as u32 + 1,
                     );
                 }
+                Err(_) if *self.in_gap(&direction) => {
+                    // a false resync match: try from the next octet
+                    rest = &rest[1..];
+                }
                 Err(_) => return AppLayerResult::err(),
             }
         }
@@ -341,6 +436,10 @@ unsafe extern "C" fn modbus_parse_request(
     flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
+    if stream_slice.is_gap() {
+        cast_pointer!(state, ModbusState).gap(Direction::ToServer);
+        return AppLayerResult::ok();
+    }
     let buf = stream_slice.as_slice();
     if buf.is_empty() {
         if SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TS) > 0 {
@@ -358,6 +457,10 @@ unsafe extern "C" fn modbus_parse_response(
     flow: *mut Flow, state: *mut std::os::raw::c_void, pstate: *mut AppLayerParserState,
     stream_slice: StreamSlice, _data: *mut std::os::raw::c_void,
 ) -> AppLayerResult {
+    if stream_slice.is_gap() {
+        cast_pointer!(state, ModbusState).gap(Direction::ToClient);
+        return AppLayerResult::ok();
+    }
     let buf = stream_slice.as_slice();
     if buf.is_empty() {
         if SCAppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF_TC) > 0 {
@@ -391,7 +494,7 @@ unsafe extern "C" fn modbus_tx_get_alstate_progress(
     tx: *mut std::os::raw::c_void, _direction: u8,
 ) -> std::os::raw::c_int {
     let tx = cast_pointer!(tx, ModbusTransaction);
-    tx.response.is_some() as std::os::raw::c_int
+    (tx.response.is_some() || tx.closed) as std::os::raw::c_int
 }
 
 unsafe extern "C" fn modbus_state_get_tx_data(
@@ -406,6 +509,9 @@ export_state_data_get!(modbus_get_state_data, ModbusState);
 #[no_mangle]
 pub unsafe extern "C" fn SCRegisterModbusParser() {
     let default_port = std::ffi::CString::new("[502]").unwrap();
+    // On a TCP gap (a segment the engine never saw, e.g. a capture drop) the
+    // parser resynchronizes on the next plausible MBAP header instead of
+    // ending Modbus parsing for the rest of the flow.
     let parser = RustParser {
         name: b"modbus\0".as_ptr() as *const std::os::raw::c_char,
         default_port: default_port.as_ptr(),
@@ -433,7 +539,7 @@ pub unsafe extern "C" fn SCRegisterModbusParser() {
         get_tx_data: modbus_state_get_tx_data,
         get_state_data: modbus_get_state_data,
         apply_tx_config: None,
-        flags: 0,
+        flags: APP_LAYER_PARSER_OPT_ACCEPT_GAPS,
         get_frame_id_by_name: None,
         get_frame_name_by_id: None,
         get_state_id_by_name: None,
@@ -784,6 +890,76 @@ pub mod test {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn resync_after_gap() {
+        // read holding registers, tid 0x1234: a whole ADU, then the same ADU
+        let adu = [0x12, 0x34, 0, 0, 0, 6, 1, 3, 0, 5, 0, 1];
+        assert_eq!(resync_offset(&adu), Some(0));
+        // the tail of a lost ADU (unit id onwards), then a whole one
+        let mut buf = adu[6..].to_vec();
+        buf.extend_from_slice(&adu);
+        assert_eq!(resync_offset(&buf), Some(6));
+        // nothing plausible
+        assert_eq!(resync_offset(&[0xff; 20]), None);
+
+        // the parser skips the tail and logs the whole ADU
+        let mut state = ModbusState::new();
+        state.gap(Direction::ToServer);
+        assert_eq!(
+            state.parse(std::ptr::null_mut(), &buf, Direction::ToServer),
+            AppLayerResult::ok()
+        );
+        assert_eq!(state.transactions.len(), 1);
+        assert!(!state.request_gap);
+    }
+
+    #[test]
+    fn resync_skips_false_match() {
+        // read 10 holding registers at address 0
+        let adu = |tid: u8| [0, tid, 0, 0, 0, 6, 1, 3, 0, 0, 0, 10];
+        // the tail of a lost ADU (unit id onwards) looks like an MBAP header
+        // with protocol id 0 and length 10, which takes the next ADU's bytes;
+        // the header after it does not fit, so the lookahead cannot reject it
+        let mut buf = adu(5)[6..].to_vec();
+        buf.extend_from_slice(&adu(6));
+        let mut state = ModbusState::new();
+        state.gap(Direction::ToServer);
+        assert_eq!(
+            state.parse(std::ptr::null_mut(), &buf, Direction::ToServer),
+            AppLayerResult::ok()
+        );
+        let tids: Vec<u16> = state
+            .transactions
+            .iter()
+            .map(|tx| tx.request.as_ref().unwrap().transaction_id)
+            .collect();
+        assert_eq!(tids, vec![6]);
+        assert!(!state.request_gap);
+    }
+
+    #[test]
+    fn gap_closes_unanswered_requests() {
+        let req = |tid: u8| [0, tid, 0, 0, 0, 6, 1, 3, 0, 0, 0, 1];
+        let resp = |tid: u8| [0, tid, 0, 0, 0, 5, 1, 3, 2, 0, tid];
+
+        // a lost response: the next matched response closes the request
+        let mut state = ModbusState::new();
+        let mut buf = req(1).to_vec();
+        buf.extend_from_slice(&req(2));
+        assert_eq!(
+            state.parse(std::ptr::null_mut(), &buf, Direction::ToServer),
+            AppLayerResult::ok()
+        );
+        state.gap(Direction::ToClient);
+        assert_eq!(
+            state.parse(std::ptr::null_mut(), &resp(2), Direction::ToClient),
+            AppLayerResult::ok()
+        );
+        assert!(state.transactions[0].closed);
+        assert!(state.transactions[0].response.is_none());
+        assert!(state.transactions[1].response.is_some());
+    }
     use sawp_modbus::{
         Data, Diagnostic, DiagnosticSubfunction, Exception, ExceptionCode, FunctionCode, Read,
         Write,
