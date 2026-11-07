@@ -104,9 +104,12 @@ Syntax::
 krb5.weak_encryption (event)
 ----------------------------
 
-Event raised if the encryption parameters selected by the server are weak or
-deprecated. For example, using a key size smaller than 128, or using deprecated
-ciphers like DES.
+Event raised if the encryption type used for the encrypted part of an AS-REP or
+TGS-REP response is weak or deprecated. This event refers to the response's
+encrypted part; it does not describe the encryption type of the ticket carried
+inside the response.
+
+Use ``krb5.ticket_encryption`` to match the ticket's encryption type.
 
 Syntax::
 
@@ -115,6 +118,11 @@ Syntax::
 .. container:: example-rule
 
  alert krb5 any any -> any any (msg:"SURICATA Kerberos 5 weak encryption parameters"; flow:to_client; app-layer-event:krb5.weak_encryption; classtype:protocol-command-decode; sid:2226001; rev:1;)
+
+In EVE JSON, the ``krb5.weak_encryption`` event corresponds to the
+``weak_encryption`` boolean, while the ticket's encryption status is exposed
+separately as ``ticket_weak_encryption``. The latter is an EVE JSON field,
+not a rule keyword.
 
 krb5.malformed_data (event)
 ---------------------------
@@ -132,9 +140,14 @@ Syntax::
 krb5.ticket_encryption
 ----------------------
 
-Kerberos ticket encryption (enumeration).
+Encryption type of the Kerberos ticket carried in an AS-REP or TGS-REP message
+(enumeration). This is distinct from the encryption type of the response's
+encrypted part, which is reported by the ``krb5.weak_encryption`` event.
 
-For a list of encryption types, refer to RFC3961 section 8.
+For a list of encryption types, refer to RFC3961 section 8. The value 23
+(``rc4-hmac``) identifies RC4-HMAC. The ``weak`` selector matches all
+encryption types Suricata classifies as weak or deprecated; use an explicit
+encryption type when a rule should target a specific algorithm.
 
 Syntax::
 
@@ -151,3 +164,17 @@ Syntax::
 .. container:: example-rule
 
  alert krb5 any any -> any any (krb5.ticket_encryption: rc4-hmac,rc4-hmac-exp; sid:3;)
+
+The following rule matches TGS-REP messages whose tickets use RC4-HMAC:
+
+.. container:: example-rule
+
+ alert krb5 any any -> any any (msg:"Kerberos TGS-REP with RC4-HMAC encrypted ticket"; krb5_msg_type:TGS_REP; krb5.ticket_encryption:rc4-hmac; sid:1000001; rev:1;)
+
+RC4-HMAC tickets can be relevant during Kerberoasting investigations, but this
+match alone does not prove that an attack is taking place. Validate the client,
+requested service, environment baseline, and surrounding authentication
+activity before treating an alert as malicious.
+
+For additional protocol context, see the
+`Kerberos TGS and Kerberoasting guide <https://en.hackita.it/articoli/tgs/>`_.
