@@ -21,6 +21,7 @@
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use num_traits::Unsigned;
+use std::borrow::Cow;
 use std::cmp::max;
 use std::collections::TryReserveError;
 use std::ffi::CStr;
@@ -111,6 +112,11 @@ pub struct JsonBuilder {
 }
 
 impl JsonBuilder {
+    #[cfg(test)]
+    pub fn as_str(&self) -> &str {
+        &self.buf
+    }
+
     /// Returns a new JsonBuilder in object state.
     pub fn try_new_object() -> Result<Self, JsonError> {
         Self::try_new_object_with_capacity(INIT_SIZE)
@@ -346,10 +352,44 @@ impl JsonBuilder {
         }
     }
 
+    /// Add a string to an array, with a limited size
+    pub fn append_string_limited(
+        &mut self, val: &str, limit: usize,
+    ) -> Result<&mut Self, JsonError> {
+        self.append_string(&truncate_string(val, limit))
+    }
+
     pub fn append_string_from_bytes(&mut self, val: &[u8]) -> Result<&mut Self, JsonError> {
         match std::str::from_utf8(val) {
             Ok(s) => self.append_string(s),
             Err(_) => self.append_string(&try_string_from_bytes(val)?),
+        }
+    }
+
+    /// Add a string from bytes to an array, with a limited size
+    pub fn append_string_from_bytes_limited(
+        &mut self, val: &[u8], limit: usize,
+    ) -> Result<&mut Self, JsonError> {
+        match std::str::from_utf8(val) {
+            Ok(s) => self.append_string_limited(s, limit),
+            Err(_) => {
+                let mut valtrunc = Vec::new();
+                let val = if val.len() > limit {
+                    let additional_bytes = val.len() - limit;
+                    valtrunc.extend_from_slice(&val[..limit]);
+                    valtrunc.extend_from_slice(
+                        format!(
+                            "[truncated {additional_bytes} additional byte{}]",
+                            if additional_bytes != 1 { "s" } else { "" }
+                        )
+                        .as_bytes(),
+                    );
+                    &valtrunc
+                } else {
+                    val
+                };
+                self.append_string(&try_string_from_bytes(val)?)
+            }
         }
     }
 
@@ -517,34 +557,7 @@ impl JsonBuilder {
     pub fn set_string_limited(
         &mut self, key: &str, val: &str, limit: usize,
     ) -> Result<&mut Self, JsonError> {
-        if val.len() > limit {
-            // Gracefully handle splitting UTF-8 strings at arbitrary locations.
-            // Strings in Rust are UTF-8; and a UTF-8 code point is max 4 bytes.
-            // Hence we will find a suitable boundary within 4 bytes of any byte
-            // position, in any direction with sufficiently long strings left.
-            // This is an approach similar to Rust's (currently nightly unstable
-            // only) "floor_char_boundary" str method:
-            // https://doc.rust-lang.org/std/primitive.str.html#method.floor_char_boundary
-            for i in 0..=std::cmp::min(limit, 4) {
-                // We first try the requested boundary. In the expected
-                // ("happy") case the limit is at a code point boundary so the
-                // slice will succeed immediately. If not, we successively try
-                // earlier positions in the string until we find a suitable
-                // position.
-                if let Some(valtrunc) = val.get(0..limit - i) {
-                    let additional_bytes = val.len() - limit;
-                    let outstr = format!(
-                        "{valtrunc}[truncated {additional_bytes} additional byte{}]",
-                        if additional_bytes != 1 { "s" } else { "" }
-                    );
-                    self.set_string(key, &outstr)?;
-                    break;
-                }
-            }
-        } else {
-            self.set_string(key, val)?;
-        }
-        Ok(self)
+        self.set_string(key, &truncate_string(val, limit))
     }
 
     pub fn set_formatted(&mut self, formatted: &str) -> Result<&mut Self, JsonError> {
@@ -622,24 +635,26 @@ impl JsonBuilder {
     pub fn set_string_from_bytes_limited(
         &mut self, key: &str, val: &[u8], limit: usize,
     ) -> Result<&mut Self, JsonError> {
-        let mut valtrunc = Vec::new();
-        let val = if val.len() > limit {
-            let additional_bytes = val.len() - limit;
-            valtrunc.extend_from_slice(&val[..limit]);
-            valtrunc.extend_from_slice(
-                format!(
-                    "[truncated {additional_bytes} additional byte{}]",
-                    if additional_bytes != 1 { "s" } else { "" }
-                )
-                .as_bytes(),
-            );
-            &valtrunc
-        } else {
-            val
-        };
         match std::str::from_utf8(val) {
-            Ok(s) => self.set_string(key, s),
-            Err(_) => self.set_string(key, &try_string_from_bytes(val)?),
+            Ok(s) => self.set_string_limited(key, s, limit),
+            Err(_) => {
+                let mut valtrunc = Vec::new();
+                let val = if val.len() > limit {
+                    let additional_bytes = val.len() - limit;
+                    valtrunc.extend_from_slice(&val[..limit]);
+                    valtrunc.extend_from_slice(
+                        format!(
+                            "[truncated {additional_bytes} additional byte{}]",
+                            if additional_bytes != 1 { "s" } else { "" }
+                        )
+                        .as_bytes(),
+                    );
+                    &valtrunc
+                } else {
+                    val
+                };
+                self.set_string(key, &try_string_from_bytes(val)?)
+            }
         }
     }
 
@@ -785,6 +800,15 @@ impl JsonBuilder {
         self.buf.capacity()
     }
 
+    /// Number of bytes encoded so far.
+    pub fn len(&self) -> usize {
+        self.buf.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.buf.is_empty()
+    }
+
     fn push_float(&mut self, val: f64) -> Result<(), JsonError> {
         if val.is_nan() || val.is_infinite() {
             self.push_str("null")?;
@@ -871,6 +895,33 @@ impl JsonBuilder {
         STANDARD.encode_string(val, &mut self.buf);
         Ok(self)
     }
+}
+
+/// Truncate a string to at most `limit` bytes on a UTF-8 boundary, appending
+/// a marker with the number of dropped bytes.
+fn truncate_string(val: &str, limit: usize) -> Cow<'_, str> {
+    if val.len() <= limit {
+        return Cow::Borrowed(val);
+    }
+    // Gracefully handle splitting UTF-8 strings at arbitrary locations.
+    // Strings in Rust are UTF-8; and a UTF-8 code point is max 4 bytes.
+    // Hence we will find a suitable boundary within 4 bytes of any byte
+    // position, in any direction with sufficiently long strings left.
+    // This is an approach similar to Rust's (currently nightly unstable
+    // only) "floor_char_boundary" str method:
+    // https://doc.rust-lang.org/std/primitive.str.html#method.floor_char_boundary
+    for i in 0..=std::cmp::min(limit, 4) {
+        // Try the requested boundary first; in the expected case the limit is
+        // on a code point boundary. Otherwise step back until it is.
+        if let Some(valtrunc) = val.get(0..limit - i) {
+            let additional_bytes = val.len() - (limit - i);
+            return Cow::Owned(format!(
+                "{valtrunc}[truncated {additional_bytes} additional byte{}]",
+                if additional_bytes != 1 { "s" } else { "" }
+            ));
+        }
+    }
+    Cow::Borrowed("")
 }
 
 /// A Suricata specific function to create a string from bytes when UTF-8 decoding fails.
@@ -989,6 +1040,22 @@ pub unsafe extern "C" fn SCJbSetStringFromBytes(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn SCJbSetStringFromBytesLimited(
+    js: &mut JsonBuilder, key: *const c_char, bytes: *const u8, len: u32, limit: u32,
+) -> bool {
+    if bytes.is_null() || len == 0 || limit == 0 {
+        return false;
+    }
+    if let Ok(key) = CStr::from_ptr(key).to_str() {
+        let val = std::slice::from_raw_parts(bytes, len as usize);
+        return js
+            .set_string_from_bytes_limited(key, val, limit as usize)
+            .is_ok();
+    }
+    return false;
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn SCJbSetPrintAsciiString(
     js: &mut JsonBuilder, key: *const c_char, bytes: *const u8, len: u32,
 ) -> bool {
@@ -1073,6 +1140,19 @@ pub unsafe extern "C" fn SCJbAppendStringFromBytes(
     }
     let val = std::slice::from_raw_parts(bytes, len as usize);
     return js.append_string_from_bytes(val).is_ok();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCJbAppendStringFromBytesLimited(
+    js: &mut JsonBuilder, bytes: *const u8, len: u32, limit: u32,
+) -> bool {
+    if bytes.is_null() || len == 0 || limit == 0 {
+        return false;
+    }
+    let val = std::slice::from_raw_parts(bytes, len as usize);
+    return js
+        .append_string_from_bytes_limited(val, limit as usize)
+        .is_ok();
 }
 
 #[no_mangle]
@@ -1381,6 +1461,14 @@ mod test {
     }
 
     #[test]
+    fn test_len() {
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        let start = jb.len();
+        jb.set_uint("a", 1u64).unwrap();
+        assert!(jb.len() > start);
+    }
+
+    #[test]
     fn test_set_string_from_bytes() {
         let mut jb = JsonBuilder::try_new_object().unwrap();
         jb.set_string_from_bytes("first", &[]).unwrap();
@@ -1423,7 +1511,7 @@ mod test {
         assert!(result.is_err());
         // our code should just skip the incomplete character
         jb.set_string_limited("val", unicode_str, 9).unwrap();
-        assert_eq!(jb.buf, r#"{"val":"Hello, [truncated 14 additional bytes]""#);
+        assert_eq!(jb.buf, r#"{"val":"Hello, [truncated 16 additional bytes]""#);
         jb.reset();
         // valid unicode boundary, naive access should not panic
         let result = std::panic::catch_unwind(|| _ = unicode_str[..10]);
@@ -1443,10 +1531,10 @@ mod test {
         let result = std::panic::catch_unwind(|| _ = unicode_str2[..1]);
         assert!(result.is_err());
         jb.set_string_limited("val", unicode_str2, 1).unwrap();
-        assert_eq!(jb.buf, r#"{"val":"[truncated 2 additional bytes]""#);
+        assert_eq!(jb.buf, r#"{"val":"[truncated 3 additional bytes]""#);
         jb.reset();
         jb.set_string_limited("val", unicode_str2, 2).unwrap();
-        assert_eq!(jb.buf, r#"{"val":"[truncated 1 additional byte]""#);
+        assert_eq!(jb.buf, r#"{"val":"[truncated 3 additional bytes]""#);
         jb.reset();
         // with limit 3 or more we should include it in the log
         jb.set_string_limited("val", unicode_str2, 3).unwrap();
@@ -1461,10 +1549,23 @@ mod test {
         // this character consists of multiple code points
         jb.reset();
         jb.set_string_limited("val", unicode_str3, 7).unwrap();
-        assert_eq!(jb.buf, r#"{"val":"🏴[truncated 21 additional bytes]""#);
+        assert_eq!(jb.buf, r#"{"val":"🏴[truncated 24 additional bytes]""#);
         jb.reset();
         jb.set_string_limited("val", unicode_str3, 2).unwrap();
-        assert_eq!(jb.buf, r#"{"val":"[truncated 26 additional bytes]""#);
+        assert_eq!(jb.buf, r#"{"val":"[truncated 28 additional bytes]""#);
+    }
+
+    #[test]
+    fn test_append_string_limited() {
+        let mut jb = JsonBuilder::try_new_array().unwrap();
+        jb.append_string_limited("foobar", 10).unwrap();
+        assert_eq!(jb.buf, r#"["foobar""#);
+        jb.reset();
+        jb.append_string_limited("foobar", 2).unwrap();
+        assert_eq!(jb.buf, r#"["fo[truncated 4 additional bytes]""#);
+        jb.reset();
+        jb.append_string_limited("Hello, 世界", 9).unwrap();
+        assert_eq!(jb.buf, r#"["Hello, [truncated 6 additional bytes]""#);
     }
 
     #[test]
@@ -1485,6 +1586,35 @@ mod test {
             jb.buf,
             r#"{"first":"foobar","second":"fo[truncated 4 additional bytes]","third":"[truncated 6 additional bytes]""#
         );
+    }
+
+    #[test]
+    fn test_set_string_from_bytes_limited_multibyte() {
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        let mut val = vec![b'A'; 8191];
+        val.extend_from_slice("é".as_bytes());
+        val.extend_from_slice(b"tail");
+        jb.set_string_from_bytes_limited("v", &val, 8192).unwrap();
+        assert!(jb.buf.contains("[truncated 6 additional bytes]"));
+        assert!(jb.buf.starts_with("{\"v\":\"AAAA"));
+    }
+
+    #[test]
+    fn test_set_string_from_bytes_limited_invalid() {
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        jb.set_string_from_bytes_limited("v", &[0xff; 10], 5)
+            .unwrap();
+        assert!(jb.buf.contains("\\xff"));
+        assert!(jb.buf.contains("[truncated 5 additional bytes]"));
+    }
+
+    #[test]
+    fn test_append_string_from_bytes_limited() {
+        let mut jb = JsonBuilder::try_new_array().unwrap();
+        let mut val = vec![b'A'; 8191];
+        val.extend_from_slice("é".as_bytes());
+        jb.append_string_from_bytes_limited(&val, 8192).unwrap();
+        assert!(jb.buf.contains("[truncated 2 additional bytes]"));
     }
 
     #[test]

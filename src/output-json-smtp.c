@@ -49,6 +49,60 @@
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
 
+#define SMTP_LOG_MAX_STRING     (8 * 1024)
+#define SMTP_LOG_MAX_RCPT       64
+#define SMTP_LOG_MAX_RCPT_BYTES (32 * 1024)
+
+static void SmtpAppendStringLimited(SCJsonBuilder *js, const char *str, size_t limit)
+{
+    size_t len = strlen(str);
+    if (len <= limit) {
+        SCJbAppendString(js, str);
+        return;
+    }
+    size_t extra = len - limit;
+    char suffix[64];
+    int suffix_len = snprintf(suffix, sizeof(suffix), "[truncated %zu additional bytes]", extra);
+    if (suffix_len < 0) {
+        SCJbAppendString(js, str);
+        return;
+    }
+    uint8_t *buf = SCMalloc(limit + (size_t)suffix_len);
+    if (buf == NULL) {
+        SCJbAppendString(js, str);
+        return;
+    }
+    memcpy(buf, str, limit);
+    memcpy(buf + limit, suffix, (size_t)suffix_len);
+    SCJbAppendStringFromBytes(js, buf, (uint32_t)(limit + (size_t)suffix_len));
+    SCFree(buf);
+}
+
+static void SmtpSetStringLimited(SCJsonBuilder *js, const char *key, const char *str)
+{
+    size_t len = strlen(str);
+    if (len <= SMTP_LOG_MAX_STRING) {
+        SCJbSetStringFromBytes(js, key, (const uint8_t *)str, (uint32_t)len);
+        return;
+    }
+    size_t extra = len - SMTP_LOG_MAX_STRING;
+    char suffix[64];
+    int suffix_len = snprintf(suffix, sizeof(suffix), "[truncated %zu additional bytes]", extra);
+    if (suffix_len < 0) {
+        SCJbSetStringFromBytes(js, key, (const uint8_t *)str, (uint32_t)len);
+        return;
+    }
+    uint8_t *buf = SCMalloc(SMTP_LOG_MAX_STRING + (size_t)suffix_len);
+    if (buf == NULL) {
+        SCJbSetStringFromBytes(js, key, (const uint8_t *)str, (uint32_t)len);
+        return;
+    }
+    memcpy(buf, str, SMTP_LOG_MAX_STRING);
+    memcpy(buf + SMTP_LOG_MAX_STRING, suffix, (size_t)suffix_len);
+    SCJbSetStringFromBytes(js, key, buf, (uint32_t)(SMTP_LOG_MAX_STRING + (size_t)suffix_len));
+    SCFree(buf);
+}
+
 static void EveSmtpDataLogger(void *state, void *vtx, SCJsonBuilder *js)
 {
     if (state == NULL || vtx == NULL) {
@@ -57,18 +111,46 @@ static void EveSmtpDataLogger(void *state, void *vtx, SCJsonBuilder *js)
 
     SMTPTransaction *tx = vtx;
     SMTPString *rcptto_str;
+    bool truncated = false;
+
     if (((SMTPState *)state)->helo) {
-        SCJbSetString(js, "helo", (const char *)((SMTPState *)state)->helo);
+        if (strlen((const char *)((SMTPState *)state)->helo) > SMTP_LOG_MAX_STRING)
+            truncated = true;
+        SmtpSetStringLimited(js, "helo", (const char *)((SMTPState *)state)->helo);
     }
     if (tx->mail_from) {
-        SCJbSetString(js, "mail_from", (const char *)tx->mail_from);
+        if (strlen((const char *)tx->mail_from) > SMTP_LOG_MAX_STRING)
+            truncated = true;
+        SmtpSetStringLimited(js, "mail_from", (const char *)tx->mail_from);
     }
     if (!TAILQ_EMPTY(&tx->rcpt_to_list)) {
+        size_t budget = SMTP_LOG_MAX_RCPT_BYTES;
+        size_t count = 0;
+        bool rcpt_truncated = false;
         SCJbOpenArray(js, "rcpt_to");
-        TAILQ_FOREACH(rcptto_str, &tx->rcpt_to_list, next) {
-            SCJbAppendString(js, (char *)rcptto_str->str);
+        TAILQ_FOREACH (rcptto_str, &tx->rcpt_to_list, next) {
+            if (count >= SMTP_LOG_MAX_RCPT || budget == 0) {
+                rcpt_truncated = true;
+                break;
+            }
+            size_t len = strlen((const char *)rcptto_str->str);
+            size_t limit = len < budget ? len : budget;
+            if (limit > SMTP_LOG_MAX_STRING)
+                limit = SMTP_LOG_MAX_STRING;
+            if (limit < len)
+                rcpt_truncated = true;
+            budget -= limit;
+            count++;
+            SmtpAppendStringLimited(js, (const char *)rcptto_str->str, limit);
         }
         SCJbClose(js);
+        if (rcpt_truncated) {
+            SCJbSetBool(js, "rcpt_to_truncated", true);
+            truncated = true;
+        }
+    }
+    if (truncated) {
+        SCJbSetBool(js, "truncated", true);
     }
 }
 

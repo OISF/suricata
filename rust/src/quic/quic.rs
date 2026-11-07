@@ -99,6 +99,11 @@ impl QuicTransaction {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn push_test_cyu(&mut self, string: String) {
+        self.cyu.push(Cyu::new(string, "00".to_string()));
+    }
+
     fn new_empty(client: bool, header: QuicHeader) -> Self {
         let direction = if client {
             Direction::ToServer
@@ -118,6 +123,20 @@ impl QuicTransaction {
             tx_data: AppLayerTxData::for_direction(direction),
         }
     }
+}
+
+#[cfg(test)]
+pub(crate) fn new_test_tx() -> QuicTransaction {
+    let header = QuicHeader {
+        flags: super::parser::PublicFlags::new(0x80),
+        ty: QuicType::Initial,
+        version: super::parser::QuicVersion::Q046,
+        version_buf: Vec::new(),
+        dcid: Vec::new(),
+        scid: Vec::new(),
+        length: 0,
+    };
+    QuicTransaction::new_empty(true, header)
 }
 
 pub struct QuicState {

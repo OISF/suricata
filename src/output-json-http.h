@@ -24,10 +24,14 @@
 #ifndef SURICATA_OUTPUT_JSON_HTTP_H
 #define SURICATA_OUTPUT_JSON_HTTP_H
 
+/* per-body logger cap, configurable for the alert http-body output */
+#define HTTP_LOG_DEFAULT_BODY_LIMIT (100 * 1024)
+#define HTTP_LOG_MAX_BODY_LIMIT     (256 * 1024)
+
 void JsonHttpLogRegister(void);
 
 bool EveHttpAddMetadata(const Flow *f, uint64_t tx_id, SCJsonBuilder *js);
-void EveHttpLogJSONBodyPrintable(SCJsonBuilder *js, Flow *f, uint64_t tx_id);
-void EveHttpLogJSONBodyBase64(SCJsonBuilder *js, Flow *f, uint64_t tx_id);
+void EveHttpLogJSONBody(SCJsonBuilder *js, Flow *f, uint64_t tx_id, bool base64, bool printable,
+        uint32_t body_log_limit);
 
 #endif /* SURICATA_OUTPUT_JSON_HTTP_H */
