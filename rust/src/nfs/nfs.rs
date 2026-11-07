@@ -1298,16 +1298,20 @@ impl NFSState {
         }
     }
 
-    pub fn process_request_record_lookup(&mut self, r: &RpcPacket, xidmap: &mut NFSRequestXidMap) {
+    /// Wire the looked-up name into the xidmap. False when the request could
+    /// not be parsed; the caller raises the event on the transaction this
+    /// record creates, since set_event() would land on an older one.
+    pub fn process_request_record_lookup(
+        &mut self, r: &RpcPacket, xidmap: &mut NFSRequestXidMap,
+    ) -> bool {
         match parse_nfs3_request_lookup(r.prog_data) {
             Ok((_, lookup)) => {
                 SCLogDebug!("LOOKUP {:?}", lookup);
                 xidmap.file_name = lookup.name_vec;
+                true
             }
-            _ => {
-                self.set_event(NFSEvent::MalformedData);
-            }
-        };
+            _ => false,
+        }
     }
 
     pub fn xidmap_handle2name(&mut self, xidmap: &mut NFSRequestXidMap) {

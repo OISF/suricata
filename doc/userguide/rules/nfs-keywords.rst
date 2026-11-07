@@ -45,10 +45,11 @@ nfs.name
 
 Match on the name the NFS transaction carries, when known. The name is
 learned from LOOKUP and friends and associated with the file handle, so
-READ and WRITE transactions on that handle carry it too. It holds the same
-bytes as the ``nfs.filename`` field of the NFS event, and it is a name
-component, not a path: NFS names a file by handle once the directory walk
-is done.
+READ and WRITE transactions on that handle carry it too. It is the
+name the event reports as ``nfs.filename``: the buffer holds the raw bytes,
+the event holds them lossily converted to UTF-8, so for a name that is not
+valid UTF-8 they differ. It is a name component, not a path - NFS switches
+to the handle once the directory walk is done.
 
 Examples::
 
@@ -60,13 +61,22 @@ Examples::
 ``nfs.name`` can be used as ``fast_pattern``.
 
 For a READ or WRITE that opens a file, the generic :doc:`file-keywords`
-keyword ``file.name`` matches the same bytes: the file engine records the
-name at open. Prefer ``file.name`` there. ``nfs.name`` is the wider of the
-two: it also covers the requests that name a file without transferring it
-(LOOKUP, RENAME, READDIR, READLINK, SETATTR, COMMIT) and it works when file
-store is off. SMB, which this mirrors, registers no name buffer at all
-because its names always come with a file, a pipe (``smb.named_pipe``) or a
-share (``smb.share``); its file names are matched with ``file.name``.
+keyword ``file.name`` matches the same bytes: it asks the file engine for
+the name recorded at open. Prefer ``file.name`` there. ``nfs.name`` is the
+wider of the two: it also covers the requests that name a file without
+transferring it (LOOKUP, CREATE, REMOVE, RENAME, READDIR, READLINK, LINK,
+SYMLINK, MKNOD, SETATTR), and the handle-only ones carry whatever the
+handle map resolved for that handle.
+
+Two limits to know about. A RENAME carries its source name in the
+transaction and the target in ``rename.to`` of the event, so the buffer
+holds the source only. And a COMMIT makes no transaction of its own - it
+completes the WRITE it refers to - so there is nothing there for
+``nfs.name`` to match; match the WRITE instead.
+
+SMB, which this mirrors, registers no name buffer of its own because its
+names always come with a file, a pipe (``smb.named_pipe``) or a share
+(``smb.share``); SMB file names are matched with ``file.name``.
 
 Signature Example:
 
