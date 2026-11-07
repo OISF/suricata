@@ -33,7 +33,7 @@ unsafe extern "C" fn url_decode_setup(
     return SCDetectSignatureAddTransform(s, G_TRANSFORM_URL_DECODE_ID, ptr::null_mut());
 }
 
-fn hex_value(i: u8) -> Option<u8> {
+pub(crate) fn hex_value(i: u8) -> Option<u8> {
     match i {
         0x30..=0x39 => Some(i - 0x30),
         0x41..=0x46 => Some(i - 0x41 + 10),
