@@ -1934,6 +1934,8 @@ order file data.
       max-write-queue-size: 64mb
       max-write-queue-cnt: 64
 
+      stream-depth: 0
+
 The `max-read-size` option can be set to control the max size of accepted
 READ responses. Events will be raised if READ responses claim or carry too
 much data. A value of 0 disables the checks.
@@ -1970,6 +1972,9 @@ event is raised.
 
 `max-write-queue-size` and `max-write-queue-cnt` are as the READ variants,
 but then for WRITEs.
+
+`stream-depth` sets the stream reassembly size for NFS streams. By
+default the stream is tracked completely (0).
 
 
 Configure DCERPC

@@ -1108,6 +1108,9 @@ app-layer:
     nfs:
       enabled: yes
       # max-tx: 1024
+
+      # Stream reassembly size for NFS streams. By default track it completely.
+      #stream-depth: 0
     tftp:
       enabled: yes
     dns:

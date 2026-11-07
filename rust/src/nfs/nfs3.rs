@@ -68,6 +68,20 @@ impl NFSState {
             } else {
                 self.set_event(NFSEvent::MalformedData);
             };
+        } else if r.procedure == NFSPROC3_READDIR {
+            if let Ok((_, rd)) = parse_nfs3_request_readdir(r.prog_data) {
+                xidmap.file_handle = rd.handle.value.to_vec();
+                self.xidmap_handle2name(&mut xidmap);
+            } else {
+                self.set_event(NFSEvent::MalformedData);
+            };
+        } else if r.procedure == NFSPROC3_SETATTR {
+            if let Ok((_, rd)) = parse_nfs3_request_setattr(r.prog_data) {
+                xidmap.file_handle = rd.handle.value.to_vec();
+                self.xidmap_handle2name(&mut xidmap);
+            } else {
+                self.set_event(NFSEvent::MalformedData);
+            };
         } else if r.procedure == NFSPROC3_READ {
             if let Ok((_, rd)) = parse_nfs3_request_read(r.prog_data) {
                 xidmap.chunk_offset = rd.offset;
@@ -206,6 +220,14 @@ impl NFSState {
         let mut nfs_status = 0;
         let mut resp_handle = Vec::new();
 
+        // every NFS/v3 reply carries its status word first: a record too
+        // short to hold one has no status to log (keep the tx status unset;
+        // the default 0 would read as a fake OK)
+        let nfs_status_set = r.prog_data.len() >= 4;
+        if !nfs_status_set {
+            self.set_event(NFSEvent::MalformedData);
+        }
+
         if xidmap.procedure == NFSPROC3_LOOKUP {
             if let Ok((_, rd)) = parse_nfs3_response_lookup(r.prog_data) {
                 SCLogDebug!("LOOKUP: {:?}", rd);
@@ -272,6 +294,38 @@ impl NFSState {
             } else {
                 self.set_event(NFSEvent::MalformedData);
             }
+        } else if xidmap.procedure == NFSPROC3_READDIR {
+            // The dirlist3 chain is parsed best-effort: real servers pad
+            // error replies (e.g. JUKEBOX carries garbage), and
+            // Suricata's UDP reassembly can splice datagrams, so a
+            // tail that does not pack exactly is tolerated; the status
+            // is always taken from the record head.
+            nfs_status = match parse_nfs3_response_readdir(r.prog_data) {
+                Ok((_, rd)) => rd.status,
+                Err(_) => {
+                    // tail tolerated (see above), but the anomaly stays
+                    // observable
+                    self.set_event(NFSEvent::MalformedData);
+                    match be_u32(r.prog_data) as IResult<&[u8], _> {
+                        Ok((_, stat)) => stat,
+                        _ => 0,
+                    }
+                }
+            };
+        } else if xidmap.procedure == NFSPROC3_SETATTR {
+            // wcc_data is parsed best-effort, same tolerance as READDIR
+            nfs_status = match parse_nfs3_response_setattr(r.prog_data) {
+                Ok((_, rd)) => rd.status,
+                Err(_) => {
+                    // tail tolerated (see above), but the anomaly stays
+                    // observable
+                    self.set_event(NFSEvent::MalformedData);
+                    match be_u32(r.prog_data) as IResult<&[u8], _> {
+                        Ok((_, stat)) => stat,
+                        _ => 0,
+                    }
+                }
+            };
         } else if xidmap.procedure == NFSPROC3_FSINFO {
             // status from the record head, as READDIR and SETATTR do: a
             // broken reply must not log as a fake OK
