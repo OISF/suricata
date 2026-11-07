@@ -4910,25 +4910,32 @@
             "additionalProperties": false,
             "properties": {
                 "client_id": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "NFSv4.1 client identifier from EXCHANGE_ID, hex encoded"
                 },
                 "file_tx": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "true when the transaction carries a file (READ, WRITE)"
                 },
                 "filename": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "file name of the transaction when known, else empty; a name component, not a path"
                 },
                 "hhash": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "first bytes of the file handle, hashed to group transactions on the same file"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "NFS transaction id, matches the tx_id of the flow record"
                 },
                 "minorversion": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "NFSv4 minor version, only set for version 4"
                 },
                 "procedure": {
                     "type": "string",
+                    "description": "procedure name in upper case, v2/v3/v4 name space",
                     "suricata": {
                         "keywords": [
                             "nfs_procedure"
@@ -4937,54 +4944,69 @@
                 },
                 "read": {
                     "type": "object",
+                    "description": "set on READ transactions",
                     "additionalProperties": false,
                     "properties": {
                         "chunks": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "number of data chunks seen for the transaction"
                         },
                         "eof": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "true when the server reported end of file"
                         },
                         "first": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "true on the first record of the transaction"
                         },
                         "last": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "true on the last record of the transaction"
                         },
                         "last_xid": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "xid of the last record that added data to the transaction"
                         },
                         "offset": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "offset in the file where the transfer starts"
                         },
                         "size": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "number of bytes transferred"
                         }
                     }
                 },
                 "rename": {
                     "type": "object",
+                    "description": "set on RENAME transactions",
                     "additionalProperties": false,
                     "properties": {
                         "from": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "source name of the rename"
                         },
                         "to": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "target name of the rename"
                         }
                     }
                 },
                 "status": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "NFS status of the reply as a name, only on responses"
                 },
                 "status_code": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "NFS status of the reply as a number, only when the reply carries a status"
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "request or response"
                 },
                 "version": {
                     "type": "integer",
+                    "description": "NFS version of the transaction",
                     "suricata": {
                         "keywords": [
                             "nfs.version"
@@ -4993,25 +5015,32 @@
                 },
                 "write": {
                     "type": "object",
+                    "description": "set on WRITE transactions",
                     "additionalProperties": false,
                     "properties": {
                         "chunks": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "number of data chunks seen for the transaction"
                         },
                         "first": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "true on the first record of the transaction"
                         },
                         "last": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "true on the last record of the transaction"
                         },
                         "last_xid": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "xid of the last record that added data to the transaction"
                         },
                         "offset": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "offset in the file where the transfer starts"
                         },
                         "size": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "number of bytes transferred"
                         }
                     }
                 }
