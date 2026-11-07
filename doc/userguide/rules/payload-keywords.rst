@@ -592,8 +592,9 @@ Format::
 
 
 +-----------------------+-----------------------------------------------------------------------+
-| <num of bytes>        | The number of bytes selected from the packet                          |
-|                       | or the name of a byte_extract variable.                               |
+| <num of bytes>        | The number of bytes selected from the packet or the name of a         |
+|                       | byte_extract variable.                                                |
+|                       | Valid values: 1-10 when the ``string`` option is used, 1-4 otherwise. |
 +-----------------------+-----------------------------------------------------------------------+
 | <offset>              | Number of bytes into the payload                                      |
 +-----------------------+-----------------------------------------------------------------------+
