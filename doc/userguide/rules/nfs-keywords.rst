@@ -37,3 +37,40 @@ Unlike the other keywords, the usage of range is inclusive.
 Syntax::
 
  nfs_procedure:(mode) <number or string>
+
+nfs.name
+--------
+
+This keyword allows to match the file name of the NFS transaction,
+when known. The name is learned from LOOKUP (and similar) requests
+and associated with the file handle; READ and WRITE transactions on
+that handle carry the name as well.
+
+It is a sticky buffer: use ``content`` (and other content keywords)
+to match on it.
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert nfs any any -> any any (msg:"NFS nfs.name usage"; \
+  :example-rule-options:`nfs.name; content:"secret.txt";` \
+  classtype:bad-unknown; sid:1; rev:1;)
+
+nfs.handle
+----------
+
+This keyword allows to match the file handle of the NFS transaction,
+when known. File handles are binary and server-specific, so match
+them with hex escapes.
+
+It is a sticky buffer: use ``content`` with hex escapes to match on
+it.
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert nfs any any -> any any (msg:"NFS nfs.handle usage"; \
+  :example-rule-options:`nfs.handle; content:"|01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10|";` \
+  classtype:bad-unknown; sid:1; rev:1;)

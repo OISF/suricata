@@ -20,7 +20,8 @@
 use crate::jsonbuilder::JsonBuilder;
 use suricata_sys::sys::AppProtoEnum::ALPROTO_NFS;
 use suricata_sys::sys::{
-    AppProto, DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectHelperBufferProgressRegister,
+    AppProto, DetectEngineCtx, DetectEngineThreadCtx, Flow, SCDetectBufferSetActiveList,
+    SCDetectHelperBufferMpmRegister, SCDetectHelperBufferProgressRegister,
     SCDetectHelperKeywordAliasRegister, SCDetectHelperKeywordJsonInfoRegister,
     SCDetectHelperKeywordRegister, SCDetectSignatureSetAppProto, SCJsonBuilder,
     SCSigMatchAppendSMToList, SCSigTableAppLiteElmt, SigMatchCtx, Signature,
@@ -28,20 +29,28 @@ use suricata_sys::sys::{
 
 use super::nfs::{NFSTransaction, NFSTransactionTypeData};
 use super::types::{NfsProc2, NfsProc3, NfsProc4};
-use crate::core::STREAM_TOSERVER;
+use crate::core::{STREAM_TOCLIENT, STREAM_TOSERVER};
 use crate::detect::uint::{
     detect_match_uint, detect_parse_uint_enum, detect_parse_uint_inclusive, DetectUintData,
     SCDetectU32Free, SCDetectU32ParseInclusive,
 };
-use crate::detect::{EnumString, SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT32};
+use crate::detect::{
+    helper_keyword_register_sticky_buffer, EnumString, SigTableElmtStickyBuffer,
+    SIGMATCH_INFO_ENUM_UINT, SIGMATCH_INFO_UINT32,
+};
 
 use std::ffi::{c_int, CStr};
 use std::os::raw::c_void;
+use std::ptr;
 
 static mut G_NFS_PROCEDURE_KW_ID: u16 = 0;
 static mut G_NFS_PROCEDURE_BUFFER_ID: c_int = 0;
 static mut G_NFS_VERSION_KW_ID: u16 = 0;
 static mut G_NFS_VERSION_BUFFER_ID: c_int = 0;
+static mut G_NFS_NAME_KW_ID: u16 = 0;
+static mut G_NFS_NAME_BUFFER_ID: c_int = 0;
+static mut G_NFS_HANDLE_KW_ID: u16 = 0;
+static mut G_NFS_HANDLE_BUFFER_ID: c_int = 0;
 
 struct DetectNfsProcedureDataVersion {
     v2: Option<DetectUintData<u32>>,
@@ -218,6 +227,60 @@ unsafe extern "C" fn nfs_procedure_list_values(jsb: *mut SCJsonBuilder) {
     let _ = jsb.close();
 }
 
+// --- sticky buffers: file name and file handle of the transaction ---
+
+unsafe extern "C" fn nfs_tx_get_name(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, NFSTransaction);
+    if !tx.file_name.is_empty() {
+        *buffer = tx.file_name.as_ptr();
+        *buffer_len = tx.file_name.len() as u32;
+        return true;
+    }
+    *buffer = ptr::null();
+    *buffer_len = 0;
+    return false;
+}
+
+unsafe extern "C" fn nfs_tx_get_handle(
+    tx: *const c_void, _flags: u8, buffer: *mut *const u8, buffer_len: *mut u32,
+) -> bool {
+    let tx = cast_pointer!(tx, NFSTransaction);
+    if !tx.file_handle.is_empty() {
+        *buffer = tx.file_handle.as_ptr();
+        *buffer_len = tx.file_handle.len() as u32;
+        return true;
+    }
+    *buffer = ptr::null();
+    *buffer_len = 0;
+    return false;
+}
+
+unsafe extern "C" fn nfs_name_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_NFS as AppProto) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_NFS_NAME_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+unsafe extern "C" fn nfs_handle_setup(
+    de: *mut DetectEngineCtx, s: *mut Signature, _raw: *const std::os::raw::c_char,
+) -> c_int {
+    if SCDetectSignatureSetAppProto(s, ALPROTO_NFS as AppProto) != 0 {
+        return -1;
+    }
+    if SCDetectBufferSetActiveList(de, s, G_NFS_HANDLE_BUFFER_ID) < 0 {
+        return -1;
+    }
+    return 0;
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn SCDetectNfsRegister() {
     let kw = SCSigTableAppLiteElmt {
@@ -259,12 +322,85 @@ pub unsafe extern "C" fn SCDetectNfsRegister() {
         G_NFS_VERSION_KW_ID,
         b"nfs_version\0".as_ptr() as *const libc::c_char,
     );
+
+    let kw_name = SigTableElmtStickyBuffer {
+        name: String::from("nfs.name"),
+        desc: String::from("sticky buffer to match on the NFS file name of the transaction"),
+        url: String::from("/rules/nfs-keywords.html#nfs-name"),
+        setup: nfs_name_setup,
+    };
+    let name_kw_id = helper_keyword_register_sticky_buffer(&kw_name);
+    G_NFS_NAME_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"nfs_name\0".as_ptr() as *const libc::c_char,
+        b"nfs name\0".as_ptr() as *const libc::c_char,
+        ALPROTO_NFS as AppProto,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        Some(nfs_tx_get_name),
+    );
+    SCDetectHelperKeywordAliasRegister(name_kw_id, b"nfs_name\0".as_ptr() as *const libc::c_char);
+
+    let kw_handle = SigTableElmtStickyBuffer {
+        name: String::from("nfs.handle"),
+        desc: String::from(
+            "sticky buffer to match on the NFS file handle of the transaction (binary, use hex escapes)",
+        ),
+        url: String::from("/rules/nfs-keywords.html#nfs-handle"),
+        setup: nfs_handle_setup,
+    };
+    let handle_kw_id = helper_keyword_register_sticky_buffer(&kw_handle);
+    G_NFS_HANDLE_BUFFER_ID = SCDetectHelperBufferMpmRegister(
+        b"nfs_handle\0".as_ptr() as *const libc::c_char,
+        b"nfs handle\0".as_ptr() as *const libc::c_char,
+        ALPROTO_NFS as AppProto,
+        STREAM_TOSERVER | STREAM_TOCLIENT,
+        Some(nfs_tx_get_handle),
+    );
+    SCDetectHelperKeywordAliasRegister(
+        handle_kw_id,
+        b"nfs_handle\0".as_ptr() as *const libc::c_char,
+    );
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::detect::uint::DetectUintMode;
+
+    #[test]
+    fn nfs_sticky_getter_test() {
+        let mut tx = NFSTransaction::default();
+        let mut buf: *const u8 = std::ptr::null();
+        let mut buf_len: u32 = 0;
+
+        // empty name/handle: no buffer
+        assert!(!unsafe {
+            nfs_tx_get_name(&tx as *const _ as *const c_void, 0, &mut buf, &mut buf_len)
+        });
+        assert_eq!(buf_len, 0);
+        assert!(!unsafe {
+            nfs_tx_get_handle(&tx as *const _ as *const c_void, 0, &mut buf, &mut buf_len)
+        });
+        assert_eq!(buf_len, 0);
+
+        tx.file_name = b"somefile".to_vec();
+        tx.file_handle = vec![0x01, 0x02, 0x03, 0xff];
+        assert!(unsafe {
+            nfs_tx_get_name(&tx as *const _ as *const c_void, 0, &mut buf, &mut buf_len)
+        });
+        assert_eq!(buf_len, 8);
+        assert_eq!(
+            unsafe { std::slice::from_raw_parts(buf, buf_len as usize) },
+            b"somefile"
+        );
+        assert!(unsafe {
+            nfs_tx_get_handle(&tx as *const _ as *const c_void, 0, &mut buf, &mut buf_len)
+        });
+        assert_eq!(buf_len, 4);
+        assert_eq!(
+            unsafe { std::slice::from_raw_parts(buf, buf_len as usize) },
+            &[0x01, 0x02, 0x03, 0xff]
+        );
+    }
 
     #[test]
     fn nfs_procedure_parse_test() {
