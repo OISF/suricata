@@ -4909,6 +4909,9 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+                "client_id": {
+                    "type": "string"
+                },
                 "file_tx": {
                     "type": "boolean"
                 },
@@ -4919,6 +4922,9 @@
                     "type": "string"
                 },
                 "id": {
+                    "type": "integer"
+                },
+                "minorversion": {
                     "type": "integer"
                 },
                 "procedure": {
@@ -4936,6 +4942,9 @@
                         "chunks": {
                             "type": "integer"
                         },
+                        "eof": {
+                            "type": "boolean"
+                        },
                         "first": {
                             "type": "boolean"
                         },
@@ -4943,6 +4952,12 @@
                             "type": "boolean"
                         },
                         "last_xid": {
+                            "type": "integer"
+                        },
+                        "offset": {
+                            "type": "integer"
+                        },
+                        "size": {
                             "type": "integer"
                         }
                     }
@@ -4961,6 +4976,9 @@
                 },
                 "status": {
                     "type": "string"
+                },
+                "status_code": {
+                    "type": "integer"
                 },
                 "type": {
                     "type": "string"
@@ -4987,6 +5005,12 @@
                             "type": "boolean"
                         },
                         "last_xid": {
+                            "type": "integer"
+                        },
+                        "offset": {
+                            "type": "integer"
+                        },
+                        "size": {
                             "type": "integer"
                         }
                     }

@@ -151,7 +151,16 @@ impl NFSState {
                         if is_last {
                             tdf.file_last_xid = r.hdr.xid;
                             tx.is_last = true;
-                            tx.response_done = true;
+                            tx.request_done = true;
+                            // Same is_last split-record handling as the new-tx
+                            // branch: only mark the response side (and close)
+                            // once the tracker is done. is_finished() also
+                            // covers an overlapping final write, which
+                            // truncates the tracker while it stays open.
+                            if tdf.file_tracker.is_finished() {
+                                tx.response_done = true;
+                                tx.is_file_closed = true;
+                            }
                         }
                     }
                     if fsinfo_exceeded {
@@ -196,7 +205,16 @@ impl NFSState {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.is_last = true;
                     tx.request_done = true;
-                    tx.is_file_closed = true;
+                    // Same is_last split-record handling as the v3 write
+                    // path: stay open until the tracker is done, and mark
+                    // the response side there (a WRITE reply carries no file
+                    // data and file txs are invisible to the reply path).
+                    // is_finished() also covers an overlapping final write,
+                    // which truncates the tracker while it stays open.
+                    if tdf.file_tracker.is_finished() {
+                        tx.response_done = true;
+                        tx.is_file_closed = true;
+                    }
                 }
             }
             tx.procedure = NFSPROC4_WRITE;
@@ -239,6 +257,9 @@ impl NFSState {
                 tdf.file_last_xid = r.hdr.xid;
                 tx.is_last = true;
                 tx.request_done = true;
+                // See the v3 COMMIT branch: the response side is completed
+                // here, not by the individual WRITE replies.
+                tx.response_done = true;
                 tx.is_file_closed = true;
             }
         }
@@ -288,6 +309,15 @@ impl NFSState {
         // v4 minor version of this COMPOUND: flow-level state so the
         // records of this flow can carry it (SMB dialect parity).
         self.minorversion = cr.minorversion;
+
+        // Establish the flow-level version from the first v4 request.
+        // Without this, records logged before the first reply is seen
+        // (e.g. a write file tx completing mid-flow) would carry version
+        // 0 and the logger's version dispatch (v2 table for <= 2) would
+        // name procedures numerically.
+        if self.nfs_version == 0 {
+            self.nfs_version = r.progver as u16;
+        }
 
         for c in &cr.commands {
             SCLogDebug!("c {:?}", c);

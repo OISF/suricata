@@ -52,10 +52,14 @@ pub extern "C" fn SCNfsTxLoggingIsFiltered(state: &mut NFSState, tx: &NFSTransac
     // kept out of the EVE output. When the key is absent the historical
     // default applies: v3 GETATTR is by far the most frequent procedure
     // and rarely interesting on its own, so it is filtered.
-    let (procs, filter_set) = unsafe { (&NFS_CFG_FILTER_PROCS, NFS_CFG_FILTER_SET) };
+    let filter_set = unsafe { NFS_CFG_FILTER_SET };
     if filter_set {
         let name = nfs_proc_name(state, tx).to_lowercase();
-        if procs.iter().any(|p| p == &name) {
+        // The list is written once during config initialization and never
+        // mutated again; read it through a raw pointer to avoid the
+        // static_mut_refs lint on the shared reference.
+        let procs_ptr = std::ptr::addr_of!(NFS_CFG_FILTER_PROCS);
+        if unsafe { (*procs_ptr).iter().any(|p| p == &name) } {
             return 1;
         }
         return 0;
@@ -159,8 +163,8 @@ fn nfs_log_response(
     // v4 session identity (RFC 7530): the minor version of the
     // compounds on this flow and the 8-byte client identifier
     // (clientid4) when observed. Session id (v4.1 CREATE_SESSION
-    // ssn_id) is not logged: the CREATE_SESSION parser's field sizes
-    // diverge from the RFC (ssn_id read as 16 bytes, not 8).
+    // ssn_id) is not logged: it is a 16-byte binary opaque
+    // (nfs4_sessionid4), which has no printable representation.
     if state.nfs_version == 4 {
         js.set_uint("minorversion", state.minorversion as u64)?;
         if let Some(ref cid) = state.client_id {
