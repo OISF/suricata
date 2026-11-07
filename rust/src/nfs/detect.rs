@@ -47,9 +47,7 @@ static mut G_NFS_PROCEDURE_KW_ID: u16 = 0;
 static mut G_NFS_PROCEDURE_BUFFER_ID: c_int = 0;
 static mut G_NFS_VERSION_KW_ID: u16 = 0;
 static mut G_NFS_VERSION_BUFFER_ID: c_int = 0;
-static mut G_NFS_NAME_KW_ID: u16 = 0;
 static mut G_NFS_NAME_BUFFER_ID: c_int = 0;
-static mut G_NFS_HANDLE_KW_ID: u16 = 0;
 static mut G_NFS_HANDLE_BUFFER_ID: c_int = 0;
 
 struct DetectNfsProcedureDataVersion {

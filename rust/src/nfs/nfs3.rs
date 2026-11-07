@@ -148,9 +148,54 @@ impl NFSState {
                         tdf.file_last_xid = r.hdr.xid;
                         tx.is_last = true;
                         tx.request_done = true;
+                        // The WRITE replies carried no file data and file txs
+                        // are invisible to the reply path's xid lookup, so
+                        // complete the response side here as well (COMMIT is
+                        // the explicit "all writes done" signal for this file).
+                        tx.response_done = true;
                         tx.is_file_closed = true;
                     }
                 }
+            } else {
+                self.set_event(NFSEvent::MalformedData);
+            };
+        } else if r.procedure == NFSPROC3_FSSTAT
+            || r.procedure == NFSPROC3_FSINFO
+            || r.procedure == NFSPROC3_PATHCONF
+            || r.procedure == NFSPROC3_READLINK
+        {
+            // These take a bare filehandle as their only argument: wire the
+            // handle so the record carries hhash + name.
+            if let Ok((_, rd)) = parse_nfs3_handle(r.prog_data) {
+                xidmap.file_handle = rd.value.to_vec();
+                self.xidmap_handle2name(&mut xidmap);
+            } else {
+                self.set_event(NFSEvent::MalformedData);
+            };
+        } else if r.procedure == NFSPROC3_MKNOD {
+            if let Ok((_, rd)) = parse_nfs3_request_mknod(r.prog_data) {
+                xidmap.file_handle = rd.handle.value.to_vec();
+                xidmap.file_name = rd.name_vec;
+            } else {
+                self.set_event(NFSEvent::MalformedData);
+            };
+        } else if r.procedure == NFSPROC3_LINK {
+            if let Ok((_, rd)) = parse_nfs3_request_link(r.prog_data) {
+                // the tx identity is the new link: its name rides the
+                // request (diropargs3 link.name), the file handle is the
+                // source file
+                xidmap.file_handle = rd.handle.value.to_vec();
+                xidmap.file_name = rd.linkname;
+            } else {
+                self.set_event(NFSEvent::MalformedData);
+            };
+        } else if r.procedure == NFSPROC3_SYMLINK {
+            if let Ok((_, rd)) = parse_nfs3_request_symlink(r.prog_data) {
+                // the tx identity is the new symlink (diropargs3 where:
+                // dir + name); the sattr3 + target path are consumed, not
+                // logged
+                xidmap.file_handle = rd.handle.value.to_vec();
+                xidmap.file_name = rd.name_vec;
             } else {
                 self.set_event(NFSEvent::MalformedData);
             };
@@ -272,34 +317,38 @@ impl NFSState {
                 self.set_event(NFSEvent::MalformedData);
             }
         } else if xidmap.procedure == NFSPROC3_READDIRPLUS {
-            if let Ok((_, rd)) = parse_nfs3_response_readdirplus(r.prog_data) {
-                nfs_status = rd.status;
-
-                // cut off final eof field
-                let d = if rd.data.len() >= 4 {
-                    &rd.data[..rd.data.len() - 4_usize]
-                } else {
-                    rd.data
-                };
-
-                // store all handle/filename mappings
-                if let Ok((_, ref entries)) = many0_nfs3_response_readdirplus_entries(d) {
-                    SCLogDebug!("READDIRPLUS ENTRIES reply {:?}", entries);
-                    for ce in entries {
-                        SCLogDebug!("ce {:?}", ce);
-                        if let Some(ref e) = ce.entry {
-                            SCLogDebug!("e {:?}", e);
-                            if let Some(ref h) = e.handle {
-                                SCLogDebug!("h {:?}", h);
-                                self.namemap.put(h.value.to_vec(), e.name_vec.to_vec());
+            // Same tolerance as READDIR: the dirlistplus3 chain, when
+            // present, must consume exactly; a truncated or spliced tail
+            // (UDP reassembly) only loses the namemap entries; the status
+            // is always taken from the record head.
+            match parse_nfs3_response_readdirplus(r.prog_data) {
+                Ok((_, rd)) => {
+                    nfs_status = rd.status;
+                    // the entry chain is only there for a successful reply
+                    let chain = if rd.status == 0 {
+                        many0_nfs3_response_readdirplus_entries(rd.data).ok()
+                    } else {
+                        None
+                    };
+                    if let Some((_, entries)) = chain {
+                        SCLogDebug!("READDIRPLUS: {} entries", entries.len());
+                        // name_handle is the entry's own handle: the follow-up
+                        // file data arrives under it
+                        for e in &entries {
+                            if let Some(nh) = e.handle.as_ref() {
+                                self.namemap.put(nh.value.to_vec(), e.name_vec.to_vec());
                             }
                         }
                     }
-                } else {
-                    self.set_event(NFSEvent::MalformedData);
                 }
-            } else {
-                self.set_event(NFSEvent::MalformedData);
+                Err(_) => {
+                    // tail tolerated (see above), but the anomaly stays
+                    // observable
+                    self.set_event(NFSEvent::MalformedData);
+                    if let Ok((_, stat)) = be_u32(r.prog_data) as IResult<&[u8], _> {
+                        nfs_status = stat;
+                    }
+                }
             }
         } else if xidmap.procedure == NFSPROC3_READDIR {
             // The dirlist3 chain is parsed best-effort: real servers pad
