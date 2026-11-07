@@ -93,6 +93,14 @@ int SCAppLayerProtoDetectPMRegisterPatternCIwPP(uint8_t ipproto, AppProto alprot
         const char *pattern, uint16_t depth, uint16_t offset, uint8_t direction,
         ProbingParserFPtr PPFunc, uint16_t pp_min_depth, uint16_t pp_max_depth);
 
+/**
+ * \brief Get the size of the stream data available for protocol detection
+ *        in the given direction, for use by probing parsers.
+ *
+ * \retval bool false if the flow has no TCP session
+ */
+bool SCAppLayerProtoDetectGetStreamDataSize(const Flow *f, uint8_t direction, uint32_t *size);
+
 /***** Setup/General Registration *****/
 
 /**

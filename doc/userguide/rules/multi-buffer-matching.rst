@@ -94,6 +94,8 @@ following keywords:
 * ``http.response_header``
 * ``http2.header_name``
 * ``ike.vendor``
+* ``imap.request``
+* ``imap.response``
 * ``krb5.cname``
 * ``krb5.sname``
 * ``ldap.request.attribute_type``
