@@ -22,12 +22,19 @@ use suricata_sys::sys::{
 };
 
 use super::varkey::{
-    parse_key_location, strip_keyword_prefix, variable_key_bytes, VariableKeyLocation,
+    byte_var_key_bytes, parse_byte_var, parse_key_location, resolve_byte_var, strip_keyword_prefix,
+    variable_key_bytes, ByteVarKey, ByteVarSpec, VariableKeyLocation,
 };
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_int, c_void};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 static mut G_TRANSFORM_XOR_ID: c_int = 0;
+
+/// Counter that gives each `var` key transform its own identity. The key
+/// value is only known at inspection time and differs between signatures,
+/// so two `var` transforms must never share a transformed buffer.
+static XOR_BYTE_VAR_INSTANCE: AtomicU64 = AtomicU64::new(0);
 
 /// Where to obtain the XOR key at transform time.
 #[derive(Debug)]
@@ -36,6 +43,8 @@ enum XorKeySource {
     Static(Vec<u8>),
     /// Key read directly from the inspection buffer at a fixed location.
     Variable(VariableKeyLocation),
+    /// Key read from a byte_extract/byte_math variable at inspection time.
+    ByteVar(ByteVarKey),
 }
 
 #[derive(Debug)]
@@ -47,17 +56,24 @@ struct DetectTransformXorData {
     /// Precomputed identity bytes returned by xor_id. Layout:
     ///   Static:   [0x00, key_bytes..., xor_offset_le4]
     ///   Variable: [0x01, key_offset_lo, key_offset_hi, nbytes, xor_offset_le4]
-    /// The leading discriminant byte ensures static and variable identities
-    /// can never collide. Including xor_offset ensures rules with the same
-    /// key but different decode-start positions get independent buffers.
+    ///   ByteVar:  [0x02, instance_le8, xor_offset_le4]
+    /// The leading kind byte keeps the three key kinds apart. Including
+    /// xor_offset gives rules with the same key but different decode-start
+    /// positions independent buffers. A ByteVar identity carries a unique
+    /// instance number, because its key is read from a byte_extract or
+    /// byte_math variable at inspection time and can differ between
+    /// signatures that use the same variable slot.
     id_buf: Vec<u8>,
 }
 
-/// Parsed key specifier — either decoded key bytes or an inline buffer location.
+/// Parsed key specifier: decoded key bytes, an inline buffer location, or the
+/// name of a byte_extract/byte_math variable.
 #[derive(Debug, PartialEq)]
 enum XorKeySpec {
     Hex(Vec<u8>),
     Var(VariableKeyLocation),
+    /// `var <name> [<width>]`, resolved against the signature at setup time.
+    ByteVar(ByteVarSpec),
 }
 
 /// Intermediate parse result.
@@ -76,7 +92,8 @@ fn try_parse_hex_key(s: &str) -> Option<Vec<u8>> {
         .filter(|k| !k.is_empty() && k.len() <= usize::from(u8::MAX))
 }
 
-/// Parse a key specifier — either `extract <nbytes> <offset>` or a hex string.
+/// Parse a key specifier: `extract <nbytes> <offset>`, `var <name> [<width>]`,
+/// or a hex string.
 fn parse_key_part(s: &str) -> Option<XorKeySpec> {
     if let Some(rest) = strip_keyword_prefix(s, "extract") {
         if let Some(loc) = parse_key_location(rest) {
@@ -84,6 +101,9 @@ fn parse_key_part(s: &str) -> Option<XorKeySpec> {
         }
         SCLogError!("XOR transform: 'extract' requires format 'extract <nbytes> <offset>'");
         return None;
+    }
+    if let Some(rest) = strip_keyword_prefix(s, "var") {
+        return parse_byte_var(rest).map(XorKeySpec::ByteVar);
     }
     let s = strip_quotes(s);
     if s.is_empty() {
@@ -102,6 +122,7 @@ fn parse_key_part(s: &str) -> Option<XorKeySpec> {
 /// Parse the xor option string. Accepts:
 ///   - `<hex_key>`
 ///   - `extract <nbytes> <offset>`
+///   - `var <name> [<width>]`
 ///   - `offset <N>,<hex_key>`
 ///   - `offset <N>,extract <nbytes> <offset>`
 fn xor_parse_options(input: &str) -> Option<XorParseResult> {
@@ -148,32 +169,34 @@ fn strip_quotes(s: &str) -> &str {
         .unwrap_or(s)
 }
 
-fn xor_build_ctx(input: &str) -> Option<DetectTransformXorData> {
-    let parsed = xor_parse_options(input)?;
-    let xor_offset = parsed.xor_offset.unwrap_or(0);
-    let key_source = match parsed.key_spec {
-        XorKeySpec::Hex(key) => XorKeySource::Static(key),
-        XorKeySpec::Var(loc) => XorKeySource::Variable(loc),
-    };
-    let id_buf = match &key_source {
+/// Build the transform context (including the xor_id identity) from a
+/// resolved key source and decode offset.
+fn build_xor_data(key_source: XorKeySource, xor_offset: u32) -> DetectTransformXorData {
+    // Each arm builds the discriminant + key-specific prefix; the xor_offset
+    // suffix is invariant across kinds, so append it once after the match.
+    let mut id_buf = match &key_source {
         XorKeySource::Static(key) => {
             let mut buf = vec![0x00];
             buf.extend_from_slice(key);
-            buf.extend_from_slice(&xor_offset.to_le_bytes());
             buf
         }
         XorKeySource::Variable(loc) => {
             let [lo, hi] = loc.offset.to_le_bytes();
-            let mut buf = vec![0x01, lo, hi, loc.nbytes];
-            buf.extend_from_slice(&xor_offset.to_le_bytes());
+            vec![0x01, lo, hi, loc.nbytes]
+        }
+        XorKeySource::ByteVar(_) => {
+            let instance = XOR_BYTE_VAR_INSTANCE.fetch_add(1, Ordering::Relaxed);
+            let mut buf = vec![0x02];
+            buf.extend_from_slice(&instance.to_le_bytes());
             buf
         }
     };
-    Some(DetectTransformXorData {
+    id_buf.extend_from_slice(&xor_offset.to_le_bytes());
+    DetectTransformXorData {
         key_source,
         xor_offset,
         id_buf,
-    })
+    }
 }
 
 unsafe extern "C" fn xor_setup(
@@ -183,10 +206,22 @@ unsafe extern "C" fn xor_setup(
         Ok(s) => s,
         Err(_) => return -1,
     };
-    let ctx = match xor_build_ctx(input) {
-        Some(d) => Box::into_raw(Box::new(d)) as *mut c_void,
+    let parsed = match xor_parse_options(input) {
+        Some(p) => p,
         None => return -1,
     };
+    let xor_offset = parsed.xor_offset.unwrap_or(0);
+    let key_source = match parsed.key_spec {
+        XorKeySpec::Hex(key) => XorKeySource::Static(key),
+        XorKeySpec::Var(loc) => XorKeySource::Variable(loc),
+        XorKeySpec::ByteVar(spec) => match resolve_byte_var(s, &spec) {
+            Some(key) => XorKeySource::ByteVar(key),
+            None => return -1,
+        },
+    };
+
+    let ctx = Box::into_raw(Box::new(build_xor_data(key_source, xor_offset))) as *mut c_void;
+
     let r = SCDetectSignatureAddTransform(s, G_TRANSFORM_XOR_ID, ctx);
     if r != 0 {
         xor_free(de, ctx);
@@ -209,7 +244,7 @@ fn xor_transform_do(input: &[u8], output: &mut [u8], key: &[u8], xor_offset: usi
 }
 
 unsafe extern "C" fn xor_transform(
-    _det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, ctx: *const c_void,
+    det: *mut DetectEngineThreadCtx, buffer: *mut InspectionBuffer, ctx: *const c_void,
 ) {
     let input = (*buffer).inspect;
     let input_len = (*buffer).inspect_len;
@@ -220,6 +255,7 @@ unsafe extern "C" fn xor_transform(
 
     let output = SCInspectionBufferCheckAndExpand(buffer, input_len);
     if output.is_null() {
+        // allocation failure
         return;
     }
     let output = std::slice::from_raw_parts_mut(output, input_len as usize);
@@ -244,6 +280,10 @@ unsafe extern "C" fn xor_transform(
                 var_key[..k.len()].copy_from_slice(k);
                 &var_key[..k.len()]
             }
+            None => return,
+        },
+        XorKeySource::ByteVar(key) => match byte_var_key_bytes(det, key, &mut var_key) {
+            Some(k) => k,
             None => return,
         },
     };
@@ -348,6 +388,36 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_byte_var() {
+        // The `var` form is recognized and produces a ByteVarSpec; detailed
+        // spec parsing is covered in the varkey module's tests.
+        let r = xor_parse_options("var xkey").unwrap();
+        assert_eq!(
+            r.key_spec,
+            XorKeySpec::ByteVar(ByteVarSpec {
+                name: "xkey".to_string(),
+                width: None
+            })
+        );
+        assert_eq!(r.xor_offset, None);
+        // explicit width, with a decode offset preceding the variable key
+        let r = xor_parse_options("offset 2,var xkey 4").unwrap();
+        assert_eq!(
+            r.key_spec,
+            XorKeySpec::ByteVar(ByteVarSpec {
+                name: "xkey".to_string(),
+                width: Some(4)
+            })
+        );
+        assert_eq!(r.xor_offset, Some(2));
+        // malformed var specs are rejected (details tested in varkey)
+        assert!(xor_parse_options("var").is_none());
+        assert!(xor_parse_options("var xkey wide").is_none());
+        // no separating whitespace is not a var spec; falls through to hex
+        assert!(xor_parse_options("varxkey").is_none());
+    }
+
+    #[test]
     fn test_parse_empty() {
         assert!(xor_parse_options("").is_none());
     }
@@ -418,7 +488,7 @@ mod tests {
         assert_eq!(recovered, input);
     }
 
-    // Build an id_buf for a variable key the same way xor_build_ctx does.
+    // Build an id_buf for a variable (in-buffer) key the same way build_xor_data does.
     fn make_id_buf_var(key_offset: u16, nbytes: u8, xor_offset: u32) -> Vec<u8> {
         let [lo, hi] = key_offset.to_le_bytes();
         let mut buf = vec![0x01, lo, hi, nbytes];
@@ -426,7 +496,7 @@ mod tests {
         buf
     }
 
-    // Build an id_buf for a static key the same way xor_build_ctx does.
+    // Build an id_buf for a static key the same way build_xor_data does.
     fn make_id_buf_static(key: &[u8], xor_offset: u32) -> Vec<u8> {
         let mut buf = vec![0x00];
         buf.extend_from_slice(key);
@@ -437,16 +507,15 @@ mod tests {
     #[test]
     fn test_xor_id_variable_key() {
         // key_offset=0, nbytes=1, xor_offset=0 → [0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
-        let id_buf = make_id_buf_var(0, 1, 0);
-        let ctx = Box::new(DetectTransformXorData {
-            key_source: XorKeySource::Variable(VariableKeyLocation {
+        let data = build_xor_data(
+            XorKeySource::Variable(VariableKeyLocation {
                 offset: 0,
                 nbytes: 1,
             }),
-            xor_offset: 0,
-            id_buf,
-        });
-        let ctx_ptr: *const c_void = &*ctx as *const _ as *const c_void;
+            0,
+        );
+        assert_eq!(data.id_buf, make_id_buf_var(0, 1, 0));
+        let ctx_ptr: *const c_void = &data as *const _ as *const c_void;
         let mut data_ptr: *const u8 = std::ptr::null();
         let mut length: u32 = 0;
         unsafe {
@@ -463,36 +532,55 @@ mod tests {
     #[test]
     fn test_xor_id_variable_key_large_offset() {
         // key_offset=300 (0x012c LE = [0x2c, 0x01]), nbytes=4, xor_offset=0
-        let id_buf = make_id_buf_var(300, 4, 0);
-        let ctx = Box::new(DetectTransformXorData {
-            key_source: XorKeySource::Variable(VariableKeyLocation {
+        let data = build_xor_data(
+            XorKeySource::Variable(VariableKeyLocation {
                 offset: 300,
                 nbytes: 4,
             }),
-            xor_offset: 0,
-            id_buf,
-        });
-        let ctx_ptr: *const c_void = &*ctx as *const _ as *const c_void;
-        let mut data_ptr: *const u8 = std::ptr::null();
-        let mut length: u32 = 0;
-        unsafe {
-            xor_id(&mut data_ptr, &mut length, ctx_ptr as *mut c_void);
-            assert!(!data_ptr.is_null());
-            assert_eq!(length, 8);
-            assert_eq!(
-                std::slice::from_raw_parts(data_ptr, 8),
-                &[0x01u8, 0x2c, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00]
-            );
-        }
+            0,
+        );
+        assert_eq!(
+            data.id_buf,
+            &[0x01u8, 0x2c, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00]
+        );
     }
 
     #[test]
     fn test_xor_id_variable_key_nonzero_xor_offset() {
-        // Verify that two rules with the same key location but different xor_offset
+        // Two rules with the same key location but different xor_offset must
         // produce distinct id_bufs and therefore get independent buffers.
         let id_a = make_id_buf_var(0, 1, 0);
         let id_b = make_id_buf_var(0, 1, 5);
         assert_ne!(id_a, id_b);
+    }
+
+    #[test]
+    fn test_xor_id_byte_var() {
+        // byte_extract/byte_math key: kind 0x02, a unique instance number,
+        // xor_offset. Two transforms using the same slot and width must not
+        // share an identity, since their key values can differ at runtime.
+        let key = ByteVarKey {
+            local_id: 3,
+            nbytes: 4,
+        };
+        let data = build_xor_data(XorKeySource::ByteVar(key), 0);
+        assert_eq!(data.id_buf.len(), 1 + 8 + 4);
+        assert_eq!(data.id_buf[0], 0x02);
+        assert_eq!(&data.id_buf[9..], &[0x00, 0x00, 0x00, 0x00]);
+        let other = build_xor_data(XorKeySource::ByteVar(key), 0);
+        assert_ne!(data.id_buf, other.id_buf);
+        // distinct from a static key whose bytes happen to match
+        let stat = build_xor_data(XorKeySource::Static(vec![0x03, 0x04]), 0);
+        assert_ne!(data.id_buf, stat.id_buf);
+        // distinct from an in-buffer variable key with matching numbers
+        let var = build_xor_data(
+            XorKeySource::Variable(VariableKeyLocation {
+                offset: 3,
+                nbytes: 4,
+            }),
+            0,
+        );
+        assert_ne!(data.id_buf, var.id_buf);
     }
 
     #[test]
@@ -521,14 +609,10 @@ mod tests {
     fn test_xor_id() {
         // Static key [1,2,3,4,5] with xor_offset=0: id = [0x00, key_bytes..., 0,0,0,0]
         let key = vec![1u8, 2, 3, 4, 5];
-        let id_buf = make_id_buf_static(&key, 0);
-        let ctx = Box::new(DetectTransformXorData {
-            key_source: XorKeySource::Static(key),
-            xor_offset: 0,
-            id_buf,
-        });
+        let data = build_xor_data(XorKeySource::Static(key.clone()), 0);
+        assert_eq!(data.id_buf, make_id_buf_static(&key, 0));
 
-        let ctx_ptr: *const c_void = &*ctx as *const _ as *const c_void;
+        let ctx_ptr: *const c_void = &data as *const _ as *const c_void;
         let mut data_ptr: *const u8 = std::ptr::null();
         let mut length: u32 = 0;
 
