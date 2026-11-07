@@ -20,6 +20,11 @@ use nom7::bytes::streaming::{tag, take};
 use nom7::combinator::{complete, cond, map, peek, verify};
 use nom7::error::{make_error, ErrorKind};
 use nom7::multi::{count, many_till};
+
+/// FATTR4 attributes advertising the server's max transfer sizes
+/// (RFC 5661); the v4 equivalent of the v3 FSINFO rtm/wtm values.
+pub const FATTR4_MAXREAD: u32 = 40;
+pub const FATTR4_MAXWRITE: u32 = 42;
 use nom7::number::streaming::{be_u32, be_u64};
 use nom7::{Err, IResult, Needed};
 
@@ -75,6 +80,8 @@ pub enum Nfs4RequestContent<'a> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4Attr {
     attr_mask: u64,
+    pub max_read: Option<u32>,
+    pub max_write: Option<u32>,
 }
 
 fn nfs4_parse_attr_fields(i: &[u8]) -> IResult<&[u8], u32> {
@@ -91,6 +98,61 @@ fn nfs4_parse_attrs(i: &[u8]) -> IResult<&[u8], Nfs4Attr> {
     let (i, _) = nfs4_parse_attr_fields(i)?;
     let attr = Nfs4Attr {
         attr_mask: ((attr_mask1 as u64) << 32) | attr_mask2.unwrap_or(0) as u64,
+        max_read: None,
+        max_write: None,
+    };
+    Ok((i, attr))
+}
+
+/// GETATTR reply attributes: the mask plus the values that follow it in
+/// ascending fattr4 order. Only used on the GETATTR response path (the
+/// shared `nfs4_parse_attrs` above is also used by OPEN requests, whose
+/// attr data does not carry a full value list).
+///
+/// Tracks FATTR4_MAXREAD/MAXWRITE -- the server-advertised max transfer
+/// sizes, the v4 equivalent of v3 FSINFO. The walk stops at the first
+/// ill-formed value or once the tracked bits are past: the values are
+/// advisory, the mask is the source of truth.
+fn nfs4_parse_getattr_attrs(i: &[u8]) -> IResult<&[u8], Nfs4Attr> {
+    let (i, attr_cnt) = be_u32(i)?;
+    let (i, attr_mask1) = be_u32(i)?;
+    let (i, attr_mask2) = cond(attr_cnt >= 2, be_u32)(i)?;
+    let (i, _) = cond(attr_cnt == 3, be_u32)(i)?;
+    let attr_mask: u64 = ((attr_mask1 as u64) << 32) | attr_mask2.unwrap_or(0) as u64;
+    let mut rest = i;
+    if attr_mask & (1u64 << FATTR4_MAXWRITE) != 0 || attr_mask & (1u64 << FATTR4_MAXREAD) != 0 {
+        let mut max_read: Option<u32> = None;
+        let mut max_write: Option<u32> = None;
+        for bit in 0..=FATTR4_MAXWRITE {
+            if attr_mask & (1u64 << bit) == 0 {
+                continue;
+            }
+            // the value bytes sit directly after this field's length prefix
+            if matches!(bit, FATTR4_MAXREAD | FATTR4_MAXWRITE) && rest.len() >= 8 {
+                let v = u32::from_be_bytes(rest[4..8].try_into().unwrap());
+                match bit {
+                    FATTR4_MAXREAD => {
+                        max_read = Some(v);
+                    }
+                    _ => max_write = Some(v),
+                }
+            }
+            match nfs4_parse_attr_fields(rest) {
+                Ok((r, _)) => rest = r,
+                Err(_) => break,
+            }
+        }
+        let attr = Nfs4Attr {
+            attr_mask,
+            max_read,
+            max_write,
+        };
+        return Ok((rest, attr));
+    }
+    let attr = Nfs4Attr {
+        attr_mask,
+        max_read: None,
+        max_write: None,
     };
     Ok((i, attr))
 }
@@ -102,6 +164,8 @@ fn nfs4_parse_attrbits(i: &[u8]) -> IResult<&[u8], Nfs4Attr> {
     let (i, _) = cond(attr_cnt == 3, be_u32)(i)?;
     let attr = Nfs4Attr {
         attr_mask: ((attr_mask1 as u64) << 32) | attr_mask2.unwrap_or(0) as u64,
+        max_read: None,
+        max_write: None,
     };
     Ok((i, attr))
 }
@@ -1630,7 +1694,7 @@ fn nfs4_res_setattr(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>> {
 }
 
 fn nfs4_res_getattr_ok(i: &[u8]) -> IResult<&[u8], Nfs4Attr> {
-    nfs4_parse_attrs(i)
+    nfs4_parse_getattr_attrs(i)
 }
 
 fn nfs4_res_getattr(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>> {
@@ -3410,5 +3474,63 @@ mod tests {
             scan_nfs4_response_compound_read_len(&buf, 1024),
             Nfs4CompoundScan::Incomplete
         );
+    }
+}
+
+#[cfg(test)]
+mod nfs4_attrs_tests {
+    use crate::nfs::nfs4_records::{
+        nfs4_parse_getattr_attrs, nfs4_res_getattr, Nfs4ResponseContent, FATTR4_MAXREAD,
+        FATTR4_MAXWRITE,
+    };
+
+    #[test]
+    fn test_nfs4_getattr_maxtransfer_attrs() {
+        // GETATTR reply with FATTR4_MAXREAD(40) = 4096 and
+        // FATTR4_MAXWRITE(42) = 8192: two mask words (first word covers
+        // bits 32-63) and the values in ascending bit order, each
+        // length-prefixed.
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x02, /* attr_cnt */
+            0x00, 0x00, 0x05, 0x00, /* mask word 1: bits 40 + 42 */
+            0x00, 0x00, 0x00, 0x00, /* mask word 2 */
+            0x00, 0x00, 0x00, 0x04, /* FATTR4_MAXREAD len */
+            0x00, 0x00, 0x10, 0x00, /* FATTR4_MAXREAD = 4096 */
+            0x00, 0x00, 0x00, 0x04, /* FATTR4_MAXWRITE len */
+            0x00, 0x00, 0x20, 0x00, /* FATTR4_MAXWRITE = 8192 */
+        ];
+        let (_, attr) = nfs4_parse_getattr_attrs(buf).unwrap();
+        assert_eq!(
+            attr.attr_mask,
+            (1u64 << FATTR4_MAXREAD) | (1u64 << FATTR4_MAXWRITE)
+        );
+        assert_eq!(attr.max_read, Some(4096));
+        assert_eq!(attr.max_write, Some(8192));
+
+        // through the full op parser
+        let mut full: Vec<u8> = vec![0, 0, 0, 0]; /* op status 0 */
+        full.extend_from_slice(buf);
+        match nfs4_res_getattr(&full).unwrap().1 {
+            Nfs4ResponseContent::GetAttr(status, attrs) => {
+                let attrs = attrs.unwrap();
+                assert_eq!(status, 0);
+                assert_eq!(attrs.max_read, Some(4096));
+                assert_eq!(attrs.max_write, Some(8192));
+            }
+            _ => panic!("unexpected op"),
+        }
+    }
+
+    #[test]
+    fn test_nfs4_getattr_attrs_without_values() {
+        // mask claims two attributes but the value stream stops: the
+        // values are advisory, so the mask must still parse.
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00,
+        ];
+        let (_, attr) = nfs4_parse_getattr_attrs(buf).unwrap();
+        assert_eq!(attr.max_read, None);
+        assert_eq!(attr.max_write, None);
     }
 }

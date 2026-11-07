@@ -183,6 +183,11 @@ pub enum NFSEvent {
     /// ceiling happens in the wild (non-compliant peers) and must not break
     /// parsing
     FsinfoTooLarge = 12,
+    /// A WRITE request or READ reply starts below the file tracker's
+    /// high-water mark for this file: the data overlaps bytes already
+    /// tracked. Flag only, processing continues (SMB emits file_overlap
+    /// for the same condition)
+    FileOverlap = 13,
 }
 
 #[derive(Debug)]
@@ -1339,6 +1344,14 @@ impl NFSState {
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             Some(tx) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                    // A write starting below the high-water mark overlaps
+                    // data already tracked for this file: flag the file tx
+                    // itself (transactions.last() can be unrelated).
+                    if w.offset < tdf.file_tracker.tracked {
+                        tx.tx_data.set_event(NFSEvent::FileOverlap as u8);
+                        tx.tx_data.0.updated_ts = true;
+                        tx.tx_data.0.updated_tc = true;
+                    }
                     if let Some(event) = write_queue_limit_event(
                         &tdf.file_tracker,
                         w.offset,
@@ -1364,6 +1377,7 @@ impl NFSState {
                         if is_last {
                             tdf.file_last_xid = r.hdr.xid;
                             tx.is_last = true;
+                            tx.request_done = true;
                             tx.response_done = true;
                             if !is_partial {
                                 tx.is_file_closed = true;
@@ -2238,17 +2252,25 @@ impl NFSState {
         let unbuffered = reply.data_len - reply.data.len() as u32;
         let stream_fill = cmp::min(tail.saturating_sub(unbuffered), 3);
 
-        // FSINFO ceiling, advisory (see the WRITE path): warn, don't
-        // reject. Only v3 sets fsinfo_max_read, so v4 replies never trip
-        // it.
+        // FSINFO/v4 GETATTR ceiling, advisory (see the WRITE path):
+        // warn, don't reject. Populated by the v3 FSINFO reply or the
+        // FATTR4_MAXREAD value in a v4 GETATTR reply; unobserved (0) it
+        // never trips.
         let fsinfo_exceeded = self.fsinfo_max_read > 0 && reply.count > self.fsinfo_max_read;
 
         let mut queue_exceeded = false;
-
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToClient) {
             Some(tx) => {
                 SCLogDebug!("updated TX {:?}", tx);
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                    // A read reply starting below the high-water mark
+                    // overlaps data already tracked for this file: flag the
+                    // file tx itself (write path, SMB parity).
+                    if chunk_offset < tdf.file_tracker.tracked {
+                        tx.tx_data.set_event(NFSEvent::FileOverlap as u8);
+                        tx.tx_data.0.updated_ts = true;
+                        tx.tx_data.0.updated_tc = true;
+                    }
                     if let Some(event) = read_queue_limit_event(
                         &tdf.file_tracker,
                         chunk_offset,
