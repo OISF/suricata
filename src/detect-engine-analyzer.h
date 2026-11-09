@@ -30,6 +30,7 @@ struct DetectEngineCtx_;
 
 void SetupEngineAnalysis(struct DetectEngineCtx_ *de_ctx, bool *, bool *);
 void CleanupEngineAnalysis(struct DetectEngineCtx_ *de_ctx);
+void DetectEngineAnalyzerLandlockGrant(void *ruleset);
 
 void EngineAnalysisFP(const struct DetectEngineCtx_ *de_ctx, const Signature *s, const char *line);
 void EngineAnalysisRules(

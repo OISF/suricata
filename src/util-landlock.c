@@ -23,6 +23,7 @@
 
 #include "suricata.h"
 #include "datasets.h"
+#include "detect-engine-analyzer.h"
 #include "detect-engine.h"
 #include "feature.h"
 #include "util-byte.h"
@@ -60,6 +61,11 @@ void SCLandlockGrantNetConnectTCP(void *ruleset, uint16_t port)
 
 void SCLandlockGrantTruncateFile(void *ruleset, const char *path)
 {
+}
+
+bool SCLandlockRestrictsTruncate(void)
+{
+    return false;
 }
 
 #else /* HAVE_LINUX_LANDLOCK_H */
@@ -214,6 +220,20 @@ static inline struct landlock_ruleset *LandlockCreateRuleset(void)
     return ruleset;
 }
 
+/* Set once the sandbox is enforced and restricts truncating files. Only
+ * written before the packet threads are started. */
+static bool landlock_truncate_restricted = false;
+
+/**
+ * \brief Tell if the landlock sandbox prevents truncating existing files
+ *
+ * \retval true if the sandbox is enforced and handles FS_TRUNCATE
+ */
+bool SCLandlockRestrictsTruncate(void)
+{
+    return landlock_truncate_restricted;
+}
+
 static inline void LandlockEnforceRuleset(struct landlock_ruleset *ruleset)
 {
     if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1) {
@@ -222,7 +242,10 @@ static inline void LandlockEnforceRuleset(struct landlock_ruleset *ruleset)
     }
     if (landlock_restrict_self(ruleset->fd, 0)) {
         SCLogError("Can't self restrict (landlock phase): %s", strerror(errno));
+        return;
     }
+    landlock_truncate_restricted =
+            (ruleset->attr.handled_access_fs & LANDLOCK_ACCESS_FS_TRUNCATE) != 0;
 }
 
 static int LandlockSandboxingAddRule(
@@ -458,9 +481,14 @@ void LandlockSandboxing(SCInstance *suri)
      * so rules can't be used to truncate arbitrary files.
      */
     DatasetsLandlockGrant(ruleset);
+    /* Detect engine dump files rewritten on rule (re)load. */
+    DetectEngineAnalyzerLandlockGrant(ruleset);
     if (DetectEngineMpmCachingEnabled() && stat(DetectEngineMpmCachingGetPath(), &sb) == 0) {
+        /* The cache is rewritten on a hash collision. It holds no logs, so
+         * allow truncating it. */
         LandlockSandboxingAddRule(ruleset, DetectEngineMpmCachingGetPath(),
-                _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ);
+                _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ |
+                        LANDLOCK_ACCESS_FS_TRUNCATE);
     }
     if (suri->run_mode == RUNMODE_PCAP_FILE) {
         const char *pcap_file;

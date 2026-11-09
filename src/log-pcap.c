@@ -374,6 +374,31 @@ static int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
     return 0;
 }
 
+#ifndef OS_WIN32
+/**
+ * \brief Check that the link type of a dead handle can be saved
+ *
+ * pcap_dump_fopen() fails without closing the FILE when the link type can't
+ * be saved, but closes it when writing the header fails. Probe the link type
+ * on a memory stream, where writing the header can't fail, so the caller
+ * knows whether its FILE has been closed when pcap_dump_fopen() fails.
+ */
+static bool PcapLogLinkTypeSupported(pcap_t *handle)
+{
+    char buf[128];
+    FILE *probe = fmemopen(buf, sizeof(buf), "wb");
+    if (probe == NULL)
+        return true; /* can't tell, the open will report errors */
+    pcap_dumper_t *dumper = pcap_dump_fopen(handle, probe);
+    if (dumper == NULL) {
+        fclose(probe);
+        return false;
+    }
+    pcap_dump_close(dumper);
+    return true;
+}
+#endif
+
 static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
 {
     PCAPLOG_PROFILE_START;
@@ -408,8 +433,34 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
 
     if (pl->pcap_dumper == NULL) {
         if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_NONE) {
-            if ((pl->pcap_dumper = pcap_dump_open(pl->pcap_dead_handle,
-                    pl->filename)) == NULL) {
+#ifndef OS_WIN32
+            if (!PcapLogLinkTypeSupported(pl->pcap_dead_handle)) {
+                if (!pl->pcap_open_err) {
+                    SCLogError("Error opening dump file %s: %s", pl->filename,
+                            pcap_geterr(pl->pcap_dead_handle));
+                    pl->pcap_open_err = true;
+                }
+                return TM_ECODE_FAILED;
+            }
+            /* open the file ourselves so a refused overwrite of an existing
+             * file is reported, see SCFopenOverwrite() */
+            FILE *fp = SCFopenOverwrite(pl->filename, "wb");
+            if (fp == NULL) {
+                if (!pl->pcap_open_err) {
+                    SCLogError("Error opening dump file %s: %s", pl->filename, strerror(errno));
+                    pl->pcap_open_err = true;
+                }
+                return TM_ECODE_FAILED;
+            }
+            pl->pcap_dumper = pcap_dump_fopen(pl->pcap_dead_handle, fp);
+#else
+            /* on Windows, pcap_dump_fopen() wraps the handle in its own FILE
+             * and never closes ours. There is no landlock sandbox anyway. */
+            pl->pcap_dumper = pcap_dump_open(pl->pcap_dead_handle, pl->filename);
+#endif
+            if (pl->pcap_dumper == NULL) {
+                /* fp is not closed here: the link type has been checked, so
+                 * writing the header failed and libpcap closed fp. */
                 if (!pl->pcap_open_err) {
                     SCLogError("Error opening dump file %s", pcap_geterr(pl->pcap_dead_handle));
                     pl->pcap_open_err = true;
@@ -423,7 +474,7 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
         else if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
             PcapLogCompressionData *comp = &pl->compression;
 
-            comp->file = fopen(pl->filename, "w");
+            comp->file = SCFopenOverwrite(pl->filename, "w");
             if (comp->file == NULL) {
                 if (errno != pl->fopen_err) {
                     SCLogError("Error opening file for compressed output: %s", strerror(errno));

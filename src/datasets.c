@@ -876,7 +876,8 @@ void DatasetsSave(void)
         if (strlen(set->save) == 0)
             goto next;
 
-        FILE *fp = fopen(set->save, "w");
+        /* a refused overwrite of an existing file is reported */
+        FILE *fp = SCFopenOverwrite(set->save, "w");
         if (fp == NULL)
             goto next;
 

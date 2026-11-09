@@ -34,6 +34,10 @@
 #include "win32-misc.h"
 #endif /* OS_WIN32 */
 
+#ifndef OS_WIN32
+#include <dirent.h>
+#endif
+
 #define MODULE_NAME "OutputFilestore"
 
 /* Create a filestore specific PATH_MAX that is less than the system
@@ -185,7 +189,7 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv, const OutputFilestoreLo
                 JsonBuildFileInfoRecord(p, ff, tx, tx_id, true, dir, ctx->xff_cfg, NULL);
         if (likely(js_fileinfo != NULL)) {
             SCJbClose(js_fileinfo);
-            FILE *out = fopen(js_metadata_filename, "w");
+            FILE *out = SCFopenOverwrite(js_metadata_filename, "w");
             if (out != NULL) {
                 size_t js_len = SCJbLen(js_fileinfo);
                 fwrite(SCJbPtr(js_fileinfo), js_len, 1, out);
@@ -219,7 +223,13 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet
         if (PathMerge(filename, sizeof(filename), ctx->tmpdir, tmp_filename) < 0)
             return -1;
 
+#ifndef OS_WIN32
+        /* Leftover tmp files are purged at startup, so the file must be new:
+         * don't truncate, which may not be permitted once sandboxed. */
+        file_fd = open(filename, O_CREAT | O_EXCL | O_NOFOLLOW | O_WRONLY, 0644);
+#else
         file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
+#endif
         if (file_fd == -1) {
             StatsCounterIncr(&tv->stats, aft->fs_error_counter);
             SCLogWarning("Filestore (v2) failed to create %s: %s", filename, strerror(errno));
@@ -362,6 +372,51 @@ static int GetLogDirectory(const SCConfNode *conf, char *out, size_t out_size)
     return 0;
 }
 
+/**
+ * \brief Remove temporary files left over by a previous run
+ *
+ * The "file.<N>" files in the tmp directory are incomplete files from a
+ * previous run that did not shut down cleanly. As file ids restart at 1,
+ * they would otherwise be reused and need to be truncated, which may not be
+ * permitted once the process is sandboxed. This runs at output setup, before
+ * sandboxing.
+ */
+static void FilestorePurgeTmpDir(const char *tmpdir)
+{
+#ifndef OS_WIN32
+    DIR *d = opendir(tmpdir);
+    if (d == NULL)
+        return;
+    const int dfd = dirfd(d);
+    if (dfd < 0) {
+        closedir(d);
+        return;
+    }
+    struct dirent *de;
+    while ((de = readdir(d)) != NULL) {
+        const char *n = de->d_name;
+        if (strncmp(n, "file.", 5) != 0 || !isdigit((unsigned char)n[5]))
+            continue;
+        const char *p = n + 5;
+        while (isdigit((unsigned char)*p))
+            p++;
+        if (*p != '\0')
+            continue;
+        /* unlinkat() relative to the directory: it doesn't follow a
+         * symlink and fails on a directory, so no check is needed first */
+        if (unlinkat(dfd, n, 0) != 0) {
+            if (errno != ENOENT) {
+                SCLogWarning("Filestore (v2) failed to remove leftover %s/%s: %s", tmpdir, n,
+                        strerror(errno));
+            }
+        } else {
+            SCLogDebug("Filestore (v2) removed leftover temporary file %s/%s", tmpdir, n);
+        }
+    }
+    closedir(d);
+#endif
+}
+
 static bool InitFilestoreDirectory(const char *dir)
 {
     const uint8_t dir_count = 0xff;
@@ -405,6 +460,10 @@ static bool InitFilestoreDirectory(const char *dir)
             SCLogError("Filestore (v2) failed to create directory %s: %s", tmpdir, strerror(errno));
             return false;
         }
+    } else if (SCRunmodeGet() != RUNMODE_CONF_TEST && SCRunmodeGet() != RUNMODE_ENGINE_ANALYSIS) {
+        /* Not when testing the configuration: the files may belong to a
+         * running instance using the same directory. */
+        FilestorePurgeTmpDir(tmpdir);
     }
 
     return true;
