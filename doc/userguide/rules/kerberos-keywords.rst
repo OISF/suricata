@@ -176,5 +176,3 @@ match alone does not prove that an attack is taking place. Validate the client,
 requested service, environment baseline, and surrounding authentication
 activity before treating an alert as malicious.
 
-For additional protocol context, see the
-`Kerberos TGS and Kerberoasting guide <https://en.hackita.it/articoli/tgs/>`_.
