@@ -60,6 +60,8 @@
 #include "detect-app-layer-protocol.h"
 #include "app-layer-parser.h"
 #include "detect-tcp-session.h"
+#include "util-landlock.h"
+#include "util-path.h"
 
 static int rule_warnings_only = 0;
 
@@ -515,6 +517,69 @@ void SetupEngineAnalysis(DetectEngineCtx *de_ctx, bool *fp_analysis, bool *rule_
         de_ctx->ea = NULL;
     }
 }
+
+#ifdef HAVE_LINUX_LANDLOCK_H
+/**
+ * \brief Create a log directory file if needed and allow rewriting it
+ *
+ * The file is created without truncation, so an existing one is kept as is
+ * until its writer rewrites it.
+ */
+static void LandlockGrantRewrite(void *ruleset, const char *log_dir, const char *filename)
+{
+    char path[PATH_MAX];
+    if (PathMerge(path, sizeof(path), log_dir, filename) < 0)
+        return;
+    int fd = open(path, O_CREAT | O_WRONLY | O_NOFOLLOW | O_CLOEXEC, 0644);
+    if (fd == -1) {
+        SCLogWarning("Unable to create %s: %s", path, strerror(errno));
+        return;
+    }
+    close(fd);
+    SCLandlockGrantTruncateFile(ruleset, path);
+}
+
+/**
+ * \brief Grant landlock truncate permission on the detect engine dump files
+ *
+ * These files are rewritten with fopen("w") after sandboxing, on rule load
+ * and reload. Truncate is only granted on these fixed file names in the log
+ * directory, never on the log directory itself.
+ *
+ * Multi-tenant engine analysis files (with a tenant prefix) are not covered.
+ *
+ * \param ruleset opaque landlock ruleset
+ */
+void DetectEngineAnalyzerLandlockGrant(void *ruleset)
+{
+    const char *log_dir = SCConfigGetLogDirectory();
+
+    int dump_grouping = 0;
+    (void)SCConfGetBool("detect.profiling.grouping.dump-to-disk", &dump_grouping);
+    if (dump_grouping) {
+        LandlockGrantRewrite(ruleset, log_dir, "rule_group.json");
+    }
+    if (EngineModeIsFirewall()) {
+        LandlockGrantRewrite(ruleset, log_dir, "firewall.json");
+    }
+    if (SCRunmodeGet() == RUNMODE_ENGINE_ANALYSIS) {
+        int fp_analysis = 0;
+        if (SCConfGetBool("engine-analysis.rules-fast-pattern", &fp_analysis) == 1 && fp_analysis) {
+            LandlockGrantRewrite(ruleset, log_dir, "rules_fast_pattern.txt");
+        }
+        const char *rules = NULL;
+        if (SCConfGetNonNull("engine-analysis.rules", &rules) == 1 &&
+                (SCConfValIsTrue(rules) || strcasecmp(rules, "warnings-only") == 0)) {
+            LandlockGrantRewrite(ruleset, log_dir, "rules_analysis.txt");
+            LandlockGrantRewrite(ruleset, log_dir, "flowbits.json");
+        }
+    }
+}
+#else
+void DetectEngineAnalyzerLandlockGrant(void *ruleset)
+{
+}
+#endif /* HAVE_LINUX_LANDLOCK_H */
 
 void CleanupEngineAnalysis(DetectEngineCtx *de_ctx)
 {

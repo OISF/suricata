@@ -43,6 +43,10 @@
 #include <sys/un.h>
 #endif
 
+#ifndef OS_WIN32
+#include <dirent.h>
+#endif
+
 #ifdef HAVE_LIBHIREDIS
 #include "util-log-redis.h"
 #endif /* HAVE_LIBHIREDIS */
@@ -459,6 +463,86 @@ static void ThreadLogFileHashFreeFunc(void *data)
     SCFree(thread_ent);
 }
 
+#ifndef OS_WIN32
+/** \brief Empty the per-thread files of a previous run
+ *
+ * Threaded files are opened lazily by the packet threads, after the process
+ * may have been sandboxed (landlock) without the right to truncate files.
+ * When append is disabled, the per-thread files of a previous run are emptied
+ * here, during output initialization, so the threads can later open them in
+ * append mode without needing to truncate them.
+ *
+ * \param log_path the configured (non-threaded) log file path
+ * \retval true if the files can be opened in append mode afterwards
+ */
+static bool LogFileThreadedReset(const char *log_path)
+{
+    if (strcmp(log_path, "/dev/null") == 0 || strchr(log_path, '%') != NULL)
+        return false;
+
+    char dir[PATH_MAX];
+    const char *name;
+    const char *slash = strrchr(log_path, '/');
+    if (slash == NULL) {
+        strlcpy(dir, ".", sizeof(dir));
+        name = log_path;
+    } else {
+        size_t dir_len = (size_t)(slash - log_path);
+        if (dir_len >= sizeof(dir))
+            return false;
+        if (dir_len == 0) {
+            strlcpy(dir, "/", sizeof(dir));
+        } else {
+            memcpy(dir, log_path, dir_len);
+            dir[dir_len] = '\0';
+        }
+        name = slash + 1;
+    }
+
+    /* threaded names are "<prefix>.<N>.<ext>" or "<prefix>.<N>", see
+     * LogFileThreadedName() */
+    const char *dot = strrchr(name, '.');
+    size_t prefix_len = dot ? (size_t)(dot - name) : strlen(name);
+    const char *ext = dot ? dot + 1 : NULL;
+    if (prefix_len == 0)
+        return false;
+
+    DIR *d = opendir(dir);
+    if (d == NULL) {
+        /* nothing to reset if the directory does not exist yet */
+        return errno == ENOENT;
+    }
+    struct dirent *de;
+    while ((de = readdir(d)) != NULL) {
+        const char *n = de->d_name;
+        if (strncmp(n, name, prefix_len) != 0 || n[prefix_len] != '.')
+            continue;
+        const char *p = n + prefix_len + 1;
+        if (!isdigit((unsigned char)*p))
+            continue;
+        while (isdigit((unsigned char)*p))
+            p++;
+        if (ext ? (*p != '.' || strcmp(p + 1, ext) != 0) : (*p != '\0'))
+            continue;
+
+        char path[PATH_MAX];
+        if (PathMerge(path, sizeof(path), dir, n) < 0)
+            continue;
+        struct stat sb;
+        if (lstat(path, &sb) != 0 || !S_ISREG(sb.st_mode))
+            continue;
+        if (truncate(path, 0) != 0) {
+            SCLogWarning("Unable to truncate threaded log file %s: %s", path, strerror(errno));
+            closedir(d);
+            return false;
+        }
+        SCLogDebug("truncated threaded log file %s", path);
+    }
+    closedir(d);
+    return true;
+}
+#endif
+
 bool SCLogOpenThreadedFile(const char *log_path, const char *append, LogFileCtx *parent_ctx)
 {
         parent_ctx->threads = SCCalloc(1, sizeof(LogThreadedFileCtx));
@@ -473,7 +557,16 @@ bool SCLogOpenThreadedFile(const char *log_path, const char *append, LogFileCtx 
             FatalError("Unable to initialize thread/entry hash table");
         }
 
-        parent_ctx->threads->append = SCStrdup(append == NULL ? DEFAULT_LOG_MODE_APPEND : append);
+        if (append == NULL)
+            append = DEFAULT_LOG_MODE_APPEND;
+#ifndef OS_WIN32
+        /* Truncate the files of a previous run now, while it is still
+         * allowed, and let the threads open them in append mode. */
+        if (!SCConfValIsTrue(append) && LogFileThreadedReset(log_path)) {
+            append = "yes";
+        }
+#endif
+        parent_ctx->threads->append = SCStrdup(append);
         if (!parent_ctx->threads->append) {
             SCLogError("Unable to allocate threads append setting");
             goto error_exit;
