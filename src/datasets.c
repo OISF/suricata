@@ -854,6 +854,10 @@ static int IPv6AsAscii(const void *s, char *out, size_t out_size)
  * Only datasets defined in the YAML configuration are trusted to rewrite
  * their state file. Rule defined datasets don't get this permission.
  *
+ * The rule can only be added on an existing file, so a missing state file is
+ * created empty first. Otherwise the file created by the first save could
+ * not be rewritten by the next ones.
+ *
  * \param ruleset opaque landlock ruleset
  */
 void DatasetsLandlockGrant(void *ruleset)
@@ -861,6 +865,12 @@ void DatasetsLandlockGrant(void *ruleset)
     DatasetLock();
     for (Dataset *set = sets; set != NULL; set = set->next) {
         if (set->from_yaml && strlen(set->save) > 0) {
+#ifdef HAVE_LINUX_LANDLOCK_H
+            /* create if missing, keep the content otherwise */
+            int fd = open(set->save, O_CREAT | O_WRONLY | O_CLOEXEC, 0644);
+            if (fd >= 0)
+                close(fd);
+#endif
             SCLandlockGrantTruncateFile(ruleset, set->save);
         }
     }
@@ -876,7 +886,8 @@ void DatasetsSave(void)
         if (strlen(set->save) == 0)
             goto next;
 
-        FILE *fp = fopen(set->save, "w");
+        /* a refused overwrite of an existing file is reported */
+        FILE *fp = SCFopenOverwrite(set->save, "w");
         if (fp == NULL)
             goto next;
 

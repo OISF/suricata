@@ -61,5 +61,6 @@ const char *SCBasename(const char *path);
 bool SCPathContainsTraversal(const char *path);
 int SCTouchFile(const char *path);
 FILE *SCFopenLogFile(const char *path, const char *mode);
+FILE *SCFopenOverwrite(const char *path, const char *mode);
 
 #endif /* SURICATA_UTIL_PATH_H */

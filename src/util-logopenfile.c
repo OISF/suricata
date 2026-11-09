@@ -31,6 +31,7 @@
 #include "util-byte.h"
 #include "util-conf.h"
 #include "util-path.h"
+#include "util-landlock.h"
 #include "util-misc.h"
 #include "util-time.h"
 #include "util-unittest.h"
@@ -41,6 +42,10 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#endif
+
+#ifndef OS_WIN32
+#include <dirent.h>
 #endif
 
 #ifdef HAVE_LIBHIREDIS
@@ -459,6 +464,97 @@ static void ThreadLogFileHashFreeFunc(void *data)
     SCFree(thread_ent);
 }
 
+#ifndef OS_WIN32
+/** \brief Empty the per-thread files of a previous run
+ *
+ * Threaded files are opened lazily by the packet threads, after the process
+ * may have been sandboxed (landlock) without the right to truncate files.
+ * When append is disabled, the per-thread files of a previous run are emptied
+ * here, during output initialization, so the threads can later open them in
+ * append mode without needing to truncate them.
+ *
+ * \param log_path the configured (non-threaded) log file path
+ * \retval true if the files can be opened in append mode afterwards
+ */
+static bool LogFileThreadedReset(const char *log_path)
+{
+    if (strcmp(log_path, "/dev/null") == 0)
+        return false;
+
+    /* The name can be a time pattern: the threads are about to open the
+     * files of the current period, so these are the ones to empty. */
+    char *expanded = SCLogFilenameFromPattern(log_path);
+    if (expanded == NULL)
+        return false;
+    bool ret = false;
+
+    char dir[PATH_MAX];
+    const char *name;
+    const char *slash = strrchr(expanded, '/');
+    if (slash == NULL) {
+        strlcpy(dir, ".", sizeof(dir));
+        name = expanded;
+    } else {
+        size_t dir_len = (size_t)(slash - expanded);
+        if (dir_len >= sizeof(dir))
+            goto end;
+        if (dir_len == 0) {
+            strlcpy(dir, "/", sizeof(dir));
+        } else {
+            memcpy(dir, expanded, dir_len);
+            dir[dir_len] = '\0';
+        }
+        name = slash + 1;
+    }
+
+    /* threaded names are "<prefix>.<N>.<ext>" or "<prefix>.<N>", see
+     * LogFileThreadedName() */
+    const char *dot = strrchr(name, '.');
+    size_t prefix_len = dot ? (size_t)(dot - name) : strlen(name);
+    const char *ext = dot ? dot + 1 : NULL;
+    if (prefix_len == 0)
+        goto end;
+
+    DIR *d = opendir(dir);
+    if (d == NULL) {
+        /* nothing to reset if the directory does not exist yet */
+        ret = (errno == ENOENT);
+        goto end;
+    }
+    struct dirent *de;
+    while ((de = readdir(d)) != NULL) {
+        const char *n = de->d_name;
+        if (strncmp(n, name, prefix_len) != 0 || n[prefix_len] != '.')
+            continue;
+        const char *p = n + prefix_len + 1;
+        if (!isdigit((unsigned char)*p))
+            continue;
+        while (isdigit((unsigned char)*p))
+            p++;
+        if (ext ? (*p != '.' || strcmp(p + 1, ext) != 0) : (*p != '\0'))
+            continue;
+
+        char path[PATH_MAX];
+        if (PathMerge(path, sizeof(path), dir, n) < 0)
+            continue;
+        struct stat sb;
+        if (lstat(path, &sb) != 0 || !S_ISREG(sb.st_mode))
+            continue;
+        if (truncate(path, 0) != 0) {
+            SCLogWarning("Unable to truncate threaded log file %s: %s", path, strerror(errno));
+            closedir(d);
+            goto end;
+        }
+        SCLogDebug("truncated threaded log file %s", path);
+    }
+    closedir(d);
+    ret = true;
+end:
+    SCFree(expanded);
+    return ret;
+}
+#endif
+
 bool SCLogOpenThreadedFile(const char *log_path, const char *append, LogFileCtx *parent_ctx)
 {
         parent_ctx->threads = SCCalloc(1, sizeof(LogThreadedFileCtx));
@@ -473,7 +569,20 @@ bool SCLogOpenThreadedFile(const char *log_path, const char *append, LogFileCtx 
             FatalError("Unable to initialize thread/entry hash table");
         }
 
-        parent_ctx->threads->append = SCStrdup(append == NULL ? DEFAULT_LOG_MODE_APPEND : append);
+        if (append == NULL)
+            append = DEFAULT_LOG_MODE_APPEND;
+#ifndef OS_WIN32
+        /* When the sandbox is going to prevent it later, truncate the files
+         * of a previous run now and let the threads open them in append
+         * mode. Not when testing the configuration, as no packet thread
+         * writes to them and they may belong to a running instance. */
+        if (!SCConfValIsTrue(append) && SCLandlockWillRestrictTruncate() &&
+                SCRunmodeGet() != RUNMODE_CONF_TEST && SCRunmodeGet() != RUNMODE_ENGINE_ANALYSIS &&
+                LogFileThreadedReset(log_path)) {
+            append = "yes";
+        }
+#endif
+        parent_ctx->threads->append = SCStrdup(append);
         if (!parent_ctx->threads->append) {
             SCLogError("Unable to allocate threads append setting");
             goto error_exit;

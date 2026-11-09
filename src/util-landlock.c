@@ -23,6 +23,7 @@
 
 #include "suricata.h"
 #include "datasets.h"
+#include "detect-engine-analyzer.h"
 #include "detect-engine.h"
 #include "feature.h"
 #include "util-byte.h"
@@ -60,6 +61,16 @@ void SCLandlockGrantNetConnectTCP(void *ruleset, uint16_t port)
 
 void SCLandlockGrantTruncateFile(void *ruleset, const char *path)
 {
+}
+
+bool SCLandlockRestrictsTruncate(void)
+{
+    return false;
+}
+
+bool SCLandlockWillRestrictTruncate(void)
+{
+    return false;
 }
 
 #else /* HAVE_LINUX_LANDLOCK_H */
@@ -214,6 +225,39 @@ static inline struct landlock_ruleset *LandlockCreateRuleset(void)
     return ruleset;
 }
 
+/* Set once the sandbox is enforced and restricts truncating files. Only
+ * written before the packet threads are started. */
+static bool landlock_truncate_restricted = false;
+
+/**
+ * \brief Tell if the landlock sandbox prevents truncating existing files
+ *
+ * \retval true if the sandbox is enforced and handles FS_TRUNCATE
+ */
+bool SCLandlockRestrictsTruncate(void)
+{
+    return landlock_truncate_restricted;
+}
+
+/**
+ * \brief Tell if truncating existing files is or will be prevented
+ *
+ * To be used during initialization, before the sandbox is enforced, by code
+ * that has to empty or remove files while it is still allowed.
+ *
+ * \retval true if landlock is enabled and the kernel supports FS_TRUNCATE
+ */
+bool SCLandlockWillRestrictTruncate(void)
+{
+    if (landlock_truncate_restricted)
+        return true;
+    int enabled = 0;
+    if (SCConfGetBool("security.landlock.enabled", &enabled) == 0 || !enabled)
+        return false;
+    /* Truncate is handled from ABI 3 */
+    return landlock_create_ruleset(NULL, 0, LANDLOCK_CREATE_RULESET_VERSION) >= 3;
+}
+
 static inline void LandlockEnforceRuleset(struct landlock_ruleset *ruleset)
 {
     if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1) {
@@ -222,7 +266,10 @@ static inline void LandlockEnforceRuleset(struct landlock_ruleset *ruleset)
     }
     if (landlock_restrict_self(ruleset->fd, 0)) {
         SCLogError("Can't self restrict (landlock phase): %s", strerror(errno));
+        return;
     }
+    landlock_truncate_restricted =
+            (ruleset->attr.handled_access_fs & LANDLOCK_ACCESS_FS_TRUNCATE) != 0;
 }
 
 static int LandlockSandboxingAddRule(
@@ -430,6 +477,71 @@ static void LandlockSandboxingApplyNetPorts(
     }
 }
 
+/**
+ * \brief Allow DPDK to use its runtime directory
+ *
+ * rte_eal_init() runs after the sandbox is in place. It creates its shared
+ * configuration files in the runtime directory and sets their size with
+ * ftruncate(). The directory holds no logs, so allow truncating in it. It is
+ * created here as a rule can only be added on an existing directory.
+ *
+ * The location is the one computed by DPDK: /var/run/dpdk/<file-prefix> for
+ * root and /tmp/dpdk/<file-prefix> otherwise. A non root user with
+ * XDG_RUNTIME_DIR set is not handled.
+ */
+static void LandlockGrantDpdkRuntimeDir(struct landlock_ruleset *ruleset)
+{
+    const SCConfNode *eal_params = SCConfGetNode("dpdk.eal-params");
+    if (eal_params == NULL)
+        return;
+    /* no runtime directory is used with these options */
+    if (SCConfNodeLookupChild(eal_params, "in-memory") != NULL ||
+            SCConfNodeLookupChild(eal_params, "no-shconf") != NULL)
+        return;
+
+    const char *prefix = SCConfNodeLookupChildValue(eal_params, "file-prefix");
+    if (prefix == NULL || prefix[0] == '\0')
+        prefix = "rte";
+    if (strchr(prefix, '/') != NULL || strcmp(prefix, "..") == 0) {
+        SCLogWarning("Invalid dpdk.eal-params.file-prefix '%s': not granting landlock "
+                     "permission on the DPDK runtime directory",
+                prefix);
+        return;
+    }
+
+    const char *base = "/var/run";
+    if (getuid() != 0) {
+        if (getenv("XDG_RUNTIME_DIR") != NULL) {
+            SCLogWarning("Not granting landlock permission on the DPDK runtime directory: "
+                         "XDG_RUNTIME_DIR is set. Use the in-memory EAL option.");
+            return;
+        }
+        base = "/tmp";
+    }
+
+    char dir[PATH_MAX];
+    int r = snprintf(dir, sizeof(dir), "%s/dpdk", base);
+    if (r < 0 || (size_t)r >= sizeof(dir))
+        return;
+    if (mkdir(dir, 0700) != 0 && errno != EEXIST) {
+        SCLogWarning("Can't create DPDK runtime directory %s: %s", dir, strerror(errno));
+        return;
+    }
+    r = snprintf(dir, sizeof(dir), "%s/dpdk/%s", base, prefix);
+    if (r < 0 || (size_t)r >= sizeof(dir))
+        return;
+    if (mkdir(dir, 0700) != 0 && errno != EEXIST) {
+        SCLogWarning("Can't create DPDK runtime directory %s: %s", dir, strerror(errno));
+        return;
+    }
+
+    if (LandlockSandboxingAddRule(ruleset, dir,
+                _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ |
+                        LANDLOCK_ACCESS_FS_TRUNCATE) == 0) {
+        SCLogConfig("Added write and truncate permission to DPDK runtime directory '%s'", dir);
+    }
+}
+
 void LandlockSandboxing(SCInstance *suri)
 {
     /* Read configuration variable and exit if no enforcement */
@@ -458,9 +570,17 @@ void LandlockSandboxing(SCInstance *suri)
      * so rules can't be used to truncate arbitrary files.
      */
     DatasetsLandlockGrant(ruleset);
+    /* Detect engine dump files rewritten on rule (re)load. */
+    DetectEngineAnalyzerLandlockGrant(ruleset);
     if (DetectEngineMpmCachingEnabled() && stat(DetectEngineMpmCachingGetPath(), &sb) == 0) {
+        /* The cache is rewritten on a hash collision. It holds no logs, so
+         * allow truncating it. */
         LandlockSandboxingAddRule(ruleset, DetectEngineMpmCachingGetPath(),
-                _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ);
+                _LANDLOCK_SURI_ACCESS_FS_WRITE | _LANDLOCK_ACCESS_FS_READ |
+                        LANDLOCK_ACCESS_FS_TRUNCATE);
+    }
+    if (suri->run_mode == RUNMODE_DPDK) {
+        LandlockGrantDpdkRuntimeDir(ruleset);
     }
     if (suri->run_mode == RUNMODE_PCAP_FILE) {
         const char *pcap_file;

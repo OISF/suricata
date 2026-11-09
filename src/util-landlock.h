@@ -30,6 +30,8 @@ void SCLandlockGrantReadPath(void *ruleset, const char *path);
 void SCLandlockGrantWritePath(void *ruleset, const char *path);
 void SCLandlockGrantUnixSocket(void *ruleset, const char *path);
 void SCLandlockGrantTruncateFile(void *ruleset, const char *path);
+bool SCLandlockRestrictsTruncate(void);
+bool SCLandlockWillRestrictTruncate(void);
 
 void SCLandlockGrantNetBindTCP(void *ruleset, uint16_t port);
 

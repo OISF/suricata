@@ -75,6 +75,42 @@ containing them) in ``unix-sockets``:
 
 The socket or directory must exist when Suricata starts.
 
+On Linux 6.2+ (Landlock ABI 3), truncating existing files is also restricted,
+so files can't be emptied once the sandbox is in place. Truncation is only
+allowed on the following files, which Suricata rewrites while running:
+
+- the ``state`` files of datasets defined in the YAML configuration. Datasets
+  defined in rules can't rewrite an existing ``state`` or ``save`` file;
+- ``rule_group.json`` when ``detect.profiling.grouping.dump-to-disk`` is
+  enabled, and ``firewall.json`` in firewall mode;
+- in engine analysis mode, ``rules_fast_pattern.txt``, ``rules_analysis.txt``
+  and ``flowbits.json`` (without a tenant prefix);
+- the Hyperscan MPM cache directory (``sgh-mpm-caching-path``).
+
+With the DPDK capture method, DPDK sets up its runtime directory after the
+sandbox is in place, so Suricata creates it during startup and allows writing
+and truncating in it. This is ``/var/run/dpdk/<file-prefix>`` when running as
+root and ``/tmp/dpdk/<file-prefix>`` otherwise, ``file-prefix`` being the EAL
+parameter, ``rte`` by default. This is not done for a non root user with
+``XDG_RUNTIME_DIR`` set: use the ``in-memory`` EAL parameter in that case.
+
+When truncation is restricted, threaded EVE files with ``append: no`` are
+emptied during startup, before the sandbox is in place. Leftover temporary
+files of the file store from a previous run are also removed during startup,
+so a file store directory must not be shared with another running instance.
+A missing ``state`` file of a YAML dataset is created empty during startup.
+
+In unix socket runmode (``--unix-socket``), outputs and datasets are set up
+for each pcap file, after the sandbox is in place. As a result, the ``state``
+files of YAML datasets can't be rewritten if they already exist, and outputs
+with ``append: no`` can't empty an existing file.
+
+Other outputs that write one file per object, such as ``pcap-log``,
+``tls-store`` and the file store ``write-fileinfo`` records, can't overwrite a
+file left by a previous run. This happens for example when the same pcap file
+is processed again with the same output directory. The existing file is kept,
+nothing is written to it and a warning is logged.
+
 Landlock is not active in some distributions and you may need to activate it
 at boot by adding ``lsm=landock`` to the Linux command line. For example,
 on a Debian distribution with at least a linux 5.13, you can edit ``/etc/default/grub``

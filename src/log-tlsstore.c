@@ -148,7 +148,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
         SCReturn;
     }
 
-    fp = fopen(filename, "w");
+    fp = SCFopenOverwrite(filename, "w");
     if (fp == NULL) {
         if (logging_dir_not_writable < LOGGING_WRITE_ISSUE_LIMIT) {
             SCLogWarning(
@@ -205,7 +205,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
 
     //Logging certificate informations
     memcpy(filename + (strlen(filename) - 3), "meta", 4);
-    fpmeta = fopen(filename, "w");
+    fpmeta = SCFopenOverwrite(filename, "w");
     if (fpmeta != NULL) {
         #define PRINT_BUF_LEN 46
         char srcip[PRINT_BUF_LEN], dstip[PRINT_BUF_LEN];
