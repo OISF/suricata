@@ -750,8 +750,8 @@ impl DCERPCState {
                         &mut tx.stub_data_buffer_ts,
                         &mut tx.stub_data_buffer_reset_ts,
                     );
-                    tx.req_done = true;
-                    tx.frag_cnt_ts = 1;
+                    tx.req_done = tx.stub_data_buffer_reset_ts;
+                    tx.frag_cnt_ts += 1;
                     if let Some(flow) = self.flow {
                         sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToServer as i32);
                     }
@@ -765,8 +765,8 @@ impl DCERPCState {
                         &mut tx.stub_data_buffer_tc,
                         &mut tx.stub_data_buffer_reset_tc,
                     );
-                    tx.resp_done = true;
-                    tx.frag_cnt_tc = 1;
+                    tx.resp_done = tx.stub_data_buffer_reset_tc;
+                    tx.frag_cnt_tc += 1;
                     if let Some(flow) = self.flow {
                         sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
                     }
@@ -1032,7 +1032,7 @@ fn evaluate_stub_params(
     if stub_len == 0 {
         return 0;
     }
-    if stub_len == lenleft && (fragtype == 0 || (fragtype & PFC_LAST_FRAG > 0)) {
+    if stub_len == lenleft && (fragtype & PFC_LAST_FRAG > 0) {
         *stub_data_buffer_reset = true;
     }
 
@@ -1671,7 +1671,7 @@ mod tests {
     #[test]
     pub fn test_parse_dcerpc() {
         let request: &[u8] = &[
-            0x05, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00,
+            0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0xe8, 0x03, 0x00, 0x00, 0x0b, 0x00, 0x09, 0x00, 0x45, 0x00, 0x2c, 0x00,
             0x4d, 0x00, 0x73, 0x00, 0x53, 0x00, 0x59, 0x00, 0x2a, 0x00, 0x4a, 0x00, 0x7a, 0x00,
             0x3e, 0x00, 0x58, 0x00, 0x21, 0x00, 0x4a, 0x00, 0x30, 0x00, 0x41, 0x00, 0x4b, 0x00,
