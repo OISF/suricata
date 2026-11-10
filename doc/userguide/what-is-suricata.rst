@@ -17,7 +17,7 @@ Beyond the codebase, OISF brings the community together through SuriCon, its ann
 License
 -------
 
-Suricata's source code is licensed under version 2 of the :doc:`licenses/gnu-gpl-v2.0'. Suricata is free to use, including in
+Suricata's source code is licensed under version 2 of the :doc:`licenses/gnu-gpl-v2.0`. Suricata is free to use, including in
 commercial environments, under the terms of the GPL.
 
 If you embed or redistribute Suricata as part of a product, your use may call for a different license. OISF offers non-GPL licensing through consortium membership and is happy to help you find the right fit. See the `GPL: Frequently Asked Questions <https://suricata.io/gpl-faqs/>`_ or learn more about the `OISF Consortium <https://oisf.net/>`_.
