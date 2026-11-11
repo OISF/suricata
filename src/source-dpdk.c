@@ -534,8 +534,6 @@ static void HandleShutdown(DPDKThreadVars *ptv)
     DPDKDumpCounters(ptv);
     if (ptv->queue_id == 0) {
         PrintDPDKPortXstats(ptv->port_id, ptv->livedev->dev);
-        rte_delay_us(20); // wait for all threads to get out of the sync loop
-        SC_ATOMIC_SET(ptv->workers_sync->worker_checked_in, 0);
         // If Suricata runs in peered mode, the peer threads might still want to send
         // packets to our port. Instead, we know, that we are done with the peered port, so
         // we stop it. The peered threads will stop our port.
