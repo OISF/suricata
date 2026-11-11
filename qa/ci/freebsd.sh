@@ -45,7 +45,7 @@ run()
     if [ -f ./autogen.sh ]; then
         ./autogen.sh
     fi
-    CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests
+    CFLAGS="${DEFAULT_CFLAGS}" ./configure --enable-warnings --enable-unittests --enable-ipfw
     gmake -j "${CPUS}"
     ./src/suricata -u -l /tmp/
     python3 ./suricata-verify/run.py -q --debug-failed
