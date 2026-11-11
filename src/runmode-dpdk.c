@@ -2445,7 +2445,265 @@ static int DPDKRunmodeSetMempoolCacheSize04(void)
 }
 
 /**
- * \brief Register DPDK runmode unit tests for threads and mempool cache size.
+ * \brief Mempool cache size set manually and derived from the mempool size
+ */
+static int DPDKRunmodeSetMempoolCacheSize05(void)
+{
+    DPDKIfaceConfig iconf = { 0 };
+
+    iconf.queue_mempool_size = 1023;
+    int r = ConfigSetMempoolCacheSize(&iconf, "7");
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF(iconf.mempool_cache_size_auto);
+    FAIL_IF_NOT(iconf.mempool_cache_size == 7);
+
+    r = ConfigSetMempoolCacheSize(&iconf, "1024");
+    FAIL_IF_NOT(r == -ERANGE);
+
+    r = ConfigSetMempoolCacheSize(&iconf, "auto");
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.mempool_cache_size_auto);
+    FAIL_IF_NOT(MempoolCacheSizeCalculate(iconf.queue_mempool_size) == 341);
+
+    PASS;
+}
+
+/**
+ * \brief Interface config with the queues and descriptors the mempool sizing reads
+ */
+static void MempoolSizeTestIfaceInit(
+        DPDKIfaceConfig *iconf, uint16_t rx_queues, uint16_t rx_desc, uint16_t tx_desc)
+{
+    memset(iconf, 0, sizeof(*iconf));
+    strlcpy(iconf->iface, "ut", sizeof(iconf->iface));
+    iconf->nb_rx_queues = rx_queues;
+    iconf->nb_rx_desc = rx_desc;
+    iconf->nb_tx_desc = tx_desc;
+}
+
+/**
+ * \brief Auto mempool size covers the descriptors and one RX burst of each
+ * queue, a missing or empty entry means "auto"
+ */
+static int DPDKRunmodeSetMempoolSize01(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    int r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 127);
+    FAIL_IF_NOT(MempoolCacheSizeCalculate(iconf.queue_mempool_size) == 1);
+
+    MempoolSizeTestIfaceInit(&iconf, 2, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 127);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, NULL, 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 127);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 127);
+
+    PASS;
+}
+
+/**
+ * \brief Auto mempool size needs RX queues and RX descriptors
+ */
+static int DPDKRunmodeSetMempoolSize02(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 0, 16, 16);
+    int r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == -EINVAL);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 0, 16);
+    r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == -EINVAL);
+
+    PASS;
+}
+
+/**
+ * \brief Manual mempool size is split among the queues and rounded down to
+ * 2^q - 1
+ */
+static int DPDKRunmodeSetMempoolSize03(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    int r = ConfigSetMempoolSize(&iconf, "1023", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 1023);
+    FAIL_IF_NOT(MempoolCacheSizeCalculate(iconf.queue_mempool_size) == 341);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "1024", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 1023);
+
+    MempoolSizeTestIfaceInit(&iconf, 2, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "1023", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 511);
+    FAIL_IF_NOT(MempoolCacheSizeCalculate(iconf.queue_mempool_size) == 73);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "128", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 127);
+
+    PASS;
+}
+
+/**
+ * \brief Manual mempool size below the descriptors and one RX burst of each
+ * queue, and a non-numerical entry
+ */
+static int DPDKRunmodeSetMempoolSize04(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    int r = ConfigSetMempoolSize(&iconf, "15", 0);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "32", 0);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "64", 0);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    MempoolSizeTestIfaceInit(&iconf, 2, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "1", 0);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "abc", 0);
+    FAIL_IF_NOT(r == -EINVAL);
+
+    PASS;
+}
+
+/**
+ * \brief Auto mempool size from auto descriptors of an IDS interface with
+ * the maximum descriptor limit
+ */
+static int DPDKRunmodeSetMempoolSize05(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 0, 0);
+    int r = ConfigSetRxDescriptors(&iconf, "auto", UINT16_MAX);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.nb_rx_desc == 32768);
+    r = ConfigSetTxDescriptors(&iconf, "auto", UINT16_MAX, false);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.nb_tx_desc == 0);
+
+    r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 65535);
+    FAIL_IF_NOT(MempoolCacheSizeCalculate(iconf.queue_mempool_size) == 257);
+
+    PASS;
+}
+
+/**
+ * \brief Auto mempool size of a bond port: the descriptors count once per
+ * member port, the RX burst once per queue
+ */
+static int DPDKRunmodeSetMempoolSize06(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    int r = ConfigSetMempoolSize(&iconf, "auto", 2);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 127);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "auto", 3);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 255);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 64, 64);
+    r = ConfigSetMempoolSize(&iconf, "auto", 2);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 511);
+
+    /* the same descriptors without member ports */
+    MempoolSizeTestIfaceInit(&iconf, 1, 64, 64);
+    r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 255);
+
+    PASS;
+}
+
+/**
+ * \brief Manual mempool size of a bond port is validated against the
+ * descriptors of all member ports
+ */
+static int DPDKRunmodeSetMempoolSize07(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    int r = ConfigSetMempoolSize(&iconf, "127", 3);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "255", 3);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 255);
+
+    /* the same size without member ports */
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "127", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 127);
+
+    PASS;
+}
+
+/**
+ * \brief Mempool requirement of a bond port above the supported per-queue
+ * size
+ */
+static int DPDKRunmodeSetMempoolSize08(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, UINT16_MAX, UINT16_MAX);
+    int r = ConfigSetMempoolSize(&iconf, "auto", UINT16_MAX);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, UINT16_MAX, UINT16_MAX);
+    r = ConfigSetMempoolSize(&iconf, "4294967295", UINT16_MAX);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    /* the largest descriptor counts fit without member ports */
+    MempoolSizeTestIfaceInit(&iconf, 1, UINT16_MAX, UINT16_MAX);
+    r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 262143);
+
+    PASS;
+}
+
+/**
+ * \brief Register DPDK runmode unit tests for threads, mempool size and mempool cache size.
  */
 void RunmodeDpdkRegisterTests(void)
 {
@@ -2462,6 +2720,15 @@ void RunmodeDpdkRegisterTests(void)
     UtRegisterTest("DPDKRunmodeSetMempoolCacheSize02", DPDKRunmodeSetMempoolCacheSize02);
     UtRegisterTest("DPDKRunmodeSetMempoolCacheSize03", DPDKRunmodeSetMempoolCacheSize03);
     UtRegisterTest("DPDKRunmodeSetMempoolCacheSize04", DPDKRunmodeSetMempoolCacheSize04);
+    UtRegisterTest("DPDKRunmodeSetMempoolCacheSize05", DPDKRunmodeSetMempoolCacheSize05);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize01", DPDKRunmodeSetMempoolSize01);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize02", DPDKRunmodeSetMempoolSize02);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize03", DPDKRunmodeSetMempoolSize03);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize04", DPDKRunmodeSetMempoolSize04);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize05", DPDKRunmodeSetMempoolSize05);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize06", DPDKRunmodeSetMempoolSize06);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize07", DPDKRunmodeSetMempoolSize07);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize08", DPDKRunmodeSetMempoolSize08);
 }
 #endif /* UNITTESTS and HAVE_DPDK */
 
