@@ -584,23 +584,21 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
         if (nb_rx > 0) {
             timestamp = TimeGet();
         }
-        if (RXPacketCountHeuristic(tv, ptv, nb_rx)) {
-            continue;
-        }
-
-        ptv->pkts += (uint64_t)nb_rx;
-        for (uint16_t i = 0; i < nb_rx; i++) {
-            Packet *p = PacketInitFromMbuf(ptv, ptv->received_mbufs[i], timestamp);
-            if (p == NULL) {
-                rte_pktmbuf_free(ptv->received_mbufs[i]);
-                continue;
-            }
-            DPDKSegmentedMbufWarning(ptv->received_mbufs[i]);
-            PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
-                    rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
-            if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
-                DPDKFreeMbufArray(ptv->received_mbufs, nb_rx, i + 1);
-                SCReturnInt(TM_ECODE_FAILED);
+        if (RXPacketCountHeuristic(tv, ptv, nb_rx) == false) {
+            ptv->pkts += (uint64_t)nb_rx;
+            for (uint16_t i = 0; i < nb_rx; i++) {
+                Packet *p = PacketInitFromMbuf(ptv, ptv->received_mbufs[i], timestamp);
+                if (p == NULL) {
+                    rte_pktmbuf_free(ptv->received_mbufs[i]);
+                    continue;
+                }
+                DPDKSegmentedMbufWarning(ptv->received_mbufs[i]);
+                PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
+                        rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
+                if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
+                    DPDKFreeMbufArray(ptv->received_mbufs, nb_rx, i + 1);
+                    SCReturnInt(TM_ECODE_FAILED);
+                }
             }
         }
 
