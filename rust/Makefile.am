@@ -3,7 +3,8 @@ SUBDIRS =	htp \
 		suricatasc \
 		suricatactl
 
-EXTRA_DIST =	.cargo/config.toml.in \
+EXTRA_DIST =	.cargo/audit.toml \
+		.cargo/config.toml.in \
 		Cargo.lock \
 		Cargo.toml \
 		cbindgen.toml \
