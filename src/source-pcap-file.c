@@ -195,6 +195,11 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
     if(unlikely(data == NULL)) {
         SCLogError("pcap file reader thread failed to initialize");
 
+        /* no packet, so no first timestamp to anchor the run on: the clock
+         * keeps its previous value, but the threads have to stop looking like
+         * ones that are about to be timed, or the flow manager waits forever */
+        TmThreadsInitThreadsTimestamp(TimeGet());
+
         PcapFileExit(TM_ECODE_FAILED, NULL);
 
         SCReturnInt(TM_ECODE_DONE);
