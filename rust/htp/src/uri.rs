@@ -364,6 +364,38 @@ impl Uri {
     }
 }
 
+/// Normalize a URI using the default libhtp decoder configuration.
+/// Wrapper for external reuse over parse_uri/normalized_path/generate_normalized_uri
+pub fn normalize_uri(uri: &[u8], ocfg: Option<DecoderConfig>) -> Vec<u8> {
+    let mut raw_uri = if let Some(cfg) = ocfg {
+        Uri::with_config(cfg)
+    } else {
+        Uri::default()
+    };
+    raw_uri.parse_uri(uri);
+
+    // TODO we may want caller to use these warning flags
+    let mut flags = 0;
+    let mut status = HtpUnwanted::Ignore;
+    let mut normalized_uri = Uri::with_config(raw_uri.cfg);
+    normalized_uri.scheme = raw_uri.normalized_scheme();
+    normalized_uri.username = raw_uri.normalized_username(&mut flags);
+    normalized_uri.password = raw_uri.normalized_password(&mut flags);
+    normalized_uri.hostname = raw_uri.normalized_hostname(&mut flags);
+    normalized_uri.port_number = raw_uri.normalized_port(&mut flags);
+    normalized_uri.fragment = raw_uri.normalized_fragment(&mut flags);
+    normalized_uri.path = raw_uri.normalized_path(&mut flags, &mut status);
+    normalized_uri.query = raw_uri.query;
+
+    match normalized_uri.generate_normalized_uri(None) {
+        (Some(partial), _) => {
+            // normalized_uri_include_all is disabled by default
+            partial.to_vec()
+        }
+        _ => uri.to_vec(),
+    }
+}
+
 enum NormUriState {
     Start,
     DotStart,
