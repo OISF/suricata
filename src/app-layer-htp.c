@@ -2381,6 +2381,8 @@ void HTPConfigure(void)
     }
     HTPConfigSetDefaultsPhase2("default", &cfglist);
 
+    SCHttp2InitCfg(cfglist.cfg);
+
     HTPParseMemcap();
 
     /* Read server config and create a parser for each IP in radix tree */
