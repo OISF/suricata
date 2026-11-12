@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -160,6 +160,9 @@ typedef struct MpmCtxFactoryContainer_ {
  *  what is passed through the API */
 #define MPM_PATTERN_CTX_OWNS_ID     0x20
 #define MPM_PATTERN_FLAG_ENDSWITH   0x40
+/** the depth is checked when a match is reported instead of being compiled
+ *  into the matcher; matchers that check depth at match time anyway ignore it */
+#define MPM_PATTERN_FLAG_DEPTH_MATCH 0x80
 
 #define MPM_FEATURE_FLAG_DEPTH    BIT_U8(0)
 #define MPM_FEATURE_FLAG_OFFSET   BIT_U8(1)
