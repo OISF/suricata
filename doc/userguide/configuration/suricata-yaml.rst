@@ -1628,6 +1628,10 @@ where you do not know the specifics.
 The default configuration also applies to every IP-address for which
 no specific setting is available.
 
+.. note::
+
+  Server-specific configurations only apply to HTTP/1.
+
 HTTP request bodies are often big, so they take a lot of time to
 process which has a significant impact on the performance. With the
 option 'request-body-limit' you can set the limit (in bytes) of the
