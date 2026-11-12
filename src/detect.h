@@ -158,6 +158,7 @@ typedef struct DetectAddressHead_ {
     DetectAddress *ipv6_head;
 
     bool contains_range;
+    bool single_negated_host;
 } DetectAddressHead;
 
 
@@ -857,6 +858,12 @@ typedef struct DetectEngineIPOnlyCtx_ {
      * stored in the radix trees */
     uint32_t *sig_mapping;
     uint32_t sig_mapping_size;
+
+    bool has_negated_src;
+    bool has_negated_dst;
+
+    struct SigNumArray_ *negated_universe_src;
+    struct SigNumArray_ *negated_universe_dst;
 } DetectEngineIPOnlyCtx;
 
 typedef struct DetectEngineLookupFlow_ {
