@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -328,6 +328,8 @@ static uint8_t DetectEngineInspectBufferHttpBody(DetectEngineCtx *de_ctx,
 
     uint8_t ci_flags = eof ? DETECT_CI_FLAGS_END : 0;
     ci_flags |= (offset == 0 ? DETECT_CI_FLAGS_START : 0);
+    if ((ci_flags & DETECT_CI_FLAGS_SINGLE) != DETECT_CI_FLAGS_SINGLE)
+        ci_flags |= DETECT_CI_FLAGS_PARTIAL;
     ci_flags |= buffer->flags;
 
     /* Inspect all the uricontents fetched on each

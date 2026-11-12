@@ -165,6 +165,37 @@ Keyword Changes
   See :doc:`rules/ssh-keywords` for the full state and failure
   semantics.
 
+- ``absent: or_else`` is now rejected on a buffer whose transform can signal
+  an error (``from_base64``, ``pcrexform``, ``gunzip``, ``zlib_deflate``),
+  and such a rule fails to load. Use ``transform_result: error_or`` instead:
+  it matches when the buffer is absent, when the transform fails, or when
+  the keywords after it match. See :ref:`rules-keyword-transform-result`.
+
+- ``gunzip`` and ``zlib_deflate`` keep their input when it does not
+  decompress, and signal an error that ``transform_result`` can match on.
+  8.0 left an empty buffer instead, so existing rules can behave
+  differently after the upgrade:
+
+  - ``content`` after the transform now checks the input that did not
+    decompress, so such rules can raise new alerts, and IPS rules can drop
+    traffic they let through before. Add ``transform_result: must_succeed``
+    after the transform to keep the 8.0 behavior.
+  - ``bsize:0`` no longer matches a failed decompression; use
+    ``transform_result: must_error`` instead.
+  - A negated ``content`` now checks the input, so it stops matching a
+    failed decompression when the input contains the string. Adding
+    ``transform_result: error_or`` before it makes it match a failed
+    decompression again, and also an absent buffer.
+
+- ``pcrexform`` leaves an empty buffer when its capture group matches
+  nothing. 8.0 could leave the original buffer in place in that case.
+
+- ``from_base64`` decodes the input when ``bytes`` equals the input left after
+  ``offset``; 8.0 left such a buffer undecoded. When ``offset`` is at or past
+  the end of the buffer, or ``bytes`` is larger than the input left after
+  ``offset``, the buffer is still left undecoded and the transform now signals
+  an error that ``transform_result`` can match on.
+
 Default Changes
 ~~~~~~~~~~~~~~~
 - An absent configuration value for ``stream.reassembly.urgent.policy`` is now treated as ``oob`` instead of ``inline``.
@@ -178,6 +209,14 @@ Other Changes
   - tcp.ack
   - tcp.seq
   - tcp.window
+
+- Engine analysis (``rules.json``): the ``absent`` object emitted per keyword
+  changed from ``{"or_else": true|false}`` to ``{"mode": "only|or_else"}``.
+  The new ``transform_result`` keyword emits
+  ``{"transform_result": {"mode": "error_or|must_error|must_succeed"}}``
+  under the same per-keyword object. Consumers reading the boolean ``or_else``
+  field should switch to the string ``mode`` field, and recognize both the
+  ``absent`` and ``transform_result`` objects.
 
 - ``dnp3`` has reduced the maximum number of open transactions from
   500 down to 32, the maximum number of points per message from
