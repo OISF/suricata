@@ -76,9 +76,9 @@ widestring = "~0.4.3"
 flate2.workspace = true
 brotli.workspace = true
 zstd.workspace = true
-hkdf = "~0.12.4"
-aes = "~0.8.4"
-aes-gcm = "~0.10.3"
+hkdf = "~0.13.0"
+aes = "~0.9.2"
+aes-gcm = "~0.11.1"
 lru = "~0.18.4"
 
 der-parser = { version = "~9.0.0", default-features = false }
@@ -93,10 +93,10 @@ snmp-parser = "~0.10.0"
 tls-parser = "~0.11.0"
 x509-parser = "~0.16.0"
 libc.workspace = true
-sha2 = "~0.10.9"
-digest = "~0.10.7"
-sha1 = "~0.10.6"
-md-5 = "~0.10.6"
+sha2 = "~0.11.0"
+digest = "~0.11.3"
+sha1 = "~0.11.0"
+md-5 = "~0.11.0"
 regex.workspace = true
 lazy_static.workspace = true
 base64.workspace = true

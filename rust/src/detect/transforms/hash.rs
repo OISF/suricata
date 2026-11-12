@@ -23,7 +23,7 @@ use suricata_sys::sys::{
 };
 
 use crate::ffi::hashing::{G_DISABLE_HASHING, SC_SHA1_LEN, SC_SHA256_LEN};
-use digest::{Digest, Update};
+use digest::Digest;
 use md5::Md5;
 use sha1::Sha1;
 use sha2::Sha256;
@@ -48,7 +48,16 @@ unsafe extern "C" fn md5_setup(
 }
 
 fn md5_transform_do(input: &[u8], output: &mut [u8]) {
-    Md5::new().chain(input).finalize_into(output.into());
+    let Ok(out) = output.try_into() else {
+        DEBUG_VALIDATE_BUG_ON!(
+            "md5 transform: output buffer is {} bytes, expected {}",
+            output.len(),
+            SC_MD5_LEN
+        );
+        // wrong output size, leave the buffer untransformed
+        return;
+    };
+    Md5::new().chain_update(input).finalize_into(out);
 }
 
 unsafe extern "C" fn md5_transform(
@@ -103,7 +112,16 @@ unsafe extern "C" fn sha1_setup(
 }
 
 fn sha1_transform_do(input: &[u8], output: &mut [u8]) {
-    Sha1::new().chain(input).finalize_into(output.into());
+    let Ok(out) = output.try_into() else {
+        DEBUG_VALIDATE_BUG_ON!(
+            "sha1 transform: output buffer is {} bytes, expected {}",
+            output.len(),
+            SC_SHA1_LEN
+        );
+        // wrong output size, leave the buffer untransformed
+        return;
+    };
+    Sha1::new().chain_update(input).finalize_into(out);
 }
 
 unsafe extern "C" fn sha1_transform(
@@ -158,7 +176,16 @@ unsafe extern "C" fn sha256_setup(
 }
 
 fn sha256_transform_do(input: &[u8], output: &mut [u8]) {
-    Sha256::new().chain(input).finalize_into(output.into());
+    let Ok(out) = output.try_into() else {
+        DEBUG_VALIDATE_BUG_ON!(
+            "sha256 transform: output buffer is {} bytes, expected {}",
+            output.len(),
+            SC_SHA256_LEN
+        );
+        // wrong output size, leave the buffer untransformed
+        return;
+    };
+    Sha256::new().chain_update(input).finalize_into(out);
 }
 
 unsafe extern "C" fn sha256_transform(
@@ -218,6 +245,14 @@ mod tests {
     }
 
     #[test]
+    fn test_md5_transform_wrong_size() {
+        let buf = b" A B C D ";
+        let mut out = vec![0u8; SC_MD5_LEN + 1];
+        md5_transform_do(buf, &mut out);
+        assert_eq!(out, vec![0u8; SC_MD5_LEN + 1]);
+    }
+
+    #[test]
     fn test_sha1_transform() {
         let buf = b" A B C D ";
         let mut out = vec![0; SC_SHA1_LEN];
@@ -226,6 +261,14 @@ mod tests {
             out,
             b"\xc8\xdc\x44\x97\xf7\xe0\x55\xf8\x6b\x88\x90\x52\x08\x2c\x0c\x7b\xdc\xc9\xc8\x89"
         );
+    }
+
+    #[test]
+    fn test_sha1_transform_wrong_size() {
+        let buf = b" A B C D ";
+        let mut out = vec![0u8; SC_SHA1_LEN + 1];
+        sha1_transform_do(buf, &mut out);
+        assert_eq!(out, vec![0u8; SC_SHA1_LEN + 1]);
     }
 
     #[test]
@@ -240,5 +283,13 @@ mod tests {
         buf.resize(SC_SHA256_LEN, 0);
         sha256_transform_do(still_buf, &mut buf);
         assert_eq!(&buf, b"\xd6\xbf\x7d\x8d\x69\x53\x02\x4d\x0d\x84\x5c\x99\x9b\xae\x93\xcc\xac\x68\xea\xab\x9a\xc9\x77\xd0\xfd\x30\x6a\xf5\x9a\x3d\xe4\x3a");
+    }
+
+    #[test]
+    fn test_sha256_transform_wrong_size() {
+        let buf = b" A B C D ";
+        let mut out = vec![0u8; SC_SHA256_LEN + 1];
+        sha256_transform_do(buf, &mut out);
+        assert_eq!(out, vec![0u8; SC_SHA256_LEN + 1]);
     }
 }

@@ -174,6 +174,26 @@ macro_rules!SCFatalErrorOnInit {
     }
 }
 
+/// Log an internal bug from per-packet Rust code.
+///
+/// C-side BUG_ON() equivalent, but without aborting: used on data-path
+/// code where a C-side invariant violation (such as a wrongly sized
+/// buffer) should be loud in the error log and caught early, without
+/// crashing the engine.
+#[macro_export]
+macro_rules! DEBUG_VALIDATE_BUG_ON {
+    ($($arg:tt)*) => {
+        $crate::do_log!(
+            suricata_sys::sys::SCLogLevel::SC_LOG_ERROR,
+            "BUG at {}:{} ({}): {}",
+            file!(),
+            line!(),
+            $crate::function!(),
+            format!($($arg)*)
+        );
+    };
+}
+
 #[macro_export]
 macro_rules! unwrap_or_return (
     ($e:expr, $r:expr) => {

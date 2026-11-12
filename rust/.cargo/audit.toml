@@ -5,6 +5,10 @@ ignore = [
     "RUSTSEC-2026-0009",  # time crate update
     "RUSTSEC-2026-0097",  # rand, via tls-parser
     "RUSTSEC-2026-0253",  # lru, doesn't affect us
+    # ctutils: fixed releases need rustc 1.87 (> MSRV 1.85); no secret
+    # exposed - aes-gcm is QUIC Initial decryption only, keys from the
+    # client DCID and the RFC 9001 salt
+    "RUSTSEC-2026-0385",
 ]
 
 [output]
