@@ -19,7 +19,7 @@
 
 use crate::sdp::parser::{sdp_parse_message, SdpMessage};
 use nom8::bytes::streaming::{tag, take, take_until, take_while, take_while1};
-use nom8::character::streaming::{char, crlf};
+use nom8::character::streaming::{char, crlf, satisfy, space0, space1};
 use nom8::combinator::{map, map_res, opt};
 use nom8::error::{Error, ErrorKind};
 use nom8::sequence::delimited;
@@ -121,11 +121,15 @@ pub fn sip_probe_protocol(input: &[u8]) -> IResult<&[u8], ()> {
         return Ok((input, ()));
     }
 
-    if take_until::<_, _, Error<&[u8]>>("SIP/").parse(i).is_ok() {
-        Ok((input, ()))
-    } else {
-        Err(Err::Error(Error::new(i, ErrorKind::Tag)))
-    }
+    let (i, _) = parse_method(i)?;
+    let (i, _) = space0(i)?;
+    satisfy::<_, _, Error<&[u8]>>(|c| c != '/' && c != '*')(i)?;
+    let (i, _) = parse_request_uri(i)?;
+    let (i, _) = space1(i)?;
+    let (i, _) = parse_version(i)?;
+    let (i, _) = space0(i)?;
+    crlf(i)?;
+    Ok((input, ()))
 }
 
 pub fn parse_request(oi: &[u8]) -> IResult<&[u8], Request> {
@@ -398,6 +402,33 @@ mod tests {
     #[test]
     fn test_probe_sip_request() {
         let buf = b"REGISTER sip:sip.example.com SIP/2.0\r\n";
+        assert!(sip_probe_protocol(buf).is_ok());
+    }
+
+    #[test]
+    fn test_probe_http_request() {
+        let buf = b"OPTIONS * HTTP/1.1\r\n";
+        assert!(matches!(sip_probe_protocol(&buf[..9]), Err(Err::Error(_))));
+        let buf = b"UPDATE /SIP/2.0 HTTP/1.1\r\n";
+        assert!(matches!(sip_probe_protocol(&buf[..8]), Err(Err::Error(_))));
+        let buf = b"UPDATE http://example.com/ SIP/2.0\r\n";
+        assert!(matches!(
+            sip_probe_protocol(&buf[..8]),
+            Err(Err::Incomplete(_))
+        ));
+        let buf = b"OPTIONS\t/ HTTP/1.1\r\n";
+        assert!(matches!(sip_probe_protocol(&buf[..9]), Err(Err::Error(_))));
+        let buf = b"OPTIONS http://example.com/ H";
+        assert!(matches!(sip_probe_protocol(buf), Err(Err::Error(_))));
+        let buf = b"ACK\x00\x01";
+        assert!(matches!(sip_probe_protocol(buf), Err(Err::Error(_))));
+    }
+
+    #[test]
+    fn test_probe_sip_request_malformed() {
+        let buf = b"UPDATEsip:192.168.1.20;transport=TCP SIP/2.0\r\n";
+        assert!(sip_probe_protocol(buf).is_ok());
+        let buf = b"OPTIONS\tsip:sip.example.com SIP/2.0\r\n";
         assert!(sip_probe_protocol(buf).is_ok());
     }
 

@@ -958,7 +958,10 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
 
         // parse the data if we recognized one protocol
         if (f->alproto != ALPROTO_UNKNOWN && f->alproto != ALPROTO_FAILED) {
-            if (reverse_flow) {
+            /* reverse the flow if protocol detection told us so, but only if
+             * no protocol was detected on the other side, whose data would
+             * have been parsed in the current direction. */
+            if (reverse_flow && !AppProtoIsValid(*alproto_otherdir)) {
                 SCLogDebug("reversing flow after proto detect told us so");
                 PacketSwap(p);
                 FlowSwap(f);
