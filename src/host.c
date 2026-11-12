@@ -53,7 +53,7 @@ static HostQueue host_spare_q;
 HostConfig host_config;
 
 SC_ATOMIC_DECLARE(uint64_t,host_memuse);
-SC_ATOMIC_DECLARE(uint32_t,host_counter);
+SC_ATOMIC_DECLARE(uint64_t, host_active);
 SC_ATOMIC_DECLARE(uint32_t,host_prune_idx);
 
 /** size of the host object. Maybe updated in HostInitConfig to include
@@ -97,10 +97,16 @@ uint64_t HostGetMemuse(void)
     return memuse;
 }
 
+uint64_t HostGetActive(void)
+{
+    uint64_t host_activecopy = SC_ATOMIC_GET(host_active);
+    return host_activecopy;
+}
+
 void HostMoveToSpare(Host *h)
 {
     HostEnqueue(&host_spare_q, h);
-    (void) SC_ATOMIC_SUB(host_counter, 1);
+    (void)SC_ATOMIC_SUB(host_active, 1);
 }
 
 Host *HostAlloc(void)
@@ -175,7 +181,8 @@ void HostInitConfig(bool quiet)
 
     memset(&host_config,  0, sizeof(host_config));
     //SC_ATOMIC_INIT(flow_flags);
-    SC_ATOMIC_INIT(host_counter);
+    SC_ATOMIC_INIT(host_active);
+    SC_ATOMIC_SET(host_active, 0);
     SC_ATOMIC_INIT(host_memuse);
     SC_ATOMIC_INIT(host_prune_idx);
     SC_ATOMIC_INIT(host_config.memcap);
@@ -447,7 +454,7 @@ static Host *HostGetNew(Address *a)
         /* host is initialized (recycled) but *unlocked* */
     }
 
-    (void) SC_ATOMIC_ADD(host_counter, 1);
+    (void)SC_ATOMIC_ADD(host_active, 1);
     SCMutexLock(&h->m);
     return h;
 }

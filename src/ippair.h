@@ -112,7 +112,7 @@ typedef struct IPPairConfig_ {
 
 extern IPPairConfig ippair_config;
 SC_ATOMIC_EXTERN(uint64_t,ippair_memuse);
-SC_ATOMIC_EXTERN(uint32_t,ippair_counter);
+SC_ATOMIC_EXTERN(uint64_t, ippair_active);
 SC_ATOMIC_EXTERN(uint32_t,ippair_prune_idx);
 
 void IPPairInitConfig(bool quiet);
@@ -136,5 +136,6 @@ void IPPairUnlock(IPPair *);
 int IPPairSetMemcap(uint64_t size);
 uint64_t IPPairGetMemcap(void);
 uint64_t IPPairGetMemuse(void);
+uint64_t IPPairGetActive(void);
 
 #endif /* SURICATA_IPPAIR_H */
