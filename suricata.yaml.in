@@ -1269,6 +1269,13 @@ app-layer:
       enabled: no
       detection-ports:
         dp: 20000
+      # Recover from link-layer errors like a resynchronizing endpoint
+      # (opendnp3, dnp3-rs Discard): skip octets that are not a start
+      # sequence (0x05 0x64) instead of ending DNP3 inspection of the flow,
+      # and after a bad transport CRC search for the next start sequence
+      # from the next octet instead of skipping the frame by its LENGTH
+      # (so frames embedded in a corrupted frame are parsed). Default: no.
+      #resync-on-bad-start: no
       #max-tx: 32
       #max-points: 16384
       #max-objects: 2048
