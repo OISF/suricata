@@ -169,6 +169,7 @@
 #include "detect-http-header-names.h"
 #include "detect-http-headers.h"
 #include "detect-http-raw-header.h"
+#include "detect-http-trailer.h"
 #include "detect-http-uri.h"
 #include "detect-http-protocol.h"
 #include "detect-http-start.h"
@@ -671,6 +672,9 @@ void SigTableSetup(void)
     DetectHttpProtocolRegister();
     DetectHttpStartRegister();
     DetectHttpRawHeaderRegister();
+    DetectHttpTrailerRegister();
+    DetectHttpTrailerNamesRegister();
+    DetectHttpTrailerRawRegister();
     DetectHttpMethodRegister();
     DetectHttpCookieRegister();
 
