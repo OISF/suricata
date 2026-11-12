@@ -150,16 +150,23 @@ typedef struct HtpBody_ {
 
 /** Now the Body Chunks will be stored per transaction, at
   * the tx user data */
+#define HTP_HOOK_TS_HEADERS 0x01
+#define HTP_HOOK_TS_TRAILER 0x02
+#define HTP_HOOK_TC_HEADERS 0x01
+#define HTP_HOOK_TC_TRAILER 0x02
+
 typedef struct HtpTxUserData_ {
     /* Body of the request (if any) */
     uint8_t request_body_init;
     uint8_t response_body_init;
 
-    uint8_t request_has_trailers;
-    uint8_t response_has_trailers;
-
     uint8_t tsflags;
     uint8_t tcflags;
+
+    /* set as htp runs the state completion hooks; the block buffers check them
+     * before handing data out, progress itself is not delayed */
+    uint8_t ts_hooks_done;
+    uint8_t tc_hooks_done;
 
     uint8_t request_body_type;
 
@@ -171,6 +178,13 @@ typedef struct HtpTxUserData_ {
     uint32_t request_headers_raw_len;
     uint32_t response_headers_raw_len;
 
+    /* raw bytes of the trailer section of a chunked message, kept apart from the
+     * header block so that http.header.raw does not gain trailer data */
+    uint8_t *request_trailers_raw;
+    uint8_t *response_trailers_raw;
+    uint32_t request_trailers_raw_len;
+    uint32_t response_trailers_raw_len;
+
     MimeStateHTTP *mime_state;
 
     HttpRangeContainerBlock *file_range; /**< used to assign track ids to range file */
@@ -179,6 +193,40 @@ typedef struct HtpTxUserData_ {
     FileContainer files_ts;
     FileContainer files_tc;
 } HtpTxUserData;
+
+/* Block-shaped buffers must never be seen half-finished. htp reports a state as soon as
+ * its block starts, so completion comes from the state hook; on closure no header hook runs,
+ * and progress leaves the block state - request via request_headers()' CLOSED arm, response
+ * via state_response_complete() - which opens the gate. The third way out is the reassembly
+ * depth limit: htp is never closed and no hook ever runs there, so a depth-cut block must
+ * report what was parsed, which the flow flags say. */
+static inline bool HtpHeaderBlockIsComplete(htp_tx_t *tx, uint8_t flow_flags)
+{
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    if (tx_ud == NULL)
+        return true;
+    if (flow_flags & STREAM_TOSERVER)
+        return (flow_flags & STREAM_DEPTH) != 0 ||
+               htp_tx_request_progress(tx) != HTP_REQUEST_PROGRESS_HEADERS ||
+               (tx_ud->ts_hooks_done & HTP_HOOK_TS_HEADERS) != 0;
+    return (flow_flags & STREAM_DEPTH) != 0 ||
+           htp_tx_response_progress(tx) != HTP_RESPONSE_PROGRESS_HEADERS ||
+           (tx_ud->tc_hooks_done & HTP_HOOK_TC_HEADERS) != 0;
+}
+
+static inline bool HtpTrailerBlockIsComplete(htp_tx_t *tx, uint8_t flow_flags)
+{
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    if (tx_ud == NULL)
+        return true;
+    if (flow_flags & STREAM_TOSERVER)
+        return (flow_flags & STREAM_DEPTH) != 0 ||
+               htp_tx_request_progress(tx) != HTP_REQUEST_PROGRESS_TRAILER ||
+               (tx_ud->ts_hooks_done & HTP_HOOK_TS_TRAILER) != 0;
+    return (flow_flags & STREAM_DEPTH) != 0 ||
+           htp_tx_response_progress(tx) != HTP_RESPONSE_PROGRESS_TRAILER ||
+           (tx_ud->tc_hooks_done & HTP_HOOK_TC_TRAILER) != 0;
+}
 
 typedef struct HtpState_ {
     /* Connection parser structure for each connection */
