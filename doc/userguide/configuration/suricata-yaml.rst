@@ -2401,6 +2401,7 @@ encapsulates 2 main subnodes, and those are eal-params and interfaces.
           tx-descriptors: auto
           copy-mode: none
           copy-iface: none # or PCIe address of the second interface
+          tx-segmented-mbufs: false
 
 
 The `DPDK arguments
@@ -2437,8 +2438,9 @@ As a result, there are extra configuration options (how NICs can be
 configured) in the items (interfaces) of the ``dpdk.interfaces`` list.
 At the start of the configuration process, all NIC offloads are disabled to
 prevent any packet modification. According to the configuration, checksum
-validation offload can be enabled to drop invalid packets. Other offloads can
-not currently be enabled.
+validation offload can be enabled to drop invalid packets. In the copy modes,
+``tx-segmented-mbufs`` enables the multi-segment TX offload, see
+:ref:`dpdk-segmented-mbufs`. Other offloads can not currently be enabled.
 Additionally, the list items in ``dpdk.interfaces`` contain DPDK specific
 settings such as ``mempool-size`` or ``rx-descriptors``. These settings adjust
 individual parameters of EAL. One of the entries in ``dpdk.interfaces`` is
