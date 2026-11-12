@@ -1352,6 +1352,9 @@ typedef struct DetectEngineThreadCtx_ {
     StatsCounterAvgId counter_mpm_list;
     StatsCounterAvgId counter_match_list;
 #endif
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    uint64_t fuzzed_pcre_len;
+#endif
 
     struct {
         InspectionBuffer *buffers;
