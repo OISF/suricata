@@ -712,6 +712,21 @@ extern "C" {
         det_ctx: *mut DetectEngineThreadCtx, id: ::std::os::raw::c_int,
     ) -> *mut ::std::os::raw::c_void;
 }
+extern "C" {
+    #[doc = " \\brief Mark the queued transforms as including one whose key comes from a\n  byte_extract or byte_math variable. The transformed buffer then can't\n  supply the fast pattern, since the variable is set after prefilter."]
+    pub fn SCSignatureSetVarTransform(s: *mut Signature);
+}
+extern "C" {
+    #[doc = " \\brief Resolve a byte variable (byte_extract or byte_math) by name for use\n        as transform input.\n\n Returns the runtime slot (local_id) for the named variable. For a\n byte_extract variable without string, nbytes is the default key width (the\n number of bytes it reads). For a byte_extract with string, or a byte_math\n result, nbytes is set to 0 and the caller must supply an explicit width.\n\n \\retval true  variable found; local_id set, nbytes is the default width or 0\n \\retval false no such byte variable"]
+    pub fn SCDetectByteVarResolve(
+        s: *const Signature, name: *const ::std::os::raw::c_char, local_id: *mut u8,
+        nbytes: *mut u8,
+    ) -> bool;
+}
+extern "C" {
+    #[doc = " \\brief Read a byte_* variable's runtime value from the thread context."]
+    pub fn SCDetectEngineThreadCtxGetByteVar(det_ctx: *const DetectEngineThreadCtx, id: u8) -> u64;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct InspectionBuffer {
