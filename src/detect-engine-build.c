@@ -37,6 +37,7 @@
 #include "detect-flow.h"
 #include "detect-config.h"
 #include "detect-flowbits.h"
+#include "detect-xbits.h"
 
 #include "app-layer-events.h"
 
@@ -2212,6 +2213,36 @@ int SigPrepareStage4(DetectEngineCtx *de_ctx)
     SCReturnInt(0);
 }
 
+/** \internal
+ *  \brief post-match keywords whose state outlives the flow
+ *
+ * A threat detection rule can match a packet that a firewall rule then
+ * bypasses. The alert is dropped during alert finalization, but the post-match
+ * list has already run at match time. Flow-scoped entries are harmless -- the
+ * flow is leaving inspection -- but host, ip-pair and packet-mark state
+ * outlive it. Host and ip-pair bits are applied at match time, so later rules
+ * on the same packet see them, and undone on bypass. The packet mark has no
+ * same-packet reader, so it is held back until the verdict is known.
+ */
+static uint8_t PostMatchFwMode(const SigMatchData *smd)
+{
+    switch (smd->type) {
+        case DETECT_XBITS: {
+            const DetectXbitsData *xd = (const DetectXbitsData *)smd->ctx;
+            /* tx-scoped bits die with the bypassed flow */
+            if (xd->type == VAR_TYPE_TX_BIT)
+                return DETECT_POSTMATCH_FW_NONE;
+            return DETECT_POSTMATCH_FW_UNDO;
+        }
+        case DETECT_HOSTBITS:
+            return DETECT_POSTMATCH_FW_UNDO;
+        case DETECT_MARK:
+            return DETECT_POSTMATCH_FW_DEFER;
+        default:
+            return DETECT_POSTMATCH_FW_NONE;
+    }
+}
+
 extern bool rule_engine_analysis_set;
 /** \internal
  *  \brief perform final per signature setup tasks
@@ -2238,6 +2269,17 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
                 continue;
             SigMatch *sm = s->init_data->smlists[type];
             s->sm_arrays[type] = SigMatchList2DataArray(sm);
+        }
+        /* firewall mode: threat detect post-match state that outlives the
+         * flow must not survive a firewall bypass. */
+        if (de_ctx->fw_bypass && (s->flags & SIG_FLAG_FIREWALL) == 0) {
+            SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
+            while (smd != NULL) {
+                smd->fw_postmatch = PostMatchFwMode(smd);
+                if (smd->is_last)
+                    break;
+                smd++;
+            }
         }
         /* set up the pkt inspection engines */
         DetectEnginePktInspectionSetup(s);

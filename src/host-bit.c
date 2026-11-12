@@ -127,6 +127,16 @@ static void HostBitRemove(Host *h, uint32_t idx)
     }
 }
 
+/** \retval true if the bit is present, expired or not; its expiry in \a expire */
+bool HostBitGetExpire(Host *h, uint32_t idx, SCTime_t *expire)
+{
+    const XBit *fb = HostBitGet(h, idx);
+    if (fb == NULL)
+        return false;
+    *expire = fb->expire;
+    return true;
+}
+
 void HostBitSet(Host *h, uint32_t idx, SCTime_t expire)
 {
     XBit *fb = HostBitGet(h, idx);

@@ -336,12 +336,31 @@ typedef struct SigMatch_ {
     struct SigMatch_ *prev;
 } SigMatch;
 
+/** \brief how a TD post-match entry is handled when a firewall rule may bypass
+ *  the packet. Only ever set for TD rules in FW mode with fw bypass rules. */
+enum DetectPostMatchFw {
+    DETECT_POSTMATCH_FW_NONE = 0,
+    /** withheld until the firewall verdict is known */
+    DETECT_POSTMATCH_FW_DEFER,
+    /** applied at match time, undone if the packet is bypassed */
+    DETECT_POSTMATCH_FW_UNDO,
+};
+
 /** \brief Data needed for Match() */
 typedef struct SigMatchData_ {
     uint16_t type;   /**< match type */
     bool is_last;    /**< Last element of the list */
+    uint8_t fw_postmatch; /**< enum DetectPostMatchFw */
     SigMatchCtx *ctx; /**< plugin specific data */
 } SigMatchData;
+
+/** \brief prior state of a host/ip-pair bit, to undo a TD write on fw bypass */
+typedef struct DetectXbitsUndo_ {
+    uint32_t idx;    /**< bit index */
+    uint8_t tracker; /**< DETECT_XBITS_TRACK_* */
+    bool was_set;
+    SCTime_t expire; /**< prior expire, if was_set */
+} DetectXbitsUndo;
 
 struct DetectEngineThreadCtx_;// DetectEngineThreadCtx;
 
@@ -965,6 +984,7 @@ typedef uint8_t (*SCDetectRateFilterFunc)(const Packet *p, uint32_t sid, uint32_
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
     bool failure_fatal;
+
     uint8_t flags;       /**< only DE_QUIET */
     uint8_t mpm_matcher; /**< mpm matcher this ctx uses */
     uint8_t max_flowbits; /**< maximum number of flowbits per signature */
@@ -1015,6 +1035,9 @@ typedef struct DetectEngineCtx_ {
 
     /* force app-layer tx finding for alerts with signatures not having app-layer keywords */
     bool guess_applayer;
+
+    /* a firewall rule uses bypass. */
+    bool fw_bypass;
 
     /* registration id for per thread ctx for the filemagic/file.magic keywords */
     int filemagic_thread_ctx_id;
@@ -1386,6 +1409,11 @@ typedef struct DetectEngineThreadCtx_ {
     uint16_t alert_queue_size;
     uint16_t alert_queue_capacity;
     PacketAlert *alert_queue;
+
+    /** per packet journal of TD host/ip-pair bit writes, undone on fw bypass */
+    uint16_t xbits_undo_size;
+    uint16_t xbits_undo_capacity;
+    DetectXbitsUndo *xbits_undo;
 
     /** array of signature pointers we're going to inspect in the detection
      *  loop. */
@@ -1808,6 +1836,9 @@ extern SigTableElmt *sigmatch_table;
 TmEcode Detect(ThreadVars *tv, Packet *p, void *data);
 uint8_t DetectPreFlow(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p);
 uint8_t DetectPreStream(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p);
+void DetectRunPostMatch(
+        ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s);
+void DetectRunPostMatchDeferred(DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s);
 
 SigMatch *SigMatchAlloc(void);
 Signature *SigFindSignatureBySidGid(DetectEngineCtx *, uint32_t, uint32_t);

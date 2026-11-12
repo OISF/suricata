@@ -63,7 +63,9 @@ void DetectBypassRegister(void)
     sigmatch_table[DETECT_BYPASS].Match = DetectBypassMatch;
     sigmatch_table[DETECT_BYPASS].Setup = DetectBypassSetup;
     sigmatch_table[DETECT_BYPASS].Free  = NULL;
-    sigmatch_table[DETECT_BYPASS].flags = SIGMATCH_NOOPT | SIGMATCH_BAN_FIREWALL_MODE;
+    sigmatch_table[DETECT_BYPASS].flags = SIGMATCH_NOOPT | SIGMATCH_SUPPORT_FIREWALL |
+                                          SIGMATCH_BAN_TD_FIREWALL_MODE |
+                                          SIGMATCH_FIREWALL_ACCEPT_FLOW_ONLY;
 }
 
 static int DetectBypassSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
@@ -87,6 +89,10 @@ static int DetectBypassMatch(DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
     PacketBypassCallback(p);
+    /* a fw bypass is terminating: mark the packet so threat detection is skipped */
+    if ((s->flags & SIG_FLAG_FIREWALL) && p->flow != NULL && !PKT_IS_PSEUDOPKT(p) &&
+            FlowIsBypassed(p->flow))
+        p->flags |= PKT_FW_BYPASSED;
 
     return 1;
 }
