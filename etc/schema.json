@@ -722,6 +722,18 @@
                         ]
                     }
                 },
+                "objects_truncated": {
+                    "type": "boolean",
+                    "description": "Whether objects were dropped from the record by the log limits"
+                },
+                "password_redacted": {
+                    "type": "boolean",
+                    "description": "Whether a G70V2 password was present and redacted"
+                },
+                "points_truncated": {
+                    "type": "boolean",
+                    "description": "Whether points were dropped from the record by the log limits"
+                },
                 "request": {
                     "type": "object",
                     "additionalProperties": false,
@@ -975,6 +987,10 @@
                 "src": {
                     "type": "integer"
                 },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether string/byte fields or objects/points were dropped from the record by the log limits"
+                },
                 "type": {
                     "type": "string"
                 }
@@ -992,6 +1008,10 @@
                 },
                 "additionals": {
                     "$ref": "#/$defs/dns.additionals"
+                },
+                "additionals_truncated": {
+                    "type": "boolean",
+                    "description": "Whether additional records were dropped from the record by the log limits"
                 },
                 "answer": {
                     "type": "object",
@@ -1054,6 +1074,10 @@
                                     ]
                                 }
                             },
+                            "rdata_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rdata value was truncated by the log limits"
+                            },
                             "rrname": {
                                 "type": "string",
                                 "suricata": {
@@ -1062,6 +1086,10 @@
                                         "dns.response.rrname"
                                     ]
                                 }
+                            },
+                            "rrname_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rrname value was truncated by the log limits"
                             },
                             "rrtype": {
                                 "type": "string"
@@ -1109,8 +1137,16 @@
                         }
                     }
                 },
+                "answers_truncated": {
+                    "type": "boolean",
+                    "description": "Whether answers were dropped from the record by the log limits"
+                },
                 "authorities": {
                     "$ref": "#/$defs/dns.authorities"
+                },
+                "authorities_truncated": {
+                    "type": "boolean",
+                    "description": "Whether authority records were dropped from the record by the log limits"
                 },
                 "flags": {
                     "type": "string"
@@ -1293,6 +1329,10 @@
                         }
                     }
                 },
+                "queries_truncated": {
+                    "type": "boolean",
+                    "description": "Whether queries were dropped from the record by the log limits"
+                },
                 "query": {
                     "type": "array",
                     "$comment": "EVE DNS v2 style query logging; as of Suricata 8 only used in DNS records when v2 logging is enabled, not used for DNS records logged as part of an event.",
@@ -1343,12 +1383,20 @@
                 "rrname": {
                     "type": "string"
                 },
+                "rrname_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true if the response rrname was too long and truncated by Suricata"
+                },
                 "rrtype": {
                     "type": "string"
                 },
                 "tc": {
                     "type": "boolean",
                     "description": "DNS truncation flag"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the record was truncated by the log limits"
                 },
                 "tx_id": {
                     "type": "integer"
@@ -1462,6 +1510,10 @@
                         ]
                     }
                 },
+                "attachments_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the attachment list was cut by the log limit"
+                },
                 "body_md5": {
                     "type": "string"
                 },
@@ -1504,12 +1556,20 @@
                         "type": "string"
                     }
                 },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when an email field was cut by the log limit"
+                },
                 "url": {
                     "type": "array",
                     "minItems": 1,
                     "items": {
                         "type": "string"
                     }
+                },
+                "urls_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the URL list was cut by the log limit"
                 },
                 "x_mailer": {
                     "type": "string"
@@ -2420,6 +2480,15 @@
                                 "has_multiple": {
                                     "type": "string"
                                 },
+                                "priority": {
+                                    "type": "integer",
+                                    "suricata": {
+                                        "keywords": [
+                                            "http2.priority"
+                                        ]
+                                    },
+                                    "description": "Priority of the stream in the response frame"
+                                },
                                 "settings": {
                                     "type": "array",
                                     "minItems": 1,
@@ -2437,6 +2506,10 @@
                                     }
                                 }
                             }
+                        },
+                        "settings_truncated": {
+                            "type": "boolean",
+                            "description": "Set to true when the settings list was cut by the 128-entry log limit"
                         },
                         "stream_id": {
                             "type": "integer"
@@ -2488,6 +2561,10 @@
                     "type": "string",
                     "description": "The ascii-printable characters of the request body"
                 },
+                "http_request_body_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the logged request body is not the complete body: cut by http-body-log-limit or by the HTTP body limits"
+                },
                 "http_response_body": {
                     "type": "string",
                     "description": "Base64 of the response body",
@@ -2501,6 +2578,10 @@
                 "http_response_body_printable": {
                     "type": "string",
                     "description": "The ascii-printable characters of the response body"
+                },
+                "http_response_body_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the logged response body is not the complete body: cut by http-body-log-limit or by the HTTP body limits"
                 },
                 "http_user_agent": {
                     "type": "string",
@@ -2540,8 +2621,16 @@
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
+                            "error": {
+                                "type": "string",
+                                "description": "Header block decode status"
+                            },
                             "name": {
                                 "type": "string"
+                            },
+                            "redacted": {
+                                "type": "boolean",
+                                "description": "Whether the header value was redacted"
                             },
                             "table_size_update": {
                                 "type": "integer",
@@ -2557,6 +2646,10 @@
                         }
                     }
                 },
+                "request_headers_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the logged request headers were cut by the header log limit"
+                },
                 "response_headers": {
                     "type": "array",
                     "minItems": 1,
@@ -2564,8 +2657,16 @@
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
+                            "error": {
+                                "type": "string",
+                                "description": "Header block decode status"
+                            },
                             "name": {
                                 "type": "string"
+                            },
+                            "redacted": {
+                                "type": "boolean",
+                                "description": "Whether the header value was redacted"
                             },
                             "table_size_update": {
                                 "type": "integer",
@@ -2580,6 +2681,10 @@
                             }
                         }
                     }
+                },
+                "response_headers_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the logged response headers were cut by the header log limit"
                 },
                 "status": {
                     "type": "integer",
@@ -2997,7 +3102,12 @@
                                                 "keywords": [
                                                     "ldap.bind_request.sasl.credentials"
                                                 ]
-                                            }
+                                            },
+                                            "description": "Not logged since 9.0; credentials_redacted is set instead"
+                                        },
+                                        "credentials_redacted": {
+                                            "type": "boolean",
+                                            "description": "Whether SASL credentials were present and not logged"
                                         },
                                         "mechanism": {
                                             "type": "string",
@@ -3039,6 +3149,29 @@
                                     "type": "string"
                                 }
                             }
+                        },
+                        "controls": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "control_type": {
+                                        "type": "string",
+                                        "description": "Control type (OID)"
+                                    },
+                                    "control_value": {
+                                        "type": "string",
+                                        "description": "Hex-encoded control value"
+                                    },
+                                    "criticality": {
+                                        "type": "boolean",
+                                        "description": "Control criticality flag"
+                                    }
+                                }
+                            },
+                            "description": "Message controls"
                         },
                         "del_request": {
                             "type": "object",
@@ -3145,6 +3278,21 @@
                                 "deref_alias": {
                                     "type": "integer"
                                 },
+                                "filter": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "type": {
+                                            "type": "string",
+                                            "description": "Filter type"
+                                        },
+                                        "value": {
+                                            "type": "string",
+                                            "description": "Filter value (attribute description)"
+                                        }
+                                    },
+                                    "description": "Only present for present filters"
+                                },
                                 "scope": {
                                     "type": "integer"
                                 },
@@ -3211,8 +3359,13 @@
                                             ]
                                         }
                                     },
+                                    "server_credentials_redacted": {
+                                        "type": "boolean",
+                                        "description": "Whether server SASL credentials were present and not logged"
+                                    },
                                     "server_sasl_creds": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "description": "Not logged since 9.0; server_credentials_redacted is set instead"
                                     }
                                 }
                             },
@@ -3235,6 +3388,29 @@
                                         }
                                     }
                                 }
+                            },
+                            "controls": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "control_type": {
+                                            "type": "string",
+                                            "description": "Control type (OID)"
+                                        },
+                                        "control_value": {
+                                            "type": "string",
+                                            "description": "Hex-encoded control value"
+                                        },
+                                        "criticality": {
+                                            "type": "boolean",
+                                            "description": "Control criticality flag"
+                                        }
+                                    }
+                                },
+                                "description": "Message controls"
                             },
                             "del_response": {
                                 "type": "object",
@@ -3396,6 +3572,10 @@
                             }
                         }
                     }
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the record was truncated by the log limits"
                 }
             }
         },
@@ -3459,6 +3639,10 @@
                                 "description": "Pointer record",
                                 "type": "string"
                             },
+                            "rdata_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rdata value was truncated by the parser"
+                            },
                             "rrname": {
                                 "description": "Resource name of the record",
                                 "type": "string"
@@ -3489,6 +3673,10 @@
                             }
                         }
                     }
+                },
+                "additionals_truncated": {
+                    "type": "boolean",
+                    "description": "Whether additional records were dropped from the record by the log limits"
                 },
                 "answers": {
                     "description": "LLMNR answer records",
@@ -3525,6 +3713,10 @@
                             "ptr": {
                                 "description": "Pointer record",
                                 "type": "string"
+                            },
+                            "rdata_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rdata value was truncated by the parser"
                             },
                             "rrname": {
                                 "description": "Resource name of the record",
@@ -3603,6 +3795,10 @@
                         }
                     }
                 },
+                "answers_truncated": {
+                    "type": "boolean",
+                    "description": "Whether answers were dropped from the record by the log limits"
+                },
                 "authorities": {
                     "description": "LLMNR authority records",
                     "type": "array",
@@ -3639,6 +3835,10 @@
                                 "description": "Pointer record",
                                 "type": "string"
                             },
+                            "rdata_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rdata value was truncated by the parser"
+                            },
                             "rrname": {
                                 "description": "Resource name of the record",
                                 "type": "string"
@@ -3673,6 +3873,10 @@
                             }
                         }
                     }
+                },
+                "authorities_truncated": {
+                    "type": "boolean",
+                    "description": "Whether authority records were dropped from the record by the log limits"
                 },
                 "flags": {
                     "description": "LLMNR message flags",
@@ -3796,6 +4000,14 @@
                         }
                     }
                 },
+                "queries_truncated": {
+                    "type": "boolean",
+                    "description": "Whether queries were dropped from the record by the log limits"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the record was truncated by the log limits"
+                },
                 "tx_id": {
                     "description": "Internal transaction ID",
                     "type": "integer"
@@ -3824,8 +4036,36 @@
                     "minItems": 1,
                     "items": {
                         "type": "object",
-                        "additionalProperties": false,
+                        "additionalProperties": true,
                         "properties": {
+                            "a": {
+                                "type": "string",
+                                "description": "A record value"
+                            },
+                            "aaaa": {
+                                "type": "string",
+                                "description": "AAAA record value"
+                            },
+                            "cname": {
+                                "type": "string",
+                                "description": "CNAME record value"
+                            },
+                            "mx": {
+                                "type": "string",
+                                "description": "MX record value"
+                            },
+                            "ns": {
+                                "type": "string",
+                                "description": "NS record value"
+                            },
+                            "null": {
+                                "type": "string",
+                                "description": "NULL record value"
+                            },
+                            "opt": {
+                                "type": "array",
+                                "description": "OPT record value"
+                            },
                             "ptr": {
                                 "type": "string",
                                 "description": "Value of the requested PTR record",
@@ -3834,6 +4074,10 @@
                                         "mdns.response.rrname"
                                     ]
                                 }
+                            },
+                            "rdata_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rdata value was truncated by the log limits"
                             },
                             "rrname": {
                                 "type": "string",
@@ -3850,6 +4094,18 @@
                                 "type": "boolean",
                                 "$comment": "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
                             },
+                            "soa": {
+                                "type": "object",
+                                "description": "SOA record value"
+                            },
+                            "srv": {
+                                "type": "object",
+                                "description": "SRV record value"
+                            },
+                            "sshfp": {
+                                "type": "object",
+                                "description": "SSHFP record value"
+                            },
                             "txt": {
                                 "type": "array",
                                 "description": "Value of the requested TXT record",
@@ -3857,9 +4113,17 @@
                                 "items": {
                                     "type": "string"
                                 }
+                            },
+                            "unknown": {
+                                "type": "string",
+                                "description": "Unknown record value"
                             }
                         }
                     }
+                },
+                "additionals_truncated": {
+                    "type": "boolean",
+                    "description": "Whether additional records were dropped from the record by the log limits"
                 },
                 "answers": {
                     "description": "mDNS answer records",
@@ -3867,8 +4131,36 @@
                     "minItems": 1,
                     "items": {
                         "type": "object",
-                        "additionalProperties": false,
+                        "additionalProperties": true,
                         "properties": {
+                            "a": {
+                                "type": "string",
+                                "description": "A record value"
+                            },
+                            "aaaa": {
+                                "type": "string",
+                                "description": "AAAA record value"
+                            },
+                            "cname": {
+                                "type": "string",
+                                "description": "CNAME record value"
+                            },
+                            "mx": {
+                                "type": "string",
+                                "description": "MX record value"
+                            },
+                            "ns": {
+                                "type": "string",
+                                "description": "NS record value"
+                            },
+                            "null": {
+                                "type": "string",
+                                "description": "NULL record value"
+                            },
+                            "opt": {
+                                "type": "array",
+                                "description": "OPT record value"
+                            },
                             "ptr": {
                                 "type": "string",
                                 "description": "Value of the requested PTR record",
@@ -3878,6 +4170,10 @@
                                         "mdns.response.rrname"
                                     ]
                                 }
+                            },
+                            "rdata_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rdata value was truncated by the log limits"
                             },
                             "rrname": {
                                 "type": "string",
@@ -3894,6 +4190,18 @@
                                 "type": "boolean",
                                 "$comment": "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
                             },
+                            "soa": {
+                                "type": "object",
+                                "description": "SOA record value"
+                            },
+                            "srv": {
+                                "type": "object",
+                                "description": "SRV record value"
+                            },
+                            "sshfp": {
+                                "type": "object",
+                                "description": "SSHFP record value"
+                            },
                             "txt": {
                                 "type": "array",
                                 "description": "Value of the requested TXT record",
@@ -3901,9 +4209,17 @@
                                 "items": {
                                     "type": "string"
                                 }
+                            },
+                            "unknown": {
+                                "type": "string",
+                                "description": "Unknown record value"
                             }
                         }
                     }
+                },
+                "answers_truncated": {
+                    "type": "boolean",
+                    "description": "Whether answers were dropped from the record by the log limits"
                 },
                 "authorities": {
                     "description": "mDNS authority records",
@@ -3911,8 +4227,40 @@
                     "minItems": 1,
                     "items": {
                         "type": "object",
-                        "additionalProperties": false,
+                        "additionalProperties": true,
                         "properties": {
+                            "a": {
+                                "type": "string",
+                                "description": "A record value"
+                            },
+                            "aaaa": {
+                                "type": "string",
+                                "description": "AAAA record value"
+                            },
+                            "cname": {
+                                "type": "string",
+                                "description": "CNAME record value"
+                            },
+                            "mx": {
+                                "type": "string",
+                                "description": "MX record value"
+                            },
+                            "ns": {
+                                "type": "string",
+                                "description": "NS record value"
+                            },
+                            "null": {
+                                "type": "string",
+                                "description": "NULL record value"
+                            },
+                            "opt": {
+                                "type": "array",
+                                "description": "OPT record value"
+                            },
+                            "rdata_truncated": {
+                                "type": "boolean",
+                                "description": "Whether the rdata value was truncated by the log limits"
+                            },
                             "rrname": {
                                 "type": "string",
                                 "description": "Resource name of the record being returned",
@@ -3927,9 +4275,29 @@
                                 "description": "Name was truncated by Suricata due to length",
                                 "type": "boolean",
                                 "$comment": "keyword: app-layer-event:mdns.name_too_long (https://redmine.openinfosecfoundation.org/issues/7784)"
+                            },
+                            "soa": {
+                                "type": "object",
+                                "description": "SOA record value"
+                            },
+                            "srv": {
+                                "type": "object",
+                                "description": "SRV record value"
+                            },
+                            "sshfp": {
+                                "type": "object",
+                                "description": "SSHFP record value"
+                            },
+                            "unknown": {
+                                "type": "string",
+                                "description": "Unknown record value"
                             }
                         }
                     }
+                },
+                "authorities_truncated": {
+                    "type": "boolean",
+                    "description": "Whether authority records were dropped from the record by the log limits"
                 },
                 "flags": {
                     "description": "mDNS message flags",
@@ -4005,9 +4373,17 @@
                         }
                     }
                 },
+                "queries_truncated": {
+                    "type": "boolean",
+                    "description": "Whether queries were dropped from the record by the log limits"
+                },
                 "rcode": {
                     "description": "mDNS reply (error) code",
                     "type": "integer"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the record was truncated by the log limits"
                 },
                 "type": {
                     "description": "Type of message, either a request or response",
@@ -4352,7 +4728,12 @@
                             }
                         },
                         "password": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Not logged unless passwords are enabled in the eve-log mqtt section"
+                        },
+                        "password_redacted": {
+                            "type": "boolean",
+                            "description": "Whether a CONNECT password was present and not logged"
                         },
                         "properties": {
                             "$ref": "#/$defs/mqtt.properties"
@@ -4766,6 +5147,10 @@
                         }
                     }
                 },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether messages or array items were dropped from the record by the log limits"
+                },
                 "unsuback": {
                     "type": "object",
                     "additionalProperties": false,
@@ -5092,6 +5477,10 @@
                                 }
                             }
                         },
+                        "copy_fail": {
+                            "type": "string",
+                            "description": "CopyFail message payload"
+                        },
                         "message": {
                             "type": "string"
                         },
@@ -5117,6 +5506,10 @@
                         },
                         "sasl_response": {
                             "type": "string"
+                        },
+                        "sasl_response_redacted": {
+                            "type": "boolean",
+                            "description": "Whether a SCRAM client-final response was present and not logged"
                         },
                         "secret_key": {
                             "type": "integer"
@@ -5176,11 +5569,27 @@
                         "authentication_sasl_final": {
                             "type": "string"
                         },
+                        "authentication_sspi": {
+                            "type": "string",
+                            "description": "AuthenticationSSPI message payload"
+                        },
+                        "channel_name": {
+                            "type": "string",
+                            "description": "Notification channel name"
+                        },
                         "code": {
                             "type": "string"
                         },
+                        "column_name": {
+                            "type": "string",
+                            "description": "Error or notice column name field value"
+                        },
                         "command_completed": {
                             "type": "string"
+                        },
+                        "constraint_name": {
+                            "type": "string",
+                            "description": "Error or notice constraint name field value"
                         },
                         "copy_data_out": {
                             "type": "object",
@@ -5233,11 +5642,31 @@
                         "data_size": {
                             "type": "integer"
                         },
+                        "data_type": {
+                            "type": "string",
+                            "description": "Error or notice data type field value"
+                        },
+                        "detail": {
+                            "type": "string",
+                            "description": "Error or notice detail field value"
+                        },
                         "field_count": {
                             "type": "integer"
                         },
                         "file": {
                             "type": "string"
+                        },
+                        "hint": {
+                            "type": "string",
+                            "description": "Error or notice hint field value"
+                        },
+                        "internal_position": {
+                            "type": "string",
+                            "description": "Error or notice internal position field value"
+                        },
+                        "internal_query": {
+                            "type": "string",
+                            "description": "Error or notice internal query field value"
                         },
                         "line": {
                             "type": "string"
@@ -5289,6 +5718,14 @@
                                 }
                             }
                         },
+                        "payload": {
+                            "type": "string",
+                            "description": "Notification payload"
+                        },
+                        "pid": {
+                            "type": "integer",
+                            "description": "Notification sender process id"
+                        },
                         "position": {
                             "type": "string",
                             "description": "String, representing a decimal ASCII integer, related to an error cursor position as an index to original PostgreSQL query string, as seen in an ErrorResponse message"
@@ -5304,6 +5741,10 @@
                             "type": "boolean",
                             "description": "True when the field count declared in a RowDescription message disagreed with the message body delimited by its length field"
                         },
+                        "schema_name": {
+                            "type": "string",
+                            "description": "Error or notice schema name field value"
+                        },
                         "secret_key": {
                             "type": "integer"
                         },
@@ -5316,11 +5757,23 @@
                         "ssl_accepted": {
                             "type": "boolean"
                         },
+                        "table_name": {
+                            "type": "string",
+                            "description": "Error or notice table name field value"
+                        },
+                        "unknown_field_type": {
+                            "type": "string",
+                            "description": "Error or notice unknown field type value"
+                        },
                         "where": {
                             "type": "string",
                             "description": "'where' field in an ErrorResponse PostgreSQL message, indicating the context in which the error occurred"
                         }
                     }
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether messages or fields were dropped from the record by the log limits"
                 },
                 "tx_id": {
                     "type": "integer"
@@ -5345,9 +5798,17 @@
                                 "type": "string"
                             }
                         },
+                        "args_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the command arguments were truncated by the log limits"
+                        },
                         "command": {
                             "type": "string",
                             "description": "A pop3 command, for example `USER` or `STAT`"
+                        },
+                        "credentials_redacted": {
+                            "type": "boolean",
+                            "description": "Whether USER/PASS/AUTH/APOP credentials were present and not logged"
                         }
                     }
                 },
@@ -5361,6 +5822,10 @@
                                 "type": "string"
                             }
                         },
+                        "data_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the data was truncated by the log limits"
+                        },
                         "header": {
                             "type": "string",
                             "description": "First line of response"
@@ -5373,6 +5838,10 @@
                             "description": "Response indicated positive status ie +OK"
                         }
                     }
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the record was truncated by the log limits"
                 }
             }
         },
@@ -5402,6 +5871,10 @@
                         }
                     }
                 },
+                "cyu_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the CYU list was cut by the log limit"
+                },
                 "extensions": {
                     "type": "array",
                     "description": "list of extensions in hello",
@@ -5428,6 +5901,10 @@
                             }
                         }
                     }
+                },
+                "extensions_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the extension list or its values were cut by the log limit"
                 },
                 "ja3": {
                     "type": "object",
@@ -5470,6 +5947,10 @@
                 "sni": {
                     "type": "string",
                     "description": "Server Name Indication"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when a QUIC log field was cut by the log limit"
                 },
                 "ua": {
                     "type": "string",
@@ -5587,7 +6068,12 @@
                                     "type": "string"
                                 },
                                 "response": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "Password-equivalent DES(password, challenge) digest. Not logged"
+                                },
+                                "response_redacted": {
+                                    "type": "boolean",
+                                    "description": "Whether a VNC-Auth response was present and not logged"
                                 }
                             }
                         }
@@ -5806,6 +6292,10 @@
                                 "description": "Attribute's name and value"
                             }
                         },
+                        "attributes_redacted": {
+                            "type": "boolean",
+                            "description": "Whether keying material in SDP attributes was redacted"
+                        },
                         "bandwidths": {
                             "type": "array",
                             "description": "Proposed bandwidths to be used by the session or media",
@@ -5824,7 +6314,11 @@
                         },
                         "encryption_key": {
                             "type": "string",
-                            "description": "Field used to convey encryption keys if SDP is used over a secure channel"
+                            "description": "Field used to convey encryption keys if SDP is used over a secure channel. Not logged"
+                        },
+                        "encryption_key_redacted": {
+                            "type": "boolean",
+                            "description": "Whether the encryption key was redacted"
                         },
                         "media_descriptions": {
                             "type": "array",
@@ -5843,6 +6337,10 @@
                                             "description": "Attribute's name and value"
                                         }
                                     },
+                                    "attributes_redacted": {
+                                        "type": "boolean",
+                                        "description": "Whether keying material in SDP media attributes was redacted"
+                                    },
                                     "bandwidths": {
                                         "type": "array",
                                         "description": "A list of bandwidth proposed for a media",
@@ -5857,7 +6355,11 @@
                                     },
                                     "encryption_key": {
                                         "type": "string",
-                                        "description": "Field used to convey encryption keys if SDP is used over a secure channel"
+                                        "description": "Field used to convey encryption keys if SDP is used over a secure channel. Not logged"
+                                    },
+                                    "encryption_key_redacted": {
+                                        "type": "boolean",
+                                        "description": "Whether the encryption key was redacted"
                                     },
                                     "media": {
                                         "type": "string",
@@ -5920,6 +6422,10 @@
                     },
                     "description": "SDP message body"
                 },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the logged fields were truncated"
+                },
                 "uri": {
                     "type": "string"
                 },
@@ -5947,6 +6453,10 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "client_dialects_truncated": {
+                    "type": "boolean",
+                    "description": "Whether the client dialect list was truncated by the log limits"
                 },
                 "client_guid": {
                     "type": "string"
@@ -6074,6 +6584,10 @@
                             "items": {
                                 "type": "string"
                             }
+                        },
+                        "snames_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the Kerberos service principal name component list was truncated by the log limits"
                         }
                     }
                 },
@@ -6205,6 +6719,10 @@
                 },
                 "tree_id": {
                     "type": "integer"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the record was truncated by the log limits"
                 }
             }
         },
@@ -6224,6 +6742,14 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "rcpt_to_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the recipient list was cut by the log limit"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when a SMTP field was cut by the log limit"
                 }
             }
         },
@@ -6325,7 +6851,8 @@
                                     "type": "string"
                                 },
                                 "string": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "KEXINIT algorithm name lists; cut at 8 KiB with an in-value marker"
                                 }
                             }
                         },
@@ -6357,7 +6884,8 @@
                                     "type": "string"
                                 },
                                 "string": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "description": "KEXINIT algorithm name lists; cut at 8 KiB with an in-value marker"
                                 }
                             }
                         },
@@ -9185,10 +9713,12 @@
             "additionalProperties": false,
             "properties": {
                 "request": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Cut at 8 KiB with an in-value marker"
                 },
                 "response": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Cut at 8 KiB with an in-value marker"
                 }
             }
         },
@@ -9200,7 +9730,8 @@
             "additionalProperties": false,
             "properties": {
                 "file": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Not logged unless filenames are enabled in the eve-log tftp section"
                 },
                 "mode": {
                     "type": "string"
@@ -9226,6 +9757,10 @@
                         ]
                     }
                 },
+                "certificate_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the certificate was cut by the TLS log limit"
+                },
                 "chain": {
                     "type": "array",
                     "minItems": 1,
@@ -9239,6 +9774,10 @@
                         ]
                     }
                 },
+                "chain_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the certificate chain was cut by the TLS log limit"
+                },
                 "client": {
                     "type": "object",
                     "additionalProperties": false,
@@ -9250,6 +9789,10 @@
                                     "tls.certs"
                                 ]
                             }
+                        },
+                        "certificate_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the client certificate was truncated by the log limits"
                         },
                         "chain": {
                             "type": "array",
@@ -9263,6 +9806,10 @@
                                     "tls.cert_chain_len"
                                 ]
                             }
+                        },
+                        "chain_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the client certificate chain was truncated by the log limits"
                         },
                         "fingerprint": {
                             "type": "string",
@@ -9345,6 +9892,10 @@
                         "type": "string"
                     }
                 },
+                "client_alpns_truncated": {
+                    "type": "boolean",
+                    "description": "Whether the client ALPN list was truncated by the log limits"
+                },
                 "client_handshake": {
                     "type": "object",
                     "additionalProperties": false,
@@ -9357,6 +9908,10 @@
                                 "type": "integer"
                             }
                         },
+                        "ciphers_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the cipher list was truncated by the log limits"
+                        },
                         "exts": {
                             "description": "TLS client extension(s)",
                             "type": "array",
@@ -9365,6 +9920,10 @@
                                 "type": "integer"
                             }
                         },
+                        "exts_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the extension list was truncated by the log limits"
+                        },
                         "sig_algs": {
                             "description": "TLS client signature algorithm(s)",
                             "type": "array",
@@ -9372,6 +9931,10 @@
                             "items": {
                                 "type": "integer"
                             }
+                        },
+                        "sig_algs_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the signature algorithm list was truncated by the log limits"
                         },
                         "version": {
                             "description": "TLS version in client hello",
@@ -9492,6 +10055,10 @@
                         "type": "string"
                     }
                 },
+                "server_alpns_truncated": {
+                    "type": "boolean",
+                    "description": "Whether the server ALPN list was truncated by the log limits"
+                },
                 "server_handshake": {
                     "type": "object",
                     "additionalProperties": false,
@@ -9507,6 +10074,10 @@
                             "items": {
                                 "type": "integer"
                             }
+                        },
+                        "exts_truncated": {
+                            "type": "boolean",
+                            "description": "Whether the extension list was truncated by the log limits"
                         },
                         "version": {
                             "description": "TLS version in server hello",
@@ -9545,6 +10116,10 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "subjectaltname_truncated": {
+                    "type": "boolean",
+                    "description": "Set to true when the subject alternative names were cut by the TLS log limit"
                 },
                 "version": {
                     "type": "string",
@@ -9708,6 +10283,10 @@
                 "rname": {
                     "type": "string"
                 },
+                "rname_truncated": {
+                    "type": "boolean",
+                    "description": "Whether the SOA rname was too long and truncated by Suricata"
+                },
                 "serial": {
                     "type": "integer"
                 }
@@ -9788,6 +10367,10 @@
                             ]
                         }
                     },
+                    "rdata_truncated": {
+                        "type": "boolean",
+                        "description": "Whether the rdata value was truncated by the parser"
+                    },
                     "rrname": {
                         "type": "string",
                         "suricata": {
@@ -9797,8 +10380,24 @@
                             ]
                         }
                     },
+                    "rrname_truncated": {
+                        "type": "boolean",
+                        "description": "Whether the rrname was too long and truncated by Suricata"
+                    },
                     "rrtype": {
                         "type": "string"
+                    },
+                    "soa": {
+                        "$ref": "#/$defs/dns.soa",
+                        "description": "SOA record data"
+                    },
+                    "srv": {
+                        "type": "object",
+                        "description": "SRV record data"
+                    },
+                    "sshfp": {
+                        "type": "object",
+                        "description": "SSHFP record data"
                     },
                     "ttl": {
                         "type": "integer"
@@ -9916,6 +10515,10 @@
                 },
                 "authentication_data": {
                     "type": "string"
+                },
+                "authentication_data_redacted": {
+                    "type": "boolean",
+                    "description": "Whether MQTT enhanced authentication data was present and not logged"
                 },
                 "authentication_method": {
                     "type": "string"

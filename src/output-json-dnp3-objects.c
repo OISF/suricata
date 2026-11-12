@@ -31,7 +31,7 @@
 
 // clang-format off
 void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
-    DNP3Point *point)
+    DNP3Point *point, DNP3LogCtx *ctx)
 {
 
     switch (DNP3_OBJECT_CODE(object->group, object->variation)) {
@@ -1321,19 +1321,11 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             SCJbSetUint(js, "group_id", data->group_id);
             SCJbSetUint(js, "file_function_code", data->file_function_code);
             SCJbSetUint(js, "status_code", data->status_code);
-            if (data->filename_size > 0) {
-                SCJbSetStringFromBytes(
-                        js, "filename", (const uint8_t *)data->filename, data->filename_size);
-            } else {
-                SCJbSetString(js, "filename", "");
-            }
+            DNP3LogSetStringFromBytes(ctx, js, "filename",
+                    (const uint8_t *)data->filename, data->filename_size);
             SCJbSetUint(js, "data_size", data->data_size);
-            if (data->data_size > 0) {
-                SCJbSetStringFromBytes(
-                        js, "data", (const uint8_t *)data->data, data->data_size);
-            } else {
-                SCJbSetString(js, "data", "");
-            }
+            DNP3LogSetStringFromBytes(ctx, js, "data",
+                    (const uint8_t *)data->data, data->data_size);
             break;
         }
         case DNP3_OBJECT_CODE(70, 2): {
@@ -1343,17 +1335,10 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             SCJbSetUint(js, "password_offset", data->password_offset);
             SCJbSetUint(js, "password_size", data->password_size);
             SCJbSetUint(js, "authentication_key", data->authentication_key);
-            if (data->username_size > 0) {
-                SCJbSetStringFromBytes(
-                        js, "username", (const uint8_t *)data->username, data->username_size);
-            } else {
-                SCJbSetString(js, "username", "");
-            }
+            DNP3LogSetStringFromBytes(ctx, js, "username",
+                    (const uint8_t *)data->username, data->username_size);
             if (data->password_size > 0) {
-                SCJbSetStringFromBytes(
-                        js, "password", (const uint8_t *)data->password, data->password_size);
-            } else {
-                SCJbSetString(js, "password", "");
+                ctx->password_redacted = true;
             }
             break;
         }
@@ -1368,12 +1353,8 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             SCJbSetUint(js, "operational_mode", data->operational_mode);
             SCJbSetUint(js, "maximum_block_size", data->maximum_block_size);
             SCJbSetUint(js, "request_id", data->request_id);
-            if (data->filename_size > 0) {
-                SCJbSetStringFromBytes(
-                        js, "filename", (const uint8_t *)data->filename, data->filename_size);
-            } else {
-                SCJbSetString(js, "filename", "");
-            }
+            DNP3LogSetStringFromBytes(ctx, js, "filename",
+                    (const uint8_t *)data->filename, data->filename_size);
             break;
         }
         case DNP3_OBJECT_CODE(70, 4): {
@@ -1383,24 +1364,16 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             SCJbSetUint(js, "maximum_block_size", data->maximum_block_size);
             SCJbSetUint(js, "request_id", data->request_id);
             SCJbSetUint(js, "status_code", data->status_code);
-            if (data->optional_text_len > 0) {
-                SCJbSetStringFromBytes(
-                        js, "optional_text", (const uint8_t *)data->optional_text, data->optional_text_len);
-            } else {
-                SCJbSetString(js, "optional_text", "");
-            }
+            DNP3LogSetStringFromBytes(ctx, js, "optional_text",
+                    (const uint8_t *)data->optional_text, data->optional_text_len);
             break;
         }
         case DNP3_OBJECT_CODE(70, 5): {
             DNP3ObjectG70V5 *data = point->data;
             SCJbSetUint(js, "file_handle", data->file_handle);
             SCJbSetUint(js, "block_number", data->block_number);
-            if (data->file_data_len > 0) {
-                SCJbSetStringFromBytes(
-                        js, "file_data", (const uint8_t *)data->file_data, data->file_data_len);
-            } else {
-                SCJbSetString(js, "file_data", "");
-            }
+            DNP3LogSetStringFromBytes(ctx, js, "file_data",
+                    (const uint8_t *)data->file_data, data->file_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(70, 6): {
@@ -1408,12 +1381,8 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             SCJbSetUint(js, "file_handle", data->file_handle);
             SCJbSetUint(js, "block_number", data->block_number);
             SCJbSetUint(js, "status_code", data->status_code);
-            if (data->optional_text_len > 0) {
-                SCJbSetStringFromBytes(
-                        js, "optional_text", (const uint8_t *)data->optional_text, data->optional_text_len);
-            } else {
-                SCJbSetString(js, "optional_text", "");
-            }
+            DNP3LogSetStringFromBytes(ctx, js, "optional_text",
+                    (const uint8_t *)data->optional_text, data->optional_text_len);
             break;
         }
         case DNP3_OBJECT_CODE(70, 7): {
@@ -1425,22 +1394,14 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             SCJbSetUint(js, "created_timestamp", data->created_timestamp);
             SCJbSetUint(js, "permissions", data->permissions);
             SCJbSetUint(js, "request_id", data->request_id);
-            if (data->filename_size > 0) {
-                SCJbSetStringFromBytes(
-                        js, "filename", (const uint8_t *)data->filename, data->filename_size);
-            } else {
-                SCJbSetString(js, "filename", "");
-            }
+            DNP3LogSetStringFromBytes(ctx, js, "filename",
+                    (const uint8_t *)data->filename, data->filename_size);
             break;
         }
         case DNP3_OBJECT_CODE(70, 8): {
             DNP3ObjectG70V8 *data = point->data;
-            if (data->file_specification_len > 0) {
-                SCJbSetStringFromBytes(
-                        js, "file_specification", (const uint8_t *)data->file_specification, data->file_specification_len);
-            } else {
-                SCJbSetString(js, "file_specification", "");
-            }
+            DNP3LogSetStringFromBytes(ctx, js, "file_specification",
+                    (const uint8_t *)data->file_specification, data->file_specification_len);
             break;
         }
         case DNP3_OBJECT_CODE(80, 1): {
@@ -1458,10 +1419,12 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
         }
         case DNP3_OBJECT_CODE(83, 1): {
             DNP3ObjectG83V1 *data = point->data;
-            SCJbSetString(js, "data->vendor_code", data->vendor_code);
+            DNP3LogSetString(ctx, js, "data->vendor_code", data->vendor_code,
+                    sizeof(data->vendor_code));
             SCJbSetUint(js, "object_id", data->object_id);
             SCJbSetUint(js, "length", data->length);
-            SCJbSetBase64(js, "data->data_objects", data->data_objects, data->length);
+            DNP3LogSetBase64(ctx, js, "data->data_objects",
+                    data->data_objects, data->length);
             break;
         }
         case DNP3_OBJECT_CODE(86, 2): {
@@ -1487,14 +1450,16 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             SCJbSetUint(js, "usr", data->usr);
             SCJbSetUint(js, "mal", data->mal);
             SCJbSetUint(js, "reason", data->reason);
-            SCJbSetBase64(js, "data->challenge_data", data->challenge_data, data->challenge_data_len);
+            DNP3LogSetBase64(ctx, js, "data->challenge_data",
+                    data->challenge_data, data->challenge_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 2): {
             DNP3ObjectG120V2 *data = point->data;
             SCJbSetUint(js, "csq", data->csq);
             SCJbSetUint(js, "usr", data->usr);
-            SCJbSetBase64(js, "data->mac_value", data->mac_value, data->mac_value_len);
+            DNP3LogSetBase64(ctx, js, "data->mac_value",
+                    data->mac_value, data->mac_value_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 3): {
@@ -1516,15 +1481,18 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             SCJbSetUint(js, "key_status", data->key_status);
             SCJbSetUint(js, "mal", data->mal);
             SCJbSetUint(js, "challenge_data_len", data->challenge_data_len);
-            SCJbSetBase64(js, "data->challenge_data", data->challenge_data, data->challenge_data_len);
-            SCJbSetBase64(js, "data->mac_value", data->mac_value, data->mac_value_len);
+            DNP3LogSetBase64(ctx, js, "data->challenge_data",
+                    data->challenge_data, data->challenge_data_len);
+            DNP3LogSetBase64(ctx, js, "data->mac_value",
+                    data->mac_value, data->mac_value_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 6): {
             DNP3ObjectG120V6 *data = point->data;
             SCJbSetUint(js, "ksq", data->ksq);
             SCJbSetUint(js, "usr", data->usr);
-            SCJbSetBase64(js, "data->wrapped_key_data", data->wrapped_key_data, data->wrapped_key_data_len);
+            DNP3LogSetBase64(ctx, js, "data->wrapped_key_data",
+                    data->wrapped_key_data, data->wrapped_key_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 7): {
@@ -1534,24 +1502,22 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             SCJbSetUint(js, "association_id", data->association_id);
             SCJbSetUint(js, "error_code", data->error_code);
             SCJbSetUint(js, "time_of_error", data->time_of_error);
-            if (data->error_text_len > 0) {
-                SCJbSetStringFromBytes(
-                        js, "error_text", (const uint8_t *)data->error_text, data->error_text_len);
-            } else {
-                SCJbSetString(js, "error_text", "");
-            }
+            DNP3LogSetStringFromBytes(ctx, js, "error_text",
+                    (const uint8_t *)data->error_text, data->error_text_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 8): {
             DNP3ObjectG120V8 *data = point->data;
             SCJbSetUint(js, "key_change_method", data->key_change_method);
             SCJbSetUint(js, "certificate_type", data->certificate_type);
-            SCJbSetBase64(js, "data->certificate", data->certificate, data->certificate_len);
+            DNP3LogSetBase64(ctx, js, "data->certificate",
+                    data->certificate, data->certificate_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 9): {
             DNP3ObjectG120V9 *data = point->data;
-            SCJbSetBase64(js, "data->mac_value", data->mac_value, data->mac_value_len);
+            DNP3LogSetBase64(ctx, js, "data->mac_value",
+                    data->mac_value, data->mac_value_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 10): {
@@ -1564,14 +1530,12 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             SCJbSetUint(js, "username_len", data->username_len);
             SCJbSetUint(js, "user_public_key_len", data->user_public_key_len);
             SCJbSetUint(js, "certification_data_len", data->certification_data_len);
-            if (data->username_len > 0) {
-                SCJbSetStringFromBytes(
-                        js, "username", (const uint8_t *)data->username, data->username_len);
-            } else {
-                SCJbSetString(js, "username", "");
-            }
-            SCJbSetBase64(js, "data->user_public_key", data->user_public_key, data->user_public_key_len);
-            SCJbSetBase64(js, "data->certification_data", data->certification_data, data->certification_data_len);
+            DNP3LogSetStringFromBytes(ctx, js, "username",
+                    (const uint8_t *)data->username, data->username_len);
+            DNP3LogSetBase64(ctx, js, "data->user_public_key",
+                    data->user_public_key, data->user_public_key_len);
+            DNP3LogSetBase64(ctx, js, "data->certification_data",
+                    data->certification_data, data->certification_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 11): {
@@ -1579,13 +1543,10 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             SCJbSetUint(js, "key_change_method", data->key_change_method);
             SCJbSetUint(js, "username_len", data->username_len);
             SCJbSetUint(js, "master_challenge_data_len", data->master_challenge_data_len);
-            if (data->username_len > 0) {
-                SCJbSetStringFromBytes(
-                        js, "username", (const uint8_t *)data->username, data->username_len);
-            } else {
-                SCJbSetString(js, "username", "");
-            }
-            SCJbSetBase64(js, "data->master_challenge_data", data->master_challenge_data, data->master_challenge_data_len);
+            DNP3LogSetStringFromBytes(ctx, js, "username",
+                    (const uint8_t *)data->username, data->username_len);
+            DNP3LogSetBase64(ctx, js, "data->master_challenge_data",
+                    data->master_challenge_data, data->master_challenge_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 12): {
@@ -1593,7 +1554,8 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             SCJbSetUint(js, "ksq", data->ksq);
             SCJbSetUint(js, "user_number", data->user_number);
             SCJbSetUint(js, "challenge_data_len", data->challenge_data_len);
-            SCJbSetBase64(js, "data->challenge_data", data->challenge_data, data->challenge_data_len);
+            DNP3LogSetBase64(ctx, js, "data->challenge_data",
+                    data->challenge_data, data->challenge_data_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 13): {
@@ -1601,17 +1563,20 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
             SCJbSetUint(js, "ksq", data->ksq);
             SCJbSetUint(js, "user_number", data->user_number);
             SCJbSetUint(js, "encrypted_update_key_len", data->encrypted_update_key_len);
-            SCJbSetBase64(js, "data->encrypted_update_key_data", data->encrypted_update_key_data, data->encrypted_update_key_len);
+            DNP3LogSetBase64(ctx, js, "data->encrypted_update_key_data",
+                    data->encrypted_update_key_data, data->encrypted_update_key_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 14): {
             DNP3ObjectG120V14 *data = point->data;
-            SCJbSetBase64(js, "data->digital_signature", data->digital_signature, data->digital_signature_len);
+            DNP3LogSetBase64(ctx, js, "data->digital_signature",
+                    data->digital_signature, data->digital_signature_len);
             break;
         }
         case DNP3_OBJECT_CODE(120, 15): {
             DNP3ObjectG120V15 *data = point->data;
-            SCJbSetBase64(js, "data->mac", data->mac, data->mac_len);
+            DNP3LogSetBase64(ctx, js, "data->mac",
+                    data->mac, data->mac_len);
             break;
         }
         case DNP3_OBJECT_CODE(121, 1): {

@@ -35,6 +35,7 @@
 #include "util-buffer.h"
 #include "util-debug.h"
 #include "util-byte.h"
+#include "util-misc.h"
 
 #include "output.h"
 #include "output-json.h"
@@ -46,10 +47,13 @@
 #include "rust.h"
 
 #define PGSQL_LOG_PASSWORDS BIT_U32(0)
-#define PGSQL_DEFAULTS      (PGSQL_LOG_PASSWORDS)
+/* passwords stay off in the alert-metadata variant; only an explicit
+ * eve-log.pgsql passwords: yes enables them for the tx logger */
+#define PGSQL_DEFAULT_FLAGS     0
+#define PGSQL_DEFAULT_MAXLOGLEN (4 * 1024)
 
 typedef struct OutputPgsqlCtx_ {
-    uint32_t flags;
+    uint32_t flags, max_log_len;
     OutputJsonCtx *eve_ctx;
 } OutputPgsqlCtx;
 
@@ -60,7 +64,7 @@ typedef struct LogPgsqlLogThread_ {
 
 bool JsonPgsqlAddMetadata(const void *vtx, void *jb)
 {
-    return SCPgsqlLogger((void *)vtx, PGSQL_DEFAULTS, jb);
+    return SCPgsqlLogger((void *)vtx, PGSQL_DEFAULT_FLAGS, PGSQL_DEFAULT_MAXLOGLEN, jb);
 }
 
 static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state,
@@ -75,7 +79,7 @@ static int JsonPgsqlLogger(ThreadVars *tv, void *thread_data, const Packet *p, F
         return TM_ECODE_FAILED;
     }
 
-    if (!SCPgsqlLogger(txptr, thread->pgsqllog_ctx->flags, jb)) {
+    if (!SCPgsqlLogger(txptr, thread->pgsqllog_ctx->flags, thread->pgsqllog_ctx->max_log_len, jb)) {
         goto error;
     }
 
@@ -98,18 +102,21 @@ static void OutputPgsqlLogDeInitCtxSub(OutputCtx *output_ctx)
 
 static void JsonPgsqlLogParseConfig(SCConfNode *conf, OutputPgsqlCtx *pgsqllog_ctx)
 {
-    pgsqllog_ctx->flags = ~0U;
+    pgsqllog_ctx->flags = 0;
 
     const char *query = SCConfNodeLookupChildValue(conf, "passwords");
-    if (query != NULL) {
-        if (SCConfValIsTrue(query)) {
-            pgsqllog_ctx->flags |= PGSQL_LOG_PASSWORDS;
-        } else {
-            pgsqllog_ctx->flags &= ~PGSQL_LOG_PASSWORDS;
-        }
-    } else {
-        pgsqllog_ctx->flags &= ~PGSQL_LOG_PASSWORDS;
+    if (query != NULL && SCConfValIsTrue(query)) {
+        pgsqllog_ctx->flags |= PGSQL_LOG_PASSWORDS;
     }
+    uint32_t max_log_len = PGSQL_DEFAULT_MAXLOGLEN;
+    query = SCConfNodeLookupChildValue(conf, "string-log-limit");
+    if (query != NULL) {
+        if (ParseSizeStringU32(query, &max_log_len) < 0) {
+            SCLogError("Error parsing string-log-limit from config - %s", query);
+            exit(EXIT_FAILURE);
+        }
+    }
+    pgsqllog_ctx->max_log_len = max_log_len;
 }
 
 static OutputInitResult OutputPgsqlLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)

@@ -31,6 +31,54 @@ use std::string::String;
 use suricata_sys::sys::SCConfNode;
 use uuid;
 
+const SMB_LOG_MAX_STRING: usize = 8 * 1024;
+const SMB_LOG_MAX_ARRAY: usize = 64;
+const SMB_LOG_MAX_BYTES: usize = 128 * 1024;
+
+struct SmbLogBudget {
+    remaining: usize,
+    truncated: bool,
+}
+
+impl SmbLogBudget {
+    fn new() -> Self {
+        Self {
+            remaining: SMB_LOG_MAX_BYTES,
+            truncated: false,
+        }
+    }
+
+    fn set(&mut self, js: &mut JsonBuilder, key: &str, val: &str) -> Result<(), JsonError> {
+        let cost = val.len().min(SMB_LOG_MAX_STRING) + 24;
+        if cost > self.remaining {
+            self.truncated = true;
+            return Ok(());
+        }
+        self.remaining -= cost;
+        if val.len() > SMB_LOG_MAX_STRING {
+            self.truncated = true;
+            js.set_string_limited(key, val, SMB_LOG_MAX_STRING)?;
+        } else {
+            js.set_string(key, val)?;
+        }
+        Ok(())
+    }
+
+    fn append(&mut self, js: &mut JsonBuilder, val: &str) -> Result<(), JsonError> {
+        let cost = val.len().min(SMB_LOG_MAX_STRING) + 8;
+        if cost > self.remaining {
+            self.truncated = true;
+            return Ok(());
+        }
+        self.remaining -= cost;
+        if val.len() > SMB_LOG_MAX_STRING {
+            self.truncated = true;
+        }
+        js.append_string_limited(val, SMB_LOG_MAX_STRING)?;
+        Ok(())
+    }
+}
+
 #[cfg(not(feature = "debug"))]
 fn debug_add_progress(_js: &mut JsonBuilder, _tx: &SMBTransaction) -> Result<(), JsonError> {
     Ok(())
@@ -102,17 +150,18 @@ impl From<JsonError> for SmbLogError {
 fn smb_common_header(
     jsb: &mut JsonBuilder, state: &SMBState, tx: &SMBTransaction, flags: u64,
 ) -> Result<(), SmbLogError> {
+    let mut budget = SmbLogBudget::new();
     jsb.set_uint("id", tx.id)?;
 
     if state.dialect != 0 {
         let dialect = &smb2_dialect_string(state.dialect);
-        jsb.set_string("dialect", dialect)?;
+        budget.set(jsb, "dialect", dialect)?;
     } else {
         let dialect = match state.dialect_vec {
             Some(ref d) => str::from_utf8(d).unwrap_or("invalid"),
             None => "unknown",
         };
-        jsb.set_string("dialect", dialect)?;
+        budget.set(jsb, "dialect", dialect)?;
     }
 
     match tx.vercmd.get_version() {
@@ -185,13 +234,13 @@ fn smb_common_header(
             if let Some(ref ntlmssp) = x.ntlmssp {
                 jsb.open_object("ntlmssp")?;
                 let domain = String::from_utf8_lossy(&ntlmssp.domain);
-                jsb.set_string("domain", &domain)?;
+                budget.set(jsb, "domain", &domain)?;
 
                 let user = String::from_utf8_lossy(&ntlmssp.user);
-                jsb.set_string("user", &user)?;
+                budget.set(jsb, "user", &user)?;
 
                 let host = String::from_utf8_lossy(&ntlmssp.host);
-                jsb.set_string("host", &host)?;
+                budget.set(jsb, "host", &host)?;
 
                 if let Some(ref v) = ntlmssp.version {
                     jsb.set_string("version", v.to_string().as_str())?;
@@ -202,29 +251,34 @@ fn smb_common_header(
 
             if let Some(ref ticket) = x.krb_ticket {
                 jsb.open_object("kerberos")?;
-                jsb.set_string("realm", &ticket.realm.0)?;
+                budget.set(jsb, "realm", &ticket.realm.0)?;
                 jsb.open_array("snames")?;
-                for sname in ticket.sname.name_string.iter() {
-                    jsb.append_string(sname)?;
+                let truncated = ticket.sname.name_string.len() > SMB_LOG_MAX_ARRAY;
+                for sname in ticket.sname.name_string.iter().take(SMB_LOG_MAX_ARRAY) {
+                    budget.append(jsb, sname)?;
                 }
                 jsb.close()?;
+                if truncated {
+                    jsb.set_bool("snames_truncated", true)?;
+                    budget.truncated = true;
+                }
                 jsb.close()?;
             }
 
             if let Some(ref r) = x.request_host {
                 jsb.open_object("request")?;
                 let os = String::from_utf8_lossy(&r.native_os);
-                jsb.set_string("native_os", &os)?;
+                budget.set(jsb, "native_os", &os)?;
                 let lm = String::from_utf8_lossy(&r.native_lm);
-                jsb.set_string("native_lm", &lm)?;
+                budget.set(jsb, "native_lm", &lm)?;
                 jsb.close()?;
             }
             if let Some(ref r) = x.response_host {
                 jsb.open_object("response")?;
                 let os = String::from_utf8_lossy(&r.native_os);
-                jsb.set_string("native_os", &os)?;
+                budget.set(jsb, "native_os", &os)?;
                 let lm = String::from_utf8_lossy(&r.native_lm);
-                jsb.set_string("native_lm", &lm)?;
+                budget.set(jsb, "native_lm", &lm)?;
                 jsb.close()?;
             }
         }
@@ -237,9 +291,9 @@ fn smb_common_header(
             if !name_raw.is_empty() {
                 let name = String::from_utf8_lossy(&name_raw);
                 if x.directory {
-                    jsb.set_string("directory", &name)?;
+                    budget.set(jsb, "directory", &name)?;
                 } else {
-                    jsb.set_string("filename", &name)?;
+                    budget.set(jsb, "filename", &name)?;
                 }
             } else {
                 // name suggestion from Bro
@@ -290,18 +344,28 @@ fn smb_common_header(
             }
             if x.smb_ver == 1 {
                 jsb.open_array("client_dialects")?;
-                for d in &x.dialects {
+                let truncated = x.dialects.len() > SMB_LOG_MAX_ARRAY;
+                for d in x.dialects.iter().take(SMB_LOG_MAX_ARRAY) {
                     let dialect = String::from_utf8_lossy(d);
-                    jsb.append_string(&dialect)?;
+                    budget.append(jsb, &dialect)?;
                 }
                 jsb.close()?;
+                if truncated {
+                    jsb.set_bool("client_dialects_truncated", true)?;
+                    budget.truncated = true;
+                }
             } else if x.smb_ver == 2 {
                 jsb.open_array("client_dialects")?;
-                for d in &x.dialects2 {
+                let truncated = x.dialects2.len() > SMB_LOG_MAX_ARRAY;
+                for d in x.dialects2.iter().take(SMB_LOG_MAX_ARRAY) {
                     let dialect = String::from_utf8_lossy(d);
-                    jsb.append_string(&dialect)?;
+                    budget.append(jsb, &dialect)?;
                 }
                 jsb.close()?;
+                if truncated {
+                    jsb.set_bool("client_dialects_truncated", true)?;
+                    budget.truncated = true;
+                }
             }
 
             if let Some(ref g) = x.client_guid {
@@ -323,9 +387,9 @@ fn smb_common_header(
             }
             let share_name = String::from_utf8_lossy(&x.share_name);
             if x.is_pipe {
-                jsb.set_string("named_pipe", &share_name)?;
+                budget.set(jsb, "named_pipe", &share_name)?;
             } else {
-                jsb.set_string("share", &share_name)?;
+                budget.set(jsb, "share", &share_name)?;
             }
 
             // handle services
@@ -334,11 +398,11 @@ fn smb_common_header(
 
                 if let Some(ref s) = x.req_service {
                     let serv = String::from_utf8_lossy(s);
-                    jsb.set_string("request", &serv)?;
+                    budget.set(jsb, "request", &serv)?;
                 }
                 if let Some(ref s) = x.res_service {
                     let serv = String::from_utf8_lossy(s);
-                    jsb.set_string("response", &serv)?;
+                    budget.set(jsb, "response", &serv)?;
                 }
                 jsb.close()?;
 
@@ -365,9 +429,9 @@ fn smb_common_header(
                 return Err(SmbLogError::SkippedByConf);
             }
             let file_name = String::from_utf8_lossy(&x.file_name);
-            jsb.set_string("filename", &file_name)?;
+            budget.set(jsb, "filename", &file_name)?;
             let share_name = String::from_utf8_lossy(&x.share_name);
-            jsb.set_string("share", &share_name)?;
+            budget.set(jsb, "share", &share_name)?;
             let gs = fuid_to_string(&x.fuid);
             jsb.set_string("fuid", &gs)?;
         }
@@ -384,9 +448,9 @@ fn smb_common_header(
 
             jsb.open_object("rename")?;
             let file_name = String::from_utf8_lossy(&x.oldname);
-            jsb.set_string("from", &file_name)?;
+            budget.set(jsb, "from", &file_name)?;
             let file_name = String::from_utf8_lossy(&x.newname);
-            jsb.set_string("to", &file_name)?;
+            budget.set(jsb, "to", &file_name)?;
             jsb.close()?;
             let gs = fuid_to_string(&x.fuid);
             jsb.set_string("fuid", &gs)?;
@@ -397,12 +461,12 @@ fn smb_common_header(
             }
             jsb.open_object("dcerpc")?;
             if x.req_set {
-                jsb.set_string("request", &dcerpc_type_string(x.req_cmd))?;
+                budget.set(jsb, "request", &dcerpc_type_string(x.req_cmd))?;
             } else {
                 jsb.set_string("request", "REQUEST_LOST")?;
             }
             if x.res_set {
-                jsb.set_string("response", &dcerpc_type_string(x.res_cmd))?;
+                budget.set(jsb, "response", &dcerpc_type_string(x.res_cmd))?;
             } else {
                 jsb.set_string("response", "UNREPLIED")?;
             }
@@ -432,14 +496,14 @@ fn smb_common_header(
                                         .as_ref()
                                         .map(|ifuuid| ifuuid.to_hyphenated().to_string())
                                         .unwrap();
-                                    jsb.set_string("uuid", &ifstr)?;
+                                    budget.set(jsb, "uuid", &ifstr)?;
                                     let vstr = format!("{}.{}", i.ver, i.ver_min);
-                                    jsb.set_string("version", &vstr)?;
+                                    budget.set(jsb, "version", &vstr)?;
                                     if let Some(iface) = DCERPC_INTERFACE_MAP.get(&ifuuid.unwrap())
                                     {
-                                        jsb.set_string("service", &iface.service)?;
+                                        budget.set(jsb, "service", &iface.service)?;
                                         if let Some(pname) = iface.opcodes.get(&x.opnum) {
-                                            jsb.set_string("procedure", pname)?;
+                                            budget.set(jsb, "procedure", pname)?;
                                         }
                                     }
                                     jsb.close()?;
@@ -458,16 +522,16 @@ fn smb_common_header(
                                     .as_ref()
                                     .map(|ifuuid| ifuuid.to_hyphenated().to_string())
                                     .unwrap();
-                                jsb.set_string("uuid", &ifstr)?;
+                                budget.set(jsb, "uuid", &ifstr)?;
                                 let vstr = format!("{}.{}", i.ver, i.ver_min);
-                                jsb.set_string("version", &vstr)?;
+                                budget.set(jsb, "version", &vstr)?;
 
                                 if i.acked {
                                     jsb.set_uint("ack_result", i.ack_result as u64)?;
                                     jsb.set_uint("ack_reason", i.ack_reason as u64)?;
                                 }
                                 if let Some(iface) = DCERPC_INTERFACE_MAP.get(&ifuuid.unwrap()) {
-                                    jsb.set_string("service", &iface.service)?;
+                                    budget.set(jsb, "service", &iface.service)?;
                                 }
                                 jsb.close()?;
                             }
@@ -497,7 +561,7 @@ fn smb_common_header(
             if flags != SMB_LOG_DEFAULT_ALL && (flags & SMB_LOG_TYPE_IOCTL) == 0 {
                 return Err(SmbLogError::SkippedByConf);
             }
-            jsb.set_string("function", &fsctl_func_to_string(x.func))?;
+            budget.set(jsb, "function", &fsctl_func_to_string(x.func))?;
         }
         Some(SMBTransactionTypeData::SETFILEPATHINFO(ref x)) => {
             if flags != SMB_LOG_DEFAULT_ALL && (flags & SMB_LOG_TYPE_SETFILEPATHINFO) == 0 {
@@ -507,7 +571,7 @@ fn smb_common_header(
             name_raw.retain(|&i| i != 0x00);
             if !name_raw.is_empty() {
                 let name = String::from_utf8_lossy(&name_raw);
-                jsb.set_string("filename", &name)?;
+                budget.set(jsb, "filename", &name)?;
             } else {
                 // name suggestion from Bro
                 jsb.set_string("filename", "<share_root>")?;
@@ -545,6 +609,9 @@ fn smb_common_header(
                 return Err(SmbLogError::SkippedByConf);
             }
         }
+    }
+    if budget.truncated {
+        jsb.set_bool("truncated", true)?;
     }
     return Ok(());
 }
@@ -610,4 +677,33 @@ pub extern "C" fn SCSmbLogParseConfig(conf: *const SCConfNode) -> u64 {
         return r;
     }
     return SMB_LOG_DEFAULT_ALL;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_smb_log_budget() {
+        let mut budget = SmbLogBudget::new();
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        let long = "x".repeat(SMB_LOG_MAX_STRING + 10);
+        budget.set(&mut jb, "filename", &long).unwrap();
+        let s = jb.as_str();
+        assert!(s.contains("[truncated 10 additional bytes]"), "{s}");
+        assert!(budget.truncated);
+    }
+
+    #[test]
+    fn test_smb_log_budget_append_multibyte() {
+        let mut budget = SmbLogBudget::new();
+        let mut jb = JsonBuilder::try_new_array().unwrap();
+        let mut val = "x".repeat(SMB_LOG_MAX_STRING - 1);
+        val.push('é');
+        val.push_str("tail");
+        budget.append(&mut jb, &val).unwrap();
+        let s = jb.as_str();
+        assert!(s.contains("[truncated"), "{s}");
+        assert!(budget.truncated);
+    }
 }
