@@ -80,18 +80,5 @@ jobs:
           ./configure --enable-warnings
       - name: Run Cargo Audit
         working-directory: rust
-        run: |
-          IGNORES=()
+        run: cargo audit -D warnings
 
-          # failure, via bendy
-          IGNORES+=(--ignore RUSTSEC-2020-0036)
-          # failure, via bendy
-          IGNORES+=(--ignore RUSTSEC-2019-0036)
-          # time crate update
-          IGNORES+=(--ignore RUSTSEC-2026-0009)
-          # rand, vla tls-parser
-          IGNORES+=(--ignore RUSTSEC-2026-0097)
-          # lru, doesn't affect us
-          IGNORES+=(--ignore RUSTSEC-2026-0253)
-
-          cargo audit -D warnings "${IGNORES[@]}"
