@@ -1339,6 +1339,34 @@ void *DetectGetInnerTx(void *tx_ptr, AppProto alproto, AppProto engine_alproto, 
 }
 
 /** \internal
+ *  \brief mirror this direction's inspect_flags into the other direction's
+ *         stored entry
+ *
+ *  For a '=>' rule, OR this direction's inspect_flags into the other
+ *  direction's stored entry for the same sig, walking the other direction's
+ *  whole stored list, so the stored flags are complete when the other half
+ *  runs.
+ */
+static void DetectRunTxBothDirMirror(DetectTransaction *tx, const Signature *s, const int direction,
+        const uint32_t inspect_flags)
+{
+    DetectEngineState *des = ((AppLayerTxData *)tx->tx_data_ptr)->de_state;
+    if (des == NULL) {
+        return;
+    }
+    DetectEngineStateDirection *ds = &des->dir_state[direction ^ 1];
+    SigIntId cnt = 0;
+    for (DeStateStore *st = ds->head; st != NULL && cnt < ds->cnt; st = st->next) {
+        for (int i = 0; i < DE_STATE_CHUNK_SIZE && cnt < ds->cnt; i++, cnt++) {
+            if (st->store[i].sid == s->iid) {
+                st->store[i].flags |= inspect_flags;
+                return;
+            }
+        }
+    }
+}
+
+/** \internal
  *  \brief inspect a rule against a transaction
  *
  *  Inspect a rule. New detection or continued stateful
@@ -1369,6 +1397,7 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint16_t file_no_match = 0;
     bool mpm_before_progress = false;   // is mpm engine before progress?
     bool mpm_in_progress = false;       // is mpm engine in a buffer we will revisit?
+    bool other_dir_pending = false;     // engine of the other direction left to inspect?
 
     TRACE_SID_TXS(s->id, tx, "starting %s", direction ? "toclient" : "toserver");
 
@@ -1394,14 +1423,22 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
         TRACE_SID_TXS(s->id, tx, "continue, inspect_flags %x", inspect_flags);
     }
 
+    /* '=>' rule on the toserver pass: once the toclient side of the tx is done
+     * and inspected there is no toclient pass left to close the pair, so the
+     * toclient engines are inspected here, against the completed toclient side */
+    const bool tc_done = (s->flags & SIG_FLAG_TXBOTHDIR) && direction == 0 &&
+                         (tx->tx_data_ptr->flags & APP_LAYER_TX_INSPECTED_TC);
+
     const DetectEngineAppInspectionEngine *engine = s->app_inspect;
     do {
         TRACE_SID_TXS(s->id, tx, "engine %p inspect_flags %x", engine, inspect_flags);
 
+        const bool run_tc_now = tc_done && engine->dir != direction;
         // also if it is not the same direction, but
         // this is a transactional signature, and we are toclient
         if (!(inspect_flags & BIT_U32(engine->id)) &&
-                (direction == engine->dir || ((s->flags & SIG_FLAG_TXBOTHDIR) && direction == 1))) {
+                (direction == engine->dir || ((s->flags & SIG_FLAG_TXBOTHDIR) && direction == 1) ||
+                        run_tc_now)) {
 
             DEBUG_VALIDATE_BUG_ON(
                     AppLayerParserSupportsSubStates(engine->alproto) && engine->sub_state == 0);
@@ -1441,12 +1478,12 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
             /* engines are sorted per progress, except that the one with
              * mpm/prefilter enabled is first */
-            if (tx->tx_progress < engine->progress) {
+            if (!run_tc_now && tx->tx_progress < engine->progress) {
                 SCLogDebug("tx progress %d < engine progress %d",
                         tx->tx_progress, engine->progress);
                 break;
             }
-            if (engine->mpm) {
+            if (engine->mpm && !run_tc_now) {
                 if (tx->tx_progress > engine->progress) {
                     TRACE_SID_TXS(s->id, tx,
                             "engine->mpm: t->tx_progress %u > engine->progress %u, so set "
@@ -1530,12 +1567,26 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
                    direction != engine->dir) {
             TRACE_SID_TXS(s->id, tx, "handle bidir engine");
 
-            // for transactional rules, the engines on the opposite direction
-            // are ordered by progress on the different side
-            // so we have a two mixed-up lists, and we skip the elements
-            if (direction == 0 && engine->next == NULL) {
-                // do not match yet on request only
-                break;
+            // Engines of the other direction share this progress-ordered list
+            // and are only inspected in their own direction, so a full match
+            // must wait for them. Only the ones that can inspect this flow
+            // hold the pair open: compatible protocol (HTTP2 and DOH2 are one
+            // family - a flow is still HTTP2 until the first DNS message
+            // forces DOH2) and sub_state. A flow-foreign engine must not
+            // block the match.
+            const bool engine_applies =
+                    (engine->alproto == ALPROTO_UNKNOWN || tx->tx_type == engine->sub_state) &&
+                    (engine->alproto == ALPROTO_UNKNOWN ||
+                            ((f->alproto == ALPROTO_DOH2 || f->alproto == ALPROTO_HTTP2)
+                                            ? (engine->alproto == ALPROTO_DOH2 ||
+                                                      engine->alproto == ALPROTO_HTTP2)
+                                            : engine->alproto == f->alproto));
+            if (engine_applies) {
+                other_dir_pending = true;
+            } else {
+                TRACE_SID_TXS(s->id, tx,
+                        "skip pending: wrong-variant engine alproto %s sub_state %u",
+                        AppProtoToString(engine->alproto), engine->sub_state);
             }
             engine = engine->next;
             continue;
@@ -1547,7 +1598,7 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
             inspect_flags, total_matches, engine);
 
     bool full_match = false;
-    if (engine == NULL && total_matches) {
+    if (engine == NULL && total_matches && !other_dir_pending) {
         inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
         TRACE_SID_TXS(s->id, tx, "MATCH");
         full_match = true;
@@ -1555,6 +1606,9 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
     if (stored_flags) {
         *stored_flags = inspect_flags;
+        if (s->flags & SIG_FLAG_TXBOTHDIR) {
+            DetectRunTxBothDirMirror(tx, s, direction, inspect_flags);
+        }
         TRACE_SID_TXS(s->id, tx, "continue inspect flags %08x", inspect_flags);
     } else {
         // store... or? If tx is done we might not want to come back to this tx
@@ -1585,7 +1639,8 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 DetectRunStoreStateTx(scratch->sgh, f, tx->tx_ptr, tx->tx_id, s,
                         inspect_flags, flow_flags, file_no_match);
             }
-        } else if ((inspect_flags & DE_STATE_FLAG_FULL_INSPECT) == 0 && mpm_in_progress) {
+        } else if ((inspect_flags & DE_STATE_FLAG_FULL_INSPECT) == 0 && mpm_in_progress &&
+                   !(other_dir_pending && total_matches)) {
             TRACE_SID_TXS(s->id, tx, "no need to store no-match sig, "
                     "mpm will revisit it");
             return -2; /* no match, but not final: mpm will revisit it */
