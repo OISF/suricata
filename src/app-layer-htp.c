@@ -885,7 +885,7 @@ static AppLayerResult HTPHandleResponseData(Flow *f, void *htp_state, AppLayerPa
                         dp = (uint16_t)htp_tx_request_port_number(tx);
                     }
                     consumed = (uint32_t)htp_connp_response_data_consumed(hstate->connp);
-                    if (bstr_cmp_c(htp_header_value(h), "h2c") == 0) {
+                    if (bstr_cmp_c_nocase(htp_header_value(h), "h2c")) {
                         if (AppLayerProtoDetectGetProtoName(ALPROTO_HTTP2) == NULL) {
                             // if HTTP2 is disabled, keep the HTP_STREAM_STATE_TUNNEL mode
                             break;
