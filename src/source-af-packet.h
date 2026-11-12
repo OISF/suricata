@@ -1,4 +1,4 @@
-/* Copyright (C) 2011,2012 Open Information Security Foundation
+/* Copyright (C) 2011-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -200,6 +200,7 @@ void TmModuleDecodeAFPRegister (void);
 TmEcode AFPPeersListInit(void);
 TmEcode AFPPeersListCheck(void);
 void AFPPeersListClean(void);
+void SourceAFPRegisterTests(void);
 int AFPGetLinkType(const char *ifname);
 
 int AFPIsFanoutSupported(uint16_t cluster_id);
