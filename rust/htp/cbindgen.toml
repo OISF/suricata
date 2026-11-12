@@ -48,6 +48,7 @@ include = [
 "HtpUrlEncodingHandling",
 "HtpLogCode",
 "HtpFlags",
+"DecoderConfig",
 ]
 
 [enum]

@@ -366,8 +366,12 @@ impl Uri {
 
 /// Normalize a URI using the default libhtp decoder configuration.
 /// Wrapper for external reuse over parse_uri/normalized_path/generate_normalized_uri
-pub fn normalize_uri(uri: &[u8]) -> Vec<u8> {
-    let mut raw_uri = Uri::default();
+pub fn normalize_uri(uri: &[u8], ocfg: Option<DecoderConfig>) -> Vec<u8> {
+    let mut raw_uri = if let Some(cfg) = ocfg {
+        Uri::with_config(cfg)
+    } else {
+        Uri::default()
+    };
     raw_uri.parse_uri(uri);
 
     // TODO we may want caller to use these warning flags
