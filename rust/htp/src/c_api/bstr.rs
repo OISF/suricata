@@ -60,10 +60,9 @@ pub unsafe extern "C" fn bstr_cmp_c(b: *const Bstr, c: *const libc::c_char) -> l
     }
 }
 
-/// Case-indensitive comparison of a bstring and a NUL-terminated string.
-/// returns -1 if b is less than c
-///          0 if b is equal to c
-///          1 if b is greater than c
+/// Case-insensitive comparison of a bstring and a NUL-terminated string.
+/// returns true if b is equal to c
+///         false otherwise
 /// # Safety
 /// b and c must be properly intialized: not NULL, dangling, or misaligned.
 /// c must point to memory that contains a valid nul terminator byte at the end of the string
