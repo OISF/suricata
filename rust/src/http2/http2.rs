@@ -59,11 +59,20 @@ const HTTP2_MAX_REPEATED_HEADERS_SIZE: usize = 4096;
 const HTTP2_MAX_REPEATED_HEADER_NAME_LEN: usize = 32;
 
 pub static mut SURICATA_HTTP2_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
+pub static mut HTTP2_URI_DECODER_CONFIG: Option<htp::config::DecoderConfig> = None;
 
 #[no_mangle]
 pub extern "C" fn SCHttp2Init(context: &'static mut SuricataFileContext) {
     unsafe {
         SURICATA_HTTP2_FILE_CONFIG = Some(context);
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn SCHttp2InitCfg(cfg: *const std::os::raw::c_void) {
+    if !cfg.is_null() {
+        let cfg = cast_pointer!(cfg, htp::config::Config);
+        HTTP2_URI_DECODER_CONFIG = Some(cfg.decoder_cfg);
     }
 }
 
@@ -309,7 +318,7 @@ pub struct HTTP2Transaction {
 }
 
 fn http2_normalize_uri(uri: &[u8]) -> Vec<u8> {
-    htp::uri::normalize_uri(uri)
+    htp::uri::normalize_uri(uri, unsafe { HTTP2_URI_DECODER_CONFIG })
 }
 
 impl Transaction for HTTP2Transaction {
