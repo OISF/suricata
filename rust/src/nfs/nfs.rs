@@ -3782,6 +3782,35 @@ pub unsafe extern "C" fn SCRegisterNfsParser() {
                 Some(ffi_nfs_probe),
             );
         }
+        // Pattern probe for NFS over TCP: the message type and rpcvers of an
+        // RPC call, eight bytes at offset 8. It has to be something rare. A
+        // stream the probe refuses is not concluded by the search: it stays
+        // undecided until the to-server data reaches pp_max_len, which for TCP
+        // to-server is 36 (SMB's MIN_REC_SIZE), so a loose anchor - the two
+        // bytes of a record mark, say - costs every shorter flow its protocol
+        // detection. The window also has to stay inside 16 bytes, see the note
+        // in app-layer-http2.c about why its pattern stops there. What the
+        // record mark, the program number at offset 16, the version and the
+        // procedure are, the probe decides.
+        //
+        // To server only: a CALL carries the program number, so the probe can
+        // tell NFS from the other ONC RPC services (mountd, rpcbind, nlockmgr)
+        // that sit next to it on the same host. A REPLY carries none, so a
+        // to-client pattern would claim every accepted ONC reply it sees.
+        if SCAppLayerProtoDetectPMRegisterPatternCSwPP(
+            IPPROTO_TCP,
+            ALPROTO_NFS,
+            b"|00 00 00 00 00 00 00 02|\0".as_ptr() as *const std::os::raw::c_char,
+            16,
+            8,
+            Direction::ToServer as u8,
+            Some(ffi_nfs_probe),
+            NFS_MIN_FRAME_LEN,
+            NFS_MIN_FRAME_LEN,
+        ) < 0
+        {
+            SCLogDebug!("nfs pattern probe registration (ts) failed");
+        }
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
@@ -4356,4 +4385,30 @@ fn test_record_tail() {
     assert_eq!(record_tail(1002, 0), 1002);
     // complete record: nothing left to skip
     assert_eq!(record_tail(1002, 1002), 0);
+}
+
+#[test]
+fn test_nfs_probe_call_header() {
+    let w = |v: u32| v.to_be_bytes();
+    // a call record header: mark, xid, msgtype, rpcver, program, progver,
+    // procedure, AUTH_UNIX creds and a null verifier
+    let mut buf: Vec<u8> = Vec::new();
+    buf.extend_from_slice(&w(0x8000_0062)); // last frag, 98 bytes
+    buf.extend_from_slice(&w(7));
+    buf.extend_from_slice(&w(0)); // msgtype: CALL
+    buf.extend_from_slice(&w(2)); // rpcver
+    buf.extend_from_slice(&w(100005)); // program: mountd
+    buf.extend_from_slice(&w(3)); // progver
+    buf.extend_from_slice(&w(1)); // procedure
+    buf.extend_from_slice(&w(1)); // creds flavor: AUTH_UNIX
+    buf.extend_from_slice(&w(16));
+    buf.extend_from_slice(&[0u8; 16]);
+    buf.extend_from_slice(&w(0)); // verifier: NULL
+    buf.extend_from_slice(&w(0));
+    buf.extend_from_slice(&[0u8; 24]);
+    // the pattern is anchored on the call header, so a call naming another
+    // program reaches the probe and has to be refused there
+    assert_eq!(nfs_probe(&buf, Direction::ToServer), -1);
+    buf[16..20].copy_from_slice(&w(100003)); // program: NFS
+    assert_eq!(nfs_probe(&buf, Direction::ToServer), 1);
 }
