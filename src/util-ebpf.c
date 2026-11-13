@@ -40,6 +40,10 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
+#include "flow-private.h"
+
+SC_ATOMIC_EXTERN(unsigned int, flow_flags);
+
 #include "util-ebpf.h"
 #include "util-affinity.h"
 #include "util-cpu.h"
@@ -71,6 +75,7 @@ struct bpf_map_item {
 struct bpf_maps_info {
     struct bpf_map_item array[BPF_MAP_MAX_COUNT];
     int last;
+    bool pinned;
 };
 
 typedef struct BypassedIfaceList_ {
@@ -210,6 +215,7 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
         SCLogError("Can't allocate bpf map array");
         return -1;
     }
+    bpf_map_data->pinned = true;
 
     if (config->mode == AFP_MODE_XDP_BYPASS) {
         bpf_map_data->array[0].fd = fd_v4;
@@ -407,6 +413,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         SCLogError("Can't allocate bpf map array");
         return -1;
     }
+    bpf_map_data->pinned = (config->flags & EBPF_PINNED_MAPS) != 0;
 
     /* Store the maps in bpf_maps_info:: */
     bpf_map__for_each(map, bpfobj) {
@@ -667,6 +674,14 @@ bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
     bool activity = EBPFBypassCheckHalfFlow(f, fc, eb, eb->key[0], 0);
     activity |= EBPFBypassCheckHalfFlow(f, fc, eb, eb->key[1], 1);
     if (!activity) {
+        if (SC_ATOMIC_GET(flow_flags) & FLOW_SHUTDOWN) {
+            LiveDevice *dev = LiveDeviceGetById(f->livedev_id);
+            struct bpf_maps_info *bpf_map_data = EBPFGetBpfMap(dev->dev);
+            if (bpf_map_data && bpf_map_data->pinned) {
+                SCLogDebug("Shutdown: keep pinned entries for flow %" PRIu64, FlowGetId(f));
+                return true;
+            }
+        }
         SCLogDebug("Delete entry: %u (%" PRIu64 ")", FLOW_IS_IPV6(f), FlowGetId(f));
         /* delete the entries if no time update */
         EBPFDeleteKey(eb->mapfd, eb->key[0]);
