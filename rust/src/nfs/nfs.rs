@@ -649,18 +649,7 @@ impl NFSState {
 
     pub fn free_tx(&mut self, tx_id: u64) {
         //SCLogNotice!("Freeing TX with ID {}", tx_id);
-        let len = self.transactions.len();
-        let mut found = false;
-        let mut index = 0;
-        for i in 0..len {
-            let tx = &self.transactions[i];
-            if tx.id == tx_id + 1 {
-                found = true;
-                index = i;
-                break;
-            }
-        }
-        if found {
+        if let Some(index) = self.transactions.iter().position(|tx| tx.id == tx_id + 1) {
             if self.transactions[index].is_file_tx {
                 self.file_tx_count = self.file_tx_count.saturating_sub(1);
             }

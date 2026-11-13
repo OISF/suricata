@@ -35,6 +35,3 @@ time.workspace = true
 
 [dev-dependencies]
 rstest = "0.17.0"
-
-[build-dependencies]
-cdylib-link-lines = "0.1.5"

@@ -205,18 +205,11 @@ impl PgsqlState {
 
     // Free a transaction by ID.
     fn free_tx(&mut self, tx_id: u64) {
-        let len = self.transactions.len();
-        let mut found = false;
-        let mut index = 0;
-        for i in 0..len {
-            let tx = &self.transactions[i];
-            if tx.tx_id == tx_id + 1 {
-                found = true;
-                index = i;
-                break;
-            }
-        }
-        if found {
+        if let Some(index) = self
+            .transactions
+            .iter()
+            .position(|tx| tx.tx_id == tx_id + 1)
+        {
             self.tx_index_completed = 0;
             self.transactions.remove(index);
         }
@@ -797,11 +790,12 @@ impl PgsqlState {
 /// used by the engine.
 /// PGSQL messages don't have a header per se, so we parse the slice for an ok()
 fn probe_tc(input: &[u8]) -> bool {
-    if parser::pgsql_parse_response(input).is_ok() || parser::parse_ssl_response(input).is_ok() {
-        return true;
+    let ok =
+        parser::pgsql_parse_response(input).is_ok() || parser::parse_ssl_response(input).is_ok();
+    if !ok {
+        SCLogDebug!("probe_tc is false");
     }
-    SCLogDebug!("probe_tc is false");
-    false
+    ok
 }
 
 fn pgsql_tx_get_req_state(tx: *mut std::os::raw::c_void) -> PgsqlTxProgress {
