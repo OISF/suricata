@@ -7,6 +7,7 @@ use crate::{
     hook::DataHook,
     parsers::{parse_chunked_length, parse_content_length, parse_protocol, parse_status},
     request::HtpMethod,
+    trailer::is_forbidden_field,
     transaction::{
         Data, Header, HtpProtocol, HtpRequestProgress, HtpResponseNumber, HtpResponseProgress,
         HtpTransferCoding,
@@ -899,6 +900,13 @@ impl ConnectionParser {
                 resp.flags.set(HtpFlags::HEADERS_TOO_MANY);
             }
             return Err(HtpStatus::ERROR);
+        }
+        if is_forbidden_field(header.name.as_slice()) {
+            htp_warn!(
+                self.logger,
+                HtpLogCode::RESPONSE_TRAILER_FORBIDDEN_FIELD,
+                "Forbidden field in response trailer section"
+            );
         }
         let resp = self.response_mut().unwrap();
         let mut update_reps = false;
