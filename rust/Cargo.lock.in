@@ -1363,27 +1363,27 @@ dependencies = [
 
 [[package]]
 name = "sawp"
-version = "0.13.1"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78562a138ea8cc5c8b04531864e5e268ff6b02d3bac0cf4d447f8085c0b0bf02"
+checksum = "12c487dbe3e3b3009af5be109e430b7680bb896c55f26dca700399e6dc5734ec"
 dependencies = [
  "nom 7.1.3",
 ]
 
 [[package]]
 name = "sawp-flags"
-version = "0.13.1"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e73cb7499d7f375ed6928416fe81aa91b1329d86a9dffb7eccd91e475b342c8"
+checksum = "e4e16fff359a90c5d8bf70c2ee0f924f6f56086bc1994334e71f372833e6705a"
 dependencies = [
  "sawp-flags-derive",
 ]
 
 [[package]]
 name = "sawp-flags-derive"
-version = "0.13.1"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15968a3900eb621a4cc5548bb8abd2f10bc3912cec0226975c31e25e59889146"
+checksum = "6eae8f8dcbaa7619428cf6c7834395040c69847249241c26c78b885a1a0654cb"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -1393,9 +1393,9 @@ dependencies = [
 
 [[package]]
 name = "sawp-modbus"
-version = "0.13.1"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "620cb1b2194fc49c0ed48f0be97962d6ae8316b5659c06572714dfb82c984f25"
+checksum = "0a2d84114994c7f10b8dfc3361af49c79872ccebba0d9fbc39de040945f788a0"
 dependencies = [
  "nom 7.1.3",
  "num_enum",
@@ -1405,9 +1405,9 @@ dependencies = [
 
 [[package]]
 name = "sawp-pop3"
-version = "0.13.1"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef576aa71811070479508d762e810d036b775f3629970901d082b4c9085d96da"
+checksum = "ddf9e428424de7356f577498619561211decc296b62ccc189c3a12141c4e1138"
 dependencies = [
  "nom 7.1.3",
  "sawp",
