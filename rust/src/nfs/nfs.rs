@@ -3920,8 +3920,8 @@ unsafe extern "C" fn nfs_probe_udp_tc(
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"nfs\0";
 
-/// Load the NFS queue and record-size limits from the config. Called from
-/// both TCP and UDP registration so single-transport configs load them.
+/// Load every transport-independent NFS setting. Called from both TCP and UDP
+/// registration so a config that enables one transport still gets them.
 unsafe fn load_nfs_limit_config() {
     let retval = conf_get("app-layer.protocols.nfs.max-read-queue-size");
     if let Some(val) = retval {
@@ -4022,6 +4022,60 @@ unsafe fn load_nfs_limit_config() {
                 SCLogError!("Invalid max-metadata-size value");
             }
         }
+    }
+
+    // Settings feeding state shared by both transports: the request and name
+    // maps live on the parser state, the procedure filter is applied by the
+    // logger. Read here so a config that enables one transport still gets them.
+    let retval = conf_get("app-layer.protocols.nfs.max-requests");
+    if let Some(val) = retval {
+        if let Ok(v) = val.parse::<usize>() {
+            if v > 0 {
+                NFS_CFG_MAX_REQ = v;
+            } else {
+                SCLogError!("Invalid max-requests value, must be >0");
+            }
+        } else {
+            SCLogError!("Invalid max-requests value");
+        }
+    }
+    let retval = conf_get("app-layer.protocols.nfs.max-names");
+    if let Some(val) = retval {
+        if let Ok(v) = val.parse::<usize>() {
+            if v > 0 {
+                NFS_CFG_MAX_NAMES = v;
+            } else {
+                SCLogError!("Invalid max-names value, must be >0");
+            }
+        } else {
+            SCLogError!("Invalid max-names value");
+        }
+    }
+    // Procedure filter: a YAML list of procedure names (or a single
+    // scalar) to keep out of the EVE output. When absent, the
+    // historical default applies: v3 GETATTR is filtered.
+    if let Some(node) = conf_get_node("app-layer.protocols.nfs.filter") {
+        let mut list = Vec::new();
+        if node.is_seq() {
+            if let Some(mut cur) = node.first() {
+                loop {
+                    if let Some(v) = cur.value_opt() {
+                        list.push(v.to_lowercase());
+                    }
+                    match cur.next() {
+                        Some(n) => cur = n,
+                        None => break,
+                    }
+                }
+            }
+        } else if let Some(v) = node.value_opt() {
+            list.push(v.to_lowercase());
+        }
+        // key present: the list (possibly empty) fully defines the
+        // filter; an empty list logs everything
+        SCLogDebug!("nfs filter: procedures {:?}", &list);
+        NFS_CFG_FILTER_SET = true;
+        NFS_CFG_FILTER_PROCS = list;
     }
 }
 
@@ -4153,56 +4207,6 @@ pub unsafe extern "C" fn SCRegisterNfsParser() {
                     SCLogError!("Invalid stream-depth value");
                 }
             }
-        }
-        let retval = conf_get("app-layer.protocols.nfs.max-requests");
-        if let Some(val) = retval {
-            if let Ok(v) = val.parse::<usize>() {
-                if v > 0 {
-                    NFS_CFG_MAX_REQ = v;
-                } else {
-                    SCLogError!("Invalid max-requests value, must be >0");
-                }
-            } else {
-                SCLogError!("Invalid max-requests value");
-            }
-        }
-        let retval = conf_get("app-layer.protocols.nfs.max-names");
-        if let Some(val) = retval {
-            if let Ok(v) = val.parse::<usize>() {
-                if v > 0 {
-                    NFS_CFG_MAX_NAMES = v;
-                } else {
-                    SCLogError!("Invalid max-names value, must be >0");
-                }
-            } else {
-                SCLogError!("Invalid max-names value");
-            }
-        }
-        // Procedure filter: a YAML list of procedure names (or a single
-        // scalar) to keep out of the EVE output. When absent, the
-        // historical default applies: v3 GETATTR is filtered.
-        if let Some(node) = conf_get_node("app-layer.protocols.nfs.filter") {
-            let mut list = Vec::new();
-            if node.is_seq() {
-                if let Some(mut cur) = node.first() {
-                    loop {
-                        if let Some(v) = cur.value_opt() {
-                            list.push(v.to_lowercase());
-                        }
-                        match cur.next() {
-                            Some(n) => cur = n,
-                            None => break,
-                        }
-                    }
-                }
-            } else if let Some(v) = node.value_opt() {
-                list.push(v.to_lowercase());
-            }
-            // key present: the list (possibly empty) fully defines the
-            // filter; an empty list logs everything
-            SCLogDebug!("nfs filter: procedures {:?}", &list);
-            NFS_CFG_FILTER_SET = true;
-            NFS_CFG_FILTER_PROCS = list;
         }
         load_nfs_limit_config();
     } else {
