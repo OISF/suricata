@@ -227,16 +227,16 @@ fn http2_detect_settingsctx_match(
     ctx: &parser::DetectHTTP2settingsSigCtx, tx: &HTTP2Transaction, direction: Direction,
 ) -> std::os::raw::c_int {
     if direction == Direction::ToServer {
-        for i in 0..tx.frames_ts.len() {
-            if let HTTP2FrameTypeData::SETTINGS(set) = &tx.frames_ts[i].data {
+        for frame in &tx.frames_ts {
+            if let HTTP2FrameTypeData::SETTINGS(set) = &frame.data {
                 if http2_detect_settings_match(set, ctx) != 0 {
                     return 1;
                 }
             }
         }
     } else {
-        for i in 0..tx.frames_tc.len() {
-            if let HTTP2FrameTypeData::SETTINGS(set) = &tx.frames_tc[i].data {
+        for frame in &tx.frames_tc {
+            if let HTTP2FrameTypeData::SETTINGS(set) = &frame.data {
                 if http2_detect_settings_match(set, ctx) != 0 {
                     return 1;
                 }
@@ -288,16 +288,16 @@ fn http2_detect_sizeupdatectx_match(
     ctx: &DetectUintData<u64>, tx: &HTTP2Transaction, direction: Direction,
 ) -> std::os::raw::c_int {
     if direction == Direction::ToServer {
-        for i in 0..tx.frames_ts.len() {
-            if let Some(blocks) = http2_header_blocks(&tx.frames_ts[i]) {
+        for frame in &tx.frames_ts {
+            if let Some(blocks) = http2_header_blocks(frame) {
                 if http2_detect_sizeupdate_match(blocks, ctx) != 0 {
                     return 1;
                 }
             }
         }
     } else {
-        for i in 0..tx.frames_tc.len() {
-            if let Some(blocks) = http2_header_blocks(&tx.frames_tc[i]) {
+        for frame in &tx.frames_tc {
+            if let Some(blocks) = http2_header_blocks(frame) {
                 if http2_detect_sizeupdate_match(blocks, ctx) != 0 {
                     return 1;
                 }
@@ -327,8 +327,8 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaderName(
     let mut pos = 0_u32;
     match direction.into() {
         Direction::ToServer => {
-            for i in 0..tx.frames_ts.len() {
-                if let Some(blocks) = http2_header_blocks(&tx.frames_ts[i]) {
+            for frame in &tx.frames_ts {
+                if let Some(blocks) = http2_header_blocks(frame) {
                     if nb < pos + blocks.len() as u32 {
                         let value = &blocks[(nb - pos) as usize].name;
                         *buffer = value.as_ptr(); //unsafe
@@ -341,8 +341,8 @@ pub unsafe extern "C" fn SCHttp2TxGetHeaderName(
             }
         }
         Direction::ToClient => {
-            for i in 0..tx.frames_tc.len() {
-                if let Some(blocks) = http2_header_blocks(&tx.frames_tc[i]) {
+            for frame in &tx.frames_tc {
+                if let Some(blocks) = http2_header_blocks(frame) {
                     if nb < pos + blocks.len() as u32 {
                         let value = &blocks[(nb - pos) as usize].name;
                         *buffer = value.as_ptr(); //unsafe
@@ -943,8 +943,8 @@ pub unsafe extern "C" fn SCHttp2TxGetHeader(
     let mut pos = 0_u32;
     match direction.into() {
         Direction::ToServer => {
-            for i in 0..tx.frames_ts.len() {
-                if let Some(blocks) = http2_header_blocks(&tx.frames_ts[i]) {
+            for frame in &tx.frames_ts {
+                if let Some(blocks) = http2_header_blocks(frame) {
                     if nb < pos + blocks.len() as u32 {
                         if nb as usize == tbuf.data.len() {
                             tbuf.data.push(Vec::new());
@@ -961,8 +961,8 @@ pub unsafe extern "C" fn SCHttp2TxGetHeader(
             }
         }
         Direction::ToClient => {
-            for i in 0..tx.frames_tc.len() {
-                if let Some(blocks) = http2_header_blocks(&tx.frames_tc[i]) {
+            for frame in &tx.frames_tc {
+                if let Some(blocks) = http2_header_blocks(frame) {
                     if nb < pos + blocks.len() as u32 {
                         if nb as usize == tbuf.data.len() {
                             tbuf.data.push(Vec::new());

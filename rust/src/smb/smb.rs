@@ -850,24 +850,13 @@ impl SMBState {
 
     pub fn free_tx(&mut self, tx_id: u64) {
         SCLogDebug!("Freeing TX with ID {} TX.ID {}", tx_id, tx_id + 1);
-        let len = self.transactions.len();
-        let mut found = false;
-        let mut index = 0;
-        for i in 0..len {
-            let tx = &self.transactions[i];
-            if tx.id == tx_id + 1 {
-                found = true;
-                index = i;
-                SCLogDebug!(
-                    "tx {} progress {}/{}",
-                    tx.id,
-                    tx.request_done,
-                    tx.response_done
-                );
-                break;
-            }
-        }
-        if found {
+        if let Some(index) = self.transactions.iter().position(|tx| tx.id == tx_id + 1) {
+            SCLogDebug!(
+                "tx {} progress {}/{}",
+                self.transactions[index].id,
+                self.transactions[index].request_done,
+                self.transactions[index].response_done
+            );
             if matches!(
                 self.transactions[index].type_data,
                 Some(SMBTransactionTypeData::FILE(_))
