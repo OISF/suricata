@@ -790,11 +790,12 @@ impl PgsqlState {
 /// used by the engine.
 /// PGSQL messages don't have a header per se, so we parse the slice for an ok()
 fn probe_tc(input: &[u8]) -> bool {
-    if parser::pgsql_parse_response(input).is_ok() || parser::parse_ssl_response(input).is_ok() {
-        return true;
+    let ok =
+        parser::pgsql_parse_response(input).is_ok() || parser::parse_ssl_response(input).is_ok();
+    if !ok {
+        SCLogDebug!("probe_tc is false");
     }
-    SCLogDebug!("probe_tc is false");
-    false
+    ok
 }
 
 fn pgsql_tx_get_req_state(tx: *mut std::os::raw::c_void) -> PgsqlTxProgress {
