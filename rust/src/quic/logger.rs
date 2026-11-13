@@ -139,8 +139,8 @@ fn log_quic(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
 
             if !e.values.is_empty() {
                 js.open_array("values")?;
-                for i in 0..e.values.len() {
-                    js.append_string(&String::from_utf8_lossy(&e.values[i]))?;
+                for value in &e.values {
+                    js.append_string(&String::from_utf8_lossy(value))?;
                 }
                 js.close()?;
             }
