@@ -2559,7 +2559,7 @@
                 },
                 "request_trailers": {
                     "type": "array",
-                    "description": "HTTP request trailer fields, logged separately from the request header array",
+                    "description": "HTTP request trailer fields, logged separately from the request header array; the fields also stay in request_headers for HTTP/2, and for HTTP/1 with dump-all-headers",
                     "minItems": 1,
                     "items": {
                         "type": "object",
@@ -2575,7 +2575,8 @@
                                     "keywords": [
                                         "http.trailer_names"
                                     ]
-                                }
+                                },
+                                "description": "Trailer field name"
                             },
                             "table_size_update": {
                                 "type": "integer",
@@ -2583,7 +2584,8 @@
                                     "keywords": [
                                         "http2.size_update"
                                     ]
-                                }
+                                },
+                                "description": "HPACK dynamic table size update carried by the block (HTTP/2)"
                             },
                             "value": {
                                 "type": "string",
@@ -2592,7 +2594,8 @@
                                         "http.trailer",
                                         "http.trailer.raw"
                                     ]
-                                }
+                                },
+                                "description": "Trailer field value"
                             }
                         }
                     }
@@ -2623,7 +2626,7 @@
                 },
                 "response_trailers": {
                     "type": "array",
-                    "description": "HTTP response trailer fields, logged separately from the response header array",
+                    "description": "HTTP response trailer fields, logged separately from the response header array; the fields also stay in response_headers for HTTP/2, and for HTTP/1 with dump-all-headers",
                     "minItems": 1,
                     "items": {
                         "type": "object",
@@ -2639,7 +2642,8 @@
                                     "keywords": [
                                         "http.trailer_names"
                                     ]
-                                }
+                                },
+                                "description": "Trailer field name"
                             },
                             "table_size_update": {
                                 "type": "integer",
@@ -2647,7 +2651,8 @@
                                     "keywords": [
                                         "http2.size_update"
                                     ]
-                                }
+                                },
+                                "description": "HPACK dynamic table size update carried by the block (HTTP/2)"
                             },
                             "value": {
                                 "type": "string",
@@ -2656,7 +2661,8 @@
                                         "http.trailer",
                                         "http.trailer.raw"
                                     ]
-                                }
+                                },
+                                "description": "Trailer field value"
                             }
                         }
                     }

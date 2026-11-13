@@ -821,6 +821,9 @@ Event with ``dump-all-headers`` set to "both":
       ]
   }
 
+Trailer fields also appear in the header arrays, because a trailer block is a
+header block of its own: always for HTTP/2, and for HTTP/1 with
+``dump-all-headers``. See :ref:`http.trailer`.
 
 Event type: DNS
 ---------------

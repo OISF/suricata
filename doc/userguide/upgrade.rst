@@ -144,10 +144,9 @@ Logging Changes
   ``src_ip``/``src_port`` where 8.x logged the packet's addresses. Filters
   that matched responses on ``src_port 2049`` need ``dest_port 2049`` now.
 
-- HTTP trailer fields are logged in dedicated ``http.request_trailers`` and
-  ``http.response_trailers`` arrays instead of being appended to a header field
-  of the same name. HTTP/1 writes these arrays only with ``dump-all-headers``,
-  or with ``custom`` and the arrays listed; HTTP/2 always logs them.
+- HTTP trailer fields are logged in their own ``http.request_trailers`` and
+  ``http.response_trailers`` arrays and stay in the header arrays as before.
+  See :ref:`http.trailer` for the HTTP/1 conditions and ``custom``.
 
 Removals
 ~~~~~~~~
