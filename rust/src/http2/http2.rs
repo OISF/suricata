@@ -871,36 +871,30 @@ impl HTTP2State {
 
     // Free a transaction by ID.
     fn free_tx(&mut self, tx_id: u64) {
-        let len = self.transactions.len();
-        let mut found = false;
-        let mut index = 0;
-        for i in 0..len {
-            let tx = &mut self.transactions[i];
-            if tx.tx_id == tx_id + 1 {
-                found = true;
-                index = i;
-                // this should be in HTTP2Transaction::free
-                // but we need state's file container cf https://redmine.openinfosecfoundation.org/issues/4444
-                if !tx.file_range.is_null() {
-                    if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
-                        unsafe {
-                            SCHTPFileCloseHandleRange(
-                                sfcm.files_sbcfg,
-                                &mut tx.ft_tc.file,
-                                0,
-                                tx.file_range,
-                                std::ptr::null_mut(),
-                                0,
-                            );
-                            SCHttpRangeFreeBlock(tx.file_range);
-                        }
-                        tx.file_range = std::ptr::null_mut();
+        if let Some(index) = self
+            .transactions
+            .iter()
+            .position(|tx| tx.tx_id == tx_id + 1)
+        {
+            let tx = &mut self.transactions[index];
+            // this should be in HTTP2Transaction::free
+            // but we need state's file container cf https://redmine.openinfosecfoundation.org/issues/4444
+            if !tx.file_range.is_null() {
+                if let Some(sfcm) = unsafe { SURICATA_HTTP2_FILE_CONFIG } {
+                    unsafe {
+                        SCHTPFileCloseHandleRange(
+                            sfcm.files_sbcfg,
+                            &mut tx.ft_tc.file,
+                            0,
+                            tx.file_range,
+                            std::ptr::null_mut(),
+                            0,
+                        );
+                        SCHttpRangeFreeBlock(tx.file_range);
                     }
+                    tx.file_range = std::ptr::null_mut();
                 }
-                break;
             }
-        }
-        if found {
             self.transactions.remove(index);
         }
     }

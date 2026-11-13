@@ -391,19 +391,13 @@ impl DCERPCState {
 
     pub fn free_tx(&mut self, tx_id: u64) {
         SCLogDebug!("Freeing TX with ID {} TX.ID {}", tx_id, tx_id + 1);
-        let len = self.transactions.len();
-        let mut found = false;
-        let mut index = 0;
-        for i in 0..len {
-            let tx = &self.transactions[i];
-            if tx.id == tx_id + 1 {
-                found = true;
-                index = i;
-                SCLogDebug!("tx {} progress {}/{}", tx.id, tx.req_done, tx.resp_done);
-                break;
-            }
-        }
-        if found {
+        if let Some(index) = self.transactions.iter().position(|tx| tx.id == tx_id + 1) {
+            SCLogDebug!(
+                "tx {} progress {}/{}",
+                self.transactions[index].id,
+                self.transactions[index].req_done,
+                self.transactions[index].resp_done
+            );
             SCLogDebug!(
                 "freeing TX with ID {} TX.ID {} at index {} left: {} max id: {}",
                 tx_id,

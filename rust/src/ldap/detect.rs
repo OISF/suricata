@@ -650,8 +650,7 @@ unsafe extern "C" fn ldap_tx_get_resp_attribute_type(
     let tx = cast_pointer!(tx, LdapTransaction);
 
     let mut pos = 0_u32;
-    for i in 0..tx.responses.len() {
-        let response = &tx.responses[i];
+    for response in &tx.responses {
         match &response.protocol_op {
             ProtocolOp::SearchResultEntry(resp) => {
                 if local_id < pos + resp.attributes.len() as u32 {

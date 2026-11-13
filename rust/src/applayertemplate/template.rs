@@ -98,18 +98,11 @@ impl TemplateState {
 
     // Free a transaction by ID.
     fn free_tx(&mut self, tx_id: u64) {
-        let len = self.transactions.len();
-        let mut found = false;
-        let mut index = 0;
-        for i in 0..len {
-            let tx = &self.transactions[i];
-            if tx.tx_id == tx_id + 1 {
-                found = true;
-                index = i;
-                break;
-            }
-        }
-        if found {
+        if let Some(index) = self
+            .transactions
+            .iter()
+            .position(|tx| tx.tx_id == tx_id + 1)
+        {
             self.transactions.remove(index);
         }
     }

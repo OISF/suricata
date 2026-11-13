@@ -43,9 +43,7 @@ impl SMBState {
     pub fn _dump_txs(&self) {}
     #[cfg(feature = "debug")]
     pub fn _dump_txs(&self) {
-        let len = self.transactions.len();
-        for i in 0..len {
-            let tx = &self.transactions[i];
+        for (i, tx) in self.transactions.iter().enumerate() {
             let ver = tx.vercmd.get_version();
             let _smbcmd = if ver == 2 {
                 let (_, cmd) = tx.vercmd.get_smb2_cmd();
