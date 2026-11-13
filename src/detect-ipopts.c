@@ -182,6 +182,11 @@ static int DetectIpOptsMatch (DetectEngineThreadCtx *det_ctx, Packet *p,
     if (!de || !PacketIsIPv4(p))
         return 0;
 
+    if (de->ipopt == 0xffff) {
+        /* Include options that do not have a dedicated flag. */
+        return p->l3.vars.ip4.opt_cnt > 0;
+    }
+
     return (p->l3.vars.ip4.opts_set & de->ipopt) == de->ipopt;
 }
 
@@ -381,6 +386,62 @@ static int IpOptsTestParse05(void)
     PASS;
 }
 
+/** \test Match any IPv4 option, including types without a dedicated flag. */
+static int IpOptsTestAny(void)
+{
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    IPV4Hdr ip4h = { 0 };
+    UTHSetIPV4Hdr(p, &ip4h);
+
+    DetectIpOptsData *de = DetectIpOptsParse("any");
+    FAIL_IF_NULL(de);
+
+    /* No options. */
+    FAIL_IF(DetectIpOptsMatch(NULL, p, NULL, (SigMatchCtx *)de));
+
+    p->l3.vars.ip4.opt_cnt = 1;
+    p->l3.vars.ip4.opts_set = IPV4_OPT_FLAG_RR;
+    FAIL_IF_NOT(DetectIpOptsMatch(NULL, p, NULL, (SigMatchCtx *)de));
+
+    p->l3.vars.ip4.opts_set = IPV4_OPT_FLAG_NOP;
+    FAIL_IF_NOT(DetectIpOptsMatch(NULL, p, NULL, (SigMatchCtx *)de));
+
+    p->l3.vars.ip4.opts_set = IPV4_OPT_FLAG_EOL;
+    FAIL_IF_NOT(DetectIpOptsMatch(NULL, p, NULL, (SigMatchCtx *)de));
+
+    p->l3.vars.ip4.opt_cnt = 2;
+    p->l3.vars.ip4.opts_set = IPV4_OPT_FLAG_RR | IPV4_OPT_FLAG_TS;
+    FAIL_IF_NOT(DetectIpOptsMatch(NULL, p, NULL, (SigMatchCtx *)de));
+
+    /* An unrecognized option increments opt_cnt without setting a flag. */
+    p->l3.vars.ip4.opt_cnt = 1;
+    p->l3.vars.ip4.opts_set = 0;
+    FAIL_IF_NOT(DetectIpOptsMatch(NULL, p, NULL, (SigMatchCtx *)de));
+
+    DetectIpOptsFree(NULL, de);
+    PacketFree(p);
+    PASS;
+}
+
+/** \test IPv6 packets do not match ipopts:any. */
+static int IpOptsTestAnyIPv6(void)
+{
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    IPV6Hdr ip6h = { 0 };
+    UTHSetIPV6Hdr(p, &ip6h);
+    p->l3.vars.ip4.opt_cnt = 1;
+
+    DetectIpOptsData *de = DetectIpOptsParse("any");
+    FAIL_IF_NULL(de);
+    FAIL_IF(DetectIpOptsMatch(NULL, p, NULL, (SigMatchCtx *)de));
+
+    DetectIpOptsFree(NULL, de);
+    PacketFree(p);
+    PASS;
+}
+
 /**
  * \brief this function registers unit tests for IpOpts
  */
@@ -391,5 +452,7 @@ void IpOptsRegisterTests(void)
     UtRegisterTest("IpOptsTestParse03", IpOptsTestParse03);
     UtRegisterTest("IpOptsTestParse04", IpOptsTestParse04);
     UtRegisterTest("IpOptsTestParse05", IpOptsTestParse05);
+    UtRegisterTest("IpOptsTestAny", IpOptsTestAny);
+    UtRegisterTest("IpOptsTestAnyIPv6", IpOptsTestAnyIPv6);
 }
 #endif /* UNITTESTS */
