@@ -585,14 +585,14 @@ mod test {
         let iface_data = parse_iface_data(arg).unwrap();
         let expected_uuid = Ok(String::from("12345678-1234-1234-1234-123456789ABC").to_lowercase());
         let uuid = Uuid::from_slice(iface_data.if_uuid.as_slice());
-        let uuid = uuid.map(|uuid| uuid.to_hyphenated().to_string());
+        let uuid = uuid.map(|uuid| uuid.as_hyphenated().to_string());
         assert_eq!(expected_uuid, uuid);
 
         let arg = "12345678-1234-1234-1234-123456789ABC,>1";
         let iface_data = parse_iface_data(arg).unwrap();
         let expected_uuid = Ok(String::from("12345678-1234-1234-1234-123456789ABC").to_lowercase());
         let uuid = Uuid::from_slice(iface_data.if_uuid.as_slice());
-        let uuid = uuid.map(|uuid| uuid.to_hyphenated().to_string());
+        let uuid = uuid.map(|uuid| uuid.as_hyphenated().to_string());
         assert_eq!(expected_uuid, uuid);
         let du16 = iface_data.du16.unwrap();
         assert_eq!(DetectUintMode::DetectUintModeGt, du16.mode);
@@ -602,7 +602,7 @@ mod test {
         let iface_data = parse_iface_data(arg).unwrap();
         let expected_uuid = Ok(String::from("12345678-1234-1234-1234-123456789ABC").to_lowercase());
         let uuid = Uuid::from_slice(iface_data.if_uuid.as_slice());
-        let uuid = uuid.map(|uuid| uuid.to_hyphenated().to_string());
+        let uuid = uuid.map(|uuid| uuid.as_hyphenated().to_string());
         assert_eq!(expected_uuid, uuid);
         assert!(iface_data.du16.is_none());
         assert_eq!(1, iface_data.any_frag);
@@ -611,7 +611,7 @@ mod test {
         let iface_data = parse_iface_data(arg).unwrap();
         let expected_uuid = Ok(String::from("12345678-1234-1234-1234-123456789ABC").to_lowercase());
         let uuid = Uuid::from_slice(iface_data.if_uuid.as_slice());
-        let uuid = uuid.map(|uuid| uuid.to_hyphenated().to_string());
+        let uuid = uuid.map(|uuid| uuid.as_hyphenated().to_string());
         assert_eq!(expected_uuid, uuid);
         assert_eq!(1, iface_data.any_frag);
         let du16 = iface_data.du16.unwrap();

@@ -129,7 +129,7 @@ impl JA4Impl for JA4 {
         let mut sha = Sha256::new();
         let ja4_b_raw = sorted_cipherstrings.join(",");
         sha.update(&ja4_b_raw);
-        let mut ja4_b = format!("{:x}", sha.finalize_reset());
+        let mut ja4_b = hex::encode(sha.finalize_reset());
         ja4_b.truncate(12);
 
         // Calculate JA4_c
@@ -147,7 +147,7 @@ impl JA4Impl for JA4 {
         let ja4_c2_raw = unsorted_sigalgostrings.join(",");
         let ja4_c_raw = format!("{}_{}", ja4_c1_raw, ja4_c2_raw);
         sha.update(&ja4_c_raw);
-        let mut ja4_c = format!("{:x}", sha.finalize());
+        let mut ja4_c = hex::encode(sha.finalize());
         ja4_c.truncate(12);
 
         Some(Self {

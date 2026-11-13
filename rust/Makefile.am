@@ -5,7 +5,8 @@ SUBDIRS =	derive \
 		suricatasc \
 		suricatactl
 
-EXTRA_DIST =	.cargo/config.toml.in \
+EXTRA_DIST =	.cargo/audit.toml \
+		.cargo/config.toml.in \
 		Cargo.lock \
 		Cargo.toml \
 		cbindgen.toml \
@@ -70,7 +71,7 @@ CARGO_ENV +=	LOCALSTATEDIR=$(e_localstatedir)
 # To pass specific CFLAGS to Lua.
 CARGO_ENV +=	SURICATA_LUA_SYS_CFLAGS="$(SURICATA_LUA_SYS_CFLAGS)"
 
-all-local: Cargo.toml ffi/Cargo.toml
+all-local: Cargo.toml Cargo.lock ffi/Cargo.toml
 	mkdir -p $(abs_top_builddir)/rust/gen
 	cd $(abs_top_srcdir)/rust && \
 		CC="$(CC)" AR="$(AR)" RANLIB="$(RANLIB)"\

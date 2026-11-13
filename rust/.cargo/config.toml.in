@@ -6,3 +6,9 @@
 @rust_vendor_comment@
 @rust_vendor_comment@[source.vendored-sources]
 @rust_vendor_comment@directory = '@e_rustdir@/vendor'
+
+# Resolve against the declared rust-version (workspace 1.85.0): when a
+# crate's newest release declares a higher rust-version, fall back to
+# the newest MSRV-compatible one instead of failing the resolution.
+[resolver]
+incompatible-rust-versions = "fallback"

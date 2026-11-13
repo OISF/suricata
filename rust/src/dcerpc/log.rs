@@ -53,7 +53,7 @@ fn log_dcerpc_header_tcp(
                         found = true;
                         jsb.start_object()?;
                         let ifuuid = Uuid::from_slice(uuid.uuid.as_slice()).unwrap();
-                        let ifstr = ifuuid.to_hyphenated().to_string();
+                        let ifstr = ifuuid.as_hyphenated().to_string();
                         jsb.set_string("uuid", &ifstr)?;
                         let vstr = format!("{}.{}", uuid.version, uuid.versionminor);
                         jsb.set_string("version", &vstr)?;
@@ -84,7 +84,7 @@ fn log_dcerpc_header_tcp(
                         found = true;
                         jsb.start_object()?;
                         let ifuuid = Uuid::from_slice(uuid.uuid.as_slice()).unwrap();
-                        let ifstr = ifuuid.to_hyphenated().to_string();
+                        let ifstr = ifuuid.as_hyphenated().to_string();
                         jsb.set_string("uuid", &ifstr)?;
                         let vstr = format!("{}.{}", uuid.version, uuid.versionminor);
                         jsb.set_string("version", &vstr)?;
@@ -169,7 +169,7 @@ fn log_dcerpc_header_udp(
     }
     let activityuuid = Uuid::from_slice(tx.activityuuid.as_slice());
     let activityuuid = activityuuid
-        .map(|uuid| uuid.to_hyphenated().to_string())
+        .map(|uuid| uuid.as_hyphenated().to_string())
         .unwrap();
     jsb.set_string("activityuuid", &activityuuid)?;
     jsb.set_uint("seqnum", tx.seqnum as u64)?;

@@ -39,7 +39,7 @@ pub struct Flow<'a> {
     _marker: PhantomData<&'a mut sys::Flow>,
 }
 
-impl<'a> Flow<'a> {
+impl Flow<'_> {
     /// Wrap a raw `Flow` pointer.
     ///
     /// # Safety

@@ -32,7 +32,7 @@ pub struct ThreadVars<'a> {
     _marker: PhantomData<&'a mut sys::ThreadVars>,
 }
 
-impl<'a> ThreadVars<'a> {
+impl ThreadVars<'_> {
     /// Wrap a raw `ThreadVars` pointer.
     ///
     /// # Safety
