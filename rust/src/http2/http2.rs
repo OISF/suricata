@@ -866,6 +866,25 @@ impl Drop for HTTP2Transaction {
     }
 }
 
+/// True when one of the frame's header-block fields is a field RFC 9110
+/// forbids in a trailer section.
+fn http2_trailer_has_forbidden_field(data: &HTTP2FrameTypeData) -> bool {
+    let blocks = match data {
+        HTTP2FrameTypeData::HEADERS(hd) => Some(&hd.blocks),
+        HTTP2FrameTypeData::CONTINUATION(hd) => Some(&hd.blocks),
+        _ => None,
+    };
+    match blocks {
+        Some(blocks) => blocks.iter().any(|b| {
+            b.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess
+                // RFC 9113 section 8.1: pseudo-header fields in trailers are malformed
+                && (b.name.starts_with(b":")
+                    || htp::trailer::is_forbidden_field(b.name.as_ref()))
+        }),
+        None => false,
+    }
+}
+
 #[derive(AppLayerEvent)]
 pub enum HTTP2Event {
     InvalidFrameHeader,
@@ -894,6 +913,7 @@ pub enum HTTP2Event {
     TooLongRepeatedHeaders,
     DifferentHosts,
     DifferentAuthorities,
+    TrailerForbiddenField,
 }
 
 pub struct HTTP2DynTable {
@@ -1752,6 +1772,10 @@ impl HTTP2State {
                     // classify before handling: handling moves the state this frame is
                     // judged against
                     let is_trailer = tx.frame_is_trailer(&txdata, dir);
+                    if is_trailer && http2_trailer_has_forbidden_field(&txdata) {
+                        tx.tx_data
+                            .set_event(HTTP2Event::TrailerForbiddenField as u8);
+                    }
                     if let Some(doh_req_buf) = tx.handle_frame(&head, &txdata, dir, is_trailer) {
                         if let Ok(mut dtx) = dns_parse_request(&doh_req_buf, &DnsVariant::Dns) {
                             dtx.id = 1;
@@ -2222,6 +2246,33 @@ mod tests {
                 sizeupdate: 0,
             })
             .collect()
+    }
+
+    #[test]
+    fn test_trailer_forbidden_field() {
+        // RFC 9110 section 6.5.1 names
+        assert!(http2_trailer_has_forbidden_field(&headers(&[(
+            b"content-length",
+            b"5"
+        )])));
+        assert!(http2_trailer_has_forbidden_field(&headers(&[(
+            b"cookie",
+            b"session=1"
+        )])));
+        // RFC 9113 section 8.1: pseudo-header fields in a trailer section
+        assert!(http2_trailer_has_forbidden_field(&headers(&[(
+            b":path",
+            b"/svc/Call"
+        )])));
+        // RFC 9110 section 8.8.3 allows ETag in a trailer section
+        assert!(!http2_trailer_has_forbidden_field(&headers(&[(
+            b"etag",
+            b"\"abc123\""
+        )])));
+        assert!(!http2_trailer_has_forbidden_field(&headers(&[
+            (b"grpc-message", b"OK"),
+            (b"server-timing", b"dur=1"),
+        ])));
     }
 
     fn headers(pairs: &[(&[u8], &[u8])]) -> HTTP2FrameTypeData {
