@@ -93,6 +93,13 @@ Major Changes
   explicit rule that catches the SNI-less case if you want to keep the
   drop (the reference SNI example in :doc:`firewall/firewall-example`
   keeps the drop by having no certificate-state accept).
+- DPDK capture support now requires DPDK 21.11 or later;
+  ``./configure --enable-dpdk`` fails on older releases.
+- ``mempool-size: auto`` for DPDK interfaces now reserves one RX burst (32
+  packets) per queue in addition to the RX and TX descriptors, and a manually
+  set ``mempool-size`` is validated against the same requirement.
+- DPDK interfaces accept the optional ``rx-backlog-size`` setting, a per-worker
+  packet backlog that absorbs traffic bursts; see :ref:`dpdk-rx-backlog`.
 
 Logging Changes
 ~~~~~~~~~~~~~~~
@@ -119,6 +126,11 @@ Logging Changes
 - App-layer stats protocols names replace dash by underscore, meaning
   ``stats.app_layer.*.ftp-data`` becomes ``stats.app_layer.*.ftp_data``,
   and same for bittorrent_dht
+
+- DPDK: all packets of one RX burst carry the same timestamp, taken when the
+  burst was received, instead of a timestamp taken when the processing of each
+  packet started. This should have none-to-minimal impact on timestamp accuracy
+  for most use cases.
 
 
 - MQTT user properties are now logged as a new object called ``user_properties``
@@ -208,6 +220,12 @@ Other Changes
   by default, set with ``max-preliminary-responses``. Past the limit, the
   ``ftp.too_many_preliminary_responses`` event is raised. See
   :ref:`suricata-yaml-configure-ftp`.
+- With ``threading.set-cpu-affinity`` enabled, Suricata now fails to start on a
+  ``threading.cpu-affinity`` CPU number the system does not have, an unknown
+  CPU set name or a malformed CPU range, mode, priority or thread count, also
+  in the ``interface-specific-cpu-set`` of an interface that is not used.
+- A CPU number the system does not have in the AF_PACKET ``xdp-cpu-redirect``
+  list disables the XDP CPU redirect, with a warning.
 
 Changes for Library Users and Plugin Developers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

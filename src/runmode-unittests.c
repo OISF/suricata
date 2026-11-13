@@ -87,6 +87,7 @@
 #include "util-hash.h"
 #include "util-hashlist.h"
 #include "util-pool.h"
+#include "util-ring-buffer.h"
 #include "util-byte.h"
 #include "util-file.h"
 #include "util-proto-name.h"
@@ -128,6 +129,8 @@
 #include "source-windivert.h"
 #endif
 
+#include "runmode-dpdk.h"
+
 #endif /* UNITTESTS */
 
 void TmqhSetup (void);
@@ -146,6 +149,7 @@ static void RegisterUnittests(void)
     HashTableRegisterTests();
     HashListTableRegisterTests();
     PoolRegisterTests();
+    SCRingBufferRegisterTests();
     ByteRegisterTests();
     MpmRegisterTests();
     FlowBitRegisterTests();
@@ -205,7 +209,7 @@ static void RegisterUnittests(void)
     SCLogRegisterTests();
     MagicRegisterTests();
     UtilMiscRegisterTests();
-    ThreadingAffinityRegisterTests();
+    AffinityRegisterTests();
     TmThreadsRegisterTests();
     DetectAddressTests();
     DetectProtoTests();
@@ -229,6 +233,9 @@ static void RegisterUnittests(void)
     UtilCIDRTests();
     OutputJsonStatsRegisterTests();
     CoredumpConfigRegisterTests();
+#ifdef HAVE_DPDK
+    RunmodeDpdkRegisterTests();
+#endif
 }
 #endif
 

@@ -29,24 +29,6 @@
 #include "util-dpdk.h"
 #include "util-debug.h"
 
-/**
- * Determines if the port is Bond or not by evaluating device driver name
- * @param pid port ID
- * @return 0 - the device si Bond PMD, 1 - regular device, <0 error
- */
-int32_t BondingIsBond(uint16_t pid)
-{
-    struct rte_eth_dev_info di;
-    int32_t ret = rte_eth_dev_info_get(pid, &di);
-    if (ret < 0) {
-        SCLogError("%s: unable to get device info (err: %s)", DPDKGetPortNameByPortID(pid),
-                rte_strerror(-ret));
-        return ret;
-    }
-
-    return strcmp(di.driver_name, "net_bonding") == 0 ? 0 : 1;
-}
-
 uint16_t BondingMemberDevicesGet(
         uint16_t bond_pid, uint16_t bonded_devs[], uint16_t bonded_devs_length)
 {
@@ -103,7 +85,7 @@ static int BondingMemberCountCb(
  * \param dev_info device info (must be non-NULL)
  * \return number of member devices found, 0 on any failure
  */
-static uint16_t BondingMemberDevCountFromDevargs(const struct rte_eth_dev_info *dev_info)
+uint16_t BondingMemberDevCount(const struct rte_eth_dev_info *dev_info)
 {
     if (dev_info->device == NULL) {
         return 0;
@@ -133,25 +115,6 @@ static uint16_t BondingMemberDevCountFromDevargs(const struct rte_eth_dev_info *
 
     rte_kvargs_free(kvargs);
     return ret == 0 ? count : 0;
-}
-
-uint32_t BondingMempoolSizeCalculate(
-        uint16_t bond_pid, const struct rte_eth_dev_info *dev_info, uint32_t curr_mempool_size)
-{
-    if (curr_mempool_size == 0) {
-        return 0;
-    }
-
-    uint16_t cnt = BondingMemberDevCountFromDevargs(dev_info);
-    if (cnt == 0) {
-        // don't adjust if unable to determine the number of bonded devices
-        return curr_mempool_size;
-    } else if (curr_mempool_size > UINT32_MAX / cnt) {
-        FatalError("%s: mempool size too large to adjust for %u bonded devices",
-                DPDKGetPortNameByPortID(bond_pid), cnt);
-    }
-
-    return curr_mempool_size * cnt;
 }
 
 int32_t BondingAllDevicesSameDriver(uint16_t bond_pid)

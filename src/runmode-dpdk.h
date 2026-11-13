@@ -34,6 +34,7 @@ typedef struct DPDKIfaceConfigAttributes_ {
     const char *vlan_strip_offload;
     const char *rss_hf;
     const char *linkup_timeout;
+    const char *rx_backlog_size;
     const char *mempool_size;
     const char *mempool_cache_size;
     const char *rx_descriptors;
@@ -45,5 +46,9 @@ typedef struct DPDKIfaceConfigAttributes_ {
 int RunModeIdsDpdkWorkers(void);
 void RunModeDpdkRegister(void);
 const char *RunModeDpdkGetDefaultMode(void);
+
+#if defined(HAVE_DPDK) && defined(UNITTESTS)
+void RunmodeDpdkRegisterTests(void);
+#endif /* HAVE_DPDK and UNITTESTS */
 
 #endif /* SURICATA_RUNMODE_DPDK_H */

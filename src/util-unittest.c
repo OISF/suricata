@@ -46,6 +46,7 @@ static pcre2_code *parse_regex;
 static pcre2_match_data *parse_regex_match;
 
 static UtTest *ut_list;
+static void (*ut_test_cleanup)(void) = NULL;
 
 int unittests_fatal = 0;
 
@@ -110,6 +111,17 @@ void UtRegisterTest(const char *name, int(*TestFn)(void))
 
     /* append */
     UtAppendTest(&ut_list, ut);
+}
+
+/**
+ * \brief Set the function that restores the global state the running test
+ *        changes. The runner calls it after the test, also when the test
+ *        fails before reaching its end. One function per test.
+ */
+void UtSetTestCleanup(void (*CleanupFn)(void))
+{
+    BUG_ON(ut_test_cleanup != NULL);
+    ut_test_cleanup = CleanupFn;
 }
 
 /**
@@ -208,6 +220,11 @@ uint32_t UtRunTests(const char *regex_arg)
                 TimeSetToCurrentTime();
 
                 ret = ut->TestFn();
+
+                if (ut_test_cleanup != NULL) {
+                    ut_test_cleanup();
+                    ut_test_cleanup = NULL;
+                }
 
                 if (StreamTcpMemuseCounter() != 0) {
                     printf("STREAM MEMORY IN USE %"PRIu64"\n", StreamTcpMemuseCounter());

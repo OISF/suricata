@@ -42,7 +42,7 @@ sleep 15
 
 # check stats and alerts
 STATSCHECK=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.packets > 0')
-if [ $STATSCHECK = false ]; then
+if [ "$STATSCHECK" != true ]; then
     echo "ERROR no packets captured"
     RES=1
 fi
@@ -59,7 +59,7 @@ sleep 15
 
 # check stats and alerts
 STATSCHECK=$(jq -c 'select(.event_type == "stats")' ./eve.json | tail -n1 | jq '.stats.capture.packets > 0')
-if [ $STATSCHECK = false ]; then
+if [ "$STATSCHECK" != true ]; then
     echo "ERROR no packets captured"
     RES=1
 fi

@@ -924,7 +924,12 @@ receive-, worker- and verdict-set. These are fixed names and can not be
 changed. For each set there are several options: cpu, mode, and prio. In the
 option 'cpu' you can set the numbers of the CPU's/cores which will run the
 threads from that set. You can set this option to 'all', use a range (0-3) or a
-comma separated list (0,1).  The option 'mode' can be set to 'balanced' or
+comma separated list (0,1). CPU numbers start at 0 and must exist on the
+system. With ``set-cpu-affinity`` enabled, Suricata does not start on a CPU
+number the system does not have, an unknown CPU set name or a malformed CPU
+range, mode, priority or thread count, also in the
+``interface-specific-cpu-set`` of an interface that is not used.
+The option 'mode' can be set to 'balanced' or
 'exclusive'. When set to 'balanced', the individual threads can be processed by
 all cores set in the option 'cpu'. If the option 'mode' is set to 'exclusive',
 there will be fixed cores for each thread. As mentioned before, threads can
@@ -954,17 +959,17 @@ per available CPU/CPU core.
           # detect-thread-ratio variable:
           # threads: 3
           prio:
-            low: [ 0 ]
-            medium: [ "1-2" ]
-            high: [ 3 ]
+            # low: [ 0 ]
+            # medium: [ "1-2" ]
+            # high: [ 3 ]
             default: "medium"
-          interface-specific-cpu-set:
-            - interface: "enp4s0f0" # 0000:3b:00.0 # net_bonding0 # ens1f0
-              cpu: [ 1,3,5,7,9 ]
-              mode: "exclusive"
-              prio:
-                high: [ "all" ]
-                default: "medium"
+          # interface-specific-cpu-set:
+          #   - interface: "enp4s0f0" # 0000:3b:00.0 # net_bonding0 # ens1f0
+          #     cpu: [ 1,3,5,7,9 ]
+          #     mode: "exclusive"
+          #     prio:
+          #       high: [ "all" ]
+          #       default: "medium"
         verdict-cpu-set:
           cpu: [ 0 ]
           prio:
@@ -2512,6 +2517,12 @@ auto-calculated by setting ``mempool-size: auto``. If ``mempool-size`` is set
 manually (to e.g. ``mempool-size: 65536``), the value is divided by the number of
 worker cores of the interface (on 4 worker threads, each worker is assigned
 with a mempool containing 16383 packet objects).
+Both auto sizing and manual minimum validation include each worker's RX and
+TX descriptors, ``rx-backlog-size`` mbufs, and a 32-mbuf in-flight margin.
+The optional :ref:`dpdk-rx-backlog` can help to overcome short-term traffic
+bursts. The backlog is configured per worker/RX queue. Its size must be an
+integer that is a power of two, with a minimum of 32; zero (the default)
+disables it. A good value to start with could be, e.g., ``131072``.
 Memory (in bytes) for interface's memory pools is calculated as:
 ``mempool-size`` * ``mtu``.
 The sum of memory pool requirements divided by the size of one hugepage results
@@ -2549,8 +2560,7 @@ Other NICs using the same driver as mentioned above should work as well.
 The DPDK capture interface has not been tested neither with the virtual
 interfaces nor in the virtual environments like VMs, Docker or similar.
 
-The minimal supported DPDK is version 19.11 which should be available in most
-repositories of major distributions.
+The minimal supported DPDK version is 21.11.
 Alternatively, it is also possible to use ``meson`` and ``ninja`` to build and
 install DPDK from source files.
 It is required to have correctly configured tool ``pkg-config`` as it is used to
