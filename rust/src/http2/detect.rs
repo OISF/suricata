@@ -33,14 +33,14 @@ fn http2_tx_has_frametype(
     tx: &HTTP2Transaction, direction: Direction, value: u8,
 ) -> std::os::raw::c_int {
     if direction == Direction::ToServer {
-        for i in 0..tx.frames_ts.len() {
-            if tx.frames_ts[i].header.ftype == value {
+        for frame in &tx.frames_ts {
+            if frame.header.ftype == value {
                 return 1;
             }
         }
     } else {
-        for i in 0..tx.frames_tc.len() {
-            if tx.frames_tc[i].header.ftype == value {
+        for frame in &tx.frames_tc {
+            if frame.header.ftype == value {
                 return 1;
             }
         }
@@ -73,8 +73,8 @@ fn http2_tx_has_errorcode(
     tx: &HTTP2Transaction, direction: Direction, code: u32,
 ) -> std::os::raw::c_int {
     if direction == Direction::ToServer {
-        for i in 0..tx.frames_ts.len() {
-            match tx.frames_ts[i].data {
+        for frame in &tx.frames_ts {
+            match frame.data {
                 HTTP2FrameTypeData::GOAWAY(goaway) => {
                     if goaway.errorcode == code {
                         return 1;
@@ -87,8 +87,8 @@ fn http2_tx_has_errorcode(
             }
         }
     } else {
-        for i in 0..tx.frames_tc.len() {
-            match tx.frames_tc[i].data {
+        for frame in &tx.frames_tc {
+            match frame.data {
                 HTTP2FrameTypeData::GOAWAY(goaway) => {
                     if goaway.errorcode == code {
                         return 1;
@@ -130,8 +130,8 @@ fn http2_tx_get_next_priority(
 ) -> std::os::raw::c_int {
     let mut pos = 0_u32;
     if direction == Direction::ToServer {
-        for i in 0..tx.frames_ts.len() {
-            match &tx.frames_ts[i].data {
+        for frame in &tx.frames_ts {
+            match &frame.data {
                 HTTP2FrameTypeData::PRIORITY(prio) => {
                     if pos == nb {
                         return prio.weight as i32;
@@ -152,8 +152,8 @@ fn http2_tx_get_next_priority(
             }
         }
     } else {
-        for i in 0..tx.frames_tc.len() {
-            match &tx.frames_tc[i].data {
+        for frame in &tx.frames_tc {
+            match &frame.data {
                 HTTP2FrameTypeData::PRIORITY(prio) => {
                     if pos == nb {
                         return prio.weight as i32;
@@ -190,8 +190,8 @@ fn http2_tx_get_next_window(
 ) -> std::os::raw::c_int {
     let mut pos = 0_u32;
     if direction == Direction::ToServer {
-        for i in 0..tx.frames_ts.len() {
-            if let HTTP2FrameTypeData::WINDOWUPDATE(wu) = tx.frames_ts[i].data {
+        for frame in &tx.frames_ts {
+            if let HTTP2FrameTypeData::WINDOWUPDATE(wu) = frame.data {
                 if pos == nb {
                     return wu.sizeinc as i32;
                 } else {
@@ -200,8 +200,8 @@ fn http2_tx_get_next_window(
             }
         }
     } else {
-        for i in 0..tx.frames_tc.len() {
-            if let HTTP2FrameTypeData::WINDOWUPDATE(wu) = tx.frames_tc[i].data {
+        for frame in &tx.frames_tc {
+            if let HTTP2FrameTypeData::WINDOWUPDATE(wu) = frame.data {
                 if pos == nb {
                     return wu.sizeinc as i32;
                 } else {
