@@ -143,8 +143,10 @@ Logging Changes
 
 - HTTP trailer fields are logged in dedicated ``http.request_trailers`` and
   ``http.response_trailers`` arrays instead of being appended to a header field
-  of the same name. HTTP/1 writes these arrays only with ``dump-all-headers``,
-  or with ``custom`` and the arrays listed; HTTP/2 always logs them.
+  of the same name. They stay in ``request_headers``/``response_headers`` as
+  well - HTTP/2 always, HTTP/1 under ``dump-all-headers``, which is also what
+  makes HTTP/1 write the trailer arrays. ``custom`` writes only the trailer
+  fields whose names are in its field list.
 
 Removals
 ~~~~~~~~

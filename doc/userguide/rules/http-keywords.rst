@@ -1302,8 +1302,18 @@ Example HTTP Request::
 
 .. note:: Trailer fields are logged separately from headers in the
   ``http.request_trailers`` and ``http.response_trailers`` arrays of the ``http`` event,
-  for HTTP/1 and HTTP/2. HTTP/1 writes them only with ``dump-all-headers``, or with
-  ``custom`` and the arrays listed.
+  for HTTP/1 and HTTP/2. They also stay in the header arrays, as trailer fields are
+  header fields of a later block: HTTP/2 always logs them there, HTTP/1 only with
+  ``dump-all-headers``, which is also what makes HTTP/1 write the trailer arrays.
+  ``custom`` writes only the trailer fields whose names are in its field list.
+
+.. note:: A trailer section must not carry fields that RFC 9110 section 6.5.1 reserves
+  for other purposes: message framing (``Transfer-Encoding``, ``Content-Length``,
+  ``Trailer``), routing (``Host``), request modifiers and authentication, response control
+  data, and payload processing (``Content-Encoding``, ``Content-Type``,
+  ``Content-Range``). Such a field still reaches the buffers below and raises
+  ``http.request_trailer_forbidden_field`` or ``http.response_trailer_forbidden_field``
+  for HTTP/1, and ``http2.trailer_forbidden_field`` for HTTP/2.
 
 .. _http.trailer_names:
 
