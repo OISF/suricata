@@ -244,12 +244,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cdylib-link-lines"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d98eabef08bbdf5afd0b9c0cabb1ac335f7c70447ef095eed85dffd9628b20bc"
-
-[[package]]
 name = "cfg-if"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1619,7 +1613,6 @@ dependencies = [
  "base64",
  "brotli",
  "bstr",
- "cdylib-link-lines",
  "flate2",
  "lazy_static",
  "libc",
@@ -1661,7 +1654,6 @@ dependencies = [
  "clap",
  "home",
  "indexmap",
- "once_cell",
  "rustyline",
  "rustyline-derive",
  "serde",
