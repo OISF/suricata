@@ -2545,11 +2545,14 @@ impl NFSState {
                         tdf.chunk_count += 1;
                         tdf.note_chunk_data(chunk_offset, reply.data.len() as u64);
                         tdf.note_eof(reply.eof);
+                        // Any record that added data is the most recent one,
+                        // not just the one that ends the read.
+                        tdf.file_last_xid = r.hdr.xid;
+                        // The record carries a status even when the read does
+                        // not end here, so a read that stops short of EOF is
+                        // logged with the first error, else the first status.
+                        tx.set_reply_status(r.reply_state, reply.status, true);
                         if is_last {
-                            tdf.file_last_xid = r.hdr.xid;
-                            tx.rpc_response_status = r.reply_state;
-                            tx.nfs_response_status = reply.status;
-                            tx.nfs_status_set = true;
                             tx.is_last = true;
                             tx.request_done = true;
                             sc_app_layer_parser_trigger_raw_stream_inspection(
@@ -2609,12 +2612,13 @@ impl NFSState {
                     );
                     tdf.note_chunk_data(chunk_offset, reply.data.len() as u64);
                     tdf.note_eof(reply.eof);
-                }
-                if is_last && !queue_exceeded {
+                    // Any record that added data is the most recent one,
+                    // not just the one that ends the read.
                     tdf.file_last_xid = r.hdr.xid;
-                    tx.rpc_response_status = r.reply_state;
-                    tx.nfs_response_status = reply.status;
-                    tx.nfs_status_set = true;
+                }
+                // first record of the reply carries the status, see above
+                tx.set_reply_status(r.reply_state, reply.status, true);
+                if is_last && !queue_exceeded {
                     tx.is_last = true;
                     tx.request_done = true;
                     sc_app_layer_parser_trigger_raw_stream_inspection(
