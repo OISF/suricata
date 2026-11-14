@@ -4909,20 +4909,42 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+                "client_id": {
+                    "type": "string",
+                    "description": "NFSv4 client id in hex: from the EXCHANGE_ID reply or the CREATE_SESSION request on v4.1, from the SETCLIENTID reply on v4.0"
+                },
                 "file_tx": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "true when the transaction carries a file (READ, WRITE)"
                 },
                 "filename": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "file name of the transaction when known, else empty; a name component, not a path",
+                    "suricata": {
+                        "keywords": [
+                            "nfs.name"
+                        ]
+                    }
+                },
+                "filename_truncated": {
+                    "type": "boolean",
+                    "description": "set when the name was not logged because the record budget was spent"
                 },
                 "hhash": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "CRC32 (IEEE) of the whole file handle in hex, for grouping transactions that touch the same file"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "NFS transaction id; alert and fileinfo records for the same transaction carry a tx_id one lower"
+                },
+                "minorversion": {
+                    "type": "integer",
+                    "description": "NFSv4 minor version, only set for version 4"
                 },
                 "procedure": {
                     "type": "string",
+                    "description": "procedure name in upper case, v2/v3/v4 name space",
                     "suricata": {
                         "keywords": [
                             "nfs_procedure"
@@ -4931,42 +4953,81 @@
                 },
                 "read": {
                     "type": "object",
+                    "description": "set on READ transactions",
                     "additionalProperties": false,
                     "properties": {
                         "chunks": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "number of data chunks seen for the transaction"
+                        },
+                        "eof": {
+                            "type": "boolean",
+                            "description": "true when the server reported end of file"
                         },
                         "first": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "true on the first record of the transaction"
                         },
                         "last": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "true on the last record of the transaction"
                         },
                         "last_xid": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "xid of the last record that added data to the transaction"
+                        },
+                        "offset": {
+                            "type": "integer",
+                            "description": "offset in the file where the transfer starts"
+                        },
+                        "size": {
+                            "type": "integer",
+                            "description": "number of bytes transferred"
                         }
                     }
                 },
                 "rename": {
                     "type": "object",
+                    "description": "set on RENAME transactions",
                     "additionalProperties": false,
                     "properties": {
                         "from": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "source name of the rename"
+                        },
+                        "from_truncated": {
+                            "type": "boolean",
+                            "description": "set when the source name was shortened to fit the record budget"
                         },
                         "to": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "target name of the rename"
+                        },
+                        "to_truncated": {
+                            "type": "boolean",
+                            "description": "set when the target name was shortened to fit the record budget"
                         }
                     }
                 },
                 "status": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "NFS status of the reply as a name, only on responses; in alert and fileinfo records an unobserved reply status is logged as OK, unlike status_code which is then omitted"
+                },
+                "status_code": {
+                    "type": "integer",
+                    "description": "NFS status of the reply as a number, only when the reply carries a status"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "set when the record hit the logger's size budget, so fields may be missing or shortened"
                 },
                 "type": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "request or response"
                 },
                 "version": {
                     "type": "integer",
+                    "description": "NFS version of the transaction",
                     "suricata": {
                         "keywords": [
                             "nfs.version"
@@ -4975,19 +5036,32 @@
                 },
                 "write": {
                     "type": "object",
+                    "description": "set on WRITE transactions",
                     "additionalProperties": false,
                     "properties": {
                         "chunks": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "number of data chunks seen for the transaction"
                         },
                         "first": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "true on the first record of the transaction"
                         },
                         "last": {
-                            "type": "boolean"
+                            "type": "boolean",
+                            "description": "true on the last record of the transaction"
                         },
                         "last_xid": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "xid of the last record that added data to the transaction"
+                        },
+                        "offset": {
+                            "type": "integer",
+                            "description": "offset in the file where the transfer starts"
+                        },
+                        "size": {
+                            "type": "integer",
+                            "description": "number of bytes transferred"
                         }
                     }
                 }
@@ -5708,6 +5782,10 @@
                         "machine_name": {
                             "type": "string"
                         },
+                        "machine_name_truncated": {
+                            "type": "boolean",
+                            "description": "set when the machine name was shortened to fit the record budget"
+                        },
                         "uid": {
                             "type": "integer"
                         }
@@ -5715,6 +5793,10 @@
                 },
                 "status": {
                     "type": "string"
+                },
+                "truncated": {
+                    "type": "boolean",
+                    "description": "set when the rpc block hit the logger's size budget, so fields may be missing or shortened"
                 },
                 "xid": {
                     "type": "integer"

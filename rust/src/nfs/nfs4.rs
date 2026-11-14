@@ -39,6 +39,18 @@ fn parse_req_gssapi(i: &[u8]) -> IResult<&[u8], Kerberos5Ticket, SecBlobError> {
     Ok((i, ap))
 }
 
+/// The compound's main op is the last significant op, except that a
+/// file-effect op (CREATE/REMOVE) anchors the compound and nothing but another
+/// anchor displaces it - mainline parity.
+fn v4_main_op_take(cur: u32, next: u32) -> u32 {
+    let is_anchor = |op: u32| matches!(op, NFSPROC4_CREATE | NFSPROC4_REMOVE);
+    if is_anchor(cur) && !is_anchor(next) {
+        cur
+    } else {
+        next
+    }
+}
+
 impl NFSState {
     /* normal write: PUTFH (file handle), WRITE (write opts/data). File handle
      * is not part of the write record itself so we pass it in here. */
@@ -96,11 +108,25 @@ impl NFSState {
             return;
         }
 
+        // The FSINFO (v3) / GETATTR max* (v4) ceiling is advisory:
+        // non-compliant peers routinely exceed the advertised max
+        // transfer size in the wild, so flag it but keep processing
+        // (the configured limit above stays the hard security boundary).
+        let fsinfo_exceeded = self.fsinfo_max_write > 0 && w.write_len > self.fsinfo_max_write;
+
         let mut queue_exceeded = false;
 
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             Some(tx) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                    // same rule as v2/v3: a write starting below the
+                    // high-water mark overlaps data already tracked, and the
+                    // tracker keeps only the first copy
+                    if w.offset < tdf.file_tracker.tracked {
+                        tx.tx_data.set_event(NFSEvent::FileOverlap as u8);
+                        tx.tx_data.0.updated_ts = true;
+                        tx.tx_data.0.updated_tc = true;
+                    }
                     if let Some(event) =
                         write_queue_limit_event(&tdf.file_tracker, w.offset, w.data.len() as u64)
                     {
@@ -121,11 +147,26 @@ impl NFSState {
                             &r.hdr.xid,
                         );
                         tdf.chunk_count += 1;
+                        tdf.note_chunk_data(w.offset, w.data.len() as u64);
+                        // the WRITE reply is matched to this tx by xid, and it
+                        // carries a status for UNSTABLE writes too
+                        tdf.file_last_xid = r.hdr.xid;
                         if is_last {
-                            tdf.file_last_xid = r.hdr.xid;
                             tx.is_last = true;
-                            tx.response_done = true;
+                            tx.request_done = true;
+                            // Same is_last split-record handling as the new-tx
+                            // branch: a partial record stays open and is
+                            // completed by the chunk path; is_finished() also
+                            // covers an overlapping final write, which
+                            // truncates the tracker while it stays open.
+                            if w.data.len() >= w.write_len as usize {
+                                tx.response_done = true;
+                                tx.is_file_closed = true;
+                            }
                         }
+                    }
+                    if fsinfo_exceeded {
+                        tx.tx_data.set_event(NFSEvent::FsinfoTooLarge as u8);
                     }
                 }
                 true
@@ -160,18 +201,32 @@ impl NFSState {
                         is_last,
                         &r.hdr.xid,
                     );
+                    tdf.note_chunk_data(w.offset, w.data.len() as u64);
+                }
+                // see above: the reply finds the tx by xid
+                if !queue_exceeded {
+                    tdf.file_last_xid = r.hdr.xid;
                 }
                 if is_last && !queue_exceeded {
-                    tdf.file_last_xid = r.hdr.xid;
                     tx.is_last = true;
                     tx.request_done = true;
-                    tx.is_file_closed = true;
+                    // Same is_last split-record handling as the v3 write
+                    // path: a partial record stays open and completes in the
+                    // chunk path; is_finished() also covers an overlapping
+                    // final write, which truncates the tracker while open.
+                    if w.data.len() >= w.write_len as usize && tdf.file_tracker.is_finished() {
+                        tx.response_done = true;
+                        tx.is_file_closed = true;
+                    }
                 }
             }
             tx.procedure = NFSPROC4_WRITE;
             tx.xid = r.hdr.xid;
             tx.is_first = true;
             tx.nfs_version = r.progver as u16;
+            if fsinfo_exceeded {
+                tx.tx_data.set_event(NFSEvent::FsinfoTooLarge as u8);
+            }
         }
         if queue_exceeded {
             // Don't buffer the rest of the record: skip to its RPC boundary.
@@ -205,6 +260,9 @@ impl NFSState {
                 tdf.file_last_xid = r.hdr.xid;
                 tx.is_last = true;
                 tx.request_done = true;
+                // See the v3 COMMIT branch: the response side is completed
+                // here, not by the individual WRITE replies.
+                tx.response_done = true;
                 tx.is_file_closed = true;
             }
         }
@@ -251,6 +309,19 @@ impl NFSState {
         let mut main_opcode: u32 = 0;
         let mut aux_opcodes: Vec<u32> = Vec::new();
 
+        // v4 minor version of this COMPOUND: flow-level state so the
+        // records of this flow can carry it (SMB dialect parity).
+        self.minorversion = cr.minorversion;
+
+        // Establish the flow-level version from the first v4 request.
+        // Without this, records logged before the first reply is seen
+        // (e.g. a write file tx completing mid-flow) would carry version
+        // 0 and the logger's version dispatch (v2 table for <= 2) would
+        // name procedures numerically.
+        if self.nfs_version == 0 {
+            self.nfs_version = r.progver as u16;
+        }
+
         for c in &cr.commands {
             SCLogDebug!("c {:?}", c);
             match *c {
@@ -277,6 +348,7 @@ impl NFSState {
                 Nfs4RequestContent::Write(ref rd) => {
                     SCLogDebug!("WRITEv4: {:?}", rd);
                     if let Some(fh) = last_putfh {
+                        xidmap.file_handle = fh.to_vec();
                         self.write_v4(r, rd, fh);
                     }
                 }
@@ -288,6 +360,7 @@ impl NFSState {
                 }
                 Nfs4RequestContent::Close(ref _rd) => {
                     SCLogDebug!("CLOSEv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_CLOSE);
                     if let Some(fh) = last_putfh {
                         self.close_v4(r, fh);
                     }
@@ -298,12 +371,62 @@ impl NFSState {
                         xidmap.file_handle = fh.to_vec();
                     }
                     xidmap.file_name = rd.filename.to_vec();
-                    main_opcode = NFSPROC4_CREATE;
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_CREATE);
+                }
+                Nfs4RequestContent::DelegReturn(ref _rd) => {
+                    SCLogDebug!("DELEGRETURNv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_DELEGRETURN);
+                }
+                Nfs4RequestContent::GetAttr(ref _rd) => {
+                    // the metadata poll that trails nearly every compound: it names
+                    // no object of its own, so it is never taken as the main op. A
+                    // compound of only PUTFH and GETATTR opens no tx (sv-master pins
+                    // this), and after another op it is that op's attribute follow-up.
+                    SCLogDebug!("GETATTRv4: {:?}", _rd);
+                }
+                Nfs4RequestContent::SecInfoNoName(_rd) => {
+                    SCLogDebug!("SECINFO_NO_NAMEv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_SECINFO_NO_NAME);
+                }
+                Nfs4RequestContent::ReclaimComplete(_rd) => {
+                    SCLogDebug!("RECLAIM_COMPLETEv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_RECLAIM_COMPLETE);
+                }
+                Nfs4RequestContent::LayoutReturn(ref _rd) => {
+                    SCLogDebug!("LAYOUTRETURNv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_LAYOUTRETURN);
+                }
+                Nfs4RequestContent::LayoutGet(ref _rd) => {
+                    SCLogDebug!("LAYOUTGETv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_LAYOUTGET);
+                }
+                Nfs4RequestContent::GetDevInfo(ref _rd) => {
+                    SCLogDebug!("GETDEVINFOv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_GETDEVINFO);
+                }
+                Nfs4RequestContent::DestroyClientID(_rd) => {
+                    SCLogDebug!("DESTROY_CLIENTIDv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_DESTROY_CLIENTID);
+                }
+                Nfs4RequestContent::DestroySession(_rd) => {
+                    SCLogDebug!("DESTROY_SESSIONv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_DESTROY_SESSION);
+                }
+                Nfs4RequestContent::CreateSession(ref rd) => {
+                    SCLogDebug!("CREATE_SESSIONv4: {:?}", rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_CREATE_SESSION);
+                    // clientid4 (8 bytes) the client presents for this
+                    // session; keeps the flow-level client id current.
+                    self.client_id = <[u8; 8]>::try_from(rd.client_id).ok();
+                }
+                Nfs4RequestContent::ExchangeId(ref _rd) => {
+                    SCLogDebug!("EXCHANGE_IDv4: {:?}", _rd);
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_EXCHANGE_ID);
                 }
                 Nfs4RequestContent::Remove(rd) => {
                     SCLogDebug!("REMOVEv4: {:?}", rd);
                     xidmap.file_name = rd.to_vec();
-                    main_opcode = NFSPROC4_REMOVE;
+                    main_opcode = v4_main_op_take(main_opcode, NFSPROC4_REMOVE);
                 }
                 Nfs4RequestContent::SetClientId(ref _rd) => {
                     SCLogDebug!(
@@ -408,8 +531,17 @@ impl NFSState {
         xidmap: &mut NFSRequestXidMap,
     ) {
         let mut insert_filename_with_getfh = false;
+        let mut main_op: u32 = 0;
         let mut main_opcode_status: u32 = 0;
         let mut main_opcode_status_set: bool = false;
+        // status of the winning (main) op; see v4_main_op_take
+        let mut take_main_op_status = |op: u32, s: u32| {
+            if v4_main_op_take(main_op, op) == op {
+                main_op = op;
+                main_opcode_status = s;
+                main_opcode_status_set = true;
+            }
+        };
 
         for c in &cr.commands {
             SCLogDebug!("c {:?}", c);
@@ -426,13 +558,110 @@ impl NFSState {
                 }
                 Nfs4ResponseContent::Remove(s) => {
                     SCLogDebug!("REMOVE4: status {}", s);
-                    main_opcode_status = s;
-                    main_opcode_status_set = true;
+
+                    take_main_op_status(NFSPROC4_REMOVE, s);
                 }
                 Nfs4ResponseContent::Create(s) => {
                     SCLogDebug!("CREATE4: status {}", s);
-                    main_opcode_status = s;
-                    main_opcode_status_set = true;
+
+                    take_main_op_status(NFSPROC4_CREATE, s);
+                }
+                Nfs4ResponseContent::DelegReturn(s) => {
+                    SCLogDebug!("DELEGRETURN4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_DELEGRETURN, s);
+                }
+                Nfs4ResponseContent::GetAttr(s, ref attrs) => {
+                    SCLogDebug!("GETATTR4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_GETATTR, s);
+                    // The FATTR4_MAXREAD/MAXWRITE values in a GETATTR reply
+                    // are the v4 equivalent of v3 FSINFO: store the
+                    // advertised ceilings so transfers beyond them are
+                    // flagged with fsinfo_too_large. Advisory only -- the
+                    // configured limits stay the hard security boundary.
+                    if s == NFS4_OK {
+                        if let Some(ref a) = attrs {
+                            if let Some(v) = a.max_read {
+                                self.fsinfo_max_read = v;
+                            }
+                            if let Some(v) = a.max_write {
+                                self.fsinfo_max_write = v;
+                            }
+                        }
+                    }
+                }
+                Nfs4ResponseContent::SecInfoNoName(s) => {
+                    SCLogDebug!("SECINFO_NO_NAME4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_SECINFO_NO_NAME, s);
+                }
+                Nfs4ResponseContent::ReclaimComplete(s) => {
+                    SCLogDebug!("RECLAIM_COMPLETE4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_RECLAIM_COMPLETE, s);
+                }
+                Nfs4ResponseContent::LayoutReturn(s) => {
+                    SCLogDebug!("LAYOUTRETURN4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_LAYOUTRETURN, s);
+                }
+                Nfs4ResponseContent::LayoutGet(s, _) => {
+                    SCLogDebug!("LAYOUTGET4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_LAYOUTGET, s);
+                }
+                Nfs4ResponseContent::GetDevInfo(s, _) => {
+                    SCLogDebug!("GETDEVINFO4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_GETDEVINFO, s);
+                }
+                Nfs4ResponseContent::DestroyClientID(s) => {
+                    SCLogDebug!("DESTROY_CLIENTID4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_DESTROY_CLIENTID, s);
+                }
+                Nfs4ResponseContent::DestroySession(s) => {
+                    SCLogDebug!("DESTROY_SESSION4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_DESTROY_SESSION, s);
+                }
+                Nfs4ResponseContent::CreateSession(s, _) => {
+                    SCLogDebug!("CREATE_SESSION4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_CREATE_SESSION, s);
+                }
+                Nfs4ResponseContent::ExchangeId(s, Some(ref rd)) => {
+                    SCLogDebug!("EXCHANGE_ID4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_EXCHANGE_ID, s);
+                    // clientid4 assigned by the server (EXCHANGE_ID is
+                    // the v4.2 way of establishing it).
+                    if s == NFS4_OK {
+                        // keep an already observed id: a short field here
+                        // means "not carried", not "no id"
+                        if let Ok(id) = <[u8; 8]>::try_from(rd.client_id) {
+                            self.client_id = Some(id);
+                        }
+                    }
+                }
+                Nfs4ResponseContent::SetClientId(s, client_id) => {
+                    SCLogDebug!("SETCLIENTID4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_SETCLIENTID, s);
+                    // clientid4 (8 bytes) assigned by the server:
+                    // flow-level v4 identity for the records that
+                    // follow. The request side creates no tx for
+                    // SETCLIENTID, so mark_response_tx_done below is a
+                    // silent no-op for it.
+                    if s == NFS4_OK {
+                        self.client_id = Some(client_id.to_be_bytes());
+                    }
+                }
+                Nfs4ResponseContent::Close(s, _) => {
+                    SCLogDebug!("CLOSE4: status {}", s);
+
+                    take_main_op_status(NFSPROC4_CLOSE, s);
                 }
                 Nfs4ResponseContent::Read(s, Some(ref rd)) => {
                     SCLogDebug!(
@@ -441,6 +670,7 @@ impl NFSState {
                         s,
                         rd.data.len()
                     );
+                    take_main_op_status(NFSPROC4_READ, s);
                     // convert record to generic read reply
                     let reply = NfsReplyRead {
                         status: s,
@@ -457,6 +687,15 @@ impl NFSState {
                     SCLogDebug!("OPENv4: status {} opendata {:?}", _s, _rd);
                     insert_filename_with_getfh = true;
                 }
+                Nfs4ResponseContent::Write(s, _) => {
+                    // the WRITE op is the main op of a write compound: its
+                    // status, not the compound status, is what the file tx
+                    // must show, and UNSTABLE writes reach here as well
+                    take_main_op_status(NFSPROC4_WRITE, s);
+                }
+                Nfs4ResponseContent::Commit(s) => {
+                    take_main_op_status(NFSPROC4_COMMIT, s);
+                }
                 Nfs4ResponseContent::GetFH(_s, Some(ref rd)) if insert_filename_with_getfh => {
                     self.namemap
                         .put(rd.value.to_vec(), xidmap.file_name.to_vec());
@@ -471,16 +710,30 @@ impl NFSState {
             }
         }
 
-        if main_opcode_status_set {
-            let resp_handle = Vec::new();
-            self.mark_response_tx_done(
-                flow,
-                r.hdr.xid,
-                r.reply_state,
-                main_opcode_status,
-                &resp_handle,
-            );
-        }
+        // Complete the tx on every parsed reply. A server stops at the first
+        // failing op (RFC 7530 15.2), so an error in PUTFH or SEQUENCE leaves
+        // the main op's status word out of the reply: taking the compound
+        // status instead is what keeps the tx from staying open for good.
+        let status = if main_opcode_status_set {
+            main_opcode_status
+        } else {
+            cr.status
+        };
+        let resp_handle = Vec::new();
+        let write_handle = if xidmap.procedure == NFSPROC4_WRITE {
+            xidmap.file_handle.as_slice()
+        } else {
+            &[]
+        };
+        self.mark_response_tx_done(
+            flow,
+            r.hdr.xid,
+            r.reply_state,
+            status,
+            true,
+            &resp_handle,
+            write_handle,
+        );
     }
 
     pub fn process_reply_record_v4(

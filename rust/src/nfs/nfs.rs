@@ -20,13 +20,15 @@
 use lru::LruCache;
 use std;
 use std::cmp;
+use std::collections::VecDeque;
 use std::ffi::CString;
 use std::num::NonZeroUsize;
 
 use nom7::{Err, Needed};
 use suricata_sys::sys::{
     AppLayerParserState, AppProto, SCAppLayerParserConfParserEnabled,
-    SCAppLayerProtoDetectConfProtoDetectionEnabled, SCAppLayerProtoDetectPPParseConfPorts,
+    SCAppLayerParserSetStreamDepth, SCAppLayerProtoDetectConfProtoDetectionEnabled,
+    SCAppLayerProtoDetectPMRegisterPatternCSwPP, SCAppLayerProtoDetectPPParseConfPorts,
     SCAppLayerProtoDetectPPRegister, SCFileFlowFlagsToFlags,
 };
 
@@ -51,6 +53,15 @@ use crate::nfs::types::*;
 pub static mut SURICATA_NFS_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
 pub const NFS_MIN_FRAME_LEN: u16 = 32;
+
+/// RFC 1094 2.3.7 declares filename as `filename<MAXNAMLEN>` and 3.5 sets
+/// MAXNAMLEN to 255, so a longer v2 name is out of spec.
+///
+/// v3 names are not checked: RFC 1813 3.2 declares filename3<> and nfspath3<>
+/// unbounded and leaves rejection to NFS3ERR_NAMETOOLONG, so a long v3 name is
+/// valid traffic. Either way the name is kept for detection and the logger
+/// bounds what it writes.
+pub const NFS2_NAME_SPEC_MAX: usize = 255;
 
 static mut NFS_MAX_TX: usize = 1024;
 
@@ -101,8 +112,19 @@ static mut ALPROTO_NFS: AppProto = ALPROTO_UNKNOWN;
  * Transaction lookup.
  */
 
+/// Default for `app-layer.protocols.nfs.stream-depth`: 0 tracks the
+/// whole stream (same default as SMB)
+pub const NFS_CONFIG_DEFAULT_STREAM_DEPTH: u32 = 0;
+
 pub static mut NFS_CFG_MAX_REQ: usize = 512;
 pub static mut NFS_CFG_MAX_NAMES: usize = 512;
+
+/// Procedures filtered from the EVE output (lowercased names), as set
+/// via `app-layer.protocols.nfs.filter`. When the key is absent, the
+/// historical default applies instead: v3 GETATTR is filtered.
+pub static mut NFS_CFG_FILTER_PROCS: Vec<String> = Vec::new();
+/// Whether `app-layer.protocols.nfs.filter` was set at all.
+pub static mut NFS_CFG_FILTER_SET: bool = false;
 
 /// Max queued (out-of-order) read file data (bytes). 0 = no limit.
 pub static mut NFS_CFG_MAX_READ_QUEUE_SIZE: u32 = 67108864;
@@ -127,6 +149,31 @@ pub const NFS_MAX_METADATA_SIZE_DEFAULT: u32 = 16777216;
 /// buffered toward its RPC record claim, so the handle/name mapping is kept.
 /// Separate from max-read-size, which bounds READ data only.
 pub static mut NFS_CFG_MAX_METADATA_SIZE: u32 = NFS_MAX_METADATA_SIZE_DEFAULT;
+
+/// Sanity cap for the RPC record mark length field: RFC 5531 11 defines it
+/// as 31 bits of byte count for every NFS version, so a forged mark can
+/// claim ~2 GiB and drive TCP stream buffering toward it (app-layer stall +
+/// memory pin). Floor independent of max-read-size/max-write-size: those are
+/// documented to be disabled by 0, but disabling them must not make the
+/// record framing unbounded. See record_length_cap.
+const NFS_MAX_RECORD_LENGTH: usize = 64 * 1024 * 1024;
+
+/// Largest record (mark + header) the parser will buffer: the floor, or a
+/// configured size limit above it, so that a user who raises max-write-size
+/// past the floor is not capped below their own setting.
+fn record_length_cap() -> usize {
+    let mut cap = NFS_MAX_RECORD_LENGTH;
+    for v in [
+        unsafe { NFS_CFG_MAX_READ_SIZE },
+        unsafe { NFS_CFG_MAX_WRITE_SIZE },
+        unsafe { NFS_CFG_MAX_METADATA_SIZE },
+    ] {
+        if v != 0 && v as usize >= cap {
+            cap = v as usize + 4;
+        }
+    }
+    cap
+}
 
 #[derive(AppLayerFrameType)]
 pub enum NFSFrameType {
@@ -165,6 +212,30 @@ pub enum NFSEvent {
     /// OOO file data exceeded the queue backstop (gapped stream); queued
     /// data truncated to bound memory
     TruncatedFileData = 10,
+    /// RPC record mark claims a length above the sanity cap; the record and
+    /// the rest of the flow are abandoned (the claim would drive stream
+    /// buffering toward the forged size, e.g. 2 GiB, with no way out)
+    RecordOverflow = 11,
+    /// READ response or WRITE request exceeds the max transfer size the
+    /// server advertised in FSINFO for this flow. Warn only (processing
+    /// continues): unlike the configured limits, exceeding the advertised
+    /// ceiling happens in the wild (non-compliant peers) and must not break
+    /// parsing
+    FsinfoTooLarge = 12,
+    /// A WRITE request or READ reply starts below the file tracker's
+    /// high-water mark for this file: the data overlaps bytes already
+    /// tracked. FileOverlap is set on the transaction.
+    FileOverlap = 13,
+    /// A CALL (msgtype 0) record was seen on the to-client stream:
+    /// a request in the wrong direction (SMB parity)
+    RequestToClient = 14,
+    /// A REPLY (msgtype 1) record was seen on the to-server stream:
+    /// a response in the wrong direction (SMB parity)
+    ResponseToServer = 15,
+    /// A stream-contract violation: the skip or file tracker consumed
+    /// a different byte count than the stream layer announced (SMB
+    /// parity). The flow is abandoned after the event.
+    InternalError = 16,
 }
 
 #[derive(Debug)]
@@ -195,6 +266,15 @@ pub struct NFSTransactionFile {
     /// file tracker for a single file. Boxed so that we don't use
     /// as much space if we're not a file tx.
     pub file_tracker: FileTransferTracker,
+
+    /// offset of the first chunk seen on this file transaction (EVE)
+    pub first_offset: u64,
+
+    /// total file data bytes carried across all chunks (EVE)
+    pub total_bytes: u64,
+
+    /// READ: a chunk reported end-of-file (EVE)
+    pub eof: bool,
 }
 
 impl NFSTransactionFile {
@@ -203,6 +283,20 @@ impl NFSTransactionFile {
             file_tracker: FileTransferTracker::new(),
             ..Default::default()
         };
+    }
+
+    /// Note file data carried by a record chunk: aggregates the first
+    /// offset and the total byte count for the EVE record.
+    pub fn note_chunk_data(&mut self, offset: u64, data_len: u64) {
+        if self.chunk_count == 0 && self.total_bytes == 0 {
+            self.first_offset = offset;
+        }
+        self.total_bytes += data_len;
+    }
+
+    /// Note the end-of-file flag of a READ chunk.
+    pub fn note_eof(&mut self, eof: bool) {
+        self.eof |= eof;
     }
     pub fn update_file_flags(&mut self, flow_file_flags: u16) {
         let dir_flag = if self.direction == Direction::ToServer {
@@ -251,6 +345,10 @@ pub struct NFSTransaction {
     pub rpc_response_status: u32,
     pub nfs_response_status: u32,
 
+    /// true once a reply's status word was actually seen: a short or
+    /// truncated reply must not log a made-up status: OK
+    pub nfs_status_set: bool,
+
     pub is_first: bool,
     pub is_last: bool,
 
@@ -265,6 +363,11 @@ pub struct NFSTransaction {
     pub is_file_tx: bool,
     pub is_file_closed: bool,
     pub file_handle: Vec<u8>,
+
+    /// tx created only to carry an app-layer event (direction anomaly,
+    /// record mark over the cap). It has no request or reply, so it must not
+    /// produce an EVE nfs record.
+    pub is_event_only: bool,
 
     /// Procedure type specific data
     /// TODO see if this can be an `Option<Box<NFSTransactionTypeData>>`. Initial
@@ -292,6 +395,7 @@ impl NFSTransaction {
             request_gid: 0,
             rpc_response_status: 0,
             nfs_response_status: 0,
+            nfs_status_set: false,
             auth_type: 0,
             is_first: false,
             is_last: false,
@@ -300,6 +404,7 @@ impl NFSTransaction {
             nfs_version: 0,
             is_file_tx: false,
             is_file_closed: false,
+            is_event_only: false,
             file_handle: Vec::new(),
             type_data: None,
             tx_data: AppLayerTxData::new(),
@@ -537,6 +642,11 @@ pub struct NFSState {
     /// chunk is complete.
     tc_chunk_fh: Vec<u8>,
 
+    /// xids of CALLs seen in the to client direction (the NFSv4.1
+    /// backchannel). A to server REPLY matching one of these is the
+    /// client's answer to a callback, not a direction anomaly.
+    tc_call_xids: VecDeque<u32>,
+
     /// number of stream bytes to skip (queued file data over the queue limit)
     skip_ts: u32,
     skip_tc: u32,
@@ -547,6 +657,13 @@ pub struct NFSState {
     ts_gap: bool, // last TS update was gap
     tc_gap: bool, // last TC update was gap
 
+    /// FSINFO-negotiated transfer ceilings for this flow (advisory, warn
+    /// only): max size of READ responses (rtmax) and WRITE requests (wtmax)
+    /// the server advertises. 0 = not observed. Only v3 sets these; v4
+    /// negotiates via GETATTR FATTR4_MAXREAD/MAXWRITE (unparsed).
+    pub fsinfo_max_read: u32,
+    pub fsinfo_max_write: u32,
+
     is_udp: bool,
 
     /// true as long as we have file txs that are in a post-gap
@@ -555,6 +672,15 @@ pub struct NFSState {
     post_gap_files_checked: bool,
 
     pub nfs_version: u16,
+
+    /// v4 minor version seen in COMPOUND requests (0 = v4.0, also
+    /// "not observed" before the first compound). Logged on v4 records.
+    pub minorversion: u32,
+
+    /// v4 client identifier (clientid4, 8 bytes) observed on the
+    /// SETCLIENTID/EXCHANGE_ID response or a CREATE_SESSION request.
+    /// None = not observed yet. Logged on v4 records.
+    pub client_id: Option<[u8; 8]>,
 
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
@@ -599,6 +725,7 @@ impl NFSState {
             tc_chunk_tail: 0,
             ts_chunk_fh: Vec::new(),
             tc_chunk_fh: Vec::new(),
+            tc_call_xids: VecDeque::new(),
             ts_ssn_gap: false,
             tc_ssn_gap: false,
             ts_gap: false,
@@ -607,6 +734,10 @@ impl NFSState {
             check_post_gap_file_txs: false,
             post_gap_files_checked: false,
             nfs_version: 0,
+            minorversion: 0,
+            client_id: None,
+            fsinfo_max_read: 0,
+            fsinfo_max_write: 0,
             tx_id: 0,
             ts: 0,
         }
@@ -691,6 +822,49 @@ impl NFSState {
         tx.tx_data.set_event(event as u8);
     }
 
+    /// Raise an event on a transaction of its own. set_event() needs an
+    /// existing tx, and the flow may have none yet when the anomaly is the
+    /// very first record of the stream. The tx is complete and carries no
+    /// file, so it only exists to make the event reachable by detection
+    /// and by the anomaly logger.
+    pub fn set_event_new_tx(&mut self, xid: u32, event: NFSEvent) {
+        let mut tx = self.new_tx();
+        tx.xid = xid;
+        tx.nfs_version = self.nfs_version;
+        tx.request_done = true;
+        tx.response_done = true;
+        tx.is_file_closed = true;
+        tx.is_event_only = true;
+        tx.tx_data.set_event(event as u8);
+        tx.tx_data.0.updated_ts = true;
+        tx.tx_data.0.updated_tc = true;
+        self.transactions.push(tx);
+    }
+
+    /// Bound of tc_call_xids: callbacks are answered right away, so a small
+    /// window covers the real cases while keeping the scan cheap.
+    const TC_CALL_XIDS_MAX: usize = 64;
+
+    /// Remember a CALL seen to client so its REPLY (seen to server) is not
+    /// flagged as a direction anomaly.
+    fn note_tc_call(&mut self, xid: u32) {
+        if Self::TC_CALL_XIDS_MAX == self.tc_call_xids.len() {
+            self.tc_call_xids.pop_front();
+        }
+        self.tc_call_xids.push_back(xid);
+    }
+
+    /// true if xid answers a CALL this parser saw going to client.
+    fn take_tc_call(&mut self, xid: u32) -> bool {
+        match self.tc_call_xids.iter().position(|&x| x == xid) {
+            Some(i) => {
+                self.tc_call_xids.remove(i);
+                true
+            }
+            None => false,
+        }
+    }
+
     /// Set how many stream bytes to skip (queued file data over the
     /// queue limit, not buffered).
     pub fn set_skip(&mut self, direction: Direction, skip: u32) {
@@ -731,7 +905,8 @@ impl NFSState {
 
     // TODO maybe not enough users to justify a func
     pub fn mark_response_tx_done(
-        &mut self, flow: *mut Flow, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &[u8],
+        &mut self, flow: *mut Flow, xid: u32, rpc_status: u32, nfs_status: u32,
+        nfs_status_set: bool, resp_handle: &[u8], write_handle: &[u8],
     ) {
         if let Some(mytx) = self.get_tx_by_xid(xid) {
             mytx.tx_data.0.updated_tc = true;
@@ -739,6 +914,7 @@ impl NFSState {
             mytx.response_done = true;
             mytx.rpc_response_status = rpc_status;
             mytx.nfs_response_status = nfs_status;
+            mytx.nfs_status_set = nfs_status_set;
             if mytx.file_handle.is_empty() && !resp_handle.is_empty() {
                 mytx.file_handle = resp_handle.to_vec();
             }
@@ -751,9 +927,64 @@ impl NFSState {
                 mytx.response_done
             );
             sc_app_layer_parser_trigger_raw_stream_inspection(flow, Direction::ToClient as i32);
-        } else {
-            //SCLogNotice!("process_reply_record: not TX found for XID {}", r.hdr.xid);
+        } else if let Some(tx) = self.get_write_file_tx(xid, write_handle) {
+            // A WRITE reply belongs to a file tx, which is keyed by handle
+            // and so invisible to get_tx_by_xid. Only the status travels
+            // here: the done flags are the write path's (see
+            // process_write_record), so a reply must not close the tx. No
+            // update flags either, they would pull an already logged tx back
+            // into the tx loop and reorder the tx ids alerts point at.
+            //
+            // First status seen wins, as on the read path, so a later OK
+            // reply cannot hide an earlier error.
+            if !tx.nfs_status_set {
+                tx.rpc_response_status = rpc_status;
+                tx.nfs_response_status = nfs_status;
+                tx.nfs_status_set = nfs_status_set;
+            }
         }
+    }
+
+    /// The file tx a WRITE reply belongs to.
+    ///
+    /// An open tx is found by handle: a write spread over several chunks has
+    /// several xids in flight, and the one logged last is not necessarily the
+    /// one being answered. A closed tx is still found by xid, which is how a
+    /// FILE_SYNC write is reached after being completed from the request.
+    fn get_write_file_tx(&mut self, xid: u32, handle: &[u8]) -> Option<&mut NFSTransaction> {
+        if !handle.is_empty() {
+            if let Some(i) = self.find_open_file_tx(handle) {
+                return self.transactions.get_mut(i);
+            }
+        }
+        self.get_write_file_tx_by_xid(xid)
+    }
+
+    /// Index of the open file tx for a handle, without touching any flag.
+    fn find_open_file_tx(&self, file_handle: &[u8]) -> Option<usize> {
+        let fh = file_handle.to_vec();
+        self.transactions.iter().position(|tx| {
+            if let Some(NFSTransactionTypeData::FILE(ref d)) = tx.type_data {
+                tx.is_file_tx
+                    && !tx.is_file_closed
+                    && d.direction == Direction::ToServer
+                    && tx.file_handle == fh
+            } else {
+                false
+            }
+        })
+    }
+
+    /// The file tx whose most recent WRITE chunk carried this xid.
+    fn get_write_file_tx_by_xid(&mut self, xid: u32) -> Option<&mut NFSTransaction> {
+        for tx in &mut self.transactions {
+            if let Some(NFSTransactionTypeData::FILE(ref tdf)) = tx.type_data {
+                if tx.is_file_tx && tdf.file_last_xid == xid && tdf.file_last_xid != 0 {
+                    return Some(tx);
+                }
+            }
+        }
+        None
     }
 
     fn add_rpc_udp_ts_pdu(
@@ -1076,16 +1307,20 @@ impl NFSState {
         }
     }
 
-    pub fn process_request_record_lookup(&mut self, r: &RpcPacket, xidmap: &mut NFSRequestXidMap) {
+    /// Wire the looked-up name into the xidmap. False when the request could
+    /// not be parsed; the caller raises the event on the transaction this
+    /// record creates, since set_event() would land on an older one.
+    pub fn process_request_record_lookup(
+        &mut self, r: &RpcPacket, xidmap: &mut NFSRequestXidMap,
+    ) -> bool {
         match parse_nfs3_request_lookup(r.prog_data) {
             Ok((_, lookup)) => {
                 SCLogDebug!("LOOKUP {:?}", lookup);
                 xidmap.file_name = lookup.name_vec;
+                true
             }
-            _ => {
-                self.set_event(NFSEvent::MalformedData);
-            }
-        };
+            _ => false,
+        }
     }
 
     pub fn xidmap_handle2name(&mut self, xidmap: &mut NFSRequestXidMap) {
@@ -1112,6 +1347,13 @@ impl NFSState {
             r.prog_data.len()
         );
 
+        // set the flow version from the request: a transaction logged before
+        // the first reply (a WRITE completing on its request, a v2 WRITE)
+        // would otherwise report version 0
+        if self.nfs_version == 0 {
+            self.nfs_version = r.progver as u16;
+        }
+
         match r.progver {
             4 => {
                 self.add_nfs4_ts_frames(flow, stream_slice, r.prog_data, r.prog_data_size as i64);
@@ -1123,7 +1365,7 @@ impl NFSState {
             }
             2 => {
                 self.add_nfs_ts_frame(flow, stream_slice, r.prog_data, r.prog_data_size as i64);
-                self.process_request_record_v2(r)
+                self.process_request_record_v2(flow, r)
             }
             _ => {}
         }
@@ -1185,20 +1427,22 @@ impl NFSState {
         return None;
     }
 
+    /// WRITE argument extent within prog_data (RFC 1094 / RFC 1813):
+    /// v3 fh len + fh + offset(8) + count + stable + data len; the file data
+    /// is XDR opaque (length-prefixed) in both, XDR fill follows it.
+    pub fn nfs_write_extent(fh_len: u32, file_len: u32) -> u32 {
+        24u32.saturating_add(fh_len).saturating_add(file_len)
+    }
+
     pub fn process_write_record<'b>(
         &mut self, flow: *mut Flow, r: &RpcPacket<'b>, w: &Nfs3RequestWrite<'b>,
     ) -> u32 {
-        // the parsed extent within prog_data: fh len + fh + offset + count
-        // + stable + file_len + data; the XDR fill follows it when unaligned
-        let extent = 24u32
-            .saturating_add(w.handle.len)
-            .saturating_add(w.file_len);
+        // the parsed extent within prog_data (per-version, see the
+        // helper); the XDR fill follows it when unaligned.
+        let extent = Self::nfs_write_extent(w.handle.len, w.file_len);
 
         // for now assume that stable FILE_SYNC flags means a single chunk
         let is_last = w.stable == 2;
-        // a partial record's file tx must stay open (found by handle) until
-        // filetracker_update has received the rest of its data
-        let is_partial = w.file_data.len() < w.file_len as usize;
         let file_handle = w.handle.value.to_vec();
         let file_name = if let Some(name) = self.namemap.get(w.handle.value) {
             SCLogDebug!("WRITE name {:?}", name);
@@ -1259,7 +1503,7 @@ impl NFSState {
         let max_write_size = unsafe { NFS_CFG_MAX_WRITE_SIZE };
         if max_write_size != 0 && w.count > max_write_size {
             let tx = self.new_file_tx(&file_handle, &file_name, Direction::ToServer);
-            tx.procedure = NFSPROC3_WRITE;
+            tx.procedure = r.procedure;
             tx.xid = r.hdr.xid;
             tx.is_first = true;
             tx.nfs_version = r.progver as u16;
@@ -1295,6 +1539,12 @@ impl NFSState {
             return 0;
         }
 
+        // The FSINFO ceiling is advisory: non-compliant peers routinely
+        // exceed the advertised max transfer size in the wild, so flag it
+        // but keep processing (the configured limit above stays the hard
+        // security boundary).
+        let fsinfo_exceeded = self.fsinfo_max_write > 0 && w.count > self.fsinfo_max_write;
+
         let mut queue_exceeded = false;
         // what the record tail holds beyond the file data the tracker has not
         // seen: the XDR pad, at most 3 bytes. Anything else the record carries
@@ -1302,10 +1552,21 @@ impl NFSState {
         // file data or fill.
         let unbuffered = w.file_len - w.file_data.len() as u32;
         let stream_fill = cmp::min(tail.saturating_sub(unbuffered), 3);
+        // the record's file data is still to come: the tx completes in the
+        // chunk path, not here, or the pending bytes never reach the tracker
+        let is_partial = w.file_data.len() < w.file_len as usize;
 
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToServer) {
             Some(tx) => {
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                    // A write starting below the high-water mark overlaps
+                    // data already tracked for this file: flag the file tx
+                    // itself (transactions.last() can be unrelated).
+                    if w.offset < tdf.file_tracker.tracked {
+                        tx.tx_data.set_event(NFSEvent::FileOverlap as u8);
+                        tx.tx_data.0.updated_ts = true;
+                        tx.tx_data.0.updated_tc = true;
+                    }
                     if let Some(event) = write_queue_limit_event(
                         &tdf.file_tracker,
                         w.offset,
@@ -1328,11 +1589,20 @@ impl NFSState {
                             &r.hdr.xid,
                         );
                         tdf.chunk_count += 1;
+                        tdf.note_chunk_data(w.offset, w.file_data.len() as u64);
+                        // The WRITE reply is matched to this tx by xid, and it
+                        // carries a status whether or not the write was
+                        // FILE_SYNC, so record the xid on every chunk.
+                        tdf.file_last_xid = r.hdr.xid;
                         if is_last {
-                            tdf.file_last_xid = r.hdr.xid;
                             tx.is_last = true;
+                            // mainline: a FILE_SYNC write settles the response
+                            // side of the file tx here (the reply path skips
+                            // WRITE), and the request side either right here or,
+                            // for a record still pending, in the chunk path.
                             tx.response_done = true;
                             if !is_partial {
+                                tx.request_done = true;
                                 tx.is_file_closed = true;
                             }
                             sc_app_layer_parser_trigger_raw_stream_inspection(
@@ -1340,6 +1610,9 @@ impl NFSState {
                                 Direction::ToClient as i32,
                             );
                         }
+                    }
+                    if fsinfo_exceeded {
+                        tx.tx_data.set_event(NFSEvent::FsinfoTooLarge as u8);
                     }
                     true
                 } else {
@@ -1376,16 +1649,19 @@ impl NFSState {
                         is_last,
                         &r.hdr.xid,
                     );
+                    tdf.note_chunk_data(w.offset, w.file_data.len() as u64);
                 }
-                // Same deferral as the found arm: a partial record closes the
-                // tx when filetracker_update has the rest of its data
-                if is_last && !queue_exceeded {
+                // see the branch above: the reply finds the tx by xid
+                if !queue_exceeded {
                     tdf.file_last_xid = r.hdr.xid;
+                }
+                if is_last && !queue_exceeded {
                     tx.is_last = true;
                     /* if this is a partial record we will close the tx
                      * when we've received the final data */
                     if !is_partial {
                         tx.request_done = true;
+                        tx.response_done = true;
                         tx.is_file_closed = true;
                         sc_app_layer_parser_trigger_raw_stream_inspection(
                             flow,
@@ -1394,10 +1670,13 @@ impl NFSState {
                     }
                 }
             }
-            tx.procedure = NFSPROC3_WRITE;
+            tx.procedure = r.procedure;
             tx.xid = r.hdr.xid;
             tx.is_first = true;
             tx.nfs_version = r.progver as u16;
+            if fsinfo_exceeded {
+                tx.tx_data.set_event(NFSEvent::FsinfoTooLarge as u8);
+            }
         }
         if !self.is_udp {
             if queue_exceeded {
@@ -1891,6 +2170,9 @@ impl NFSState {
                         let is_last_chunk = tdf.file_tracker.get_chunk_is_last()
                             && !tdf.file_tracker.is_truncated();
                         let cs = filetracker_update(&mut tdf.file_tracker, data, gap_size);
+                        // file bytes only: on a record's last segment `data`
+                        // also carries XDR fill and the next pipelined record
+                        tdf.total_bytes += add;
                         /* see if we need to close the tx. A truncated tracker is
                          * never done, so also close it when the data of its last
                          * chunk is complete. */
@@ -2199,12 +2481,25 @@ impl NFSState {
         let unbuffered = reply.data_len - reply.data.len() as u32;
         let stream_fill = cmp::min(tail.saturating_sub(unbuffered), 3);
 
-        let mut queue_exceeded = false;
+        // FSINFO/v4 GETATTR ceiling, advisory (see the WRITE path):
+        // warn, don't reject. Populated by the v3 FSINFO reply or the
+        // FATTR4_MAXREAD value in a v4 GETATTR reply; unobserved (0) it
+        // never trips.
+        let fsinfo_exceeded = self.fsinfo_max_read > 0 && reply.count > self.fsinfo_max_read;
 
+        let mut queue_exceeded = false;
         let found = match self.get_file_tx_by_handle(&file_handle, Direction::ToClient) {
             Some(tx) => {
                 SCLogDebug!("updated TX {:?}", tx);
                 if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                    // A read reply starting below the high-water mark
+                    // overlaps data already tracked for this file: flag the
+                    // file tx itself (write path, SMB parity).
+                    if chunk_offset < tdf.file_tracker.tracked {
+                        tx.tx_data.set_event(NFSEvent::FileOverlap as u8);
+                        tx.tx_data.0.updated_ts = true;
+                        tx.tx_data.0.updated_tc = true;
+                    }
                     if let Some(event) = read_queue_limit_event(
                         &tdf.file_tracker,
                         chunk_offset,
@@ -2227,10 +2522,20 @@ impl NFSState {
                             &r.hdr.xid,
                         );
                         tdf.chunk_count += 1;
-                        if is_last {
-                            tdf.file_last_xid = r.hdr.xid;
+                        tdf.note_chunk_data(chunk_offset, reply.data.len() as u64);
+                        tdf.note_eof(reply.eof);
+                        // Any record that added data is the most recent one,
+                        // not just the one that ends the read.
+                        tdf.file_last_xid = r.hdr.xid;
+                        // The record carries a status even when the read does
+                        // not end here, so keep the first one seen: a read
+                        // that stops short of EOF is still logged with it.
+                        if !tx.nfs_status_set {
                             tx.rpc_response_status = r.reply_state;
                             tx.nfs_response_status = reply.status;
+                            tx.nfs_status_set = true;
+                        }
+                        if is_last {
                             tx.is_last = true;
                             tx.request_done = true;
                             sc_app_layer_parser_trigger_raw_stream_inspection(
@@ -2249,6 +2554,9 @@ impl NFSState {
                                 );
                             }
                         }
+                    }
+                    if fsinfo_exceeded {
+                        tx.tx_data.set_event(NFSEvent::FsinfoTooLarge as u8);
                     }
                     true
                 } else {
@@ -2285,11 +2593,19 @@ impl NFSState {
                         is_last,
                         &r.hdr.xid,
                     );
-                }
-                if is_last && !queue_exceeded {
+                    tdf.note_chunk_data(chunk_offset, reply.data.len() as u64);
+                    tdf.note_eof(reply.eof);
+                    // Any record that added data is the most recent one,
+                    // not just the one that ends the read.
                     tdf.file_last_xid = r.hdr.xid;
+                }
+                // first record of the reply carries the status, see above
+                if !tx.nfs_status_set {
                     tx.rpc_response_status = r.reply_state;
                     tx.nfs_response_status = reply.status;
+                    tx.nfs_status_set = true;
+                }
+                if is_last && !queue_exceeded {
                     tx.is_last = true;
                     tx.request_done = true;
                     sc_app_layer_parser_trigger_raw_stream_inspection(
@@ -2316,6 +2632,9 @@ impl NFSState {
             };
             tx.xid = r.hdr.xid;
             tx.is_first = true;
+            if fsinfo_exceeded {
+                tx.tx_data.set_event(NFSEvent::FsinfoTooLarge as u8);
+            }
         }
         if !self.is_udp {
             if queue_exceeded {
@@ -2415,12 +2734,25 @@ impl NFSState {
         if consumed < gap_size {
             let new_gap_size = gap_size - consumed;
             let gap = vec![0; new_gap_size as usize];
-            self.filetracker_update(
+            let consumed2 = self.filetracker_update(
                 std::ptr::null_mut(),
                 Direction::ToServer,
                 &gap,
                 new_gap_size,
             );
+            if consumed2 == new_gap_size {
+                /* fully consumed by the file tracker, no need to tag as gap */
+                return AppLayerResult::ok();
+            }
+            if consumed2 > new_gap_size {
+                SCLogDebug!(
+                    "file tracker consumed more than the GAP size: {} > {}",
+                    consumed2,
+                    new_gap_size
+                );
+                self.set_event(NFSEvent::InternalError);
+                return AppLayerResult::err();
+            }
         }
         SCLogDebug!("parse_tcp_data_ts_gap ({}) done", gap_size);
         return AppLayerResult::ok();
@@ -2440,12 +2772,25 @@ impl NFSState {
         if consumed < gap_size {
             let new_gap_size = gap_size - consumed;
             let gap = vec![0; new_gap_size as usize];
-            self.filetracker_update(
+            let consumed2 = self.filetracker_update(
                 std::ptr::null_mut(),
                 Direction::ToClient,
                 &gap,
                 new_gap_size,
             );
+            if consumed2 == new_gap_size {
+                /* fully consumed by the file tracker, no need to tag as gap */
+                return AppLayerResult::ok();
+            }
+            if consumed2 > new_gap_size {
+                SCLogDebug!(
+                    "file tracker consumed more than the GAP size: {} > {}",
+                    consumed2,
+                    new_gap_size
+                );
+                self.set_event(NFSEvent::InternalError);
+                return AppLayerResult::err();
+            }
         }
         SCLogDebug!("parse_tcp_data_tc_gap ({}) done", gap_size);
         return AppLayerResult::ok();
@@ -2475,6 +2820,13 @@ impl NFSState {
                         // we got here because rec_size > input, so we should never have
                         // remaining data
                         debug_validate_bug_on!(!_rem.is_empty());
+
+                        // this fast path bypasses process_request_record_v3,
+                        // so set the version here or the EVE record reports
+                        // version 0 and the v2 procedure names
+                        if self.nfs_version == 0 {
+                            self.nfs_version = hdr.progver as u16;
+                        }
 
                         match parse_nfs3_request_write(hdr.prog_data, false) {
                             Ok((_, ref w)) => {
@@ -2590,6 +2942,9 @@ impl NFSState {
         let consumed = self.handle_skip(Direction::ToServer, cur_i.len() as u32);
         if consumed > 0 {
             debug_validate_bug_on!(consumed > cur_i.len() as u32);
+            if consumed as usize > cur_i.len() {
+                self.set_event(NFSEvent::InternalError);
+            }
             cur_i = &cur_i[consumed.min(cur_i.len() as u32) as usize..];
         }
         // take care of in progress file chunk transfers
@@ -2597,6 +2952,9 @@ impl NFSState {
         let consumed = self.filetracker_update(flow, Direction::ToServer, cur_i, 0);
         if consumed > 0 {
             debug_validate_bug_on!(consumed > cur_i.len() as u32);
+            if consumed as usize > cur_i.len() {
+                self.set_event(NFSEvent::InternalError);
+            }
             cur_i = &cur_i[consumed.min(cur_i.len() as u32) as usize..];
         }
         if cur_i.is_empty() {
@@ -2645,6 +3003,44 @@ impl NFSState {
             match parse_rpc_request_partial(cur_i) {
                 Ok((_, ref rpc_phdr)) => {
                     let rec_size = (rpc_phdr.hdr.frag_len + 4) as usize;
+
+                    // A reply-shaped record on the to-server stream is a
+                    // request/response direction anomaly (SMB parity).
+                    // Attach it to a minimal transaction: frame events are
+                    // not wired to detection or anomaly logging, but tx
+                    // events are. Keep parsing.
+                    if rpc_phdr.hdr.msgtype == 1 {
+                        // A REPLY answering a CALL this parser saw going to
+                        // client is the client's side of an NFSv4.1
+                        // backchannel (RFC 5661 2.10.3.1), not an anomaly.
+                        // Its body carries nothing the parser tracks, so the
+                        // record is consumed rather than parsed as a reply.
+                        if self.take_tc_call(rpc_phdr.hdr.xid) {
+                            SCLogDebug!("REPLY answers a to-client CALL: backchannel");
+                            let take = cmp::min(rec_size, cur_i.len());
+                            if take < rec_size {
+                                self.set_skip(Direction::ToServer, (rec_size - take) as u32);
+                            }
+                            cur_i = &cur_i[take..];
+                            continue;
+                        }
+                        SCLogDebug!("REPLY seen in the to-server direction");
+                        self.set_event_new_tx(rpc_phdr.hdr.xid, NFSEvent::ResponseToServer);
+                    }
+
+                    // A claim above the sanity cap is forged (legitimate marks
+                    // can't reach it). Trusting it would make the stream layer
+                    // buffer toward the claimed size in the incomplete loop
+                    // with no event and no way out; record framing is
+                    // unsalvageable, so abandon the flow.
+                    if rec_size > record_length_cap() {
+                        SCLogDebug!(
+                            "RPC record mark claims {} byte record; failing flow",
+                            rec_size
+                        );
+                        self.set_event_new_tx(rpc_phdr.hdr.xid, NFSEvent::RecordOverflow);
+                        return AppLayerResult::err();
+                    }
 
                     // Handle partial records
                     if rec_size > cur_i.len() {
@@ -2916,6 +3312,9 @@ impl NFSState {
         let consumed = self.handle_skip(Direction::ToClient, cur_i.len() as u32);
         if consumed > 0 {
             debug_validate_bug_on!(consumed > cur_i.len() as u32);
+            if consumed as usize > cur_i.len() {
+                self.set_event(NFSEvent::InternalError);
+            }
             cur_i = &cur_i[consumed.min(cur_i.len() as u32) as usize..];
         }
         // take care of in progress file chunk transfers
@@ -2923,6 +3322,9 @@ impl NFSState {
         let consumed = self.filetracker_update(flow, Direction::ToClient, cur_i, 0);
         if consumed > 0 {
             debug_validate_bug_on!(consumed > cur_i.len() as u32);
+            if consumed as usize > cur_i.len() {
+                self.set_event(NFSEvent::InternalError);
+            }
             cur_i = &cur_i[consumed.min(cur_i.len() as u32) as usize..];
         }
         if cur_i.is_empty() {
@@ -2970,6 +3372,43 @@ impl NFSState {
             match parse_rpc_packet_header(cur_i) {
                 Ok((_, ref rpc_phdr)) => {
                     let rec_size = (rpc_phdr.frag_len + 4) as usize;
+
+                    // A request-shaped record on the to-client stream is a
+                    // request/response direction anomaly (SMB parity).
+                    // Attach it to a minimal transaction: frame events are
+                    // not wired to detection or anomaly logging, but tx
+                    // events are. Keep parsing.
+                    if rpc_phdr.msgtype == 0 {
+                        SCLogDebug!("CALL seen in the to-client direction");
+                        self.note_tc_call(rpc_phdr.xid);
+                        // v4 has a backchannel: the server sends CB_ CALLs to
+                        // the client over the same connection, so this is not
+                        // an anomaly there (RFC 5661 2.10.3.1). v2/v3 do not,
+                        // so there it is. Either way the body is a callback
+                        // the parser does not track: consume the record
+                        // instead of parsing it as a reply (which would raise
+                        // a bogus malformed_data).
+                        if self.nfs_version < 4 {
+                            self.set_event_new_tx(rpc_phdr.xid, NFSEvent::RequestToClient);
+                        }
+                        let take = cmp::min(rec_size, cur_i.len());
+                        if take < rec_size {
+                            self.set_skip(Direction::ToClient, (rec_size - take) as u32);
+                        }
+                        cur_i = &cur_i[take..];
+                        continue;
+                    }
+                    // Claim above the sanity cap is forged; see the ToServer
+                    // path. Abandon the flow instead of buffering toward the
+                    // claimed size forever.
+                    if rec_size > record_length_cap() {
+                        SCLogDebug!(
+                            "RPC record mark claims {} byte record; failing flow",
+                            rec_size
+                        );
+                        self.set_event_new_tx(rpc_phdr.xid, NFSEvent::RecordOverflow);
+                        return AppLayerResult::err();
+                    }
                     // see if we have all data available
                     if rec_size > cur_i.len() {
                         return self.parse_tcp_partial_data_tc(
@@ -3061,7 +3500,7 @@ impl NFSState {
                                 rpc_record.prog_data,
                                 rpc_record.prog_data_size as i64,
                             );
-                            self.process_request_record_v2(rpc_record);
+                            self.process_request_record_v2(flow, rpc_record);
                         }
                         _ => {}
                     }
@@ -3493,8 +3932,8 @@ unsafe extern "C" fn nfs_probe_udp_tc(
 // Parser name as a C style string.
 const PARSER_NAME: &[u8] = b"nfs\0";
 
-/// Load the NFS queue and record-size limits from the config. Called from
-/// both TCP and UDP registration so single-transport configs load them.
+/// Load every transport-independent NFS setting. Called from both TCP and UDP
+/// registration so a config that enables one transport still gets them.
 unsafe fn load_nfs_limit_config() {
     let retval = conf_get("app-layer.protocols.nfs.max-read-queue-size");
     if let Some(val) = retval {
@@ -3596,6 +4035,60 @@ unsafe fn load_nfs_limit_config() {
             }
         }
     }
+
+    // Settings feeding state shared by both transports: the request and name
+    // maps live on the parser state, the procedure filter is applied by the
+    // logger. Read here so a config that enables one transport still gets them.
+    let retval = conf_get("app-layer.protocols.nfs.max-requests");
+    if let Some(val) = retval {
+        if let Ok(v) = val.parse::<usize>() {
+            if v > 0 {
+                NFS_CFG_MAX_REQ = v;
+            } else {
+                SCLogError!("Invalid max-requests value, must be >0");
+            }
+        } else {
+            SCLogError!("Invalid max-requests value");
+        }
+    }
+    let retval = conf_get("app-layer.protocols.nfs.max-names");
+    if let Some(val) = retval {
+        if let Ok(v) = val.parse::<usize>() {
+            if v > 0 {
+                NFS_CFG_MAX_NAMES = v;
+            } else {
+                SCLogError!("Invalid max-names value, must be >0");
+            }
+        } else {
+            SCLogError!("Invalid max-names value");
+        }
+    }
+    // Procedure filter: a YAML list of procedure names (or a single
+    // scalar) to keep out of the EVE output. When absent, the
+    // historical default applies: v3 GETATTR is filtered.
+    if let Some(node) = conf_get_node("app-layer.protocols.nfs.filter") {
+        let mut list = Vec::new();
+        if node.is_seq() {
+            if let Some(mut cur) = node.first() {
+                loop {
+                    if let Some(v) = cur.value_opt() {
+                        list.push(v.to_lowercase());
+                    }
+                    match cur.next() {
+                        Some(n) => cur = n,
+                        None => break,
+                    }
+                }
+            }
+        } else if let Some(v) = node.value_opt() {
+            list.push(v.to_lowercase());
+        }
+        // key present: the list (possibly empty) fully defines the
+        // filter; an empty list logs everything
+        SCLogDebug!("nfs filter: procedures {:?}", &list);
+        NFS_CFG_FILTER_SET = true;
+        NFS_CFG_FILTER_PROCS = list;
+    }
 }
 
 #[no_mangle]
@@ -3680,32 +4173,51 @@ pub unsafe extern "C" fn SCRegisterNfsParser() {
                 Some(ffi_nfs_probe),
             );
         }
+        // Pattern probe for NFS over TCP: the message type and rpcvers of an
+        // RPC call, eight bytes at offset 8. It has to be something rare. A
+        // stream the probe refuses is not concluded by the search: it stays
+        // undecided until the to-server data reaches pp_max_len, which for TCP
+        // to-server is 36 (SMB's MIN_REC_SIZE), so a loose anchor - the two
+        // bytes of a record mark, say - costs every shorter flow its protocol
+        // detection. The window also has to stay inside 16 bytes, see the note
+        // in app-layer-http2.c about why its pattern stops there. What the
+        // record mark, the program number at offset 16, the version and the
+        // procedure are, the probe decides.
+        //
+        // To server only: a CALL carries the program number, so the probe can
+        // tell NFS from the other ONC RPC services (mountd, rpcbind, nlockmgr)
+        // that sit next to it on the same host. A REPLY carries none, so a
+        // to-client pattern would claim every accepted ONC reply it sees.
+        if SCAppLayerProtoDetectPMRegisterPatternCSwPP(
+            IPPROTO_TCP,
+            ALPROTO_NFS,
+            b"|00 00 00 00 00 00 00 02|\0".as_ptr() as *const std::os::raw::c_char,
+            16,
+            8,
+            Direction::ToServer as u8,
+            Some(ffi_nfs_probe),
+            NFS_MIN_FRAME_LEN,
+            NFS_MIN_FRAME_LEN,
+        ) < 0
+        {
+            SCLogDebug!("nfs pattern probe registration (ts) failed");
+        }
         if SCAppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
         SCLogDebug!("Rust nfs parser registered.");
-        let retval = conf_get("app-layer.protocols.nfs.max-requests");
-        if let Some(val) = retval {
-            if let Ok(v) = val.parse::<usize>() {
-                if v > 0 {
-                    NFS_CFG_MAX_REQ = v;
-                } else {
-                    SCLogError!("Invalid max-requests value, must be >0");
+        // Unset keeps the global stream.reassembly.depth in charge; SMB's
+        // equivalent default is 0 (whole stream), but NFS has master tests
+        // that pin the depth-driven over-claim protections, so switching the
+        // default here would be a silent behaviour change for extraction.
+        if let Some(val) = conf_get("app-layer.protocols.nfs.stream-depth") {
+            match get_memval(val) {
+                Ok(retval) => {
+                    SCAppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_NFS, retval as u32);
                 }
-            } else {
-                SCLogError!("Invalid max-requests value");
-            }
-        }
-        let retval = conf_get("app-layer.protocols.nfs.max-names");
-        if let Some(val) = retval {
-            if let Ok(v) = val.parse::<usize>() {
-                if v > 0 {
-                    NFS_CFG_MAX_NAMES = v;
-                } else {
-                    SCLogError!("Invalid max-names value, must be >0");
+                Err(_) => {
+                    SCLogError!("Invalid stream-depth value");
                 }
-            } else {
-                SCLogError!("Invalid max-names value");
             }
         }
         load_nfs_limit_config();
@@ -4227,6 +4739,47 @@ mod tests {
         assert_eq!(state.transactions[0].xid, 0x6200);
         assert_eq!(state.skip_tc, 0);
     }
+
+    #[test]
+    fn test_write_reply_lands_on_the_open_file_tx() {
+        // The reply side finds a write's file tx through the xid of its last
+        // chunk. An UNSTABLE write is never marked last, so the xid has to be
+        // recorded on every chunk: without it an answered write logs with no
+        // status, and the reply must still not close the tx.
+        let mut state = NFSState::new();
+        let handle = b"handle".to_vec();
+        {
+            let tx = state.new_file_tx(&handle, b"f", Direction::ToServer);
+            tx.procedure = NFSPROC3_WRITE;
+            tx.request_done = true;
+            if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                tdf.file_last_xid = 0x99;
+            }
+        }
+        state.mark_response_tx_done(std::ptr::null_mut(), 0x99, 0, 5, true, &[], &[]);
+        let tx = &state.transactions[0];
+        assert!(tx.nfs_status_set);
+        assert_eq!(tx.nfs_response_status, 5);
+        assert!(!tx.response_done);
+
+        // A multi-chunk write has several xids in flight, so the reply to an
+        // earlier chunk is found by handle, and must not undo the status
+        // already seen.
+        state.mark_response_tx_done(std::ptr::null_mut(), 0x88, 0, 0, true, &[], &handle);
+        let tx = &state.transactions[0];
+        assert_eq!(tx.nfs_response_status, 5);
+        assert!(!tx.response_done);
+    }
+
+    #[test]
+    fn test_nfs_write_extent() {
+        // v3 (RFC 1813 3.3.11): fh len + fh + offset(8) + count + stable + data
+        // len = 24 + fh_len + file_len
+        // v3 (RFC 1813): fh len + fh + offset(8) + count + stable + data
+        // len = 24 + fh_len + file_len
+        assert_eq!(NFSState::nfs_write_extent(32, 6), 62);
+        assert_eq!(NFSState::nfs_write_extent(0, 1024), 1048);
+    }
 }
 
 #[test]
@@ -4240,4 +4793,30 @@ fn test_record_tail() {
     assert_eq!(record_tail(1002, 0), 1002);
     // complete record: nothing left to skip
     assert_eq!(record_tail(1002, 1002), 0);
+}
+
+#[test]
+fn test_nfs_probe_call_header() {
+    let w = |v: u32| v.to_be_bytes();
+    // a call record header: mark, xid, msgtype, rpcver, program, progver,
+    // procedure, AUTH_UNIX creds and a null verifier
+    let mut buf: Vec<u8> = Vec::new();
+    buf.extend_from_slice(&w(0x8000_0062)); // last frag, 98 bytes
+    buf.extend_from_slice(&w(7));
+    buf.extend_from_slice(&w(0)); // msgtype: CALL
+    buf.extend_from_slice(&w(2)); // rpcver
+    buf.extend_from_slice(&w(100005)); // program: mountd
+    buf.extend_from_slice(&w(3)); // progver
+    buf.extend_from_slice(&w(1)); // procedure
+    buf.extend_from_slice(&w(1)); // creds flavor: AUTH_UNIX
+    buf.extend_from_slice(&w(16));
+    buf.extend_from_slice(&[0u8; 16]);
+    buf.extend_from_slice(&w(0)); // verifier: NULL
+    buf.extend_from_slice(&w(0));
+    buf.extend_from_slice(&[0u8; 24]);
+    // the pattern is anchored on the call header, so a call naming another
+    // program reaches the probe and has to be refused there
+    assert_eq!(nfs_probe(&buf, Direction::ToServer), -1);
+    buf[16..20].copy_from_slice(&w(100003)); // program: NFS
+    assert_eq!(nfs_probe(&buf, Direction::ToServer), 1);
 }

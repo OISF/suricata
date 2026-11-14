@@ -358,17 +358,56 @@ pub fn parse_rpc_reply(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcRepl
     Ok((i, packet))
 }
 
-pub fn parse_rpc_udp_packet_header(i: &[u8]) -> IResult<&[u8], RpcPacketHeader> {
-    let (i, xid) = be_u32(i)?;
-    let (i, msgtype) = verify(be_u32, |&v| v <= 1)(i)?;
-    let hdr = RpcPacketHeader {
-        frag_is_last: false,
-        frag_len: 0,
-
+/// Checked RFC 5531 record-marker header: the marker must claim the whole
+/// datagram (the record ends at the datagram boundary, the marker excluded)
+/// and carry the last-fragment bit; any mismatch -> None (unmarked).
+fn parse_rpc_udp_record_marked_header(i: &[u8]) -> Option<RpcPacketHeader> {
+    if i.len() < 8 {
+        return None;
+    }
+    let (rem, fraghdr) = parse_bits(i).ok()?;
+    if fraghdr.0 != 1 || fraghdr.1 < 24 || fraghdr.1 as usize != rem.len() {
+        return None;
+    }
+    let (rem, xid) = be_u32::<_, ()>(rem).ok()?;
+    let (_, msgtype) = verify(be_u32::<_, ()>, |&v| v <= 1)(rem).ok()?;
+    Some(RpcPacketHeader {
+        frag_is_last: fraghdr.0 == 1,
+        frag_len: fraghdr.1,
         xid,
         msgtype,
-    };
-    Ok((i, hdr))
+    })
+}
+
+pub fn parse_rpc_udp_packet_header(i: &[u8]) -> IResult<&[u8], RpcPacketHeader> {
+    // An ONC/UDP datagram is normally unmarked: the xid is the first word
+    // (RFC 5531 defines record marking for byte-stream transports). Some
+    // servers do mark them, so the marked layout is attempted second, only
+    // when the unmarked one fails (for a marked datagram the word at offset 4
+    // is the real xid, so it is not a valid msgtype). Trying marked first
+    // would misparse an unmarked reply whose xid equals its own length.
+    let (rem, xid) = be_u32(i)?;
+    let msgtype: IResult<&[u8], u32> = verify(be_u32, |&v| v <= 1)(rem);
+    match msgtype {
+        Ok((rem, msgtype)) => {
+            let hdr = RpcPacketHeader {
+                frag_is_last: false,
+                frag_len: 0,
+
+                xid,
+                msgtype,
+            };
+            Ok((rem, hdr))
+        }
+        Err(_) => match parse_rpc_udp_record_marked_header(i) {
+            Some(hdr) => {
+                // marker + xid + msgtype consumed; the record ends at the
+                // datagram boundary (enforced by the helper)
+                Ok((&i[12..], hdr))
+            }
+            None => Err(Err::Error(make_error(i, ErrorKind::Verify))),
+        },
+    }
 }
 
 pub fn parse_rpc_udp_request(i: &[u8]) -> IResult<&[u8], RpcPacket<'_>> {
@@ -579,5 +618,158 @@ mod tests {
             gss_compound_scan_data(Some((0, 2)), &envelope[..]),
             GssCompoundScan::EnvelopeMalformed
         );
+    }
+
+    #[test]
+    fn test_udp_header_unmarked_reply_claim_plausible_falls_back() {
+        // xid 0x80000030: the implied claim (48) is plausible, but the
+        // datagram is longer than the claim -> unmarked reply layout
+        // (xid 0x80000030, msgtype 1).
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&0x8000_0030u32.to_be_bytes()); // xid
+        buf.extend_from_slice(&1u32.to_be_bytes()); // msgtype 1 (reply)
+        buf.extend_from_slice(&0u32.to_be_bytes()); // reply_state OK
+        buf.extend_from_slice(&0u32.to_be_bytes()); // verf flavor
+        buf.extend_from_slice(&0u32.to_be_bytes()); // verf length
+        buf.extend_from_slice(&0u32.to_be_bytes()); // accept_stat
+        buf.extend_from_slice(&[0u8; 32]); // prog_data
+        let r = parse_rpc_udp_packet_header(&buf);
+        match r {
+            Ok((rem, hdr)) => {
+                assert_eq!(rem.len(), buf.len() - 8);
+                assert!(!hdr.frag_is_last);
+                assert_eq!(hdr.frag_len, 0);
+                assert_eq!(hdr.xid, 0x8000_0030);
+                assert_eq!(hdr.msgtype, 1);
+            }
+            _ => panic!("failed {:?}", r),
+        }
+    }
+
+    #[test]
+    fn test_udp_header_unmarked_request_claim_at_boundary_falls_back() {
+        // xid 0x80000030: the implied claim (48) ends exactly at the
+        // datagram boundary, so the marked attempt is tried; its
+        // msgtype word is the unmarked rpcvers (2) -> mismatch, fall
+        // back to the unmarked layout.
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&0x8000_0030u32.to_be_bytes()); // xid
+        buf.extend_from_slice(&0u32.to_be_bytes()); // msgtype 0 (request)
+        buf.extend_from_slice(&2u32.to_be_bytes()); // rpcvers
+        buf.extend_from_slice(&100003u32.to_be_bytes()); // program
+        buf.extend_from_slice(&3u32.to_be_bytes()); // progver
+        buf.extend_from_slice(&1u32.to_be_bytes()); // procedure
+        buf.extend_from_slice(&[0u8; 28]); // auth + prog_data
+        assert_eq!(buf.len(), 52);
+        let r = parse_rpc_udp_packet_header(&buf);
+        match r {
+            Ok((rem, hdr)) => {
+                assert_eq!(rem.len(), 44);
+                assert!(!hdr.frag_is_last);
+                assert_eq!(hdr.xid, 0x8000_0030);
+                assert_eq!(hdr.msgtype, 0);
+            }
+            _ => panic!("failed {:?}", r),
+        }
+    }
+
+    #[test]
+    fn test_udp_header_marked_claim_not_at_boundary_falls_back() {
+        // claim 36 but 34 bytes follow the marker: the record does not
+        // end at the datagram boundary -> unmarked layout.
+        let buf: &[u8] = &[
+            0x80, 0x00, 0x00, 0x24, // marker, claim 36
+            0x00, 0x00, 0x00, 0x00, // msgtype 0 (unmarked)
+            0x00, 0x00, 0x00, 0x02, // rpcvers
+            0x00, 0x01, 0x86, 0xA3, // program 100003
+            0x00, 0x00, 0x00, 0x03, // progver
+            0x00, 0x00, 0x00, 0x01, // procedure
+            0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
+            0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+        ];
+        // the claim (36) does not end at the datagram boundary
+        assert_eq!(buf.len() - 4, 48);
+        let r = parse_rpc_udp_packet_header(buf);
+        match r {
+            Ok((rem, hdr)) => {
+                assert_eq!(rem.len(), buf.len() - 8);
+                assert!(!hdr.frag_is_last);
+                assert_eq!(hdr.frag_len, 0);
+                assert_eq!(hdr.xid, 0x8000_0024);
+                assert_eq!(hdr.msgtype, 0);
+            }
+            _ => panic!("failed {:?}", r),
+        }
+    }
+
+    #[test]
+    fn test_udp_header_record_marked() {
+        // RFC 5531 record marker: is_last=1, len=36 (fits the datagram),
+        // then xid + msgtype at offset 4.
+        let buf: &[u8] = &[
+            0x80, 0x00, 0x00, 0x24, // marker, claim 36
+            0x12, 0x34, 0x56, 0x78, // xid
+            0x00, 0x00, 0x00, 0x00, // msgtype 0
+            0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
+            0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66,
+            0x77, // 28 bytes after xid+msgtype
+        ];
+        let r = parse_rpc_udp_packet_header(buf);
+        match r {
+            Ok((rem, hdr)) => {
+                assert_eq!(rem.len(), 28);
+                assert!(hdr.frag_is_last);
+                assert_eq!(hdr.frag_len, 36);
+                assert_eq!(hdr.xid, 0x12345678);
+                assert_eq!(hdr.msgtype, 0);
+            }
+            _ => panic!("failed {:?}", r),
+        }
+    }
+
+    #[test]
+    fn test_udp_header_marked_claim_beyond_datagram_falls_back() {
+        // Claim of 65535 cannot be met by a 16-byte datagram: this is an
+        // unmarked datagram whose xid has the top bit set. The header
+        // must be parsed unmarked (xid at offset 0).
+        let buf: &[u8] = &[
+            0x80, 0xFF, 0xFF, 0xFE, // xid with top bit set
+            0x00, 0x00, 0x00, 0x00, // msgtype 0
+            0x00, 0x00, 0x00, 0x02, // rpcver
+            0x00, 0x01, 0x86, 0xA3, // program 100003
+        ];
+        let r = parse_rpc_udp_packet_header(buf);
+        match r {
+            Ok((rem, hdr)) => {
+                assert_eq!(rem.len(), 8);
+                assert!(!hdr.frag_is_last);
+                assert_eq!(hdr.frag_len, 0);
+                assert_eq!(hdr.xid, 0x80FFFFFE);
+                assert_eq!(hdr.msgtype, 0);
+            }
+            _ => panic!("failed {:?}", r),
+        }
+    }
+
+    #[test]
+    fn test_udp_header_unmarked_small_claim_falls_back() {
+        // xid 0x80000005: the 31-bit "claim" is 5, below the minimal
+        // record size of 24 -> unmarked layout.
+        let buf: &[u8] = &[
+            0x80, 0x00, 0x00, 0x05, // xid
+            0x00, 0x00, 0x00, 0x01, // msgtype 1
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+        ];
+        let r = parse_rpc_udp_packet_header(buf);
+        match r {
+            Ok((rem, hdr)) => {
+                assert_eq!(rem.len(), 16);
+                assert!(!hdr.frag_is_last);
+                assert_eq!(hdr.xid, 0x80000005);
+                assert_eq!(hdr.msgtype, 1);
+            }
+            _ => panic!("failed {:?}", r),
+        }
     }
 }

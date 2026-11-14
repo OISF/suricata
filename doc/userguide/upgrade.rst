@@ -110,6 +110,11 @@ Logging Changes
   duplicate attribute types. See :ref:`IKE logging changes
   <9.0-ike-logging-changes>`
 
+- NFSv4 compound operations are now tracked as transactions, so an NFS
+  capture can produce many more ``nfs`` records than before. New fields, new
+  events and the WRITE status timing are covered in :ref:`NFS logging changes
+  <9.0-nfs-logging-changes>`
+
 - Ethertype values (``ether.ether_type``) are now logged matching the network order value.
   E.g., previously, ``ether_type`` values were logged in host order;  an ethertype value of ``0xfbb7``
   (network order) was logged as `47099`` (``0xb7fb``). This ethertype value will be logged as ``64439``.

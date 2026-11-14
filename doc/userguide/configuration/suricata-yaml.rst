@@ -1934,6 +1934,11 @@ order file data.
       max-write-queue-size: 64mb
       max-write-queue-cnt: 64
 
+      filter:
+        - GETATTR
+        - SETATTR
+
+
 The `max-read-size` option can be set to control the max size of accepted
 READ responses. Events will be raised if READ responses claim or carry too
 much data. A value of 0 disables the checks.
@@ -1941,6 +1946,11 @@ much data. A value of 0 disables the checks.
 The `max-write-size` option can be set to control the max size of accepted
 WRITE request records. Events will be raised if a WRITE request claims too
 much data. A value of 0 disables the checks.
+
+Disabling the two checks does not remove the bound on a single RPC record:
+an NFS record mark is a 31 bit byte count (RFC 5531 11), so a record claiming
+more than 64 MiB - or more than the largest configured size limit, when that is
+higher - abandons the flow with the ``record_overflow`` event either way.
 
 The `max-metadata-size` option can be set to control how much of a partial
 NFSv3 LOOKUP, READDIRPLUS or CREATE reply may be buffered towards the size its
@@ -1970,6 +1980,15 @@ event is raised.
 
 `max-write-queue-size` and `max-write-queue-cnt` are as the READ variants,
 but then for WRITEs.
+
+The `filter` option lists procedure names to keep out of the EVE output,
+matched case insensitively. When not set, v3 GETATTR is filtered by
+default (it is the most frequent NFSv3 procedure and rarely interesting
+alone); set an empty list to log every procedure.
+
+`stream-depth` overrides the global `stream.reassembly.depth` for NFS
+streams. When unset the global value applies, as before; 0 tracks the
+stream completely.
 
 
 Configure DCERPC

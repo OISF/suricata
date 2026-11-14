@@ -7,3 +7,40 @@
 alert nfs any any -> any any (msg:"SURICATA NFS malformed request data"; flow:to_server; app-layer-event:nfs.malformed_data; classtype:protocol-command-decode; sid:2223000; rev:1;)
 alert nfs any any -> any any (msg:"SURICATA NFS malformed response data"; flow:to_client; app-layer-event:nfs.malformed_data; classtype:protocol-command-decode; sid:2223001; rev:1;)
 alert nfs any any -> any any (msg:"SURICATA NFS too many transactions"; app-layer-event:nfs.too_many_transactions; classtype:protocol-command-decode; sid:2223002; rev:1;)
+# checks 'app-layer.protocols.nfs.max-read-queue-size` against out of order chunks
+alert nfs any any -> any any (msg:"SURICATA NFS max READ queue size exceeded"; flow:to_client; app-layer-event:nfs.read_queue_size_exceeded; classtype:protocol-command-decode; sid:2223003; rev:1;)
+# checks 'app-layer.protocols.nfs.max-read-queue-cnt` against out of order chunks
+alert nfs any any -> any any (msg:"SURICATA NFS max READ queue cnt exceeded"; flow:to_client; app-layer-event:nfs.read_queue_cnt_exceeded; classtype:protocol-command-decode; sid:2223004; rev:1;)
+# checks 'app-layer.protocols.nfs.max-write-queue-size` against out of order chunks
+alert nfs any any -> any any (msg:"SURICATA NFS max WRITE queue size exceeded"; flow:to_server; app-layer-event:nfs.write_queue_size_exceeded; classtype:protocol-command-decode; sid:2223005; rev:1;)
+# checks 'app-layer.protocols.nfs.max-write-queue-cnt` against out of order chunks
+alert nfs any any -> any any (msg:"SURICATA NFS max WRITE queue cnt exceeded"; flow:to_server; app-layer-event:nfs.write_queue_cnt_exceeded; classtype:protocol-command-decode; sid:2223006; rev:1;)
+# checks 'app-layer.protocols.nfs.max-write-size` against WRITE request data length
+alert nfs any any -> any any (msg:"SURICATA NFS max WRITE size exceeded"; flow:to_server; app-layer-event:nfs.write_request_too_large; classtype:protocol-command-decode; sid:2223007; rev:1;)
+# checks 'app-layer.protocols.nfs.max-read-size` against READ response data length
+alert nfs any any -> any any (msg:"SURICATA NFS max READ size exceeded"; flow:to_client; app-layer-event:nfs.read_response_too_large; classtype:protocol-command-decode; sid:2223008; rev:1;)
+# out-of-order file data exceeded the queue backstop while the stream had
+# gaps; the queued file data was truncated to bound memory
+alert nfs any any -> any any (msg:"SURICATA NFS truncated file data"; app-layer-event:nfs.truncated_file_data; classtype:protocol-command-decode; sid:2223009; rev:1;)
+# RPC record mark claims a length above the sanity cap; the record and the
+# rest of the flow are abandoned
+alert nfs any any -> any any (msg:"SURICATA NFS record mark overflow"; app-layer-event:nfs.record_overflow; classtype:protocol-command-decode; sid:2223010; rev:1;)
+# READ response or WRITE request exceeds the max transfer size the server
+# advertised in FSINFO (warn only; processing continues)
+alert nfs any any -> any any (msg:"SURICATA NFS transfer size above FSINFO limit"; app-layer-event:nfs.fsinfo_too_large; classtype:protocol-command-decode; sid:2223011; rev:1;)
+# WRITE request or READ reply starts below the file tracker's high-water
+# mark for this file: data overlaps bytes already tracked
+alert nfs any any -> any any (msg:"SURICATA NFS file overlap"; app-layer-event:nfs.file_overlap; classtype:protocol-command-decode; sid:2223012; rev:1;)
+# reply for a request whose NFS version is not v2/v3/v4
+alert nfs any any -> any any (msg:"SURICATA NFS non existing version"; flow:to_client; app-layer-event:nfs.non_existing_version; classtype:protocol-command-decode; sid:2223013; rev:1;)
+
+# internal parser error (stream-contract violation), to-server direction
+alert nfs any any -> any any (msg:"SURICATA NFS internal parser error"; flow:to_server; app-layer-event:nfs.internal_error; classtype:protocol-command-decode; sid:2223014; rev:1;)
+# internal parser error (stream-contract violation), to-client direction
+alert nfs any any -> any any (msg:"SURICATA NFS internal parser error"; flow:to_client; app-layer-event:nfs.internal_error; classtype:protocol-command-decode; sid:2223015; rev:1;)
+# a REPLY (response) was seen in the to-server direction
+alert nfs any any -> any any (msg:"SURICATA NFS wrong direction"; app-layer-event:nfs.response_to_server; classtype:protocol-command-decode; sid:2223016; rev:1;)
+# a CALL (request) was seen in the to-client direction
+alert nfs any any -> any any (msg:"SURICATA NFS wrong direction"; app-layer-event:nfs.request_to_client; classtype:protocol-command-decode; sid:2223017; rev:1;)
+
+# next sid is 2223018

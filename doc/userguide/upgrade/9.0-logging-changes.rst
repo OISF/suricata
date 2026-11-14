@@ -141,3 +141,79 @@ Example - Client Proposal
             }
           }
         }
+
+.. _9.0-nfs-logging-changes:
+
+NFS
+***
+
+More NFSv4 compounds are tracked as transactions. CLOSE, CREATE_SESSION,
+DELEGRETURN, DESTROY_CLIENTID, DESTROY_SESSION, EXCHANGE_ID, GETDEVINFO,
+LAYOUTGET, LAYOUTRETURN, RECLAIM_COMPLETE and SECINFO_NO_NAME no longer go
+unlogged: a compound carrying one of them now produces an ``nfs`` record where
+it produced none. Each compound still yields one transaction, for its main
+operation; READ and WRITE are tracked as file transactions in addition. A
+compound of only PUTFH and GETATTR opens no transaction, and a GETATTR after
+another operation stays that operation's attribute follow-up.
+
+Alerts attach to transactions, so a rule that uses NFS transaction keywords
+(``nfs_version``, ``nfs_procedure``, the file keywords) now also alerts for
+compounds that previously logged nothing. It still alerts once per compound,
+not once per operation; to pin a rule to one operation add ``nfs_procedure``.
+
+What the NFS logger writes is now bounded. RFC 1813 3.2 places no limit on the
+length of a v3 name, so one can be as large as the reassembly buffer allows:
+each string field is capped at 8 KiB and an ``nfs`` record at 128 KiB, a
+shortened value keeping a ``[truncated N additional bytes]`` marker, and a
+record whose budget ran out setting ``nfs.truncated`` (or ``rpc.truncated``)
+with each omitted field named by a ``*_truncated`` key. Only NFSv2 names are
+flagged at parse level: RFC 1094 bounds them to 255 bytes, and a longer one
+raises ``malformed_data`` while staying available to ``nfs.name`` and
+``nfs.filename``.
+
+NFS over TCP is no longer detected only on the configured ports. A pattern probe
+anchored on the ONC RPC call header finds calls on the to-server stream, and the
+probe confirms the program number and RPC header, so NFS on an unusual port now gets
+``app_proto: nfs``, produces ``nfs`` records and can match ``alert nfs`` rules
+where 8.x left the flow undetected. Other ONC RPC services (mountd, rpcbind,
+nlockmgr) are not claimed, their calls carry a different program number.
+
+New fields on the ``nfs`` records:
+
+* ``nfs.minorversion`` and ``nfs.client_id`` for NFSv4.1 session identity
+* ``nfs.status_code``, the numeric status next to ``nfs.status``; NFSv4
+  statuses are named from the v4 table instead of the v3 one. It is written only
+  where a reply status was seen, so unlike ``nfs.status`` it never reads 0 (OK)
+  for a transaction closed before its reply arrived.
+
+New events: ``fsinfo_too_large``, ``record_overflow``, ``file_overlap``,
+``internal_error``, the direction sanity events, and ``malformed_data`` for
+corrupted UDP records. Default rules for them ship in
+``rules/nfs-events.rules``.
+
+The keywords ``nfs.name`` and ``nfs.handle`` match on the file name and the
+file handle of NFS records.
+
+Status only when a reply carried one
+====================================
+
+An ``nfs`` record now omits ``nfs.status`` when no reply status has been
+seen, where before it was always logged and read as the default ``OK``.
+A WRITE whose last record is fully buffered is one such record: it is
+logged as the request is parsed, before any reply. A request whose reply
+never arrives, and a reply rejected at the RPC layer, are two more.
+Status is taken from the first reply record that carries one, whether or
+not that record ends the transfer: a READ that stops short of EOF, and an
+UNSTABLE WRITE that a later COMMIT closes, are logged with the status
+their own replies reported.
+Consumers reading the field should treat its absence as "no reply
+status".
+
+The ``fileinfo`` record for such a file is written when the file closes.
+It describes the file rather than an RPC reply, so its ``status`` still
+reads as ``OK`` even when the write turns out to have been rejected; the
+numeric ``status_code`` appears only once a reply status has been seen.
+Alerts that fire on a transaction standing for an event rather than a
+call - ``record_overflow`` and the direction events - now carry no
+``nfs`` or ``rpc`` block, since there is no procedure, status or valid
+transaction id to report.
