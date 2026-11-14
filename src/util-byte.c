@@ -1166,6 +1166,23 @@ static int ByteTest17(void)
     PASS;
 }
 
+static int ByteTest18(void)
+{
+    uint64_t val = 0;
+
+    /* one-byte value (Content-Length: 0): a digit after the value is
+     * outside avail; an unbounded scan would read it and shift the
+     * value ("0" -> "04") */
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 0, 1, "04") == 1);
+    FAIL_IF_NOT(val == 0);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 0, 1, "14") == 1);
+    FAIL_IF_NOT(val == 1);
+    FAIL_IF_NOT(ByteExtractStringUint64Bounded(&val, 10, 0, 1, "0x") == 1);
+    FAIL_IF_NOT(val == 0);
+
+    PASS;
+}
+
 void ByteRegisterTests(void)
 {
     UtRegisterTest("ByteTest01", ByteTest01);
@@ -1185,6 +1202,7 @@ void ByteRegisterTests(void)
     UtRegisterTest("ByteTest15", ByteTest15);
     UtRegisterTest("ByteTest16", ByteTest16);
     UtRegisterTest("ByteTest17", ByteTest17);
+    UtRegisterTest("ByteTest18", ByteTest18);
 }
 #endif /* UNITTESTS */
 
