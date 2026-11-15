@@ -168,6 +168,10 @@ pub enum HtpLogCode {
     COMPRESSION_BOMB_DOUBLE_LZMA,
     /// Invalid content-encoding detected.
     INVALID_CONTENT_ENCODING,
+    /// Request trailer field that RFC 9110 forbids in a trailer section.
+    REQUEST_TRAILER_FORBIDDEN_FIELD,
+    /// Response trailer field that RFC 9110 forbids in a trailer section.
+    RESPONSE_TRAILER_FORBIDDEN_FIELD,
     /// Error retrieving a log message's code
     ERROR,
 }

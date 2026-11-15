@@ -216,6 +216,8 @@ noinst_HEADERS = \
 	detect-http-start.h \
 	detect-http-stat-code.h \
 	detect-http-stat-msg.h \
+	detect-http-trailer.h \
+	tests/detect-http-trailer.c \
 	detect-http-ua.h \
 	detect-http-uri.h \
 	detect-http2.h \
@@ -791,6 +793,9 @@ libsuricata_c_a_SOURCES = \
 	detect-http-start.c \
 	detect-http-stat-code.c \
 	detect-http-stat-msg.c \
+	detect-http-trailer-names.c \
+	detect-http-trailer-raw.c \
+	detect-http-trailer.c \
 	detect-http-ua.c \
 	detect-http-uri.c \
 	detect-http2.c \

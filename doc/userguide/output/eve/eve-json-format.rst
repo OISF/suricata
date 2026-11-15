@@ -806,9 +806,24 @@ Event with ``dump-all-headers`` set to "both":
               "name": "Date",
               "value": "Wed, 25 Mar 2015 15:40:41 GMT"
           },
+      ],
+      "request_trailers": [
+          {
+              "name": "X-Checksum",
+              "value": "bletch"
+          },
+      ],
+      "response_trailers": [
+          {
+              "name": "grpc-message",
+              "value": "OK"
+          },
       ]
   }
 
+Trailer fields also appear in the header arrays, because a trailer block is a
+header block of its own: always for HTTP/2, and for HTTP/1 with
+``dump-all-headers``. See :ref:`http.trailer`.
 
 Event type: DNS
 ---------------

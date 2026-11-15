@@ -4384,9 +4384,9 @@ static int DetectEngineHttpHeaderTest32(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(content:\"Dummy\"; http_header; "
-                               "sid:1;)");
+    /* "Dummy" is a trailer field: the header buffer must not see it. */
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(content:\"Dummy\"; http_header; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -4411,8 +4411,8 @@ static int DetectEngineHttpHeaderTest32(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if (!(PacketAlertCheck(p1, 1))) {
-        printf("sid 1 didn't match but should have: ");
+    if (PacketAlertCheck(p1, 1)) {
+        printf("sid 1 matched but should not have: ");
         goto end;
     }
 
@@ -4493,9 +4493,9 @@ static int DetectEngineHttpHeaderTest33(void)
     FAIL_IF(de_ctx == NULL);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(content:\"Dummy\"; http_header; "
-                               "sid:1;)");
+    /* same with the trailer arriving in a second packet */
+    de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                       "(content:\"Dummy\"; http_header; sid:1;)");
     FAIL_IF(de_ctx->sig_list == NULL);
 
     SigGroupBuild(de_ctx);
@@ -4520,7 +4520,7 @@ static int DetectEngineHttpHeaderTest33(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    FAIL_IF(!PacketAlertCheck(p2, 1));
+    FAIL_IF(PacketAlertCheck(p2, 1)); /* trailer bytes are not header bytes */
 
     AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
@@ -4602,9 +4602,10 @@ static int DetectEngineHttpHeaderTest34(void)
     FAIL_IF(de_ctx == NULL);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(content:\"Dummy\"; http_header; content:\"Header2\"; http_header; within:8; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert http any any -> any any "
+            "(content:\"Dummy\"; http_header; content:\"Header2\"; http_header; within:8; "
+            "sid:1;)");
     FAIL_IF(de_ctx->sig_list == NULL);
 
     SigGroupBuild(de_ctx);
@@ -4635,7 +4636,7 @@ static int DetectEngineHttpHeaderTest34(void)
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
-    FAIL_IF(!PacketAlertCheck(p3, 1)); /* should match in trailer */
+    FAIL_IF(PacketAlertCheck(p3, 1)); /* neither trailer field is header data */
 
     AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
@@ -4718,9 +4719,10 @@ static int DetectEngineHttpHeaderTest35(void)
     FAIL_IF(de_ctx == NULL);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(content:\"Dummy\"; http_header; fast_pattern; content:\"Header2\"; http_header; within:8; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+            "alert http any any -> any any "
+            "(content:\"Dummy\"; http_header; fast_pattern; content:\"Header2\"; http_header; "
+            "within:8; sid:1;)");
     FAIL_IF(de_ctx->sig_list == NULL);
 
     SigGroupBuild(de_ctx);
@@ -4751,7 +4753,7 @@ static int DetectEngineHttpHeaderTest35(void)
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
-    FAIL_IF(!PacketAlertCheck(p3, 1)); /* should match in trailer */
+    FAIL_IF(PacketAlertCheck(p3, 1)); /* same with a fast pattern queued */
 
     AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
