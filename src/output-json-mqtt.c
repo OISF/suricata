@@ -45,7 +45,9 @@
 #include "rust.h"
 
 #define MQTT_LOG_PASSWORDS BIT_U32(0)
-#define MQTT_DEFAULT_FLAGS     (MQTT_LOG_PASSWORDS)
+/* passwords stay off in the alert-metadata variant; only an explicit
+ * eve-log.mqtt passwords: yes enables them for the tx logger */
+#define MQTT_DEFAULT_FLAGS     0
 #define MQTT_DEFAULT_MAXLOGLEN 1024
 
 typedef struct LogMQTTFileCtx_ {
@@ -104,13 +106,7 @@ static void OutputMQTTLogDeInitCtxSub(OutputCtx *output_ctx)
 static void JsonMQTTLogParseConfig(SCConfNode *conf, LogMQTTFileCtx *mqttlog_ctx)
 {
     const char *query = SCConfNodeLookupChildValue(conf, "passwords");
-    if (query != NULL) {
-        if (SCConfValIsTrue(query)) {
-            mqttlog_ctx->flags |= MQTT_LOG_PASSWORDS;
-        } else {
-            mqttlog_ctx->flags &= ~MQTT_LOG_PASSWORDS;
-        }
-    } else {
+    if (query != NULL && SCConfValIsTrue(query)) {
         mqttlog_ctx->flags |= MQTT_LOG_PASSWORDS;
     }
     uint32_t max_log_len = MQTT_DEFAULT_MAXLOGLEN;

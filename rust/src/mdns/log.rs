@@ -17,7 +17,9 @@
 
 use crate::dns::dns::*;
 use crate::dns::log::{
-    dns_log_opt, dns_log_soa, dns_log_srv, dns_log_sshfp, dns_print_addr, dns_rrtype_string,
+    dns_answer_cost_all, dns_log_opt, dns_log_soa, dns_log_srv, dns_log_sshfp, dns_print_addr,
+    dns_rrtype_string, DnsLogBudget, DNS_LOG_MAX_ADDITIONALS, DNS_LOG_MAX_ANSWERS,
+    DNS_LOG_MAX_AUTHORITIES, DNS_LOG_MAX_QUERIES,
 };
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 
@@ -73,6 +75,7 @@ fn mdns_log_json_answer_detail(answer: &DNSAnswerEntry) -> Result<JsonBuilder, J
 }
 
 fn log_json(tx: &DNSTransaction, jb: &mut JsonBuilder) -> Result<(), JsonError> {
+    let mut budget = DnsLogBudget::new();
     jb.open_object("mdns")?;
 
     let message = if let Some(request) = &tx.request {
@@ -120,9 +123,16 @@ fn log_json(tx: &DNSTransaction, jb: &mut JsonBuilder) -> Result<(), JsonError> 
     jb.set_uint("opcode", opcode as u64)?;
     jb.set_uint("rcode", header.flags & 0x000f)?;
 
+    let mut queries_truncated = false;
     if !message.queries.is_empty() {
         jb.open_array("queries")?;
+        let mut logged = 0usize;
         for query in &message.queries {
+            if logged >= DNS_LOG_MAX_QUERIES || !budget.consume(query.name.value.len() + 32) {
+                queries_truncated = true;
+                break;
+            }
+            logged += 1;
             jb.start_object()?
                 .set_string_from_bytes("rrname", &query.name.value)?
                 .set_string("rrtype", &dns_rrtype_string(query.rrtype).to_lowercase())?;
@@ -132,32 +142,65 @@ fn log_json(tx: &DNSTransaction, jb: &mut JsonBuilder) -> Result<(), JsonError> 
             jb.close()?;
         }
         jb.close()?;
+        if queries_truncated {
+            jb.set_bool("queries_truncated", true)?;
+            budget.truncated = true;
+        }
     }
 
+    let mut answers_truncated = false;
     if !message.answers.is_empty() {
         jb.open_array("answers")?;
+        let mut logged = 0usize;
         for entry in &message.answers {
+            if logged >= DNS_LOG_MAX_ANSWERS || !budget.consume(dns_answer_cost_all(entry)) {
+                answers_truncated = true;
+                break;
+            }
+            logged += 1;
             jb.append_object(&mdns_log_json_answer_detail(entry)?)?;
         }
         jb.close()?;
+        if answers_truncated {
+            jb.set_bool("answers_truncated", true)?;
+            budget.truncated = true;
+        }
     }
 
+    let mut authorities_truncated = false;
     if !message.authorities.is_empty() {
         jb.open_array("authorities")?;
+        let mut logged = 0usize;
         for entry in &message.authorities {
+            if logged >= DNS_LOG_MAX_AUTHORITIES || !budget.consume(dns_answer_cost_all(entry)) {
+                authorities_truncated = true;
+                break;
+            }
+            logged += 1;
             jb.append_object(&mdns_log_json_answer_detail(entry)?)?;
         }
         jb.close()?;
+        if authorities_truncated {
+            jb.set_bool("authorities_truncated", true)?;
+            budget.truncated = true;
+        }
     }
 
+    let mut additionals_truncated = false;
     if !message.additionals.is_empty() {
         let mut is_jb_open = false;
+        let mut logged = 0usize;
         for entry in &message.additionals {
             if let DNSRData::OPT(rdata) = &entry.data {
                 if rdata.is_empty() {
                     continue;
                 }
             }
+            if logged >= DNS_LOG_MAX_ADDITIONALS || !budget.consume(dns_answer_cost_all(entry)) {
+                additionals_truncated = true;
+                break;
+            }
+            logged += 1;
             if !is_jb_open {
                 jb.open_array("additionals")?;
                 is_jb_open = true;
@@ -167,6 +210,14 @@ fn log_json(tx: &DNSTransaction, jb: &mut JsonBuilder) -> Result<(), JsonError> 
         if is_jb_open {
             jb.close()?;
         }
+        if additionals_truncated {
+            jb.set_bool("additionals_truncated", true)?;
+            budget.truncated = true;
+        }
+    }
+
+    if budget.truncated {
+        jb.set_bool("truncated", true)?;
     }
 
     jb.close()?;

@@ -1118,7 +1118,7 @@ Fields
 ~~~~~~
 
 * "command": The FTP command.
-* "command_data": The data accompanying the command.
+* "command_data": The data accompanying the command. Not logged for USER/PASS unless ``credentials: yes`` is set in the eve-log ftp section
 * "reply": The command reply, which may contain multiple lines, in array format.
 * "completion_code": The 3-digit completion code. The first digit indicates whether the response is good, bad or incomplete. This
   is also in array format and may contain multiple completion codes matching multiple reply lines.
@@ -1273,7 +1273,7 @@ Fields
 ~~~~~~
 
 * "packet": The operation code, can be "read" or "write" or "error"
-* "file": The filename transported with the tftp protocol
+* "file": The filename transported with the tftp protocol. Only logged with ``filenames: yes`` in the eve-log tftp section; off by default
 * "mode": The mode field, can be "octet" or "mail" or "netascii" (or any combination of upper and lower case)
 
 Example of TFTP logging:
@@ -2134,7 +2134,8 @@ Fields
 * "server_protocol_version.major", "server_protocol_version.minor": The RFB protocol version offered by the server.
 * "client_protocol_version.major", "client_protocol_version.minor": The RFB protocol version agreed by the client.
 * "authentication.security_type": Security type agreed upon in the logged transaction, e.g. ``2`` is VNC auth.
-* "authentication.vnc.challenge", "authentication.vnc.response": Only available when security type 2 is used. Contains the challenge and response byte buffers exchanged by the server and client as hex strings.
+* "authentication.vnc.challenge": Only available when security type 2 is used. The challenge byte buffer as a hex string.
+* "authentication.vnc.response_redacted": Set when the client response was present; the response is password-equivalent and is not logged.
 * "authentication.security_result": Result of the authentication process (``OK``, ``FAIL`` or ``TOOMANY``).
 * "screen_shared": Boolean value describing whether the client requested screen sharing.
 * "framebuffer": Contains metadata about the initial screen setup process. Only available when the handshake completed this far.
@@ -2163,7 +2164,7 @@ Example of RFB logging, with full VNC style authentication parameters:
       "security_type": 2,
       "vnc": {
         "challenge": "0805b790b58e967f2b350a0c99de3881",
-        "response": "aecb26faeaaa62179636a5934bac1078"
+        "response_redacted": true
       },
       "security_result": "OK"
     },
@@ -2573,7 +2574,7 @@ Fields
 
 There are the two fields "request" and "response" which can each contain the same set of fields :
 * "settings": a list of settings with "name" and "value"
-* "headers": a list of headers with either "name" and "value", or "table_size_update", or "error" if any
+* "headers": a list of headers with either "name" and "value", or "table_size_update", or "error" if any. Sensitive header values (cookie, authorization, proxy-authorization, set-cookie) are replaced by "redacted": true unless ``sensitive-headers: yes`` is set in the eve-log http2 section
 * "error_code": the error code from GOAWAY or RST_STREAM, which can be "NO_ERROR"
 * "priority": the stream priority.
 

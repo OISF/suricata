@@ -140,6 +140,7 @@ Metadata::
             #packet: yes              # enable dumping of packet (without stream segments)
             #http-body: yes           # Requires metadata; enable dumping of http body in Base64
             #http-body-printable: yes # Requires metadata; enable dumping of http body in printable format
+            #http-body-log-limit: 100 KiB # max HTTP body bytes logged per direction
 
             # metadata:
 
@@ -221,6 +222,12 @@ Config::
         # set this value to one among {both, request, response} to dump all
         # http headers for every http request and/or response
         # dump-all-headers: [both, request, response]
+        # per string field cap; longer values end with
+        # "[truncated N additional bytes]"
+        #string-log-limit: 16 KiB
+        # total header name+value bytes logged per direction; hitting it
+        # sets request_headers_truncated / response_headers_truncated
+        #header-log-limit: 32 KiB
 
 List of custom fields:
 
@@ -392,10 +399,29 @@ YAML::
                                        # the maximum parsed message size (see
                                        # app-layer configuration)
 
-The default is to output passwords in cleartext and not to limit the size of
-message payloads. Depending on the kind of context the parser is used in (public
-output, frequent binary transmissions, ...) this can be configured for regular
-``mqtt`` events.
+Passwords are not logged by default; ``password_redacted`` is set instead.
+String values are limited to ``string-log-limit`` (default 1 KiB) with an
+in-value marker, and a hard maximum of 64 KiB per value; ``0`` uses the hard
+cap. A record stops at 128 messages and 1 MiB (``truncated``). Depending on the
+kind of context the parser is used in (public output, frequent binary
+transmissions, ...) this can be configured for regular ``mqtt`` events.
+
+FTP, TFTP and HTTP/2 privacy options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These values are not logged by default and can be enabled per protocol:
+
+YAML::
+
+        - ftp:
+            # credentials: yes         # log USER/PASS command arguments
+        - tftp:
+            # filenames: yes           # log the transported file name
+        - http2:
+            # sensitive-headers: yes   # log cookie/authorization header values
+
+The option applies to the eve-log output it is set on. Alert metadata always
+uses the redacted default, whatever the output that logs the alert sets.
 
 Drops
 ~~~~~

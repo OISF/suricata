@@ -99,6 +99,7 @@ typedef struct AlertJsonOutputCtx_ {
     LogFileCtx* file_ctx;
     uint16_t flags;
     uint32_t payload_buffer_size;
+    uint32_t http_body_log_limit;
     HttpXFFCfg *xff_cfg;
     HttpXFFCfg *parent_xff_cfg;
     OutputJsonCtx *eve_ctx;
@@ -355,7 +356,7 @@ static void AlertAddAppLayerStates(const Packet *p, const AppProto alproto, cons
 }
 
 static void AlertAddAppLayer(const Packet *p, SCJsonBuilder *jb, const uint64_t tx_id,
-        const uint8_t sub_state, const uint16_t option_flags)
+        const uint8_t sub_state, const uint16_t option_flags, uint32_t http_body_log_limit)
 {
     const AppProto proto = SCFlowGetAppProtocol(p->flow);
     EveJsonSimpleAppLayerLogger *al = SCEveJsonSimpleGetLogger(proto);
@@ -397,11 +398,10 @@ static void AlertAddAppLayer(const Packet *p, SCJsonBuilder *jb, const uint64_t 
             // TODO: Could result in an empty http object being logged.
             SCJbOpenObject(jb, "http");
             if (EveHttpAddMetadata(p->flow, tx_id, jb)) {
-                if (option_flags & LOG_JSON_HTTP_BODY) {
-                    EveHttpLogJSONBodyPrintable(jb, p->flow, tx_id);
-                }
-                if (option_flags & LOG_JSON_HTTP_BODY_BASE64) {
-                    EveHttpLogJSONBodyBase64(jb, p->flow, tx_id);
+                if (option_flags & (LOG_JSON_HTTP_BODY | LOG_JSON_HTTP_BODY_BASE64)) {
+                    EveHttpLogJSONBody(jb, p->flow, tx_id,
+                            (option_flags & LOG_JSON_HTTP_BODY_BASE64) != 0,
+                            (option_flags & LOG_JSON_HTTP_BODY) != 0, http_body_log_limit);
                 }
             }
             SCJbClose(jb);
@@ -784,7 +784,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         if (p->flow != NULL) {
             if (pa->flags & PACKET_ALERT_FLAG_TX) {
                 if (json_output_ctx->flags & LOG_JSON_APP_LAYER) {
-                    AlertAddAppLayer(p, jb, pa->tx_id, pa->sub_state, json_output_ctx->flags);
+                    AlertAddAppLayer(p, jb, pa->tx_id, pa->sub_state, json_output_ctx->flags,
+                            json_output_ctx->http_body_log_limit);
                 }
                 /* including fileinfo data is configured by the metadata setting */
                 if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {
@@ -1033,6 +1034,7 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx, SCCon
 {
     static bool warn_no_meta = false;
     uint32_t payload_buffer_size = JSON_STREAM_BUFFER_SIZE;
+    uint32_t http_body_log_limit = HTTP_LOG_DEFAULT_BODY_LIMIT;
     uint16_t flags = METADATA_DEFAULTS;
 
     if (conf != NULL) {
@@ -1061,6 +1063,17 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx, SCCon
         SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &flags);
         SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &flags);
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &flags);
+
+        const char *http_body_limit = SCConfNodeLookupChildValue(conf, "http-body-log-limit");
+        if (http_body_limit != NULL) {
+            uint32_t limit = 0;
+            if (ParseSizeStringU32(http_body_limit, &limit) < 0 || limit == 0 ||
+                    limit > HTTP_LOG_MAX_BODY_LIMIT) {
+                SCLogError("invalid eve-log.alert http-body-log-limit '%s'", http_body_limit);
+            } else {
+                http_body_log_limit = limit;
+            }
+        }
         SetFlag(conf, "websocket-payload-printable", LOG_JSON_WEBSOCKET_PAYLOAD, &flags);
         SetFlag(conf, "websocket-payload", LOG_JSON_WEBSOCKET_PAYLOAD_BASE64, &flags);
         SetFlag(conf, "verdict", LOG_JSON_VERDICT, &flags);
@@ -1110,6 +1123,7 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx, SCCon
     }
 
     json_output_ctx->payload_buffer_size = payload_buffer_size;
+    json_output_ctx->http_body_log_limit = http_body_log_limit;
     json_output_ctx->flags |= flags;
 }
 

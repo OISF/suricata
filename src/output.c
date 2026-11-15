@@ -52,6 +52,7 @@
 #include "output-json-drop.h"
 #include "output-eve-stream.h"
 #include "output-json-http.h"
+#include "output-json-http2.h"
 #include "output-json-dns.h"
 #include "output-json-mdns.h"
 #include "log-tlsstore.h"
@@ -66,6 +67,7 @@
 #include "log-stats.h"
 #include "output-json-nfs.h"
 #include "output-json-ftp.h"
+#include "output-json-tftp.h"
 // for misplaced EveFTPDataAddMetadata
 #include "app-layer-ftp.h"
 #include "output-json-smb.h"
@@ -1012,7 +1014,17 @@ static int JsonGenericLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return TM_ECODE_FAILED;
     }
 
-    if (!al->LogTx(tx, js)) {
+    bool logged;
+    if (f->alproto == ALPROTO_FTP) {
+        logged = EveFTPLogCommandTx(tx, js, thread->ctx->ftp_credentials);
+    } else if (f->alproto == ALPROTO_TFTP) {
+        logged = SCTftpLogJsonRequestFlags(tx, js, thread->ctx->tftp_filenames);
+    } else if (f->alproto == ALPROTO_HTTP2) {
+        logged = SCHttp2LogJsonFlags(tx, js, thread->ctx->http2_sensitive_headers);
+    } else {
+        logged = al->LogTx(tx, js);
+    }
+    if (!logged) {
         goto error;
     }
 
@@ -1094,11 +1106,11 @@ void OutputRegisterLoggers(void)
     /* http log */
     JsonHttpLogRegister();
     OutputRegisterTxSubModuleWithProgressSubState(LOGGER_JSON_TX, "eve-log", "LogHttp2Log::stream",
-            "eve-log.http2", OutputJsonLogInitSub, ALPROTO_HTTP2, HTTP2TxTypeStream,
+            "eve-log.http2", JsonHttp2LogInitSub, ALPROTO_HTTP2, HTTP2TxTypeStream,
             JsonGenericDirFlowLogger, HTTP2ProgClosed, HTTP2ProgClosed, JsonLogThreadInit,
             JsonLogThreadDeinit);
     OutputRegisterTxSubModuleWithProgressSubState(LOGGER_JSON_TX, "eve-log", "LogHttp2Log::global",
-            "eve-log.http2", OutputJsonLogInitSub, ALPROTO_HTTP2, HTTP2TxTypeGlobal,
+            "eve-log.http2", JsonHttp2LogInitSub, ALPROTO_HTTP2, HTTP2TxTypeGlobal,
             JsonGenericDirFlowLogger, HTTP2ProgGlobalComplete, HTTP2ProgGlobalComplete,
             JsonLogThreadInit, JsonLogThreadDeinit);
     /* tls log */
@@ -1144,16 +1156,16 @@ void OutputRegisterLoggers(void)
     JsonNFSLogRegister();
     /* TFTP JSON logger. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonTFTPLog", "eve-log.tftp",
-            OutputJsonLogInitSub, ALPROTO_TFTP, JsonGenericDirPacketLogger, JsonLogThreadInit,
+            JsonTftpLogInitSub, ALPROTO_TFTP, JsonGenericDirPacketLogger, JsonLogThreadInit,
             JsonLogThreadDeinit);
 
     SCLogDebug("TFTP JSON logger registered.");
     /* FTP and FTP-DATA JSON loggers. */
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonFTPLog", "eve-log.ftp",
-            OutputJsonLogInitSub, ALPROTO_FTP, JsonGenericDirFlowLogger, JsonLogThreadInit,
+            JsonFTPLogInitSub, ALPROTO_FTP, JsonGenericDirFlowLogger, JsonLogThreadInit,
             JsonLogThreadDeinit);
     OutputRegisterTxSubModule(LOGGER_JSON_TX, "eve-log", "JsonFTPLog", "eve-log.ftp",
-            OutputJsonLogInitSub, ALPROTO_FTPDATA, JsonGenericDirFlowLogger, JsonLogThreadInit,
+            JsonFTPLogInitSub, ALPROTO_FTPDATA, JsonGenericDirFlowLogger, JsonLogThreadInit,
             JsonLogThreadDeinit);
     SCLogDebug("FTP JSON logger registered.");
 

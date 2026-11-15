@@ -1993,6 +1993,12 @@ Its default value is 4096 bytes, but it can be set to any uint32 by a flow.
 `http2.max-streams` refers to `SETTINGS_MAX_CONCURRENT_STREAMS` from rfc 7540 section 6.5.2.
 Its default value is 256.
 
+`http2.max-header-list-size`, `http2.max-header-count` and
+`http2.max-header-field-size` bound the decoded header list, its entry count
+and each entry (64 KiB, 1024 and 16 KiB by default). Exceeding a bound raises
+the `http2.header_list_too_large` event; decoding continues so the HPACK table
+stays in sync.
+
 SSL/TLS
 ~~~~~~~
 

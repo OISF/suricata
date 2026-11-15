@@ -26,6 +26,9 @@ use tls_parser::{TlsCipherSuiteID, TlsExtensionType, TlsVersion};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::tls_version::SCTlsVersion;
 
+const TLS_LOG_MAX_ARRAY: usize = 256;
+const TLS_LOG_MAX_ALPN: usize = 256;
+
 #[derive(Debug, PartialEq)]
 pub struct HandshakeParams {
     pub(crate) tls_version: Option<TlsVersion>,
@@ -119,10 +122,18 @@ impl HandshakeParams {
         }
         js.open_array(key)?;
 
-        for v in &self.alpns {
-            js.append_string_from_bytes(v)?;
+        let mut truncated = self.alpns.len() > TLS_LOG_MAX_ARRAY;
+        for v in self.alpns.iter().take(TLS_LOG_MAX_ARRAY) {
+            let len = v.len().min(TLS_LOG_MAX_ALPN);
+            if len < v.len() {
+                truncated = true;
+            }
+            js.append_string_from_bytes(&v[..len])?;
         }
         js.close()?;
+        if truncated {
+            js.set_bool(&format!("{}_truncated", key), true)?;
+        }
         Ok(())
     }
 
@@ -139,10 +150,13 @@ impl HandshakeParams {
         }
         js.open_array("exts")?;
 
-        for v in &self.extensions {
+        for v in self.extensions.iter().take(TLS_LOG_MAX_ARRAY) {
             js.append_uint(v.0.into())?;
         }
         js.close()?;
+        if self.extensions.len() > TLS_LOG_MAX_ARRAY {
+            js.set_bool("exts_truncated", true)?;
+        }
         Ok(())
     }
 
@@ -158,10 +172,13 @@ impl HandshakeParams {
         }
         js.open_array("ciphers")?;
 
-        for v in &self.ciphersuites {
+        for v in self.ciphersuites.iter().take(TLS_LOG_MAX_ARRAY) {
             js.append_uint(v.0.into())?;
         }
         js.close()?;
+        if self.ciphersuites.len() > TLS_LOG_MAX_ARRAY {
+            js.set_bool("ciphers_truncated", true)?;
+        }
         Ok(())
     }
 
@@ -171,10 +188,13 @@ impl HandshakeParams {
         }
         js.open_array("sig_algs")?;
 
-        for v in &self.signature_algorithms {
+        for v in self.signature_algorithms.iter().take(TLS_LOG_MAX_ARRAY) {
             js.append_uint(*v as u64)?;
         }
         js.close()?;
+        if self.signature_algorithms.len() > TLS_LOG_MAX_ARRAY {
+            js.set_bool("sig_algs_truncated", true)?;
+        }
         Ok(())
     }
 }

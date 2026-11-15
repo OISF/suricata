@@ -128,13 +128,47 @@ typedef struct JsonTlsLogThread_ {
     OutputJsonThreadCtx *ctx;
 } JsonTlsLogThread;
 
+#define TLS_LOG_MAX_STRING    (8 * 1024)
+#define TLS_LOG_MAX_CERT      (64 * 1024)
+#define TLS_LOG_MAX_SAN_BYTES (64 * 1024)
+#define TLS_LOG_MAX_ARRAY     256
+
+static void TlsJbSetStringLimited(
+        SCJsonBuilder *js, const char *key, const uint8_t *data, size_t len)
+{
+    if (len == 0) {
+        SCJbSetString(js, key, "");
+        return;
+    }
+    if (len <= TLS_LOG_MAX_STRING) {
+        SCJbSetStringFromBytes(js, key, data, (uint32_t)len);
+        return;
+    }
+    size_t extra = len - TLS_LOG_MAX_STRING;
+    char suffix[64];
+    int suffix_len = snprintf(suffix, sizeof(suffix), "[truncated %zu additional bytes]", extra);
+    if (suffix_len < 0) {
+        SCJbSetStringFromBytes(js, key, data, TLS_LOG_MAX_STRING);
+        return;
+    }
+    uint8_t *buf = SCMalloc(TLS_LOG_MAX_STRING + (size_t)suffix_len);
+    if (buf == NULL) {
+        SCJbSetStringFromBytes(js, key, data, TLS_LOG_MAX_STRING);
+        return;
+    }
+    memcpy(buf, data, TLS_LOG_MAX_STRING);
+    memcpy(buf + TLS_LOG_MAX_STRING, suffix, (size_t)suffix_len);
+    SCJbSetStringFromBytes(js, key, buf, TLS_LOG_MAX_STRING + (uint32_t)suffix_len);
+    SCFree(buf);
+}
+
 static void JsonTlsLogSubject(SCJsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_subject) {
         if (ssl_state->server_connp.cert0_subject_len == 0) {
             SCJbSetString(js, "subject", "");
         } else {
-            SCJbSetStringFromBytes(js, "subject", ssl_state->server_connp.cert0_subject,
+            TlsJbSetStringLimited(js, "subject", ssl_state->server_connp.cert0_subject,
                     ssl_state->server_connp.cert0_subject_len);
         }
     }
@@ -146,7 +180,7 @@ static void JsonTlsLogIssuer(SCJsonBuilder *js, SSLState *ssl_state)
         if (ssl_state->server_connp.cert0_issuerdn_len == 0) {
             SCJbSetString(js, "issuerdn", "");
         } else {
-            SCJbSetStringFromBytes(js, "issuerdn", ssl_state->server_connp.cert0_issuerdn,
+            TlsJbSetStringLimited(js, "issuerdn", ssl_state->server_connp.cert0_issuerdn,
                     ssl_state->server_connp.cert0_issuerdn_len);
         }
     }
@@ -155,12 +189,26 @@ static void JsonTlsLogIssuer(SCJsonBuilder *js, SSLState *ssl_state)
 static void JsonTlsLogSAN(SCJsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_sans_num > 0) {
+        size_t budget = TLS_LOG_MAX_SAN_BYTES;
+        bool truncated = false;
         SCJbOpenArray(js, "subjectaltname");
         for (uint16_t i = 0; i < ssl_state->server_connp.cert0_sans_num; i++) {
-            SCJbAppendStringFromBytes(js, ssl_state->server_connp.cert0_sans[i].san,
-                    ssl_state->server_connp.cert0_sans[i].san_len);
+            size_t len = ssl_state->server_connp.cert0_sans[i].san_len;
+            if (len > budget) {
+                len = budget;
+                truncated = true;
+            }
+            budget -= len;
+            SCJbAppendStringFromBytes(js, ssl_state->server_connp.cert0_sans[i].san, (uint32_t)len);
+            if (budget == 0) {
+                if (i + 1 < ssl_state->server_connp.cert0_sans_num)
+                    truncated = true;
+                break;
+            }
         }
         SCJbClose(js);
+        if (truncated)
+            SCJbSetBool(js, "subjectaltname_truncated", true);
     }
 }
 
@@ -188,7 +236,7 @@ static void JsonTlsLogFingerprint(SCJsonBuilder *js, SSLState *ssl_state)
 static void JsonTlsLogSni(SCJsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->client_connp.sni) {
-        SCJbSetStringFromBytes(
+        TlsJbSetStringLimited(
                 js, "sni", ssl_state->client_connp.sni, ssl_state->client_connp.sni_len);
     }
 }
@@ -196,7 +244,7 @@ static void JsonTlsLogSni(SCJsonBuilder *js, SSLState *ssl_state)
 static void JsonTlsLogSerial(SCJsonBuilder *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_serial) {
-        SCJbSetStringFromBytes(js, "serial", ssl_state->server_connp.cert0_serial,
+        TlsJbSetStringLimited(js, "serial", ssl_state->server_connp.cert0_serial,
                 ssl_state->server_connp.cert0_serial_len);
     }
 }
@@ -238,7 +286,8 @@ static void JsonTlsLogJa3String(SCJsonBuilder *js, SSLState *ssl_state)
 {
     if ((ssl_state->client_connp.ja3_str != NULL) &&
             ssl_state->client_connp.ja3_str->data != NULL) {
-        SCJbSetString(js, "string", ssl_state->client_connp.ja3_str->data);
+        TlsJbSetStringLimited(js, "string", (const uint8_t *)ssl_state->client_connp.ja3_str->data,
+                ssl_state->client_connp.ja3_str->used);
     }
 }
 
@@ -279,7 +328,8 @@ static void JsonTlsLogJa3SString(SCJsonBuilder *js, SSLState *ssl_state)
 {
     if ((ssl_state->server_connp.ja3_str != NULL) &&
             ssl_state->server_connp.ja3_str->data != NULL) {
-        SCJbSetString(js, "string", ssl_state->server_connp.ja3_str->data);
+        TlsJbSetStringLimited(js, "string", (const uint8_t *)ssl_state->server_connp.ja3_str->data,
+                ssl_state->server_connp.ja3_str->used);
     }
 }
 
@@ -320,7 +370,12 @@ static void JsonTlsLogCertificate(SCJsonBuilder *js, SSLStateConnp *connp)
         return;
     }
 
-    SCJbSetBase64(js, "certificate", cert->cert_data, cert->cert_len);
+    size_t len = cert->cert_len;
+    if (len > TLS_LOG_MAX_CERT) {
+        len = TLS_LOG_MAX_CERT;
+        SCJbSetBool(js, "certificate_truncated", true);
+    }
+    SCJbSetBase64(js, "certificate", cert->cert_data, (uint32_t)len);
 }
 
 static void JsonTlsLogChain(SCJsonBuilder *js, SSLStateConnp *connp)
@@ -331,12 +386,31 @@ static void JsonTlsLogChain(SCJsonBuilder *js, SSLStateConnp *connp)
 
     SCJbOpenArray(js, "chain");
 
+    size_t budget = TLS_LOG_MAX_CERT;
+    bool truncated = false;
     SSLCertsChain *cert;
     TAILQ_FOREACH (cert, &connp->certs, next) {
-        SCJbAppendBase64(js, cert->cert_data, cert->cert_len);
+        if (budget == 0) {
+            truncated = true;
+            break;
+        }
+        size_t len = cert->cert_len;
+        if (len > budget) {
+            len = budget;
+            truncated = true;
+        }
+        budget -= len;
+        SCJbAppendBase64(js, cert->cert_data, (uint32_t)len);
+        if (budget == 0) {
+            if (TAILQ_NEXT(cert, next) != NULL)
+                truncated = true;
+            break;
+        }
     }
 
     SCJbClose(js);
+    if (truncated)
+        SCJbSetBool(js, "chain_truncated", true);
 }
 
 static bool HasClientCert(SSLStateConnp *connp)
@@ -351,22 +425,21 @@ static void JsonTlsLogClientCert(
         if (connp->cert0_subject_len == 0) {
             SCJbSetString(js, "subject", "");
         } else {
-            SCJbSetStringFromBytes(js, "subject", connp->cert0_subject, connp->cert0_subject_len);
+            TlsJbSetStringLimited(js, "subject", connp->cert0_subject, connp->cert0_subject_len);
         }
     }
     if (connp->cert0_issuerdn != NULL) {
         if (connp->cert0_issuerdn_len == 0) {
             SCJbSetString(js, "issuerdn", "");
         } else {
-            SCJbSetStringFromBytes(
-                    js, "issuerdn", connp->cert0_issuerdn, connp->cert0_issuerdn_len);
+            TlsJbSetStringLimited(js, "issuerdn", connp->cert0_issuerdn, connp->cert0_issuerdn_len);
         }
     }
     if (connp->cert0_fingerprint) {
         SCJbSetString(js, "fingerprint", connp->cert0_fingerprint);
     }
     if (connp->cert0_serial) {
-        SCJbSetStringFromBytes(js, "serial", connp->cert0_serial, connp->cert0_serial_len);
+        TlsJbSetStringLimited(js, "serial", connp->cert0_serial, connp->cert0_serial_len);
     }
     if (connp->cert0_not_before != 0) {
         char timebuf[64];

@@ -153,7 +153,7 @@ output_json_dnp3_objects_template = """/* Copyright (C) 2015 Open Information Se
 
 // clang-format off
 void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
-    DNP3Point *point)
+    DNP3Point *point, DNP3LogCtx *ctx)
 {
 
     switch (DNP3_OBJECT_CODE(object->group, object->variation)) {
@@ -166,16 +166,20 @@ void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object,
 {% elif field.type in ["flt32", "flt64"] %}
             SCJbSetFloat(js, "{{field.name}}", data->{{field.name}});
 {% elif field.type == "bytearray" %}
-            SCJbSetBase64(js, "data->{{field.name}}", data->{{field.name}}, data->{{field.len_field}});
+            DNP3LogSetBase64(ctx, js, "data->{{field.name}}",
+                    data->{{field.name}}, data->{{field.len_field}});
 {% elif field.type == "vstr4" %}
-            SCJbSetString(js, "data->{{field.name}}", data->{{field.name}});
+            DNP3LogSetString(ctx, js, "data->{{field.name}}", data->{{field.name}},
+                    sizeof(data->{{field.name}}));
 {% elif field.type in ["chararray", "dynchararray"] %}
+{% if field.name == "password" %}
             if (data->{{field.len_field}} > 0) {
-                SCJbSetStringFromBytes(
-                        js, "{{field.name}}", (const uint8_t *)data->{{field.name}}, data->{{field.len_field}});
-            } else {
-                SCJbSetString(js, "{{field.name}}", "");
+                ctx->password_redacted = true;
             }
+{% else %}
+            DNP3LogSetStringFromBytes(ctx, js, "{{field.name}}",
+                    (const uint8_t *)data->{{field.name}}, data->{{field.len_field}});
+{% endif %}
 {% elif field.type == "bstr8" %}
 {% for field in field.fields %}
             SCJbSetUint(js, "{{field.name}}", data->{{field.name}});

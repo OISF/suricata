@@ -24,6 +24,8 @@
 #ifndef SURICATA_OUTPUT_JSON_FTP_H
 #define SURICATA_OUTPUT_JSON_FTP_H
 
+OutputInitResult JsonFTPLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx);
 bool EveFTPLogCommand(const void *vtx, void *js);
+bool EveFTPLogCommandTx(const void *vtx, void *js, bool credentials);
 
 #endif /* SURICATA_OUTPUT_JSON_FTP_H */

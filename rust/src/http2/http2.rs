@@ -85,6 +85,10 @@ pub static mut HTTP2_MAX_TABLESIZE: u32 = 65536; // 0x10000
 static mut HTTP2_MAX_REASS: usize = 102400;
 static mut HTTP2_MAX_STREAMS: usize = 256; // 0x100
 static mut HTTP2_MAX_FRAMES: usize = 65536;
+// decoded header list limits (RFC 7540 6.5.2 accounting: name + value + 32)
+pub static mut HTTP2_MAX_HEADER_LIST_SIZE: usize = 65536;
+pub static mut HTTP2_MAX_HEADER_COUNT: usize = 1024;
+pub static mut HTTP2_MAX_HEADER_FIELD_SIZE: usize = 16384;
 pub(super) static mut HTTP2_COMPRESSION_BOMB_LIMIT: u64 = 1_048_576;
 
 #[repr(u8)]
@@ -712,6 +716,7 @@ pub enum HTTP2Event {
     CompressionBomb,
     ContinuationWithoutHeaders,
     TooLongRepeatedHeaders,
+    HeaderListTooLarge,
 }
 
 pub struct HTTP2DynTable {
@@ -1051,6 +1056,12 @@ impl HTTP2State {
         let mut events = Vec::new();
         let mut repeated = HTTP2RepeatedHeaders::default();
         let mut has_repeated = false;
+        let max_list = unsafe { HTTP2_MAX_HEADER_LIST_SIZE };
+        let max_count = unsafe { HTTP2_MAX_HEADER_COUNT };
+        let max_field = unsafe { HTTP2_MAX_HEADER_FIELD_SIZE };
+        let mut list_size = 0usize;
+        let mut header_count = 0usize;
+        let mut too_large = false;
         for block in blocks {
             if block.error >= parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeError {
                 events.push(HTTP2Event::InvalidHeader);
@@ -1058,6 +1069,13 @@ impl HTTP2State {
                 == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeIntegerOverflow
             {
                 events.push(HTTP2Event::HeaderIntegerOverflow);
+            } else if block.error == parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess {
+                let field_size = block.name.len() + block.value.len();
+                header_count += 1;
+                list_size += field_size + 32;
+                if field_size > max_field || header_count > max_count || list_size > max_list {
+                    too_large = true;
+                }
             }
             if !has_repeated
                 && repeated.add(block)
@@ -1066,6 +1084,9 @@ impl HTTP2State {
                 events.push(HTTP2Event::TooLongRepeatedHeaders);
                 has_repeated = true;
             }
+        }
+        if too_large {
+            events.push(HTTP2Event::HeaderListTooLarge);
         }
         let dyn_headers = if dir == Direction::ToClient {
             &mut self.dynamic_headers_tc
@@ -1941,6 +1962,36 @@ pub unsafe extern "C" fn SCRegisterHttp2Parser() {
                 HTTP2_MAX_REASS = v as usize;
             } else {
                 SCLogError!("Invalid value for http2.max-reassembly-size");
+            }
+        }
+        if let Some(val) = conf_get("app-layer.protocols.http2.max-header-list-size") {
+            match get_memval(val) {
+                Ok(v) if v > 0 => {
+                    HTTP2_MAX_HEADER_LIST_SIZE = v as usize;
+                }
+                _ => {
+                    SCLogError!("Invalid value for http2.max-header-list-size");
+                }
+            }
+        }
+        if let Some(val) = conf_get("app-layer.protocols.http2.max-header-count") {
+            match val.parse::<usize>() {
+                Ok(v) if v > 0 => {
+                    HTTP2_MAX_HEADER_COUNT = v;
+                }
+                _ => {
+                    SCLogError!("Invalid value for http2.max-header-count");
+                }
+            }
+        }
+        if let Some(val) = conf_get("app-layer.protocols.http2.max-header-field-size") {
+            match get_memval(val) {
+                Ok(v) if v > 0 => {
+                    HTTP2_MAX_HEADER_FIELD_SIZE = v as usize;
+                }
+                _ => {
+                    SCLogError!("Invalid value for http2.max-header-field-size");
+                }
             }
         }
         if let Some(val) = conf_get("app-layer.protocols.http2.compression-bomb-limit") {

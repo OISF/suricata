@@ -22,6 +22,27 @@ use digest::Digest;
 use digest::Update;
 use md5::Md5;
 
+const QUIC_LOG_MAX_STRING: usize = 8 * 1024;
+const QUIC_LOG_MAX_EXTENSIONS: usize = 256;
+const QUIC_LOG_MAX_EXT_VALUES: usize = 32;
+const QUIC_LOG_MAX_EXT_BYTES: usize = 64 * 1024;
+const QUIC_LOG_MAX_CYU: usize = 64;
+
+struct QuicLogBudget {
+    ext_bytes: usize,
+    truncated: bool,
+}
+
+fn append_limited_string(
+    js: &mut JsonBuilder, data: &[u8], limit: usize, budget: &mut QuicLogBudget,
+) -> Result<(), JsonError> {
+    if data.len() > limit {
+        budget.truncated = true;
+    }
+    js.append_string_from_bytes_limited(data, limit)?;
+    Ok(())
+}
+
 fn quic_tls_extension_name(e: u16) -> Option<String> {
     match e {
         0 => Some("server_name".to_string()),
@@ -89,26 +110,44 @@ fn quic_tls_extension_name(e: u16) -> Option<String> {
 }
 
 fn log_quic(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError> {
+    let mut budget = QuicLogBudget {
+        ext_bytes: 0,
+        truncated: false,
+    };
     js.open_object("quic")?;
     if tx.header.ty != QuicType::Short {
         js.set_string("version", String::from(tx.header.version).as_str())?;
 
         if let Some(sni) = &tx.sni {
-            js.set_string("sni", &String::from_utf8_lossy(sni))?;
+            if sni.len() > QUIC_LOG_MAX_STRING {
+                budget.truncated = true;
+            }
+            js.set_string_from_bytes_limited("sni", sni, QUIC_LOG_MAX_STRING)?;
         }
         if let Some(ua) = &tx.ua {
-            js.set_string("ua", &String::from_utf8_lossy(ua))?;
+            if ua.len() > QUIC_LOG_MAX_STRING {
+                budget.truncated = true;
+            }
+            js.set_string_from_bytes_limited("ua", ua, QUIC_LOG_MAX_STRING)?;
         }
     }
     if !tx.cyu.is_empty() {
+        let mut cyu_truncated = tx.cyu.len() > QUIC_LOG_MAX_CYU;
         js.open_array("cyu")?;
-        for cyu in &tx.cyu {
+        for cyu in tx.cyu.iter().take(QUIC_LOG_MAX_CYU) {
             js.start_object()?;
             js.set_string("hash", &cyu.hash)?;
-            js.set_string("string", &cyu.string)?;
+            if cyu.string.len() > QUIC_LOG_MAX_STRING {
+                cyu_truncated = true;
+            }
+            js.set_string_from_bytes_limited("string", cyu.string.as_bytes(), QUIC_LOG_MAX_STRING)?;
             js.close()?;
         }
         js.close()?;
+        if cyu_truncated {
+            js.set_bool("cyu_truncated", true)?;
+            budget.truncated = true;
+        }
     }
 
     if let Some(ja3) = &tx.ja3 {
@@ -119,17 +158,25 @@ fn log_quic(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
         }
         let hash = format!("{:x}", Md5::new().chain(ja3).finalize());
         js.set_string("hash", &hash)?;
-        js.set_string("string", ja3)?;
+        if ja3.len() > QUIC_LOG_MAX_STRING {
+            budget.truncated = true;
+        }
+        js.set_string_from_bytes_limited("string", ja3.as_bytes(), QUIC_LOG_MAX_STRING)?;
         js.close()?;
     }
 
     if let Some(ref ja4) = &tx.ja4 {
-        js.set_string("ja4", ja4.as_ref())?;
+        let val = ja4.as_ref();
+        if val.len() > QUIC_LOG_MAX_STRING {
+            budget.truncated = true;
+        }
+        js.set_string_from_bytes_limited("ja4", val.as_bytes(), QUIC_LOG_MAX_STRING)?;
     }
 
     if !tx.extv.is_empty() {
+        let mut ext_truncated = tx.extv.len() > QUIC_LOG_MAX_EXTENSIONS;
         js.open_array("extensions")?;
-        for e in &tx.extv {
+        for e in tx.extv.iter().take(QUIC_LOG_MAX_EXTENSIONS) {
             js.start_object()?;
             let etype = u16::from(e.etype);
             if let Some(s) = quic_tls_extension_name(etype) {
@@ -138,17 +185,38 @@ fn log_quic(tx: &QuicTransaction, js: &mut JsonBuilder) -> Result<(), JsonError>
             js.set_uint("type", etype)?;
 
             if !e.values.is_empty() {
+                if e.values.len() > QUIC_LOG_MAX_EXT_VALUES {
+                    ext_truncated = true;
+                }
                 js.open_array("values")?;
-                for i in 0..e.values.len() {
-                    js.append_string(&String::from_utf8_lossy(&e.values[i]))?;
+                for v in e.values.iter().take(QUIC_LOG_MAX_EXT_VALUES) {
+                    let remaining = QUIC_LOG_MAX_EXT_BYTES.saturating_sub(budget.ext_bytes);
+                    if remaining == 0 {
+                        ext_truncated = true;
+                        break;
+                    }
+                    let limit = v.len().min(remaining).min(QUIC_LOG_MAX_STRING);
+                    if limit < v.len() {
+                        ext_truncated = true;
+                        budget.truncated = true;
+                    }
+                    budget.ext_bytes += limit;
+                    append_limited_string(js, v, limit, &mut budget)?;
                 }
                 js.close()?;
             }
             js.close()?;
         }
         js.close()?;
+        if ext_truncated {
+            js.set_bool("extensions_truncated", true)?;
+            budget.truncated = true;
+        }
     }
 
+    if budget.truncated {
+        js.set_bool("truncated", true)?;
+    }
     js.close()?;
     Ok(())
 }
@@ -159,4 +227,40 @@ pub unsafe extern "C" fn SCQuicLogJson(
 ) -> bool {
     let tx = cast_pointer!(tx, QuicTransaction);
     log_quic(tx, js).is_ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::frames::QuicTlsExtension;
+    use super::*;
+    use crate::quic::quic::new_test_tx;
+    use tls_parser::TlsExtensionType;
+
+    #[test]
+    fn test_quic_log_limits() {
+        let mut tx = new_test_tx();
+        tx.sni = Some(vec![b'A'; 9000]);
+        tx.ua = Some(vec![b'B'; 9000]);
+        tx.ja3 = Some("C".repeat(9000));
+        tx.extv = (0..300)
+            .map(|i| QuicTlsExtension {
+                etype: TlsExtensionType(0x1000 + i as u16),
+                values: (0..40).map(|_| vec![b'D'; 300]).collect(),
+            })
+            .collect();
+        for _ in 0..100 {
+            tx.push_test_cyu("E".repeat(9000));
+        }
+
+        let mut jb = JsonBuilder::try_new_object().unwrap();
+        log_quic(&tx, &mut jb).unwrap();
+        jb.close().unwrap();
+        let s = jb.as_str();
+
+        assert!(s.contains("\"truncated\":true"), "missing aggregate marker");
+        assert!(s.contains("\"extensions_truncated\":true"));
+        assert!(s.contains("\"cyu_truncated\":true"));
+        assert!(s.matches("[truncated").count() >= 4);
+        assert!(s.len() < 2 * 1024 * 1024, "record too large: {}", s.len());
+    }
 }

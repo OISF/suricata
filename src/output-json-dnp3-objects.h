@@ -18,8 +18,9 @@
 #ifndef SURICATA_OUTPUT_JSON_DNP3_OBJECTS_H
 #define SURICATA_OUTPUT_JSON_DNP3_OBJECTS_H
 
+#include "output-json-dnp3.h"
 #include "rust-bindings.h"
 
-void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object, DNP3Point *item);
+void OutputJsonDNP3SetItem(SCJsonBuilder *js, DNP3Object *object, DNP3Point *item, DNP3LogCtx *ctx);
 
 #endif /* SURICATA_OUTPUT_JSON_DNP3_OBJECTS_H */

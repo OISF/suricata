@@ -136,6 +136,20 @@ Logging Changes
   ``src_ip``/``src_port`` where 8.x logged the packet's addresses. Filters
   that matched responses on ``src_port 2049`` need ``dest_port 2049`` now.
 
+- App-layer logger output is now bounded by the loggers themselves: wire
+  strings and byte fields are cut at protocol-specific limits with an
+  in-value ``[truncated N additional bytes]`` marker, list and record
+  budgets stop accumulation, and cuts are reported through a ``truncated``
+  flag or a per-section marker. The limits and field names are documented
+  in ``etc/schema.json`` and the logger configuration.
+- Privacy-sensitive values are no longer logged by default: FTP/POP3/MQTT/
+  pgsql credentials, LDAP SASL credentials, the DNP3 password, SDP keying
+  material (``k=`` and ``a=crypto``) and the RFB VNC-Auth response are
+  dropped or redacted; HTTP/2 cookie/authorization-style header values are
+  redacted. The protocol opt-ins are ``eve-log.ftp.credentials``,
+  ``eve-log.tftp.filenames``, ``eve-log.mqtt.passwords``,
+  ``eve-log.pgsql.passwords`` and ``eve-log.http2 sensitive-headers``.
+
 Removals
 ~~~~~~~~
 

@@ -51,6 +51,90 @@ typedef struct LogDNP3LogThread_ {
     OutputJsonThreadCtx *ctx;
 } LogDNP3LogThread;
 
+#define DNP3_LOG_MAX_STRING  ((size_t)8 * 1024)
+#define DNP3_LOG_MAX_BYTES   ((size_t)128 * 1024)
+#define DNP3_LOG_MAX_OBJECTS 64
+#define DNP3_LOG_MAX_POINTS  256
+#define DNP3_LOG_OBJECT_COST 128
+#define DNP3_LOG_POINT_COST  256
+
+static void DNP3LogCtxInit(DNP3LogCtx *ctx)
+{
+    memset(ctx, 0, sizeof(*ctx));
+    ctx->remaining = DNP3_LOG_MAX_BYTES;
+}
+
+/* Returns false when the cost no longer fits; callers stop emitting. */
+static bool DNP3LogConsume(DNP3LogCtx *ctx, size_t cost)
+{
+    if (cost > ctx->remaining) {
+        ctx->truncated = true;
+        return false;
+    }
+    ctx->remaining -= cost;
+    return true;
+}
+
+void DNP3LogSetStringFromBytes(
+        DNP3LogCtx *ctx, SCJsonBuilder *js, const char *key, const uint8_t *bytes, size_t len)
+{
+    const size_t limit = MIN(len, DNP3_LOG_MAX_STRING);
+    if (!DNP3LogConsume(ctx, limit + 24)) {
+        return;
+    }
+    if (len == 0) {
+        SCJbSetString(js, key, "");
+        return;
+    }
+    if (len > limit) {
+        ctx->truncated = true;
+    }
+    SCJbSetStringFromBytesLimited(js, key, bytes, (uint32_t)len, (uint32_t)DNP3_LOG_MAX_STRING);
+}
+
+void DNP3LogSetString(
+        DNP3LogCtx *ctx, SCJsonBuilder *js, const char *key, const char *val, size_t maxlen)
+{
+    size_t len = 0;
+    while (len < maxlen && val[len] != '\0') {
+        len++;
+    }
+    DNP3LogSetStringFromBytes(ctx, js, key, (const uint8_t *)val, len);
+}
+
+void DNP3LogSetBase64(
+        DNP3LogCtx *ctx, SCJsonBuilder *js, const char *key, const uint8_t *bytes, size_t len)
+{
+    const size_t limit = MIN(len, DNP3_LOG_MAX_STRING);
+    if (limit == 0) {
+        return;
+    }
+    /* Charge for the base64 expansion. */
+    if (!DNP3LogConsume(ctx, limit + limit / 3 + 24)) {
+        return;
+    }
+    if (len > limit) {
+        ctx->truncated = true;
+    }
+    SCJbSetBase64(js, key, bytes, (uint32_t)limit);
+}
+
+static void JsonDNP3LogFlags(SCJsonBuilder *js, const DNP3LogCtx *ctx)
+{
+    if (ctx->truncated) {
+        SCJbSetBool(js, "truncated", true);
+    }
+    if (ctx->objects_truncated) {
+        SCJbSetBool(js, "objects_truncated", true);
+    }
+    if (ctx->points_truncated) {
+        SCJbSetBool(js, "points_truncated", true);
+    }
+    if (ctx->password_redacted) {
+        SCJbSetBool(js, "password_redacted", true);
+    }
+}
+
 static void JsonDNP3LogLinkControl(SCJsonBuilder *js, uint8_t lc)
 {
     SCJbSetBool(js, "dir", DNP3_LINK_DIR(lc));
@@ -74,11 +158,25 @@ static void JsonDNP3LogApplicationControl(SCJsonBuilder *js, uint8_t ac)
  *
  * TODO: Autogenerate this function based on object definitions.
  */
-static void JsonDNP3LogObjectItems(SCJsonBuilder *js, DNP3Object *object)
+static void JsonDNP3LogObjectItems(SCJsonBuilder *js, DNP3Object *object, DNP3LogCtx *ctx)
 {
     DNP3Point *item;
 
+    if (ctx->points >= DNP3_LOG_MAX_POINTS || ctx->remaining < DNP3_LOG_POINT_COST) {
+        ctx->points_truncated = true;
+        ctx->truncated = true;
+        return;
+    }
+
+    SCJbOpenArray(js, "points");
     TAILQ_FOREACH(item, object->points, next) {
+        if (ctx->points >= DNP3_LOG_MAX_POINTS || !DNP3LogConsume(ctx, DNP3_LOG_POINT_COST)) {
+            ctx->points_truncated = true;
+            ctx->truncated = true;
+            break;
+        }
+        ctx->points++;
+
         SCJbStartObject(js);
 
         SCJbSetUint(js, "prefix", item->prefix);
@@ -87,22 +185,38 @@ static void JsonDNP3LogObjectItems(SCJsonBuilder *js, DNP3Object *object)
             SCJbSetUint(js, "size", item->size);
         }
 
-        OutputJsonDNP3SetItem(js, object, item);
+        OutputJsonDNP3SetItem(js, object, item, ctx);
         SCJbClose(js);
     }
+    SCJbClose(js);
 }
 
 /**
  * \brief Log the application layer objects.
  *
  * \param objects A list of DNP3 objects.
- * \param jb A SCJsonBuilder instance with an open array.
+ * \param js A SCJsonBuilder instance with an open object.
  */
-static void JsonDNP3LogObjects(SCJsonBuilder *js, DNP3ObjectList *objects)
+static void JsonDNP3LogObjects(SCJsonBuilder *js, DNP3ObjectList *objects, DNP3LogCtx *ctx)
 {
     DNP3Object *object;
+    uint32_t count = 0;
 
+    if (ctx->remaining < DNP3_LOG_OBJECT_COST) {
+        ctx->objects_truncated = true;
+        ctx->truncated = true;
+        return;
+    }
+
+    SCJbOpenArray(js, "objects");
     TAILQ_FOREACH(object, objects, next) {
+        if (count >= DNP3_LOG_MAX_OBJECTS || !DNP3LogConsume(ctx, DNP3_LOG_OBJECT_COST)) {
+            ctx->objects_truncated = true;
+            ctx->truncated = true;
+            break;
+        }
+        count++;
+
         SCJbStartObject(js);
         SCJbSetUint(js, "group", object->group);
         SCJbSetUint(js, "variation", object->variation);
@@ -114,16 +228,15 @@ static void JsonDNP3LogObjects(SCJsonBuilder *js, DNP3ObjectList *objects)
         SCJbSetUint(js, "count", object->count);
 
         if (object->points != NULL && !TAILQ_EMPTY(object->points)) {
-            SCJbOpenArray(js, "points");
-            JsonDNP3LogObjectItems(js, object);
-            SCJbClose(js);
+            JsonDNP3LogObjectItems(js, object, ctx);
         }
 
         SCJbClose(js);
     }
+    SCJbClose(js);
 }
 
-static void JsonDNP3LogRequest(SCJsonBuilder *js, DNP3Transaction *dnp3tx)
+static void JsonDNP3LogRequest(SCJsonBuilder *js, DNP3Transaction *dnp3tx, DNP3LogCtx *ctx)
 {
     JB_SET_STRING(js, "type", "request");
 
@@ -143,9 +256,7 @@ static void JsonDNP3LogRequest(SCJsonBuilder *js, DNP3Transaction *dnp3tx)
     SCJbSetUint(js, "function_code", dnp3tx->ah.function_code);
 
     if (!TAILQ_EMPTY(&dnp3tx->objects)) {
-        SCJbOpenArray(js, "objects");
-        JsonDNP3LogObjects(js, &dnp3tx->objects);
-        SCJbClose(js);
+        JsonDNP3LogObjects(js, &dnp3tx->objects, ctx);
     }
 
     SCJbSetBool(js, "complete", dnp3tx->complete);
@@ -154,7 +265,7 @@ static void JsonDNP3LogRequest(SCJsonBuilder *js, DNP3Transaction *dnp3tx)
     SCJbClose(js);
 }
 
-static void JsonDNP3LogResponse(SCJsonBuilder *js, DNP3Transaction *dnp3tx)
+static void JsonDNP3LogResponse(SCJsonBuilder *js, DNP3Transaction *dnp3tx, DNP3LogCtx *ctx)
 {
     if (dnp3tx->ah.function_code == DNP3_APP_FC_UNSOLICITED_RESP) {
         JB_SET_STRING(js, "type", "unsolicited_response");
@@ -178,9 +289,7 @@ static void JsonDNP3LogResponse(SCJsonBuilder *js, DNP3Transaction *dnp3tx)
     SCJbSetUint(js, "function_code", dnp3tx->ah.function_code);
 
     if (!TAILQ_EMPTY(&dnp3tx->objects)) {
-        SCJbOpenArray(js, "objects");
-        JsonDNP3LogObjects(js, &dnp3tx->objects);
-        SCJbClose(js);
+        JsonDNP3LogObjects(js, &dnp3tx->objects, ctx);
     }
 
     SCJbSetBool(js, "complete", dnp3tx->complete);
@@ -200,20 +309,24 @@ bool AlertJsonDnp3(const void *vtx, void *js)
         /* Carrier TX for app-layer event, don't log. */
         return false;
     }
+    DNP3LogCtx ctx;
+    DNP3LogCtxInit(&ctx);
+
     bool logged = false;
     SCJbOpenObject(js, "dnp3");
     if (tx->is_request && tx->done) {
         SCJbOpenObject(js, "request");
-        JsonDNP3LogRequest(js, tx);
+        JsonDNP3LogRequest(js, tx, &ctx);
         SCJbClose(js);
         logged = true;
     }
     if (!tx->is_request && tx->done) {
         SCJbOpenObject(js, "response");
-        JsonDNP3LogResponse(js, tx);
+        JsonDNP3LogResponse(js, tx, &ctx);
         SCJbClose(js);
         logged = true;
     }
+    JsonDNP3LogFlags(js, &ctx);
     SCJbClose(js);
     return logged;
 }
@@ -231,8 +344,12 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
         return TM_ECODE_OK;
     }
 
+    DNP3LogCtx dnp3_ctx;
+    DNP3LogCtxInit(&dnp3_ctx);
+
     SCJbOpenObject(js, "dnp3");
-    JsonDNP3LogRequest(js, tx);
+    JsonDNP3LogRequest(js, tx, &dnp3_ctx);
+    JsonDNP3LogFlags(js, &dnp3_ctx);
     SCJbClose(js);
     OutputJsonBuilderBuffer(tv, p, p->flow, js, thread->ctx);
     SCJbFree(js);
@@ -253,8 +370,12 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
         return TM_ECODE_OK;
     }
 
+    DNP3LogCtx dnp3_ctx;
+    DNP3LogCtxInit(&dnp3_ctx);
+
     SCJbOpenObject(js, "dnp3");
-    JsonDNP3LogResponse(js, tx);
+    JsonDNP3LogResponse(js, tx, &dnp3_ctx);
+    JsonDNP3LogFlags(js, &dnp3_ctx);
     SCJbClose(js);
     OutputJsonBuilderBuffer(tv, p, p->flow, js, thread->ctx);
     SCJbFree(js);

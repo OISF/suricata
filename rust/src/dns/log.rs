@@ -91,6 +91,74 @@ pub const DNS_LOG_VERSION_2: u8 = 2;
 pub const DNS_LOG_VERSION_3: u8 = 3;
 pub const DNS_LOG_VERSION_DEFAULT: u8 = DNS_LOG_VERSION_3;
 
+pub(crate) const DNS_LOG_MAX_RECORD_BYTES: usize = 128 * 1024;
+pub(crate) const DNS_LOG_MAX_QUERIES: usize = 64;
+pub(crate) const DNS_LOG_MAX_ANSWERS: usize = 256;
+pub(crate) const DNS_LOG_MAX_AUTHORITIES: usize = 64;
+pub(crate) const DNS_LOG_MAX_ADDITIONALS: usize = 64;
+
+pub(crate) struct DnsLogBudget {
+    remaining: usize,
+    pub(crate) truncated: bool,
+}
+
+impl DnsLogBudget {
+    pub(crate) fn new() -> Self {
+        Self {
+            remaining: DNS_LOG_MAX_RECORD_BYTES,
+            truncated: false,
+        }
+    }
+
+    pub(crate) fn consume(&mut self, bytes: usize) -> bool {
+        if bytes > self.remaining {
+            self.truncated = true;
+            return false;
+        }
+        self.remaining -= bytes;
+        true
+    }
+}
+
+pub(crate) fn dns_answer_cost(answer: &DNSAnswerEntry, i: usize) -> usize {
+    let mut cost = answer.name.value.len() + 32;
+    match &answer.data {
+        DNSRData::A(_) | DNSRData::AAAA(_) => cost += 45,
+        DNSRData::CNAME(name) | DNSRData::MX(name) | DNSRData::NS(name) | DNSRData::PTR(name) => {
+            cost += name.value.len();
+        }
+        DNSRData::TXT(txt) => {
+            if let Some(txt) = txt.get(i) {
+                cost += txt.len();
+            }
+        }
+        DNSRData::NULL(bytes) | DNSRData::Unknown(bytes) => cost += bytes.len(),
+        DNSRData::SOA(soa) => {
+            cost += soa.mname.value.len() + soa.rname.value.len() + 64;
+        }
+        DNSRData::SSHFP(sshfp) => cost += sshfp.fingerprint.len() + 32,
+        DNSRData::OPT(opts) => {
+            for opt in opts {
+                cost += opt.data.len() * 2 + 32;
+            }
+        }
+        DNSRData::SRV(srv) => cost += srv.target.value.len() + 32,
+    }
+    cost
+}
+
+/// Cost of an answer as logged by the grouped/detailed writers: every TXT
+/// character-string adds an array entry.
+pub(crate) fn dns_answer_cost_all(answer: &DNSAnswerEntry) -> usize {
+    let mut cost = dns_answer_cost(answer, 0);
+    if let DNSRData::TXT(txt) = &answer.data {
+        for t in txt.iter().skip(1) {
+            cost += t.len() + 8;
+        }
+    }
+    cost
+}
+
 fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool {
     if flags == !0 {
         return true;
@@ -443,7 +511,7 @@ fn dns_log_json_answer_detail(answer: &DNSAnswerEntry, i: usize) -> Result<JsonB
 }
 
 fn dns_log_json_answer(
-    js: &mut JsonBuilder, response: &DNSMessage, flags: u64,
+    js: &mut JsonBuilder, response: &DNSMessage, flags: u64, budget: &mut DnsLogBudget,
 ) -> Result<(), JsonError> {
     let header = &response.header;
 
@@ -487,7 +555,24 @@ fn dns_log_json_answer(
         // For grouped answers we use a HashMap keyed by the rrtype.
         let mut answer_types = HashMap::new();
 
+        let mut answers_truncated = false;
+        let mut answers_logged = 0usize;
         for answer in &response.answers {
+            if answers_logged >= DNS_LOG_MAX_ANSWERS {
+                answers_truncated = true;
+                break;
+            }
+            let mut cost = dns_answer_cost(answer, 0);
+            if let DNSRData::TXT(txt) = &answer.data {
+                for t in txt {
+                    cost += t.len();
+                }
+            }
+            if !budget.consume(cost) {
+                answers_truncated = true;
+                break;
+            }
+            answers_logged += 1;
             if flags & LOG_FORMAT_GROUPED != 0 {
                 let type_string = dns_rrtype_string(answer.rrtype);
                 match &answer.data {
@@ -520,6 +605,10 @@ fn dns_log_json_answer(
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
                             for txt in txt_strings {
+                                if !budget.consume(txt.len() + 8) {
+                                    answers_truncated = true;
+                                    break;
+                                }
                                 a.append_string_from_bytes(txt)?;
                             }
                         }
@@ -568,6 +657,13 @@ fn dns_log_json_answer(
                 match &answer.data {
                     DNSRData::TXT(asdf) => {
                         for i in 0..asdf.len() {
+                            if answers_logged >= DNS_LOG_MAX_ANSWERS
+                                || !budget.consume(answer.name.value.len() + 48 + asdf[i].len())
+                            {
+                                answers_truncated = true;
+                                break;
+                            }
+                            answers_logged += 1;
                             js_answers.append_object(&dns_log_json_answer_detail(answer, i)?)?;
                         }
                     }
@@ -580,7 +676,7 @@ fn dns_log_json_answer(
 
         js_answers.close()?;
 
-        if flags & LOG_FORMAT_DETAILED != 0 {
+        if flags & LOG_FORMAT_DETAILED != 0 && answers_logged > 0 {
             js.set_object("answers", &js_answers)?;
         }
 
@@ -592,14 +688,32 @@ fn dns_log_json_answer(
             }
             js.close()?;
         }
+        if answers_truncated {
+            js.set_bool("answers_truncated", true)?;
+            budget.truncated = true;
+        }
     }
 
     if !response.authorities.is_empty() {
-        js.open_array("authorities")?;
+        let mut truncated = false;
+        let mut logged = 0usize;
+        let mut is_js_open = false;
         for auth in &response.authorities {
+            if logged >= DNS_LOG_MAX_AUTHORITIES || !budget.consume(dns_answer_cost(auth, 0)) {
+                truncated = true;
+                break;
+            }
+            if !is_js_open {
+                js.open_array("authorities")?;
+                is_js_open = true;
+            }
             match &auth.data {
                 DNSRData::TXT(txt) => {
                     for i in 0..txt.len() {
+                        if !budget.consume(auth.name.value.len() + 48 + txt[i].len()) {
+                            truncated = true;
+                            break;
+                        }
                         let auth_detail = dns_log_json_answer_detail(auth, i)?;
                         js.append_object(&auth_detail)?;
                     }
@@ -609,17 +723,30 @@ fn dns_log_json_answer(
                     js.append_object(&auth_detail)?;
                 }
             }
+            logged += 1;
         }
-        js.close()?;
+        if is_js_open {
+            js.close()?;
+        }
+        if truncated {
+            js.set_bool("authorities_truncated", true)?;
+            budget.truncated = true;
+        }
     }
 
     if !response.additionals.is_empty() {
+        let mut truncated = false;
+        let mut logged = 0usize;
         let mut is_js_open = false;
         for add in &response.additionals {
             if let DNSRData::OPT(rdata) = &add.data {
                 if rdata.is_empty() {
                     continue;
                 }
+            }
+            if logged >= DNS_LOG_MAX_ADDITIONALS || !budget.consume(dns_answer_cost(add, 0)) {
+                truncated = true;
+                break;
             }
             if !is_js_open {
                 js.open_array("additionals")?;
@@ -628,6 +755,10 @@ fn dns_log_json_answer(
             match &add.data {
                 DNSRData::TXT(txt) => {
                     for i in 0..txt.len() {
+                        if !budget.consume(add.name.value.len() + 48 + txt[i].len()) {
+                            truncated = true;
+                            break;
+                        }
                         let add_detail = dns_log_json_answer_detail(add, i)?;
                         js.append_object(&add_detail)?;
                     }
@@ -637,9 +768,14 @@ fn dns_log_json_answer(
                     js.append_object(&add_detail)?;
                 }
             }
+            logged += 1;
         }
         if is_js_open {
             js.close()?;
+        }
+        if truncated {
+            js.set_bool("additionals_truncated", true)?;
+            budget.truncated = true;
         }
     }
 
@@ -648,7 +784,7 @@ fn dns_log_json_answer(
 
 /// V3 style answer logging.
 fn dns_log_json_answers(
-    jb: &mut JsonBuilder, response: &DNSMessage, flags: u64,
+    jb: &mut JsonBuilder, response: &DNSMessage, flags: u64, budget: &mut DnsLogBudget,
 ) -> Result<(), JsonError> {
     if !response.answers.is_empty() {
         let mut js_answers = JsonBuilder::try_new_array()?;
@@ -656,7 +792,24 @@ fn dns_log_json_answers(
         // For grouped answers we use a HashMap keyed by the rrtype.
         let mut answer_types = HashMap::new();
 
+        let mut answers_truncated = false;
+        let mut answers_logged = 0usize;
         for answer in &response.answers {
+            if answers_logged >= DNS_LOG_MAX_ANSWERS {
+                answers_truncated = true;
+                break;
+            }
+            let mut cost = dns_answer_cost(answer, 0);
+            if let DNSRData::TXT(txt) = &answer.data {
+                for t in txt {
+                    cost += t.len();
+                }
+            }
+            if !budget.consume(cost) {
+                answers_truncated = true;
+                break;
+            }
+            answers_logged += 1;
             if flags & LOG_FORMAT_GROUPED != 0 {
                 let type_string = dns_rrtype_string(answer.rrtype);
                 match &answer.data {
@@ -688,6 +841,10 @@ fn dns_log_json_answers(
                         }
                         if let Some(a) = answer_types.get_mut(&type_string) {
                             for txt in txt {
+                                if !budget.consume(txt.len() + 8) {
+                                    answers_truncated = true;
+                                    break;
+                                }
                                 a.append_string_from_bytes(txt)?;
                             }
                         }
@@ -736,6 +893,13 @@ fn dns_log_json_answers(
                 match &answer.data {
                     DNSRData::TXT(txt) => {
                         for i in 0..txt.len() {
+                            if answers_logged >= DNS_LOG_MAX_ANSWERS
+                                || !budget.consume(answer.name.value.len() + 48 + txt[i].len())
+                            {
+                                answers_truncated = true;
+                                break;
+                            }
+                            answers_logged += 1;
                             js_answers.append_object(&dns_log_json_answer_detail(answer, i)?)?;
                         }
                     }
@@ -748,7 +912,7 @@ fn dns_log_json_answers(
 
         js_answers.close()?;
 
-        if flags & LOG_FORMAT_DETAILED != 0 {
+        if flags & LOG_FORMAT_DETAILED != 0 && answers_logged > 0 {
             jb.set_object("answers", &js_answers)?;
         }
 
@@ -759,6 +923,10 @@ fn dns_log_json_answers(
                 jb.set_object(&k, &v)?;
             }
             jb.close()?;
+        }
+        if answers_truncated {
+            jb.set_bool("answers_truncated", true)?;
+            budget.truncated = true;
         }
     }
     Ok(())
@@ -815,6 +983,7 @@ pub extern "C" fn SCDnsLogJsonQuery(
 ///
 /// This logger implements V3 style DNS logging.
 fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result<(), JsonError> {
+    let mut budget = DnsLogBudget::new();
     jb.open_object("dns")?;
     jb.set_int("version", 3)?;
 
@@ -860,10 +1029,17 @@ fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result<(),
     jb.set_uint("opcode", opcode as u64)?;
     jb.set_string("rcode", &dns_rcode_string(header.flags))?;
 
+    let mut queries_truncated = false;
     if !message.queries.is_empty() {
         jb.open_array("queries")?;
+        let mut logged = 0usize;
         for query in &message.queries {
             if dns_log_rrtype_enabled(query.rrtype, flags) {
+                if logged >= DNS_LOG_MAX_QUERIES || !budget.consume(query.name.value.len() + 32) {
+                    queries_truncated = true;
+                    break;
+                }
+                logged += 1;
                 jb.start_object()?
                     .set_string_from_bytes("rrname", &query.name.value)?
                     .set_string("rrtype", &dns_rrtype_string(query.rrtype))?;
@@ -874,18 +1050,37 @@ fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result<(),
             }
         }
         jb.close()?;
+        if queries_truncated {
+            jb.set_bool("queries_truncated", true)?;
+            budget.truncated = true;
+        }
     }
 
     if !message.answers.is_empty() {
-        dns_log_json_answers(jb, message, flags)?;
+        dns_log_json_answers(jb, message, flags, &mut budget)?;
     }
 
+    let mut authorities_truncated = false;
     if !message.authorities.is_empty() {
-        jb.open_array("authorities")?;
+        let mut is_jb_open = false;
+        let mut logged = 0usize;
         for auth in &message.authorities {
+            if logged >= DNS_LOG_MAX_AUTHORITIES || !budget.consume(dns_answer_cost(auth, 0)) {
+                authorities_truncated = true;
+                break;
+            }
+            if !is_jb_open {
+                jb.open_array("authorities")?;
+                is_jb_open = true;
+            }
+            logged += 1;
             match &auth.data {
                 DNSRData::TXT(txt) => {
                     for i in 0..txt.len() {
+                        if !budget.consume(auth.name.value.len() + 48 + txt[i].len()) {
+                            authorities_truncated = true;
+                            break;
+                        }
                         let auth_detail = dns_log_json_answer_detail(auth, i)?;
                         jb.append_object(&auth_detail)?;
                     }
@@ -896,17 +1091,30 @@ fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result<(),
                 }
             }
         }
-        jb.close()?;
+        if is_jb_open {
+            jb.close()?;
+        }
+        if authorities_truncated {
+            jb.set_bool("authorities_truncated", true)?;
+            budget.truncated = true;
+        }
     }
 
     if !message.additionals.is_empty() {
         let mut is_jb_open = false;
+        let mut additionals_truncated = false;
+        let mut logged = 0usize;
         for add in &message.additionals {
             if let DNSRData::OPT(rdata) = &add.data {
                 if rdata.is_empty() {
                     continue;
                 }
             }
+            if logged >= DNS_LOG_MAX_ADDITIONALS || !budget.consume(dns_answer_cost(add, 0)) {
+                additionals_truncated = true;
+                break;
+            }
+            logged += 1;
             if !is_jb_open {
                 jb.open_array("additionals")?;
                 is_jb_open = true;
@@ -914,6 +1122,10 @@ fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result<(),
             match &add.data {
                 DNSRData::TXT(txt) => {
                     for i in 0..txt.len() {
+                        if !budget.consume(add.name.value.len() + 48 + txt[i].len()) {
+                            additionals_truncated = true;
+                            break;
+                        }
                         let add_detail = dns_log_json_answer_detail(add, i)?;
                         jb.append_object(&add_detail)?;
                     }
@@ -927,6 +1139,14 @@ fn log_json(tx: &DNSTransaction, flags: u64, jb: &mut JsonBuilder) -> Result<(),
         if is_jb_open {
             jb.close()?;
         }
+        if additionals_truncated {
+            jb.set_bool("additionals_truncated", true)?;
+            budget.truncated = true;
+        }
+    }
+
+    if budget.truncated {
+        jb.set_bool("truncated", true)?;
     }
 
     jb.close()?;
@@ -968,7 +1188,8 @@ pub extern "C" fn SCDnsLogJsonAnswer(
     if let Some(response) = &tx.response {
         for query in &response.queries {
             if dns_log_rrtype_enabled(query.rrtype, flags) {
-                return dns_log_json_answer(js, response, flags).is_ok();
+                let mut budget = DnsLogBudget::new();
+                return dns_log_json_answer(js, response, flags, &mut budget).is_ok();
             }
         }
     }

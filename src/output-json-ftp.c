@@ -44,7 +44,18 @@
 #include "app-layer-ftp.h"
 #include "output-json-ftp.h"
 
-bool EveFTPLogCommand(const void *vtx, void *jb)
+/* credentials are off by default: USER/PASS arguments are not logged */
+OutputInitResult JsonFTPLogInitSub(SCConfNode *conf, OutputCtx *parent_ctx)
+{
+    OutputJsonCtx *ojc = parent_ctx->data;
+    if (conf != NULL) {
+        const char *credentials = SCConfNodeLookupChildValue(conf, "credentials");
+        ojc->ftp_credentials = credentials != NULL && SCConfValIsTrue(credentials);
+    }
+    return OutputJsonLogInitSub(conf, parent_ctx);
+}
+
+bool EveFTPLogCommandTx(const void *vtx, void *jb, bool credentials)
 {
     const FTPTransaction *tx = vtx;
     /* Preallocate array objects to simplify failure case */
@@ -70,7 +81,9 @@ bool EveFTPLogCommand(const void *vtx, void *jb)
     if (command_name) {
         SCJbSetString(jb, "command", command_name);
         uint32_t min_length = command_name_length + 1; /* command + space */
-        if (tx->request_length > min_length) {
+        const bool is_credential =
+                strcmp(command_name, "USER") == 0 || strcmp(command_name, "PASS") == 0;
+        if (tx->request_length > min_length && (!is_credential || credentials)) {
             SCJbSetStringFromBytes(jb, "command_data", (const uint8_t *)tx->request + min_length,
                     tx->request_length - min_length - 1);
             if (tx->request_truncated) {
@@ -153,4 +166,9 @@ bool EveFTPLogCommand(const void *vtx, void *jb)
     }
     SCJbClose(jb);
     return true;
+}
+
+bool EveFTPLogCommand(const void *vtx, void *jb)
+{
+    return EveFTPLogCommandTx(vtx, jb, false);
 }

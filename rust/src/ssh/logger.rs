@@ -18,6 +18,10 @@
 use super::ssh::{SSHConnectionState, SSHError, SSHTransaction, SshHeader, SSH_MAX_BANNER_LEN};
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 
+// a KEXINIT name-list concatenation is wire-length bounded only by the
+// reassembly buffer; 8 KiB keeps one record well below the drop bound
+const SSH_LOG_MAX_HASSH: usize = 8 * 1024;
+
 fn log_ssh_direction(js: &mut JsonBuilder, name: &str, hdr: &SshHeader) -> Result<(), JsonError> {
     // the direction object exists when it has data or a failure: a
     // failed direction may have parsed no banner at all
@@ -57,7 +61,7 @@ fn log_ssh_direction(js: &mut JsonBuilder, name: &str, hdr: &SshHeader) -> Resul
             js.set_string_from_bytes("hash", &hdr.hassh)?;
         }
         if !hdr.hassh_string.is_empty() {
-            js.set_string_from_bytes("string", &hdr.hassh_string)?;
+            js.set_string_from_bytes_limited("string", &hdr.hassh_string, SSH_LOG_MAX_HASSH)?;
         }
         js.close()?;
     }
@@ -89,4 +93,20 @@ pub unsafe extern "C" fn SCSshLogJson(tx: *mut std::os::raw::c_void, js: &mut Js
         return x;
     }
     return false;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hassh_string_limited() {
+        let mut tx = SSHTransaction::default();
+        tx.cli_hdr.protover = b"SSH-2.0".to_vec();
+        tx.cli_hdr.hassh = b"0123456789abcdef0123456789abcdef".to_vec();
+        tx.cli_hdr.hassh_string = vec![b'a'; SSH_LOG_MAX_HASSH + 100];
+        let mut js = JsonBuilder::try_new_object().unwrap();
+        assert!(log_ssh(&tx, &mut js).unwrap());
+        assert!(js.as_str().contains("[truncated 100 additional bytes]"));
+    }
 }
