@@ -5,6 +5,7 @@ ignore = [
     "RUSTSEC-2026-0009",  # time crate update
     "RUSTSEC-2026-0097",  # rand, via tls-parser
     "RUSTSEC-2026-0253",  # lru, doesn't affect us
+    "RUSTSEC-2026-0542",  # humantime, unmaintained; parse_duration only
 ]
 
 [output]
