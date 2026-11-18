@@ -567,12 +567,11 @@ static int __always_inline filter_erspan(
     h_proto = eth->h_proto;
 
 #if VLAN_TRACKING
-    if ((flags_spanid & 0x1800) == 0x1000) {
+    if ((flags_spanid & 0x1800) != 0x1800) {
         vlan0 = __constant_ntohs(erhdr->ver_vlan) & 0xFFF;
     }
 #endif
-    if ((flags_spanid & 0x1800) == 0x1800 && (h_proto == __constant_htons(ETH_P_8021Q) ||
-                                                     h_proto == __constant_htons(ETH_P_8021AD))) {
+    if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
         struct vlan_hdr *vhdr;
 
         if (data + nh_off + sizeof(struct vlan_hdr) > data_end)
