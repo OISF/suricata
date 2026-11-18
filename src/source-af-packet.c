@@ -747,6 +747,7 @@ void AFPReadCopyBypass(Packet *dst, Packet *src)
     dst->afp_v.v4_map_fd = src->afp_v.v4_map_fd;
     dst->afp_v.v6_map_fd = src->afp_v.v6_map_fd;
     dst->afp_v.nr_cpus = src->afp_v.nr_cpus;
+    dst->afp_v.flags = src->afp_v.flags;
 }
 #endif
 
@@ -758,12 +759,14 @@ static inline void AFPReadApplyBypass(const AFPThreadVars *ptv, Packet *p)
         p->afp_v.v4_map_fd = ptv->v4_map_fd;
         p->afp_v.v6_map_fd = ptv->v6_map_fd;
         p->afp_v.nr_cpus = ptv->ebpf_t_config.cpus_count;
+        p->afp_v.flags = ptv->flags;
     }
     if (ptv->flags & AFP_XDPBYPASS) {
         p->BypassPacketsFlow = AFPXDPBypassCallback;
         p->afp_v.v4_map_fd = ptv->v4_map_fd;
         p->afp_v.v6_map_fd = ptv->v6_map_fd;
         p->afp_v.nr_cpus = ptv->ebpf_t_config.cpus_count;
+        p->afp_v.flags = ptv->flags;
     }
 #endif
 }
@@ -2296,13 +2299,17 @@ static int AFPBypassCallback(Packet *p)
     }
     /* Bypassing tunneled packets is now supported based on the
      * configured tunnel with their ids */
-    if (p->tunnel_id == PKT_TUNNEL_UNKNOWN || (PacketIsTunnel(p) && p->tunnel_id == 0)) {
-        return 0;
+    if (PacketIsTunnel(p)) {
+        if (p->tunnel_id == 0 || p->recursion_level > 1) {
+            return 0;
+        }
+        if (!(p->afp_v.flags & AFP_BYPASS_TUNNELS)) {
+            return 0;
+        }
     }
-    if (p->recursion_level > 1) {
+    if (p->tunnel_id == PKT_TUNNEL_UNKNOWN) {
         return 0;
-    }
-    if (p->tunnel_id && p->vlan_id[1]) {
+    } else if (p->tunnel_id && p->vlan_id[1]) {
         // unsupported by ebpf : tunnel with multiple layers of vlans inside
         return 0;
     }
@@ -2433,13 +2440,19 @@ static int AFPXDPBypassCallback(Packet *p)
     }
     /* Bypassing tunneled packets is now supported based on the
      * configured tunnel with their ids */
-    if (p->tunnel_id == PKT_TUNNEL_UNKNOWN || (PacketIsTunnel(p) && p->tunnel_id == 0)) {
-        return 0;
+    /* Bypassing tunneled packets is now supported based on the
+     * configured tunnel with their ids */
+    if (PacketIsTunnel(p)) {
+        if (p->tunnel_id == 0 || p->recursion_level > 1) {
+            return 0;
+        }
+        if (!(p->afp_v.flags & AFP_BYPASS_TUNNELS)) {
+            return 0;
+        }
     }
-    if (p->recursion_level > 1) {
+    if (p->tunnel_id == PKT_TUNNEL_UNKNOWN) {
         return 0;
-    }
-    if (p->tunnel_id && p->vlan_id[1]) {
+    } else if (p->tunnel_id && p->vlan_id[1]) {
         // unsupported by ebpf : tunnel with multiple layers of vlans inside
         return 0;
     }
@@ -2631,6 +2644,10 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
                 SCLogError("Can't find eBPF map fd for '%s'", "flow_table_v6");
                 g_flowv6_ok = false;
             }
+        }
+        int tunnel_fd = EBPFGetMapFDByName(ptv->iface, "flow_table_tunnels");
+        if (ptv->v6_map_fd != -1) {
+            ptv->flags |= AFP_BYPASS_TUNNELS;
         }
     }
     ptv->ebpf_t_config = afpconfig->ebpf_t_config;
