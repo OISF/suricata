@@ -3766,6 +3766,72 @@ static int AppLayerProtoDetectTest20(void)
     return result;
 }
 
+/**
+ * \test Ensure port-zero wildcard probing parsers are not hidden
+ *       by port-independent probing parsers during lookup.
+ */
+static int AppLayerProtoDetectTest21(void)
+{
+    AppLayerProtoDetectUnittestCtxBackup();
+    AppLayerProtoDetectSetup();
+
+    int result = 0;
+
+    AppLayerProtoDetectProbingParserPort *port = NULL;
+
+    /*
+     * Register a port-independent parser first.
+     *
+     * WebSocket:
+     *   port=0
+     *   use_ports=false
+     */
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, NULL, ALPROTO_WEBSOCKET,
+            1, 0, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
+
+    /*
+     * Register a port-based wildcard parser.
+     *
+     * SMTP:
+     *   port=0
+     *   use_ports=true
+     */
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "0", ALPROTO_SMTP,
+            1, 0, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
+
+    /*
+     * TCP destination port 6677 must select the wildcard parser,
+     * not the port-independent parser.
+     */
+    port = AppLayerProtoDetectGetProbingParsers(
+            alpd_ctx.ctx_pp, IPPROTO_TCP, 6677);
+
+    FAIL_IF_NULL(port);
+    FAIL_IF(!port->use_ports);
+
+    /*
+     * SMTP probing parser must be available on port 6677.
+     */
+    FAIL_IF(!AppLayerProtoDetectHasProbingParsers(
+                    IPPROTO_TCP, 6677, ALPROTO_SMTP));
+
+    /*
+     * WebSocket must not be returned through the port-based
+     * wildcard lookup.
+     */
+    FAIL_IF(AppLayerProtoDetectHasProbingParsers(
+                    IPPROTO_TCP, 6677, ALPROTO_WEBSOCKET));
+
+    result = 1;
+
+    AppLayerProtoDetectDeSetup();
+    AppLayerProtoDetectUnittestCtxRestore();
+
+    return result;
+}
+
 void AppLayerProtoDetectUnittestsRegister(void)
 {
     SCEnter();
@@ -3790,6 +3856,7 @@ void AppLayerProtoDetectUnittestsRegister(void)
     UtRegisterTest("AppLayerProtoDetectTest18", AppLayerProtoDetectTest18);
     UtRegisterTest("AppLayerProtoDetectTest19", AppLayerProtoDetectTest19);
     UtRegisterTest("AppLayerProtoDetectTest20", AppLayerProtoDetectTest20);
+    UtRegisterTest("AppLayerProtoDetectTest21", AppLayerProtoDetectTest21);
 
     SCReturn;
 }
