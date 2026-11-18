@@ -990,7 +990,7 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
     AppLayerProtoDetectProbingParserPort *curr_port = curr_pp->port;
     while (curr_port != NULL) {
         // when not use_ports, always insert a new AppLayerProtoDetectProbingParserPort
-        if (curr_port->port == port && use_ports)
+        if (curr_port->port == port && use_ports && curr_port->use_ports)
             break;
         curr_port = curr_port->next;
     }
@@ -3559,6 +3559,213 @@ static int AppLayerProtoDetectTest19(void)
      return result;
 }
 
+/**
+ * \test Ensure port-independent probing parsers do not collide
+ *       with port-based wildcard probing parsers.
+ */
+static int AppLayerProtoDetectTest20(void)
+{
+    AppLayerProtoDetectUnittestCtxBackup();
+    AppLayerProtoDetectSetup();
+
+    int result = 0;
+
+    AppLayerProtoDetectProbingParser *pp = NULL;
+    AppLayerProtoDetectProbingParserPort *port = NULL;
+    AppLayerProtoDetectProbingParserPort *no_port = NULL;
+    AppLayerProtoDetectProbingParserPort *wildcard = NULL;
+    AppLayerProtoDetectProbingParserElement *pe = NULL;
+
+    bool found_websocket = false;
+    bool found_smtp = false;
+    bool found_tls = false;
+
+    /*
+     * Scenario 1:
+     *
+     * Register no-port parser first, then wildcard parsers.
+     *
+     * TCP:
+     *   no-port WebSocket
+     *   wildcard SMTP -> TLS
+     */
+
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, NULL, ALPROTO_WEBSOCKET,
+            1, 0, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
+
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "0", ALPROTO_SMTP,
+            1, 0, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
+
+    SCAppLayerProtoDetectPPRegister(IPPROTO_TCP, "0", ALPROTO_TLS,
+            1, 0, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
+
+    /* Find TCP probing parser. */
+    pp = alpd_ctx.ctx_pp;
+    while (pp != NULL) {
+        if (pp->ipproto == IPPROTO_TCP)
+            break;
+        pp = pp->next;
+    }
+
+    FAIL_IF_NULL(pp);
+
+    /*
+     * Find port=0 nodes.
+     *
+     * no-port:  port=0, use_ports=false
+     * wildcard: port=0, use_ports=true
+     */
+    no_port = NULL;
+    wildcard = NULL;
+
+    for (port = pp->port; port != NULL; port = port->next) {
+        if (port->port != 0)
+            continue;
+
+        if (port->use_ports) {
+            FAIL_IF(wildcard != NULL);
+            wildcard = port;
+        } else {
+            FAIL_IF(no_port != NULL);
+            no_port = port;
+        }
+    }
+
+    FAIL_IF_NULL(no_port);
+    FAIL_IF_NULL(wildcard);
+
+    /* no-port and wildcard registrations must use different nodes. */
+    FAIL_IF(no_port == wildcard);
+
+    /* no-port node must contain WebSocket. */
+    found_websocket = false;
+    for (pe = no_port->dp; pe != NULL; pe = pe->next) {
+        if (pe->alproto == ALPROTO_WEBSOCKET) {
+            found_websocket = true;
+            break;
+        }
+    }
+    FAIL_IF(!found_websocket);
+
+    /* wildcard node must contain SMTP and TLS. */
+    found_smtp = false;
+    found_tls = false;
+
+    for (pe = wildcard->dp; pe != NULL; pe = pe->next) {
+        if (pe->alproto == ALPROTO_SMTP)
+            found_smtp = true;
+        else if (pe->alproto == ALPROTO_TLS)
+            found_tls = true;
+    }
+
+    FAIL_IF(!found_smtp);
+    FAIL_IF(!found_tls);
+
+    /* TCP destination port 6677 must select the wildcard node. */
+    FAIL_IF(AppLayerProtoDetectGetProbingParsers(
+                    alpd_ctx.ctx_pp, IPPROTO_TCP, 6677) != wildcard);
+
+    FAIL_IF(!AppLayerProtoDetectHasProbingParsers(
+                    IPPROTO_TCP, 6677, ALPROTO_SMTP));
+
+    FAIL_IF(!AppLayerProtoDetectHasProbingParsers(
+                    IPPROTO_TCP, 6677, ALPROTO_TLS));
+
+    /*
+     * Scenario 2:
+     *
+     * Register wildcard parser first, then no-port parser.
+     *
+     * UDP:
+     *   no-port WebSocket
+     *   wildcard SMTP
+     */
+
+    SCAppLayerProtoDetectPPRegister(IPPROTO_UDP, "0", ALPROTO_SMTP,
+            1, 0, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
+
+    SCAppLayerProtoDetectPPRegister(IPPROTO_UDP, NULL, ALPROTO_WEBSOCKET,
+            1, 0, STREAM_TOSERVER,
+            ProbingParserDummyForTesting, NULL);
+
+    /* Find UDP probing parser. */
+    pp = alpd_ctx.ctx_pp;
+    while (pp != NULL) {
+        if (pp->ipproto == IPPROTO_UDP)
+            break;
+        pp = pp->next;
+    }
+
+    FAIL_IF_NULL(pp);
+
+    /*
+     * Find port=0 nodes.
+     */
+    no_port = NULL;
+    wildcard = NULL;
+
+    for (port = pp->port; port != NULL; port = port->next) {
+        if (port->port != 0)
+            continue;
+
+        if (port->use_ports) {
+            FAIL_IF(wildcard != NULL);
+            wildcard = port;
+        } else {
+            FAIL_IF(no_port != NULL);
+            no_port = port;
+        }
+    }
+
+    FAIL_IF_NULL(no_port);
+    FAIL_IF_NULL(wildcard);
+
+    /* no-port and wildcard registrations must use different nodes. */
+    FAIL_IF(no_port == wildcard);
+
+    /* no-port node must contain WebSocket. */
+    found_websocket = false;
+
+    for (pe = no_port->dp; pe != NULL; pe = pe->next) {
+        if (pe->alproto == ALPROTO_WEBSOCKET) {
+            found_websocket = true;
+            break;
+        }
+    }
+
+    FAIL_IF(!found_websocket);
+
+    /* wildcard node must contain SMTP. */
+    found_smtp = false;
+
+    for (pe = wildcard->dp; pe != NULL; pe = pe->next) {
+        if (pe->alproto == ALPROTO_SMTP) {
+            found_smtp = true;
+            break;
+        }
+    }
+
+    FAIL_IF(!found_smtp);
+
+    /* UDP destination port 6677 must select the wildcard node. */
+    FAIL_IF(AppLayerProtoDetectGetProbingParsers(
+                    alpd_ctx.ctx_pp, IPPROTO_UDP, 6677) != wildcard);
+
+    FAIL_IF(!AppLayerProtoDetectHasProbingParsers(
+                    IPPROTO_UDP, 6677, ALPROTO_SMTP));
+
+    result = 1;
+
+    AppLayerProtoDetectDeSetup();
+    AppLayerProtoDetectUnittestCtxRestore();
+
+    return result;
+}
+
 void AppLayerProtoDetectUnittestsRegister(void)
 {
     SCEnter();
@@ -3582,6 +3789,7 @@ void AppLayerProtoDetectUnittestsRegister(void)
     UtRegisterTest("AppLayerProtoDetectTest17", AppLayerProtoDetectTest17);
     UtRegisterTest("AppLayerProtoDetectTest18", AppLayerProtoDetectTest18);
     UtRegisterTest("AppLayerProtoDetectTest19", AppLayerProtoDetectTest19);
+    UtRegisterTest("AppLayerProtoDetectTest20", AppLayerProtoDetectTest20);
 
     SCReturn;
 }
