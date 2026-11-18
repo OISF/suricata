@@ -513,13 +513,133 @@ static int __always_inline filter_ipv6(struct xdp_md *ctx, void *data, __u64 nh_
 #endif
 }
 
+static int __always_inline filter_erspan(
+        struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, struct iphdr *iph)
+{
+    struct erspan_hdr {
+        __be16 ver_vlan;
+        __be16 flags_spanid;
+        __be32 padding;
+    };
+    __u16 vlan0 = 0;
+    __u16 vlan1 = 0;
+    struct flowtunnel_keys tuple;
+    __u16 h_proto;
+    __u16 flags_spanid;
+    struct flowtunnel_id *value;
+
+    struct erspan_hdr *erhdr = (struct erspan_hdr *)(data + nh_off);
+    if ((void *)(erhdr + 1) > data_end)
+        return XDP_ABORTED;
+
+    __u16 version = __constant_ntohs(erhdr->ver_vlan) >> 12;
+    if (version != 0x1) {
+        // only handle ERSPAN 2
+        return XDP_ABORTED;
+    }
+    flags_spanid = __constant_ntohs(erhdr->flags_spanid);
+    if ((flags_spanid & 0x1800) == 0x800) {
+        // do not handle ISL encapsulated
+        return XDP_ABORTED;
+    }
+
+    tuple.tunnel = 1; // DECODE_TUNNEL_ERSPANII
+    tuple.src = iph->saddr;
+    tuple.dst = iph->daddr;
+    tuple.session = flags_spanid & 0x3FF;
+    value = bpf_map_lookup_elem(&flow_table_tunnels, &tuple);
+    if (!value) {
+        // unknown tunnel
+        return XDP_ABORTED;
+    }
+    vlan1 = 0x8000 | value->tunnel_id;
+
+    nh_off += 8;
+    if (data + nh_off + sizeof(struct ethhdr) > data_end)
+        return XDP_ABORTED;
+
+    struct ethhdr *eth = data + nh_off;
+    nh_off += sizeof(*eth);
+
+    h_proto = eth->h_proto;
+
+#if VLAN_TRACKING
+    if ((flags_spanid & 0x1800) != 0x1800) {
+        vlan0 = __constant_ntohs(erhdr->ver_vlan) & 0xFFF;
+    }
+#endif
+    if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
+        struct vlan_hdr *vhdr;
+
+        if (data + nh_off + sizeof(struct vlan_hdr) > data_end)
+            return XDP_ABORTED;
+        vhdr = data + nh_off;
+        nh_off += sizeof(struct vlan_hdr);
+        h_proto = vhdr->h_vlan_encapsulated_proto;
+#if VLAN_TRACKING
+        vlan0 = __constant_ntohs(vhdr->h_vlan_TCI) & 0x0fff;
+#endif
+    }
+    if (h_proto == __constant_htons(ETH_P_IP))
+        return filter_ipv4_final(ctx, data, nh_off, data_end, vlan0, vlan1);
+    else if (h_proto == __constant_htons(ETH_P_IPV6))
+        return filter_ipv6(ctx, data, nh_off, data_end, vlan0, vlan1);
+    return XDP_ABORTED;
+}
+
+static int __always_inline filter_gre(
+        struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, struct iphdr *iph)
+{
+    struct gre_hdr {
+        __be16 flags;
+        __be16 proto;
+    };
+    __u16 proto;
+
+    struct gre_hdr *grhdr = (struct gre_hdr *)(data + nh_off);
+
+    if ((void *)(grhdr + 1) > data_end)
+        return XDP_ABORTED;
+
+    // only GRE version 0 without routing
+    if (grhdr->flags & (GRE_VERSION | GRE_ROUTING))
+        return XDP_ABORTED;
+
+    nh_off += 4;
+    if (grhdr->flags & GRE_CSUM)
+        nh_off += 4;
+    if (grhdr->flags & GRE_KEY)
+        nh_off += 4;
+    if (grhdr->flags & GRE_SEQ)
+        nh_off += 4;
+    if (data + nh_off > data_end)
+        return XDP_ABORTED;
+
+    proto = grhdr->proto;
+    // only handle erspan over gre
+    if (proto == __constant_htons(ETH_P_ERSPAN)) {
+        return filter_erspan(ctx, data, nh_off, data_end, iph);
+    }
+    return XDP_ABORTED;
+}
+
 static int __always_inline filter_ipv4(
         struct xdp_md *ctx, void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
 {
     struct iphdr *iph = data + nh_off;
+    __u64 nh_off_first_ip = nh_off;
+    int res;
     if ((void *)(iph + 1) > data_end)
         return XDP_PASS;
 
+    if (iph->protocol == IPPROTO_GRE) {
+        nh_off += sizeof(struct iphdr);
+        res = filter_gre(ctx, data, nh_off, data_end, iph);
+        if (res != XDP_ABORTED) {
+            return res;
+        }
+        nh_off = nh_off_first_ip;
+    }
     return filter_ipv4_final(ctx, data, nh_off, data_end, vlan0, vlan1);
 }
 
