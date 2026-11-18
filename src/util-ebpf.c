@@ -1031,7 +1031,7 @@ void EBPFLoadTunnels(const char *iface, unsigned int nr_cpus)
         key_ebpf->dst = ntohl(key.dst);
         key_ebpf->session = key.session;
         key_ebpf->tunnel_proto = key.tunnel_proto;
-        if (bpf_map_update_elem(mapfd, key_ebpf, value, BPF_NOEXIST) != 0) {
+        if (bpf_map_update_elem(mapfd, key_ebpf, value, BPF_ANY) != 0) {
             SCLogError("Can't update eBPF tunnels map: %s (%d)", strerror(errno), errno);
             return;
         }
