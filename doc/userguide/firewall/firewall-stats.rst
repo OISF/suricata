@@ -14,14 +14,28 @@ Statistics counters for the firewall mode cover:
 These will be present in the stats logs if the engine is run in firewall mode,
 only.
 
+Bypassed packets
+================
+
+As the firewall bypass does not happen as the primary action in a firewall
+policy/rule, the stats counters for bypassed packets continue to be the ones
+that already exist. The packet that matched the bypass rule will be counted as
+an ``accepted`` packet in firewall stats (it will not show in ``ips.accepted``
+stats). With local bypass, later packets are accounted for in
+``flow_bypassed.local_pkts``.
+Capture-bypassed packets never reach Suricata, so no stats are seen, as usual.
+
 Drop reasons
 ============
 
-If a drop was caused by the firewall, the corresponding counter will be incremented. The existing ones are:
+If a drop was caused by the firewall, the corresponding counter will be
+incremented. The existing ones are:
 
     - ``rules``: a firewall rule triggered the drop
-    - ``default_packet_policy``: drop caused by the default fail closed firewall behavior, on the packet hook level
-    - ``default_app_policy``: drop caused by the default fail close firewall behavior, on the app-layer hook level
+    - ``default_packet_policy``: drop caused by the default fail closed firewall
+      behavior, on the packet hook level
+    - ``default_app_policy``: drop caused by the default fail close firewall
+      behavior, on the app-layer hook level
     - ``pre_flow_hook``: drop caused by the pre-flow hook
     - ``pre_stream_hook``: drop caused by the pre-stream hook
     - ``flow_drop``: the whole flow was dropped after a firewall action.

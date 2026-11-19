@@ -49,5 +49,7 @@ typedef struct DetectXbitsData_ {
 
 /* prototypes */
 void DetectXbitsRegister (void);
+bool DetectXbitsUndoRecord(DetectEngineThreadCtx *det_ctx, Packet *p, const SigMatchCtx *ctx);
+void DetectXbitsUndoFinalize(DetectEngineThreadCtx *det_ctx, Packet *p);
 
 #endif /* SURICATA_DETECT_XBITS_H */

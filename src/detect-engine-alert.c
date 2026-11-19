@@ -680,6 +680,13 @@ static inline void PacketAlertFinalizeProcessQueue(
 #endif /* DEBUG */
     uint8_t skip_table_id = 0;
     bool skip_table = false;
+
+    /* a fw rule bypassed the flow at match time: no TD verdicts or alerts, even
+     * for TD rules that sort ahead of it (packet:td before app:filter) */
+    if (p->flags & PKT_FW_BYPASSED) {
+        skip_td = true;
+    }
+
     for (uint16_t i = 0; i < det_ctx->alert_queue_size; i++) {
         PacketAlert *pa = &det_ctx->alert_queue[i];
         const Signature *s = pa->s;
@@ -737,8 +744,16 @@ static inline void PacketAlertFinalizeProcessQueue(
         /* if a firewall rule told us to skip, we don't count the skipped
          * alerts. */
         if (have_fw_rules && skip_td) {
+            /* a bypass means this packet should never have reached TD, so its
+             * post-match state must not stand. Other skips (pass rules) only
+             * withhold the alert. */
+            if (!(p->flags & PKT_FW_BYPASSED))
+                DetectRunPostMatchDeferred(det_ctx, p, s);
             continue;
         }
+
+        /* run state-changing post-match for remaining TD rules */
+        DetectRunPostMatchDeferred(det_ctx, p, s);
 
         int res = PacketAlertHandle(de_ctx, det_ctx, s, p, pa);
         SCLogDebug("sid %u: res %d", pa->s->id, res);
@@ -824,7 +839,9 @@ fw_dropped:
     AlertQueueReleaseContext(det_ctx);
 
     /* after threat detection has been handled, see if the fw intended to accept (drop is handled
-     * immediately by the fw), as fw accept can be overruled by td drop. */
+     * immediately by the fw), as fw accept can be overruled by td drop.
+     * (this is not the case if a flow is accepted _and_ bypassed with a firewall rule
+     * (accept:flow+bypass)) */
     if (have_fw_rules) {
         if (p->action & ACTION_DROP) {
             SCLogDebug("packet %" PRIu64 ": dropped by TD", PcapPacketCntGet(p));

@@ -150,6 +150,12 @@ Keyword Changes
   being split per direction. This means that some rules should match sooner,
   some rules will have less false negatives, and some rules will trigger once per transaction
   instead of twice (one time for each direction)
+- Thresholding is restricted in firewall mode. The ``threshold`` and
+  ``detection_filter`` keywords are rejected in firewall rules, and
+  ``threshold.config`` entries (``threshold``, ``event_filter``, ``suppress``,
+  ``rate_filter``) may no longer name a firewall rule's signature id. Wildcard
+  ``threshold.config`` entries skip firewall rules. Threat Detection rules are
+  unaffected.
 
 - The SSH app-layer state hooks have been reworked and renamed:
   the hooks are now ``request_banner``, ``request_kex`` and
