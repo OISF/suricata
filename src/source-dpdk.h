@@ -60,6 +60,8 @@ typedef struct DPDKIfaceConfig_ {
     DpdkCopyModeEnum copy_mode;
     const char *out_iface;
     uint16_t out_port_id;
+    uint16_t out_tx_seg_max; // max segments per packet the copy interface can transmit
+    bool tx_segmented_mbufs; // forward packets received in multiple mbufs in the copy modes
     /* DPDK flags */
     uint32_t flags;
     ChecksumValidationMode checksum_mode;

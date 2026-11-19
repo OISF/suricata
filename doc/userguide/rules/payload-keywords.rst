@@ -898,7 +898,8 @@ Example of the rpc keyword in a rule:
 replace
 -------
 
-The replace content modifier can only be used in IPS. It adjusts
+The replace content modifier can only be used in IPS. It is supported
+with NFQ, IPFW and DPDK (``copy-mode: ips``). It adjusts
 network traffic.  It changes the content it follows ('abc') into
 another ('def'), see example:
 
@@ -911,8 +912,8 @@ it replaces.  It can only be used with individual packets. It will not
 work for :ref:`rules-normalized-buffers` like HTTP uri or a content match in
 the reassembled stream.
 
-The checksums will be recalculated by Suricata and changed after the
-replace keyword is being used.
+After a replacement, Suricata recalculates the IPv4 header checksum and the
+TCP and UDP checksums. Other checksums, e.g. ICMP, are not updated.
 
 .. note:: ``replace`` cannot be used in firewall mode,
    even if only in Threat Detection rules.
