@@ -853,6 +853,11 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     while (!TimeModeIsReady()) {
         if (suricata_ctl_flags != 0)
             return TM_ECODE_OK;
+        /* THV_KILL too: a run whose file never established a timestamp has
+         * nothing to wait for, and FlowDisableFlowManagerThread() only waits
+         * for THV_RUNNING_DONE */
+        if (TmThreadsCheckFlag(th_v, THV_KILL))
+            return TM_ECODE_OK;
         SleepUsec(10);
     }
     bool run = TmThreadsWaitForUnpause(th_v);
