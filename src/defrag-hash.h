@@ -85,7 +85,8 @@ typedef struct DefragConfig_ {
 
 extern DefragConfig defrag_config;
 SC_ATOMIC_EXTERN(uint64_t,defrag_memuse);
-SC_ATOMIC_EXTERN(unsigned int,defragtracker_counter);
+SC_ATOMIC_EXTERN(uint64_t, defrag_tracker_active);
+SC_ATOMIC_EXTERN(uint64_t, defrag_max_fragments);
 SC_ATOMIC_EXTERN(unsigned int,defragtracker_prune_idx);
 
 void DefragInitConfig(bool quiet);
@@ -100,6 +101,8 @@ void DefragTrackerMoveToSpare(DefragTracker *);
 int DefragTrackerSetMemcap(uint64_t);
 uint64_t DefragTrackerGetMemcap(void);
 uint64_t DefragTrackerGetMemuse(void);
+uint64_t DefragTrackerGetActive(void);
+uint64_t DefragTrackerGetMaxFragments(void);
 enum ExceptionPolicy DefragGetMemcapExceptionPolicy(void);
 
 #endif /* SURICATA_DEFRAG_HASH_H */
