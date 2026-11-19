@@ -1937,8 +1937,6 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     htp_config_set_parse_request_cookies(cfg_prec->cfg, 0);
     htp_config_set_allow_space_uri(cfg_prec->cfg, 1);
 
-    /* don't convert + to space by default */
-    htp_config_set_plusspace_decode(cfg_prec->cfg, 0);
     // enables request decompression
     htp_config_set_request_decompression(cfg_prec->cfg, 1);
     htp_config_set_lzma_layers(cfg_prec->cfg, HTP_CONFIG_DEFAULT_LZMA_LAYERS);
@@ -2382,6 +2380,8 @@ void HTPConfigure(void)
                 SCConfGetNode("app-layer.protocols.http.libhtp.default-config"), &cfgtree);
     }
     HTPConfigSetDefaultsPhase2("default", &cfglist);
+
+    SCHttp2InitCfg(cfglist.cfg);
 
     HTPParseMemcap();
 
@@ -4474,6 +4474,7 @@ libhtp:\n\
     personality: IDS\n\
     double-decode-path: yes\n\
     double-decode-query: yes\n\
+    query-plusspace-decode: no\n\
 ";
 
     SCConfCreateContextBackup();
