@@ -890,6 +890,10 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
+    /* decoding stopped at an ethertype with no decoder: log that ethertype */
+    uint16_t ethertype = 0;
+    const bool has_ethertype = DecodeGetUnknownEthertype(p, &ethertype);
+
     const uint8_t final_action = p->alerts.alerts[p->alerts.cnt - 1].action;
     for (int i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
@@ -906,6 +910,10 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
 
         if (PacketIsTunnel(p)) {
             AlertJsonTunnel(p, jb, &json_output_ctx->eve_ctx->cfg);
+        }
+
+        if (has_ethertype) {
+            SCJbSetUint(jb, "unknown_ether_type", ethertype);
         }
 
         /* base64-encoded full packet */

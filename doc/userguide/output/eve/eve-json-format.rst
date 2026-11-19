@@ -409,6 +409,12 @@ In firewall mode, the ``alert.engine`` field identifies which rule engine
 generated the alert: ``fw`` for firewall rules and ``td`` for threat detect
 rules. This field is omitted outside of firewall mode.
 
+Alerts for a packet with the ``decoder.ethernet.unknown_ethertype`` event, such
+as alerts from a rule using ``decode-event:ethernet.unknown_ethertype``, have a
+top-level ``unknown_ether_type`` field holding the ethertype the decoder could
+not handle. Anomaly records for the packet have the same field, but alerts
+have it whether or not decode anomalies are logged.
+
 This event will also have the ``pcap_cnt`` field, when running in pcap mode, to
 indicate which packet triggered the signature.
 
@@ -527,6 +533,16 @@ Fields
 * "code" If "type" is "unknown", than "code" contains the unrecognized event
   code. Otherwise, this field is not present.
 
+Every anomaly record for a packet with the
+``decoder.ethernet.unknown_ethertype`` event, including the
+``decoder.vlan.unknown_type``, ``decoder.etag.unknown_type`` or
+``decoder.vntag.unknown_type`` record raised with it, has a top-level field
+outside the "anomaly" object:
+
+* "unknown_ether_type" The ethertype the decoder could not handle. When that
+  ethertype follows a VLAN, 802.1ah, E-Tag or VN-Tag header, the field differs
+  from "ether.ether_type", which holds the ethernet header's type.
+
 The following field is included when "type" has the value "applayer":
 
 * "layer" Indicates the handling layer that detected the event. This will be
@@ -560,6 +576,21 @@ Examples
     "anomaly": {
       "type": "stream",
       "event": "stream.pkt_invalid_timestamp"
+    }
+
+    {
+      "event_type": "anomaly",
+      "vlan": [
+        100
+      ],
+      "ether": {
+        "ether_type": 33024
+      },
+      "anomaly": {
+        "type": "decode",
+        "event": "decoder.ethernet.unknown_ethertype"
+      },
+      "unknown_ether_type": 32821
     }
 
     {

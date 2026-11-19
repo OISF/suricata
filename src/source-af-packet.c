@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2021 Open Information Security Foundation
+/* Copyright (C) 2011-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -2721,18 +2721,23 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data)
 static void UpdateRawDataForVLANHdr(Packet *p)
 {
     if (p->afp_v.vlan_tci != 0) {
-        uint8_t *pstart = GET_PKT_DATA(p) - VLAN_HEADER_LEN;
+        uint8_t *orig = GET_PKT_DATA(p);
+        uint8_t *pstart = orig - VLAN_HEADER_LEN;
         uint32_t plen = GET_PKT_LEN(p) + VLAN_HEADER_LEN;
         /* move ethernet addresses */
-        SCMemmove(pstart, plen, GET_PKT_DATA(p), 2 * ETH_ALEN);
+        SCMemmove(pstart, plen, orig, 2 * ETH_ALEN);
         /* write vlan info */
         *(uint16_t *)(pstart + 2 * ETH_ALEN) = htons(0x8100);
         *(uint16_t *)(pstart + 2 * ETH_ALEN + 2) = htons(p->afp_v.vlan_tci);
 
         /* update the packet raw data pointer to start at the new offset */
         (void)PacketSetData(p, pstart, plen);
-        /* update ethernet header pointer to point to the new start of the data */
-        p->l2.hdrs.ethh = (void *)pstart;
+        /* update the ethernet header pointer to the new start of the data,
+         * unless decoding moved it to an inner frame (DCE, MPLS pseudowire,
+         * NSH): that frame did not move */
+        if (p->l2.hdrs.ethh == NULL || (uint8_t *)p->l2.hdrs.ethh == orig) {
+            p->l2.hdrs.ethh = (void *)pstart;
+        }
     }
 }
 
@@ -2790,6 +2795,107 @@ TmEcode DecodeAFPThreadDeinit(ThreadVars *tv, void *data)
     if (data != NULL)
         DecodeThreadVarsFree(tv, data);
     SCReturnInt(TM_ECODE_OK);
+}
+
+#ifdef UNITTESTS
+#include "packet.h"
+
+/** \brief decode a frame whose outer VLAN tag the kernel reported in
+ *         metadata, the way the receive path sets up such a packet, and
+ *         check where the ethernet header ends up after the tag is put back
+ *
+ *  \param frame RARP frame as captured, without the outer VLAN tag
+ *  \param ethh_off where the ethernet header must point, counted from the
+ *         start of the data after the tag is put back: 0 for the outer
+ *         header, or the place of an inner frame
+ */
+static int AFPVLANHdrCheck(const uint8_t *frame, uint32_t len, uint32_t ethh_off)
+{
+    uint8_t buf[64];
+    FAIL_IF(len > sizeof(buf) - VLAN_HEADER_LEN);
+    memset(buf, 0, VLAN_HEADER_LEN);
+    memcpy(buf + VLAN_HEADER_LEN, frame, len);
+
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    memset(&tv, 0, sizeof(tv));
+    memset(&dtv, 0, sizeof(dtv));
+    (void)PacketSetData(p, buf + VLAN_HEADER_LEN, len);
+    p->datalink = LINKTYPE_ETHERNET;
+    p->vlan_id[0] = 100;
+    p->vlan_idx = 1;
+    p->afp_v.vlan_tci = 100;
+    DecodeAFP(&tv, p, &dtv);
+
+    /* the tag was put back: the data now starts 4 bytes earlier */
+    FAIL_IF(GET_PKT_DATA(p) != buf);
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, ETHERNET_UNKNOWN_ETHERTYPE));
+    const EthernetHdr *ethh = PacketGetEthernet(p);
+    FAIL_IF((const uint8_t *)ethh != buf + ethh_off);
+    if (ethh_off == 0) {
+        /* the outer header now announces the tag that was put back */
+        FAIL_IF(SCNtohs(ethh->eth_type) != ETHERNET_TYPE_VLAN);
+    } else {
+        /* the inner header kept its contents */
+        FAIL_IF(memcmp(ethh, frame + ethh_off - VLAN_HEADER_LEN, ETHERNET_HEADER_LEN) != 0);
+    }
+    uint16_t ethertype = 0;
+    FAIL_IF_NOT(DecodeGetUnknownEthertype(p, &ethertype));
+    FAIL_IF(ethertype != 0x8035);
+
+    PacketFree(p);
+    PASS;
+}
+
+/** \test MPLS pseudowire frame: decoding moves the ethernet header to the
+ *        inner frame, and putting the VLAN tag back must leave it there, so
+ *        the unknown ethertype lookup starts at the inner frame */
+static int AFPVLANHdrInnerEthernetTest01(void)
+{
+    /* MACs, MPLS unicast, label (S=1), control word, inner MACs, RARP
+     * ethertype, RARP payload */
+    const uint8_t frame[] = { 0x00, 0x10, 0x94, 0x55, 0x00, 0x01, 0x00, 0x10, 0x94, 0x56, 0x00,
+        0x01, 0x88, 0x47, 0x00, 0x01, 0x01, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x94, 0x55,
+        0x00, 0x02, 0x00, 0x20, 0x94, 0x56, 0x00, 0x02, 0x80, 0x35, 0x00, 0x01, 0x08, 0x00, 0x06,
+        0x04, 0x00, 0x03 };
+    /* the inner frame starts after the MACs, MPLS type, label and control
+     * word */
+    return AFPVLANHdrCheck(frame, sizeof(frame), VLAN_HEADER_LEN + 22);
+}
+
+/** \test DCE frame: its inner frame starts 16 bytes into the original
+ *        data, right after the bytes rewritten when the VLAN tag is put
+ *        back, so the inner header must keep its place and its contents */
+static int AFPVLANHdrInnerEthernetTest02(void)
+{
+    /* MACs, DCE, 2 DCE bytes, inner MACs, RARP ethertype, RARP payload */
+    const uint8_t frame[] = { 0x00, 0x10, 0x94, 0x55, 0x00, 0x01, 0x00, 0x10, 0x94, 0x56, 0x00,
+        0x01, 0x89, 0x03, 0x00, 0x00, 0x00, 0x20, 0x94, 0x55, 0x00, 0x02, 0x00, 0x20, 0x94, 0x56,
+        0x00, 0x02, 0x80, 0x35, 0x00, 0x01, 0x08, 0x00, 0x06, 0x04, 0x00, 0x03 };
+    return AFPVLANHdrCheck(frame, sizeof(frame), VLAN_HEADER_LEN + 16);
+}
+
+/** \test plain frame: the ethernet header moves to the new start of the
+ *        data, in front of the VLAN tag that was put back, and the lookup
+ *        steps over that tag */
+static int AFPVLANHdrOuterEthernetTest01(void)
+{
+    /* MACs, RARP ethertype, RARP payload */
+    const uint8_t frame[] = { 0x00, 0x10, 0x94, 0x55, 0x00, 0x01, 0x00, 0x10, 0x94, 0x56, 0x00,
+        0x01, 0x80, 0x35, 0x00, 0x01, 0x08, 0x00, 0x06, 0x04, 0x00, 0x03 };
+    return AFPVLANHdrCheck(frame, sizeof(frame), 0);
+}
+#endif /* UNITTESTS */
+
+void SourceAFPRegisterTests(void)
+{
+#ifdef UNITTESTS
+    UtRegisterTest("AFPVLANHdrInnerEthernetTest01", AFPVLANHdrInnerEthernetTest01);
+    UtRegisterTest("AFPVLANHdrInnerEthernetTest02", AFPVLANHdrInnerEthernetTest02);
+    UtRegisterTest("AFPVLANHdrOuterEthernetTest01", AFPVLANHdrOuterEthernetTest01);
+#endif /* UNITTESTS */
 }
 
 #endif /* HAVE_AF_PACKET */
