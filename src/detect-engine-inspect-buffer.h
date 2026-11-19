@@ -1,4 +1,4 @@
-/* Copyright (C) 2025 Open Information Security Foundation
+/* Copyright (C) 2025-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -62,6 +62,7 @@ void SCInspectionBufferSetupAndApplyTransforms(DetectEngineThreadCtx *det_ctx, c
 void InspectionBufferFree(InspectionBuffer *buffer);
 uint8_t *SCInspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size);
 void SCInspectionBufferTruncate(InspectionBuffer *buffer, uint32_t buf_len);
+void SCInspectionBufferSetError(InspectionBuffer *buffer);
 void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_len);
 void InspectionBufferApplyTransforms(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buffer,
         const DetectEngineTransforms *transforms);

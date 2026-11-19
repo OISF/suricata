@@ -16,12 +16,12 @@
  */
 
 use crate::detect::uint::detect_parse_uint_with_unit;
-use crate::detect::SIGMATCH_OPTIONAL_OPT;
+use crate::detect::{SIGMATCH_OPTIONAL_OPT, SIGMATCH_TRANSFORM_CAN_FAIL};
 use flate2::bufread::{GzDecoder, ZlibDecoder};
 use suricata_sys::sys::{
     DetectEngineCtx, DetectEngineThreadCtx, InspectionBuffer, SCDetectHelperTransformRegister,
     SCDetectSignatureAddTransform, SCInspectionBufferCheckAndExpand, SCInspectionBufferInPlace,
-    SCInspectionBufferTruncate, SCTransformTableElmt, Signature,
+    SCInspectionBufferSetError, SCInspectionBufferTruncate, SCTransformTableElmt, Signature,
 };
 
 use std::ffi::CStr;
@@ -133,7 +133,8 @@ unsafe fn decompress_transform(
         return;
     }
     let tmp;
-    let slice_input = if SCInspectionBufferInPlace(buffer) {
+    let in_place = SCInspectionBufferInPlace(buffer);
+    let slice_input = if in_place {
         // need a temporary buffer as we cannot do the transfom in place
         // rather copy the input which should be smaller than the decompressed output
         // (Transform is tried in place when there are multiple chained transforms)
@@ -146,7 +147,8 @@ unsafe fn decompress_transform(
 
     let output = SCInspectionBufferCheckAndExpand(buffer, ctx.max_size);
     if output.is_null() {
-        // allocation failure
+        // allocation failure: the buffer and the input are unchanged
+        SCInspectionBufferSetError(buffer);
         return;
     }
     let buf = std::slice::from_raw_parts_mut(output, ctx.max_size as usize);
@@ -154,10 +156,16 @@ unsafe fn decompress_transform(
     //  this succeeds if decompressed data > max_size, but we get nb = max_size
     if let Some(nb) = decompress_fn(slice_input, buf) {
         SCInspectionBufferTruncate(buffer, nb);
-    } else {
-        // decompression failure
-        SCInspectionBufferTruncate(buffer, 0);
+        return;
     }
+    // decompression failure: keep the input and flag the error
+    if in_place {
+        // the input was in buf, which the decoder may have written over or
+        // which the expand may have moved, so put the saved copy back
+        std::ptr::copy_nonoverlapping(slice_input.as_ptr(), output, slice_input.len());
+        SCInspectionBufferTruncate(buffer, slice_input.len() as u32);
+    }
+    SCInspectionBufferSetError(buffer);
 }
 
 unsafe extern "C" fn gunzip_transform(
@@ -216,7 +224,7 @@ pub unsafe extern "C" fn DetectTransformGunzipRegister() {
         desc: b"modify buffer via gunzip decompression\0".as_ptr() as *const libc::c_char,
         url: b"/rules/transforms.html#gunzip\0".as_ptr() as *const libc::c_char,
         Setup: Some(gunzip_setup),
-        flags: SIGMATCH_OPTIONAL_OPT,
+        flags: SIGMATCH_OPTIONAL_OPT | SIGMATCH_TRANSFORM_CAN_FAIL,
         Transform: Some(gunzip_transform),
         Free: Some(decompress_free),
         TransformValidate: None,
@@ -237,7 +245,7 @@ pub unsafe extern "C" fn DetectTransformZlibDeflateRegister() {
         desc: b"modify buffer via zlib decompression\0".as_ptr() as *const libc::c_char,
         url: b"/rules/transforms.html#zlib-deflate\0".as_ptr() as *const libc::c_char,
         Setup: Some(zlib_deflate_setup),
-        flags: SIGMATCH_OPTIONAL_OPT,
+        flags: SIGMATCH_OPTIONAL_OPT | SIGMATCH_TRANSFORM_CAN_FAIL,
         Transform: Some(zlib_deflate_transform),
         Free: Some(decompress_free),
         TransformValidate: None,
