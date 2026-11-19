@@ -193,10 +193,18 @@ xor
 
 Takes the buffer, applies xor decoding.
 
-The key can be a hexadecimal string or a variable specified inline using
-``extract <nbytes> <offset>``. When a variable key is used, the engine reads
-``<nbytes>`` bytes starting at ``<offset>`` in the raw inspection buffer
-at transform time.
+The key can be given as:
+
+* a literal hexadecimal string (``xor:"<hex_key>"``);
+* an inline buffer location (``xor:extract <nbytes> <offset>``), where the
+  engine reads ``<nbytes>`` bytes starting at ``<offset>`` in the raw inspection
+  buffer at transform time; or
+* the name of a ``byte_extract`` or ``byte_math`` variable
+  (``xor:var <name> [<width>]``), whose value is used as the key, read at
+  inspection time.
+
+Only one key form can be used per ``xor`` transform; for example,
+``xor:extract 1 0 var xkey`` is rejected.
 
 An optional ``offset`` parameter specifies the byte position in the buffer
 where XOR decoding starts. Bytes before this position are left as-is.
@@ -207,13 +215,15 @@ Syntax::
 
     xor:"<hex_key>"
     xor:extract <nbytes> <offset>
+    xor:var <name> [<width>]
     xor:offset <N>,"<hex_key>"
     xor:offset <N>,extract <nbytes> <offset>
+    xor:offset <N>,var <name> [<width>]
 
 Quotes around a hex key are optional; ``xor:0d0ac8ff`` and ``xor:"0d0ac8ff"``
 are equivalent.
 
-This example alerts if ``http.uri`` contains ``password=`` xored with 4-bytes key ``0d0ac8ff``:
+This example alerts if ``http.uri`` contains ``password=`` xored with 4-byte key ``0d0ac8ff``:
 
 .. container:: example-rule
 
@@ -228,6 +238,56 @@ matches ``infected`` in the decoded data:
 
     alert http any any -> any any (msg:"XOR with variable key"; \
         http.request_body; xor:offset 1,extract 1 0; content:"infected"; sid:2;)
+
+With ``xor:var``, the key comes from a ``byte_extract`` or ``byte_math``
+variable. The variable must be set on a buffer that is inspected before the
+transformed buffer, for example ``http.uri`` before ``http.request_body``,
+because the transform runs when its buffer is built.
+
+The variable is set during rule inspection, after prefiltering, so a ``content``
+in the transformed buffer can't be the fast pattern. A ``content`` in another
+buffer of the rule can. If ``fast_pattern`` is used on a ``content`` in the
+transformed buffer, it is ignored and a warning is logged when the rule is
+loaded.
+
+The key is read when the transformed buffer is built. If the variable was set
+on an earlier packet, for example when the request body arrives after the
+headers, another rule's ``byte_extract`` or ``byte_math`` may have overwritten
+it by then, and the buffer is decoded with the wrong key. Other keywords that
+take a variable, such as ``offset`` and ``depth``, have the same limitation.
+
+``byte_extract`` and ``byte_math`` store their result as a number, while
+``xor`` needs a key of a fixed number of bytes. ``<width>`` (1-8) sets the key
+length: the key is the low ``<width>`` bytes of the number, most significant
+byte first. The value 0x1234 gives the same key as ``xor:"1234"`` with
+``<width>`` 2, and as ``xor:"34"`` with ``<width>`` 1. The key comes from the
+number, not from the packet bytes, so a little-endian ``byte_extract`` reading
+the bytes 0x34 0x12 also gives the key ``1234``.
+
+``<width>`` is the length of the key, not the number of bytes read from the
+buffer, so it differs from the ``<nbytes>`` of ``xor:extract`` and from the
+``bytes`` option of ``byte_math``. It may be left out for ``byte_extract``, and
+then equals the number of bytes ``byte_extract`` read. It is required for
+``byte_math``, whose result can be wider than the bytes it read, and for
+``byte_extract`` with ``string``, where the read count is a number of
+characters (``"255"`` is three characters but one byte).
+
+This example extracts a one-byte key from ``http.uri`` and uses it to xor-decode
+the request body:
+
+.. container:: example-rule
+
+    alert http any any -> any any (msg:"xor variable key"; \
+        http.uri; byte_extract:1,1,xkey; \
+        http.request_body; xor:var xkey; content:"SECRET"; sid:1;)
+
+This example computes the key with ``byte_math`` and supplies an explicit width:
+
+.. container:: example-rule
+
+    alert http any any -> any any (msg:"xor byte_math key"; \
+        http.uri; byte_math:bytes 1, offset 1, oper -, rvalue 1, result xkey; \
+        http.request_body; xor:var xkey 1; content:"SECRET"; sid:1;)
 
 header_lowercase
 ----------------
