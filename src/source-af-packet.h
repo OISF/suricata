@@ -166,6 +166,7 @@ typedef struct AFPPacketVars_
     int v4_map_fd;
     int v6_map_fd;
     unsigned int nr_cpus;
+    uint64_t flags;
 #endif
 } AFPPacketVars;
 
