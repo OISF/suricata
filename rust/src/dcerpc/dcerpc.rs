@@ -1267,8 +1267,8 @@ fn register_pattern_probe() -> i8 {
             0,
             Direction::ToServer.into(),
             Some(probe_tcp),
-            0,
-            0,
+            DCERPC_HDR_LEN,
+            DCERPC_HDR_LEN,
         ) < 0
         {
             SCLogDebug!("TOSERVER => SCAppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
@@ -1282,8 +1282,8 @@ fn register_pattern_probe() -> i8 {
             0,
             Direction::ToClient.into(),
             Some(probe_tcp),
-            0,
-            0,
+            DCERPC_HDR_LEN,
+            DCERPC_HDR_LEN,
         ) < 0
         {
             SCLogDebug!("TOCLIENT => SCAppLayerProtoDetectPMRegisterPatternCSwPP FAILED");
