@@ -2704,6 +2704,82 @@ firewall at rule number 5500:
 
 .. image:: suricata-yaml/ipfw_reinjection.png
 
+Divert socket receive buffer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Each divert port given with ``-d`` gets its own divert socket. The
+kernel queues diverted packets in that socket's receive buffer until
+Suricata reads them, and drops a packet that doesn't fit. Suricata never
+sees these packets, so its counters don't show the drops, and FreeBSD's
+divert statistics don't count them either. FreeBSD's default receive
+buffer is 65636 bytes, about 43 full-size packets, which is less than a
+millisecond of traffic at 1 Gbit/s. A short stall of a receive thread is
+then enough to drop packets, and TCP reacts to the losses by slowing
+down, so a single fast flow can be throttled well below the link speed.
+The same applies to packets diverted by pf ``divert-to`` rules.
+
+``buffer-size`` sets the receive buffer of every divert socket. It takes
+a size from 64kb to 64mb:
+
+.. code-block:: yaml
+
+  ipfw:
+    buffer-size: 4mb
+
+If ``buffer-size`` is not set, or is 0, the kernel default is kept. An
+invalid or out-of-range value logs a warning and keeps the kernel
+default.
+
+The ``kern.ipc.maxsockbuf`` sysctl limits the buffer in two ways. The
+kernel refuses a buffer larger than about 8/9 of it, and it also caps the
+mbuf memory a buffer may hold. A full-size packet from a 1500 MTU
+interface uses about 1.7 times its length in mbuf memory when the driver
+receives into 2 KB mbuf clusters, and about 3 times with the 4 KB
+clusters some drivers use, so set ``kern.ipc.maxsockbuf`` to at least
+twice ``buffer-size``, and more for such drivers; otherwise the buffer
+can fill before it holds ``buffer-size`` bytes. Packets that are small
+relative to the cluster they were received into use more mbuf memory per
+byte: small packets in general, and standard-size packets on an
+interface configured for a jumbo MTU. So some traffic needs more.
+``kern.ipc.maxsockbuf`` defaults to 2 MB on FreeBSD 14 and 8 MB on
+FreeBSD 15 (``SB_MAX``), and distributions may set their own. For a 4mb
+buffer that is at least 8 MB; the once-only warning described below
+fires only below that. Raise it further if packets are still dropped.
+(KB and MB here are binary units, 1024 and 1048576 bytes.)
+
+For example, to set 16 MB:
+
+.. code-block:: console
+
+  # sysctl kern.ipc.maxsockbuf=16777216
+
+Add the same setting to ``/etc/sysctl.conf`` to keep it across reboots,
+and restart Suricata: a socket keeps the limits it got when the buffer
+was set. If the kernel refuses the size, Suricata logs a warning that
+names the ``kern.ipc.maxsockbuf`` value to set, and runs with the
+default buffer. The other cause is the ``sbsize`` resource limit, which
+counts the buffers of every socket owned by the user Suricata runs as.
+Suricata also logs a warning, once, when ``kern.ipc.maxsockbuf`` is below
+twice ``buffer-size``.
+
+The larger buffer raises throughput in the ``workers`` runmode. In
+``autofp``, the default runmode for IPFW, throughput stays limited for a
+separate reason, so use ``--runmode workers`` on the command line, or
+``runmode: workers`` in the configuration file.
+
+The buffer is a limit, not an allocation: memory is only used while
+packets are queued. While Suricata can't keep up, each socket can hold
+mbufs up to the smaller of 8 times ``buffer-size`` and
+``kern.ipc.maxsockbuf``. That applies to each ``-d`` listener, and comes
+from the same mbuf pool the network interfaces receive into (see
+``netstat -m``). Anyone who can send traffic through the firewall can
+cause this with a flood that Suricata can't inspect fast enough, so keep
+``kern.ipc.maxsockbuf`` no larger than needed: the number of listeners
+times its value bounds that memory. A full buffer also adds delay to
+every flow queued on it: 4 MB drained at 1 Gbit/s is about 34 ms, and
+longer at the rate Suricata can actually keep up with. Use the smallest
+size that stops the drops.
+
 Rules
 -----
 
