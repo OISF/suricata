@@ -192,6 +192,9 @@ typedef struct ICMPV4Vars_
     uint8_t emb_ip4_proto;
 
     bool emb_ports_set;
+    /** the embedded source is not this packet's destination: the error is
+     *  not about the embedded datagram, so it is not matched to its flow */
+    bool emb_addr_mismatch;
     /** TCP/UDP ports */
     uint16_t emb_sport;
     uint16_t emb_dport;
@@ -246,14 +249,15 @@ typedef struct ICMPV4Timestamp_ {
 #define ICMPV4_GET_HLEN_ICMPV4H(p) (p)->l4.vars.icmpv4.hlen
 
 /** macro for checking if a ICMP DEST UNREACH packet is valid for use
- *  in other parts of the engine, such as the flow engine. 
+ *  in other parts of the engine, such as the flow engine. An error that is
+ *  not addressed to the source of its embedded datagram is not.
  *
  *  \warning use only _after_ the decoder has processed the packet
  */
 #define ICMPV4_DEST_UNREACH_IS_VALID(p)                                                            \
     ((!((p)->flags & PKT_IS_INVALID)) && PacketIsICMPv4((p)) &&                                    \
             ((p)->icmp_s.type == ICMP_DEST_UNREACH) && (PacketGetICMPv4EmbIPv4((p)) != NULL) &&    \
-            (p)->l4.vars.icmpv4.emb_ports_set)
+            (p)->l4.vars.icmpv4.emb_ports_set && !(p)->l4.vars.icmpv4.emb_addr_mismatch)
 
 /**
  *  marco for checking if a ICMP packet is an error message or an

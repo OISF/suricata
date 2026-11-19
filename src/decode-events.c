@@ -113,6 +113,10 @@ const struct DecodeEvents_ DEvents[] = {
             "decoder.icmpv4.ipv4_unknown_ver",
             ICMPV4_IPV4_UNKNOWN_VER,
     },
+    {
+            "decoder.icmpv4.ipv4_emb_addr_mismatch",
+            ICMPV4_IPV4_EMB_ADDR_MISMATCH,
+    },
 
     /* ICMPv6 EVENTS */
     {

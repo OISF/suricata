@@ -67,6 +67,17 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
         return -1;
     }
 
+    /* An ICMP error is sent to the source of the datagram that caused it, so
+     * the embedded source has to be this packet's destination. If it is not,
+     * the error is not about that datagram: it is still decoded, but it must
+     * not be matched to the embedded datagram's flow. */
+    if (PacketIsIPv4(p) &&
+            IPV4_GET_RAW_IPSRC_U32(icmp4_ip4h) != IPV4_GET_RAW_IPDST_U32(PacketGetIPv4(p))) {
+        SCLogDebug("DecodePartialIPV4: embedded source is not the packet's destination");
+        ENGINE_SET_EVENT(p, ICMPV4_IPV4_EMB_ADDR_MISMATCH);
+        p->l4.vars.icmpv4.emb_addr_mismatch = true;
+    }
+
     /* The embedded datagram can carry IP options: the L4 header starts at
      * the embedded IHL, not at the fixed 20 byte header length. */
     const uint16_t ihl = IPV4_GET_RAW_HLEN(icmp4_ip4h);
@@ -868,6 +879,63 @@ static int DecodeICMPV4EmbOptsTest(void)
     FlowShutdown();
     PASS;
 }
+/** \brief decode test04's dest. unreachable sent from 4.3.2.1 to dst */
+static Packet *DecodeICMPV4UnreachTo(const char *dst)
+{
+    static uint8_t raw_icmpv4[] = { 0x03, 0x0a, 0x36, 0xc3, 0x00, 0x00, 0x00, 0x00, 0x45, 0x00,
+        0x00, 0x3c, 0x62, 0xee, 0x40, 0x00, 0x33, 0x06, 0xb4, 0x8f, 0xc0, 0xa8, 0x01, 0x0d, 0x58,
+        0x60, 0x16, 0x29, 0xb1, 0x0a, 0x00, 0x32, 0x3e, 0x36, 0x38, 0x7c, 0x00, 0x00, 0x00, 0x00,
+        0xa0, 0x02, 0x16, 0xd0, 0x72, 0x04, 0x00, 0x00, 0x02, 0x04, 0x05, 0x8a, 0x04, 0x02, 0x08,
+        0x0a };
+    static IPV4Hdr ip4h;
+    Packet *p = PacketGetFromAlloc();
+    if (p == NULL)
+        return NULL;
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");
+    p->dst.addr_data32[0] = UTHSetIPv4Address(dst);
+
+    ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
+    UTHSetIPV4Hdr(p, &ip4h);
+
+    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4));
+    return p;
+}
+
+/** DecodeICMPV4test09
+ *  \brief an error is only matched to the embedded datagram's flow when it is
+ *         sent to that datagram's source (192.168.1.13)
+ */
+static int DecodeICMPV4test09(void)
+{
+    FlowInitConfig(FLOW_QUIET);
+
+    Packet *p = DecodeICMPV4UnreachTo("192.168.1.13");
+    FAIL_IF_NULL(p);
+    FAIL_IF(ENGINE_ISSET_EVENT(p, ICMPV4_IPV4_EMB_ADDR_MISMATCH));
+    FAIL_IF_NOT(ICMPV4_DEST_UNREACH_IS_VALID(p));
+    PacketFree(p);
+
+    p = DecodeICMPV4UnreachTo("1.2.3.4");
+    FAIL_IF_NULL(p);
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, ICMPV4_IPV4_EMB_ADDR_MISMATCH));
+    FAIL_IF(ICMPV4_DEST_UNREACH_IS_VALID(p));
+    /* still decoded */
+    FAIL_IF_NOT(p->l4.vars.icmpv4.emb_sport == 45322 && p->l4.vars.icmpv4.emb_dport == 50);
+    PacketFree(p);
+
+    FlowShutdown();
+    PASS;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -888,6 +956,7 @@ void DecodeICMPV4RegisterTests(void)
     UtRegisterTest("DecodeICMPV4InvalidType", ICMPV4InvalidType07);
     UtRegisterTest("DecodeICMPV4test08", DecodeICMPV4test08);
     UtRegisterTest("DecodeICMPV4EmbOpts", DecodeICMPV4EmbOptsTest);
+    UtRegisterTest("DecodeICMPV4test09", DecodeICMPV4test09);
 #endif /* UNITTESTS */
 }
 /**

@@ -7228,6 +7228,10 @@
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
+                                        "ipv4_emb_addr_mismatch": {
+                                            "type": "integer",
+                                            "description": "Number of ICMPv4 errors not sent to the source of the embedded packet"
+                                        },
                                         "ipv4_trunc_pkt": {
                                             "type": "integer",
                                             "description": "Number of truncated packets for ICMPv4"
