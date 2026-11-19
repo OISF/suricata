@@ -954,6 +954,7 @@ jobs:
                 ccache \
                 clang \
                 diffutils \
+                dpdk-devel \
                 file-devel \
                 gcc \
                 gcc-c++ \
@@ -978,6 +979,7 @@ jobs:
                 libtool \
                 lz4-devel \
                 make \
+                numactl-devel \
                 parallel \
                 pcre2-devel \
                 pkgconfig \
@@ -998,7 +1000,7 @@ jobs:
       - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow" ./configure --disable-shared
       - run: make check
       - run: make distclean
-      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-warnings --enable-debug --enable-qa-simulation --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue
+      - run: CC="clang" CFLAGS="$DEFAULT_CFLAGS -Wshadow -fsanitize=address -fno-omit-frame-pointer" ./configure --enable-warnings --enable-debug --enable-qa-simulation --enable-unittests --disable-shared --enable-rust-strict --enable-hiredis --enable-nfqueue --enable-dpdk
         env:
           LDFLAGS: "-fsanitize=address"
           ac_cv_func_realloc_0_nonnull: "yes"
@@ -1895,10 +1897,6 @@ jobs:
           ./qa/live/dpdk.sh "qa/live/dpdk/suricata-null-ips.yaml"
         env:
           LLVM_PROFILE_FILE: "/tmp/dpdk-ips.profraw"
-      # DPDK configuration checks
-      - run: ./qa/live/dpdk/dpdk-testsuite.sh
-        env:
-          LLVM_PROFILE_FILE: "/tmp/dpdk-testsuite-%p.profraw"
       # AF_PACKET tests
       - run: |
           ./qa/live/afp-ids.sh "2" "autofp"
@@ -2326,8 +2324,6 @@ jobs:
       # IPS config
       - run: |
           ./qa/live/dpdk.sh "qa/live/dpdk/suricata-null-ips.yaml"
-      # DPDK configuration checks
-      - run: ./qa/live/dpdk/dpdk-testsuite.sh
       # AF_PACKET tests
       - run: |
           ./qa/live/afp-ids.sh "2" "autofp"
@@ -3052,8 +3048,6 @@ jobs:
       # IPS config
       - run: |
           ./qa/live/dpdk.sh "qa/live/dpdk/suricata-null-ips.yaml"
-      # DPDK configuration checks
-      - run: ./qa/live/dpdk/dpdk-testsuite.sh
       - name: Run suricata-verify live tests
         id: sv_live
         run: ASAN_OPTIONS=detect_leaks=0 python3 ./suricata-verify/live/run.py dpdk

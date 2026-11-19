@@ -21,7 +21,7 @@ dpdk:
   interfaces:
     - interface: net_null0 # PCIe address of the NIC port
       threads: auto
-      mempool-size: 511
+      mempool-size: auto
       mempool-cache-size: auto
       rx-descriptors: 16
       tx-descriptors: 16

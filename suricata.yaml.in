@@ -832,10 +832,13 @@ dpdk:
 
       # To approximately calculate required amount of space (in bytes) for interface's mempool: mempool-size * mtu
       # Make sure you have enough allocated hugepages.
-      mempool-size: auto # autocalculated based on Rx/Tx descriptors and threads
+      mempool-size: auto # autocalculated based on Rx/Tx descriptors, backlog, in-flight packets and threads
       mempool-cache-size: auto # autocalculated from the mempool size
       rx-descriptors: auto # max number of descriptors
       tx-descriptors: auto # max number of descriptors
+      # Backlog helps workers to overcome heavy bursts of traffic (similar to AF_PACKET's ring-size)
+      # Backlog must be a power of two of at least 32, zero disables the backlog.
+      # rx-backlog-size: 0
       #
       # IPS mode for Suricata works in 3 modes - none, tap, ips
       # - none: IDS mode only - disables IPS functionality (does not further forward packets)
@@ -854,6 +857,7 @@ dpdk:
       vlan-strip-offload: false
       rss-hash-functions: auto
       linkup-timeout: 0
+      rx-backlog-size: 0
       mempool-size: auto
       mempool-cache-size: auto
       rx-descriptors: auto
@@ -1980,17 +1984,17 @@ threading:
       # detect-thread-ratio variable:
       # threads: 3
       prio:
-        low: [ 0 ]
-        medium: [ "1-2" ]
-        high: [ 3 ]
+        # low: [ 0 ]
+        # medium: [ "1-2" ]
+        # high: [ 3 ]
         default: "medium"
-      interface-specific-cpu-set:
-        - interface: "enp4s0f0" # 0000:3b:00.0 # net_bonding0 # ens1f0
-          cpu: [ 1,3,5,7,9 ]
-          mode: "exclusive"
-          prio:
-            high: [ "all" ]
-            default: "medium"
+      # interface-specific-cpu-set:
+      #   - interface: "enp4s0f0" # 0000:3b:00.0 # net_bonding0 # ens1f0
+      #     cpu: [ 1,3,5,7,9 ]
+      #     mode: "exclusive"
+      #     prio:
+      #       high: [ "all" ]
+      #       default: "medium"
     #verdict-cpu-set:
     #  cpu: [ 0 ]
     #  prio:
