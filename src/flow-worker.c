@@ -53,6 +53,7 @@
 #include "flow-manager.h"
 #include "flow-timeout.h"
 #include "flow-spare-pool.h"
+#include "flow-callbacks.h"
 #include "flow-worker.h"
 
 typedef DetectEngineThreadCtx *DetectEngineThreadCtxPtr;
@@ -186,6 +187,7 @@ static void CheckWorkQueue(ThreadVars *tv, FlowWorkerThreadData *fw, FlowTimeout
         }
         StatsCounterDecr(&tv->stats, fw->dtv->counter_flow_active);
 
+        SCFlowRunFinishCallbacks(tv, f);
         FlowClearMemory (f, f->protomap);
         FLOWLOCK_UNLOCK(f);
 
