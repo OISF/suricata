@@ -15,6 +15,21 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file
+ *
+ * `base64_decode` keyword. Decodes part of the current buffer into a
+ * per-thread buffer that `base64_data` then inspects:
+ *
+ *   base64_decode[: [bytes <n>][, offset <n>][, relative]];
+ *
+ *   bytes     max input bytes to decode (default and max: 65535)
+ *   offset    skip this many bytes first
+ *   relative  start after the previous match instead of the buffer start
+ *
+ * Options are all optional but must appear in this order.
+ */
+
 #include "suricata-common.h"
 #include "detect.h"
 #include "detect-parse.h"
@@ -24,15 +39,19 @@
 #include "detect-engine-build.h"
 #include "rust.h"
 
-/* Arbitrary maximum buffer size for decoded base64 data. */
+/* Arbitrary maximum buffer size for decoded base64 data. Also the
+ * default for `bytes`. */
 #define BASE64_DECODE_MAX 65535
 
+/** parsed keyword options */
 typedef struct DetectBase64Decode_ {
-    uint16_t bytes;
-    uint32_t offset;
-    uint8_t relative;
+    uint16_t bytes;   /**< max input bytes to decode */
+    uint32_t offset;  /**< bytes to skip before decoding */
+    uint8_t relative; /**< 1: offset counts from the previous match */
 } DetectBase64Decode;
 
+/* "bytes N", "offset N" and a trailing word, in that order, each
+ * optional. The trailing word must be "relative" (checked when parsing). */
 static const char decode_pattern[] = "\\s*(bytes\\s+(\\d+),?)?"
     "\\s*(offset\\s+(\\d+),?)?"
     "\\s*(\\w+)?";
@@ -63,6 +82,16 @@ void DetectBase64DecodeRegister(void)
     DetectSetupParseRegexes(decode_pattern, &decode_pcre);
 }
 
+/**
+ * \brief Decode the selected part of \p payload (RFC 4648) into
+ *        det_ctx->base64_decoded.
+ *
+ * Skips to the previous match if `relative`, then skips `offset`, then
+ * decodes at most `bytes` bytes.
+ *
+ * \retval 1 det_ctx->base64_decoded_len > 0, 0 otherwise (including
+ *         offset past the end of the buffer)
+ */
 int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     const SigMatchData *smd, const uint8_t *payload, uint32_t payload_len)
 {
@@ -110,6 +139,10 @@ int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s
     return det_ctx->base64_decoded_len > 0;
 }
 
+/**
+ * \brief Parse the keyword options. Unset options are left at 0.
+ * \retval 1 ok, 0 parse error (unknown word, bad number, empty string)
+ */
 static int DetectBase64DecodeParse(
         const char *str, uint16_t *bytes, uint32_t *offset, uint8_t *relative)
 {
@@ -182,6 +215,17 @@ error:
     return retval;
 }
 
+/**
+ * \brief Parse options and add the keyword to the rule.
+ *
+ * The keyword goes to the active list (e.g. after file_data), else to
+ * the list of the last payload keyword (content, pcre, byte_*,
+ * isdataat), else to the packet payload list. Also records the largest
+ * `bytes` in de_ctx->base64_decode_max_len, which sizes the per-thread
+ * decode buffer.
+ *
+ * \retval 0 ok, -1 error
+ */
 static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
     const char *str)
 {
@@ -227,6 +271,7 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
         goto error;
     }
 
+    /* bytes 0 or unset means "as much as allowed" */
     if (!data->bytes) {
         data->bytes = BASE64_DECODE_MAX;
     }
@@ -256,8 +301,11 @@ static void DetectBase64DecodeFree(DetectEngineCtx *de_ctx, void *ptr)
 #include "flow-util.h"
 #include "stream-tcp.h"
 
+/* set at test registration, not used by the current tests */
 static int g_http_header_buffer_id = 0;
 
+/** \test Option parsing: valid combinations, then misspellings and an
+ *        empty string, which must fail. */
 static int DetectBase64TestDecodeParse(void)
 {
     int retval = 0;
@@ -328,7 +376,7 @@ static int DetectBase64TestDecodeParse(void)
         goto end;
     }
 
-    /* Misspelled empty string. */
+    /* Empty string. */
     if (DetectBase64DecodeParse("", &bytes, &offset, &relative)) {
         goto end;
     }
@@ -339,7 +387,8 @@ end:
 }
 
 /**
- * Test keyword setup on basic content.
+ * \test Keyword setup with no options, followed by a content: the
+ *       keyword lands in the payload list.
  */
 static int DetectBase64DecodeTestSetup(void)
 {
@@ -356,6 +405,7 @@ static int DetectBase64DecodeTestSetup(void)
     PASS;
 }
 
+/** \test Decoding a fully base64 payload produces output. */
 static int DetectBase64DecodeTestDecode(void)
 {
     ThreadVars tv;
@@ -411,6 +461,7 @@ end:
     return retval;
 }
 
+/** \test `offset 8` skips the 8-byte prefix and decodes "Hello World". */
 static int DetectBase64DecodeTestDecodeWithOffset(void)
 {
     ThreadVars tv;
@@ -473,6 +524,7 @@ end:
     return retval;
 }
 
+/** \test An offset past the end of the payload decodes nothing. */
 static int DetectBase64DecodeTestDecodeLargeOffset(void)
 {
     ThreadVars tv;
@@ -493,7 +545,7 @@ static int DetectBase64DecodeTestDecodeLargeOffset(void)
         goto end;
     }
 
-    /* Offset is out of range. */
+    /* Offset 32 is past the end of the 16-byte payload. */
     de_ctx->sig_list = SigInit(de_ctx,
         "alert tcp any any -> any any (msg:\"base64 test\"; "
         "base64_decode: bytes 16, offset 32; "
@@ -529,6 +581,8 @@ end:
     return retval;
 }
 
+/** \test `relative` starts decoding right after the preceding content
+ *        match and decodes "Hello World". */
 static int DetectBase64DecodeTestDecodeRelative(void)
 {
     ThreadVars tv;
