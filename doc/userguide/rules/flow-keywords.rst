@@ -251,6 +251,9 @@ than, greater than or equal to, and less than or equal to are
 available. The item to compare with can be an integer or another
 variable.
 
+Flowints are unsigned 32-bit integers. Addition and subtraction do not
+wrap around: results are capped at 4294967295 and floored at 0.
+
 ________________________________________
 
 For example, if you want to count how many times a username is seen in
