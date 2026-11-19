@@ -2646,7 +2646,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
             }
         }
         int tunnel_fd = EBPFGetMapFDByName(ptv->iface, "flow_table_tunnels");
-        if (ptv->v6_map_fd != -1) {
+        if (tunnel_fd != -1) {
             ptv->flags |= AFP_BYPASS_TUNNELS;
         }
     }
