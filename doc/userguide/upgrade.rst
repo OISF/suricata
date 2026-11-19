@@ -185,6 +185,10 @@ Other Changes
   from unbounded to 2048. Configuration options, ``max-tx``,
   ``max-points``, and ``max-objects`` have been added for users who
   may need to change these defaults.
+- ``dnp3`` now recovers from TCP gaps. A gap no longer ends DNP3 parsing
+  for the rest of the flow: the partial frame is dropped, open transactions
+  in that direction are closed, and the parser resynchronizes on the next
+  link-layer start bytes.
 - Hyperscan caching (`detect.sgh-mpm-caching`), when enabled, prunes
   cache files that have not been used in the last 7 days by default.
   See :ref:`Hyperscan caching configuration

@@ -247,6 +247,9 @@ typedef struct DNP3State_ {
     uint16_t events;
     uint32_t unreplied;        /**< Number of unreplied requests. */
     uint8_t flooded;           /**< Flag indicating flood. */
+    uint8_t request_gap;       /**< A TCP gap in the request direction:
+                                * resynchronize on the next start bytes. */
+    uint8_t response_gap;      /**< The same for the response direction. */
 
     DNP3Buffer request_buffer;  /**< Request buffer for buffering
                                  * incomplete request PDUs received
@@ -254,7 +257,6 @@ typedef struct DNP3State_ {
     DNP3Buffer response_buffer; /**< Response buffer for buffering
                                  * incomplete response PDUs received
                                  * over TCP. */
-
 } DNP3State;
 
 void RegisterDNP3Parsers(void);
