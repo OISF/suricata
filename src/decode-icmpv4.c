@@ -67,6 +67,16 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
         return -1;
     }
 
+    /* The embedded datagram can carry IP options: the L4 header starts at
+     * the embedded IHL, not at the fixed 20 byte header length. */
+    const uint16_t ihl = IPV4_GET_RAW_HLEN(icmp4_ip4h);
+    if (unlikely(ihl < IPV4_HEADER_LEN || ihl > len)) {
+        SCLogDebug("DecodePartialIPV4: invalid embedded IHL %u (len %u)", ihl, len);
+        ENGINE_SET_INVALID_EVENT(p, ICMPV4_IPV4_TRUNC_PKT);
+        return -1;
+    }
+    const uint8_t *emb_l4 = partial_packet + ihl;
+
     /** We need to fill icmpv4vars */
     const uint8_t *icmpv4_ptr = (const uint8_t *)p->l4.hdrs.icmpv4h;
     DEBUG_VALIDATE_BUG_ON((ptrdiff_t)(partial_packet - icmpv4_ptr) > (ptrdiff_t)UINT16_MAX);
@@ -74,8 +84,8 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
 
     switch (IPV4_GET_RAW_IPPROTO(icmp4_ip4h)) {
         case IPPROTO_TCP:
-            if (len >= IPV4_HEADER_LEN + TCP_HEADER_LEN ) {
-                TCPHdr *emb_tcph = (TCPHdr *)(partial_packet + IPV4_HEADER_LEN);
+            if (len >= ihl + TCP_HEADER_LEN) {
+                TCPHdr *emb_tcph = (TCPHdr *)emb_l4;
                 p->l4.vars.icmpv4.emb_sport = SCNtohs(emb_tcph->th_sport);
                 p->l4.vars.icmpv4.emb_dport = SCNtohs(emb_tcph->th_dport);
                 p->l4.vars.icmpv4.emb_ports_set = true;
@@ -84,9 +94,9 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->TCP header sport: "
                            "%" PRIu16 " dport %" PRIu16 "",
                         p->l4.vars.icmpv4.emb_sport, p->l4.vars.icmpv4.emb_dport);
-            } else if (len >= IPV4_HEADER_LEN + 4) {
+            } else if (len >= ihl + 4) {
                 /* only access th_sport and th_dport */
-                TCPHdr *emb_tcph = (TCPHdr *)(partial_packet + IPV4_HEADER_LEN);
+                TCPHdr *emb_tcph = (TCPHdr *)emb_l4;
                 p->l4.vars.icmpv4.emb_sport = SCNtohs(emb_tcph->th_sport);
                 p->l4.vars.icmpv4.emb_dport = SCNtohs(emb_tcph->th_dport);
                 p->l4.vars.icmpv4.emb_ports_set = true;
@@ -103,8 +113,8 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
 
             break;
         case IPPROTO_UDP:
-            if (len >= IPV4_HEADER_LEN + UDP_HEADER_LEN ) {
-                UDPHdr *emb_udph = (UDPHdr *)(partial_packet + IPV4_HEADER_LEN);
+            if (len >= ihl + UDP_HEADER_LEN) {
+                UDPHdr *emb_udph = (UDPHdr *)emb_l4;
                 p->l4.vars.icmpv4.emb_sport = SCNtohs(emb_udph->uh_sport);
                 p->l4.vars.icmpv4.emb_dport = SCNtohs(emb_udph->uh_dport);
                 p->l4.vars.icmpv4.emb_ports_set = true;
@@ -122,7 +132,7 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
 
             break;
         case IPPROTO_ICMP:
-            if (len >= IPV4_HEADER_LEN + ICMPV4_HEADER_LEN) {
+            if (len >= ihl + ICMPV4_HEADER_LEN) {
                 p->l4.vars.icmpv4.emb_sport = 0;
                 p->l4.vars.icmpv4.emb_dport = 0;
                 p->l4.vars.icmpv4.emb_ip4_proto = IPPROTO_ICMP;
@@ -784,6 +794,80 @@ static int DecodeICMPV4test08(void)
     PacketFree(p);
     PASS;
 }
+
+/** Decode an ICMPv4 dest-unreach message's embedded datagram */
+static Packet *DecodeICMPV4EmbRun(const uint8_t *raw_icmpv4, uint16_t len, IPV4Hdr *ip4h)
+{
+    Packet *p = PacketGetFromAlloc();
+    FAIL_IF_NULL(p);
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(ip4h, 0, sizeof(*ip4h));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->src.addr_data32[0] = UTHSetIPv4Address("10.0.0.254");
+    p->dst.addr_data32[0] = UTHSetIPv4Address("10.0.0.1");
+    ip4h->s_ip_src.s_addr = p->src.addr_data32[0];
+    ip4h->s_ip_dst.s_addr = p->dst.addr_data32[0];
+    UTHSetIPV4Hdr(p, ip4h);
+
+    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, len);
+    return p;
+}
+
+/** DecodeICMPV4EmbOptsTest
+ *  \brief the embedded L4 header starts at the embedded IHL, not at 20
+ */
+static int DecodeICMPV4EmbOptsTest(void)
+{
+    /* dest-unreach embedding 10.0.0.1->10.0.0.2 TCP with a Router Alert
+     * option (94 04 00 87 = "ports" 37892,135 at offset 20). The TCP header
+     * at IHL 24 has ports 12345,54321. */
+    uint8_t raw_opts_tcp[] = { 0x03, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46, 0x00, 0x00,
+        0x38, 0x00, 0x01, 0x00, 0x00, 0x40, 0x06, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00,
+        0x00, 0x02, 0x94, 0x04, 0x00, 0x87, 0x30, 0x39, 0xd4, 0x31, 0x00, 0x00, 0x00, 0x05, 0x00,
+        0x00, 0x00, 0x05, 0x50, 0x18, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00 };
+    /* same, but the embedded datagram stops after the options: no L4 header */
+    uint8_t raw_opts_only[] = { 0x03, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46, 0x00, 0x00,
+        0x18, 0x00, 0x01, 0x00, 0x00, 0x40, 0x06, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00,
+        0x00, 0x02, 0x94, 0x04, 0x00, 0x87 };
+    /* embedded IHL 4 (16 bytes): invalid, the bytes at 20 are not L4 */
+    uint8_t raw_bad_ihl[] = { 0x03, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x44, 0x00, 0x00,
+        0x18, 0x00, 0x01, 0x00, 0x00, 0x40, 0x06, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x01, 0x0a, 0x00,
+        0x00, 0x02, 0x12, 0x34, 0x56, 0x78 };
+
+    FlowInitConfig(FLOW_QUIET);
+    IPV4Hdr ip4h;
+
+    Packet *p = DecodeICMPV4EmbRun(raw_opts_tcp, sizeof(raw_opts_tcp), &ip4h);
+    FAIL_IF_NULL(p);
+    FAIL_IF_NOT(p->l4.vars.icmpv4.emb_ports_set);
+    FAIL_IF_NOT(p->l4.vars.icmpv4.emb_sport == 12345);
+    FAIL_IF_NOT(p->l4.vars.icmpv4.emb_dport == 54321);
+    FAIL_IF_NOT(ICMPV4_DEST_UNREACH_IS_VALID(p));
+    PacketFree(p);
+
+    p = DecodeICMPV4EmbRun(raw_opts_only, sizeof(raw_opts_only), &ip4h);
+    FAIL_IF_NULL(p);
+    FAIL_IF(p->l4.vars.icmpv4.emb_ports_set);
+    FAIL_IF(ICMPV4_DEST_UNREACH_IS_VALID(p));
+    PacketFree(p);
+
+    p = DecodeICMPV4EmbRun(raw_bad_ihl, sizeof(raw_bad_ihl), &ip4h);
+    FAIL_IF_NULL(p);
+    FAIL_IF(p->l4.vars.icmpv4.emb_ports_set);
+    FAIL_IF(ICMPV4_DEST_UNREACH_IS_VALID(p));
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, ICMPV4_IPV4_TRUNC_PKT));
+    PacketFree(p);
+
+    FlowShutdown();
+    PASS;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -803,6 +887,7 @@ void DecodeICMPV4RegisterTests(void)
                    ICMPV4CalculateInvalidChecksumtest06);
     UtRegisterTest("DecodeICMPV4InvalidType", ICMPV4InvalidType07);
     UtRegisterTest("DecodeICMPV4test08", DecodeICMPV4test08);
+    UtRegisterTest("DecodeICMPV4EmbOpts", DecodeICMPV4EmbOptsTest);
 #endif /* UNITTESTS */
 }
 /**
