@@ -26,6 +26,7 @@
 #include "suricata.h"
 #include "util-debug.h"
 #include "util-path.h"
+#include "util-landlock.h"
 
 #ifdef OS_WIN32
 #include "win32-misc.h"
@@ -299,6 +300,54 @@ FILE *SCFopenLogFile(const char *path, const char *mode)
     return SCWin32Fopen(path, mode);
 #else
     return fopen(path, mode);
+#endif
+}
+
+#ifndef OS_WIN32
+#define OVERWRITE_REFUSED_WARN_LIMIT 10
+static SC_ATOMIC_DECLARE(uint32_t, overwrite_refused_cnt);
+#endif
+
+/**
+ * \brief Open a file for writing, replacing its content if it exists
+ *
+ * Same as fopen(). When the landlock sandbox prevents truncating files, an
+ * existing file can't be overwritten: the open fails with EACCES and the
+ * existing file is kept. A warning is logged in that case so the reason of
+ * the missing output is explicit. Warnings are limited to the first
+ * occurrences.
+ *
+ * \param path The file path to open
+ * \param mode fopen() mode, "w" or "wb"
+ * \retval FILE* on success
+ * \retval NULL on error with errno set
+ */
+FILE *SCFopenOverwrite(const char *path, const char *mode)
+{
+    FILE *fp = fopen(path, mode);
+#ifdef OS_WIN32
+    /* no landlock sandbox on Windows */
+    return fp;
+#else
+    if (fp != NULL || errno != EACCES || !SCLandlockRestrictsTruncate())
+        return fp;
+
+    int err = errno;
+    struct stat sb;
+    if (lstat(path, &sb) == 0 && S_ISREG(sb.st_mode)) {
+        uint32_t cnt = SC_ATOMIC_ADD(overwrite_refused_cnt, 1);
+        if (cnt < OVERWRITE_REFUSED_WARN_LIMIT) {
+            SCLogWarning("Not overwriting existing file '%s': the landlock sandbox doesn't "
+                         "allow truncating files. The file is kept and no output is written "
+                         "to it. Remove it or use another output directory.",
+                    path);
+        } else if (cnt == OVERWRITE_REFUSED_WARN_LIMIT) {
+            SCLogWarning("Not overwriting existing files: further occurrences won't be "
+                         "reported.");
+        }
+    }
+    errno = err;
+    return NULL;
 #endif
 }
 
