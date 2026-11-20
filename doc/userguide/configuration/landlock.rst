@@ -38,10 +38,17 @@ Following your running configuration you may have to add some directories.
 There are two lists you can use, ``write`` to add directories where write is needed
 and ``read`` for directories where read access is needed.
 
+On Linux 6.10+ (Landlock ABI 5), ``ioctl`` commands on devices are also
+restricted. They are allowed on devices in the ``write`` directories. Capture
+methods configuring a device after the sandbox is in place, such as DPDK with
+VFIO or netmap, need the directory holding the device (for example
+``/dev/vfio/``) in the ``write`` list.
+
 On Linux 6.7+ (Landlock ABI 4), TCP ``bind`` and ``connect`` are also
-restricted: only the ports declared by Suricata components are allowed. If
-a component, for example a plugin, does not declare a port it needs, you can
-allow it in the ``network`` section:
+restricted and no port is allowed by default. Ports used to connect to a
+remote service, for example the Redis EVE output (``filetype: redis``,
+port 6379 by default), or by a plugin, have to be allowed in the
+``network`` section:
 
 ::
 
@@ -62,8 +69,10 @@ network support.
 On Linux 7.0+ (Landlock ABI 9), connecting to a pathname Unix socket that was
 created outside of Suricata is also restricted. This affects for example EVE
 ``unix_stream``/``unix_dgram`` outputs and Redis over a Unix socket, which need
-to reconnect after the sandbox is in place. List such sockets (or a directory
-containing them) in ``unix-sockets``:
+to connect or reconnect after the sandbox is in place. List such sockets (or a
+directory containing them) in ``unix-sockets``. Listing the directory is
+preferred, as a socket recreated by its server, for example on restart, is a
+new file that a rule on the old socket doesn't cover:
 
 ::
 
