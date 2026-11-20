@@ -8984,6 +8984,10 @@
                         "active_sessions": {
                             "type": "integer"
                         },
+                        "async_sessions": {
+                            "type": "integer",
+                            "description": "Number of TCP stream sessions handled as async one-sided (if stream.async-oneside enabled). As these are decremented if the other side of the session is seen, the delta can be a negative number if eve types.stats.deltas: yes."
+                        },
                         "insert_data_normal_fail": {
                             "type": "integer"
                         },
