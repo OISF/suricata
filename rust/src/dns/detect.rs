@@ -106,16 +106,16 @@ unsafe extern "C" fn dns_rrtype_match(
 
     if flags & Direction::ToServer as u8 != 0 {
         if let Some(request) = &tx.request {
-            for i in 0..request.queries.len() {
-                if detect_match_uint(ctx, request.queries[i].rrtype) {
+            for query in &request.queries {
+                if detect_match_uint(ctx, query.rrtype) {
                     return 1;
                 }
             }
         }
     } else if flags & Direction::ToClient as u8 != 0 {
         if let Some(response) = &tx.response {
-            for i in 0..response.answers.len() {
-                if detect_match_uint(ctx, response.answers[i].rrtype) {
+            for answer in &response.answers {
+                if detect_match_uint(ctx, answer.rrtype) {
                     return 1;
                 }
             }
