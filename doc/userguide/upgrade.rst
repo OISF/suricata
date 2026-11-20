@@ -208,6 +208,10 @@ Other Changes
   by default, set with ``max-preliminary-responses``. Past the limit, the
   ``ftp.too_many_preliminary_responses`` event is raised. See
   :ref:`suricata-yaml-configure-ftp`.
+- With Landlock enabled, recent kernels also restrict truncating existing
+  files, TCP connect/bind and connecting to external Unix sockets. Allow the
+  needed ports, such as the Redis output one, and sockets under
+  ``security.landlock``. See :ref:`landlock`.
 
 Changes for Library Users and Plugin Developers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
