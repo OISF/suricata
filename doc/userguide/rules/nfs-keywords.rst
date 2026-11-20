@@ -1,3 +1,5 @@
+.. _NFS Rule Keywords:
+
 NFS Keywords
 ============
 
@@ -37,3 +39,71 @@ Unlike the other keywords, the usage of range is inclusive.
 Syntax::
 
  nfs_procedure:(mode) <number or string>
+
+nfs.name
+--------
+
+Match on the name the NFS transaction carries, when known. The name is
+learned from LOOKUP and friends and associated with the file handle, so
+READ and WRITE transactions on that handle carry it too. It is the
+name the event reports as ``nfs.filename``: the buffer holds the raw bytes,
+the event holds them lossily converted to UTF-8, so for a name that is not
+valid UTF-8 they differ. It is a name component, not a path - NFS switches
+to the handle once the directory walk is done.
+
+Examples::
+
+  nfs.name; content:"secret.txt"; endswith;
+  nfs.name; content:".crypter"; nocase;
+
+``nfs.name`` is a 'sticky buffer'.
+
+``nfs.name`` can be used as ``fast_pattern``.
+
+For a READ or WRITE that opens a file, the generic :doc:`file-keywords`
+keyword ``file.name`` matches the same bytes: it asks the file engine for
+the name recorded at open. Prefer ``file.name`` there. ``nfs.name`` is the
+wider of the two: it also covers the requests that name a file without
+transferring it (LOOKUP, CREATE, REMOVE, RENAME, READDIR, READLINK, LINK,
+SYMLINK, MKNOD, SETATTR), and the handle-only ones carry whatever the
+handle map resolved for that handle.
+
+Two limits to know about. A RENAME carries its source name in the
+transaction and the target in ``rename.to`` of the event, so the buffer
+holds the source only. And a COMMIT makes no transaction of its own - it
+completes the WRITE it refers to - so there is nothing there for
+``nfs.name`` to match; match the WRITE instead.
+
+SMB, which this mirrors, registers no name buffer of its own because its
+names always come with a file, a pipe (``smb.named_pipe``) or a share
+(``smb.share``); SMB file names are matched with ``file.name``.
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert nfs any any -> any any (msg:"NFS nfs.name usage"; \
+  :example-rule-options:`nfs.name; content:"secret.txt";` \
+  classtype:bad-unknown; sid:1; rev:1;)
+
+nfs.handle
+----------
+
+This keyword allows to match the file handle of the NFS transaction,
+when known. File handles are binary and server-specific, so match
+them with hex escapes.
+
+It is a sticky buffer: use ``content`` with hex escapes to match on
+it.
+
+``nfs.handle`` can be used as ``fast_pattern``. The handle is the raw
+file handle; the NFS event logs a hash of it as ``nfs.hhash``, which is not
+what this buffer matches.
+
+Signature Example:
+
+.. container:: example-rule
+
+  alert nfs any any -> any any (msg:"NFS nfs.handle usage"; \
+  :example-rule-options:`nfs.handle; content:"|01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10|";` \
+  classtype:bad-unknown; sid:1; rev:1;)

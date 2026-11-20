@@ -20,6 +20,11 @@ use nom7::bytes::streaming::{tag, take};
 use nom7::combinator::{complete, cond, map, peek, verify};
 use nom7::error::{make_error, ErrorKind};
 use nom7::multi::{count, many_till};
+
+/// FATTR4 attributes advertising the server's max transfer sizes
+/// (RFC 5661); the v4 equivalent of the v3 FSINFO rtm/wtm values.
+pub const FATTR4_MAXREAD: u32 = 30;
+pub const FATTR4_MAXWRITE: u32 = 31;
 use nom7::number::streaming::{be_u32, be_u64};
 use nom7::{Err, IResult, Needed};
 
@@ -75,6 +80,8 @@ pub enum Nfs4RequestContent<'a> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4Attr {
     attr_mask: u64,
+    pub max_read: Option<u32>,
+    pub max_write: Option<u32>,
 }
 
 fn nfs4_parse_attr_fields(i: &[u8]) -> IResult<&[u8], u32> {
@@ -89,10 +96,98 @@ fn nfs4_parse_attrs(i: &[u8]) -> IResult<&[u8], Nfs4Attr> {
     let (i, attr_mask2) = cond(attr_cnt >= 2, be_u32)(i)?;
     let (i, _) = cond(attr_cnt == 3, be_u32)(i)?;
     let (i, _) = nfs4_parse_attr_fields(i)?;
+    // bitmap4: word[0] covers attributes 0-31, word[1] 32-63
     let attr = Nfs4Attr {
-        attr_mask: ((attr_mask1 as u64) << 32) | attr_mask2.unwrap_or(0) as u64,
+        attr_mask: ((attr_mask2.unwrap_or(0) as u64) << 32) | attr_mask1 as u64,
+        max_read: None,
+        max_write: None,
     };
     Ok((i, attr))
+}
+
+/// GETATTR reply attributes: the mask plus the values that follow it in
+/// ascending fattr4 order. Only used on the GETATTR response path (the
+/// shared `nfs4_parse_attrs` above is also used by OPEN requests, whose
+/// attr data does not carry a full value list).
+///
+/// Tracks FATTR4_MAXREAD/MAXWRITE -- the server-advertised max transfer
+/// sizes, the v4 equivalent of v3 FSINFO. The attrlist values are bare
+/// (no per-value length prefix), walked in ascending fattr4 order with
+/// the RFC 3530 13.1 sizes; a variable-length attribute (supported
+/// attrs, acl, fh) ends the walk: the values are advisory, the mask
+/// is truth.
+fn nfs4_parse_getattr_attrs(i: &[u8]) -> IResult<&[u8], Nfs4Attr> {
+    let (i, attr_cnt) = be_u32(i)?;
+    let (i, attr_mask1) = be_u32(i)?;
+    let (i, attr_mask2) = cond(attr_cnt >= 2, be_u32)(i)?;
+    let (i, _) = cond(attr_cnt == 3, be_u32)(i)?;
+    // bitmap4: word[0] covers attributes 0-31, word[1] 32-63
+    let attr_mask: u64 = ((attr_mask2.unwrap_or(0) as u64) << 32) | attr_mask1 as u64;
+    // fattr4 (RFC 5661 5.9.1): bitmap4, then the attrlist4 length, then
+    // the bare values
+    let (i, list_len) = be_u32(i)?;
+    let (rest_i, list) = take(list_len as usize)(i)?;
+    let mut max_read: Option<u32> = None;
+    let mut max_write: Option<u32> = None;
+    let mut rest = list;
+    for bit in 0..64u32 {
+        if attr_mask & (1u64 << bit) == 0 {
+            continue;
+        }
+        // skip size of the attribute (RFC 3530 13.1); variable-length
+        // attributes end the walk, strings are length-prefixed
+        let skip = match bit {
+            // fattr4_fsid / specdata4 (two u64s)
+            8 | 41 => 16,
+            // nfstime4 (int64 seconds + uint32 nseconds, 12B)
+            47 | 49 | 50 | 51 | 52 | 53 => 12,
+            // settime4: 4B time_how4 + the nfstime4 only for
+            // SET_TO_CLIENT_TIME (the union default is void)
+            48 | 54 => {
+                if rest.len() < 4 {
+                    break;
+                }
+                let how = u32::from_be_bytes(rest[..4].try_into().unwrap());
+                4usize + (if how == 1 { 12 } else { 0 })
+            }
+            // 8-byte u64s
+            3 | 4 | 20..=23 | 27 | 30 | 31 | 38 | 39 | 40 | 42..=45 | 55 => 8,
+            // utf8str_mixed: length word + bytes + XDR pad
+            32 | 36 | 37 => {
+                if rest.len() < 4 {
+                    break;
+                }
+                let slen = u32::from_be_bytes(rest[..4].try_into().unwrap());
+                4usize + slen as usize + ((4 - (slen % 4) as usize) % 4)
+            }
+            // variable-length opaque / bitmap: cannot be skipped
+            0 | 12 | 19 | 24 => break,
+            // 4-byte enums / bools / u32s
+            _ => 4,
+        };
+        if matches!(bit, FATTR4_MAXREAD | FATTR4_MAXWRITE) && rest.len() >= 8 {
+            let v = u64::from_be_bytes(rest[..8].try_into().unwrap());
+            // attr4_type is a uint64; the ceilings are compared as u32, so
+            // saturate rather than wrap (a wrapped 2 GiB+1 would read as 1)
+            let v = u32::try_from(v).unwrap_or(u32::MAX);
+            match bit {
+                FATTR4_MAXREAD => {
+                    max_read = Some(v);
+                }
+                _ => max_write = Some(v),
+            }
+        }
+        if rest.len() < skip {
+            break;
+        }
+        rest = &rest[skip..];
+    }
+    let attr = Nfs4Attr {
+        attr_mask,
+        max_read,
+        max_write,
+    };
+    Ok((rest_i, attr))
 }
 
 fn nfs4_parse_attrbits(i: &[u8]) -> IResult<&[u8], Nfs4Attr> {
@@ -101,7 +196,9 @@ fn nfs4_parse_attrbits(i: &[u8]) -> IResult<&[u8], Nfs4Attr> {
     let (i, attr_mask2) = cond(attr_cnt >= 2, be_u32)(i)?;
     let (i, _) = cond(attr_cnt == 3, be_u32)(i)?;
     let attr = Nfs4Attr {
-        attr_mask: ((attr_mask1 as u64) << 32) | attr_mask2.unwrap_or(0) as u64,
+        attr_mask: ((attr_mask2.unwrap_or(0) as u64) << 32) | attr_mask1 as u64,
+        max_read: None,
+        max_write: None,
     };
     Ok((i, attr))
 }
@@ -190,11 +287,21 @@ fn nfs4_req_getdevinfo(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent<'_>> {
     Ok((i, req))
 }
 
+/// CREATE_SESSION request args (RFC 5661 18.36.1): clientid4 (8 bytes),
+/// seqid, flags, channel_attrs4 fore + back (28 bytes each: headerpadsize,
+/// maxrequestsize, maxresponsesize, maxresponsesize_cached,
+/// maxoperations, maxrequests, rdma_ird), cb_program and
+/// callback_sec_parms4 (flavor, stamp, opaque data). Observed
+/// implementations (ONTAP) put one extra u32 between the cb_program and
+/// the sec_parms stamp, which is consumed here as well; for AUTH_SYS the
+/// sec_parms data is the client machine name.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestCreateSession<'a> {
+    /// clientid4 (8 bytes)
     pub client_id: &'a [u8],
     pub seqid: u32,
-    pub machine_name: &'a [u8],
+    /// callback_sec_parms4 data (machine name for AUTH_SYS)
+    pub client_name: &'a [u8],
 }
 
 fn nfs4_req_create_session(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent<'_>> {
@@ -210,12 +317,12 @@ fn nfs4_req_create_session(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent<'_>> {
     let (i, _cb_version) = be_u32(i)?;
     let (i, _g_flavor) = be_u32(i)?;
     let (i, _g_stamp) = be_u32(i)?;
-    let (i, machine_name) = nfs4_parse_nfsstring(i)?;
+    let (i, client_name) = nfs4_parse_nfsstring(i)?;
 
     let req = Nfs4RequestContent::CreateSession(Nfs4RequestCreateSession {
         client_id,
         seqid,
-        machine_name,
+        client_name,
     });
     Ok((i, req))
 }
@@ -582,16 +689,18 @@ fn nfs4_req_exchangeid(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent<'_>> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestSequence<'a> {
-    pub ssn_id: &'a [u8],
+    /// sessionid4 (16 bytes, NFS4_SESSIONID_SIZE)
+    pub session_id: &'a [u8],
 }
 
+/// sessionid4 is a fixed 16 bytes (rfc5661).
 fn nfs4_req_sequence(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent<'_>> {
-    let (i, ssn_id) = take(16_usize)(i)?;
+    let (i, session_id) = take(16_usize)(i)?;
     let (i, _seq_id) = be_u32(i)?;
     let (i, _slot_id) = be_u32(i)?;
     let (i, _high_slot_id) = be_u32(i)?;
     let (i, _cache_this) = be_u32(i)?;
-    let req = Nfs4RequestContent::Sequence(Nfs4RequestSequence { ssn_id });
+    let req = Nfs4RequestContent::Sequence(Nfs4RequestSequence { session_id });
     Ok((i, req))
 }
 
@@ -651,18 +760,31 @@ fn parse_request_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4RequestContent
 #[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4RequestCompoundRecord<'a> {
     pub commands: Vec<Nfs4RequestContent<'a>>,
+    /// v4 minor version of this COMPOUND (0 = v4.0, 1 = v4.1, 2 = v4.2)
+    pub minorversion: u32,
 }
 
-pub fn parse_nfs4_request_compound(i: &[u8]) -> IResult<&[u8], Nfs4RequestCompoundRecord<'_>> {
+pub fn parse_nfs4_request_compound<'a>(
+    i: &'a [u8],
+) -> IResult<&'a [u8], Nfs4RequestCompoundRecord<'a>> {
     let (i, tag_len) = be_u32(i)?;
     let (i, _tag) = cond(tag_len > 0, take(tag_len as usize))(i)?;
-    let (i, _min_ver) = be_u32(i)?;
+    let (i, minorversion) = be_u32(i)?;
     let (i, ops_cnt) = be_u32(i)?;
     if ops_cnt as usize > NFSD_MAX_OPS_PER_COMPOUND {
         return Err(Err::Error(make_error(i, ErrorKind::Count)));
     }
-    let (i, commands) = count(parse_request_compound_command, ops_cnt as usize)(i)?;
-    Ok((i, Nfs4RequestCompoundRecord { commands }))
+    let (i, commands) = count(
+        |i: &'a [u8]| parse_request_compound_command(i),
+        ops_cnt as usize,
+    )(i)?;
+    Ok((
+        i,
+        Nfs4RequestCompoundRecord {
+            commands,
+            minorversion,
+        },
+    ))
 }
 
 // Self-contained leading-op advance for the scanners: declared length fields
@@ -1211,7 +1333,7 @@ pub enum Nfs4ResponseContent<'a> {
     ReadDir(u32, Option<Nfs4ResponseReaddir<'a>>),
     Remove(u32),
     DelegReturn(u32),
-    SetClientId(u32),
+    SetClientId(u32, u64),
     SetClientIdConfirm(u32),
     Create(u32),
     Commit(u32),
@@ -1234,19 +1356,33 @@ fn nfs4_res_layoutreturn(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>> {
     Ok((i, Nfs4ResponseContent::LayoutReturn(status)))
 }
 
+/// CREATE_SESSION reply result (RFC 5661 18.36.2): sessionid4 (16
+/// bytes), sequence, flags and the fore/back channel_attrs4 (28 bytes
+/// each).
 #[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseCreateSession<'a> {
-    pub ssn_id: &'a [u8],
+    /// sessionid4 (RFC 5661: 16 bytes)
+    pub session_id: &'a [u8],
     pub seq_id: u32,
+    pub flags: u32,
 }
 
 fn nfs4_parse_res_create_session(i: &[u8]) -> IResult<&[u8], Nfs4ResponseCreateSession<'_>> {
-    let (i, ssn_id) = take(16_usize)(i)?;
+    let (i, session_id) = take(16_usize)(i)?;
+    // This op is the last one in the reply compound: after it comes only the
+    // 4-byte NULL terminator (plus alignment padding).
     let (i, seq_id) = be_u32(i)?;
-    let (i, _flags) = be_u32(i)?;
+    let (i, flags) = be_u32(i)?;
     let (i, _fore_chan_attrs) = take(28_usize)(i)?;
     let (i, _back_chan_attrs) = take(28_usize)(i)?;
-    Ok((i, Nfs4ResponseCreateSession { ssn_id, seq_id }))
+    Ok((
+        i,
+        Nfs4ResponseCreateSession {
+            session_id,
+            seq_id,
+            flags,
+        },
+    ))
 }
 
 fn nfs4_res_create_session(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>> {
@@ -1630,7 +1766,7 @@ fn nfs4_res_setattr(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>> {
 }
 
 fn nfs4_res_getattr_ok(i: &[u8]) -> IResult<&[u8], Nfs4Attr> {
-    nfs4_parse_attrs(i)
+    nfs4_parse_getattr_attrs(i)
 }
 
 fn nfs4_res_getattr(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>> {
@@ -1693,9 +1829,9 @@ fn nfs4_res_delegreturn(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>> {
 
 fn nfs4_res_setclientid(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>> {
     let (i, status) = be_u32(i)?;
-    let (i, _client_id) = be_u64(i)?;
+    let (i, client_id) = be_u64(i)?;
     let (i, _verifier) = be_u32(i)?;
-    Ok((i, Nfs4ResponseContent::SetClientId(status)))
+    Ok((i, Nfs4ResponseContent::SetClientId(status, client_id)))
 }
 
 fn nfs4_res_setclientid_confirm(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>> {
@@ -1732,7 +1868,8 @@ fn nfs4_res_access(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Nfs4ResponseSequence<'a> {
-    pub ssn_id: &'a [u8],
+    /// sessionid4 (16 bytes, NFS4_SESSIONID_SIZE)
+    pub session_id: &'a [u8],
 }
 
 fn nfs4_res_sequence_ok(i: &[u8]) -> IResult<&[u8], Nfs4ResponseSequence<'_>> {
@@ -1744,12 +1881,12 @@ fn nfs4_res_sequence_ok(i: &[u8]) -> IResult<&[u8], Nfs4ResponseSequence<'_>> {
     let (i, _highest_slotid) = be_u32(i)?;
     let (i, _target_highest_slotid) = be_u32(i)?;
     let (i, _status_flags) = be_u32(i)?;
-    Ok((i, Nfs4ResponseSequence { ssn_id }))
+    Ok((i, Nfs4ResponseSequence { session_id: ssn_id }))
 }
 
 fn nfs4_res_sequence(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>> {
     let (i, status) = be_u32(i)?;
-    let (i, seq) = cond(status == 0, nfs4_res_sequence_ok)(i)?;
+    let (i, seq) = cond(status == 0, move |i| nfs4_res_sequence_ok(i))(i)?;
     Ok((i, Nfs4ResponseContent::Sequence(status, seq)))
 }
 
@@ -1809,7 +1946,9 @@ pub struct Nfs4ResponseCompoundRecord<'a> {
     pub commands: Vec<Nfs4ResponseContent<'a>>,
 }
 
-pub fn parse_nfs4_response_compound(i: &[u8]) -> IResult<&[u8], Nfs4ResponseCompoundRecord<'_>> {
+pub fn parse_nfs4_response_compound<'a>(
+    i: &'a [u8],
+) -> IResult<&'a [u8], Nfs4ResponseCompoundRecord<'a>> {
     let (i, status) = be_u32(i)?;
     let (i, tag_len) = be_u32(i)?;
     let (i, _tag) = cond(tag_len > 0, take(tag_len as usize))(i)?;
@@ -1817,7 +1956,7 @@ pub fn parse_nfs4_response_compound(i: &[u8]) -> IResult<&[u8], Nfs4ResponseComp
     if ops_cnt as usize > NFSD_MAX_OPS_PER_COMPOUND {
         return Err(Err::Error(make_error(i, ErrorKind::Count)));
     }
-    let (i, commands) = count(nfs4_res_compound_command, ops_cnt as usize)(i)?;
+    let (i, commands) = count(|i: &'a [u8]| nfs4_res_compound_command(i), ops_cnt as usize)(i)?;
     Ok((i, Nfs4ResponseCompoundRecord { status, commands }))
 }
 
@@ -2060,8 +2199,8 @@ mod tests {
         #[rustfmt::skip]
         let buf: &[u8] = &[
             0x00, 0x00, 0x00, 0x35, /*opcode*/
-            0x00, 0x00, 0x02, 0xd2, 0xe0, 0x14, 0x82, 0x00, /*ssn_id*/
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x02,
+            0x00, 0x00, 0x02, 0xd2, 0xe0, 0x14, 0x82, 0x00, /*ssn_id lo*/
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x02, /*ssn_id hi (ONTAP ext)*/
             0x00, 0x00, 0x00, 0x18, /*_seq_id*/
             0x00, 0x00, 0x00, 0x00, /*_slot_id*/
             0x00, 0x00, 0x00, 0x00, /*_high_slot_id*/
@@ -2071,7 +2210,7 @@ mod tests {
         let (_, req_sequence) = nfs4_req_sequence(&buf[4..]).unwrap();
         match req_sequence {
             Nfs4RequestContent::Sequence(seq_buf) => {
-                assert_eq!(seq_buf.ssn_id, &buf[4..20]);
+                assert_eq!(seq_buf.session_id, &buf[4..20]);
             }
             _ => {
                 panic!("Failure, {:?}", req_sequence);
@@ -2146,7 +2285,7 @@ mod tests {
             Nfs4RequestContent::CreateSession(create_ssn) => {
                 assert_eq!(create_ssn.client_id, &buf[4..12]);
                 assert_eq!(create_ssn.seqid, 1);
-                assert_eq!(create_ssn.machine_name, b"netapp-26");
+                assert_eq!(create_ssn.client_name, b"netapp-26");
             }
             _ => {
                 panic!("Failure");
@@ -2264,7 +2403,7 @@ mod tests {
         let (r, attr) = nfs4_parse_attrbits(&buf[4..]).unwrap();
         assert_eq!(r.len(), 0);
         // assert_eq!(attr.attr_mask, 35618163785728);
-        assert_eq!(attr.attr_mask, 0x00002065_u64 << 32);
+        assert_eq!(attr.attr_mask, 0x00002065_u64);
     }
     #[test]
     fn test_nfs4_response_compound() {
@@ -2447,22 +2586,16 @@ mod tests {
         let buf: &[u8] = &[
             0x00, 0x00, 0x00, 0x09, /*opcode*/
             0x00, 0x00, 0x00, 0x00, /*status*/
-            0x00, 0x00, 0x00, 0x03, /*attr_cnt*/
-            0x00, 0x00, 0x20, 0x65, 0x00, 0x00, 0x00, 0x00, /*attr_mask*/
-            0x00, 0x00, 0x08, 0x00,
-            0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x03, /*attrs*/
-            0xfa, 0xfe, 0xbf, 0xff, 0x60, 0xfd, 0xff, 0xfe,
-            0x00, 0x00, 0x08, 0x17, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x03,
-            0x02, 0x00, 0x10, 0x00, 0x00, 0x24, 0x40, 0x32,
-            0x00, 0x00, 0x00, 0x00
+            0x00, 0x00, 0x00, 0x02, /*attr_cnt*/
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, /*attr_mask: type*/
+            0x00, 0x00, 0x00, 0x04, /*attrlist length (4)*/
+            0x00, 0x00, 0x00, 0x02, /*ftype4: NF4REG*/
         ];
 
         let (_, attrs_buf) = nfs4_parse_attrs(&buf[8..]).unwrap();
 
-        let (_, attr_fields) = nfs4_parse_attr_fields(&buf[24..]).unwrap();
-        assert_eq!(attr_fields, 48);
+        let (_, attr_fields) = nfs4_parse_attr_fields(&buf[20..]).unwrap();
+        assert_eq!(attr_fields, 4);
 
         let (_, result) = nfs4_res_getattr(&buf[4..]).unwrap();
         match result {
@@ -2562,8 +2695,9 @@ mod tests {
 
         let (_, response) = nfs4_res_setclientid(&buf[4..]).unwrap();
         match response {
-            Nfs4ResponseContent::SetClientId(status) => {
+            Nfs4ResponseContent::SetClientId(status, client_id) => {
                 assert_eq!(status, 0);
+                assert_eq!(client_id, 0x1467_8c00_0000_0001);
             }
             _ => {
                 panic!("Failure");
@@ -2618,12 +2752,95 @@ mod tests {
         ];
 
         let (_, create_ssn) = nfs4_parse_res_create_session(&buf[8..]).unwrap();
+        // the sessionid4 is the full 16 bytes (RFC 5661); the observed
+        // layout after it is sequenceid, flags, fore/back channel_attrs4.
+        assert_eq!(create_ssn.session_id, &buf[8..24]);
+        assert_eq!(create_ssn.seq_id, 1);
+        assert_eq!(create_ssn.flags, 3);
 
         let (_, response) = nfs4_res_create_session(&buf[4..]).unwrap();
         match response {
             Nfs4ResponseContent::CreateSession(status, create_ssn_data) => {
                 assert_eq!(status, 0);
                 assert_eq!(create_ssn_data, Some(create_ssn));
+            }
+            _ => {
+                panic!("Failure");
+            }
+        }
+    }
+
+    #[test]
+    fn test_nfs4_response_create_session_rfc() {
+        // strict RFC 5661 layout: 16-byte sessionid4, then sequenceid,
+        // flags, fore/back channel_attrs4 (84 bytes total)
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&43u32.to_be_bytes()); // opcode
+        buf.extend_from_slice(&0u32.to_be_bytes()); // status
+        buf.extend_from_slice(&[0x00, 0x00, 0x02, 0xd2, 0xe0, 0x14, 0x82, 0x00]);
+        buf.extend_from_slice(&[0u8; 8]); // sessionid4 upper half
+        buf.extend_from_slice(&1u32.to_be_bytes()); // seqid
+        buf.extend_from_slice(&3u32.to_be_bytes()); // flags
+        buf.extend_from_slice(&[0u8; 56]); // fore + back channel_attrs4
+        let buf: &[u8] = &buf;
+
+        let (_, create_ssn) = nfs4_parse_res_create_session(&buf[8..]).unwrap();
+        assert_eq!(create_ssn.session_id, &buf[8..24]);
+        assert_eq!(create_ssn.seq_id, 1);
+        assert_eq!(create_ssn.flags, 3);
+
+        let (_, response) = nfs4_res_create_session(&buf[4..]).unwrap();
+        match response {
+            Nfs4ResponseContent::CreateSession(0, Some(_)) => {}
+            _ => {
+                panic!("Failure");
+            }
+        }
+    }
+
+    #[test]
+    fn test_nfs4_request_sequence_rfc() {
+        // strict RFC 5661 SEQUENCE args: 16-byte sessionid4 + 4 u32s
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&53u32.to_be_bytes()); // opcode
+        buf.extend_from_slice(&[0x00, 0x00, 0x02, 0xd2, 0xe0, 0x14, 0x82, 0x00]);
+        buf.extend_from_slice(&[0u8; 8]); // sessionid4 upper half
+        buf.extend_from_slice(&24u32.to_be_bytes()); // sequenceid
+        buf.extend_from_slice(&0u32.to_be_bytes()); // slotid
+        buf.extend_from_slice(&0u32.to_be_bytes()); // highslot
+        buf.extend_from_slice(&1u32.to_be_bytes()); // cache
+        let buf: &[u8] = &buf;
+
+        let (_, req) = nfs4_req_sequence(&buf[4..]).unwrap();
+        match req {
+            Nfs4RequestContent::Sequence(seq) => {
+                assert_eq!(seq.session_id, &buf[4..20]);
+            }
+            _ => {
+                panic!("Failure");
+            }
+        }
+    }
+
+    #[test]
+    fn test_nfs4_response_sequence_rfc() {
+        // strict RFC 5661 SEQUENCE reply: 16-byte sessionid4 + 5 u32s (36B)
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&53u32.to_be_bytes()); // opcode
+        buf.extend_from_slice(&0u32.to_be_bytes()); // status
+        buf.extend_from_slice(&[0x00, 0x00, 0x02, 0xd2, 0xe0, 0x14, 0x82, 0x00]);
+        buf.extend_from_slice(&[0u8; 8]); // sessionid4 upper half
+        buf.extend_from_slice(&24u32.to_be_bytes()); // sequenceid
+        buf.extend_from_slice(&0u32.to_be_bytes()); // slotid
+        buf.extend_from_slice(&0u32.to_be_bytes()); // highest_slotid
+        buf.extend_from_slice(&0u32.to_be_bytes()); // target_highest_slotid
+        buf.extend_from_slice(&0u32.to_be_bytes()); // status_flags
+        let buf: &[u8] = &buf;
+
+        let (_, res) = nfs4_res_sequence(&buf[4..]).unwrap();
+        match res {
+            Nfs4ResponseContent::Sequence(0, Some(seq)) => {
+                assert_eq!(seq.session_id, &buf[8..24]);
             }
             _ => {
                 panic!("Failure");
@@ -3155,7 +3372,7 @@ mod tests {
         assert_eq!(rem, &next[..]);
         match content {
             Nfs4RequestContent::CreateSession(ref cs) => {
-                assert_eq!(cs.machine_name, b"suri".as_slice());
+                assert_eq!(cs.client_name, b"suri".as_slice());
                 assert_eq!(cs.seqid, 0x33333333);
             }
             _ => panic!("unexpected content"),
@@ -3410,5 +3627,112 @@ mod tests {
             scan_nfs4_response_compound_read_len(&buf, 1024),
             Nfs4CompoundScan::Incomplete
         );
+    }
+}
+
+#[cfg(test)]
+mod nfs4_attrs_tests {
+    use crate::nfs::nfs4_records::{
+        nfs4_parse_getattr_attrs, nfs4_res_getattr, parse_nfs4_request_compound,
+        Nfs4ResponseContent, FATTR4_MAXREAD, FATTR4_MAXWRITE,
+    };
+
+    #[test]
+    fn test_nfs4_getattr_maxtransfer_attrs() {
+        // GETATTR reply with FATTR4_MAXREAD(30) = 4096 and
+        // FATTR4_MAXWRITE(31) = 8192: bitmap4 word[0] covers attributes
+        // 0-31, then the attrlist4 length, then the bare values in
+        // ascending bit order (no per-value length prefix).
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x02, /* attr_cnt */
+            0xc0, 0x00, 0x00, 0x02, /* mask word 0: type(1) + 30 + 31 */
+            0x00, 0x00, 0x00, 0x00, /* mask word 1 */
+            0x00, 0x00, 0x00, 0x14, /* attrlist length (20) */
+            0x00, 0x00, 0x00, 0x01, /* ftype4: NF4REG (4B) */
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, /* maxread 4096 (8B) */
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, /* maxwrite 8192 (8B) */
+        ];
+        let (_, attr) = nfs4_parse_getattr_attrs(buf).unwrap();
+        assert_eq!(
+            attr.attr_mask,
+            2u64 | (1u64 << FATTR4_MAXREAD) | (1u64 << FATTR4_MAXWRITE)
+        );
+        assert_eq!(attr.max_read, Some(4096));
+        assert_eq!(attr.max_write, Some(8192));
+
+        // through the full op parser
+        let mut full: Vec<u8> = vec![0, 0, 0, 0]; /* op status 0 */
+        full.extend_from_slice(buf);
+        match nfs4_res_getattr(&full).unwrap().1 {
+            Nfs4ResponseContent::GetAttr(status, attrs) => {
+                let attrs = attrs.unwrap();
+                assert_eq!(status, 0);
+                assert_eq!(attrs.max_read, Some(4096));
+                assert_eq!(attrs.max_write, Some(8192));
+            }
+            _ => panic!("unexpected op"),
+        }
+    }
+
+    #[test]
+    fn test_nfs4_getattr_attrs_real_mask_with_maxtransfer() {
+        // frame-68-shaped mask (0x0010011a/0x00b0a03a) plus bits 30/31:
+        // the walk must land maxread/maxwrite on the right values with
+        // the owner strings and 16-byte times between them
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&2u32.to_be_bytes());
+        buf.extend_from_slice(&0xc010011au32.to_be_bytes());
+        buf.extend_from_slice(&0x00b0a03au32.to_be_bytes());
+        let list_len: u32 = 4 + 8 + 8 + 16 + 8 + 8 + 8 + 4 + 4 + 20 + 8 + 48 + 8;
+        buf.extend_from_slice(&list_len.to_be_bytes());
+        buf.extend_from_slice(&1u32.to_be_bytes()); // type
+        buf.extend_from_slice(&0x1122334455667788u64.to_be_bytes()); // change
+        buf.extend_from_slice(&4096u64.to_be_bytes()); // size
+        buf.extend_from_slice(&0x00f2fa80u64.to_be_bytes()); // fsid
+        buf.extend_from_slice(&0u64.to_be_bytes());
+        buf.extend_from_slice(&64u64.to_be_bytes()); // fileid
+        buf.extend_from_slice(&1024u64.to_be_bytes()); // maxread
+        buf.extend_from_slice(&2048u64.to_be_bytes()); // maxwrite
+        buf.extend_from_slice(&0o777u32.to_be_bytes()); // mode
+        buf.extend_from_slice(&5u32.to_be_bytes()); // numlinks
+        buf.extend_from_slice(&15u32.to_be_bytes()); // owner len
+        buf.extend_from_slice(b"root@netapp.com\0");
+        buf.extend_from_slice(&8192u64.to_be_bytes()); // quota_avail_hard
+        for _ in 0..4 {
+            // the four nfstime4 times (int64 seconds + uint32 nseconds)
+            buf.extend_from_slice(&0i64.to_be_bytes());
+            buf.extend_from_slice(&0u32.to_be_bytes());
+        }
+        buf.extend_from_slice(&128u64.to_be_bytes()); // mounted_on_fileid
+        let (_, attr) = nfs4_parse_getattr_attrs(&buf).unwrap();
+        assert_eq!(attr.max_read, Some(1024));
+        assert_eq!(attr.max_write, Some(2048));
+    }
+
+    #[test]
+    fn test_nfs4_getattr_attrs_without_values() {
+        // mask claims one attribute but the attrlist is empty: the
+        // values are advisory, so the mask must still parse.
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, /* empty attrlist */
+        ];
+        let (_, attr) = nfs4_parse_getattr_attrs(buf).unwrap();
+        assert_eq!(attr.max_read, None);
+        assert_eq!(attr.max_write, None);
+    }
+
+    #[test]
+    fn test_nfs4_request_compound_minorversion() {
+        // empty COMPOUND (no ops): tag_len=0, minorversion=2, ops_cnt=0
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, // tag_len
+            0x00, 0x00, 0x00, 0x02, // minorversion
+            0x00, 0x00, 0x00, 0x00, // ops_cnt
+        ];
+        let (_, rd) = parse_nfs4_request_compound(buf).unwrap();
+        assert_eq!(rd.minorversion, 2);
+        assert!(rd.commands.is_empty());
     }
 }
