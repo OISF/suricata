@@ -41,6 +41,7 @@
 #include "flow-timeout.h"
 #include "pkt-var.h"
 #include "host.h"
+#include "source-pcap-file-helper.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -93,6 +94,8 @@ static inline Packet *FlowPseudoPacketSetup(
     p->vlan_idx = f->vlan_idx;
     p->tunnel_id = f->tunnel_id;
     p->livedev_id = f->livedev_id;
+    /* no extra ref: the flow's reference outlives this pseudo packet */
+    p->pcap_v.pfv = FlowGetPcapFileVars(f);
 
     if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
         DecodeSetNoPayloadInspectionFlag(p);
