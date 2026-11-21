@@ -10,6 +10,7 @@ EXTRA_DIST =	.cargo/audit.toml \
 		Cargo.lock \
 		Cargo.toml \
 		cbindgen.toml \
+		deny.toml \
 		derive \
 		derive/Cargo.toml \
 		dist/htp/htp_rs.h \

@@ -1,4 +1,4 @@
-name: Cargo Audit and Update
+name: Rust Checks
 
 on:
   schedule:
@@ -17,18 +17,19 @@ permissions: read-all
 
 jobs:
 
-  # This job runs `cargo audit` and will exit with a failure code if
-  # any warnings are raised.
+  # Exit if either of the following fail:
+  # - cargo audit
+  # - cargo deny
   audit:
-    name: Cargo Audit
+    name: Cargo Audit/Deny
     runs-on: ubuntu-latest
     container: almalinux:9
     steps:
-      - name: Cache cargo registry
+      - name: Cache Cargo registry and installed tools
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.cargo
-          key: ${{ github.job }}-cargo
+          key: ${{ github.job }}-cargo-v2
 
       - name: Install system packages
         run: |
@@ -81,6 +82,11 @@ jobs:
       - name: Run Cargo Audit
         working-directory: rust
         run: cargo audit -D warnings
+      - name: Install cargo-deny if missing
+        run: command -v cargo-deny >/dev/null || cargo install --locked cargo-deny
+      - name: Check dependency licenses
+        working-directory: rust
+        run: cargo deny --locked --workspace --all-features check licenses
 
   # This job uses our MSRV and does a `cargo update` with the idea
   # that it should catch early any dependencies that have done a patch
