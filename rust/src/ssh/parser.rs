@@ -16,7 +16,6 @@
  */
 
 use digest::Digest;
-use digest::Update;
 use md5::Md5;
 use nom8::branch::alt;
 use nom8::bytes::streaming::{is_not, tag, take, take_while};
@@ -195,7 +194,7 @@ impl SshPacketKeyExchange<'_> {
         slices
             .iter()
             .for_each(|&x| hassh_string.extend_from_slice(x));
-        hassh.extend(format!("{:x}", Md5::new().chain(hassh_string).finalize()).as_bytes());
+        hassh.extend(hex::encode(Md5::new().chain_update(hassh_string).finalize()).as_bytes());
     }
 }
 

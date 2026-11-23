@@ -65,7 +65,7 @@ impl Cyu {
                         hasher.update(cyu_string.as_bytes());
                         let hash = hasher.finalize();
 
-                        let cyu_hash = format!("{:x}", hash);
+                        let cyu_hash = hex::encode(hash);
 
                         cyu_hashes.push(Cyu::new(cyu_string, cyu_hash));
                     }
