@@ -22,7 +22,6 @@ use byteorder::ReadBytesExt;
 use memchr::memchr;
 use nom7::{Err, IResult, Needed};
 use std::io::Cursor;
-use widestring::U16CString;
 
 /// converts a raw u8 slice of little-endian wide chars into a String
 pub fn le_slice_to_string(input: &[u8]) -> Result<String, Box<dyn std::error::Error>> {
@@ -34,11 +33,8 @@ pub fn le_slice_to_string(input: &[u8]) -> Result<String, Box<dyn std::error::Er
         }
         vec.push(x);
     }
-    match U16CString::new(vec) {
-        Ok(x) => match x.to_string() {
-            Ok(x) => Ok(x),
-            Err(e) => Err(e.into()),
-        },
+    match String::from_utf16(&vec) {
+        Ok(x) => Ok(x),
         Err(e) => Err(e.into()),
     }
 }
