@@ -262,6 +262,9 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
             break;
         }
         case ETHERNET_TYPE_ERSPAN_III: {
+            if (!DecodeERSPANTypeIIICheckHeader(tv, dtv, p, pkt + header_len, len - header_len)) {
+                break;
+            }
             Packet *tp = PacketTunnelPktSetup(
                     tv, dtv, p, pkt + header_len, len - header_len, DECODE_TUNNEL_ERSPANIII);
             if (tp != NULL) {

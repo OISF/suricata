@@ -54,6 +54,18 @@ typedef struct Erspan3Hdr_ {
     uint16_t flags;
 } __attribute__((__packed__)) Erspan3Hdr;
 
+/* Size of the optional platform specific sub-header of ERSPAN Type III */
+#define PLATFORM_SPECIFIC_HDR_SIZE 8
+
+static inline uint32_t ERSPANTypeIIIHeaderLen(const Erspan3Hdr *ehdr)
+{
+    /* If O flag is set, then the optional platform specific header is present. */
+    if (SCNtohs(ehdr->flags) & 0x0001) {
+        return sizeof(Erspan3Hdr) + PLATFORM_SPECIFIC_HDR_SIZE;
+    }
+    return sizeof(Erspan3Hdr);
+}
+
 /**
  * \brief Functions to decode ERSPAN Type I and II packets
  */
@@ -125,9 +137,15 @@ int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
 }
 
 /**
- * \brief ERSPAN Type III
+ * \brief Check the ERSPAN Type III header on the GRE packet
+ *
+ * The mirrored frame is decoded as a tunnel packet, and a tunnel packet that
+ * fails to decode is discarded together with its events. So the header is
+ * checked here, and its errors are set as events on the GRE packet.
+ *
+ * \retval true if the mirrored frame can be decoded
  */
-int DecodeERSPANTypeIII(
+bool DecodeERSPANTypeIIICheckHeader(
         ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
@@ -136,6 +154,41 @@ int DecodeERSPANTypeIII(
 
     if (len < sizeof(Erspan3Hdr)) {
         ENGINE_SET_EVENT(p, ERSPAN_HEADER_TOO_SMALL);
+        return false;
+    }
+
+    const Erspan3Hdr *ehdr = (const Erspan3Hdr *)pkt;
+    uint16_t version = SCNtohs(ehdr->ver_vlan) >> 12;
+    uint16_t frame_type = (SCNtohs(ehdr->flags) & 0x7c00) >> 10;
+
+    if (version != 2) {
+        ENGINE_SET_EVENT(p, ERSPAN_UNSUPPORTED_VERSION);
+        return false;
+    }
+    if (len < ERSPANTypeIIIHeaderLen(ehdr)) {
+        ENGINE_SET_EVENT(p, ERSPAN_HEADER_TOO_SMALL);
+        return false;
+    }
+    /* only ethernet frames (frame type 0) are supported */
+    if (frame_type != 0) {
+        ENGINE_SET_EVENT(p, ERSPAN_UNSUPPORTED_ENCAPSULATION);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * \brief ERSPAN Type III
+ *
+ * Decodes the mirrored frame as a tunnel packet. The header was checked on
+ * the GRE packet by DecodeERSPANTypeIIICheckHeader.
+ */
+int DecodeERSPANTypeIII(
+        ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
+{
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
+    if (len < sizeof(Erspan3Hdr)) {
         return TM_ECODE_FAILED;
     }
     if (!PacketIncreaseCheckLayers(p)) {
@@ -143,50 +196,23 @@ int DecodeERSPANTypeIII(
     }
 
     const Erspan3Hdr *ehdr = (const Erspan3Hdr *)pkt;
-    uint16_t version = SCNtohs(ehdr->ver_vlan) >> 12;
     uint16_t vlan_id = SCNtohs(ehdr->ver_vlan) & 0x0fff;
-    uint16_t flags = SCNtohs(ehdr->flags);
+    uint32_t hdr_len = ERSPANTypeIIIHeaderLen(ehdr);
 
-    pkt += sizeof(Erspan3Hdr);
-    len -= sizeof(Erspan3Hdr);
-
-    if (version != 2) {
-        ENGINE_SET_EVENT(p, ERSPAN_UNSUPPORTED_VERSION);
+    if (len < hdr_len) {
         return TM_ECODE_FAILED;
     }
 
-    /* If O flag is set, then the optional platform specific header is present.
-     * We need to skip past it.
-     */
-#define PLATFORM_SPECIFIC_HDR_SIZE 8
-    if (flags & 0x0001) {
-        if (len < PLATFORM_SPECIFIC_HDR_SIZE) {
-            ENGINE_SET_EVENT(p, ERSPAN_HEADER_TOO_SMALL);
-            return TM_ECODE_FAILED;
-        }
-
-        pkt += PLATFORM_SPECIFIC_HDR_SIZE;
-        len -= PLATFORM_SPECIFIC_HDR_SIZE;
-    }
-
     if (vlan_id > 0) {
-        if (p->vlan_idx > VLAN_MAX_LAYER_IDX) {
-            ENGINE_SET_EVENT(p, ERSPAN_TOO_MANY_VLAN_LAYERS);
-            return TM_ECODE_FAILED;
-        }
+        /* a tunnel packet starts without VLAN layers */
+        DEBUG_VALIDATE_BUG_ON(p->vlan_idx != 0);
         p->vlan_id[p->vlan_idx] = vlan_id;
         p->vlan_idx++;
     }
 
     PacketSetTunnelId(p, SCNtohs(ehdr->flags_spanid) & 0x03ff);
 
-    switch ((flags & 0x7c00) >> 10) {
-        case 0x00: /* ethernet */
-            return DecodeEthernet(tv, dtv, p, pkt, len);
-        default:
-            ENGINE_SET_EVENT(p, ERSPAN_UNSUPPORTED_ENCAPSULATION);
-            return TM_ECODE_FAILED;
-    }
+    return DecodeEthernet(tv, dtv, p, pkt + hdr_len, len - hdr_len);
 }
 
 /**
