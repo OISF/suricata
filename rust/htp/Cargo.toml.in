@@ -23,7 +23,7 @@ crate-type = ["staticlib", "rlib", "cdylib"]
 
 [dependencies]
 base64.workspace = true
-bstr = "1.12.0"
+bstr = { version = "1.12.0", default-features = false, features = ["std"] }
 libc.workspace = true
 nom8.workspace = true
 lzma-rs.workspace = true
