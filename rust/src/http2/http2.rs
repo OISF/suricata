@@ -1081,7 +1081,7 @@ impl HTTP2State {
         let ftype = head.ftype;
         let hflags = head.flags;
         let mut events = Vec::new();
-        match num::FromPrimitive::from_u8(ftype) {
+        match num_traits::FromPrimitive::from_u8(ftype) {
             Some(parser::HTTP2FrameType::GoAway) => {
                 if input.len() < HTTP2_FRAME_GOAWAY_LEN {
                     events.push(HTTP2Event::InvalidFrameLength);

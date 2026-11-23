@@ -24,9 +24,9 @@ use nom8::{
     Err, IResult, Parser,
 };
 
-use num::traits::float::FloatCore;
-use num::traits::{FromPrimitive, ToPrimitive};
-use num::Bounded;
+use num_traits::float::FloatCore;
+use num_traits::Bounded;
+use num_traits::{FromPrimitive, ToPrimitive};
 
 use std::ffi::CStr;
 

@@ -507,20 +507,20 @@ pub trait DetectIntType:
     std::str::FromStr
     + std::cmp::PartialOrd
     + std::ops::BitOrAssign
-    + num::PrimInt
-    + num::Bounded
-    + num::ToPrimitive
-    + num::FromPrimitive
+    + num_traits::PrimInt
+    + num_traits::Bounded
+    + num_traits::ToPrimitive
+    + num_traits::FromPrimitive
 {
 }
 impl<T> DetectIntType for T where
     T: std::str::FromStr
         + std::cmp::PartialOrd
         + std::ops::BitOrAssign
-        + num::PrimInt
-        + num::Bounded
-        + num::ToPrimitive
-        + num::FromPrimitive
+        + num_traits::PrimInt
+        + num_traits::Bounded
+        + num_traits::ToPrimitive
+        + num_traits::FromPrimitive
 {
 }
 
