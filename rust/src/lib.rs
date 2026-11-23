@@ -62,7 +62,6 @@ extern crate lru;
 extern crate memchr;
 #[macro_use]
 extern crate num_derive;
-extern crate widestring;
 
 extern crate der_parser;
 extern crate kerberos_parser;
