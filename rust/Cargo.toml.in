@@ -72,7 +72,6 @@ lzma-rs.workspace = true
 memchr = "~2.7.4"
 num-derive = "~0.4.2"
 num-traits = "~0.2.19"
-widestring = "~0.4.3"
 flate2.workspace = true
 brotli.workspace = true
 zstd.workspace = true
