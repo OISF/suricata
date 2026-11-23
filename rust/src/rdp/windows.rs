@@ -527,7 +527,7 @@ pub enum Suffix {
 
 /// convert a build number into an OperatingSystem type
 pub fn build_number_to_os(number: u32) -> OperatingSystem {
-    let build = match num::FromPrimitive::from_u32(number) {
+    let build = match num_traits::FromPrimitive::from_u32(number) {
         Some(x) => x,
         None => Build::Other,
     };

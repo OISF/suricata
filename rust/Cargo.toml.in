@@ -70,7 +70,6 @@ uuid = { version = "~0.8.2", features = ["serde"] }
 crc = "~1.8.1"
 lzma-rs.workspace = true
 memchr = "~2.7.4"
-num = "~0.2.1"
 num-derive = "~0.4.2"
 num-traits = "~0.2.19"
 widestring = "~0.4.3"

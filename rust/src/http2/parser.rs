@@ -767,7 +767,7 @@ pub struct HTTP2FrameSettings {
 }
 
 fn http2_parse_frame_setting(i: &[u8]) -> IResult<&[u8], HTTP2FrameSettings> {
-    let (i, id) = map_opt(be_u16, num::FromPrimitive::from_u16)(i)?;
+    let (i, id) = map_opt(be_u16, num_traits::FromPrimitive::from_u16)(i)?;
     let (i, value) = be_u32(i)?;
     Ok((i, HTTP2FrameSettings { id, value }))
 }

@@ -508,7 +508,7 @@ pub fn parse_payload(
 ) -> Result<(), ()> {
     payload_types.insert(payload_type);
 
-    let element = num::FromPrimitive::from_u8(payload_type);
+    let element = num_traits::FromPrimitive::from_u8(payload_type);
     match element {
         Some(IsakmpPayloadType::SecurityAssociation) => {
             if parse_security_association_payload(

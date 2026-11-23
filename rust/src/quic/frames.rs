@@ -25,7 +25,7 @@ use nom8::multi::{count, many0};
 use nom8::number::complete::{be_u16, be_u32, be_u8, le_u16, le_u32};
 use nom8::sequence::pair;
 use nom8::{IResult, Parser};
-use num::FromPrimitive;
+use num_traits::FromPrimitive;
 use std::fmt;
 use tls_parser::TlsMessage::Handshake;
 use tls_parser::TlsMessageHandshake::{ClientHello, ServerHello};

@@ -239,7 +239,7 @@ pub unsafe extern "C" fn SCDetectEntropyFree(ptr: *mut c_void) {
 mod tests {
     use super::*;
     use crate::detect::float::DetectFloatMode;
-    use num::traits::float::FloatCore;
+    use num_traits::float::FloatCore;
     // structure equality only used by test cases
     impl PartialEq for DetectEntropyData {
         fn eq(&self, other: &Self) -> bool {
