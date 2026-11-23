@@ -70,16 +70,48 @@ int DecodeERSPANTypeI(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 }
 
 /**
- * \brief ERSPAN Type II
+ * \brief Check the ERSPAN Type II header on the GRE packet
+ *
+ * The mirrored frame is decoded as a tunnel packet, and a tunnel packet that
+ * fails to decode is discarded together with its events. So the header is
+ * checked here, and its errors are set as events on the GRE packet.
+ *
+ * \retval true if the mirrored frame can be decoded
  */
-int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
+bool DecodeERSPANCheckHeader(
+        ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
     StatsCounterIncr(&tv->stats, dtv->counter_erspan);
 
     if (len < sizeof(ErspanHdr)) {
-        ENGINE_SET_EVENT(p,ERSPAN_HEADER_TOO_SMALL);
+        ENGINE_SET_EVENT(p, ERSPAN_HEADER_TOO_SMALL);
+        return false;
+    }
+
+    const ErspanHdr *ehdr = (const ErspanHdr *)pkt;
+    uint16_t version = SCNtohs(ehdr->ver_vlan) >> 12;
+
+    /* only v1 is tested at this time */
+    if (version != 1) {
+        ENGINE_SET_EVENT(p, ERSPAN_UNSUPPORTED_VERSION);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * \brief ERSPAN Type II
+ *
+ * Decodes the mirrored frame as a tunnel packet. The header was checked on
+ * the GRE packet by DecodeERSPANCheckHeader.
+ */
+int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
+{
+    DEBUG_VALIDATE_BUG_ON(pkt == NULL);
+
+    if (len < sizeof(ErspanHdr)) {
         return TM_ECODE_FAILED;
     }
     if (!PacketIncreaseCheckLayers(p)) {
@@ -87,22 +119,13 @@ int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
     }
 
     const ErspanHdr *ehdr = (const ErspanHdr *)pkt;
-    uint16_t version = SCNtohs(ehdr->ver_vlan) >> 12;
     uint16_t vlan_id = SCNtohs(ehdr->ver_vlan) & 0x0fff;
 
-    SCLogDebug("ERSPAN: version %u vlan %u", version, vlan_id);
-
-    /* only v1 is tested at this time */
-    if (version != 1) {
-        ENGINE_SET_EVENT(p,ERSPAN_UNSUPPORTED_VERSION);
-        return TM_ECODE_FAILED;
-    }
+    SCLogDebug("ERSPAN: vlan %u", vlan_id);
 
     if (vlan_id > 0) {
-        if (p->vlan_idx > VLAN_MAX_LAYER_IDX) {
-            ENGINE_SET_EVENT(p,ERSPAN_TOO_MANY_VLAN_LAYERS);
-            return TM_ECODE_FAILED;
-        }
+        /* a tunnel packet starts without VLAN layers */
+        DEBUG_VALIDATE_BUG_ON(p->vlan_idx != 0);
         p->vlan_id[p->vlan_idx] = vlan_id;
         p->vlan_idx++;
     }

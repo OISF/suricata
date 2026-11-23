@@ -253,8 +253,14 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *p
             // Type I:  0|0|0|0|0|00000|000000000|00000
             // Type II: 0|0|0|1|0|00000|000000000|00000
             //                Seq
-            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len,
-                    GRE_FLAG_ISSET_SQ(greh) == 0 ? DECODE_TUNNEL_ERSPANI : DECODE_TUNNEL_ERSPANII);
+            enum SCPacketTunnelProto proto =
+                    GRE_FLAG_ISSET_SQ(greh) == 0 ? DECODE_TUNNEL_ERSPANI : DECODE_TUNNEL_ERSPANII;
+            if (proto == DECODE_TUNNEL_ERSPANII &&
+                    !DecodeERSPANCheckHeader(tv, dtv, p, pkt + header_len, len - header_len)) {
+                break;
+            }
+            Packet *tp =
+                    PacketTunnelPktSetup(tv, dtv, p, pkt + header_len, len - header_len, proto);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
                 PacketEnqueueNoLock(&tv->decode_pq,tp);
