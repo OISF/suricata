@@ -2540,6 +2540,10 @@
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
+                            "error": {
+                                "type": "string",
+                                "description": "HPACK decode status of a field that could not be decoded (HTTP/2)"
+                            },
                             "name": {
                                 "type": "string"
                             },
@@ -2607,6 +2611,10 @@
                         "type": "object",
                         "additionalProperties": false,
                         "properties": {
+                            "error": {
+                                "type": "string",
+                                "description": "HPACK decode status of a field that could not be decoded (HTTP/2)"
+                            },
                             "name": {
                                 "type": "string"
                             },
