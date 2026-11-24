@@ -3,7 +3,9 @@ use crate::{
     config::{DecoderConfig, HtpUnwanted},
     log::Logger,
     parsers::{credentials, fragment, hostname, parse_hostport, path, port, query, scheme},
-    urlencoded::{decode_uri_inplace, decode_uri_with_flags, path_decode_uri_inplace},
+    urlencoded::{
+        decode_uri_inplace, decode_uri_path_inplace, decode_uri_with_flags, path_decode_uri_inplace,
+    },
     utf8_decoder::decode_and_validate_inplace,
     util::{convert_port, FlagOperations, HtpFlags},
 };
@@ -316,7 +318,7 @@ impl Uri {
             // Path is already decoded when we parsed the uri in transaction, only decode once more
             if self.cfg.double_decode_normalized_path {
                 let path_len = path.len();
-                let _ = decode_uri_inplace(&self.cfg, &mut path);
+                let _ = decode_uri_path_inplace(&self.cfg, &mut path);
                 if path_len > path.len() {
                     if let Some(logger) = logger.as_mut() {
                         htp_warn!(
