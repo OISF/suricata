@@ -1217,8 +1217,9 @@ int DecodeVXLAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uin
 int DecodeMPLS(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeERSPANTypeIII(
         ThreadVars *, DecodeThreadVars *, Packet *, Packet *, const uint8_t *, uint32_t);
-int DecodeERSPAN(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
-int DecodeERSPANTypeI(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
+int DecodeERSPAN(ThreadVars *, DecodeThreadVars *, Packet *, Packet *, const uint8_t *, uint32_t);
+int DecodeERSPANTypeI(
+        ThreadVars *, DecodeThreadVars *, Packet *, Packet *, const uint8_t *, uint32_t);
 int DecodeCHDLC(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeTEMPLATE(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeNSH(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
