@@ -674,7 +674,7 @@ impl DCERPCState {
                     &mut tx.stub_data_buffer_reset_ts,
                 );
                 tx.req_done = tx.stub_data_buffer_reset_ts;
-                tx.frag_cnt_ts += 1;
+                tx.frag_cnt_ts = tx.frag_cnt_ts.saturating_add(1);
                 if let Some(flow) = self.flow {
                     sc_app_layer_parser_trigger_raw_stream_inspection(
                         flow,
@@ -692,7 +692,7 @@ impl DCERPCState {
                     &mut tx.stub_data_buffer_reset_tc,
                 );
                 tx.resp_done = tx.stub_data_buffer_reset_tc;
-                tx.frag_cnt_tc += 1;
+                tx.frag_cnt_tc = tx.frag_cnt_tc.saturating_add(1);
                 if let Some(flow) = self.flow {
                     sc_app_layer_parser_trigger_raw_stream_inspection(
                         flow,
