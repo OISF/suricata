@@ -147,7 +147,7 @@ alert pkthdr any any -> any any (msg:"SURICATA NULL unsupported type"; decode-ev
 alert pkthdr any any -> any any (msg:"SURICATA ERSPAN pkt too small"; decode-event:erspan.header_too_small; classtype:protocol-command-decode; sid:2200105; rev:2;)
 # packet has type not supported by Suricata's decoders
 alert pkthdr any any -> any any (msg:"SURICATA ERSPAN unsupported version"; decode-event:erspan.unsupported_version; classtype:protocol-command-decode; sid:2200106; rev:2;)
-alert pkthdr any any -> any any (msg:"SURICATA ERSPAN too many vlan layers"; decode-event:erspan.too_many_vlan_layers; classtype:protocol-command-decode; sid:2200107; rev:2;)
+# sid 2200107 (erspan.too_many_vlan_layers) was removed, as that event is no longer set
 alert pkthdr any any -> any any (msg:"SURICATA ERSPAN unsupported encapsulation"; decode-event:erspan.unsupported_encapsulation; classtype:protocol-command-decode; sid:2200131; rev:1;)
 
 # Cisco Fabric Path/DCE
@@ -171,4 +171,3 @@ alert ipv4 any any -> any any (msg:"SURICATA IPv4 unknown protocol"; decode-even
 alert pkthdr any any -> any any (msg:"SURICATA TCP wscale over maximum"; decode-event:tcp.opt_wscale_over_max; classtype:protocol-command-decode; sid:2200130; rev:1;)
 
 # next sid is 2200132
-

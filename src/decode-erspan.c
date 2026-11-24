@@ -130,10 +130,8 @@ int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, Packet *paren
     }
 
     if (vlan_id > 0) {
-        if (p->vlan_idx > VLAN_MAX_LAYER_IDX) {
-            ENGINE_SET_EVENT(p,ERSPAN_TOO_MANY_VLAN_LAYERS);
-            return TM_ECODE_FAILED;
-        }
+        /* a tunnel packet starts without VLAN layers */
+        DEBUG_VALIDATE_BUG_ON(p->vlan_idx != 0);
         p->vlan_id[p->vlan_idx] = vlan_id;
         p->vlan_idx++;
     }
