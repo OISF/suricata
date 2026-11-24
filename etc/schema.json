@@ -7953,6 +7953,10 @@
                             "type": "integer",
                             "description": "How many times a fragment wasn't stored due to max-frags limit being reached"
                         },
+                        "max_fragments": {
+                            "type": "integer",
+                            "description": "Maximum number of fragments held by a single tracker when it was freed"
+                        },
                         "max_trackers_reached": {
                             "type": "integer",
                             "description": "How many times a packet wasn't reassembled due to max-trackers limit being reached"
@@ -7969,6 +7973,10 @@
                                     "type": "integer"
                                 }
                             }
+                        },
+                        "tracker_active": {
+                            "type": "integer",
+                            "description": "Number of currently active defrag trackers"
                         },
                         "tracker_hard_reuse": {
                             "type": "integer",
