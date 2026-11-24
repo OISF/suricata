@@ -943,17 +943,23 @@ impl DCERPCState {
             let _data = Frame::new(flow, &stream_slice, &cur_i[DCERPC_HDR_LEN as usize..], (fraglen - DCERPC_HDR_LEN) as i64, DCERPCFrameType::Data as u8, None);
         }
         let current_call_id = self.get_hdr_call_id().unwrap_or(0);
+        let pdu = &cur_i[..(fraglen - frag_bytes_consumed) as usize];
+        debug_validate_bug_on!(parsed as usize > pdu.len());
 
         match self.get_hdr_type() {
+            Some(_) if fraglen == DCERPC_HDR_LEN => {
+                // input only consists of the header and that was consumed already
+                SCLogDebug!("Header only PDU");
+            }
             Some(x) => match x {
                 DCERPC_TYPE_BIND | DCERPC_TYPE_ALTER_CONTEXT => {
-                    let retval = self.process_bind_pdu(&cur_i[parsed as usize..]);
+                    let retval = self.process_bind_pdu(&pdu[parsed as usize..]);
                     if retval == -1 {
                         return AppLayerResult::err();
                     }
                 }
                 DCERPC_TYPE_BINDACK | DCERPC_TYPE_ALTER_CONTEXT_RESP => {
-                    let retval = self.process_bindack_pdu(&cur_i[parsed as usize..], current_call_id);
+                    let retval = self.process_bindack_pdu(&pdu[parsed as usize..], current_call_id);
                     if retval == -1 {
                         return AppLayerResult::err();
                     }
@@ -973,7 +979,7 @@ impl DCERPCState {
                     }
                 }
                 DCERPC_TYPE_REQUEST => {
-                    let retval = self.process_request_pdu(&cur_i[parsed as usize..]);
+                    let retval = self.process_request_pdu(&pdu[parsed as usize..]);
                     if retval < 0 {
                         return AppLayerResult::err();
                     }
@@ -993,7 +999,7 @@ impl DCERPCState {
                         }
                     };
                     let retval = self.handle_common_stub(
-                        &cur_i[parsed as usize..],
+                        &pdu[parsed as usize..],
                         0,
                         Direction::ToClient,
                     );
