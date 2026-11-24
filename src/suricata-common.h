@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2022 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -559,6 +559,16 @@ char *strptime(const char * __restrict, const char * __restrict, struct tm * __r
 extern int coverage_unittests;
 extern int g_ut_modules;
 extern int g_ut_covered;
+
+static inline uint32_t saturate_add_u32(uint32_t a, uint32_t b)
+{
+    return a + b >= a ? a + b : UINT32_MAX;
+}
+
+static inline uint32_t saturate_sub_u32(uint32_t a, uint32_t b)
+{
+    return a < b ? 0 : a - b;
+}
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
