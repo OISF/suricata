@@ -75,6 +75,11 @@ struct DetectEngineContentInspectionCtx {
     } recursion;
 };
 
+static inline uint32_t DetectByteValueToU32(uint64_t value)
+{
+    return value > UINT32_MAX ? UINT32_MAX : (uint32_t)value;
+}
+
 /**
  * \brief Run the actual payload match functions
  *
@@ -153,10 +158,13 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 SCLogDebug("det_ctx->buffer_offset %" PRIu32, det_ctx->buffer_offset);
                 offset = prev_buffer_offset;
 
-                int distance = cd->distance;
+                int32_t distance = cd->distance;
                 if (cd->flags & DETECT_CONTENT_DISTANCE) {
                     if (cd->flags & DETECT_CONTENT_DISTANCE_VAR) {
-                        // This cast is wrong if a 64-bit value was extracted
+                        if (det_ctx->byte_values[cd->distance].value > INT32_MAX) {
+                            // A too big distance can never match
+                            goto no_match;
+                        }
                         distance = (uint32_t)det_ctx->byte_values[cd->distance].value;
                     }
                     if (distance < 0 && (uint32_t)(abs(distance)) > offset)
@@ -170,12 +178,25 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
                 if (cd->flags & DETECT_CONTENT_WITHIN) {
                     if (cd->flags & DETECT_CONTENT_WITHIN_VAR) {
-                        // This cast is wrong if a 64-bit value was extracted for within
-                        if ((int32_t)depth >
-                                (int32_t)(prev_buffer_offset +
-                                          det_ctx->byte_values[cd->within].value + distance)) {
-                            depth = prev_buffer_offset +
-                                    (uint32_t)det_ctx->byte_values[cd->within].value + distance;
+                        const uint32_t within =
+                                DetectByteValueToU32(det_ctx->byte_values[cd->within].value);
+                        // Compute within_end as a u64 and then saturate it into depth as a u32
+                        uint64_t within_end = (uint64_t)prev_buffer_offset + within;
+                        if (distance >= 0) {
+                            within_end += (uint64_t)distance;
+                        } else {
+                            const uint64_t negative_distance = (uint64_t)(-distance);
+                            if (negative_distance > within_end) {
+                                within_end = 0;
+                            } else {
+                                within_end -= negative_distance;
+                            }
+                        }
+                        if (within_end > UINT32_MAX) {
+                            within_end = UINT32_MAX;
+                        }
+                        if (depth > within_end) {
+                            depth = (uint32_t)within_end;
                         }
                     } else {
                         if ((int32_t)depth > (int32_t)(prev_buffer_offset + cd->within + distance)) {
@@ -198,10 +219,10 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
                 }
 
                 if (cd->flags & DETECT_CONTENT_DEPTH_VAR) {
-                    if ((det_ctx->byte_values[cd->depth].value + prev_buffer_offset) < depth) {
-                        // ok to cast as we checked the byte value fits in a u32
-                        depth = prev_buffer_offset +
-                                (uint32_t)det_ctx->byte_values[cd->depth].value;
+                    const uint64_t depth_end =
+                            det_ctx->byte_values[cd->depth].value + prev_buffer_offset;
+                    if (depth_end < depth) {
+                        depth = (uint32_t)depth_end;
                     }
                 } else {
                     if (cd->depth != 0) {
@@ -215,7 +236,10 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
                 if (cd->flags & DETECT_CONTENT_OFFSET_VAR) {
                     if (det_ctx->byte_values[cd->offset].value > offset) {
-                        // This cast is wrong if a 64-bit value was extracted
+                        if (det_ctx->byte_values[cd->offset].value > UINT32_MAX) {
+                            // A too big offset can never match
+                            goto no_match;
+                        }
                         offset = (uint32_t)det_ctx->byte_values[cd->offset].value;
                     }
                 } else {
@@ -227,8 +251,8 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             } else { /* implied no relative matches */
                 /* set depth */
                 if (cd->flags & DETECT_CONTENT_DEPTH_VAR) {
-                    // This cast is wrong if a 64-bit value was extracted
-                    depth = (uint32_t)det_ctx->byte_values[cd->depth].value;
+                    // Saturate depth into a u32
+                    depth = DetectByteValueToU32(det_ctx->byte_values[cd->depth].value);
                 } else {
                     if (cd->depth != 0) {
                         depth = cd->depth;
@@ -247,7 +271,10 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
                 /* set offset */
                 if (cd->flags & DETECT_CONTENT_OFFSET_VAR) {
-                    // This cast is wrong if a 64-bit value was extracted
+                    if (det_ctx->byte_values[cd->offset].value > UINT32_MAX) {
+                        // A too big offset can never match
+                        goto no_match;
+                    }
                     offset = (uint32_t)det_ctx->byte_values[cd->offset].value;
                 } else {
                     offset = cd->offset;
@@ -259,7 +286,11 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
              * to the offset value.
              */
             if (cd->flags & (DETECT_CONTENT_OFFSET_VAR | DETECT_CONTENT_DEPTH_VAR)) {
-                depth += offset;
+                if (UINT32_MAX - depth < offset) {
+                    depth = UINT32_MAX;
+                } else {
+                    depth += offset;
+                }
             }
 
             /* update offset with prev_offset if we're searching for
@@ -510,14 +541,18 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         uint64_t value = btd->value;
         int32_t nbytes = btd->nbytes;
         if (btflags & DETECT_BYTETEST_OFFSET_VAR) {
-            // This cast is wrong if a 64-bit value was extracted
+            if (det_ctx->byte_values[offset].value > INT32_MAX) {
+                goto no_match;
+            }
             offset = (int32_t)det_ctx->byte_values[offset].value;
         }
         if (btflags & DETECT_BYTETEST_VALUE_VAR) {
             value = det_ctx->byte_values[value].value;
         }
         if (btflags & DETECT_BYTETEST_NBYTES_VAR) {
-            // This cast is wrong if a 64-bit value was extracted
+            if (det_ctx->byte_values[nbytes].value > INT32_MAX) {
+                goto no_match;
+            }
             nbytes = (int32_t)det_ctx->byte_values[nbytes].value;
         }
 
@@ -544,13 +579,17 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         int32_t nbytes;
 
         if (bjflags & DETECT_BYTEJUMP_OFFSET_VAR) {
-            // This cast is wrong if a 64-bit value was extracted
+            if (det_ctx->byte_values[offset].value > INT32_MAX) {
+                goto no_match;
+            }
             offset = (int32_t)det_ctx->byte_values[offset].value;
             SCLogDebug("[BJ] using offset value %d", offset);
         }
 
         if (bjflags & DETECT_BYTEJUMP_NBYTES_VAR) {
-            // This cast is wrong if a 64-bit value was extracted
+            if (det_ctx->byte_values[bjd->nbytes].value > INT32_MAX) {
+                goto no_match;
+            }
             nbytes = (int32_t)det_ctx->byte_values[bjd->nbytes].value;
             SCLogDebug("[BJ] using nbytes value %d [index %d]", nbytes, bjd->nbytes);
         } else {
@@ -624,6 +663,10 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
         uint8_t nbytes;
         if (bmd->flags & DETECT_BYTEMATH_FLAG_NBYTES_VAR) {
+            if (det_ctx->byte_values[bmd->nbytes].value > UINT8_MAX) {
+                // DetectByteMathDoMatch will fail if nbytes > 10
+                goto no_match;
+            }
             nbytes = (uint8_t)det_ctx->byte_values[bmd->nbytes].value;
         } else {
             nbytes = bmd->nbytes;
