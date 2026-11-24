@@ -178,6 +178,8 @@ int DecodeERSPANTypeIII(
         p->vlan_idx++;
     }
 
+    PacketSetTunnelId(p, SCNtohs(ehdr->flags_spanid) & 0x03ff);
+
     switch ((flags & 0x7c00) >> 10) {
         case 0x00: /* ethernet */
             return DecodeEthernet(tv, dtv, p, pkt, len);

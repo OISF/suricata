@@ -3231,12 +3231,13 @@ The supported tunnel types are:
 
 - vxlan
 - erspan2
+- erspan3
 
 This section is a list of tunnels with the following parameters:
 ::
 
     - id: 1
-      type: erspan2 # or vxlan
+      type: erspan2 # or erspan3 or vxlan
       src: 192.168.1.1
       dst: 192.168.1.3 # ip address where suricata is receiving the traffic
       session: 123 # erspan span id or vxlan vni
