@@ -118,6 +118,10 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
 {
     DetectU16Data *dd = NULL;
 
+    if (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP) {
+        SCLogError("Can't use dsize in a app hook rule");
+        return -1;
+    }
     if (SCDetectGetLastSMFromLists(s, DETECT_DSIZE, -1)) {
         SCLogError("Can't use 2 or more dsizes in "
                    "the same sig.  Invalidating signature.");
