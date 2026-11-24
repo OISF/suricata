@@ -80,7 +80,7 @@ void DetectTlsSerialRegister(void)
 #ifdef UNITTESTS
     sigmatch_table[DETECT_TLS_CERT_SERIAL].RegisterTests = DetectTlsSerialRegisterTests;
 #endif
-    sigmatch_table[DETECT_TLS_CERT_SERIAL].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[DETECT_TLS_CERT_SERIAL].flags |= SIGMATCH_NOOPT | SIGMATCH_SUPPORT_DIR;
     sigmatch_table[DETECT_TLS_CERT_SERIAL].flags |= SIGMATCH_INFO_STICKY_BUFFER;
 
     DetectAppLayerInspectEngineRegister("tls.cert_serial", ALPROTO_TLS, SIG_FLAG_TOCLIENT,
