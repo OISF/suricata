@@ -126,16 +126,20 @@ int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
 
 /**
  * \brief ERSPAN Type III
+ *
+ * Header errors are set as events on \a parent, the GRE packet: \a p, the
+ * tunnel packet, is discarded together with its events when it fails to
+ * decode.
  */
-int DecodeERSPANTypeIII(
-        ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
+int DecodeERSPANTypeIII(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, Packet *parent,
+        const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
     StatsCounterIncr(&tv->stats, dtv->counter_erspan);
 
     if (len < sizeof(Erspan3Hdr)) {
-        ENGINE_SET_EVENT(p, ERSPAN_HEADER_TOO_SMALL);
+        ENGINE_SET_EVENT(parent, ERSPAN_HEADER_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
     if (!PacketIncreaseCheckLayers(p)) {
@@ -151,7 +155,7 @@ int DecodeERSPANTypeIII(
     len -= sizeof(Erspan3Hdr);
 
     if (version != 2) {
-        ENGINE_SET_EVENT(p, ERSPAN_UNSUPPORTED_VERSION);
+        ENGINE_SET_EVENT(parent, ERSPAN_UNSUPPORTED_VERSION);
         return TM_ECODE_FAILED;
     }
 
@@ -161,7 +165,7 @@ int DecodeERSPANTypeIII(
 #define PLATFORM_SPECIFIC_HDR_SIZE 8
     if (flags & 0x0001) {
         if (len < PLATFORM_SPECIFIC_HDR_SIZE) {
-            ENGINE_SET_EVENT(p, ERSPAN_HEADER_TOO_SMALL);
+            ENGINE_SET_EVENT(parent, ERSPAN_HEADER_TOO_SMALL);
             return TM_ECODE_FAILED;
         }
 
@@ -170,10 +174,8 @@ int DecodeERSPANTypeIII(
     }
 
     if (vlan_id > 0) {
-        if (p->vlan_idx > VLAN_MAX_LAYER_IDX) {
-            ENGINE_SET_EVENT(p, ERSPAN_TOO_MANY_VLAN_LAYERS);
-            return TM_ECODE_FAILED;
-        }
+        /* a tunnel packet starts without VLAN layers */
+        DEBUG_VALIDATE_BUG_ON(p->vlan_idx != 0);
         p->vlan_id[p->vlan_idx] = vlan_id;
         p->vlan_idx++;
     }
@@ -184,7 +186,7 @@ int DecodeERSPANTypeIII(
         case 0x00: /* ethernet */
             return DecodeEthernet(tv, dtv, p, pkt, len);
         default:
-            ENGINE_SET_EVENT(p, ERSPAN_UNSUPPORTED_ENCAPSULATION);
+            ENGINE_SET_EVENT(parent, ERSPAN_UNSUPPORTED_ENCAPSULATION);
             return TM_ECODE_FAILED;
     }
 }
