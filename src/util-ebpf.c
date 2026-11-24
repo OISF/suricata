@@ -768,6 +768,8 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
             flow_key.vlan_id[1] = next_key.vlan1;
             flow_key.tunnel_id = 0;
         }
+        /* the eBPF keys hold two vlan layers */
+        flow_key.vlan_id[2] = 0;
         if (next_key.ip_proto == 1) {
             flow_key.proto = IPPROTO_TCP;
         } else {
@@ -893,6 +895,8 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
             flow_key.vlan_id[1] = next_key.vlan1;
             flow_key.tunnel_id = 0;
         }
+        /* the eBPF keys hold two vlan layers */
+        flow_key.vlan_id[2] = 0;
         if (next_key.ip_proto == 1) {
             flow_key.proto = IPPROTO_TCP;
         } else {
