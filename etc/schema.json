@@ -8352,7 +8352,7 @@
                         },
                         "get_used_eval_reject": {
                             "type": "integer",
-                            "description": "Number of flows that were evaluated but rejected from reuse as they were still alive/active"
+                            "description": "Number of flows that were evaluated but rejected from reuse as they were still alive/active, or bypassed by a capture method that has to be asked before the flow ends"
                         },
                         "get_used_failed": {
                             "type": "integer",

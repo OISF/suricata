@@ -1270,14 +1270,33 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv, const SCTime
             continue;
         }
 
+        /* Evaluate the first flow of the row. Capture-bypassed flows that
+         * have to be polled are passed over. */
+        Flow *prev_f = NULL;
         Flow *f = fb->head;
-        if (f == NULL) {
+        bool busy = false;
+        while (f != NULL) {
+            if (GetUsedTryLockFlow(f) != 0) {
+                busy = true;
+                break;
+            }
+#ifdef CAPTURE_OFFLOAD
+            if (FlowCaptureBypassNeedsPoll(f)) {
+                STATSADDUI64(counter_flow_get_used_eval_reject, 1);
+                FLOWLOCK_UNLOCK(f);
+                prev_f = f;
+                f = f->next;
+                continue;
+            }
+#endif
+            break;
+        }
+        if (busy) {
+            STATSADDUI64(counter_flow_get_used_eval_busy, 1);
             FBLOCK_UNLOCK(fb);
             continue;
         }
-
-        if (GetUsedTryLockFlow(f) != 0) {
-            STATSADDUI64(counter_flow_get_used_eval_busy, 1);
+        if (f == NULL) {
             FBLOCK_UNLOCK(fb);
             continue;
         }
@@ -1290,7 +1309,11 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv, const SCTime
         }
 
         /* remove from the hash */
-        fb->head = f->next;
+        if (prev_f != NULL) {
+            prev_f->next = f->next;
+        } else {
+            fb->head = f->next;
+        }
         f->next = NULL;
         f->fb = NULL;
         FBLOCK_UNLOCK(fb);
