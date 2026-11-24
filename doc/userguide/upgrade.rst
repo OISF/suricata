@@ -168,6 +168,8 @@ Keyword Changes
 - ``flowint`` addition and subtraction no longer wrap around; results
   are capped at 4294967295 and floored at 0. See :ref:`flowint`.
 
+- Packet keywords such as ``dsize`` are no longer accepted in app-hook rules.
+
 Default Changes
 ~~~~~~~~~~~~~~~
 - An absent configuration value for ``stream.reassembly.urgent.policy`` is now treated as ``oob`` instead of ``inline``.
