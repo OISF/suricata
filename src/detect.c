@@ -1381,6 +1381,10 @@ static int DetectRunTxInspectRule(ThreadVars *tv, DetectEngineCtx *de_ctx,
             TRACE_SID_TXS(s->id, tx, "DetectRunInspectRuleHeader() no match");
             return -1;
         }
+        if (PKT_IS_PSEUDOPKT(p) && (s->mask & SIG_MASK_REQUIRE_REAL_PKT)) {
+            TRACE_SID_TXS(s->id, tx, "skip packet-dependent signature on pseudo packet");
+            return -1;
+        }
         if (!DetectEnginePktInspectionRun(tv, det_ctx, s, f, p, NULL)) {
             TRACE_SID_TXS(s->id, tx, "DetectEnginePktInspectionRun no match");
             return -1;
