@@ -8502,10 +8502,12 @@
                     "additionalProperties": false,
                     "properties": {
                         "bytes": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Bytes of bypassed flows counted by the capture method, read at the bypassed flow timeout and at shutdown"
                         },
                         "closed": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Bypassed flows that ended: removed from the capture method after they had no new packets, or still in the flow table at shutdown"
                         },
                         "local_bytes": {
                             "type": "integer"
@@ -8520,7 +8522,8 @@
                             "type": "integer"
                         },
                         "pkts": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Packets of bypassed flows counted by the capture method, read at the bypassed flow timeout and at shutdown"
                         }
                     }
                 },

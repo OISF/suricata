@@ -604,7 +604,12 @@ bytes and packets counters as well as a bypassed and closed flow counter ::
 `local_pkts` and `local_bytes` are for Suricata bypassed flows. This can be because
 local bypass is used or because the capture method can not bypass more flows.
 `pkts` and `bytes` are counters coming from the capture method. They can take some
-time to appear due to the accounting at timeout.
+time to appear: Suricata reads them from the capture method each time a bypassed flow
+reaches its ``bypassed`` flow timeout, and a last time when Suricata stops.
+`closed` is the number of bypassed flows that have ended. A flow is counted when it
+reaches its ``bypassed`` flow timeout without new packets and Suricata removes it from
+the capture method, or when it is still in the flow table as Suricata stops. Flows
+that are kept in pinned maps at the stop are counted as well.
 `local_capture_pkts` and `local_capture_bytes` are counters for packets that are seen
 by Suricata before the capture method efficiently bypass the traffic. There is almost
 always some for each flow because of the buffer in front of Suricata reading threads.

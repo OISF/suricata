@@ -225,6 +225,9 @@ static bool FlowManagerFlowTimeout(Flow *f, SCTime_t ts, uint32_t *next_ts, cons
 /** \internal
  *  \brief check timeout of captured bypassed flow by querying capture method
  *
+ *  Once the capture method reported the flow as dead, its bypass is ended
+ *  and the flow is not polled again.
+ *
  *  \param f Flow
  *  \param ts timestamp
  *  \param counters Flow timeout counters
@@ -261,6 +264,8 @@ static inline bool FlowBypassedTimeout(Flow *f, SCTime_t ts, FlowTimeoutCounters
             return false;
         }
         SCLogDebug("No new packet, dead flow %" PRIu64 "", FlowGetId(f));
+        /* the capture side entries are gone: no further polls */
+        fc->BypassUpdate = NULL;
         if (dev) {
             if (FLOW_IS_IPV4(f)) {
                 LiveDevSubBypassStats(dev, 1, AF_INET);
@@ -1051,6 +1056,10 @@ typedef struct FlowRecyclerThreadData_ {
     StatsCounterId counter_flow_active;
     StatsCounterId counter_tcp_active_sessions;
     FlowEndCounters fec;
+
+    StatsCounterId flow_bypassed_cnt_clo;
+    StatsCounterId flow_bypassed_pkts;
+    StatsCounterId flow_bypassed_bytes;
 } FlowRecyclerThreadData;
 
 static TmEcode FlowRecyclerThreadInit(ThreadVars *t, const void *initdata, void **data)
@@ -1074,6 +1083,10 @@ static TmEcode FlowRecyclerThreadInit(ThreadVars *t, const void *initdata, void 
 
     FlowEndCountersRegister(t, &ftd->fec);
 
+    ftd->flow_bypassed_cnt_clo = StatsRegisterCounter("flow_bypassed.closed", &t->stats);
+    ftd->flow_bypassed_pkts = StatsRegisterCounter("flow_bypassed.pkts", &t->stats);
+    ftd->flow_bypassed_bytes = StatsRegisterCounter("flow_bypassed.bytes", &t->stats);
+
     *data = ftd;
     return TM_ECODE_OK;
 }
@@ -1095,15 +1108,18 @@ static void Recycler(ThreadVars *tv, FlowRecyclerThreadData *ftd, Flow *f)
     FLOWLOCK_WRLOCK(f);
 
 #ifdef CAPTURE_OFFLOAD
-    // If the flow was timed out already, we already updated the stats
-    if ((f->flow_end_flags & FLOW_END_FLAG_TIMEOUT) == 0) {
+    /* Last poll of a capture-bypassed flow that was not ended by the flow
+     * manager, like the flows still in the flow table at shutdown. */
+    if (f->flow_state == FLOW_STATE_CAPTURE_BYPASSED) {
         FlowTimeoutCounters counters = { 0 };
-        FlowBypassedTimeout(f, TimeGet(), &counters);
-        // TODO use the counters to update
-        // like StatsCounterAddI64(&tv->stats, ftd->cnt.flow_bypassed_cnt_clo,
-        // (int64_t)counters.bypassed_count); same for bypassed_pkts and bypassed_bytes needs to
-        // check if the flow recycler thread can update these stats and give it access to the
-        // StatsCounterId flow_bypassed_cnt_clo and such
+        if (!FlowBypassedTimeout(f, TimeGet(), &counters)) {
+            /* left in place in the capture method, but the flow ends here */
+            counters.bypassed_count++;
+        }
+        StatsCounterAddI64(
+                &tv->stats, ftd->flow_bypassed_cnt_clo, (int64_t)counters.bypassed_count);
+        StatsCounterAddI64(&tv->stats, ftd->flow_bypassed_pkts, (int64_t)counters.bypassed_pkts);
+        StatsCounterAddI64(&tv->stats, ftd->flow_bypassed_bytes, (int64_t)counters.bypassed_bytes);
     }
 #endif
 
