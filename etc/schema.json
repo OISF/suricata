@@ -8552,6 +8552,10 @@
                     "description": "Performance statistics for global memory use and memory capacity for Host table",
                     "additionalProperties": false,
                     "properties": {
+                        "active": {
+                            "type": "integer",
+                            "description": "Number of Host table entries currently in use"
+                        },
                         "memcap": {
                             "type": "integer",
                             "description": "Global memory capacity reached for Host table"
@@ -8596,6 +8600,10 @@
                     "description": "Performance statistics for global memory use and memory capacity for IP Pair table",
                     "additionalProperties": false,
                     "properties": {
+                        "active": {
+                            "type": "integer",
+                            "description": "Number of IP Pair table entries currently in use"
+                        },
                         "memcap": {
                             "type": "integer",
                             "description": "Global memory capacity reached for IP Pair table"
