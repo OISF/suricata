@@ -40,3 +40,9 @@ alert dnp3 any any -> any any (msg:"SURICATA DNP3 Too many objects"; \
 alert dnp3 any any -> any any (msg:"SURICATA DNP3 Too long reassembly"; \
       app-layer-event:dnp3.too_long_reassembly; \
       classtype:protocol-command-decode; sid:2270007; rev:1;)
+
+# A link header with a valid CRC that breaks a link-layer rule (a function
+# code not defined for the PRM bit, a wrong FCV or FCB, or a LENGTH other than
+# 5 for a function without user data).
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Bad link rule"; \
+      app-layer-event:dnp3.bad_link_rule; classtype:protocol-command-decode; sid:2270008; rev:1;)
