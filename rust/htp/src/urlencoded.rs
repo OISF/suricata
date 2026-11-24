@@ -498,7 +498,7 @@ fn decode_uri<'a>(
 pub(crate) fn decode_uri_path_inplace(cfg: &DecoderConfig, input: &mut Bstr) -> Result<()> {
     let (_, consumed) = fold_many0(
         alt((decode_percent(cfg), unencoded_byte(cfg))),
-        || Vec::new(),
+        Vec::new,
         |mut acc: Vec<_>, upr: UrlParseResult| {
             if upr.decode {
                 acc.push(upr.byte);
