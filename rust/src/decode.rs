@@ -27,6 +27,7 @@ pub const PKT_TUNNEL_UNKNOWN: u16 = u16::MAX;
 fn decoder_tunnel_proto(s: Option<&str>) -> Option<SCPacketTunnelProto> {
     return match s {
         Some("erspan2") => Some(SCPacketTunnelProto::DECODE_TUNNEL_ERSPANII),
+        Some("erspan3") => Some(SCPacketTunnelProto::DECODE_TUNNEL_ERSPANIII),
         Some("vxlan") => Some(SCPacketTunnelProto::DECODE_TUNNEL_VXLAN),
         _ => None,
     };
@@ -53,7 +54,8 @@ pub struct flowtunnel_keys {
 
 fn tunnel_session_valid_range(session: u32, tunnel_proto: SCPacketTunnelProto) -> bool {
     match tunnel_proto {
-        SCPacketTunnelProto::DECODE_TUNNEL_ERSPANII => session <= 0x3FF,
+        SCPacketTunnelProto::DECODE_TUNNEL_ERSPANII
+        | SCPacketTunnelProto::DECODE_TUNNEL_ERSPANIII => session <= 0x3FF,
         SCPacketTunnelProto::DECODE_TUNNEL_VXLAN => session <= 0xFFFFFF,
         _ => false,
     }
