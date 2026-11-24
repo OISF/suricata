@@ -19,7 +19,7 @@ use crate::detect::EnumString;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::nfs::nfs::*;
 use crate::nfs::types::*;
-use crc::crc32;
+use crc::Crc;
 use std::string::String;
 
 #[no_mangle]
@@ -73,9 +73,10 @@ fn nfs_handle2hex(bytes: &Vec<u8>) -> String {
     strings.join("")
 }
 */
+static NFS_CRC32: Crc<u32> = Crc::<u32>::new(&crc::CRC_32_ISO_HDLC);
+
 fn nfs_handle2crc(bytes: &[u8]) -> u32 {
-    let c = crc32::checksum_ieee(bytes);
-    c
+    NFS_CRC32.checksum(bytes)
 }
 
 fn nfs_common_header(
