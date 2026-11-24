@@ -842,10 +842,38 @@ static inline void MoveToWorkQueue(ThreadVars *tv, FlowLookupStruct *fls,
     }
 }
 
+#ifdef CAPTURE_OFFLOAD
+/** \internal
+ *  \brief check if a flow should be polled for updates about its activity
+ *  \param f locked flow
+ */
+static inline bool FlowCaptureBypassNeedsPoll(const Flow *f)
+{
+    if (f->flow_state != FLOW_STATE_CAPTURE_BYPASSED) {
+        return false;
+    }
+    const FlowBypassInfo *fc = SCFlowGetStorageById(f, GetFlowBypassInfoID());
+    return fc != NULL && fc->BypassUpdate != NULL;
+}
+#endif
+
+/**
+ * \brief Fast-path check if a flow has timed out
+ *
+ * Note that this is not evaluating capture-bypassed flows to avoid waiting for
+ * their poll callback (stats update).
+ *
+ * \return true if the flow has timed out, false otherwise
+ */
 static inline bool FlowIsTimedOut(
         const FlowThreadId ftid, const Flow *f, const SCTime_t pktts, const bool emerg)
 {
     SCTime_t timesout_at;
+#ifdef CAPTURE_OFFLOAD
+    if (FlowCaptureBypassNeedsPoll(f)) {
+        return false;
+    }
+#endif
     if (emerg) {
         extern FlowProtoTimeout flow_timeouts_emerg[FLOW_PROTO_MAX];
         timesout_at = SCTIME_ADD_SECS(f->lastts,

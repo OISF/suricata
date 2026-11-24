@@ -1536,6 +1536,123 @@ static int FlowTest09 (void)
     return result;
 }
 
+#ifdef CAPTURE_OFFLOAD
+static bool FlowTestBypassUpdate(Flow *f, void *data, time_t tsec)
+{
+    return true;
+}
+
+/** \brief init the flow engine with the flow bypass info storage */
+static void FlowTestCaptureBypassInit(void)
+{
+    SCStorageCleanup();
+    SCStorageInit();
+    RegisterFlowBypassInfo();
+    SCStorageFinalize();
+    FlowInitConfig(FLOW_QUIET);
+}
+
+/**
+ *  \brief put a locked flow in capture bypass
+ *  \param update_cb the capture method registers a BypassUpdate() callback
+ */
+static bool FlowTestCaptureBypass(Flow *f, const bool update_cb)
+{
+    FlowBypassInfo *fc = SCCalloc(1, sizeof(*fc));
+    if (fc == NULL) {
+        return false;
+    }
+    if (update_cb) {
+        fc->BypassUpdate = FlowTestBypassUpdate;
+    }
+    SCFlowSetStorageById(f, GetFlowBypassInfoID(), fc);
+    FlowUpdateState(f, FLOW_STATE_CAPTURE_BYPASSED);
+    return true;
+}
+
+/**
+ *  \brief run the worker timeout check on the hash row of a timed out
+ *         capture-bypassed flow
+ *  \param update_cb the flow has a BypassUpdate() callback
+ */
+static int FlowTestCaptureBypassedWorkerTimeoutRun(const bool update_cb)
+{
+    FlowTestCaptureBypassInit();
+
+    ThreadVars tv;
+    memset(&tv, 0, sizeof(tv));
+    FlowLookupStruct fls;
+    memset(&fls, 0, sizeof(fls));
+    uint8_t payload[] = "Payload";
+
+    Packet *p1 = UTHBuildPacketSrcDst(payload, sizeof(payload), IPPROTO_UDP, "1.2.3.4", "5.6.7.8");
+    FAIL_IF_NULL(p1);
+    p1->ts = SCTIME_FROM_SECS(1000);
+    FlowHandlePacket(&tv, &fls, p1);
+    Flow *f = p1->flow;
+    FAIL_IF_NULL(f);
+    FlowBucket *fb = f->fb;
+    FAIL_IF_NOT(FlowTestCaptureBypass(f, update_cb));
+    FLOWLOCK_UNLOCK(f);
+
+    /* another flow in the same row, long after the first one timed out */
+    Packet *p2 = UTHBuildPacketSrcDst(payload, sizeof(payload), IPPROTO_UDP, "1.2.3.4", "9.9.9.9");
+    FAIL_IF_NULL(p2);
+    p2->flow_hash = p1->flow_hash;
+    p2->ts = SCTIME_ADD_SECS(p1->ts, f->timeout_policy * 2);
+    SC_ATOMIC_SET(fb->next_ts, 0);
+    FlowHandlePacket(&tv, &fls, p2);
+    FAIL_IF_NULL(p2->flow);
+    FAIL_IF(p2->flow == f);
+    FLOWLOCK_UNLOCK(p2->flow);
+    FAIL_IF(fb->head != p2->flow);
+
+    if (update_cb) {
+        /* left in the row for the flow manager */
+        FAIL_IF(f->fb != fb);
+        FAIL_IF(p2->flow->next != f);
+        FAIL_IF(f->flow_end_flags & FLOW_END_FLAG_TIMEOUT);
+        FAIL_IF(fls.work_queue.len != 0);
+    } else {
+        /* nothing to poll: timed out by the worker */
+        FAIL_IF(p2->flow->next != NULL);
+        FAIL_IF_NOT(f->flow_end_flags & FLOW_END_FLAG_TIMEOUT);
+        FAIL_IF(FlowQueuePrivateGetFromTop(&fls.work_queue) != f);
+        FlowClearMemory(f, f->protomap);
+        FlowFree(f);
+    }
+
+    UTHFreePacket(p1);
+    UTHFreePacket(p2);
+    Flow *spare;
+    while ((spare = FlowQueuePrivateGetFromTop(&fls.spare_queue))) {
+        FlowFree(spare);
+    }
+    FlowShutdown();
+    SCStorageCleanup();
+    PASS;
+}
+
+/**
+ *  \test A packet lookup that runs the timeout check on a hash row must
+ *        leave a timed out capture-bypassed flow in the row if the flow has
+ *        to be polled in the capture method.
+ */
+static int FlowTestCaptureBypassedWorkerTimeout(void)
+{
+    return FlowTestCaptureBypassedWorkerTimeoutRun(true);
+}
+
+/**
+ *  \test A capture-bypassed flow without BypassUpdate() callback is timed
+ *        out by the packet lookup like any other flow.
+ */
+static int FlowTestCaptureBypassedNoUpdateWorkerTimeout(void)
+{
+    return FlowTestCaptureBypassedWorkerTimeoutRun(false);
+}
+#endif /* CAPTURE_OFFLOAD */
+
 #endif /* UNITTESTS */
 
 /**
@@ -1553,6 +1670,11 @@ void FlowRegisterTests (void)
                    FlowTest08);
     UtRegisterTest("FlowTest09 -- Test flow Allocations when it reach memcap",
                    FlowTest09);
+#ifdef CAPTURE_OFFLOAD
+    UtRegisterTest("FlowTestCaptureBypassedWorkerTimeout", FlowTestCaptureBypassedWorkerTimeout);
+    UtRegisterTest("FlowTestCaptureBypassedNoUpdateWorkerTimeout",
+            FlowTestCaptureBypassedNoUpdateWorkerTimeout);
+#endif
 
     SCRegisterFlowStorageTests();
 #endif /* UNITTESTS */
