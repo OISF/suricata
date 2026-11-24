@@ -3225,6 +3225,11 @@ static int SigValidatePacketStream(const Signature *s)
                    "tcp-stream or flow:only_stream.  Invalidating signature.");
         SCReturnInt(0);
     }
+    if ((s->flags & SIG_FLAG_REQUIRE_PACKET) &&
+            (s->init_data->hook.type == SIGNATURE_HOOK_TYPE_APP)) {
+        SCLogError("can't use packet keywords in an app hook rule.");
+        SCReturnInt(0);
+    }
     SCReturnInt(1);
 }
 
