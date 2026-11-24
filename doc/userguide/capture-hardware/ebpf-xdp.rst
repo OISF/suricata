@@ -474,7 +474,10 @@ the maps will remain accessible upon Suricata start.
 If XDP bypass is activated, Suricata will try at start to open the pinned maps
 `flow_v4_table` and `flow_v6_table`. If they are present, this means the XDP filter
 is still there and Suricata will just use them instead of attaching the XDP file to
-the interface.
+the interface. When Suricata stops, the entries of the bypassed flows that have not
+reached their ``bypassed`` flow timeout are left in these maps. These flows stay
+bypassed while Suricata is not running and Suricata tracks them again once started,
+with their ``bypassed`` flow timeout starting again at that point.
 
 So if you want to reload the XDP filter, you need to remove the files from `/sys/fs/bpf/`
 before starting Suricata.
