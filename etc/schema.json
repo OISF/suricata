@@ -9014,6 +9014,10 @@
                         "pseudo": {
                             "type": "integer"
                         },
+                        "reassembly_active_segments": {
+                            "type": "integer",
+                            "description": "Number of TCP reassembly segments currently in use"
+                        },
                         "reassembly_gap": {
                             "type": "integer"
                         },
