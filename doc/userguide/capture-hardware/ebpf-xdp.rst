@@ -472,7 +472,7 @@ In the case of XDP, the eBPF filter is attached to the interface so if you
 activate `pinned-maps` the eBPF will remain attached to the interface and
 the maps will remain accessible upon Suricata start.
 If XDP bypass is activated, Suricata will try at start to open the pinned maps
-`flow_v4_table` and `flow_v6_table`. If they are present, this means the XDP filter
+`flow_table_v4` and `flow_table_v6`. If they are present, this means the XDP filter
 is still there and Suricata will just use them instead of attaching the XDP file to
 the interface. When Suricata stops, the entries of the bypassed flows that have not
 reached their ``bypassed`` flow timeout are left in these maps. These flows stay
