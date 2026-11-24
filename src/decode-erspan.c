@@ -21,13 +21,12 @@
  * @{
  */
 
-
 /**
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Decodes ERSPAN Types I and II
+ * Decodes ERSPAN Types I, II and III
  */
 
 #include "suricata-common.h"
@@ -54,8 +53,11 @@ typedef struct Erspan3Hdr_ {
     uint16_t flags;
 } __attribute__((__packed__)) Erspan3Hdr;
 
+/* optional platform specific sub-header of Type III, present when the O flag is set */
+#define PLATFORM_SPECIFIC_HDR_SIZE 8
+
 /**
- * \brief Functions to decode ERSPAN Type I and II packets
+ * \brief Functions to decode ERSPAN Type I, II and III packets
  */
 
 /*
@@ -162,7 +164,6 @@ int DecodeERSPANTypeIII(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, Packet
     /* If O flag is set, then the optional platform specific header is present.
      * We need to skip past it.
      */
-#define PLATFORM_SPECIFIC_HDR_SIZE 8
     if (flags & 0x0001) {
         if (len < PLATFORM_SPECIFIC_HDR_SIZE) {
             ENGINE_SET_EVENT(parent, ERSPAN_HEADER_TOO_SMALL);
