@@ -453,7 +453,7 @@ Packet *PacketTunnelPktSetupWithSession(ThreadVars *tv, DecodeThreadVars *dtv, P
     p->tenant_id = parent->tenant_id;
     p->livedev_id = parent->livedev_id;
 
-#ifdef HAVE_PACKET_EBPF
+#if defined(HAVE_PACKET_EBPF) && defined(HAVE_AF_PACKET)
     // need to copy BypassPacketsFlow callback and such
     AFPReadCopyBypass(p, parent);
 #endif
