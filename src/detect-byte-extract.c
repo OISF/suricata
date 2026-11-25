@@ -115,9 +115,9 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData 
     }
 
     /* Validate that the to-be-extracted is within the packet */
-    if (ptr < payload || data->nbytes > len) {
-        SCLogDebug("Data not within payload pkt=%p, ptr=%p, len=%"PRIu32", nbytes=%d",
-                    payload, ptr, len, data->nbytes);
+    if (ptr < payload || (int32_t)data->nbytes > len) {
+        SCLogDebug("Data not within payload pkt=%p, ptr=%p, len=%" PRIi32 ", nbytes=%u", payload,
+                ptr, len, data->nbytes);
         return 0;
     }
 

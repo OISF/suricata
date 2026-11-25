@@ -96,14 +96,13 @@ void DetectBytetestRegister (void)
  *
  * 8 - Without string, the maximum byte extract count is 8.
  */
-static inline bool DetectBytetestValidateNbytesOnly(const DetectBytetestData *data, int32_t nbytes)
+static inline bool DetectBytetestValidateNbytesOnly(const DetectBytetestData *data, uint32_t nbytes)
 {
-    return nbytes >= 0 &&
-           (((data->flags & DETECT_BYTETEST_STRING) && nbytes <= 23) || (nbytes <= 8));
+    return ((data->flags & DETECT_BYTETEST_STRING) && nbytes <= 23) || (nbytes <= 8);
 }
 
 static bool DetectBytetestValidateNbytes(
-        const DetectBytetestData *data, int32_t nbytes, const char *optstr)
+        const DetectBytetestData *data, uint32_t nbytes, const char *optstr)
 {
     if (!DetectBytetestValidateNbytesOnly(data, nbytes)) {
         if (data->flags & DETECT_BYTETEST_STRING) {
@@ -154,7 +153,7 @@ static bool DetectBytetestValidateNbytes(
  */
 int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         const SigMatchCtx *ctx, const uint8_t *payload, uint32_t payload_len, uint16_t flags,
-        int32_t offset, int32_t nbytes, uint64_t value)
+        int32_t offset, uint32_t nbytes, uint64_t value)
 {
     SCEnter();
 
@@ -165,7 +164,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     const DetectBytetestData *data = (const DetectBytetestData *)ctx;
     if (data->flags & DETECT_BYTETEST_NBYTES_VAR) {
         if (!DetectBytetestValidateNbytesOnly(data, nbytes)) {
-            SCLogDebug("Invalid byte_test nbytes seen in byte_test - %d", nbytes);
+            SCLogDebug("Invalid byte_test nbytes seen in byte_test - %u", nbytes);
             SCReturnInt(0);
         }
     }
@@ -205,8 +204,9 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     /* Validate that the to-be-extracted is within the packet.
      * \todo Should this validate it is in the *payload*?
      */
-    if (ptr < payload || nbytes < 0 || nbytes > len) {
-        SCLogDebug("Data not within payload pkt=%p, ptr=%p, len=%" PRIu32 ", nbytes=%d", payload,
+
+    if (ptr < payload || (int64_t)nbytes > (int64_t)len) {
+        SCLogDebug("Data not within payload pkt=%p, ptr=%p, len=%" PRIi32 ", nbytes=%u", payload,
                 ptr, len, nbytes);
         SCReturnInt(0);
     }
@@ -222,7 +222,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                 SCLogDebug("No Numeric value");
                 SCReturnInt(0);
             } else {
-                SCLogDebug("error extracting %d "
+                SCLogDebug("error extracting %u "
                            "bytes of string data: %d",
                         nbytes, extbytes);
                 SCReturnInt(-1);
@@ -236,8 +236,8 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         int endianness = (flags & DETECT_BYTETEST_LITTLE) ?
                           BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
         extbytes = ByteExtractUint64(&val, endianness, (uint16_t)nbytes, ptr);
-        if (extbytes != nbytes) {
-            SCLogDebug("error extracting %d bytes "
+        if ((int64_t)extbytes != (int64_t)nbytes) {
+            SCLogDebug("error extracting %u bytes "
                        "of numeric data: %d",
                     nbytes, extbytes);
             SCReturnInt(-1);

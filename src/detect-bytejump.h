@@ -77,6 +77,6 @@ void DetectBytejumpRegister (void);
  * \retval  true
  */
 bool DetectBytejumpDoMatch(DetectEngineThreadCtx *, const Signature *, const SigMatchCtx *,
-        const uint8_t *, uint32_t, uint16_t, int32_t, int32_t);
+        const uint8_t *, uint32_t, uint16_t, uint32_t, int32_t);
 
 #endif /* SURICATA_DETECT_BYTEJUMP_H */
