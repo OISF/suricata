@@ -1,0 +1,18 @@
+[licenses]
+allow = [
+    "BSD-3-Clause",
+    "BSL-1.0", # Boost Software License
+    "MIT",
+    "Unicode-3.0",
+    "Zlib",
+]
+
+# Accept Suricata's own GPL licenses.
+exceptions = [
+    { crate = "suricata", allow = ["GPL-2.0-only"] },
+    { crate = "suricata-derive", allow = ["GPL-2.0-only"] },
+    { crate = "suricata-ffi", allow = ["GPL-2.0-only"] },
+    { crate = "suricata-sys", allow = ["GPL-2.0-only"] },
+    { crate = "suricatactl", allow = ["GPL-2.0-only"] },
+    { crate = "suricatasc", allow = ["GPL-2.0-only"] },
+]
