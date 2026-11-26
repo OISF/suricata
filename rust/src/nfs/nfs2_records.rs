@@ -65,6 +65,18 @@ pub fn parse_nfs2_request_read(i: &[u8]) -> IResult<&[u8], Nfs2RequestRead<'_>> 
     Ok((i, req))
 }
 
+/// The handle a successful LOOKUP, CREATE or MKDIR reply returns for the
+/// object it names. RFC 1094 keeps the name in the request (diropres carries
+/// only the handle and the attributes), so the caller pairs the two.
+pub fn parse_nfs2_reply_handle(i: &[u8]) -> IResult<&[u8], (u32, &[u8])> {
+    let (i, status) = be_u32(i)?;
+    if status != 0 {
+        return Ok((i, (status, &[])));
+    }
+    let (i, handle) = parse_nfs2_handle(i)?;
+    Ok((i, (status, handle.value)))
+}
+
 pub fn parse_nfs2_reply_read(i: &[u8]) -> IResult<&[u8], NfsReplyRead<'_>> {
     let (i, status) = be_u32(i)?;
     let (i, attr_blob) = take(68_usize)(i)?;
@@ -356,5 +368,59 @@ mod tests {
         assert_eq!(req.linkname_vec, b"lnk".to_vec());
         assert_eq!(req.handle.value, &buf[..32]);
         assert_eq!(req.linkdir.value, &buf[32..64]);
+    }
+
+    #[test]
+    fn test_nfs2_reply_handle() {
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, /*Status: NFS_OK*/
+            0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, /*handle (32 B)*/
+            0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42,
+            0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42,
+            0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42,
+        ];
+
+        let (r, (status, handle)) = parse_nfs2_reply_handle(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(status, 0);
+        assert_eq!(handle, &[0x42; 32][..]);
+    }
+
+    #[test]
+    fn test_nfs2_reply_lookup_error_has_no_body() {
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x02, /*Status: NFSERR_NOENT*/
+        ];
+
+        let (r, (status, handle)) = parse_nfs2_reply_handle(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(status, 2);
+        assert!(handle.is_empty());
+    }
+
+    #[test]
+    fn test_nfs2_reply_created_handle() {
+        #[rustfmt::skip]
+        let buf: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, /*Status: NFS_OK*/
+            0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, /*handle (32 B)*/
+            0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42,
+            0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42,
+            0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42,
+        ];
+
+        let (r, (status, handle)) = parse_nfs2_reply_handle(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(status, 0);
+        assert_eq!(handle, &[0x42; 32][..]);
+
+        // a failed create returns no handle
+        let buf: &[u8] = &[0x00, 0x00, 0x00, 0x11];
+        let (r, (status, handle)) = parse_nfs2_reply_handle(buf).unwrap();
+        assert_eq!(r.len(), 0);
+        assert_eq!(status, 17);
+        assert!(handle.is_empty());
     }
 }

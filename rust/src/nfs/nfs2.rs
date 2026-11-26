@@ -39,6 +39,9 @@ impl NFSState {
 
         let mut xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
         let mut aux_file_name = Vec::new();
+        // Only a name this record carried is checked against the RFC 1094
+        // bound; one resolved from the handle map was checked when it was parsed.
+        let mut name_from_request = false;
         // Raised on the transaction this record creates: set_event() would land on an
         // older one, or on nothing at all for the first record of a flow.
         let mut malformed = false;
@@ -65,6 +68,7 @@ impl NFSState {
         } else if r.procedure == NFSPROC2_LOOKUP {
             if let Ok((_, rd)) = parse_nfs2_request_lookup(r.prog_data) {
                 xidmap.file_name = rd.name_vec;
+                name_from_request = true;
             } else {
                 malformed = true;
             }
@@ -79,6 +83,7 @@ impl NFSState {
             if let Ok((_, rd)) = parse_nfs2_request_name_op(r.prog_data) {
                 xidmap.file_handle = rd.handle.value.to_vec();
                 xidmap.file_name = rd.name_vec;
+                name_from_request = true;
             } else {
                 malformed = true;
             }
@@ -87,6 +92,7 @@ impl NFSState {
                 xidmap.file_handle = rd.from_handle.value.to_vec();
                 xidmap.file_name = rd.from_name_vec;
                 aux_file_name = rd.to_name_vec;
+                name_from_request = true;
             } else {
                 malformed = true;
             }
@@ -94,6 +100,7 @@ impl NFSState {
             if let Ok((_, rd)) = parse_nfs2_request_link(r.prog_data) {
                 xidmap.file_handle = rd.linkdir.value.to_vec();
                 xidmap.file_name = rd.linkname_vec;
+                name_from_request = true;
             } else {
                 malformed = true;
             }
@@ -120,8 +127,9 @@ impl NFSState {
             tx.procedure = r.procedure;
             tx.request_done = true;
             tx.file_name = xidmap.file_name.to_vec();
-            if tx.file_name.len() > NFS2_NAME_SPEC_MAX
-                || (r.procedure == NFSPROC2_RENAME && aux_file_name.len() > NFS2_NAME_SPEC_MAX)
+            if name_from_request
+                && (tx.file_name.len() > NFS2_NAME_SPEC_MAX
+                    || (r.procedure == NFSPROC2_RENAME && aux_file_name.len() > NFS2_NAME_SPEC_MAX))
             {
                 // out of spec, but kept: detection still sees the whole name
                 tx.tx_data.set_event(NFSEvent::MalformedData as u8);
@@ -159,11 +167,19 @@ impl NFSState {
     pub fn process_reply_record_v2(
         &mut self, flow: *mut Flow, r: &RpcReplyPacket, xidmap: &NFSRequestXidMap,
     ) {
+        // A reply rejected at the message level (GARBAGE_ARGS, PROC_UNAVAIL)
+        // carries no program body: a status is all that is missing, so there
+        // is nothing to read and nothing to flag.
+        if r.accept_state != 0 {
+            self.mark_response_tx_done(flow, r.hdr.xid, r.reply_state, 0, false, &[], &[]);
+            return;
+        }
+
         let mut nfs_status = 0;
         // a reply shorter than a status word carries none: keep the tx
         // status unset rather than log a fake OK
         let mut nfs_status_set = false;
-        let resp_handle = Vec::new();
+        let mut resp_handle = Vec::new();
 
         if xidmap.procedure == NFSPROC3_READ {
             match parse_nfs2_reply_read(r.prog_data) {
@@ -172,6 +188,27 @@ impl NFSState {
                     self.process_read_record(flow, r, reply, Some(xidmap), false);
                     nfs_status = reply.status;
                     nfs_status_set = true;
+                }
+                _ => {
+                    self.set_event(NFSEvent::MalformedData);
+                }
+            }
+        } else if xidmap.procedure == NFSPROC2_LOOKUP
+            || xidmap.procedure == NFSPROC2_CREATE
+            || xidmap.procedure == NFSPROC2_MKDIR
+        {
+            // RFC 1094 diropres carries the object's handle and attributes; the
+            // name is in the request. This reply is the only place the handle
+            // shows up, so the mapping has to be built here or every later
+            // handle-only op on the object stays nameless.
+            match parse_nfs2_reply_handle(r.prog_data) {
+                Ok((_, (status, handle))) => {
+                    nfs_status = status;
+                    nfs_status_set = true;
+                    if status == 0 && !handle.is_empty() {
+                        self.namemap.put(handle.to_vec(), xidmap.file_name.to_vec());
+                        resp_handle = handle.to_vec();
+                    }
                 }
                 _ => {
                     self.set_event(NFSEvent::MalformedData);
