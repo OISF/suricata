@@ -1190,6 +1190,8 @@ void DecodeUpdatePacketCounters(ThreadVars *tv,
                                 const DecodeThreadVars *dtv, const Packet *p);
 const char *PacketDropReasonToString(enum PacketDropReason r);
 
+void *DecodeTunnelsGetMapIter(void);
+
 /* decoder functions */
 int DecodeEthernet(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
 int DecodeSll(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t);
@@ -1318,7 +1320,8 @@ void DecodeGlobalConfigDeinit(void);
 /** Packet is part of established stream */
 #define PKT_STREAM_EST BIT_U32(6)
 
-// vacancy
+/** packet carries a decoded tunnel (spawned tunnel packets) */
+#define PKT_TUNNEL_PARENT BIT_U32(7)
 
 #define PKT_HAS_FLOW   BIT_U32(8)
 /** Pseudo packet to end the stream */

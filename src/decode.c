@@ -425,6 +425,12 @@ void PacketSetTunnelId(Packet *p, uint32_t session)
     k.tunnel_proto = (uint8_t)p->tproto;
     p->tunnel_id = DecodeTunnelsId(decode_tunnels_map, k);
 }
+
+void *DecodeTunnelsGetMapIter(void)
+{
+    return DecodeTunnelsIterStart(decode_tunnels_map);
+}
+
 Packet *PacketTunnelPktSetupWithSession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
         const uint8_t *pkt, uint32_t len, enum SCPacketTunnelProto proto, uint32_t *session)
 {
@@ -454,6 +460,10 @@ Packet *PacketTunnelPktSetupWithSession(ThreadVars *tv, DecodeThreadVars *dtv, P
     p->tenant_id = parent->tenant_id;
     p->livedev_id = parent->livedev_id;
 
+#if defined(HAVE_PACKET_EBPF) && defined(HAVE_AF_PACKET)
+    // need to copy BypassPacketsFlow callback and such
+    AFPReadCopyBypass(p, parent);
+#endif
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL) {
         p->root = parent->root;
@@ -486,6 +496,7 @@ Packet *PacketTunnelPktSetupWithSession(ThreadVars *tv, DecodeThreadVars *dtv, P
     if (parent->root == NULL) {
         parent->ttype = PacketTunnelRoot;
     }
+    parent->flags |= PKT_TUNNEL_PARENT;
     TUNNEL_INCR_PKT_TPR(p);
 
     /* disable payload (not packet) inspection on the parent, as the payload
