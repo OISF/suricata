@@ -66,6 +66,8 @@ struct bpf_map_item {
     char * name;
     int fd;
     uint8_t to_unlink;
+    /** flow table that stays pinned in the bpf filesystem when Suricata exits */
+    bool pinned;
 };
 
 struct bpf_maps_info {
@@ -166,6 +168,32 @@ int EBPFGetMapFDByName(const char *iface, const char *name)
     return -1;
 }
 
+/**
+ * Check if a map stays pinned in the bpf filesystem when Suricata exits
+ *
+ * The map is searched on all devices: it belongs to the device that bypassed
+ * the flow, which is not always the device the flow was first seen on.
+ *
+ * \param fd the file descriptor of the map
+ * \return true if the map and its entries outlive this Suricata instance
+ */
+static bool EBPFMapIsPinned(const int fd)
+{
+    LiveDevice *ldev = NULL, *ndev;
+    while (LiveDeviceForEach(&ldev, &ndev)) {
+        const struct bpf_maps_info *bpf_maps = SCLiveDevGetStorageById(ldev, g_livedev_storage_id);
+        if (bpf_maps == NULL) {
+            continue;
+        }
+        for (int i = 0; i < bpf_maps->last; i++) {
+            if (bpf_maps->array[i].fd == fd) {
+                return bpf_maps->array[i].pinned;
+            }
+        }
+    }
+    return false;
+}
+
 static int EBPFLoadPinnedMapsFile(LiveDevice *livedev, const char *file)
 {
     char pinnedpath[1024];
@@ -213,11 +241,13 @@ static int EBPFLoadPinnedMaps(LiveDevice *livedev, struct ebpf_timeout_config *c
 
     if (config->mode == AFP_MODE_XDP_BYPASS) {
         bpf_map_data->array[0].fd = fd_v4;
+        bpf_map_data->array[0].pinned = true;
         bpf_map_data->array[0].name = SCStrdup("flow_table_v4");
         if (bpf_map_data->array[0].name == NULL) {
             goto alloc_error;
         }
         bpf_map_data->array[1].fd = fd_v6;
+        bpf_map_data->array[1].pinned = true;
         bpf_map_data->array[1].name = SCStrdup("flow_table_v6");
         if (bpf_map_data->array[1].name == NULL) {
             goto alloc_error;
@@ -450,6 +480,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
             /* Don't unlink pinned maps in XDP mode to avoid a state reset */
             if (config->flags & EBPF_XDP_CODE) {
                 bpf_map_data->array[bpf_map_data->last].to_unlink = 0;
+                bpf_map_data->array[bpf_map_data->last].pinned = (ret == 0);
             } else {
                 bpf_map_data->array[bpf_map_data->last].to_unlink = 1;
             }
@@ -667,6 +698,14 @@ bool EBPFBypassUpdate(Flow *f, void *data, time_t tsec)
     bool activity = EBPFBypassCheckHalfFlow(f, fc, eb, eb->key[0], 0);
     activity |= EBPFBypassCheckHalfFlow(f, fc, eb, eb->key[1], 1);
     if (!activity) {
+        const SCTime_t timesout_at = SCTIME_ADD_SECS(f->lastts, f->timeout_policy);
+        if ((f->flow_end_flags & FLOW_END_FLAG_SHUTDOWN) &&
+                SCTIME_CMP_LT(SCTIME_FROM_SECS(tsec), timesout_at) && EBPFMapIsPinned(eb->mapfd)) {
+            /* not timed out: the bypass stays active in the kernel and the
+             * entries are picked up from the pinned map at the next start */
+            SCLogDebug("Keep pinned entry: %u (%" PRIu64 ")", FLOW_IS_IPV6(f), FlowGetId(f));
+            return true;
+        }
         SCLogDebug("Delete entry: %u (%" PRIu64 ")", FLOW_IS_IPV6(f), FlowGetId(f));
         /* delete the entries if no time update */
         EBPFDeleteKey(eb->mapfd, eb->key[0]);
@@ -768,6 +807,8 @@ static int EBPFForEachFlowV4Table(ThreadVars *th_v, LiveDevice *dev, const char 
             flow_key.vlan_id[1] = next_key.vlan1;
             flow_key.tunnel_id = 0;
         }
+        /* the eBPF keys hold two vlan layers */
+        flow_key.vlan_id[2] = 0;
         if (next_key.ip_proto == 1) {
             flow_key.proto = IPPROTO_TCP;
         } else {
@@ -893,6 +934,8 @@ static int EBPFForEachFlowV6Table(ThreadVars *th_v,
             flow_key.vlan_id[1] = next_key.vlan1;
             flow_key.tunnel_id = 0;
         }
+        /* the eBPF keys hold two vlan layers */
+        flow_key.vlan_id[2] = 0;
         if (next_key.ip_proto == 1) {
             flow_key.proto = IPPROTO_TCP;
         } else {

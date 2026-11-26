@@ -842,10 +842,38 @@ static inline void MoveToWorkQueue(ThreadVars *tv, FlowLookupStruct *fls,
     }
 }
 
+#ifdef CAPTURE_OFFLOAD
+/** \internal
+ *  \brief check if a flow should be polled for updates about its activity
+ *  \param f locked flow
+ */
+static inline bool FlowCaptureBypassNeedsPoll(const Flow *f)
+{
+    if (f->flow_state != FLOW_STATE_CAPTURE_BYPASSED) {
+        return false;
+    }
+    const FlowBypassInfo *fc = SCFlowGetStorageById(f, GetFlowBypassInfoID());
+    return fc != NULL && fc->BypassUpdate != NULL;
+}
+#endif
+
+/**
+ * \brief Fast-path check if a flow has timed out
+ *
+ * Note that this is not evaluating capture-bypassed flows to avoid waiting for
+ * their poll callback (stats update).
+ *
+ * \return true if the flow has timed out, false otherwise
+ */
 static inline bool FlowIsTimedOut(
         const FlowThreadId ftid, const Flow *f, const SCTime_t pktts, const bool emerg)
 {
     SCTime_t timesout_at;
+#ifdef CAPTURE_OFFLOAD
+    if (FlowCaptureBypassNeedsPoll(f)) {
+        return false;
+    }
+#endif
     if (emerg) {
         extern FlowProtoTimeout flow_timeouts_emerg[FLOW_PROTO_MAX];
         timesout_at = SCTIME_ADD_SECS(f->lastts,
@@ -1242,14 +1270,33 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv, const SCTime
             continue;
         }
 
+        /* Evaluate the first flow of the row. Capture-bypassed flows that
+         * have to be polled are passed over. */
+        Flow *prev_f = NULL;
         Flow *f = fb->head;
-        if (f == NULL) {
+        bool busy = false;
+        while (f != NULL) {
+            if (GetUsedTryLockFlow(f) != 0) {
+                busy = true;
+                break;
+            }
+#ifdef CAPTURE_OFFLOAD
+            if (FlowCaptureBypassNeedsPoll(f)) {
+                STATSADDUI64(counter_flow_get_used_eval_reject, 1);
+                FLOWLOCK_UNLOCK(f);
+                prev_f = f;
+                f = f->next;
+                continue;
+            }
+#endif
+            break;
+        }
+        if (busy) {
+            STATSADDUI64(counter_flow_get_used_eval_busy, 1);
             FBLOCK_UNLOCK(fb);
             continue;
         }
-
-        if (GetUsedTryLockFlow(f) != 0) {
-            STATSADDUI64(counter_flow_get_used_eval_busy, 1);
+        if (f == NULL) {
             FBLOCK_UNLOCK(fb);
             continue;
         }
@@ -1262,7 +1309,11 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv, const SCTime
         }
 
         /* remove from the hash */
-        fb->head = f->next;
+        if (prev_f != NULL) {
+            prev_f->next = f->next;
+        } else {
+            fb->head = f->next;
+        }
         f->next = NULL;
         f->fb = NULL;
         FBLOCK_UNLOCK(fb);

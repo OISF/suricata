@@ -3224,6 +3224,7 @@ jobs:
               zlib1g-dev \
               clang \
               libxdp-dev \
+              bpftool \
               podman \
               hping3 \
               tcpdump \
@@ -3274,6 +3275,8 @@ jobs:
         working-directory: rust
       - name: Running suricata-verify
         run: python3 ./suricata-verify/run.py -q --debug-failed
+      - name: Mount the bpf filesystem for pinned maps
+        run: grep -q " /sys/fs/bpf bpf " /proc/mounts || mount -t bpf bpf /sys/fs/bpf
       - name: Running suricata-verify replay tests
         run: python3 ./suricata-verify/run.py --replay --debug-failed
       - run: make install

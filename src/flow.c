@@ -1536,6 +1536,258 @@ static int FlowTest09 (void)
     return result;
 }
 
+#ifdef CAPTURE_OFFLOAD
+static bool FlowTestBypassUpdate(Flow *f, void *data, time_t tsec)
+{
+    return true;
+}
+
+/** \brief init the flow engine with the flow bypass info storage */
+static void FlowTestCaptureBypassInit(void)
+{
+    SCStorageCleanup();
+    SCStorageInit();
+    RegisterFlowBypassInfo();
+    SCStorageFinalize();
+    FlowInitConfig(FLOW_QUIET);
+}
+
+/**
+ *  \brief put a locked flow in capture bypass
+ *  \param update_cb the capture method registers a BypassUpdate() callback
+ */
+static bool FlowTestCaptureBypass(Flow *f, const bool update_cb)
+{
+    FlowBypassInfo *fc = SCCalloc(1, sizeof(*fc));
+    if (fc == NULL) {
+        return false;
+    }
+    if (update_cb) {
+        fc->BypassUpdate = FlowTestBypassUpdate;
+    }
+    SCFlowSetStorageById(f, GetFlowBypassInfoID(), fc);
+    FlowUpdateState(f, FLOW_STATE_CAPTURE_BYPASSED);
+    return true;
+}
+
+/**
+ *  \brief run the worker timeout check on the hash row of a timed out
+ *         capture-bypassed flow
+ *  \param update_cb the flow has a BypassUpdate() callback
+ */
+static int FlowTestCaptureBypassedWorkerTimeoutRun(const bool update_cb)
+{
+    FlowTestCaptureBypassInit();
+
+    ThreadVars tv;
+    memset(&tv, 0, sizeof(tv));
+    FlowLookupStruct fls;
+    memset(&fls, 0, sizeof(fls));
+    uint8_t payload[] = "Payload";
+
+    Packet *p1 = UTHBuildPacketSrcDst(payload, sizeof(payload), IPPROTO_UDP, "1.2.3.4", "5.6.7.8");
+    FAIL_IF_NULL(p1);
+    p1->ts = SCTIME_FROM_SECS(1000);
+    FlowHandlePacket(&tv, &fls, p1);
+    Flow *f = p1->flow;
+    FAIL_IF_NULL(f);
+    FlowBucket *fb = f->fb;
+    FAIL_IF_NOT(FlowTestCaptureBypass(f, update_cb));
+    FLOWLOCK_UNLOCK(f);
+
+    /* another flow in the same row, long after the first one timed out */
+    Packet *p2 = UTHBuildPacketSrcDst(payload, sizeof(payload), IPPROTO_UDP, "1.2.3.4", "9.9.9.9");
+    FAIL_IF_NULL(p2);
+    p2->flow_hash = p1->flow_hash;
+    p2->ts = SCTIME_ADD_SECS(p1->ts, f->timeout_policy * 2);
+    SC_ATOMIC_SET(fb->next_ts, 0);
+    FlowHandlePacket(&tv, &fls, p2);
+    FAIL_IF_NULL(p2->flow);
+    FAIL_IF(p2->flow == f);
+    FLOWLOCK_UNLOCK(p2->flow);
+    FAIL_IF(fb->head != p2->flow);
+
+    if (update_cb) {
+        /* left in the row for the flow manager */
+        FAIL_IF(f->fb != fb);
+        FAIL_IF(p2->flow->next != f);
+        FAIL_IF(f->flow_end_flags & FLOW_END_FLAG_TIMEOUT);
+        FAIL_IF(fls.work_queue.len != 0);
+    } else {
+        /* nothing to poll: timed out by the worker */
+        FAIL_IF(p2->flow->next != NULL);
+        FAIL_IF_NOT(f->flow_end_flags & FLOW_END_FLAG_TIMEOUT);
+        FAIL_IF(FlowQueuePrivateGetFromTop(&fls.work_queue) != f);
+        FlowClearMemory(f, f->protomap);
+        FlowFree(f);
+    }
+
+    UTHFreePacket(p1);
+    UTHFreePacket(p2);
+    Flow *spare;
+    while ((spare = FlowQueuePrivateGetFromTop(&fls.spare_queue))) {
+        FlowFree(spare);
+    }
+    FlowShutdown();
+    SCStorageCleanup();
+    PASS;
+}
+
+/**
+ *  \test A packet lookup that runs the timeout check on a hash row must
+ *        leave a timed out capture-bypassed flow in the row if the flow has
+ *        to be polled in the capture method.
+ */
+static int FlowTestCaptureBypassedWorkerTimeout(void)
+{
+    return FlowTestCaptureBypassedWorkerTimeoutRun(true);
+}
+
+/**
+ *  \test A capture-bypassed flow without BypassUpdate() callback is timed
+ *        out by the packet lookup like any other flow.
+ */
+static int FlowTestCaptureBypassedNoUpdateWorkerTimeout(void)
+{
+    return FlowTestCaptureBypassedWorkerTimeoutRun(false);
+}
+
+/** \brief no spare flows, memcap reached and only 2 rows to pick a used flow from */
+static void FlowTestCaptureBypassMemcap(FlowLookupStruct *fls)
+{
+    Flow *spare;
+    while ((spare = FlowQueuePrivateGetFromTop(&fls->spare_queue))) {
+        FlowFree(spare);
+    }
+    FlowQueuePrivate pool = FlowSpareGetFromPool();
+    while (pool.len != 0) {
+        while ((spare = FlowQueuePrivateGetFromTop(&pool))) {
+            FlowFree(spare);
+        }
+        pool = FlowSpareGetFromPool();
+    }
+    SC_ATOMIC_SET(flow_config.memcap, 0);
+    flow_config.hash_size = 2;
+}
+
+/**
+ *  \brief with the memcap reached and no spare flows, look up a new flow
+ *         while a hash row holds a capture-bypassed flow in front of two
+ *         other flows
+ *  \param recent the flow behind the capture-bypassed flow was just seen
+ */
+static int FlowTestCaptureBypassedGetUsedBehindRun(const bool recent)
+{
+    FlowTestCaptureBypassInit();
+    FlowConfig backup;
+    memcpy(&backup, &flow_config, sizeof(FlowConfig));
+
+    ThreadVars tv;
+    memset(&tv, 0, sizeof(tv));
+    FlowLookupStruct fls;
+    memset(&fls, 0, sizeof(fls));
+    uint8_t payload[] = "Payload";
+    const SCTime_t start = SCTIME_FROM_SECS(1000);
+    const SCTime_t later = SCTIME_ADD_SECS(start, 100000);
+
+    /* flows are added in front of their row: the last flow of the row first */
+    Packet *p0 = UTHBuildPacketSrcDst(payload, sizeof(payload), IPPROTO_UDP, "1.2.3.4", "4.4.4.4");
+    FAIL_IF_NULL(p0);
+    p0->ts = start;
+    p0->flow_hash = 1;
+    FlowHandlePacket(&tv, &fls, p0);
+    Flow *tail = p0->flow;
+    FAIL_IF_NULL(tail);
+    FlowBucket *fb = tail->fb;
+    FAIL_IF(fb != &flow_hash[1]);
+    tail->lastts = start;
+    FLOWLOCK_UNLOCK(tail);
+
+    Packet *p1 = UTHBuildPacketSrcDst(payload, sizeof(payload), IPPROTO_UDP, "1.2.3.4", "5.6.7.8");
+    FAIL_IF_NULL(p1);
+    p1->ts = start;
+    p1->flow_hash = 1;
+    FlowHandlePacket(&tv, &fls, p1);
+    Flow *behind = p1->flow;
+    FAIL_IF_NULL(behind);
+    behind->lastts = recent ? later : start;
+    FLOWLOCK_UNLOCK(behind);
+
+    Packet *p2 = UTHBuildPacketSrcDst(payload, sizeof(payload), IPPROTO_UDP, "1.2.3.4", "6.6.6.6");
+    FAIL_IF_NULL(p2);
+    p2->ts = start;
+    p2->flow_hash = 1;
+    FlowHandlePacket(&tv, &fls, p2);
+    Flow *bypassed = p2->flow;
+    FAIL_IF_NULL(bypassed);
+    FAIL_IF_NOT(FlowTestCaptureBypass(bypassed, true));
+    FLOWLOCK_UNLOCK(bypassed);
+    FAIL_IF(fb->head != bypassed);
+    FAIL_IF(bypassed->next != behind);
+    FAIL_IF(behind->next != tail);
+
+    FlowTestCaptureBypassMemcap(&fls);
+
+    /* a flow for the other row */
+    Packet *p3 = UTHBuildPacketSrcDst(payload, sizeof(payload), IPPROTO_UDP, "1.2.3.4", "9.9.9.9");
+    FAIL_IF_NULL(p3);
+    p3->ts = later;
+    p3->flow_hash = 0;
+    FlowHandlePacket(&tv, &fls, p3);
+
+    FAIL_IF(fb->head != bypassed);
+    FAIL_IF(bypassed->fb != fb);
+    FAIL_IF(bypassed->flow_state != FLOW_STATE_CAPTURE_BYPASSED);
+    FAIL_IF(bypassed->flow_end_flags & FLOW_END_FLAG_FORCED);
+    FAIL_IF(FLOWLOCK_TRYWRLOCK(bypassed) != 0);
+    FLOWLOCK_UNLOCK(bypassed);
+    if (recent) {
+        /* the flow behind is still alive: no flow for the packet */
+        FAIL_IF_NOT_NULL(p3->flow);
+        FAIL_IF(bypassed->next != behind);
+        FAIL_IF(behind->next != tail);
+    } else {
+        /* the idle flow behind is taken for the packet */
+        FAIL_IF(p3->flow != behind);
+        FAIL_IF(behind->fb != &flow_hash[0]);
+        FLOWLOCK_UNLOCK(behind);
+        FAIL_IF(bypassed->next != tail);
+    }
+    FAIL_IF(tail->next != NULL);
+    FAIL_IF(tail->fb != fb);
+
+    UTHFreePacket(p0);
+    UTHFreePacket(p1);
+    UTHFreePacket(p2);
+    UTHFreePacket(p3);
+    SC_ATOMIC_AND(flow_flags, ~FLOW_EMERGENCY);
+    FlowTimeoutsReset();
+    memcpy(&flow_config, &backup, sizeof(FlowConfig));
+    FlowShutdown();
+    SCStorageCleanup();
+    PASS;
+}
+
+/**
+ *  \test With the memcap reached and no spare flows, an idle flow behind a
+ *        capture-bypassed flow in its hash row is evicted for a new flow,
+ *        and the rest of the row is left as it was.
+ */
+static int FlowTestCaptureBypassedGetUsedBehind(void)
+{
+    return FlowTestCaptureBypassedGetUsedBehindRun(false);
+}
+
+/**
+ *  \test The flow behind a capture-bypassed flow is not evicted if it was
+ *        just seen, like the first flow of any other row.
+ */
+static int FlowTestCaptureBypassedGetUsedBehindRecent(void)
+{
+    return FlowTestCaptureBypassedGetUsedBehindRun(true);
+}
+#endif /* CAPTURE_OFFLOAD */
+
 #endif /* UNITTESTS */
 
 /**
@@ -1553,6 +1805,14 @@ void FlowRegisterTests (void)
                    FlowTest08);
     UtRegisterTest("FlowTest09 -- Test flow Allocations when it reach memcap",
                    FlowTest09);
+#ifdef CAPTURE_OFFLOAD
+    UtRegisterTest("FlowTestCaptureBypassedWorkerTimeout", FlowTestCaptureBypassedWorkerTimeout);
+    UtRegisterTest("FlowTestCaptureBypassedNoUpdateWorkerTimeout",
+            FlowTestCaptureBypassedNoUpdateWorkerTimeout);
+    UtRegisterTest("FlowTestCaptureBypassedGetUsedBehind", FlowTestCaptureBypassedGetUsedBehind);
+    UtRegisterTest("FlowTestCaptureBypassedGetUsedBehindRecent",
+            FlowTestCaptureBypassedGetUsedBehindRecent);
+#endif
 
     SCRegisterFlowStorageTests();
 #endif /* UNITTESTS */
