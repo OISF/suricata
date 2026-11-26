@@ -189,6 +189,10 @@ In the firewall case it will be::
 
 All available applayer hooks are available via commandline option ``--list-app-layer-hooks``.
 
+.. note::
+
+  Rules using app-layer hooks cannot use packet keywords such as ``dsize``
+
 general
 ^^^^^^^
 
