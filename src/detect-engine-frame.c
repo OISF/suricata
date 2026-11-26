@@ -277,8 +277,8 @@ static void BufferSetupUdp(DetectEngineThreadCtx *det_ctx, InspectionBuffer *buf
             AppLayerParserGetFrameNameById(p->flow->proto, p->flow->alproto, frame->type),
             frame->offset, frame->type, frame->len);
 
-    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
     buffer->inspect_offset = 0;
+    InspectionBufferSetupMulti(det_ctx, buffer, transforms, data, data_len);
     buffer->flags = ci_flags;
 }
 
@@ -392,9 +392,9 @@ static bool BufferSetup(struct FrameStreamData *fsd, InspectionBuffer *buffer, c
     }
     // PrintRawDataFp(stdout, data, data_len);
     SCLogDebug("fsd->transforms %p", fsd->transforms);
+    buffer->inspect_offset = fo_inspect_offset;
     InspectionBufferSetupMulti(fsd->det_ctx, buffer, fsd->transforms, data, data_len);
     SCLogDebug("inspect_offset %" PRIu64, fo_inspect_offset);
-    buffer->inspect_offset = fo_inspect_offset;
     buffer->flags = ci_flags;
 
     if (frame->len >= 0 && so_input_re >= so_frame_re) {
