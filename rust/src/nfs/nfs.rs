@@ -400,17 +400,20 @@ impl Default for NFSTransaction {
 }
 
 impl NFSTransaction {
-    /// Record a reply status: an error is never replaced, and it replaces an
-    /// OK. More than one record can answer a request, and a chunk the server
-    /// rejected must not be hidden by an earlier accepted one, nor a later
-    /// rejection by an earlier accept.
+    /// Record a reply status. Several records can answer one request, so the
+    /// result must not depend on their order: a denial is never replaced by a
+    /// later accept, and the NFS status is the first NFS error, else the first
+    /// status carried. A reply without an NFS status - denied, or rejected at
+    /// the message level - leaves the NFS status alone.
     fn set_reply_status(&mut self, rpc_status: u32, nfs_status: u32, status_set: bool) {
-        let err_in = rpc_status != 0 || nfs_status != 0;
-        let err_have = self.rpc_response_status != 0 || self.nfs_response_status != 0;
-        if !self.nfs_status_set || (err_in && !err_have) {
+        if self.rpc_response_status == 0 {
             self.rpc_response_status = rpc_status;
+        }
+        if status_set
+            && (!self.nfs_status_set || (nfs_status != 0 && self.nfs_response_status == 0))
+        {
             self.nfs_response_status = nfs_status;
-            self.nfs_status_set = status_set;
+            self.nfs_status_set = true;
         }
     }
 
@@ -1951,6 +1954,42 @@ impl NFSState {
         );
     }
 
+    /// A denied reply's status goes to the transaction its call opened: a READ
+    /// file tx by handle, a WRITE file tx by xid and then handle, anything
+    /// else the call's own tx. Bytes past the deny body are not RFC 5531.
+    fn process_reply_denied(
+        &mut self, flow: *mut Flow, r: &RpcReplyPacket, xidmap: &NFSRequestXidMap,
+    ) {
+        if r.prog_data_size > 0 {
+            self.set_event(NFSEvent::MalformedData);
+        }
+
+        let v = xidmap.progver;
+        let p = xidmap.procedure;
+        let is_read = (v == 2 && p == NFSPROC2_READ) || (v == 3 && p == NFSPROC3_READ);
+        if is_read {
+            // A READ file tx lives on the to-client side and is keyed by
+            // handle: neither get_tx_by_xid nor get_write_file_tx finds it.
+            if let Some(tx) = self.get_file_tx_by_handle(&xidmap.file_handle, Direction::ToClient) {
+                tx.set_reply_status(r.reply_state, 0, false);
+            }
+            return;
+        }
+
+        let is_write = (v == 2 && p == NFSPROC2_WRITE) || (v == 3 && p == NFSPROC3_WRITE);
+        let write_handle = if is_write {
+            xidmap.file_handle.as_slice()
+        } else {
+            &[]
+        };
+        SCLogDebug!(
+            "denied reply for xid {:04X}: reject_state {}",
+            r.hdr.xid,
+            r.reject_state
+        );
+        self.mark_response_tx_done(flow, r.hdr.xid, r.reply_state, 0, false, &[], write_handle);
+    }
+
     fn process_reply_record(
         &mut self, flow: *mut Flow, stream_slice: &StreamSlice, r: &RpcReplyPacket,
     ) -> u32 {
@@ -1979,6 +2018,14 @@ impl NFSState {
 
         if self.nfs_version == 0 {
             self.nfs_version = xidmap.progver as u16;
+        }
+
+        // RFC 5531 9: a denied reply carries no program body. Record its RPC
+        // status on the transaction the call opened and keep the empty body
+        // away from the version handlers, which would read it as malformed.
+        if r.reply_state != RPCMSG_ACCEPTED {
+            self.process_reply_denied(flow, r, &xidmap);
+            return 0;
         }
 
         match xidmap.progver {
@@ -3128,6 +3175,17 @@ impl NFSState {
         // its 31-bit claim: skip to the record boundary instead. Exception: v3
         // LOOKUP/READDIRPLUS/CREATE carry the filename mapping (bounded on the claim)
         match parse_rpc_reply(cur_i, false) {
+            Ok((_, ref hdr)) if hdr.reply_state != RPCMSG_ACCEPTED => {
+                // The deny body is complete and the record claims more: never
+                // hand the tail to the READ data path. The status is recorded
+                // and the tail flagged by process_reply_denied.
+                if let Some(xm) = self.requestmap.pop(&hdr.hdr.xid) {
+                    self.process_reply_denied(flow, hdr, &xm);
+                } else {
+                    self.set_event(NFSEvent::MalformedData);
+                }
+                return self.skip_partial_record(Direction::ToClient, cur_i, rec_size);
+            }
             Ok((_, ref hdr)) => {
                 let xm = self.requestmap.get(&hdr.hdr.xid);
                 let carries_file_data = xm
@@ -4825,6 +4883,45 @@ mod tests {
         // len = 24 + fh_len + file_len
         assert_eq!(NFSState::nfs_write_extent(32, 6), 62);
         assert_eq!(NFSState::nfs_write_extent(0, 1024), 1048);
+    }
+
+    /// The status of a request answered more than once must not depend on the
+    /// order of the replies: a denial is never replaced, and the NFS status is
+    /// the first NFS error, else the first status carried.
+    #[test]
+    fn test_set_reply_status_order_independent() {
+        let mut tx = NFSTransaction::new();
+        // deny, then accept
+        tx.set_reply_status(1, 0, false);
+        tx.set_reply_status(0, 0, true);
+        assert_eq!(tx.rpc_response_status, 1);
+        assert_eq!(tx.nfs_response_status, 0);
+        assert!(tx.nfs_status_set);
+
+        // accept, then deny: the denial still appears, the OK survives
+        let mut tx = NFSTransaction::new();
+        tx.set_reply_status(0, 0, true);
+        tx.set_reply_status(1, 0, false);
+        assert_eq!(tx.rpc_response_status, 1);
+        assert_eq!(tx.nfs_response_status, 0);
+        assert!(tx.nfs_status_set);
+
+        // an NFS error wins over an earlier OK, in either order
+        let mut tx = NFSTransaction::new();
+        tx.set_reply_status(0, 0, true);
+        tx.set_reply_status(0, 5, true);
+        assert_eq!(tx.nfs_response_status, 5);
+        let mut tx = NFSTransaction::new();
+        tx.set_reply_status(0, 5, true);
+        tx.set_reply_status(0, 0, true);
+        assert_eq!(tx.nfs_response_status, 5);
+
+        // a reply without an NFS status leaves a held one alone
+        let mut tx = NFSTransaction::new();
+        tx.set_reply_status(1, 0, false);
+        assert!(!tx.nfs_status_set);
+        tx.set_reply_status(1, 0, false);
+        assert!(!tx.nfs_status_set);
     }
 }
 

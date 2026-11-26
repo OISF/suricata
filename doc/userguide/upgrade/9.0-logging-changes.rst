@@ -173,7 +173,9 @@ A request split into several records can be answered more than once. If one
 reply reports success and another an NFS error, the record reports the error,
 whatever the order. A reply that fails at the RPC message level
 (``GARBAGE_ARGS``, ``PROC_UNAVAIL`` and the like) carries no NFS status, so it
-does not override a status the record already holds.
+does not override one. ``rpc.status`` behaves the other way round: once a reply
+to the request was denied, the record reports ``DENIED`` there, whatever order
+the replies arrived in.
 
 Special cases:
 
