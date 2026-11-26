@@ -2436,9 +2436,19 @@ must undergo the process of initialization.
 As a result, there are extra configuration options (how NICs can be
 configured) in the items (interfaces) of the ``dpdk.interfaces`` list.
 At the start of the configuration process, all NIC offloads are disabled to
-prevent any packet modification. According to the configuration, checksum
-validation offload can be enabled to drop invalid packets. Other offloads can
-not currently be enabled.
+prevent any packet modification. Suricata then enables only the following
+offloads, each only when the NIC supports it:
+
+- checksum validation, with ``checksum-checks`` and ``checksum-checks-offload``
+  enabled;
+- VLAN stripping, with ``vlan-strip-offload`` enabled;
+- ``MBUF_FAST_FREE`` (faster release of transmitted mbufs).
+
+With DPDK older than 21.11, an ``mtu`` above 1518 additionally requires the
+jumbo frame offload, which Suricata then enables.
+
+Other offloads cannot be enabled.
+
 Additionally, the list items in ``dpdk.interfaces`` contain DPDK specific
 settings such as ``mempool-size`` or ``rx-descriptors``. These settings adjust
 individual parameters of EAL. One of the entries in ``dpdk.interfaces`` is
