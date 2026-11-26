@@ -455,20 +455,23 @@ static void AlertAddAppLayer(const Packet *p, SCJsonBuilder *jb, const uint64_t 
                 SCJbRestoreMark(jb, &mark);
             }
             break;
-        case ALPROTO_DCERPC:
+        case ALPROTO_DCERPC: {
             SCJbGetMark(jb, &mark);
             SCJbOpenObject(jb, "dcerpc");
-            if (p->proto == IPPROTO_TCP) {
-                if (!SCDcerpcLogJsonRecordTcp(state, tx, jb)) {
-                    SCJbRestoreMark(jb, &mark);
-                }
+            /* flow proto: ICMP errors run in the context of the flow they hit */
+            bool logged;
+            if (p->flow->proto == IPPROTO_TCP) {
+                logged = SCDcerpcLogJsonRecordTcp(state, tx, jb);
             } else {
-                if (!SCDcerpcLogJsonRecordUdp(state, tx, jb)) {
-                    SCJbRestoreMark(jb, &mark);
-                }
+                logged = SCDcerpcLogJsonRecordUdp(state, tx, jb);
             }
-            SCJbClose(jb);
+            if (logged) {
+                SCJbClose(jb);
+            } else {
+                SCJbRestoreMark(jb, &mark);
+            }
             break;
+        }
         default:
             break;
     }

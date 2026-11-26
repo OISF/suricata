@@ -35,7 +35,8 @@ static int JsonDCERPCLogger(ThreadVars *tv, void *thread_data,
     }
 
     SCJbOpenObject(jb, "dcerpc");
-    if (p->proto == IPPROTO_TCP) {
+    /* flow proto: ICMP errors run in the context of the flow they hit */
+    if (f->proto == IPPROTO_TCP) {
         if (!SCDcerpcLogJsonRecordTcp(state, tx, jb)) {
             goto error;
         }

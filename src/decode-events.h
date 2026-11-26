@@ -49,11 +49,12 @@ enum {
     IPV4_PROTO_UNKNOWN,    /**< IPv4 packet with unknown protocol*/
 
     /* ICMP EVENTS */
-    ICMPV4_PKT_TOO_SMALL,    /**< icmpv4 packet smaller than minimum size */
-    ICMPV4_UNKNOWN_TYPE,     /**< icmpv4 unknown type */
-    ICMPV4_UNKNOWN_CODE,     /**< icmpv4 unknown code */
-    ICMPV4_IPV4_TRUNC_PKT,   /**< truncated icmpv4 packet */
-    ICMPV4_IPV4_UNKNOWN_VER, /**< unknown version in icmpv4 packet*/
+    ICMPV4_PKT_TOO_SMALL,          /**< icmpv4 packet smaller than minimum size */
+    ICMPV4_UNKNOWN_TYPE,           /**< icmpv4 unknown type */
+    ICMPV4_UNKNOWN_CODE,           /**< icmpv4 unknown code */
+    ICMPV4_IPV4_TRUNC_PKT,         /**< truncated icmpv4 packet */
+    ICMPV4_IPV4_UNKNOWN_VER,       /**< unknown version in icmpv4 packet*/
+    ICMPV4_IPV4_EMB_ADDR_MISMATCH, /**< icmpv4 error not sent to its embedded source */
 
     /* ICMPv6 EVENTS */
     ICMPV6_UNKNOWN_TYPE,                /**< icmpv6 unknown type */

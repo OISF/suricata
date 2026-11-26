@@ -167,11 +167,9 @@ fn log_dcerpc_header_udp(
     } else if tx.resp_lost || get_resp_type_for_req(tx.req_cmd) != DCERPC_TYPE_UNKNOWN {
         jsb.set_string("response", "UNREPLIED")?;
     }
-    let activityuuid = Uuid::from_slice(tx.activityuuid.as_slice());
-    let activityuuid = activityuuid
-        .map(|uuid| uuid.to_hyphenated().to_string())
-        .unwrap();
-    jsb.set_string("activityuuid", &activityuuid)?;
+    let activityuuid =
+        Uuid::from_slice(tx.activityuuid.as_slice()).map_err(|_| JsonError::InvalidState)?;
+    jsb.set_string("activityuuid", &activityuuid.to_hyphenated().to_string())?;
     jsb.set_uint("seqnum", tx.seqnum as u64)?;
     jsb.set_string("rpc_version", "4.0")?;
     return Ok(());
