@@ -255,6 +255,15 @@ Segmented mbufs still occur when a virtual PMD does not enforce
 the MTU, or when the primary DPDK application uses small mbufs, so
 avoiding mbuf segments is not always possible.
 
+Some devices, e.g. the pcap virtual PMD (``net_pcap``), do not support setting
+the MTU and can deliver frames larger than the mbufs. At startup, Suricata logs
+the warning ``changing MTU is not supported`` for such an interface and enables
+the RX scatter offload on it when the device offers the offload, so that these
+frames are received as segmented mbufs. Without RX scatter, the device may drop
+them. Suricata logs ``RX scatter enabled`` for each interface it enables the
+offload on. On all other interfaces RX scatter stays disabled, as frames within
+the MTU fit into one mbuf. There is no setting for it.
+
 Suricata merges the chain into one contiguous mbuf or, when that is not
 possible, inspects a contiguous copy of the packet.
 

@@ -2443,6 +2443,8 @@ offloads, each only when the NIC supports it:
 - checksum validation, with ``checksum-checks`` and ``checksum-checks-offload``
   enabled;
 - VLAN stripping, with ``vlan-strip-offload`` enabled;
+- RX scatter, only on interfaces whose MTU cannot be set, to receive packets
+  larger than one mbuf, see :ref:`dpdk-segmented-mbufs`;
 - multi-segment TX, in the copy modes with ``tx-segmented-mbufs`` enabled, see
   :ref:`dpdk-segmented-mbufs`;
 - ``MBUF_FAST_FREE`` (faster release of transmitted mbufs), unless
