@@ -1726,6 +1726,36 @@ static int32_t DeviceVerifyPostConfigure(
     return 0;
 }
 
+/**
+ * \brief Enable RX scatter on a device that cannot be told the MTU
+ *
+ * Such a device can deliver frames larger than the mbufs, which are sized from
+ * the MTU. Offloads are part of the port configuration, so the port, which is
+ * not started yet, is configured again.
+ *
+ * \return 0 on success, <0 on failure
+ */
+static int DeviceEnableRxScatter(const DPDKIfaceConfig *iconf,
+        const struct rte_eth_dev_info *dev_info, struct rte_eth_conf *port_conf)
+{
+    if (!(dev_info->rx_offload_capa & RTE_ETH_RX_OFFLOAD_SCATTER)) {
+        return 0;
+    }
+
+    port_conf->rxmode.offloads |= RTE_ETH_RX_OFFLOAD_SCATTER;
+    int retval = rte_eth_dev_configure(
+            iconf->port_id, iconf->nb_rx_queues, iconf->nb_tx_queues, port_conf);
+    if (retval < 0) {
+        SCLogError("%s: failed to configure the device with RX scatter: %s", iconf->iface,
+                rte_strerror(-retval));
+        return retval;
+    }
+
+    SCLogInfo("%s: RX scatter enabled, frames larger than one mbuf arrive as segmented mbufs",
+            iconf->iface);
+    return 0;
+}
+
 static int DeviceConfigure(DPDKIfaceConfig *iconf)
 {
     SCEnter();
@@ -1856,6 +1886,10 @@ static int DeviceConfigure(DPDKIfaceConfig *iconf)
         }
         SCLogWarning(
                 "%s: changing MTU is not supported, current MTU: %u", iconf->iface, iconf->mtu);
+        retval = DeviceEnableRxScatter(iconf, &dev_info, &port_conf);
+        if (retval < 0) {
+            SCReturnInt(retval);
+        }
     } else if (retval < 0) {
         SCLogError(
                 "%s: failed to set MTU to %u: %s", iconf->iface, iconf->mtu, rte_strerror(-retval));
