@@ -217,11 +217,13 @@
 
 .. option:: --strict-rule-keywords[=all|<keyword>|<keywords(csv)]
 
-   Applies to: classtype, reference and app-layer-event.
+   Applies to: classtype, reference, app-layer-event and flowbits.
 
    By default missing reference or classtype values are warnings and
    not errors. Additionally, loading outdated app-layer-event events are
-   also not treated as errors, but as warnings instead.
+   also not treated as errors, but as warnings instead. Flowbit
+   dependencies between rules that can never be met at runtime (e.g.
+   cyclic dependencies) are also only reported as warnings.
 
    If this option is enabled these warnings are considered errors.
 
