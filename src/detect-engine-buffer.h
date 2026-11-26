@@ -1,4 +1,4 @@
-/* Copyright (C) 2025 Open Information Security Foundation
+/* Copyright (C) 2025-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -42,5 +42,28 @@ int SCDetectSignatureAddTransform(Signature *s, int transform, void *options);
 int SCDetectRegisterThreadCtxGlobalFuncs(
         const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *));
 void *SCDetectThreadCtxGetGlobalKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id);
+
+/** \brief Mark the queued transforms as including one whose key comes from a
+ *  byte_extract or byte_math variable. The transformed buffer then can't
+ *  supply the fast pattern, since the variable is set after prefilter. */
+void SCSignatureSetVarTransform(Signature *s);
+
+/**
+ * \brief Resolve a byte variable (byte_extract or byte_math) by name for use
+ *        as transform input.
+ *
+ * Returns the runtime slot (local_id) for the named variable. For a
+ * byte_extract variable without string, nbytes is the default key width (the
+ * number of bytes it reads). For a byte_extract with string, or a byte_math
+ * result, nbytes is set to 0 and the caller must supply an explicit width.
+ *
+ * \retval true  variable found; local_id set, nbytes is the default width or 0
+ * \retval false no such byte variable
+ */
+bool SCDetectByteVarResolve(
+        const Signature *s, const char *name, uint8_t *local_id, uint8_t *nbytes);
+
+/** \brief Read a byte_* variable's runtime value from the thread context. */
+uint64_t SCDetectEngineThreadCtxGetByteVar(const DetectEngineThreadCtx *det_ctx, uint8_t id);
 
 #endif /* SURICATA_DETECT_ENGINE_BUFFER_H */

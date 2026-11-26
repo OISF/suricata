@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2021 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -1229,6 +1229,24 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
 
         if (!FastPatternSupportEnabledForSigMatchList(de_ctx, list_id)) {
             SCLogDebug("skip");
+            continue;
+        }
+
+        /* The key of a variable-key transform comes from a byte_extract or
+         * byte_math variable, which is set during rule inspection, after
+         * prefilter. Building this buffer for the MPM would use a key from
+         * another signature or packet, so its contents can't be the fast
+         * pattern. Contents in the signature's other buffers still can. */
+        if (DetectEngineBufferTypeIsVarTransform(de_ctx, list_id)) {
+            for (SigMatch *sm = s->init_data->buffers[x].head; sm != NULL; sm = sm->next) {
+                if (sm->type == DETECT_CONTENT &&
+                        (((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN)) {
+                    SCLogWarning("sid %u: fast_pattern is ignored on a buffer with a "
+                                 "variable-key transform",
+                            s->id);
+                    break;
+                }
+            }
             continue;
         }
 
