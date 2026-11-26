@@ -128,6 +128,8 @@
 #include "source-windivert.h"
 #endif
 
+#include "runmode-dpdk.h"
+
 #endif /* UNITTESTS */
 
 void TmqhSetup (void);
@@ -205,7 +207,7 @@ static void RegisterUnittests(void)
     SCLogRegisterTests();
     MagicRegisterTests();
     UtilMiscRegisterTests();
-    ThreadingAffinityRegisterTests();
+    AffinityRegisterTests();
     TmThreadsRegisterTests();
     DetectAddressTests();
     DetectProtoTests();
@@ -229,6 +231,9 @@ static void RegisterUnittests(void)
     UtilCIDRTests();
     OutputJsonStatsRegisterTests();
     CoredumpConfigRegisterTests();
+#ifdef HAVE_DPDK
+    RunmodeDpdkRegisterTests();
+#endif
 }
 #endif
 

@@ -95,7 +95,6 @@ TmEcode NoDPDKSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #include "util-dpdk-bonding.h"
 #include <numa.h>
 
-#define BURST_SIZE 32
 // interrupt mode constants
 #define MIN_ZERO_POLL_COUNT          10U
 #define MIN_ZERO_POLL_COUNT_TO_SLEEP 10U
@@ -135,7 +134,7 @@ typedef struct DPDKThreadVars_ {
     uint16_t port_id;
     uint16_t queue_id;
     int32_t port_socket_id;
-    struct rte_mbuf *received_mbufs[BURST_SIZE];
+    struct rte_mbuf *received_mbufs[DPDK_RX_BURST_SIZE];
     DPDKWorkerSync *workers_sync;
 } DPDKThreadVars;
 
@@ -210,12 +209,8 @@ static void DevicePreClosePMDSpecificActions(DPDKThreadVars *ptv, const char *dr
         driver_name = BondingDeviceDriverGet(ptv->port_id);
     }
 
-    if (
-#if RTE_VERSION > RTE_VERSION_NUM(20, 0, 0, 0)
-            strcmp(driver_name, "net_i40e") == 0 ||
-#endif /* RTE_VERSION > RTE_VERSION_NUM(20, 0, 0, 0) */
-            strcmp(driver_name, "net_ixgbe") == 0 || strcmp(driver_name, "net_ice") == 0 ||
-            strcmp(driver_name, "mlx5_pci") == 0) {
+    if (strcmp(driver_name, "net_i40e") == 0 || strcmp(driver_name, "net_ixgbe") == 0 ||
+            strcmp(driver_name, "net_ice") == 0 || strcmp(driver_name, "mlx5_pci") == 0) {
         // Flush the RSS rules that have been inserted in the post start section
         struct rte_flow_error flush_error = { 0 };
         int32_t retval = rte_flow_flush(ptv->port_id, &flush_error);
@@ -413,7 +408,8 @@ static inline bool RXPacketCountHeuristic(ThreadVars *tv, DPDKThreadVars *ptv, u
  * \brief Initializes a packet from an mbuf
  * \return true if the packet was initialized successfully, false otherwise
  */
-static inline Packet *PacketInitFromMbuf(DPDKThreadVars *ptv, struct rte_mbuf *mbuf)
+static inline Packet *PacketInitFromMbuf(
+        DPDKThreadVars *ptv, struct rte_mbuf *mbuf, SCTime_t timestamp)
 {
     Packet *p = PacketGetFromQueueOrAlloc();
     if (unlikely(p == NULL)) {
@@ -425,7 +421,7 @@ static inline Packet *PacketInitFromMbuf(DPDKThreadVars *ptv, struct rte_mbuf *m
         p->flags |= PKT_IGNORE_CHECKSUM;
     }
 
-    p->ts = TimeGet();
+    p->ts = timestamp;
     p->dpdk_v.mbuf = mbuf;
     p->ReleasePacket = DPDKReleasePacket;
     p->dpdk_v.copy_mode = ptv->copy_mode;
@@ -538,8 +534,6 @@ static void HandleShutdown(DPDKThreadVars *ptv)
     DPDKDumpCounters(ptv);
     if (ptv->queue_id == 0) {
         PrintDPDKPortXstats(ptv->port_id, ptv->livedev->dev);
-        rte_delay_us(20); // wait for all threads to get out of the sync loop
-        SC_ATOMIC_SET(ptv->workers_sync->worker_checked_in, 0);
         // If Suricata runs in peered mode, the peer threads might still want to send
         // packets to our port. Instead, we know, that we are done with the peered port, so
         // we stop it. The peered threads will stop our port.
@@ -572,7 +566,7 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
     DPDKThreadVars *ptv = (DPDKThreadVars *)data;
     ptv->slot = ((TmSlot *)slot)->slot_next;
     uint32_t mp_sz = ptv->livedev->dpdk_vars->pkt_mp[ptv->queue_id]->size;
-    uint16_t burst_size = (uint16_t)MIN(BURST_SIZE, mp_sz);
+    uint16_t burst_size = (uint16_t)MIN(DPDK_RX_BURST_SIZE, mp_sz);
 
     TmEcode ret = ReceiveDPDKLoopInit(tv, ptv);
     if (ret != TM_ECODE_OK) {
@@ -586,24 +580,25 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
 
         uint16_t nb_rx =
                 rte_eth_rx_burst(ptv->port_id, ptv->queue_id, ptv->received_mbufs, burst_size);
-        if (RXPacketCountHeuristic(tv, ptv, nb_rx)) {
-            continue;
+        SCTime_t timestamp = { 0 };
+        if (nb_rx > 0) {
+            timestamp = TimeGet();
         }
-
-        ptv->pkts += (uint64_t)nb_rx;
-        for (uint16_t i = 0; i < nb_rx; i++) {
-            Packet *p = PacketInitFromMbuf(ptv, ptv->received_mbufs[i]);
-            if (p == NULL) {
-                rte_pktmbuf_free(ptv->received_mbufs[i]);
-                continue;
-            }
-            DPDKSegmentedMbufWarning(ptv->received_mbufs[i]);
-            PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
-                    rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
-            if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
-                TmqhOutputPacketpool(ptv->tv, p);
-                DPDKFreeMbufArray(ptv->received_mbufs, nb_rx - i - 1, i + 1);
-                SCReturnInt(EXIT_FAILURE);
+        if (RXPacketCountHeuristic(tv, ptv, nb_rx) == false) {
+            ptv->pkts += (uint64_t)nb_rx;
+            for (uint16_t i = 0; i < nb_rx; i++) {
+                Packet *p = PacketInitFromMbuf(ptv, ptv->received_mbufs[i], timestamp);
+                if (p == NULL) {
+                    rte_pktmbuf_free(ptv->received_mbufs[i]);
+                    continue;
+                }
+                DPDKSegmentedMbufWarning(ptv->received_mbufs[i]);
+                PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
+                        rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
+                if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
+                    DPDKFreeMbufArray(ptv->received_mbufs, nb_rx, i + 1);
+                    SCReturnInt(TM_ECODE_FAILED);
+                }
             }
         }
 
@@ -710,17 +705,10 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
             }
             if (link.link_status) {
                 char link_status_str[RTE_ETH_LINK_MAX_STR_LEN];
-#if RTE_VERSION >= RTE_VERSION_NUM(20, 11, 0, 0)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
                 rte_eth_link_to_str(link_status_str, sizeof(link_status_str), &link);
 #pragma GCC diagnostic pop
-#else
-                snprintf(link_status_str, sizeof(link_status_str),
-                        "Link Up, speed %u Mbps, %s", // 22 chars + 10 for digits + 11 for duplex
-                        link.link_speed,
-                        (link.link_duplex == ETH_LINK_FULL_DUPLEX) ? "full-duplex" : "half-duplex");
-#endif
 
                 SCLogInfo("%s: %s", dpdk_config->iface, link_status_str);
                 break;

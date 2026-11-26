@@ -961,7 +961,12 @@ void RunModeInitializeThreadSettings(void)
 
     /* try to get custom cpu mask value if needed */
     if (threading_set_cpu_affinity) {
-        AffinitySetupLoadFromConfig();
+        int ret = AffinityLoadFromConfig();
+        if (ret < 0) {
+            FatalError("CPU affinity configuration failed (%s). "
+                       "Please check your threading.cpu-affinity configuration.",
+                    strerror(-ret));
+        }
     }
     if ((SCConfGetFloat("threading.detect-thread-ratio", &threading_detect_ratio)) != 1) {
         if (SCConfGetNode("threading.detect-thread-ratio") != NULL)

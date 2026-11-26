@@ -45,6 +45,7 @@ typedef struct UtTest_
 } UtTest;
 
 void UtRegisterTest(const char *name, int(*TestFn)(void));
+void UtSetTestCleanup(void (*CleanupFn)(void));
 uint32_t UtRunTests(const char *regex_arg);
 void UtInitialize(void);
 void UtCleanup(void);
