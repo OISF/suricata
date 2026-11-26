@@ -261,7 +261,7 @@ possible, inspects a contiguous copy of the packet.
 In the copy modes (IPS/TAP), Suricata forwards a chain it cannot merge only
 with ``tx-segmented-mbufs: true``. The forwarded chain carries the
 modifications made by inline stream normalization. A chain with shared
-segments is an exception, see below.
+segments is an exception, see :ref:`dpdk-shared-mbufs`.
 To transmit segmented mbufs, Suricata enables the multi-segment TX offload
 and disables the ``MBUF_FAST_FREE`` TX offload on the copy interfaces. On some
 NICs, this selects a slower TX path, so enable ``tx-segmented-mbufs`` only when
@@ -290,13 +290,36 @@ In each worker thread, the first drop for each reason logs a warning that names
 the reason. In IPS mode, these packets are also counted in ``ips.blocked`` and
 ``ips.drop_reason.capture_error``.
 
-A chain that Suricata cannot merge may contain shared segments, i.e. clones or
-mbufs that are referenced elsewhere, e.g. by the primary DPDK application.
-Suricata forwards such a chain as long as it does not modify the packet.
-A modified packet is dropped only if a segment is still shared when Suricata
-releases the packet. The drop is counted in ``capture.dpdk.shared_mbuf_drops``
-and the first one in each worker thread logs a warning. Such a packet has no
-drop event and the ``ips.*`` counters still count it as forwarded, so
-``capture.dpdk.shared_mbuf_drops`` is the counter to watch.
-To avoid the drops, have the primary application pass mbufs it holds no other
-reference to.
+.. _dpdk-shared-mbufs:
+
+Shared mbufs
+------------
+
+An mbuf is shared when Suricata is not the only holder of its data: the mbuf is
+a clone, or the mbuf or its external buffer is referenced elsewhere, e.g. by
+the primary DPDK application. Suricata does not write to shared mbufs.
+
+Inline stream normalization (``stream.inline``, enabled by default in IPS mode)
+rewrites packet data. When it is enabled, Suricata inspects a copy of every
+packet it receives in a shared mbuf that is not segmented, which costs
+performance. Without inline stream normalization, such a packet is inspected
+without a copy. A chain of segmented mbufs is merged or copied regardless of
+this setting, see :ref:`dpdk-segmented-mbufs`; a chain whose first segment is
+shared or uses an external buffer cannot be merged.
+
+In the copy modes (IPS/TAP), Suricata forwards a shared mbuf as long as it does
+not modify the packet. A modified packet is dropped only if the mbuf is still
+shared when Suricata releases the packet. The drop is counted in
+``capture.dpdk.shared_mbuf_drops`` and the first one in each worker thread logs
+a warning. Such a packet has no drop event and the ``ips.*`` counters still
+count it as forwarded, so ``capture.dpdk.shared_mbuf_drops`` is the counter to
+watch. The same applies to a chain of segmented mbufs that Suricata cannot
+merge and of which at least one segment is shared.
+
+A packet in a shared mbuf that is not segmented and that Suricata fails to copy
+is dropped before inspection. It is counted in
+``capture.dpdk.shared_mbuf_drops`` and, in IPS mode, in ``ips.blocked`` and
+``ips.drop_reason.capture_error``.
+
+To avoid the copies and the drops, have the primary application pass mbufs it
+holds no other reference to.
