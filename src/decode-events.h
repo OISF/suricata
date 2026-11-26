@@ -221,7 +221,7 @@ enum {
     /* ERSPAN events */
     ERSPAN_HEADER_TOO_SMALL,
     ERSPAN_UNSUPPORTED_VERSION,
-    ERSPAN_TOO_MANY_VLAN_LAYERS,
+    ERSPAN_TOO_MANY_VLAN_LAYERS, /**< no longer set, kept so that older rule files still load */
 
     /* Cisco Fabric Path/DCE events. */
     DCE_PKT_TOO_SMALL,

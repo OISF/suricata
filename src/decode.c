@@ -189,11 +189,16 @@ void PacketAlertFree(PacketAlert *pa_array)
     SCFree(pa_array);
 }
 
-static int DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, const uint8_t *, uint32_t,
-        enum SCPacketTunnelProto) WARN_UNUSED;
+static int DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, Packet *, const uint8_t *,
+        uint32_t, enum SCPacketTunnelProto) WARN_UNUSED;
 
-static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt,
-        uint32_t len, enum SCPacketTunnelProto proto)
+/**
+ * \param parent the packet the tunnel packet \a p was found in. A tunnel packet
+ *        that fails to decode is discarded together with its events, so a
+ *        decoder sets an event that must reach detection on \a parent.
+ */
+static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, Packet *parent,
+        const uint8_t *pkt, uint32_t len, enum SCPacketTunnelProto proto)
 {
     switch (proto) {
         case DECODE_TUNNEL_PPP:
@@ -209,9 +214,9 @@ static int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const 
         case DECODE_TUNNEL_ETHERNET:
             return DecodeEthernet(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_ERSPANII:
-            return DecodeERSPAN(tv, dtv, p, pkt, len);
+            return DecodeERSPAN(tv, dtv, p, parent, pkt, len);
         case DECODE_TUNNEL_ERSPANI:
-            return DecodeERSPANTypeI(tv, dtv, p, pkt, len);
+            return DecodeERSPANTypeI(tv, dtv, p, parent, pkt, len);
         case DECODE_TUNNEL_VXLAN:
             return DecodeEthernet(tv, dtv, p, pkt, len);
         case DECODE_TUNNEL_NSH:
@@ -463,8 +468,7 @@ Packet *PacketTunnelPktSetupWithSession(ThreadVars *tv, DecodeThreadVars *dtv, P
         PacketSetTunnelId(p, *session);
     }
 
-    ret = DecodeTunnel(tv, dtv, p, GET_PKT_DATA(p),
-                       GET_PKT_LEN(p), proto);
+    ret = DecodeTunnel(tv, dtv, p, parent, GET_PKT_DATA(p), GET_PKT_LEN(p), proto);
 
     if (unlikely(ret != TM_ECODE_OK) ||
             (proto == DECODE_TUNNEL_IPV6_TEREDO && (p->flags & PKT_IS_INVALID)))

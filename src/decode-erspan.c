@@ -60,26 +60,41 @@ void DecodeERSPANConfig(void)
 
 /**
  * \brief ERSPAN Type I
+ *
+ * A frame too short for an ethernet header is reported as an event on \a parent,
+ * the GRE packet: \a p, the tunnel packet, is discarded together with its
+ * events when it fails to decode.
  */
-int DecodeERSPANTypeI(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                      const uint8_t *pkt, uint32_t len)
+int DecodeERSPANTypeI(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, Packet *parent,
+        const uint8_t *pkt, uint32_t len)
 {
     StatsCounterIncr(&tv->stats, dtv->counter_erspan);
 
+    /* check here: the ethernet decoder's event for a short frame
+     * would be lost with the tunnel packet */
+    if (len < ETHERNET_HEADER_LEN) {
+        ENGINE_SET_EVENT(parent, ERSPAN_HEADER_TOO_SMALL);
+        return TM_ECODE_FAILED;
+    }
     return DecodeEthernet(tv, dtv, p, pkt, len);
 }
 
 /**
  * \brief ERSPAN Type II
+ *
+ * Header errors are set as events on \a parent, the GRE packet: \a p, the
+ * tunnel packet, is discarded together with its events when it fails to
+ * decode.
  */
-int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t *pkt, uint32_t len)
+int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, Packet *parent,
+        const uint8_t *pkt, uint32_t len)
 {
     DEBUG_VALIDATE_BUG_ON(pkt == NULL);
 
     StatsCounterIncr(&tv->stats, dtv->counter_erspan);
 
     if (len < sizeof(ErspanHdr)) {
-        ENGINE_SET_EVENT(p,ERSPAN_HEADER_TOO_SMALL);
+        ENGINE_SET_EVENT(parent, ERSPAN_HEADER_TOO_SMALL);
         return TM_ECODE_FAILED;
     }
     if (!PacketIncreaseCheckLayers(p)) {
@@ -94,17 +109,22 @@ int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, const uint8_t
 
     /* only v1 is tested at this time */
     if (version != 1) {
-        ENGINE_SET_EVENT(p,ERSPAN_UNSUPPORTED_VERSION);
+        ENGINE_SET_EVENT(parent, ERSPAN_UNSUPPORTED_VERSION);
         return TM_ECODE_FAILED;
     }
 
     if (vlan_id > 0) {
-        if (p->vlan_idx > VLAN_MAX_LAYER_IDX) {
-            ENGINE_SET_EVENT(p,ERSPAN_TOO_MANY_VLAN_LAYERS);
-            return TM_ECODE_FAILED;
-        }
+        /* a tunnel packet starts without VLAN layers */
+        DEBUG_VALIDATE_BUG_ON(p->vlan_idx != 0);
         p->vlan_id[p->vlan_idx] = vlan_id;
         p->vlan_idx++;
+    }
+
+    /* check here: the ethernet decoder's event for a short frame
+     * would be lost with the tunnel packet */
+    if (len < sizeof(ErspanHdr) + ETHERNET_HEADER_LEN) {
+        ENGINE_SET_EVENT(parent, ERSPAN_HEADER_TOO_SMALL);
+        return TM_ECODE_FAILED;
     }
     PacketSetTunnelId(p, SCNtohs(ehdr->flags_spanid) & 0x03ff);
     return DecodeEthernet(tv, dtv, p, pkt + sizeof(ErspanHdr), len - sizeof(ErspanHdr));
