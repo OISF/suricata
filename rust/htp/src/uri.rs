@@ -3,7 +3,9 @@ use crate::{
     config::{DecoderConfig, HtpUnwanted},
     log::Logger,
     parsers::{credentials, fragment, hostname, parse_hostport, path, port, query, scheme},
-    urlencoded::{decode_uri_inplace, decode_uri_with_flags, path_decode_uri_inplace},
+    urlencoded::{
+        decode_uri_inplace, decode_uri_path_inplace, decode_uri_with_flags, path_decode_uri_inplace,
+    },
     utf8_decoder::decode_and_validate_inplace,
     util::{convert_port, FlagOperations, HtpFlags},
 };
@@ -316,7 +318,7 @@ impl Uri {
             // Path is already decoded when we parsed the uri in transaction, only decode once more
             if self.cfg.double_decode_normalized_path {
                 let path_len = path.len();
-                let _ = decode_uri_inplace(&self.cfg, &mut path);
+                let _ = decode_uri_path_inplace(&self.cfg, &mut path);
                 if path_len > path.len() {
                     if let Some(logger) = logger.as_mut() {
                         htp_warn!(
@@ -361,6 +363,38 @@ impl Uri {
         } else {
             (None, None)
         }
+    }
+}
+
+/// Normalize a URI using the default libhtp decoder configuration.
+/// Wrapper for external reuse over parse_uri/normalized_path/generate_normalized_uri
+pub fn normalize_uri(uri: &[u8], ocfg: Option<DecoderConfig>) -> Vec<u8> {
+    let mut raw_uri = if let Some(cfg) = ocfg {
+        Uri::with_config(cfg)
+    } else {
+        Uri::default()
+    };
+    raw_uri.parse_uri(uri);
+
+    // TODO we may want caller to use these warning flags
+    let mut flags = 0;
+    let mut status = HtpUnwanted::Ignore;
+    let mut normalized_uri = Uri::with_config(raw_uri.cfg);
+    normalized_uri.scheme = raw_uri.normalized_scheme();
+    normalized_uri.username = raw_uri.normalized_username(&mut flags);
+    normalized_uri.password = raw_uri.normalized_password(&mut flags);
+    normalized_uri.hostname = raw_uri.normalized_hostname(&mut flags);
+    normalized_uri.port_number = raw_uri.normalized_port(&mut flags);
+    normalized_uri.fragment = raw_uri.normalized_fragment(&mut flags);
+    normalized_uri.path = raw_uri.normalized_path(&mut flags, &mut status);
+    normalized_uri.query = raw_uri.query;
+
+    match normalized_uri.generate_normalized_uri(None) {
+        (Some(partial), _) => {
+            // normalized_uri_include_all is disabled by default
+            partial.to_vec()
+        }
+        _ => uri.to_vec(),
     }
 }
 

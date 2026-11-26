@@ -489,6 +489,9 @@ keywords.
 
 The ``http.uri`` keyword normalizes the URI buffer. For example, if a URI has two
 leading ``//``, Suricata will normalize the URI to a single leading ``/``.
+The normalization is done for HTTP/1 and HTTP/2.
+HTTP/1 normalization settings can be customized for some server addresses.
+HTTP/2 normalization settings are the global defaults.
 
 Normalization Example::
 

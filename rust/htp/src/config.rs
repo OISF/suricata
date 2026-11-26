@@ -21,7 +21,7 @@ pub struct Config {
     /// Server personality identifier.
     pub(crate) server_personality: HtpServerPersonality,
     /// Decoder configuration for url path.
-    pub(crate) decoder_cfg: DecoderConfig,
+    pub decoder_cfg: DecoderConfig,
     /// Transaction creation hook.
     /// Used by suricata to allocate its transaction (user data)
     /// And make libhtp.rs tx creation fail (return None) if suricata failed
@@ -148,7 +148,7 @@ impl Default for Config {
 
 /// Configuration options for decoding.
 #[derive(Copy, Clone)]
-pub(crate) struct DecoderConfig {
+pub struct DecoderConfig {
     ///Whether to double decode the path in normalized uri
     pub(crate) double_decode_normalized_path: bool,
     /// Whether to double decode the query in the normalized uri

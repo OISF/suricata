@@ -492,6 +492,26 @@ fn decode_uri<'a>(
     .parse(input)
 }
 
+/// Performs in-place decoding of the input uri string, according to the configuration specified by cfg and ctx.
+///
+/// Returns OK on success, ERROR on failure.
+pub(crate) fn decode_uri_path_inplace(cfg: &DecoderConfig, input: &mut Bstr) -> Result<()> {
+    let (_, consumed) = fold_many0(
+        alt((decode_percent(cfg), unencoded_byte(cfg))),
+        Vec::new,
+        |mut acc: Vec<_>, upr: UrlParseResult| {
+            if upr.decode {
+                acc.push(upr.byte);
+            }
+            acc
+        },
+    )
+    .parse(input)?;
+    (*input).clear();
+    input.add(consumed.as_slice());
+    Ok(())
+}
+
 /// Performs decoding of the uri string, according to the configuration specified
 /// by cfg. Various flags might be set.
 pub(crate) fn decode_uri_with_flags(
@@ -1090,5 +1110,17 @@ mod test {
         let mut input_remove = Bstr::from(input);
         decode_uri_inplace(&cfg.decoder_cfg, &mut input_remove).unwrap();
         assert_eq!(input_remove, Bstr::from(expected_remove));
+    }
+
+    #[rstest]
+    #[case("/a+b", "/a+b")]
+    fn test_decode_uri_path_inplace(#[case] input: &str, #[case] expected_process: &str) {
+        let mut cfg = Config::default();
+        //cfg.set_double_decode_normalized_path(true);
+        cfg.set_plusspace_decode(true);
+
+        let mut input_process = Bstr::from(input);
+        decode_uri_path_inplace(&cfg.decoder_cfg, &mut input_process).unwrap();
+        assert_eq!(input_process, Bstr::from(expected_process));
     }
 }
