@@ -224,8 +224,7 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
             return 0;
         /* we have enabled flowbits to be compatible with ip only sigs, as long
          * as the sig only has a "set" flowbits */
-        if (sm->type == DETECT_FLOWBITS &&
-                (((DetectFlowbitsData *)sm->ctx)->cmd != DETECT_FLOWBITS_CMD_SET)) {
+        if (sm->type == DETECT_FLOWBITS) {
             return 0;
         }
     }
@@ -241,8 +240,17 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
         }
     }
 
-    if (s->init_data->src_contains_negation || s->init_data->dst_contains_negation) {
-        /* Rule is IP only, but contains negated addresses. */
+    /* A single negated host (e.g. "!1.2.3.4") is handled directly by the
+     * ip-only engine. Negated lists and negated ranges/netblocks are not
+     * supported there yet, so they keep routing to the packet engine. The
+     * single_negated_host flag is set on the parsed address head (the cidr
+     * lists are not built until after the type is decided). */
+    if (s->init_data->src_contains_negation &&
+            !(s->init_data->src != NULL && s->init_data->src->single_negated_host)) {
+        return 2;
+    }
+    if (s->init_data->dst_contains_negation &&
+            !(s->init_data->dst != NULL && s->init_data->dst->single_negated_host)) {
         return 2;
     }
     if (s->init_data->src_contains_range || s->init_data->dst_contains_range) {

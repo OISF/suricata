@@ -750,8 +750,8 @@ static int DetectAddressParseInternal(const DetectEngineCtx *de_ctx, DetectAddre
                      * applicable. Then insert the result into the ghn list. */
                     SCLogDebug("negated block");
 
-                    DetectAddressHead tmp_gh = { NULL, NULL, false };
-                    DetectAddressHead tmp_ghn = { NULL, NULL, false };
+                    DetectAddressHead tmp_gh = { NULL, NULL, false, false };
+                    DetectAddressHead tmp_ghn = { NULL, NULL, false, false };
 
                     if (DetectAddressParse2(de_ctx, &tmp_gh, &tmp_ghn, address, 0, var_list, recur) < 0) {
                         DetectAddressHeadCleanup(&tmp_gh);
@@ -1394,6 +1394,42 @@ static const DetectAddressMap *DetectAddressMapLookup(DetectEngineCtx *de_ctx,
  * \retval  0 On success. Did not contain negation.
  * \retval -1 On failure.
  */
+/** \internal \brief Is this address a single host (ip == ip2)? */
+static bool DetectAddressIsSingleHost(const DetectAddress *a)
+{
+    if (a->ip.family == AF_INET)
+        return a->ip.addr_data32[0] == a->ip2.addr_data32[0];
+    /* AF_INET6 */
+    return a->ip.addr_data32[0] == a->ip2.addr_data32[0] &&
+           a->ip.addr_data32[1] == a->ip2.addr_data32[1] &&
+           a->ip.addr_data32[2] == a->ip2.addr_data32[2] &&
+           a->ip.addr_data32[3] == a->ip2.addr_data32[3];
+}
+
+/** \internal
+ *  \brief Is this the negation of exactly one single IPv4 host?
+ *
+ *  True only for a pure negation (no positive addresses) of a lone single IPv4
+ *  host, e.g. "!1.2.3.4". Negated lists, ranges and netblocks return false, and
+ *  so does IPv6: the ip-only engine's negation support (NodeUserData /
+ *  negated_sids / per-direction universe) is currently IPv4-only, so a negated
+ *  IPv6 host must keep routing to the packet engine (LIKE_IPONLY) to match
+ *  correctly. gh holds the positive addresses, ghn the negated ones, both
+ *  before DetectAddressMergeNot().
+ */
+static bool DetectAddressHeadIsSingleNegatedHost(
+        const DetectAddressHead *gh, const DetectAddressHead *ghn)
+{
+    /* any positive address means it is a list/mix, not a lone negation */
+    if (gh->ipv4_head != NULL || gh->ipv6_head != NULL)
+        return false;
+
+    /* IPv4 only for now; a lone negated IPv6 host stays LIKE_IPONLY */
+    if (ghn->ipv4_head != NULL && ghn->ipv6_head == NULL)
+        return ghn->ipv4_head->next == NULL && DetectAddressIsSingleHost(ghn->ipv4_head);
+    return false;
+}
+
 int DetectAddressParse(
         const DetectEngineCtx *de_ctx, DetectAddressHead *gh, const char *str, bool *contains_range)
 {
@@ -1424,6 +1460,10 @@ int DetectAddressParse(
     if (contains_range != NULL) {
         *contains_range = (gh->contains_range == true || ghn->contains_range == true);
     }
+
+    /* record a lone single-host negation before the 'not' groups are merged
+     * into gh (which expands the negation into its complement ranges) */
+    gh->single_negated_host = DetectAddressHeadIsSingleNegatedHost(gh, ghn);
 
     /* merge the 'not' address groups */
     if (DetectAddressMergeNot(gh, ghn) < 0) {
