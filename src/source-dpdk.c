@@ -43,6 +43,7 @@
 #include "util-privs.h"
 #include "util-device-private.h"
 #include "action-globals.h"
+#include "stream-tcp.h"
 
 #ifndef HAVE_DPDK
 
@@ -115,6 +116,7 @@ typedef struct DPDKThreadVars_ {
     LiveDevice *livedev;
     ChecksumValidationMode checksum_mode;
     bool intr_enabled;
+    bool stream_inline; // inline stream normalization can rewrite the packet data
     /* references to packet and drop counters */
     StatsCounterId capture_dpdk_packets;
     StatsCounterId capture_dpdk_rx_errs;
@@ -282,8 +284,9 @@ void TmModuleDecodeDPDKRegister(void)
     tmm_modules[TMM_DECODEDPDK].flags = TM_FLAG_DECODE_TM;
 }
 
-/* Modified packets freed at release because their mbuf is shared. A worker releases the packets
- * it received, but DPDKReleasePacket() has no access to the thread's counters. */
+/* Packets dropped because their mbuf is shared: modified packets freed at release and packets
+ * in a contiguous mbuf that could not be copied when received. A worker releases the packets it
+ * received, but DPDKReleasePacket() has no access to the thread's counters. */
 static thread_local uint64_t shared_mbuf_drops = 0;
 
 static inline void DPDKDumpCounters(DPDKThreadVars *ptv)
@@ -359,8 +362,8 @@ static void DPDKMbufSharedDrop(Packet *p)
 {
     static thread_local bool shared_warned = false;
     if (unlikely(!shared_warned)) {
-        SCLogWarning("Modified packet cannot be written back to a segmented mbuf with shared "
-                     "segments (cloned or referenced elsewhere), dropping such packets, see "
+        SCLogWarning("Modified packet cannot be written back to a shared mbuf (cloned or "
+                     "referenced elsewhere), dropping such packets, see "
                      "capture.dpdk.shared_mbuf_drops. Make the primary application hand over "
                      "mbufs it holds no other reference to");
         shared_warned = true;
@@ -408,7 +411,7 @@ static void DPDKReleasePacket(Packet *p)
 #endif
     ) {
         BUG_ON(PKT_IS_PSEUDOPKT(p));
-        // packets of segmented mbufs are copies, modifications must reach the mbufs
+        // the packet holds a copy of the mbuf data, modifications must reach the mbuf
         if (unlikely((p->flags & PKT_STREAM_MODIFIED) && !(p->flags & PKT_ZERO_COPY))) {
             if (unlikely(!DPDKMbufIsPrivate(p->dpdk_v.mbuf))) {
                 DPDKMbufSharedDrop(p);
@@ -856,6 +859,78 @@ static inline bool DPDKSegmentedMbufSetData(DPDKThreadVars *ptv, Packet *p)
     return true;
 }
 
+/**
+ * \brief Check that the packet can point to the data of the mbuf
+ *
+ * The data must be contiguous and, when inline stream normalization can
+ * rewrite it, nobody else may hold it.
+ */
+static inline bool DPDKMbufIsZeroCopy(const DPDKThreadVars *ptv, const struct rte_mbuf *mbuf)
+{
+    return rte_pktmbuf_is_contiguous(mbuf) && (!ptv->stream_inline || DPDKMbufSegIsPrivate(mbuf));
+}
+
+static inline void DPDKSharedMbufCopyLog(void)
+{
+    static thread_local bool shared_logged = false;
+    if (unlikely(!shared_logged)) {
+        SCLogPerf("Shared mbufs detected (cloned or referenced elsewhere), Suricata inspects a "
+                  "copy of such packets as inline stream normalization may modify them. For "
+                  "better performance, make the primary application hand over mbufs it holds no "
+                  "other reference to");
+        shared_logged = true;
+    }
+}
+
+static inline void DPDKSharedMbufCopyFailedWarning(void)
+{
+    static thread_local bool copy_warned = false;
+    if (unlikely(!copy_warned)) {
+        SCLogWarning("Failed to copy a shared mbuf into the packet buffer, dropping such "
+                     "packets, see capture.dpdk.shared_mbuf_drops");
+        copy_warned = true;
+    }
+}
+
+/**
+ * \brief Copy the data of a shared contiguous mbuf into the packet's buffer
+ *
+ * Inline stream normalization then rewrites the copy instead of the data
+ * somebody else holds. The copy only fails when the buffer for a packet above
+ * the default packet size cannot be allocated.
+ *
+ * \param p Pointer to the Packet structure
+ * \return true on success, false if the packet must be dropped
+ */
+static inline bool DPDKSharedMbufSetData(Packet *p)
+{
+    DPDKSharedMbufCopyLog();
+    const struct rte_mbuf *mbuf = p->dpdk_v.mbuf;
+    if (unlikely(PacketCopyData(p, rte_pktmbuf_mtod(mbuf, const uint8_t *),
+                         rte_pktmbuf_pkt_len(mbuf)) != 0)) {
+        DPDKSharedMbufCopyFailedWarning();
+        shared_mbuf_drops++;
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * \brief Set the data of a packet that cannot point to the data of its mbuf
+ *
+ * \param ptv Pointer to the thread variables
+ * \param p Pointer to the Packet structure
+ * \return true on success, false if the packet must be dropped
+ */
+static inline bool DPDKMbufSetDataCopy(DPDKThreadVars *ptv, Packet *p)
+{
+    if (rte_pktmbuf_is_contiguous(p->dpdk_v.mbuf)) {
+        return DPDKSharedMbufSetData(p);
+    }
+    return DPDKSegmentedMbufSetData(ptv, p);
+}
+
 static void HandleShutdown(DPDKThreadVars *ptv)
 {
     SCLogDebug("Stopping Suricata!");
@@ -928,10 +1003,10 @@ static TmEcode ReceiveDPDKLoop(ThreadVars *tv, void *data, void *slot)
                 continue;
             }
 
-            if (likely(rte_pktmbuf_is_contiguous(p->dpdk_v.mbuf))) {
+            if (likely(DPDKMbufIsZeroCopy(ptv, p->dpdk_v.mbuf))) {
                 PacketSetData(p, rte_pktmbuf_mtod(p->dpdk_v.mbuf, uint8_t *),
                         rte_pktmbuf_pkt_len(p->dpdk_v.mbuf));
-            } else if (!DPDKSegmentedMbufSetData(ptv, p)) {
+            } else if (!DPDKMbufSetDataCopy(ptv, p)) {
                 // drop the uninspected packet, freeing the mbuf also keeps TAP mode, which
                 // ignores verdicts, from forwarding it
                 PacketDrop(p, ACTION_DROP, PKT_DROP_REASON_CAPTURE_ERROR);
@@ -1006,6 +1081,7 @@ static TmEcode ReceiveDPDKThreadInit(ThreadVars *tv, const void *initdata, void 
 
     ptv->copy_mode = dpdk_config->copy_mode;
     ptv->checksum_mode = dpdk_config->checksum_mode;
+    ptv->stream_inline = StreamTcpInlineMode();
     ptv->tx_segmented_mbufs = dpdk_config->tx_segmented_mbufs;
 
     ptv->threads = dpdk_config->threads;

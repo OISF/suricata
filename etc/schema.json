@@ -6995,7 +6995,7 @@
                                 },
                                 "shared_mbuf_drops": {
                                     "type": "integer",
-                                    "description": "Number of modified packets dropped instead of transmitted because their segmented mbuf has shared segments that cannot be written to"
+                                    "description": "Number of packets dropped because their mbuf is shared and cannot be written to: modified packets dropped instead of transmitted, and packets in a non-segmented mbuf that could not be copied for inspection"
                                 }
                             }
                         },
