@@ -49,6 +49,29 @@ is the equivalent of::
       address-groups:
         HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
 
+Glob Patterns
+-------------
+
+Filenames in ``include`` may contain shell-style glob metacharacters
+(``*``, ``?``, ``[...]``). Patterns are expanded at startup via
+``glob(3)`` and each matching file is loaded in lexicographic order. A
+pattern that matches no files is logged as a warning and is not treated
+as an error, which allows drop-in ``conf.d/``-style directories to be
+empty.
+
+::
+
+    include:
+      - /etc/suricata/conf.d/*.yaml
+
+Relative patterns are resolved against the directory of the top-level
+configuration file, the same as literal includes.
+
+.. note:: Glob expansion requires ``glob(3)``, which is not available on
+    all platforms. On platforms without it, notably Windows, an
+    ``include`` containing glob metacharacters is skipped with a warning
+    and no files are loaded from it. Literal filenames are unaffected.
+
 .. note:: Suricata versions less than 7 required multiple ``include``
     statements to be specified to include more than one file. While
     Suricata 7.0 still supports this it will issue a deprecation
