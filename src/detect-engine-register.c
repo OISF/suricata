@@ -347,6 +347,12 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         printf("not supported in threat detection rules in firewall mode");
         prev = 1;
     }
+    if (flags & SIGMATCH_FIREWALL_ACCEPT_FLOW_ONLY) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("only supported in firewall rules with 'accept:flow'");
+        prev = 1;
+    }
     if (e->Transform) {
         if (prev == 1)
             printf("%c", sep);

@@ -60,6 +60,7 @@
 #include "detect-filestore.h"
 #include "detect-flowvar.h"
 #include "detect-replace.h"
+#include "detect-xbits.h"
 
 #include "util-validate.h"
 #include "util-detect.h"
@@ -260,9 +261,8 @@ end:
     SCReturn;
 }
 
-static void DetectRunPostMatch(ThreadVars *tv,
-                               DetectEngineThreadCtx *det_ctx, Packet *p,
-                               const Signature *s)
+void DetectRunPostMatch(
+        ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s)
 {
     /* run the packet match functions */
     const SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
@@ -272,13 +272,45 @@ static void DetectRunPostMatch(ThreadVars *tv,
         SCLogDebug("running match functions, sm %p", smd);
 
         while (1) {
-            KEYWORD_PROFILING_START;
-            (void)sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx);
-            KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+            bool run = true;
+            if (smd->fw_postmatch == DETECT_POSTMATCH_FW_DEFER)
+                run = false;
+            else if (smd->fw_postmatch == DETECT_POSTMATCH_FW_UNDO)
+                run = DetectXbitsUndoRecord(det_ctx, p, smd->ctx);
+            if (run) {
+                KEYWORD_PROFILING_START;
+                (void)sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx);
+                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+            }
             if (smd->is_last)
                 break;
             smd++;
         }
+    }
+}
+
+/**
+ * \brief Run the post-match entries held back for the firewall verdict
+ *
+ * Counterpart to the entries DetectRunPostMatch skips. Called from alert queue
+ * finalization, once we know whether the packet was bypassed.
+ */
+void DetectRunPostMatchDeferred(DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s)
+{
+    const SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
+    if (smd == NULL)
+        return;
+
+    KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_POSTMATCH);
+    while (1) {
+        if (smd->fw_postmatch == DETECT_POSTMATCH_FW_DEFER) {
+            KEYWORD_PROFILING_START;
+            (void)sigmatch_table[smd->type].Match(det_ctx, p, s, smd->ctx);
+            KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+        }
+        if (smd->is_last)
+            break;
+        smd++;
     }
 }
 
@@ -839,8 +871,9 @@ static inline uint8_t DetectRulePacketRules(ThreadVars *const tv,
         } else if (have_fw_rules) {
             /* fw mode, we skip anything after the fw rules if:
              * - flow pass is set
-             * - packet pass (e.g. exception policy) */
-            if (p->flags & PKT_NOPACKET_INSPECTION ||
+             * - packet pass (e.g. exception policy)
+             * - a fw rule bypassed the flow */
+            if (p->flags & (PKT_NOPACKET_INSPECTION | PKT_FW_BYPASSED) ||
                     (pflow != NULL && pflow->flags & (FLOW_ACTION_PASS))) {
                 SCLogDebug("skipping firewall rule %u", s->id);
                 break_out_of_packet_filter = true;
@@ -1148,6 +1181,7 @@ static inline void DetectRunPostRules(ThreadVars *tv, const DetectEngineCtx *de_
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_ALERT);
     PacketAlertFinalize(de_ctx, det_ctx, p);
+    DetectXbitsUndoFinalize(det_ctx, p);
     if (p->alerts.cnt > 0) {
         StatsCounterAddI64(&tv->stats, det_ctx->counter_alerts, (uint64_t)p->alerts.cnt);
     }
@@ -2817,6 +2851,11 @@ static void DetectRunTx(ThreadVars *tv,
                     flow_flags & STREAM_TOSERVER ? "toserver" : "toclient", tx.tx_progress,
                     tx.detect_progress, tx.detect_progress_orig, s->app_progress_hook);
 
+            /* a fw rule bypassed the flow: threat detection must not run */
+            if ((p->flags & PKT_FW_BYPASSED) && (s->flags & SIG_FLAG_FIREWALL) == 0) {
+                continue;
+            }
+
             if (have_fw_rules) {
                 const enum DetectTxFirewallFlowControl fw_r = DetectRunTxPreCheckFirewallPolicy(
                         det_ctx, p, &tx, flow_flags & (STREAM_TOSERVER | STREAM_TOCLIENT), s, i,
@@ -3204,8 +3243,10 @@ static void DetectFlow(ThreadVars *tv,
         SCReturn;
     }
 
-    /* in firewall mode, we still need to run the fw rulesets even for exception policy pass */
-    bool skip = (p->flags & PKT_NOPACKET_INSPECTION || f->flags & (FLOW_ACTION_PASS));
+    /* in firewall mode, we still need to run the fw rulesets even for exception policy pass.
+     * A fw bypass from an earlier hook (pre_stream) is terminating. */
+    bool skip = (p->flags & (PKT_NOPACKET_INSPECTION | PKT_FW_BYPASSED) ||
+                 f->flags & (FLOW_ACTION_PASS));
     if (EngineModeIsFirewall() && (f->flags & FLOW_ACTION_ACCEPT) == 0) {
         skip = false;
     }

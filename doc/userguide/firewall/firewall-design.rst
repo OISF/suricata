@@ -31,12 +31,16 @@ counted as ``ips.accepted``. If it was dropped by firewall, only ``firewall.bloc
 will be incremented. No ``ips.*`` counter will be updated as conceptually the TD
 instance won't have seen the packet.
 
+.. note:: If a firewall rule uses the :ref:`bypass keyword<bypass-keyword>`, an
+   accepted packet will not be passed along to the TD step of the pipeline.
+
 Tables
 ------
 
 A ``table`` is a collection of rules with different properties. These tables are built-in.
 No custom tables can be created. Tables are available within the scope of packet layer
-and application layer (if available). Each rule can define its own :ref:`action scope<ips_action_scopes>`.
+and application layer (if available). Each rule can define its own
+:ref:`action scope<ips_action_scopes>`.
 
 Packet layer tables
 ~~~~~~~~~~~~~~~~~~~

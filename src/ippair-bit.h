@@ -32,6 +32,7 @@ void IPPairBitRegisterTests(void);
 int IPPairHasBits(IPPair *host);
 int IPPairBitsTimedoutCheck(IPPair *h, SCTime_t ts);
 
+bool IPPairBitGetExpire(IPPair *, uint32_t, SCTime_t *);
 void IPPairBitSet(IPPair *, uint32_t, SCTime_t);
 void IPPairBitUnset(IPPair *, uint32_t);
 void IPPairBitToggle(IPPair *, uint32_t, SCTime_t);

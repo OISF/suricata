@@ -81,7 +81,8 @@ void DetectDetectionFilterRegister(void)
     sigmatch_table[DETECT_DETECTION_FILTER].RegisterTests = DetectDetectionFilterRegisterTests;
 #endif
     /* this is compatible to ip-only signatures */
-    sigmatch_table[DETECT_DETECTION_FILTER].flags |= SIGMATCH_IPONLY_COMPAT;
+    sigmatch_table[DETECT_DETECTION_FILTER].flags |=
+            SIGMATCH_IPONLY_COMPAT | SIGMATCH_BAN_FIREWALL_RULE;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex);
 }
