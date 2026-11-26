@@ -17,8 +17,8 @@
 
 //! Kerberos parser wrapper module.
 
-use asn1_rs::FromDer;
 use der_parser;
+use der_parser::asn1_rs::FromDer;
 use der_parser::der::parse_der_oid;
 use der_parser::error::BerError;
 use kerberos_parser::krb5::{ApReq, PrincipalName, Realm};
@@ -61,12 +61,13 @@ fn parse_kerberos5_request_do(blob: &[u8]) -> IResult<&[u8], ApReq<'_>, SecBlobE
         .as_slice()
         .or(Err(nom7::Err::Error(SecBlobError::KrbFmtError)))?;
     let parser = |i| {
-        let (i, _base_o) = parse_der_oid(i)?;
+        let (i, _base_o) = parse_der_oid(i).map_err(nom7::Err::convert)?;
         let (i, _tok_id) = le_u16(i)?;
-        let (i, ap_req) = ApReq::from_der(i)?;
+        let (i, ap_req) =
+            ApReq::from_der(i).map_err(|_| nom7::Err::Error(SecBlobError::KrbFmtError))?;
         Ok((i, ap_req))
     };
-    parser(blob).map_err(nom7::Err::convert)
+    parser(blob)
 }
 
 pub fn parse_kerberos5_request(blob: &[u8]) -> IResult<&[u8], Kerberos5Ticket, SecBlobError> {

@@ -43,7 +43,7 @@ fn load_interface_map(contents: &str) -> HashMap<Uuid, DcerpcInterface> {
                     SCLogWarning!(
                         "duplicate DCERPC interface UUID {} in dcerpc_interfaces.json; \
                          keeping last entry",
-                        uuid.to_hyphenated()
+                        uuid.as_hyphenated()
                     );
                 }
             }

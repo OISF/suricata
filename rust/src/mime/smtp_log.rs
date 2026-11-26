@@ -19,14 +19,13 @@ use super::mime;
 use crate::jsonbuilder::{JsonBuilder, JsonError};
 use crate::mime::smtp::{MimeSmtpMd5State, MimeStateSMTP};
 use digest::Digest;
-use digest::Update;
 use md5::Md5;
 use std::ffi::CStr;
 
 fn log_subject_md5(js: &mut JsonBuilder, ctx: &MimeStateSMTP) -> Result<(), JsonError> {
     for h in &ctx.headers[..ctx.main_headers_nb] {
         if mime::slice_equals_lowercase(&h.name, b"subject") {
-            let hash = format!("{:x}", Md5::new().chain(&h.value).finalize());
+            let hash = hex::encode(Md5::new().chain_update(&h.value).finalize());
             js.set_string("subject_md5", &hash)?;
             break;
         }
