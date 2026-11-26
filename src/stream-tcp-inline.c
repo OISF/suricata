@@ -54,8 +54,6 @@ int StreamTcpInlineSegmentCompare(const TcpStream *stream,
         SCReturnInt(0);
     }
 
-    DEBUG_VALIDATE_BUG_ON(SEQ_LEQ(seg->seq + TCP_SEG_LEN(seg), stream->base_seq));
-
     const uint8_t *seg_data;
     uint32_t seg_datalen;
     StreamingBufferSegmentGetData(&stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
@@ -65,31 +63,33 @@ int StreamTcpInlineSegmentCompare(const TcpStream *stream,
     const TCPHdr *tcph = PacketGetTCP(p);
     const uint32_t pkt_seq = TCP_GET_RAW_SEQ(tcph);
 
-    if (SEQ_EQ(pkt_seq, seg->seq) && p->payload_len == seg_datalen) {
+    /* segment head may be pruned: stored data then starts at base_seq,
+     * not seg->seq */
+    uint32_t seg_seq = seg->seq;
+    if (SEQ_LT(seg_seq, stream->base_seq)) {
+        seg_seq = stream->base_seq;
+    }
+
+    const uint32_t pkt_end = pkt_seq + p->payload_len;
+    const uint32_t seg_end = seg_seq + seg_datalen;
+
+    if (SEQ_GEQ(seg->seq, stream->base_seq) && SEQ_EQ(pkt_seq, seg->seq) &&
+            p->payload_len == seg_datalen) {
         int r = SCMemcmp(p->payload, seg_data, seg_datalen);
         SCReturnInt(r);
-    } else if (SEQ_GT(pkt_seq, (seg->seq + seg_datalen))) {
+    } else if (SEQ_GT(pkt_seq, seg_end)) {
         SCReturnInt(0);
-    } else if (SEQ_GT(seg->seq, (pkt_seq + p->payload_len))) {
+    } else if (SEQ_GT(seg_seq, pkt_end)) {
         SCReturnInt(0);
     } else {
         SCLogDebug("p %u (%u), seg2 %u (%u)", pkt_seq,
                 p->payload_len, seg->seq, seg_datalen);
 
-        uint32_t seg_seq = seg->seq;
-        if (SEQ_LT(seg_seq, stream->base_seq)) {
-            seg_seq = stream->base_seq;
-        }
-        uint32_t pkt_end = pkt_seq + p->payload_len;
-        uint32_t seg_end = seg_seq + seg_datalen;
-        SCLogDebug("pkt_end %u, seg_end %u", pkt_end, seg_end);
-
         /* get the minimal seg*_end */
         uint32_t end = SEQ_MIN(seg_end, pkt_end);
-        /* and the max seq */
+        /* and the max seq (seg_seq already >= base_seq) */
         uint32_t seq = SEQ_MAX(pkt_seq, seg_seq);
-        seq = SEQ_MAX(seq, stream->base_seq);
-        SCLogDebug("seq %u, end %u", seq, end);
+        SCLogDebug("pkt_end %u, seg_end %u, seq %u, end %u", pkt_end, seg_end, seq, end);
 
         uint32_t pkt_off = seq - pkt_seq;
         uint32_t seg_off = seq - seg_seq;
@@ -122,24 +122,31 @@ void StreamTcpInlineSegmentReplacePacket(const TcpStream *stream,
 {
     SCEnter();
 
-    const TCPHdr *tcph = PacketGetTCP(p);
-    const uint32_t pseq = TCP_GET_RAW_SEQ(tcph);
-    uint32_t tseq = seg->seq;
-
-    /* check if segment is within the packet */
-    if (tseq + TCP_SEG_LEN(seg) < pseq) {
-        SCReturn;
-    } else if (pseq + p->payload_len < tseq) {
-        SCReturn;
-    }
-
     const uint8_t *seg_data;
     uint32_t seg_datalen;
     StreamingBufferSegmentGetData(&stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
+    if (seg_data == NULL || seg_datalen == 0) {
+        SCReturn;
+    }
+
+    const TCPHdr *tcph = PacketGetTCP(p);
+    const uint32_t pseq = TCP_GET_RAW_SEQ(tcph);
+
+    /* segment head may be pruned: stored data then starts at base_seq,
+     * not seg->seq */
+    uint32_t tseq = seg->seq;
+    if (SEQ_LT(tseq, stream->base_seq)) {
+        tseq = stream->base_seq;
+    }
 
     uint32_t pend = pseq + p->payload_len;
     uint32_t tend = tseq + seg_datalen;
     SCLogDebug("pend %u, tend %u", pend, tend);
+
+    /* no overlap with the stored data */
+    if (SEQ_GT(pseq, tend) || SEQ_GT(tseq, pend)) {
+        SCReturn;
+    }
 
     /* get the minimal seg*_end */
     uint32_t end = (SEQ_GT(pend, tend)) ? tend : pend;

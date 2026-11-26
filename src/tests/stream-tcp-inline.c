@@ -183,6 +183,92 @@ static int StreamTcpInlineTest08(void)
     INLINE_END;
 }
 
+/** \test overlap with a segment whose head is pruned (before base_seq) */
+static int StreamTcpInlineTest09(void)
+{
+    INLINE_START(0);
+
+    /* slide the buffer: base_seq moves past the head of the segment
+     * inserted next, so its stored data starts at base_seq */
+    stream->base_seq = 3;
+    StreamingBufferSlideToOffset(&stream->sb, &stream_config.sbcnf, STREAM_BASE_OFFSET(stream) + 2);
+
+    /* insert [1,11): only [3,11) is stored */
+    INLINE_ADD_PAYLOAD(1, "ABCDEFGHIJ", 10, "ABCDEFGHIJ", 10);
+    TcpSegment *seg = RB_MIN(TCPSEG, &stream->seg_tree);
+    FAIL_IF(seg == NULL);
+
+    /* retransmit at base_seq+1: the shape the packet path reaches. Pre-fix
+     * ReplacePacket takes the stored data offset from the unclamped seq, so
+     * it copies [6,8) instead of [4,6). */
+    p = UTHBuildPacketReal((uint8_t *)"xy", 2, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF(p == NULL);
+    p->l4.hdrs.tcph->th_seq = htonl(stream->isn + 4);
+    p->l4.hdrs.tcph->th_ack = htonl(31);
+    FAIL_IF(StreamTcpInlineSegmentCompare(stream, p, seg) != 1);
+    StreamTcpInlineSegmentReplacePacket(stream, p, seg);
+    FAIL_IF(memcmp(p->payload, "DE", 2) != 0);
+    FAIL_IF(!(p->flags & PKT_STREAM_MODIFIED));
+    UTHFreePacket(p);
+
+    /* retransmit [2,6) with different data: the shared part [3,6) is
+     * rewritten aligned on base_seq */
+    p = UTHBuildPacketReal((uint8_t *)"XYYY", 4, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF(p == NULL);
+    p->l4.hdrs.tcph->th_seq = htonl(stream->isn + 2);
+    p->l4.hdrs.tcph->th_ack = htonl(31);
+    FAIL_IF(StreamTcpInlineSegmentCompare(stream, p, seg) != 1);
+    StreamTcpInlineSegmentReplacePacket(stream, p, seg);
+    FAIL_IF(memcmp(p->payload, "XCDE", 4) != 0);
+    FAIL_IF(!(p->flags & PKT_STREAM_MODIFIED));
+    UTHFreePacket(p);
+
+    /* same seq as the segment head: only the shared byte [3,4) is
+     * rewritten */
+    p = UTHBuildPacketReal((uint8_t *)"ZZZ", 3, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF(p == NULL);
+    p->l4.hdrs.tcph->th_seq = htonl(stream->isn + 1);
+    p->l4.hdrs.tcph->th_ack = htonl(31);
+    FAIL_IF(StreamTcpInlineSegmentCompare(stream, p, seg) != 1);
+    StreamTcpInlineSegmentReplacePacket(stream, p, seg);
+    FAIL_IF(memcmp(p->payload, "ZZC", 3) != 0);
+    UTHFreePacket(p);
+
+    INLINE_END;
+}
+
+/** \test packet overlapping the pruned head region, ending before base_seq:
+ *
+ *  No shared data in stored coordinates. Pre-fix `end` was not clamped
+ *  while `seq` was, so `range` wrapped to a huge value here.
+ */
+static int StreamTcpInlineTest10(void)
+{
+    INLINE_START(0);
+
+    stream->base_seq = 3;
+    StreamingBufferSlideToOffset(&stream->sb, &stream_config.sbcnf, STREAM_BASE_OFFSET(stream) + 2);
+
+    /* insert [1,6): only [3,6) is stored */
+    INLINE_ADD_PAYLOAD(1, "ABCDE", 5, "ABCDE", 5);
+    TcpSegment *seg = RB_MIN(TCPSEG, &stream->seg_tree);
+    FAIL_IF(seg == NULL);
+
+    /* retransmit [1,2): overlaps the segment's original head but ends
+     * before base_seq: no shared data, no rewrite */
+    p = UTHBuildPacketReal((uint8_t *)"Z", 1, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    FAIL_IF(p == NULL);
+    p->l4.hdrs.tcph->th_seq = htonl(stream->isn + 1);
+    p->l4.hdrs.tcph->th_ack = htonl(31);
+    FAIL_IF(StreamTcpInlineSegmentCompare(stream, p, seg) != 0);
+    StreamTcpInlineSegmentReplacePacket(stream, p, seg);
+    FAIL_IF(memcmp(p->payload, "Z", 1) != 0);
+    FAIL_IF(p->flags & PKT_STREAM_MODIFIED);
+    UTHFreePacket(p);
+
+    INLINE_END;
+}
+
 void StreamTcpInlineRegisterTests(void)
 {
     UtRegisterTest("StreamTcpInlineTest01", StreamTcpInlineTest01);
@@ -193,4 +279,6 @@ void StreamTcpInlineRegisterTests(void)
     UtRegisterTest("StreamTcpInlineTest06", StreamTcpInlineTest06);
     UtRegisterTest("StreamTcpInlineTest07", StreamTcpInlineTest07);
     UtRegisterTest("StreamTcpInlineTest08", StreamTcpInlineTest08);
+    UtRegisterTest("StreamTcpInlineTest09", StreamTcpInlineTest09);
+    UtRegisterTest("StreamTcpInlineTest10", StreamTcpInlineTest10);
 }
