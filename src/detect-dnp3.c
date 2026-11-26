@@ -15,6 +15,19 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file
+ *
+ * DNP3 rule keywords:
+ *
+ *   dnp3.data  sticky buffer: the reassembled application data
+ *   dnp3_func  application function code (uint8, names allowed)
+ *   dnp3_ind   internal indication flags, responses only (uint16)
+ *   dnp3_obj   object group and variation: dnp3_obj:<group>,<variation>
+ *
+ * Each keyword also has a dotted or underscored alias.
+ */
+
 #include "suricata-common.h"
 
 #include "stream.h"
@@ -32,15 +45,16 @@
 #include "app-layer-dnp3.h"
 #include "util-byte.h"
 
+/* list ids: "dnp3" (func and obj), "dnp3_data", "dnp3_ind" */
 static int g_dnp3_match_buffer_id = 0;
 static int g_dnp3_data_buffer_id = 0;
 static int g_dnp3_ind_buffer_id = 0;
 
 /**
- * The detection struct.
+ * dnp3_obj match data.
  */
 typedef struct DetectDNP3_ {
-    /* Object info for object detection. */
+    /* Object to look for in the transaction. */
     uint8_t obj_group;
     uint8_t obj_variation;
 } DetectDNP3;
@@ -50,6 +64,9 @@ static void DetectDNP3FuncRegisterTests(void);
 static void DetectDNP3ObjRegisterTests(void);
 #endif
 
+/** \brief dnp3.data buffer getter: the tx's reassembled application
+ *  data, for requests to server and responses to client only.
+ *  \return the buffer, or NULL if wrong direction or no data */
 static InspectionBuffer *GetDNP3Data(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t flow_flags,
@@ -82,6 +99,8 @@ static void DetectDNP3FuncFree(DetectEngineCtx *de_ctx, void *ptr)
     SCDetectU8Free(ptr);
 }
 
+/** \brief dnp3_func setup: parse a uint8 expression or function name.
+ *  \retval 0 ok, -1 error */
 static int DetectDNP3FuncSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
@@ -113,6 +132,8 @@ static void DetectDNP3IndFree(DetectEngineCtx *de_ctx, void *ptr)
     SCDetectU16Free(ptr);
 }
 
+/** \brief dnp3_ind setup: parse a uint16 expression or flag names.
+ *  \retval 0 ok, -1 error */
 static int DetectDNP3IndSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
@@ -140,13 +161,15 @@ error:
 }
 
 /**
- * \brief Parse the value of string of the dnp3_obj keyword.
+ * \brief Parse the dnp3_obj value "<group>,<variation>".
+ *
+ * Each number is 0-255; hex (0x..) and octal (0..) are accepted.
  *
  * \param str the input string
- * \param gout pointer to variable to store the parsed group integer
- * \param vout pointer to variable to store the parsed variation integer
+ * \param group where to store the parsed group
+ * \param var where to store the parsed variation
  *
- * \retval 1 if parsing successful otherwise 0.
+ * \retval 1 on success, 0 on failure
  */
 static int DetectDNP3ObjParse(const char *str, uint8_t *group, uint8_t *var)
 {
@@ -172,6 +195,8 @@ static int DetectDNP3ObjParse(const char *str, uint8_t *group, uint8_t *var)
     return 1;
 }
 
+/** \brief dnp3_obj setup.
+ *  \retval 1 ok, 0 error. Note: not the usual 0 / -1 convention. */
 static int DetectDNP3ObjSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
@@ -206,6 +231,7 @@ fail:
     SCReturnInt(0);
 }
 
+/** \brief Free dnp3_obj match data. */
 static void DetectDNP3Free(DetectEngineCtx *de_ctx, void *ptr)
 {
     SCEnter();
@@ -215,6 +241,8 @@ static void DetectDNP3Free(DetectEngineCtx *de_ctx, void *ptr)
     SCReturn;
 }
 
+/** \brief Match the function code of a request (to server) or a
+ *  response (to client). */
 static int DetectDNP3FuncMatch(DetectEngineThreadCtx *det_ctx,
     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
     const SigMatchCtx *ctx)
@@ -231,6 +259,8 @@ static int DetectDNP3FuncMatch(DetectEngineThreadCtx *det_ctx,
     return 0;
 }
 
+/** \brief Match if the tx contains an object with the given group and
+ *  variation (same direction rule as dnp3_func). */
 static int DetectDNP3ObjMatch(DetectEngineThreadCtx *det_ctx,
     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
     const SigMatchCtx *ctx)
@@ -258,6 +288,8 @@ static int DetectDNP3ObjMatch(DetectEngineThreadCtx *det_ctx,
     return 0;
 }
 
+/** \brief Match the IIN flags as one uint16 (IIN1 high byte, IIN2 low).
+ *  No direction check: the dnp3_ind list is only inspected to client. */
 static int DetectDNP3IndMatch(DetectEngineThreadCtx *det_ctx,
     Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
     const SigMatchCtx *ctx)
@@ -329,6 +361,8 @@ static void DetectDNP3ObjRegister(void)
     SCReturn;
 }
 
+/** \brief dnp3.data setup: make dnp3_data the active buffer.
+ *  \retval 0 ok, -1 error */
 static int DetectDNP3DataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
@@ -341,6 +375,7 @@ static int DetectDNP3DataSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     SCReturnInt(0);
 }
 
+/* dnp3.data: inspection and prefilter (mpm) engines, both directions */
 static void DetectDNP3DataRegister(void)
 {
     SCEnter();
@@ -367,6 +402,7 @@ static void DetectDNP3DataRegister(void)
     SCReturn;
 }
 
+/** \brief Register all DNP3 keywords and their inspection lists. */
 void DetectDNP3Register(void)
 {
     DetectDNP3DataRegister();
@@ -375,7 +411,7 @@ void DetectDNP3Register(void)
     DetectDNP3IndRegister();
     DetectDNP3ObjRegister();
 
-    /* Register the list of func, ind and obj. */
+    /* "dnp3" list, shared by func and obj, inspected in both directions. */
     DetectAppLayerInspectEngineRegister(
             "dnp3", ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0, DetectEngineInspectGenericList, NULL);
     DetectAppLayerInspectEngineRegister(
@@ -383,6 +419,7 @@ void DetectDNP3Register(void)
 
     g_dnp3_match_buffer_id = DetectBufferTypeRegister("dnp3");
 
+    /* "dnp3_ind" list: IIN flags exist only in responses, so to client only. */
     DetectAppLayerInspectEngineRegister(
             "dnp3_ind", ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0, DetectEngineInspectGenericList, NULL);
     g_dnp3_ind_buffer_id = DetectBufferTypeRegister("dnp3_ind");
@@ -395,6 +432,7 @@ void DetectDNP3Register(void)
 #include "flow-util.h"
 #include "stream-tcp.h"
 
+/** \test dnp3_func:2 lands in the dnp3 list with value 2. */
 static int DetectDNP3FuncTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -416,6 +454,7 @@ static int DetectDNP3FuncTest01(void)
     PASS;
 }
 
+/** \test dnp3_obj:99,99 lands in the dnp3 list with group and variation 99. */
 static int DetectDNP3ObjSetupTest(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -438,6 +477,8 @@ static int DetectDNP3ObjSetupTest(void)
     PASS;
 }
 
+/** \test dnp3_obj parsing: 0-255 accepted; negatives, overflow and
+ *        non-numbers rejected. */
 static int DetectDNP3ObjParseTest(void)
 {
     uint8_t group, var;
