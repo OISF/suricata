@@ -71,7 +71,7 @@ CARGO_ENV +=	LOCALSTATEDIR=$(e_localstatedir)
 # To pass specific CFLAGS to Lua.
 CARGO_ENV +=	SURICATA_LUA_SYS_CFLAGS="$(SURICATA_LUA_SYS_CFLAGS)"
 
-all-local: Cargo.toml ffi/Cargo.toml
+all-local: Cargo.toml Cargo.lock ffi/Cargo.toml
 	mkdir -p $(abs_top_builddir)/rust/gen
 	cd $(abs_top_srcdir)/rust && \
 		CC="$(CC)" AR="$(AR)" RANLIB="$(RANLIB)"\
@@ -90,7 +90,7 @@ all-local: Cargo.toml ffi/Cargo.toml
 	$(MAKE) gen/rust-ffi.h
 	$(MAKE) gen/htp/htp_rs.h
 	if test -e Cargo.lock.in; then \
-		cp Cargo.lock Cargo.lock.in; \
+		cp -p Cargo.lock Cargo.lock.in; \
 	fi
 
 install-exec-local:
