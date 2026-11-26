@@ -17,6 +17,7 @@
 
 //! QUIC application layer, parser, detection and logger module.
 
+mod connection;
 mod crypto;
 mod cyu;
 pub mod detect;
@@ -25,3 +26,4 @@ mod frames;
 mod logger;
 mod parser;
 pub mod quic;
+mod reassembly;
