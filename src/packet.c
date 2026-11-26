@@ -162,6 +162,7 @@ void PacketReinit(Packet *p)
     p->tproto = DECODE_TUNNEL_UNSET;
     p->livedev_id = 0;
     p->livedev_dst_id = 0;
+    p->pcap_v.pfv = NULL;
     PACKET_PROFILING_RESET(p);
     p->tenant_id = 0;
     p->nb_decoded_layers = 0;
