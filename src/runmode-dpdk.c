@@ -81,7 +81,7 @@ static int ConfigSetRxQueues(DPDKIfaceConfig *iconf, uint16_t nb_queues, uint16_
 static int ConfigSetTxQueues(
         DPDKIfaceConfig *iconf, uint16_t nb_queues, uint16_t max_queues, bool iface_sends_pkts);
 static int ConfigSetMempoolSize(
-        DPDKIfaceConfig *iconf, const char *entry_str, const struct rte_eth_dev_info *dev_info);
+        DPDKIfaceConfig *iconf, const char *entry_str, uint16_t bond_members);
 static int ConfigSetMempoolCacheSize(DPDKIfaceConfig *iconf, const char *entry_str);
 static int ConfigSetRxDescriptors(DPDKIfaceConfig *iconf, const char *entry_str, uint16_t max_desc);
 static int ConfigSetTxDescriptors(
@@ -110,6 +110,7 @@ static void DPDKDerefConfig(void *conf);
 
 #define DPDK_CONFIG_DEFAULT_THREADS                     "auto"
 #define DPDK_CONFIG_DEFAULT_INTERRUPT_MODE              false
+#define DPDK_CONFIG_DEFAULT_RX_BACKLOG_SIZE             "0"
 #define DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE                "auto"
 #define DPDK_CONFIG_DEFAULT_MEMPOOL_CACHE_SIZE          "auto"
 #define DPDK_CONFIG_DEFAULT_RX_DESCRIPTORS              "auto"
@@ -136,6 +137,7 @@ DPDKIfaceConfigAttributes dpdk_yaml = {
     .vlan_strip_offload = "vlan-strip-offload",
     .rss_hf = "rss-hash-functions",
     .linkup_timeout = "linkup-timeout",
+    .rx_backlog_size = "rx-backlog-size",
     .mempool_size = "mempool-size",
     .mempool_cache_size = "mempool-cache-size",
     .rx_descriptors = "rx-descriptors",
@@ -378,42 +380,79 @@ static void ConfigSetIface(DPDKIfaceConfig *iconf, const char *entry_str)
     SCReturn;
 }
 
+static int32_t remaining_auto_cpus = -1; // -1 means not initialized
+
+/**
+ * \brief Initialize the number of remaining auto-assigned threads.
+ * \retval 0 on success, -EINVAL on invalid input
+ */
+static int AutoRemainingThreadsInit(uint16_t sched_cpus, uint16_t live_dev_count)
+{
+    if (remaining_auto_cpus != -1) {
+        return 0;
+    }
+
+    if (sched_cpus == 0) {
+        SCLogError("No worker CPU cores with affinity were configured");
+        return -EINVAL;
+    }
+    if (live_dev_count == 0) {
+        SCLogError("No devices configured");
+        return -EINVAL;
+    }
+    remaining_auto_cpus = sched_cpus % live_dev_count;
+    return 0;
+}
+
+/**
+ * \brief Decrease the number of remaining auto-assigned threads by one
+ * \retval true if a leftover thread was consumed, false otherwise
+ */
+static bool AutoRemainingThreadsUsedOne(void)
+{
+    if (remaining_auto_cpus <= 0) {
+        return false;
+    }
+
+    remaining_auto_cpus--;
+    return true;
+}
+
 static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
 {
     SCEnter();
-    static uint16_t remaining_auto_cpus = UINT16_MAX; // uninitialized
     if (!threading_set_cpu_affinity) {
         SCLogError("DPDK runmode requires configured thread affinity");
         SCReturnInt(-EINVAL);
     }
 
     bool wtaf_periface = true;
-    ThreadsAffinityType *wtaf = GetAffinityTypeForNameAndIface("worker-cpu-set", iconf->iface);
+    ThreadsAffinityType *wtaf = AffinityTypeGetByIfaceOrCpuset("worker-cpu-set", iconf->iface);
     if (wtaf == NULL) {
         wtaf_periface = false;
-        wtaf = GetAffinityTypeForNameAndIface("worker-cpu-set", NULL); // mandatory
+        wtaf = AffinityTypeGetByIfaceOrCpuset("worker-cpu-set", NULL); // mandatory
         if (wtaf == NULL) {
             SCLogError("Specify worker-cpu-set list in the threading section");
             SCReturnInt(-EINVAL);
         }
     }
-    ThreadsAffinityType *mtaf = GetAffinityTypeForNameAndIface("management-cpu-set", NULL);
+    ThreadsAffinityType *mtaf = AffinityTypeGetByIfaceOrCpuset("management-cpu-set", NULL);
     if (mtaf == NULL) {
         SCLogError("Specify management-cpu-set list in the threading section");
         SCReturnInt(-EINVAL);
     }
-    uint16_t sched_cpus = UtilAffinityGetAffinedCPUNum(wtaf);
+    uint16_t sched_cpus = AffinityGetAffinedCPUNum(wtaf);
     if (sched_cpus == UtilCpuGetNumProcessorsOnline()) {
         SCLogWarning(
                 "\"all\" specified in worker CPU cores affinity, excluding management threads");
-        UtilAffinityCpusExclude(wtaf, mtaf);
-        sched_cpus = UtilAffinityGetAffinedCPUNum(wtaf);
+        AffinityCpusSubtract(wtaf, mtaf);
+        sched_cpus = AffinityGetAffinedCPUNum(wtaf);
     }
 
     if (sched_cpus == 0) {
         SCLogError("No worker CPU cores with configured affinity were configured");
         SCReturnInt(-EINVAL);
-    } else if (UtilAffinityCpusOverlap(wtaf, mtaf) != 0) {
+    } else if (AffinityCpusOverlap(wtaf, mtaf)) {
         SCLogWarning("Worker threads should not overlap with management threads in the CPU core "
                      "affinity configuration");
     }
@@ -447,16 +486,12 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
             SCReturnInt(-ERANGE);
         }
 
-        if (remaining_auto_cpus == UINT16_MAX) {
-            // first time auto-assignment
-            remaining_auto_cpus = sched_cpus % live_dev_count;
-            if (remaining_auto_cpus > 0) {
-                iconf->threads++;
-                remaining_auto_cpus--;
-            }
-        } else if (remaining_auto_cpus > 0) {
+        int init_ret = AutoRemainingThreadsInit(sched_cpus, live_dev_count);
+        if (init_ret < 0) {
+            SCReturnInt(init_ret);
+        }
+        if (AutoRemainingThreadsUsedOne()) {
             iconf->threads++;
-            remaining_auto_cpus--;
         }
         SCLogConfig("%s: auto-assigned %u threads", iconf->iface, iconf->threads);
         SCReturnInt(0);
@@ -468,7 +503,7 @@ static int ConfigSetThreads(DPDKIfaceConfig *iconf, const char *entry_str)
         SCReturnInt(-EINVAL);
     }
 
-    if (iconf->threads <= 0) {
+    if (iconf->threads == 0) {
         SCLogError("%s: positive number of threads required", iconf->iface);
         SCReturnInt(-ERANGE);
     }
@@ -529,22 +564,53 @@ static int ConfigSetTxQueues(
     SCReturnInt(0);
 }
 
-static uint32_t MempoolSizeCalculateAutosize(
-        const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
+static int ConfigSetRxBacklogSize(DPDKIfaceConfig *iconf, const char *entry_str)
 {
-    uint32_t next_p2 =
-            rte_align32pow2(iconf->nb_rx_desc + iconf->nb_tx_desc +
-                            1); // + 1 in case number of descriptors is already a power of 2
-
-    uint32_t mp_size = next_p2;
-    if (dev_info != NULL) {
-        if (strcmp(dev_info->driver_name, "net_bonding") == 0) {
-            mp_size = BondingMempoolSizeCalculate(iconf->port_id, dev_info, mp_size);
-        }
+    SCEnter();
+    uint32_t size;
+    if (StringParseUint32(&size, 10, 0, entry_str) < 0) {
+        SCLogError("%s: rx-backlog-size requires a non-negative integer - \"%s\"", iconf->iface,
+                entry_str);
+        SCReturnInt(-EINVAL);
     }
 
-    return mp_size -
-           1; // mempool size should be n = (2^q - 1) to have all descriptors available for use
+    if (size != 0 && (size < DPDK_RX_BURST_SIZE || !rte_is_power_of_2(size))) {
+        SCLogError("%s: rx-backlog-size must be zero or a power of two of at least %u",
+                iconf->iface, DPDK_RX_BURST_SIZE);
+        SCReturnInt(-ERANGE);
+    }
+
+    if ((uint64_t)size * sizeof(struct rte_mbuf *) > SIZE_MAX) {
+        SCLogError("%s: rx-backlog-size exceeds the supported allocation size", iconf->iface);
+        SCReturnInt(-ERANGE);
+    }
+
+    iconf->rx_backlog_size = size;
+    SCReturnInt(0);
+}
+
+/**
+ * \param bond_members number of bond member ports, 0 for a non-bond port or an unknown count
+ */
+static int MempoolSizeCalculate(const DPDKIfaceConfig *iconf, uint16_t bond_members, uint32_t *size)
+{
+    uint64_t descriptors = (uint64_t)iconf->nb_rx_desc + iconf->nb_tx_desc;
+    if (bond_members > 0) {
+        /* Every member port fills its own descriptors from the worker's mempool. */
+        descriptors *= bond_members;
+    }
+
+    /* The RX burst in flight and the backlog are held once per worker. */
+    const uint64_t required = descriptors + iconf->rx_backlog_size + DPDK_RX_BURST_SIZE;
+    /* Add one so that rounding to 2^q - 1 still covers a power-of-two requirement. */
+    const uint64_t next_p2 = rte_align64pow2(required + 1);
+    if (next_p2 - 1 > UINT32_MAX) {
+        SCLogError("%s: mempool requirement exceeds the supported per-queue size", iconf->iface);
+        return -ERANGE;
+    }
+
+    *size = (uint32_t)(next_p2 - 1);
+    return 0;
 }
 
 static uint32_t MempoolSizeDistributeToQueues(uint32_t global_mp_size, uint16_t nic_queues)
@@ -558,34 +624,17 @@ static uint32_t MempoolSizeDistributeToQueues(uint32_t global_mp_size, uint16_t 
         return 0;
     }
 
-    uint32_t next_p2 = rte_align32pow2(mp_size_per_queue);
-    return (mp_size_per_queue == next_p2 || mp_size_per_queue == next_p2 - 1)
-                   ? next_p2 - 1
-                   : (next_p2 >> 1) - 1; // we must fit in the globally specified mempool size
-}
-
-static uint32_t MempoolSizeCalculateMinimal(
-        const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
-{
-    uint32_t mp_size =
-            rte_align32pow2(iconf->nb_rx_desc + iconf->nb_tx_desc +
-                            1); // + 1 in case number of descriptors is already a power of 2
-    if (dev_info != NULL) {
-        if (strcmp(dev_info->driver_name, "net_bonding") == 0) {
-            mp_size = BondingMempoolSizeCalculate(iconf->port_id, dev_info, mp_size);
-        }
-    }
-    return mp_size - 1;
+    uint64_t next_p2 = rte_align64pow2(mp_size_per_queue);
+    return (uint32_t)((mp_size_per_queue == next_p2 || mp_size_per_queue == next_p2 - 1)
+                              ? next_p2 - 1
+                              : (next_p2 >> 1) - 1); // fit in the globally specified mempool size
 }
 
 static int ConfigSetMempoolSize(
-        DPDKIfaceConfig *iconf, const char *entry_str, const struct rte_eth_dev_info *dev_info)
+        DPDKIfaceConfig *iconf, const char *entry_str, uint16_t bond_members)
 {
     SCEnter();
     if (entry_str == NULL || entry_str[0] == '\0' || strcmp(entry_str, "auto") == 0) {
-        // calculate the mempool size based on the number of:
-        //   - RX / TX queues
-        //   - RX / TX descriptors
         bool err = false;
         if (iconf->nb_rx_queues == 0) {
             // in IDS mode, we don't need TX queues
@@ -603,8 +652,8 @@ static int ConfigSetMempoolSize(
             SCReturnInt(-EINVAL);
         }
 
-        iconf->queue_mempool_size = MempoolSizeCalculateAutosize(iconf, dev_info);
-        SCReturnInt(0);
+        int retval = MempoolSizeCalculate(iconf, bond_members, &iconf->queue_mempool_size);
+        SCReturnInt(retval);
     }
 
     uint32_t global_mempool_size;
@@ -616,12 +665,17 @@ static int ConfigSetMempoolSize(
 
     iconf->queue_mempool_size =
             MempoolSizeDistributeToQueues(global_mempool_size, iconf->nb_rx_queues);
-    uint32_t required_mp_size = MempoolSizeCalculateMinimal(iconf, dev_info);
+    uint32_t required_mp_size;
+    int retval = MempoolSizeCalculate(iconf, bond_members, &required_mp_size);
+    if (retval < 0) {
+        SCReturnInt(retval);
+    }
+
     if (required_mp_size > iconf->queue_mempool_size) {
-        uint32_t required_global_mp_size =
-                required_mp_size * iconf->nb_rx_queues + iconf->nb_rx_queues - 1;
-        SCLogError("%s: mempool size is likely too small for the number of descriptors and queues, "
-                   "set to \"auto\" or adjust to the value of \"%" PRIu32 "\"",
+        uint64_t required_global_mp_size =
+                (uint64_t)required_mp_size * iconf->nb_rx_queues + iconf->nb_rx_queues - 1;
+        SCLogError("%s: mempool size is too small; set to \"auto\" or adjust "
+                   "to the value of \"%" PRIu64 "\"",
                 iconf->iface, required_global_mp_size);
         SCReturnInt(-ERANGE);
     }
@@ -988,10 +1042,23 @@ static int ConfigLoad(DPDKIfaceConfig *iconf, const char *iface)
         SCReturnInt(retval);
     }
 
+    uint16_t bond_members = 0;
+    if (strcmp(dev_info.driver_name, "net_bonding") == 0) {
+        bond_members = BondingMemberDevCount(&dev_info);
+    }
+
+    retval = SCConfGetChildValueWithDefault(
+                     if_root, if_default, dpdk_yaml.rx_backlog_size, &entry_str) != 1
+                     ? ConfigSetRxBacklogSize(iconf, DPDK_CONFIG_DEFAULT_RX_BACKLOG_SIZE)
+                     : ConfigSetRxBacklogSize(iconf, entry_str);
+    if (retval < 0) {
+        SCReturnInt(retval);
+    }
+
     retval = SCConfGetChildValueWithDefault(
                      if_root, if_default, dpdk_yaml.mempool_size, &entry_str) != 1
-                     ? ConfigSetMempoolSize(iconf, DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE, &dev_info)
-                     : ConfigSetMempoolSize(iconf, entry_str, &dev_info);
+                     ? ConfigSetMempoolSize(iconf, DPDK_CONFIG_DEFAULT_MEMPOOL_SIZE, bond_members)
+                     : ConfigSetMempoolSize(iconf, entry_str, bond_members);
     if (retval < 0)
         SCReturnInt(retval);
 
@@ -1079,10 +1146,10 @@ static bool ConfigThreadsGenericIsValid(uint16_t iface_threads, ThreadsAffinityT
         SCLogError("Specify worker-cpu-set list in the threading section");
         return false;
     }
-    if (total_cpus > UtilAffinityGetAffinedCPUNum(wtaf)) {
+    if (total_cpus > AffinityGetAffinedCPUNum(wtaf)) {
         SCLogError("Interfaces requested more cores than configured in the worker-cpu-set "
                    "threading section (requested %d configured %d",
-                total_cpus, UtilAffinityGetAffinedCPUNum(wtaf));
+                total_cpus, AffinityGetAffinedCPUNum(wtaf));
         return false;
     }
 
@@ -1091,10 +1158,10 @@ static bool ConfigThreadsGenericIsValid(uint16_t iface_threads, ThreadsAffinityT
 
 static bool ConfigThreadsInterfaceIsValid(uint16_t iface_threads, ThreadsAffinityType *itaf)
 {
-    if (iface_threads > UtilAffinityGetAffinedCPUNum(itaf)) {
+    if (iface_threads > AffinityGetAffinedCPUNum(itaf)) {
         SCLogError("Interface requested more cores than configured in the interface-specific "
                    "threading section (requested %d configured %d",
-                iface_threads, UtilAffinityGetAffinedCPUNum(itaf));
+                iface_threads, AffinityGetAffinedCPUNum(itaf));
         return false;
     }
 
@@ -1103,8 +1170,8 @@ static bool ConfigThreadsInterfaceIsValid(uint16_t iface_threads, ThreadsAffinit
 
 static bool ConfigIsThreadingValid(uint16_t iface_threads, const char *iface)
 {
-    ThreadsAffinityType *itaf = GetAffinityTypeForNameAndIface("worker-cpu-set", iface);
-    ThreadsAffinityType *wtaf = GetAffinityTypeForNameAndIface("worker-cpu-set", NULL);
+    ThreadsAffinityType *itaf = AffinityTypeGetByIfaceOrCpuset("worker-cpu-set", iface);
+    ThreadsAffinityType *wtaf = AffinityTypeGetByIfaceOrCpuset("worker-cpu-set", NULL);
     if (itaf && !ConfigThreadsInterfaceIsValid(iface_threads, itaf)) {
         return false;
     } else if (itaf == NULL && !ConfigThreadsGenericIsValid(iface_threads, wtaf)) {
@@ -1330,10 +1397,8 @@ static void DumpRXOffloadCapabilities(const uint64_t rx_offld_capa)
             rx_offld_capa & RTE_ETH_RX_OFFLOAD_OUTER_UDP_CKSUM ? "" : "NOT ");
     SCLogConfig("RTE_ETH_RX_OFFLOAD_RSS_HASH - %savailable",
             rx_offld_capa & RTE_ETH_RX_OFFLOAD_RSS_HASH ? "" : "NOT ");
-#if RTE_VERSION >= RTE_VERSION_NUM(20, 11, 0, 0)
     SCLogConfig("RTE_ETH_RX_OFFLOAD_BUFFER_SPLIT - %savailable",
             rx_offld_capa & RTE_ETH_RX_OFFLOAD_BUFFER_SPLIT ? "" : "NOT ");
-#endif
 }
 
 static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_dev_info *dev_info)
@@ -1346,28 +1411,12 @@ static int DeviceValidateMTU(const DPDKIfaceConfig *iconf, const struct rte_eth_
         SCReturnInt(-ERANGE);
     }
 
-#if RTE_VERSION < RTE_VERSION_NUM(21, 11, 0, 0)
-    // check if jumbo frames are set and are available
-    if (iconf->mtu > RTE_ETHER_MAX_LEN &&
-            !(dev_info->rx_offload_capa & DEV_RX_OFFLOAD_JUMBO_FRAME)) {
-        SCLogError("%s: jumbo frames not supported, set MTU to 1500", iconf->iface);
-        SCReturnInt(-EINVAL);
-    }
-#endif
-
     SCReturnInt(0);
 }
 
 static void DeviceSetMTU(struct rte_eth_conf *port_conf, uint16_t mtu)
 {
-#if RTE_VERSION >= RTE_VERSION_NUM(21, 11, 0, 0)
     port_conf->rxmode.mtu = mtu;
-#else
-    port_conf->rxmode.max_rx_pkt_len = mtu;
-    if (mtu > RTE_ETHER_MAX_LEN) {
-        port_conf->rxmode.offloads |= DEV_RX_OFFLOAD_JUMBO_FRAME;
-    }
-#endif
 }
 
 static void PortConfSetInterruptMode(const DPDKIfaceConfig *iconf, struct rte_eth_conf *port_conf)
@@ -1499,6 +1548,12 @@ static int DeviceConfigureQueues(DPDKIfaceConfig *iconf, const struct rte_eth_de
                                      : iconf->mempool_cache_size;
     SCLogInfo("%s: creating %u packet mempools of size %u, cache size %u, mbuf size %u",
             iconf->iface, iconf->nb_rx_queues, iconf->queue_mempool_size, q_mp_cache_sz, mbuf_size);
+    if (iconf->rx_backlog_size != 0) {
+        SCLogInfo("%s: RX backlog size %" PRIu32 " per queue, RX burst %u, drain budget %u, "
+                  "processing quantum %u",
+                iconf->iface, iconf->rx_backlog_size, DPDK_RX_BURST_SIZE, DPDK_RX_DRAIN_BUDGET,
+                DPDK_BACKLOG_PROCESS_QUANTUM);
+    }
     for (int i = 0; i < iconf->nb_rx_queues; i++) {
         char mempool_name[64];
         snprintf(mempool_name, sizeof(mempool_name), "mp_%d_%.20s", i, iconf->iface);
@@ -2004,6 +2059,818 @@ int RunModeIdsDpdkWorkers(void)
 #endif /* HAVE_DPDK */
     SCReturnInt(0);
 }
+
+#if defined(HAVE_DPDK) && defined(UNITTESTS)
+#include "conf-yaml-loader.h"
+
+/**
+ * \brief Reset the remaining auto-assigned threads count so next call of
+ * AutoRemainingThreadsInit() will recalculate the number of remaining
+ * auto-assigned threads.
+ */
+static void AutoRemainingThreadsReset(void)
+{
+    remaining_auto_cpus = -1;
+}
+
+static void DPDKRunmodeSetThreadsDeinit(void)
+{
+    LiveDeviceListClean();
+    AutoRemainingThreadsReset();
+    AffinityReset();
+    threading_set_cpu_affinity = false;
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+    UtilCpuSetNumProcessorsForTests(0, 0, -1);
+}
+
+static int DPDKRunmodeSetThreadsInit(const char *input, size_t input_len)
+{
+    UtilCpuSetNumProcessorsForTests(UTIL_CPU_UT_NUM_CPUS, UTIL_CPU_UT_NUM_CPUS, -1);
+    SCConfCreateContextBackup();
+    SCConfInit();
+    UtSetTestCleanup(DPDKRunmodeSetThreadsDeinit);
+    int ret = SCConfYamlLoadString(input, input_len);
+    if (ret != 0) {
+        return -EINVAL;
+    }
+
+    int affinity = 0;
+    if (SCConfGetBool("threading.set-cpu-affinity", &affinity) == 1) {
+        threading_set_cpu_affinity = (affinity == 1);
+    }
+
+    if (threading_set_cpu_affinity) {
+        ret = AffinityLoadFromConfig();
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    LiveBuildDeviceListCustom("unittest-ifaces", "iface");
+    LiveDeviceFinalize();
+    return 0;
+}
+
+/**
+ * \brief Management CPU set excludes all available CPUs from the Worker CPU set
+ */
+static int DPDKRunmodeSetThreads01(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ \"all\" ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"all\" ]\n\
+";
+
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf = { 0 };
+    int r = ConfigSetThreads(&iconf, "1");
+    FAIL_IF_NOT(r == -EINVAL);
+
+    PASS;
+}
+
+/**
+ * \brief Worker "all" minus management CPU 0 yields remaining online CPUs
+ */
+static int DPDKRunmodeSetThreads02(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ 0 ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"all\" ]\n\
+";
+
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf = { 0 };
+    int r = ConfigSetThreads(&iconf, "auto");
+    FAIL_IF_NOT(iconf.threads == UtilCpuGetNumProcessorsOnline() - 1);
+    FAIL_IF_NOT(r == 0);
+
+    PASS;
+}
+
+/**
+ * \brief Management/Worker CPU set exclusion leaves 2 CPUs available
+ */
+static int DPDKRunmodeSetThreads03(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ 0 ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"1-2\" ]\n\
+";
+
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf = { 0 };
+    int r = ConfigSetThreads(&iconf, "auto");
+    FAIL_IF_NOT(iconf.threads == 2);
+    FAIL_IF_NOT(r == 0);
+
+    PASS;
+}
+
+/**
+ * \brief Auto assignment of 1 CPU per interface
+ */
+static int DPDKRunmodeSetThreads04(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev1\n\
+  - iface: test_dev2\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ 0 ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"1-2\" ]\n\
+";
+
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf1 = { 0 };
+    int r1 = ConfigSetThreads(&iconf1, "auto");
+    DPDKIfaceConfig iconf2 = { 0 };
+    int r2 = ConfigSetThreads(&iconf2, "auto");
+    FAIL_IF_NOT(iconf1.threads == 1);
+    FAIL_IF_NOT(r1 == 0);
+    FAIL_IF_NOT(iconf2.threads == 1);
+    FAIL_IF_NOT(r2 == 0);
+
+    PASS;
+}
+
+/**
+ * \brief Auto assignment test with 2 CPUs available for the first interface
+ */
+static int DPDKRunmodeSetThreads05(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev1\n\
+  - iface: test_dev2\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ 0 ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"1-3\" ]\n\
+";
+
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf1 = { 0 }; // test_dev1
+    int r1 = ConfigSetThreads(&iconf1, "auto");
+    DPDKIfaceConfig iconf2 = { 0 }; // test_dev2
+    int r2 = ConfigSetThreads(&iconf2, "auto");
+    FAIL_IF_NOT(iconf1.threads == 2);
+    FAIL_IF_NOT(r1 == 0);
+    FAIL_IF_NOT(iconf2.threads == 1);
+    FAIL_IF_NOT(r2 == 0);
+
+    PASS;
+}
+
+/**
+ * \brief Sanity test for the ConfigSetThreads function
+ */
+static int DPDKRunmodeSetThreads06(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ 0 ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"1-2\" ]\n\
+";
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf = { 0 };
+    int r = ConfigSetThreads(&iconf, "-2");
+    FAIL_IF_NOT(r == -EINVAL);
+
+    memset(&iconf, 0, sizeof(iconf));
+    r = ConfigSetThreads(&iconf, "0");
+    FAIL_IF_NOT(r == -ERANGE);
+
+    memset(&iconf, 0, sizeof(iconf));
+    r = ConfigSetThreads(&iconf, "abc");
+    FAIL_IF_NOT(r == -EINVAL);
+
+    memset(&iconf, 0, sizeof(iconf));
+    r = ConfigSetThreads(&iconf, "99999999999999");
+    FAIL_IF_NOT(r == -EINVAL);
+
+    memset(&iconf, 0, sizeof(iconf));
+    r = ConfigSetThreads(&iconf, "1");
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.threads == 1);
+
+    memset(&iconf, 0, sizeof(iconf));
+    r = ConfigSetThreads(&iconf, "2");
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.threads == 2);
+
+    PASS;
+}
+
+/**
+ * \brief Test auto assignment of threads to ifaces based on both generic and
+ * per-interface CPU affinity config
+ */
+static int DPDKRunmodeSetThreads07(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev1\n\
+  - iface: test_dev2\n\
+  - iface: test_dev3\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ 0 ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"2-3\" ]\n\
+      interface-specific-cpu-set:\n\
+        - interface: \"test_dev1\"\n\
+          cpu: [ 1 ]\n\
+";
+
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf1 = { .iface = "test_dev1" };
+    int r1 = ConfigSetThreads(&iconf1, "auto");
+    DPDKIfaceConfig iconf2 = { .iface = "test_dev2" };
+    int r2 = ConfigSetThreads(&iconf2, "auto");
+    DPDKIfaceConfig iconf3 = { .iface = "test_dev3" };
+    int r3 = ConfigSetThreads(&iconf3, "auto");
+    FAIL_IF_NOT(iconf1.threads == 1);
+    FAIL_IF_NOT(r1 == 0);
+    FAIL_IF_NOT(iconf2.threads == 1);
+    FAIL_IF_NOT(r2 == 0);
+    FAIL_IF_NOT(iconf3.threads == 1);
+    FAIL_IF_NOT(r3 == 0);
+
+    PASS;
+}
+
+/**
+ * \brief Auto assignment with more interfaces than CPUs
+ */
+static int DPDKRunmodeSetThreads08(void)
+{
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+unittest-ifaces:\n\
+  - iface: test_dev1\n\
+  - iface: test_dev2\n\
+  - iface: test_dev3\n\
+threading:\n\
+  set-cpu-affinity: yes\n\
+  cpu-affinity:\n\
+    management-cpu-set:\n\
+      cpu: [ 0 ] \n\
+    worker-cpu-set:\n\
+      cpu: [ \"1-2\" ]\n\
+";
+
+    int ret = DPDKRunmodeSetThreadsInit(input, strlen(input));
+    FAIL_IF(ret < 0);
+
+    DPDKIfaceConfig iconf1 = { 0 };
+    int r1 = ConfigSetThreads(&iconf1, "auto");
+    FAIL_IF_NOT(r1 == -ERANGE);
+
+    PASS;
+}
+
+/**
+ * \brief Invalid mempool cache size entries, a missing or empty entry means
+ * "auto" which needs the mempool size
+ */
+static int DPDKRunmodeSetMempoolCacheSize01(void)
+{
+    DPDKIfaceConfig iconf = { 0 };
+    const char *entry_str;
+
+    entry_str = NULL;
+    int r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF_NOT(r == -EINVAL);
+
+    entry_str = "";
+    r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF_NOT(r == -EINVAL);
+
+    entry_str = "-1";
+    r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF_NOT(r == -EINVAL);
+
+    entry_str = "999999999999999999";
+    r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF_NOT(r == -EINVAL);
+
+    PASS;
+}
+
+/**
+ * \brief Auto-calculated mempool cache size fits the mempool size
+ */
+static int DPDKRunmodeSetMempoolCacheSize02(void)
+{
+    DPDKIfaceConfig iconf = { 0 };
+    char entry_str[32];
+
+    snprintf(entry_str, sizeof(entry_str), "auto");
+    iconf.queue_mempool_size = 1023;
+    int r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.mempool_cache_size_auto);
+    iconf.mempool_cache_size = MempoolCacheSizeCalculate(iconf.queue_mempool_size);
+    FAIL_IF(iconf.mempool_cache_size >= RTE_MEMPOOL_CACHE_MAX_SIZE);
+    FAIL_IF(iconf.mempool_cache_size >= iconf.queue_mempool_size / 1.5);
+    FAIL_IF_NOT(iconf.queue_mempool_size % iconf.mempool_cache_size == 0);
+
+    PASS;
+}
+
+/**
+ * \brief Mempool cache size values at the bounds of the valid range
+ */
+static int DPDKRunmodeSetMempoolCacheSize03(void)
+{
+    DPDKIfaceConfig iconf = { 0 };
+    char entry_str[32];
+
+    snprintf(entry_str, sizeof(entry_str), "%d", 1);
+    iconf.queue_mempool_size = 1023;
+    int r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.mempool_cache_size == 1);
+
+    snprintf(entry_str, sizeof(entry_str), "%d", RTE_MEMPOOL_CACHE_MAX_SIZE);
+    r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.mempool_cache_size == RTE_MEMPOOL_CACHE_MAX_SIZE);
+
+    PASS;
+}
+
+/**
+ * \brief Mempool cache size values out of the valid range
+ */
+static int DPDKRunmodeSetMempoolCacheSize04(void)
+{
+    DPDKIfaceConfig iconf = { 0 };
+    char entry_str[32];
+
+    snprintf(entry_str, sizeof(entry_str), "%d", RTE_MEMPOOL_CACHE_MAX_SIZE + 1);
+    int r = ConfigSetMempoolCacheSize(&iconf, entry_str);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    r = ConfigSetMempoolCacheSize(&iconf, "0");
+    FAIL_IF_NOT(r == -ERANGE);
+
+    PASS;
+}
+
+/**
+ * \brief Mempool cache size set manually and derived from the mempool size
+ */
+static int DPDKRunmodeSetMempoolCacheSize05(void)
+{
+    DPDKIfaceConfig iconf = { 0 };
+
+    iconf.queue_mempool_size = 1023;
+    int r = ConfigSetMempoolCacheSize(&iconf, "7");
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF(iconf.mempool_cache_size_auto);
+    FAIL_IF_NOT(iconf.mempool_cache_size == 7);
+
+    r = ConfigSetMempoolCacheSize(&iconf, "1024");
+    FAIL_IF_NOT(r == -ERANGE);
+
+    r = ConfigSetMempoolCacheSize(&iconf, "auto");
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.mempool_cache_size_auto);
+    FAIL_IF_NOT(MempoolCacheSizeCalculate(iconf.queue_mempool_size) == 341);
+
+    PASS;
+}
+
+/**
+ * \brief Interface config with the queues and descriptors the mempool sizing reads
+ */
+static void MempoolSizeTestIfaceInit(
+        DPDKIfaceConfig *iconf, uint16_t rx_queues, uint16_t rx_desc, uint16_t tx_desc)
+{
+    memset(iconf, 0, sizeof(*iconf));
+    strlcpy(iconf->iface, "ut", sizeof(iconf->iface));
+    iconf->nb_rx_queues = rx_queues;
+    iconf->nb_rx_desc = rx_desc;
+    iconf->nb_tx_desc = tx_desc;
+}
+
+/**
+ * \brief Auto mempool size covers the descriptors and one RX burst of each
+ * queue, a missing or empty entry means "auto"
+ */
+static int DPDKRunmodeSetMempoolSize01(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    int r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 127);
+    FAIL_IF_NOT(MempoolCacheSizeCalculate(iconf.queue_mempool_size) == 1);
+
+    MempoolSizeTestIfaceInit(&iconf, 2, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 127);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, NULL, 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 127);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 127);
+
+    PASS;
+}
+
+/**
+ * \brief Auto mempool size needs RX queues and RX descriptors
+ */
+static int DPDKRunmodeSetMempoolSize02(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 0, 16, 16);
+    int r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == -EINVAL);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 0, 16);
+    r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == -EINVAL);
+
+    PASS;
+}
+
+/**
+ * \brief Manual mempool size is split among the queues and rounded down to
+ * 2^q - 1
+ */
+static int DPDKRunmodeSetMempoolSize03(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    int r = ConfigSetMempoolSize(&iconf, "1023", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 1023);
+    FAIL_IF_NOT(MempoolCacheSizeCalculate(iconf.queue_mempool_size) == 341);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "1024", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 1023);
+
+    MempoolSizeTestIfaceInit(&iconf, 2, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "1023", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 511);
+    FAIL_IF_NOT(MempoolCacheSizeCalculate(iconf.queue_mempool_size) == 73);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "128", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 127);
+
+    PASS;
+}
+
+/**
+ * \brief Manual mempool size below the descriptors and one RX burst of each
+ * queue, and a non-numerical entry
+ */
+static int DPDKRunmodeSetMempoolSize04(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    int r = ConfigSetMempoolSize(&iconf, "15", 0);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "32", 0);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "64", 0);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    MempoolSizeTestIfaceInit(&iconf, 2, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "1", 0);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "abc", 0);
+    FAIL_IF_NOT(r == -EINVAL);
+
+    PASS;
+}
+
+/**
+ * \brief Auto mempool size from auto descriptors of an IDS interface with
+ * the maximum descriptor limit
+ */
+static int DPDKRunmodeSetMempoolSize05(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 0, 0);
+    int r = ConfigSetRxDescriptors(&iconf, "auto", UINT16_MAX);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.nb_rx_desc == 32768);
+    r = ConfigSetTxDescriptors(&iconf, "auto", UINT16_MAX, false);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.nb_tx_desc == 0);
+
+    r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 65535);
+    FAIL_IF_NOT(MempoolCacheSizeCalculate(iconf.queue_mempool_size) == 257);
+
+    PASS;
+}
+
+/**
+ * \brief Auto mempool size of a bond port: the descriptors count once per
+ * member port, the RX burst once per queue
+ */
+static int DPDKRunmodeSetMempoolSize06(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    int r = ConfigSetMempoolSize(&iconf, "auto", 2);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 127);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "auto", 3);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 255);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 64, 64);
+    r = ConfigSetMempoolSize(&iconf, "auto", 2);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 511);
+
+    /* the same descriptors without member ports */
+    MempoolSizeTestIfaceInit(&iconf, 1, 64, 64);
+    r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 255);
+
+    PASS;
+}
+
+/**
+ * \brief Manual mempool size of a bond port is validated against the
+ * descriptors of all member ports
+ */
+static int DPDKRunmodeSetMempoolSize07(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    int r = ConfigSetMempoolSize(&iconf, "127", 3);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "255", 3);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 255);
+
+    /* the same size without member ports */
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    r = ConfigSetMempoolSize(&iconf, "127", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 127);
+
+    PASS;
+}
+
+/**
+ * \brief Mempool requirement of a bond port above the supported per-queue
+ * size
+ */
+static int DPDKRunmodeSetMempoolSize08(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, UINT16_MAX, UINT16_MAX);
+    int r = ConfigSetMempoolSize(&iconf, "auto", UINT16_MAX);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, UINT16_MAX, UINT16_MAX);
+    r = ConfigSetMempoolSize(&iconf, "4294967295", UINT16_MAX);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    /* the largest descriptor counts fit without member ports */
+    MempoolSizeTestIfaceInit(&iconf, 1, UINT16_MAX, UINT16_MAX);
+    r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 262143);
+
+    PASS;
+}
+
+/**
+ * \brief RX backlog size is zero or a power of two of at least one RX burst
+ */
+static int DPDKRunmodeSetRxBacklogSize01(void)
+{
+    DPDKIfaceConfig iconf = { 0 };
+
+    int r = ConfigSetRxBacklogSize(&iconf, "64");
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.rx_backlog_size == 64);
+
+    r = ConfigSetRxBacklogSize(&iconf, "32");
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.rx_backlog_size == 32);
+
+    r = ConfigSetRxBacklogSize(&iconf, "0");
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.rx_backlog_size == 0);
+
+    iconf.rx_backlog_size = 64;
+    r = ConfigSetRxBacklogSize(&iconf, DPDK_CONFIG_DEFAULT_RX_BACKLOG_SIZE);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.rx_backlog_size == 0);
+
+    r = ConfigSetRxBacklogSize(&iconf, "16");
+    FAIL_IF_NOT(r == -ERANGE);
+
+    r = ConfigSetRxBacklogSize(&iconf, "48");
+    FAIL_IF_NOT(r == -ERANGE);
+
+    r = ConfigSetRxBacklogSize(&iconf, "abc");
+    FAIL_IF_NOT(r == -EINVAL);
+
+    PASS;
+}
+
+/**
+ * \brief Mempool size covers the RX backlog of each queue
+ */
+static int DPDKRunmodeSetMempoolSize09(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 1024, 1024);
+    iconf.rx_backlog_size = 64;
+    int r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 4095);
+    FAIL_IF_NOT(MempoolCacheSizeCalculate(iconf.queue_mempool_size) == 455);
+
+    /* 127 without the backlog */
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    iconf.rx_backlog_size = 64;
+    r = ConfigSetMempoolSize(&iconf, "auto", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 255);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    iconf.rx_backlog_size = 64;
+    r = ConfigSetMempoolSize(&iconf, "127", 0);
+    FAIL_IF_NOT(r == -ERANGE);
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    iconf.rx_backlog_size = 64;
+    r = ConfigSetMempoolSize(&iconf, "255", 0);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 255);
+
+    PASS;
+}
+
+/**
+ * \brief Mempool size of a bond port counts the RX backlog once per queue,
+ * not per member port
+ */
+static int DPDKRunmodeSetMempoolSize10(void)
+{
+    DPDKIfaceConfig iconf;
+
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    iconf.rx_backlog_size = 64;
+    int r = ConfigSetMempoolSize(&iconf, "auto", 3);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 255);
+
+    /* 255 without the backlog, 1023 with a backlog per member port */
+    MempoolSizeTestIfaceInit(&iconf, 1, 16, 16);
+    iconf.rx_backlog_size = 128;
+    r = ConfigSetMempoolSize(&iconf, "auto", 3);
+    FAIL_IF_NOT(r == 0);
+    FAIL_IF_NOT(iconf.queue_mempool_size == 511);
+
+    PASS;
+}
+
+/**
+ * \brief Register DPDK runmode unit tests for threads, RX backlog size, mempool size and
+ * mempool cache size.
+ */
+void RunmodeDpdkRegisterTests(void)
+{
+
+    UtRegisterTest("DPDKRunmodeSetThreads01", DPDKRunmodeSetThreads01);
+    UtRegisterTest("DPDKRunmodeSetThreads02", DPDKRunmodeSetThreads02);
+    UtRegisterTest("DPDKRunmodeSetThreads03", DPDKRunmodeSetThreads03);
+    UtRegisterTest("DPDKRunmodeSetThreads04", DPDKRunmodeSetThreads04);
+    UtRegisterTest("DPDKRunmodeSetThreads05", DPDKRunmodeSetThreads05);
+    UtRegisterTest("DPDKRunmodeSetThreads06", DPDKRunmodeSetThreads06);
+    UtRegisterTest("DPDKRunmodeSetThreads07", DPDKRunmodeSetThreads07);
+    UtRegisterTest("DPDKRunmodeSetThreads08", DPDKRunmodeSetThreads08);
+    UtRegisterTest("DPDKRunmodeSetMempoolCacheSize01", DPDKRunmodeSetMempoolCacheSize01);
+    UtRegisterTest("DPDKRunmodeSetMempoolCacheSize02", DPDKRunmodeSetMempoolCacheSize02);
+    UtRegisterTest("DPDKRunmodeSetMempoolCacheSize03", DPDKRunmodeSetMempoolCacheSize03);
+    UtRegisterTest("DPDKRunmodeSetMempoolCacheSize04", DPDKRunmodeSetMempoolCacheSize04);
+    UtRegisterTest("DPDKRunmodeSetMempoolCacheSize05", DPDKRunmodeSetMempoolCacheSize05);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize01", DPDKRunmodeSetMempoolSize01);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize02", DPDKRunmodeSetMempoolSize02);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize03", DPDKRunmodeSetMempoolSize03);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize04", DPDKRunmodeSetMempoolSize04);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize05", DPDKRunmodeSetMempoolSize05);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize06", DPDKRunmodeSetMempoolSize06);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize07", DPDKRunmodeSetMempoolSize07);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize08", DPDKRunmodeSetMempoolSize08);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize09", DPDKRunmodeSetMempoolSize09);
+    UtRegisterTest("DPDKRunmodeSetMempoolSize10", DPDKRunmodeSetMempoolSize10);
+    UtRegisterTest("DPDKRunmodeSetRxBacklogSize01", DPDKRunmodeSetRxBacklogSize01);
+}
+#endif /* UNITTESTS and HAVE_DPDK */
 
 /**
  * @}
