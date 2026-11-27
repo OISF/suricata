@@ -250,6 +250,16 @@ fn parse_rpc_reply_body(i: &[u8], reply_state: u32) -> IResult<&[u8], RpcReplyBo
     let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
     let (i, verifier) = cond(verifier_len > 0, take(verifier_len as usize))(i)?;
     let (i, accept_state) = be_u32(i)?;
+    // RFC 5531 9: PROG_MISMATCH is the one accept_stat with a body, the
+    // version range the server does support. Consume it here or it is read as
+    // NFS data (and flagged) later.
+    const RPC_ACCEPT_PROG_MISMATCH: u32 = 2;
+    let i = if accept_state == RPC_ACCEPT_PROG_MISMATCH {
+        let (i, _) = tuple((be_u32, be_u32))(i)?; // low, high
+        i
+    } else {
+        i
+    };
     Ok((
         i,
         RpcReplyBody {
