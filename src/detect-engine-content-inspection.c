@@ -508,7 +508,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         uint16_t btflags = btd->flags;
         int32_t offset = btd->offset;
         uint64_t value = btd->value;
-        int32_t nbytes = btd->nbytes;
+        uint32_t nbytes = btd->nbytes;
         if (btflags & DETECT_BYTETEST_OFFSET_VAR) {
             // This cast is wrong if a 64-bit value was extracted
             offset = (int32_t)det_ctx->byte_values[offset].value;
@@ -518,7 +518,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         }
         if (btflags & DETECT_BYTETEST_NBYTES_VAR) {
             // This cast is wrong if a 64-bit value was extracted
-            nbytes = (int32_t)det_ctx->byte_values[nbytes].value;
+            nbytes = (uint32_t)det_ctx->byte_values[nbytes].value;
         }
 
         /* if we have dce enabled we will have to use the endianness
@@ -541,7 +541,7 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
         const DetectBytejumpData *bjd = (const DetectBytejumpData *)smd->ctx;
         uint16_t bjflags = bjd->flags;
         int32_t offset = bjd->offset;
-        int32_t nbytes;
+        uint32_t nbytes;
 
         if (bjflags & DETECT_BYTEJUMP_OFFSET_VAR) {
             // This cast is wrong if a 64-bit value was extracted
@@ -551,11 +551,11 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
 
         if (bjflags & DETECT_BYTEJUMP_NBYTES_VAR) {
             // This cast is wrong if a 64-bit value was extracted
-            nbytes = (int32_t)det_ctx->byte_values[bjd->nbytes].value;
-            SCLogDebug("[BJ] using nbytes value %d [index %d]", nbytes, bjd->nbytes);
+            nbytes = (uint32_t)det_ctx->byte_values[bjd->nbytes].value;
+            SCLogDebug("[BJ] using nbytes value %u [index %u]", nbytes, bjd->nbytes);
         } else {
             nbytes = bjd->nbytes;
-            SCLogDebug("[BJ] using nbytes value %d [index n/a]", nbytes);
+            SCLogDebug("[BJ] using nbytes value %u [index n/a]", nbytes);
         }
 
         /* if we have dce enabled we will have to use the endianness
@@ -622,9 +622,9 @@ static int DetectEngineContentInspectionInternal(DetectEngineThreadCtx *det_ctx,
             rvalue = bmd->rvalue;
         }
 
-        uint8_t nbytes;
+        uint32_t nbytes;
         if (bmd->flags & DETECT_BYTEMATH_FLAG_NBYTES_VAR) {
-            nbytes = (uint8_t)det_ctx->byte_values[bmd->nbytes].value;
+            nbytes = (uint32_t)det_ctx->byte_values[bmd->nbytes].value;
         } else {
             nbytes = bmd->nbytes;
         }

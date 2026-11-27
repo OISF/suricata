@@ -80,14 +80,14 @@ void DetectBytemathRegister(void)
 #endif
 }
 
-static inline bool DetectByteMathValidateNbytesOnly(const DetectByteMathData *data, int32_t nbytes)
+static inline bool DetectByteMathValidateNbytesOnly(const DetectByteMathData *data, uint32_t nbytes)
 {
     return nbytes >= 1 &&
            (((data->flags & DETECT_BYTEMATH_FLAG_STRING) && nbytes <= 10) || (nbytes <= 4));
 }
 
 int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const DetectByteMathData *data,
-        const Signature *s, const uint8_t *payload, const uint32_t payload_len, uint8_t nbytes,
+        const Signature *s, const uint8_t *payload, const uint32_t payload_len, uint32_t nbytes,
         uint64_t rvalue, uint64_t *value, uint8_t endian)
 {
     if (payload_len == 0) {
@@ -129,8 +129,8 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const DetectByteMathDa
     }
 
     /* Validate that the to-be-extracted is within the packet */
-    if (ptr < payload || nbytes > len) {
-        SCLogDebug("Data not within payload pkt=%p, ptr=%p, len=%" PRIu32 ", nbytes=%d", payload,
+    if (ptr < payload || (int64_t)nbytes > (int64_t)len) {
+        SCLogDebug("Data not within payload pkt=%p, ptr=%p, len=%" PRIu32 ", nbytes=%u", payload,
                 ptr, len, nbytes);
         return 0;
     }
@@ -143,16 +143,16 @@ int DetectByteMathDoMatch(DetectEngineThreadCtx *det_ctx, const DetectByteMathDa
                 SCLogDebug("No Numeric value");
                 return 0;
             } else {
-                SCLogDebug("error extracting %d bytes of string data: %d", nbytes, extbytes);
+                SCLogDebug("error extracting %u bytes of string data: %d", nbytes, extbytes);
                 return -1;
             }
         }
     } else {
         ByteEndian bme = endian;
         int endianness = (bme == BigEndian) ? BYTE_BIG_ENDIAN : BYTE_LITTLE_ENDIAN;
-        extbytes = ByteExtractUint64(&val, endianness, nbytes, ptr);
-        if (extbytes != nbytes) {
-            SCLogDebug("error extracting %d bytes of numeric data: %d", nbytes, extbytes);
+        extbytes = ByteExtractUint64(&val, endianness, (uint16_t)nbytes, ptr);
+        if ((int64_t)extbytes != (int64_t)nbytes) {
+            SCLogDebug("error extracting %u bytes of numeric data: %d", nbytes, extbytes);
             return 0;
         }
     }

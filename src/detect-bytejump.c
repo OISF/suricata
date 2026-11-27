@@ -94,12 +94,12 @@ void DetectBytejumpRegister (void)
  *
  * 8 - Without string, the maximum byte extract count is 8.
  */
-static inline bool DetectBytejumpValidateNbytesOnly(const DetectBytejumpData *data, int32_t nbytes)
+static inline bool DetectBytejumpValidateNbytesOnly(const DetectBytejumpData *data, uint32_t nbytes)
 {
-    return nbytes >= 0 && ((data->flags & DETECT_BYTEJUMP_STRING && nbytes <= 23) || (nbytes <= 8));
+    return ((data->flags & DETECT_BYTEJUMP_STRING && nbytes <= 23) || (nbytes <= 8));
 }
 
-static bool DetectBytejumpValidateNbytes(const DetectBytejumpData *data, int32_t nbytes)
+static bool DetectBytejumpValidateNbytes(const DetectBytejumpData *data, uint32_t nbytes)
 {
     if (!DetectBytejumpValidateNbytesOnly(data, nbytes)) {
         if (data->flags & DETECT_BYTEJUMP_STRING) {
@@ -137,7 +137,7 @@ static bool DetectBytejumpValidateNbytes(const DetectBytejumpData *data, int32_t
  */
 bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         const SigMatchCtx *ctx, const uint8_t *payload, uint32_t payload_len, uint16_t flags,
-        int32_t nbytes, int32_t offset)
+        uint32_t nbytes, int32_t offset)
 {
     SCEnter();
 
@@ -159,7 +159,7 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     if (data->flags & DETECT_BYTEJUMP_NBYTES_VAR) {
         if (!DetectBytejumpValidateNbytesOnly(data, nbytes)) {
             SCLogDebug("Invalid byte_jump nbytes "
-                       "seen in byte_jump - %d",
+                       "seen in byte_jump - %u",
                     nbytes);
             SCReturnBool(false);
         }
@@ -183,9 +183,9 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     }
 
     /* Verify the to-be-extracted data is within the packet */
-    if (ptr < payload || nbytes > len) {
+    if (ptr < payload || (int64_t)nbytes > (int64_t)len) {
         SCLogDebug("Data not within payload "
-                   "pkt=%p, ptr=%p, len=%" PRIi32 ", nbytes=%" PRIi32,
+                   "pkt=%p, ptr=%p, len=%" PRIi32 ", nbytes=%" PRIu32,
                 payload, ptr, len, nbytes);
         SCReturnBool(false);
     }
@@ -194,15 +194,15 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     if (flags & DETECT_BYTEJUMP_STRING) {
         extbytes = ByteExtractStringUint64(&val, data->base, nbytes, (const char *)ptr);
         if(extbytes <= 0) {
-            SCLogDebug("error extracting %d bytes of string data: %d", nbytes, extbytes);
+            SCLogDebug("error extracting %u bytes of string data: %d", nbytes, extbytes);
             SCReturnBool(false);
         }
     }
     else {
         int endianness = (flags & DETECT_BYTEJUMP_LITTLE) ? BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
         extbytes = ByteExtractUint64(&val, endianness, (uint16_t)nbytes, ptr);
-        if (extbytes != nbytes) {
-            SCLogDebug("error extracting %d bytes of numeric data: %d", nbytes, extbytes);
+        if ((int64_t)extbytes != (int64_t)nbytes) {
+            SCLogDebug("error extracting %u bytes of numeric data: %d", nbytes, extbytes);
             SCReturnBool(false);
         }
     }
@@ -244,7 +244,7 @@ bool DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
         SCLogDebug(
                 "NEWVAL: payload %p + %" PRIu32 " + %" PRIi64, payload, payload_len, (int64_t)val);
     } else {
-        jumpptr = ptr + (int64_t)val + extbytes;
+        jumpptr = ptr + (int64_t)val + (int64_t)extbytes;
         SCLogDebug("NEWVAL: ptr %p + %" PRIi64 " = %p", ptr, val, jumpptr);
     }
 

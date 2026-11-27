@@ -72,6 +72,6 @@ typedef struct DetectBytetestData_ {
 void DetectBytetestRegister (void);
 
 int DetectBytetestDoMatch(DetectEngineThreadCtx *, const Signature *, const SigMatchCtx *ctx,
-        const uint8_t *, uint32_t, uint16_t, int32_t, int32_t, uint64_t);
+        const uint8_t *, uint32_t, uint16_t, int32_t, uint32_t, uint64_t);
 
 #endif /* SURICATA_DETECT_BYTETEST_H */

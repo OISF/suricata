@@ -28,6 +28,6 @@ void DetectBytemathRegister(void);
 
 SigMatch *DetectByteMathRetrieveSMVar(const char *, int sm_list, const Signature *);
 int DetectByteMathDoMatch(DetectEngineThreadCtx *, const DetectByteMathData *, const Signature *,
-        const uint8_t *, const uint32_t, uint8_t, uint64_t, uint64_t *, uint8_t);
+        const uint8_t *, const uint32_t, uint32_t, uint64_t, uint64_t *, uint8_t);
 
 #endif /* SURICATA_DETECT_BYTEMATH_H */
