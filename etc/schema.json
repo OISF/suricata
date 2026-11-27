@@ -4997,7 +4997,7 @@
                         },
                         "from_truncated": {
                             "type": "boolean",
-                            "description": "set when the source name was shortened to fit the record budget"
+                            "description": "set when the source name was not logged because the record budget was spent"
                         },
                         "to": {
                             "type": "string",
@@ -5005,7 +5005,7 @@
                         },
                         "to_truncated": {
                             "type": "boolean",
-                            "description": "set when the target name was shortened to fit the record budget"
+                            "description": "set when the target name was not logged because the record budget was spent"
                         }
                     }
                 },
@@ -5784,7 +5784,7 @@
                         },
                         "machine_name_truncated": {
                             "type": "boolean",
-                            "description": "set when the machine name was shortened to fit the record budget"
+                            "description": "set when the machine name was not logged because the record budget was spent"
                         },
                         "uid": {
                             "type": "integer"
