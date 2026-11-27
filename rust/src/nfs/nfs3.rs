@@ -276,18 +276,17 @@ impl NFSState {
         let mut nfs_status = 0;
         let mut resp_handle = Vec::new();
 
-        // An accepted NFS/v3 reply carries its status word first. NULL
-        // returns void (RFC 1813 3.3.0) and a rejected reply carries no body
-        // at all, so an empty one is only a problem for an accepted call of
-        // another procedure (the default 0 would read as a fake OK).
-        let accepted = r.accept_state == 0;
+        // An accepted NFS/v3 reply carries its status word first. NULL returns
+        // void (RFC 1813 3.3.0), so an empty body is only a problem for
+        // another procedure (the default 0 would read as a fake OK). Replies
+        // without a program body never reach here: the dispatcher scores them.
         let null_call = xidmap.procedure == NFSPROC3_NULL;
         let nfs_status_set = if null_call {
-            accepted
+            true
         } else {
             r.prog_data.len() >= 4
         };
-        if !nfs_status_set && accepted && !null_call {
+        if !nfs_status_set && !null_call {
             self.set_event(NFSEvent::MalformedData);
         }
 

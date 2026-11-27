@@ -1720,4 +1720,20 @@ mod tests {
         assert!(rem.is_empty());
         assert_eq!(e.name_vec.len(), 1025);
     }
+
+    #[test]
+    fn test_readdir_entry_long_name() {
+        // the same for entry3: filename3 has no protocol bound
+        let name = vec![b'N'; 1025];
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&7u64.to_be_bytes()); // fileid
+        buf.extend_from_slice(&(name.len() as u32).to_be_bytes());
+        buf.extend_from_slice(&name);
+        buf.extend_from_slice(&[0, 0, 0]); // XDR pad
+        buf.extend_from_slice(&9u64.to_be_bytes()); // cookie
+
+        let (rem, e) = parse_nfs3_response_readdir_entry(&buf).unwrap();
+        assert!(rem.is_empty());
+        assert_eq!(e.name_vec.len(), 1025);
+    }
 }
