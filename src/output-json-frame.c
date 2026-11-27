@@ -358,7 +358,7 @@ static int FrameJson(ThreadVars *tv, JsonFrameLogThread *aft, const Packet *p)
             if (frame->flags & FRAME_FLAG_LOGGED)
                 continue;
 
-            int64_t abs_offset = (int64_t)frame->offset + (int64_t)STREAM_BASE_OFFSET(stream);
+            int64_t abs_offset = (int64_t)frame->offset;
             int64_t win = STREAM_APP_PROGRESS(stream) - abs_offset;
 
             /* skip frame if threshold not yet reached, esp if frame length is

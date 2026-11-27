@@ -504,7 +504,7 @@ static bool SetupStreamCallbackData(struct FrameStreamData *dst, const TcpSessio
     if (usable <= frame_offset)
         return false;
 
-    uint64_t want = frame->inspect_progress;
+    uint64_t want = frame->offset + frame->inspect_progress;
     if (frame->len == -1) {
         if (eof) {
             want = usable;
