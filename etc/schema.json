@@ -7957,6 +7957,10 @@
                             "type": "integer",
                             "description": "How many times a fragment wasn't stored due to max-frags limit being reached"
                         },
+                        "max_fragments": {
+                            "type": "integer",
+                            "description": "Maximum number of fragments held by a single tracker when it was freed"
+                        },
                         "max_trackers_reached": {
                             "type": "integer",
                             "description": "How many times a packet wasn't reassembled due to max-trackers limit being reached"
@@ -7973,6 +7977,10 @@
                                     "type": "integer"
                                 }
                             }
+                        },
+                        "tracker_active": {
+                            "type": "integer",
+                            "description": "Number of currently active defrag trackers"
                         },
                         "tracker_hard_reuse": {
                             "type": "integer",
@@ -8548,6 +8556,10 @@
                     "description": "Performance statistics for global memory use and memory capacity for Host table",
                     "additionalProperties": false,
                     "properties": {
+                        "active": {
+                            "type": "integer",
+                            "description": "Number of Host table entries currently in use"
+                        },
                         "memcap": {
                             "type": "integer",
                             "description": "Global memory capacity reached for Host table"
@@ -8592,6 +8604,10 @@
                     "description": "Performance statistics for global memory use and memory capacity for IP Pair table",
                     "additionalProperties": false,
                     "properties": {
+                        "active": {
+                            "type": "integer",
+                            "description": "Number of IP Pair table entries currently in use"
+                        },
                         "memcap": {
                             "type": "integer",
                             "description": "Global memory capacity reached for IP Pair table"
@@ -9017,6 +9033,10 @@
                         },
                         "pseudo": {
                             "type": "integer"
+                        },
+                        "reassembly_active_segments": {
+                            "type": "integer",
+                            "description": "Number of TCP reassembly segments currently in use"
                         },
                         "reassembly_gap": {
                             "type": "integer"
