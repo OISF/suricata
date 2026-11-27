@@ -1592,6 +1592,20 @@ mod test {
         jb.close().unwrap();
         assert_eq!(jb.buf, r#"[null]"#);
     }
+    /// `json_escaped_len` must predict exactly what `set_string` writes: the
+    /// logger's record budget charges it, so an underestimate overruns the
+    /// documented record limit.
+    #[test]
+    fn test_json_escaped_len_matches_output() {
+        for b in 0u16..=255 {
+            let val: String = char::from(b as u8).to_string();
+            let mut js = JsonBuilder::try_new_object().unwrap();
+            js.set_string("k", &val).unwrap();
+            // object syntax: {"k":"<escaped>"
+            let emitted = js.buf.len() - "{\"k\":".len();
+            assert_eq!(json_escaped_len(&val), emitted, "byte {b}");
+        }
+    }
 }
 
 // Escape table as seen in serde-json (MIT/Apache license)

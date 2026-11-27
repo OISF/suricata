@@ -504,7 +504,7 @@ mod tests {
         assert_eq!(json_escaped_len(&val), 2 + 6 * 100);
         assert!(NfsLogBudget::charge(&val, "k") >= 602);
         // the same value truncated at the cap still charges the marker
-        let big = "\u{1}".repeat(NFS_LOG_MAX_STRING_BYTES);
+        let big = "\u{1}".repeat(NFS_LOG_MAX_STRING_BYTES + 1);
         assert!(NfsLogBudget::charge(&big, "k") > NFS_LOG_MAX_STRING_BYTES * 6);
     }
 }

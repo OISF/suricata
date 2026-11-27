@@ -245,8 +245,9 @@ Size limits on logged records
 RFC 1813 (section 3.2) sets no length limit on NFSv3 names, so a name can be
 as large as the reassembly buffer. The logger now caps what it writes:
 
-* Each string field: 8 KiB. A shortened value ends with
-  ``[truncated N additional bytes]``.
+* Each string field: 8 KiB of the value, before JSON escaping. A shortened
+  value ends with ``[truncated N additional bytes]``; a field of control bytes
+  can take up to 48 KiB once each is escaped.
 * Each ``nfs`` record: 128 KiB. ``nfs.truncated`` (or ``rpc.truncated``) is
   set when a value was shortened or the record limit was reached. Each field
   left out at the limit gets a ``<field>_truncated`` key.
