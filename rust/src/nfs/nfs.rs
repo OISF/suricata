@@ -1954,10 +1954,12 @@ impl NFSState {
         );
     }
 
-    /// A denied reply's status goes to the transaction its call opened: a READ
-    /// file tx by handle, a WRITE file tx by xid and then handle, anything
-    /// else the call's own tx. Bytes past the deny body are not RFC 5531.
-    fn process_reply_denied(
+    /// A reply that carries no program body - denied, or accepted at the
+    /// message level with a non-zero accept_stat (GARBAGE_ARGS, PROC_UNAVAIL) -
+    /// still has to finish the transaction its call opened: a READ file tx by
+    /// handle, a WRITE file tx by xid and then handle, anything else the call's
+    /// own tx. Bytes past that header are not RFC 5531.
+    fn process_reply_without_body(
         &mut self, flow: *mut Flow, r: &RpcReplyPacket, xidmap: &NFSRequestXidMap,
     ) {
         if r.prog_data_size > 0 {
@@ -2020,11 +2022,12 @@ impl NFSState {
             self.nfs_version = xidmap.progver as u16;
         }
 
-        // RFC 5531 9: a denied reply carries no program body. Record its RPC
-        // status on the transaction the call opened and keep the empty body
-        // away from the version handlers, which would read it as malformed.
-        if r.reply_state != RPCMSG_ACCEPTED {
-            self.process_reply_denied(flow, r, &xidmap);
+        // RFC 5531: neither a denied reply nor one rejected at the message
+        // level carries a program body. Score the transaction and keep the
+        // empty body away from the version handlers, which would read it as
+        // malformed - and, for v4, leave the request transaction open.
+        if r.reply_state != RPCMSG_ACCEPTED || r.accept_state != 0 {
+            self.process_reply_without_body(flow, r, &xidmap);
             return 0;
         }
 
@@ -3178,9 +3181,9 @@ impl NFSState {
             Ok((_, ref hdr)) if hdr.reply_state != RPCMSG_ACCEPTED => {
                 // The deny body is complete and the record claims more: never
                 // hand the tail to the READ data path. The status is recorded
-                // and the tail flagged by process_reply_denied.
+                // and the tail flagged by process_reply_without_body.
                 if let Some(xm) = self.requestmap.pop(&hdr.hdr.xid) {
-                    self.process_reply_denied(flow, hdr, &xm);
+                    self.process_reply_without_body(flow, hdr, &xm);
                 } else {
                     self.set_event(NFSEvent::MalformedData);
                 }

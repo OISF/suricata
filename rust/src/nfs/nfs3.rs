@@ -291,14 +291,6 @@ impl NFSState {
             self.set_event(NFSEvent::MalformedData);
         }
 
-        // A reply rejected at the message level carries no program body, so the
-        // per-procedure parsers must not read one: score the transaction and
-        // stop, a status is all that is missing.
-        if !accepted {
-            self.mark_response_tx_done(flow, r.hdr.xid, r.reply_state, 0, false, &[], &[]);
-            return;
-        }
-
         if xidmap.procedure == NFSPROC3_LOOKUP {
             if let Ok((_, rd)) = parse_nfs3_response_lookup(r.prog_data) {
                 SCLogDebug!("LOOKUP: {:?}", rd);

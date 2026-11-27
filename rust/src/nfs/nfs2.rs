@@ -167,14 +167,6 @@ impl NFSState {
     pub fn process_reply_record_v2(
         &mut self, flow: *mut Flow, r: &RpcReplyPacket, xidmap: &NFSRequestXidMap,
     ) {
-        // A reply rejected at the message level (GARBAGE_ARGS, PROC_UNAVAIL)
-        // carries no program body: a status is all that is missing, so there
-        // is nothing to read and nothing to flag.
-        if r.accept_state != 0 {
-            self.mark_response_tx_done(flow, r.hdr.xid, r.reply_state, 0, false, &[], &[]);
-            return;
-        }
-
         let mut nfs_status = 0;
         // a reply shorter than a status word carries none: keep the tx
         // status unset rather than log a fake OK
