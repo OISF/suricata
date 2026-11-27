@@ -41,8 +41,14 @@ fn parse_req_gssapi(i: &[u8]) -> IResult<&[u8], Kerberos5Ticket, SecBlobError> {
 
 /// The compound's main op is the last significant op, except that a
 /// file-effect op (CREATE/REMOVE) anchors the compound and nothing but another
-/// anchor displaces it - mainline parity.
+/// anchor displaces it - mainline parity - and a GETATTR never displaces an op
+/// that was already selected: it is a secondary op on the request side too, so
+/// its status must not be read as the call's. A compound of only PUTFH and
+/// GETATTR still selects GETATTR.
 fn v4_main_op_take(cur: u32, next: u32) -> u32 {
+    if cur != 0 && next == NFSPROC4_GETATTR {
+        return cur;
+    }
     let is_anchor = |op: u32| matches!(op, NFSPROC4_CREATE | NFSPROC4_REMOVE);
     if is_anchor(cur) && !is_anchor(next) {
         cur
