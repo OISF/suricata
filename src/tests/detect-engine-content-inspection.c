@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -316,6 +316,78 @@ static int DetectEngineContentInspectionTest17(void)
     TEST_FOOTER;
 }
 
+/** \brief byte_test with 0 bytes and string stops at the end of the buffer
+ *
+ *  The test passes a length shorter than the digits, so the digits past the
+ *  end of the buffer are in memory but must not be converted. */
+static int DetectEngineContentInspectionTest18(void)
+{
+    TEST_HEADER;
+    TEST_RUN("12345", 2, "byte_test:0,=,12,0,string,dec;", true, 1);
+    TEST_RUN("12345", 2, "byte_test:0,=,12345,0,string,dec;", false, 1);
+    TEST_RUN("ff12", 2, "byte_test:0,=,255,0,string,hex;", true, 1);
+    /* leading zeros do not count toward the 23 byte limit */
+    TEST_RUN("00000000000000000000000099999", 29, "byte_test:0,>,1000,0,string,dec;", true, 1);
+    /* nothing left to convert at the end of the buffer */
+    TEST_RUN("12345", 2, "byte_test:0,=,345,2,string,dec;", false, 1);
+    /* 0 bytes from a byte_extract variable */
+    TEST_RUN("X012345", 4,
+            "content:\"X\"; byte_extract:1,0,n,relative,string,dec; "
+            "byte_test:n,=,12,0,relative,string,dec;",
+            true, 3);
+    TEST_RUN("X012345", 4,
+            "content:\"X\"; byte_extract:1,0,n,relative,string,dec; "
+            "byte_test:n,=,12345,0,relative,string,dec;",
+            false, 3);
+    TEST_FOOTER;
+}
+
+/** \brief byte_jump with 0 bytes and string stops at the end of the buffer */
+static int DetectEngineContentInspectionTest19(void)
+{
+    TEST_HEADER;
+    TEST_RUN("AB1000", 3, "byte_jump:0,2,string,dec,from_beginning; content:\"B\"; within:1;", true,
+            2);
+    /* nothing left to convert at the end of the buffer */
+    TEST_RUN("AB1", 2, "byte_jump:0,2,string,dec,from_beginning;", false, 1);
+    /* relative: nothing left to convert */
+    TEST_RUN("120", 2, "content:\"12\"; byte_jump:0,0,relative,string,dec,post_offset -1;", false,
+            2);
+    /* relative: the jump steps over the 2 digits inside the buffer */
+    TEST_RUN("X011", 3,
+            "content:\"X\"; byte_jump:0,0,relative,string,dec,post_offset -1; "
+            "byte_test:2,=,1,-2,relative,string,dec;",
+            true, 3);
+    /* relative: leading zeros do not count toward the 23 byte limit */
+    TEST_RUN("X00000000000000000000000001", 27,
+            "content:\"X\"; byte_jump:0,0,relative,string,dec,post_offset -1; "
+            "isdataat:!1,relative;",
+            true, 3);
+    /* 0 bytes from a byte_extract variable */
+    TEST_RUN("AX01000", 4,
+            "content:\"X\"; byte_extract:1,0,n,relative,string,dec; "
+            "byte_jump:n,0,relative,string,dec,from_beginning; content:\"X\"; within:1;",
+            true, 4);
+    TEST_FOOTER;
+}
+
+/** \brief byte_extract with 0 bytes and string stops at the end of the buffer */
+static int DetectEngineContentInspectionTest20(void)
+{
+    TEST_HEADER;
+    /* the value is 12 and the read position is the end of the buffer */
+    TEST_RUN("12345", 2, "byte_extract:0,0,v,string,dec; byte_test:2,=,v,-2,relative,string,dec;",
+            true, 2);
+    /* leading zeros do not count toward the 23 byte limit */
+    TEST_RUN("000000000000000000000000012", 27,
+            "byte_extract:0,0,v,string,dec; isdataat:!1,relative; "
+            "byte_test:2,=,v,-2,relative,string,dec;",
+            true, 3);
+    /* nothing left to convert at the end of the buffer */
+    TEST_RUN("12345", 2, "byte_extract:0,2,v,string,dec; isdataat:1;", false, 1);
+    TEST_FOOTER;
+}
+
 void DetectEngineContentInspectionRegisterTests(void)
 {
     UtRegisterTest("DetectEngineContentInspectionTest01",
@@ -348,6 +420,12 @@ void DetectEngineContentInspectionRegisterTests(void)
             DetectEngineContentInspectionTest14);
     UtRegisterTest("DetectEngineContentInspectionTest17 negative distance",
             DetectEngineContentInspectionTest17);
+    UtRegisterTest("DetectEngineContentInspectionTest18 byte_test string 0 bytes",
+            DetectEngineContentInspectionTest18);
+    UtRegisterTest("DetectEngineContentInspectionTest19 byte_jump string 0 bytes",
+            DetectEngineContentInspectionTest19);
+    UtRegisterTest("DetectEngineContentInspectionTest20 byte_extract string 0 bytes",
+            DetectEngineContentInspectionTest20);
 }
 
 #undef TEST_HEADER
