@@ -289,7 +289,9 @@ pub fn parse_nfs3_response_readdirplus_entry(
     i: &[u8],
 ) -> IResult<&[u8], Nfs3ResponseReaddirplusEntryC<'_>> {
     let (i, _file_id) = be_u64(i)?;
-    let (i, name_len) = verify(be_u32, |&v| v <= 1024)(i)?;
+    // RFC 1813 2.6 puts no length limit on filename3; the logger bounds
+    // what it writes, so the parser must not drop a valid entry.
+    let (i, name_len) = be_u32(i)?;
     let (i, name_contents) = take(name_len as usize)(i)?;
     let (i, _fill_bytes) = cond(name_len % 4 != 0, take(4 - (name_len % 4)))(i)?;
     let (i, _cookie) = be_u64(i)?;
@@ -402,7 +404,9 @@ pub struct Nfs3ResponseReaddirEntry {
 /// attributes are only in entryplus3.
 pub fn parse_nfs3_response_readdir_entry(i: &[u8]) -> IResult<&[u8], Nfs3ResponseReaddirEntry> {
     let (i, file_id) = be_u64(i)?;
-    let (i, name_len) = verify(be_u32, |&v| v <= 1024)(i)?;
+    // RFC 1813 2.6 puts no length limit on filename3; the logger bounds
+    // what it writes, so the parser must not drop a valid entry.
+    let (i, name_len) = be_u32(i)?;
     let (i, name_contents) = take(name_len as usize)(i)?;
     let (i, _fill_bytes) = cond(name_len % 4 != 0, take(4 - (name_len % 4)))(i)?;
     let (i, cookie) = be_u64(i)?;
@@ -1696,5 +1700,24 @@ mod tests {
         buf.extend_from_slice(&65u32.to_be_bytes());
         buf.extend_from_slice(&[0u8; 65]);
         assert!(parse_nfs3_request_symlink(&buf).is_err());
+    }
+
+    #[test]
+    fn test_readdirplus_entry_long_name() {
+        // RFC 1813 2.6: filename3 has no protocol length limit, so a name
+        // over 1 KiB must parse like any other and let the chain continue.
+        let name = vec![b'N'; 1025];
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&7u64.to_be_bytes()); // fileid
+        buf.extend_from_slice(&(name.len() as u32).to_be_bytes());
+        buf.extend_from_slice(&name);
+        buf.extend_from_slice(&[0, 0, 0]); // XDR pad
+        buf.extend_from_slice(&9u64.to_be_bytes()); // cookie
+        buf.extend_from_slice(&0u32.to_be_bytes()); // post_op_attr: absent
+        buf.extend_from_slice(&0u32.to_be_bytes()); // no name_handle
+
+        let (rem, e) = parse_nfs3_response_readdirplus_entry(&buf).unwrap();
+        assert!(rem.is_empty());
+        assert_eq!(e.name_vec.len(), 1025);
     }
 }
