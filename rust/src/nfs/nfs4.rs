@@ -540,6 +540,11 @@ impl NFSState {
         // status to the write's file tx. xidmap.procedure is COMPOUND for
         // every v4 reply, so the procedure cannot tell this apart.
         let mut saw_write = false;
+        // The WRITE op's own status: a later GETATTR (or any other trailing
+        // op) must not displace it for the file transaction, which is what
+        // the write carried.
+        let mut write_status: u32 = 0;
+        let mut write_status_set = false;
         // status of the winning (main) op; see v4_main_op_take
         let mut take_main_op_status = |op: u32, s: u32| {
             if v4_main_op_take(main_op, op) == op {
@@ -695,6 +700,8 @@ impl NFSState {
                 }
                 Nfs4ResponseContent::Write(s, _) => {
                     saw_write = true;
+                    write_status = s;
+                    write_status_set = true;
                     // the WRITE op is the main op of a write compound: its
                     // status, not the compound status, is what the file tx
                     // must show, and UNSTABLE writes reach here as well
@@ -721,7 +728,11 @@ impl NFSState {
         // failing op (RFC 7530 15.2), so an error in PUTFH or SEQUENCE leaves
         // the main op's status word out of the reply: taking the compound
         // status instead is what keeps the tx from staying open for good.
-        let status = if main_opcode_status_set {
+        let status = if saw_write && write_status_set {
+            // a trailing op (GETATTR after WRITE) can win the main-op
+            // selection; the file transaction still reports the write
+            write_status
+        } else if main_opcode_status_set {
             main_opcode_status
         } else {
             cr.status
