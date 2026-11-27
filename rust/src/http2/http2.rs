@@ -57,6 +57,8 @@ const HTTP2_MAX_HANDLED_FRAME_SIZE: usize = 65536;
 const HTTP2_MIN_HANDLED_FRAME_SIZE: usize = 256;
 const HTTP2_MAX_REPEATED_HEADERS_SIZE: usize = 4096;
 const HTTP2_MAX_REPEATED_HEADER_NAME_LEN: usize = 32;
+/// Fields the trailer buffers hold before they truncate.
+pub(super) const HTTP2_MAX_TRAILER_BUFFER_SIZE: usize = 65536;
 
 pub static mut SURICATA_HTTP2_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
@@ -312,6 +314,10 @@ pub struct HTTP2Transaction {
     // whether the header block currently open in each direction is a trailer block
     open_block_trailer_ts: Option<bool>,
     open_block_trailer_tc: Option<bool>,
+    /// bytes of trailer-section fields seen per direction, the way the buffers
+    /// serialize them, so the truncation point can be flagged where it happens
+    trailer_size_ts: usize,
+    trailer_size_tc: usize,
 
     decoder: decompression::HTTP2Decoder,
     pub file_range: *mut HttpRangeContainerBlock,
@@ -352,6 +358,8 @@ impl HTTP2Transaction {
             final_status_tc: false,
             open_block_trailer_ts: None,
             open_block_trailer_tc: None,
+            trailer_size_ts: 0,
+            trailer_size_tc: 0,
             decoder: decompression::HTTP2Decoder::new(),
             file_range: std::ptr::null_mut(),
             tx_data: AppLayerTxData::new(),
@@ -615,10 +623,41 @@ impl HTTP2Transaction {
             .any(|b| b.name.as_slice() == b":status" && b.value.first() != Some(&b'1'))
     }
 
+    /// Account the trailer fields of this frame the way the buffers serialize
+    /// them, and raise the event once the section no longer fits in them. The
+    /// cap is reachable with distinct entries alone, so it needs its own signal.
+    fn note_trailer_section_size(&mut self, data: &HTTP2FrameTypeData, dir: Direction) {
+        let blocks = match data {
+            HTTP2FrameTypeData::HEADERS(hd) => &hd.blocks,
+            HTTP2FrameTypeData::CONTINUATION(hd) => &hd.blocks,
+            _ => return,
+        };
+        let mut size = 0;
+        for block in blocks.iter() {
+            if block.error != parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess {
+                continue;
+            }
+            size += block.name.len() + block.value.len() + 4; // ": " and CRLF
+        }
+        let total = if dir == Direction::ToServer {
+            &mut self.trailer_size_ts
+        } else {
+            &mut self.trailer_size_tc
+        };
+        *total += size;
+        let over = *total > HTTP2_MAX_TRAILER_BUFFER_SIZE;
+        if over {
+            self.set_event(HTTP2Event::TrailerSectionTruncated);
+        }
+    }
+
     fn handle_frame(
         &mut self, header: &parser::HTTP2FrameHeader, data: &HTTP2FrameTypeData, dir: Direction,
         is_trailer: bool,
     ) -> Option<Vec<u8>> {
+        if is_trailer {
+            self.note_trailer_section_size(data, dir);
+        }
         //handle child_stream_id changes
         let mut r = None;
         let end_headers = header.flags & parser::HTTP2_FLAG_HEADER_END_HEADERS != 0;
@@ -914,6 +953,7 @@ pub enum HTTP2Event {
     DifferentHosts,
     DifferentAuthorities,
     TrailerForbiddenField,
+    TrailerSectionTruncated,
 }
 
 pub struct HTTP2DynTable {
@@ -2246,6 +2286,47 @@ mod tests {
                 sizeupdate: 0,
             })
             .collect()
+    }
+
+    #[test]
+    fn test_trailer_section_size_accounting() {
+        // set_event is a no-op under cfg(test), so this pins the accounting that
+        // decides the truncation event; SV http2-trailer-amp pins the event.
+        let block = |len: usize| parser::HTTP2FrameHeaderBlock {
+            name: std::rc::Rc::new(b"x-amp".to_vec()),
+            value: std::rc::Rc::new(vec![b'A'; len]),
+            error: parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSuccess,
+            sizeupdate: 0,
+        };
+        let frame = HTTP2FrameTypeData::HEADERS(parser::HTTP2FrameHeaders {
+            padlength: None,
+            priority: None,
+            blocks: vec![block(4000), block(4000)],
+        });
+        let mut tx = HTTP2Transaction::new();
+        // two 4000 byte fields with ": " and CRLF each
+        tx.note_trailer_section_size(&frame, Direction::ToServer);
+        assert_eq!(tx.trailer_size_ts, 2 * 4009);
+        assert_eq!(tx.trailer_size_tc, 0);
+        // eight more frames of that size cross the 64 KiB the buffers hold
+        for _ in 0..8 {
+            tx.note_trailer_section_size(&frame, Direction::ToServer);
+        }
+        assert!(tx.trailer_size_ts > HTTP2_MAX_TRAILER_BUFFER_SIZE);
+        // non-field entries do not count
+        let size_update = HTTP2FrameTypeData::HEADERS(parser::HTTP2FrameHeaders {
+            padlength: None,
+            priority: None,
+            blocks: vec![parser::HTTP2FrameHeaderBlock {
+                name: std::rc::Rc::new(Vec::new()),
+                value: std::rc::Rc::new(Vec::new()),
+                error: parser::HTTP2HeaderDecodeStatus::HTTP2HeaderDecodeSizeUpdate,
+                sizeupdate: 0,
+            }],
+        });
+        let before = tx.trailer_size_tc;
+        tx.note_trailer_section_size(&size_update, Direction::ToClient);
+        assert_eq!(tx.trailer_size_tc, before);
     }
 
     #[test]

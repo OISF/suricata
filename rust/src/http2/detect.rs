@@ -17,7 +17,7 @@
 
 use super::http2::{
     HTTP2Event, HTTP2Frame, HTTP2FrameTypeData, HTTP2Progress, HTTP2RepeatedHeaders, HTTP2State,
-    HTTP2Transaction, HTTP2TxProgress,
+    HTTP2Transaction, HTTP2TxProgress, HTTP2_MAX_TRAILER_BUFFER_SIZE,
 };
 use super::parser;
 use crate::detect::uint::{
@@ -934,10 +934,8 @@ pub unsafe extern "C" fn SCHttp2TxGetHeadersRaw(
     return 0;
 }
 
-/// A trailer section may repeat a field, and two occurrences can share one HPACK
-/// dynamic-table entry: every decodable block is a field of its own. The limit
-/// stops indexed repetitions from growing the buffer without bound.
-const HTTP2_MAX_TRAILER_BUFFER_SIZE: usize = 65536;
+// A trailer section may repeat a field, and two occurrences can share one HPACK
+// dynamic-table entry: every decodable block is a field of its own.
 
 /// Append one line per trailer field of `frames` to `data`.
 fn http2_trailer_append_fields(frames: &[HTTP2Frame], data: &mut Vec<u8>, trim: bool) {

@@ -1274,7 +1274,7 @@ header section, so occurrences past it are not merged; :ref:`http.trailer.raw` s
 them all. In HTTP/2
 the trailer block is rendered as one line per entry, so a repeated name appears twice.
 The HTTP/2 buffers stop at 64 KiB of fields, on a field boundary, so a larger trailer
-section is truncated.
+section is truncated, and ``http2.trailer_section_truncated`` is raised.
 
 Example HTTP Request::
 
