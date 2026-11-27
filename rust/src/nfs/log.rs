@@ -16,7 +16,7 @@
  */
 
 use crate::detect::EnumString;
-use crate::jsonbuilder::{JsonBuilder, JsonError};
+use crate::jsonbuilder::{json_escaped_len, JsonBuilder, JsonError};
 use crate::nfs::nfs::*;
 use crate::nfs::types::*;
 use crc::crc32;
@@ -53,11 +53,24 @@ impl NfsLogBudget {
         }
     }
 
-    /// Bytes a string field will actually take: what gets written, not what the
-    /// parser was handed. Charging the input length would drop a field the
-    /// budget still has room for.
-    fn charge(len: usize, key: &str) -> usize {
-        len.min(NFS_LOG_MAX_STRING_BYTES) + NFS_LOG_MARKER_BYTES + key.len() + 6
+    /// Bytes a string field will actually take once emitted: the value is
+    /// capped, truncated at a character boundary when it is over the cap, and
+    /// JSON-escaped, so charging the input length undercounts by up to six
+    /// times for control bytes.
+    fn charge(val: &str, key: &str) -> usize {
+        let overhead = NFS_LOG_MARKER_BYTES + key.len() + 6;
+        if val.len() <= NFS_LOG_MAX_STRING_BYTES {
+            return json_escaped_len(val) + overhead;
+        }
+        // mirror set_string_limited: back off to a character boundary, then
+        // append the marker that names the dropped bytes
+        let mut end = NFS_LOG_MAX_STRING_BYTES;
+        while end > 0 && !val.is_char_boundary(end) {
+            end -= 1;
+        }
+        let additional = val.len() - end;
+        let marker = format!("[truncated {} additional bytes]", additional);
+        json_escaped_len(&val[..end]) + marker.len() + overhead
     }
 
     /// Account for a value about to be written; false once the budget is spent.
@@ -78,7 +91,7 @@ fn set_bounded_string(
     budget: &mut NfsLogBudget, js: &mut JsonBuilder, key: &str, marker: Option<&str>, val: &str,
 ) -> Result<(), JsonError> {
     budget.note(val.len());
-    if !budget.cost(NfsLogBudget::charge(val.len(), key)) {
+    if !budget.cost(NfsLogBudget::charge(val, key)) {
         if let Some(m) = marker {
             js.set_bool(m, true)?;
         }
@@ -465,10 +478,12 @@ mod tests {
         // a name longer than the field cap must not cost more than the cap: at
         // 70 KiB the old charge dropped rename.from although the record was
         // nowhere near the budget
-        assert!(NfsLogBudget::charge(70 * 1024, "filename") < 9 * 1024);
+        let big = "a".repeat(70 * 1024);
+        assert!(NfsLogBudget::charge(&big, "filename") < 9 * 1024);
+        let mid = "b".repeat(64 * 1024);
         let mut budget = NfsLogBudget::new();
         for key in ["filename", "from", "to", "machine_name"] {
-            assert!(budget.cost(NfsLogBudget::charge(64 * 1024, key)), "{key}");
+            assert!(budget.cost(NfsLogBudget::charge(&mid, key)), "{key}");
         }
         assert!(!budget.truncated);
     }
@@ -479,5 +494,17 @@ mod tests {
         assert!(budget.cost(NFS_LOG_MAX_RECORD_BYTES));
         assert!(!budget.cost(1));
         assert!(budget.truncated);
+    }
+
+    #[test]
+    fn test_budget_charges_escaped_length() {
+        // a control byte costs six bytes as \\u0001, so a record of them has
+        // to be charged as escaped output, not as input length
+        let val = "\u{1}".repeat(100);
+        assert_eq!(json_escaped_len(&val), 2 + 6 * 100);
+        assert!(NfsLogBudget::charge(&val, "k") >= 602);
+        // the same value truncated at the cap still charges the marker
+        let big = "\u{1}".repeat(NFS_LOG_MAX_STRING_BYTES);
+        assert!(NfsLogBudget::charge(&big, "k") > NFS_LOG_MAX_STRING_BYTES * 6);
     }
 }

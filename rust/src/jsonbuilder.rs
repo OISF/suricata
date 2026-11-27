@@ -1607,6 +1607,21 @@ const UU: u8 = b'u';
 const __: u8 = 0;
 
 // Look up table for characters that need escaping in a product string
+/// Length a string takes once written as a JSON value, quotes and escaping
+/// included. The logger's record budget has to charge this, not the input
+/// length: a control byte expands to six bytes (`\u0001`).
+pub fn json_escaped_len(val: &str) -> usize {
+    let mut len = 2; // the surrounding quotes
+    for &b in val.as_bytes() {
+        len += match ESCAPED[b as usize] {
+            0 => 1,
+            b'u' => 6,
+            _ => 2,
+        };
+    }
+    len
+}
+
 static ESCAPED: [u8; 256] = [
     // 0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
     UU, UU, UU, UU, UU, UU, UU, UU, BB, TT, NN, UU, FF, RR, UU, UU, // 0
