@@ -61,6 +61,7 @@ typedef struct IPFWQueueVars_
 
 void *IPFWGetThread(int number);
 int IPFWRegisterQueue(char *queue);
+void IPFWInitConfig(void);
 
 void TmModuleReceiveIPFWRegister (void);
 void TmModuleVerdictIPFWRegister (void);

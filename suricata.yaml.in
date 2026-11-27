@@ -2283,6 +2283,13 @@ ipfw:
   #
   # ipfw-reinjection-rule-number: 5500
 
+  # Size of the receive buffer of each divert socket, 64kb to 64mb. The
+  # kernel drops diverted packets that don't fit, and Suricata never sees
+  # them. FreeBSD's default of 65636 bytes holds about 43 full-size
+  # packets, which can throttle fast flows. Set the kern.ipc.maxsockbuf
+  # sysctl to at least twice this size. Unset or 0 keeps the kernel
+  # default. It helps in the workers runmode; see the user guide.
+  #buffer-size: 4mb
 
 napatech:
     # When use_all_streams is set to "yes" the initialization code will query
