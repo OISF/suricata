@@ -137,7 +137,9 @@ Examples::
 http2.header_name
 -----------------
 
-Match on the name of a HTTP2 header from a HEADER frame (or PUSH_PROMISE or CONTINUATION).
+Match on the name of a header field from the HTTP/2 header section, carried by
+a HEADERS or PUSH_PROMISE frame and completed by CONTINUATION frames. Trailer blocks
+are not included; see :ref:`http.trailer_names` and :ref:`http.trailer`.
 
 Examples::
 

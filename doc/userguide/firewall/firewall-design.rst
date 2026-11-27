@@ -368,13 +368,23 @@ The example below accepts ARP again, using this mechanism.
     accept:packet ether:all any any -> any any (ether.hdr; content:"|08 06|"; offset:12; depth:2; sid:1;)
 
 
+.. _firewall-default-policies:
+
 Default policies
 ================
 
 Each hook has a default policy applied to traffic that no firewall rule handled.
 By default ``packet.filter`` enforces ``drop:packet``, ``packet.pre-flow`` and
 ``packet.pre-stream`` enforce ``accept:hook``, and every ``app`` hook enforces
-``drop:flow``.
+``drop:flow``. A parser can ask for a different built-in for one of its states, which
+is what the HTTP/2 trailer states do (``accept:hook``): a state added after the
+protocol shipped must not start dropping flows just because it is reached.
+
+The built-in is a fallback only: a ``default-policy`` that matches the hook
+replaces it, including a parser-chosen one. A ruleset that sets
+``app.http2.stream.default-policy`` (or any broader default) to ``drop:flow``
+therefore drops a flow at ``http2:stream:request_trailers`` unless it covers
+both trailer states explicitly.
 
 Defaults are configured in the ``firewall.policies`` block. A ``default-policy``
 for any hook may be given at several levels and the most specific present

@@ -80,6 +80,8 @@ pub mod request;
 pub mod response;
 /// Module for transaction parsing.
 pub mod transaction;
+
+pub mod trailer;
 /// Module to track multiple transactions
 pub mod transactions;
 /// Module for uri parsing.

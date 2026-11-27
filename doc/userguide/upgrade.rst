@@ -53,6 +53,11 @@ Major Changes
 - ERSPAN Type III (GRE protocol type ``0x22EB``) is now decoded. Only
   Ethernet frames are supported; other frame types set the
   ``erspan.unsupported_encapsulation`` decoder event.
+- HTTP trailer fields are no longer matched by the header buffers: they gained
+  buffers, keywords, stream states and Lua accessors of their own, and an HTTP/1
+  header block spanning packets is now inspected once per transaction. See the
+  Keyword changes and Logging changes sections below.
+
 - ``pgsql`` is no longer enabled by default. Previously, if the
   ``app-layer.protocols.pgsql`` section was absent from suricata.yaml, the
   parser would be enabled. It's now disabled by default. Simply enabling its EVE
@@ -139,6 +144,10 @@ Logging Changes
   ``src_ip``/``src_port`` where 8.x logged the packet's addresses. Filters
   that matched responses on ``src_port 2049`` need ``dest_port 2049`` now.
 
+- HTTP trailer fields are logged in their own ``http.request_trailers`` and
+  ``http.response_trailers`` arrays and stay in the header arrays as before.
+  See :ref:`http.trailer` for the HTTP/1 conditions and ``custom``.
+
 Removals
 ~~~~~~~~
 
@@ -170,6 +179,27 @@ Keyword Changes
 
 - ``flowint`` addition and subtraction no longer wrap around; results
   are capped at 4294967295 and floored at 0. See :ref:`flowint`.
+
+- HTTP trailer fields are no longer part of the header buffers. A rule that
+  matched them through a header keyword or a header field keyword needs one of
+  the trailer buffers instead; see :ref:`http.trailer`. The Lua http library has
+  matching accessors.
+
+- A rule with an app-layer state hook can use buffers that complete in an
+  earlier state; buffers completing after the hook are still rejected. Firewall
+  rules whose buffer completes below their hook, including ``http.header.raw``
+  rules hooked at the body states, no longer load. See
+  :ref:`explicit-rule-hooks`.
+
+- HTTP/2 gained ``http2:stream:request_trailers`` and
+  ``http2:stream:response_trailers``, which drop-by-default rulesets have to
+  accept: they only get the built-in ``accept:hook`` when no
+  ``default-policy`` covers the hook. See :ref:`firewall-default-policies`.
+
+- A HTTP/1 header block spanning several packets is inspected once per
+  transaction instead of once per reassembly round, so alert counts drop on
+  captures where such a block arrives in pieces. Which transactions alert is
+  unchanged.
 
 Default Changes
 ~~~~~~~~~~~~~~~
