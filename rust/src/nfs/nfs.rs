@@ -1963,7 +1963,7 @@ impl NFSState {
         &mut self, flow: *mut Flow, r: &RpcReplyPacket, xidmap: &NFSRequestXidMap,
     ) {
         if r.prog_data_size > 0 {
-            self.set_event(NFSEvent::MalformedData);
+            self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
         }
 
         let v = xidmap.progver;
@@ -3185,7 +3185,7 @@ impl NFSState {
                 if let Some(xm) = self.requestmap.pop(&hdr.hdr.xid) {
                     self.process_reply_without_body(flow, hdr, &xm);
                 } else {
-                    self.set_event(NFSEvent::MalformedData);
+                    self.set_event_new_tx(hdr.hdr.xid, NFSEvent::MalformedData);
                 }
                 return self.skip_partial_record(Direction::ToClient, cur_i, rec_size);
             }

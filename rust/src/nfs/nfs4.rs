@@ -794,11 +794,17 @@ impl NFSState {
                     self.compound_response(flow, r, &rd, xidmap);
                 }
                 Err(Err::Incomplete(_)) => {
-                    self.set_event(NFSEvent::MalformedData);
+                    self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
+                }
+                Err(Err::Error(ref e)) if e.code == ErrorKind::Tag => {
+                    // a defined v4 op this parser does not implement: the
+                    // reply is valid, it is just not parsed. Same rule as the
+                    // request side - unsupported traffic is not malformed.
+                    SCLogDebug!("COMPOUNDv4: unsupported op {:?}", e);
                 }
                 Err(Err::Error(_e)) | Err(Err::Failure(_e)) => {
                     SCLogDebug!("Parsing failed: {:?}", _e);
-                    self.set_event(NFSEvent::MalformedData);
+                    self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
                 }
             };
         }

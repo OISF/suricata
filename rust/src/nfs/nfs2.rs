@@ -110,7 +110,7 @@ impl NFSState {
                 xidmap.file_handle = rd.handle.value.to_vec();
                 self.xidmap_handle2name(&mut xidmap);
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
             }
         }
 
@@ -182,7 +182,7 @@ impl NFSState {
                     nfs_status_set = true;
                 }
                 _ => {
-                    self.set_event(NFSEvent::MalformedData);
+                    self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
                 }
             }
         } else if xidmap.procedure == NFSPROC2_LOOKUP
@@ -203,7 +203,7 @@ impl NFSState {
                     }
                 }
                 _ => {
-                    self.set_event(NFSEvent::MalformedData);
+                    self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
                 }
             }
         } else {

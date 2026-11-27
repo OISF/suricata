@@ -1933,6 +1933,11 @@ fn nfs4_res_compound_command(i: &[u8]) -> IResult<&[u8], Nfs4ResponseContent<'_>
         NFSPROC4_LAYOUTRETURN => nfs4_res_layoutreturn(i)?,
         NFSPROC4_DESTROY_SESSION => nfs4_res_destroy_session(i)?,
         NFSPROC4_DESTROY_CLIENTID => nfs4_res_destroy_clientid(i)?,
+        // as on the request side: a defined op without a parser is Tag, so the
+        // reply side can tell "not parsed" from "not an op at all"
+        _ if v4_request_op_is_assigned(cmd) => {
+            return Err(Err::Error(make_error(i, ErrorKind::Tag)));
+        }
         _ => {
             return Err(Err::Error(make_error(i, ErrorKind::Switch)));
         }

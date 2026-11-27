@@ -93,14 +93,14 @@ impl NFSState {
                 xidmap.file_handle = rd.handle.value.to_vec();
                 self.xidmap_handle2name(&mut xidmap);
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
             };
         } else if r.procedure == NFSPROC3_WRITE {
             if let Ok((_, rd)) = parse_nfs3_request_write(r.prog_data, true) {
                 xidmap.file_handle = rd.handle.value.to_vec();
                 self.process_write_record(flow, r, &rd);
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
             }
         } else if r.procedure == NFSPROC3_CREATE {
             if let Ok((_, rd)) = parse_nfs3_request_create(r.prog_data) {
@@ -165,7 +165,7 @@ impl NFSState {
                     }
                 }
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
             };
         } else if r.procedure == NFSPROC3_FSSTAT
             || r.procedure == NFSPROC3_FSINFO
@@ -287,10 +287,10 @@ impl NFSState {
             r.prog_data.len() >= 4
         };
         if !nfs_status_set && !null_call {
-            self.set_event(NFSEvent::MalformedData);
-        }
-
-        if xidmap.procedure == NFSPROC3_LOOKUP {
+            // no procedure parser can read a body this short: one event for
+            // the record, not a second one from the parser below
+            self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
+        } else if xidmap.procedure == NFSPROC3_LOOKUP {
             if let Ok((_, rd)) = parse_nfs3_response_lookup(r.prog_data) {
                 SCLogDebug!("LOOKUP: {:?}", rd);
                 SCLogDebug!("RESPONSE LOOKUP file_name {:?}", xidmap.file_name);
@@ -302,7 +302,7 @@ impl NFSState {
                     .put(rd.handle.value.to_vec(), xidmap.file_name.to_vec());
                 resp_handle = rd.handle.value.to_vec();
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
             };
         } else if xidmap.procedure == NFSPROC3_CREATE {
             if let Ok((_, rd)) = parse_nfs3_response_create(r.prog_data) {
@@ -317,14 +317,14 @@ impl NFSState {
                     resp_handle = h.value.to_vec();
                 }
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
             };
         } else if xidmap.procedure == NFSPROC3_READ {
             if let Ok((_, rd)) = parse_nfs3_reply_read(r.prog_data, true) {
                 self.process_read_record(flow, r, &rd, Some(xidmap), true);
                 nfs_status = rd.status;
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
             }
         } else if xidmap.procedure == NFSPROC3_READDIRPLUS {
             // Same tolerance as READDIR: the dirlistplus3 chain, when
@@ -354,7 +354,7 @@ impl NFSState {
                 Err(_) => {
                     // tail tolerated (see above), but the anomaly stays
                     // observable
-                    self.set_event(NFSEvent::MalformedData);
+                    self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
                     if let Ok((_, stat)) = be_u32(r.prog_data) as IResult<&[u8], _> {
                         nfs_status = stat;
                     }
@@ -371,7 +371,7 @@ impl NFSState {
                 Err(_) => {
                     // tail tolerated (see above), but the anomaly stays
                     // observable
-                    self.set_event(NFSEvent::MalformedData);
+                    self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
                     match be_u32(r.prog_data) as IResult<&[u8], _> {
                         Ok((_, stat)) => stat,
                         _ => 0,
@@ -385,7 +385,7 @@ impl NFSState {
                 Err(_) => {
                     // tail tolerated (see above), but the anomaly stays
                     // observable
-                    self.set_event(NFSEvent::MalformedData);
+                    self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
                     match be_u32(r.prog_data) as IResult<&[u8], _> {
                         Ok((_, stat)) => stat,
                         _ => 0,
@@ -408,7 +408,7 @@ impl NFSState {
                         nfs_status = stat;
                     }
                 }
-                self.set_event(NFSEvent::MalformedData);
+                self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
             }
         }
         // for all other record types only parse the status
