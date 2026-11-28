@@ -65,10 +65,21 @@
  * header length field. */
 #define DNP3_LINK_HDR_LEN 5
 
-/* Link function codes. */
+/* Link function codes, primary to secondary (PRM set). */
 enum {
+    DNP3_LINK_FC_RESET_LINK_STATES = 0,
+    DNP3_LINK_FC_TEST_LINK_STATES = 2,
     DNP3_LINK_FC_CONFIRMED_USER_DATA = 3,
-    DNP3_LINK_FC_UNCONFIRMED_USER_DATA
+    DNP3_LINK_FC_UNCONFIRMED_USER_DATA = 4,
+    DNP3_LINK_FC_REQUEST_LINK_STATUS = 9,
+};
+
+/* Link function codes, secondary to primary (PRM clear). */
+enum {
+    DNP3_LINK_FC_ACK = 0,
+    DNP3_LINK_FC_NACK = 1,
+    DNP3_LINK_FC_LINK_STATUS = 11,
+    DNP3_LINK_FC_NOT_SUPPORTED = 15,
 };
 
 /* Reserved addresses. */
@@ -109,6 +120,7 @@ SCEnumCharMap dnp3_decoder_event_table[] = {
     { "TOO_MANY_POINTS", DNP3_DECODER_EVENT_TOO_MANY_POINTS },
     { "TOO_MANY_OBJECTS", DNP3_DECODER_EVENT_TOO_MANY_OBJECTS },
     { "TOO_LONG_REASSEMBLY", DNP3_DECODER_EVENT_TOO_LONG_REASS },
+    { "BAD_LINK_RULE", DNP3_DECODER_EVENT_BAD_LINK_RULE },
     { NULL, -1 },
 };
 
@@ -583,6 +595,64 @@ static int DNP3IsUserData(const DNP3LinkHeader *header)
         default:
             return 0;
     }
+}
+
+/**
+ * \brief Check the link-layer rules a receiver can check on the header.
+ *
+ * The function code must be defined for the PRM bit, FCV must be set
+ * as the function requires for a primary frame and FCB must be clear
+ * for a secondary one, and a function that carries no user data must
+ * have a LENGTH of 5. These hold for a header whose CRC is valid but
+ * that a DNP3 device would still discard: checking them only once the
+ * whole frame has arrived would make the parser wait for a body the
+ * device does not expect and take the following frames as that body.
+ *
+ * \retval 1 if the header follows the rules, otherwise 0.
+ */
+static int DNP3CheckLinkRules(const DNP3LinkHeader *header)
+{
+    const uint8_t control = header->control;
+    const uint8_t fc = DNP3_LINK_FC(control);
+
+    if (DNP3_LINK_PRI(control)) {
+        switch (fc) {
+            case DNP3_LINK_FC_RESET_LINK_STATES:
+            case DNP3_LINK_FC_UNCONFIRMED_USER_DATA:
+            case DNP3_LINK_FC_REQUEST_LINK_STATUS:
+                if (DNP3_LINK_FCV(control)) {
+                    return 0;
+                }
+                break;
+            case DNP3_LINK_FC_TEST_LINK_STATES:
+            case DNP3_LINK_FC_CONFIRMED_USER_DATA:
+                if (!DNP3_LINK_FCV(control)) {
+                    return 0;
+                }
+                break;
+            default:
+                return 0;
+        }
+        if (fc != DNP3_LINK_FC_CONFIRMED_USER_DATA && fc != DNP3_LINK_FC_UNCONFIRMED_USER_DATA &&
+                header->len != DNP3_LINK_HDR_LEN) {
+            return 0;
+        }
+    } else {
+        switch (fc) {
+            case DNP3_LINK_FC_ACK:
+            case DNP3_LINK_FC_NACK:
+            case DNP3_LINK_FC_LINK_STATUS:
+            case DNP3_LINK_FC_NOT_SUPPORTED:
+                break;
+            default:
+                return 0;
+        }
+        if (DNP3_LINK_FCB(control) || header->len != DNP3_LINK_HDR_LEN) {
+            return 0;
+        }
+    }
+
+    return 1;
 }
 
 /**
@@ -1120,6 +1190,11 @@ static int DNP3HandleRequestLinkLayer(
             DNP3Resync(&input, &input_len, &processed);
             continue;
         }
+        if (!DNP3CheckLinkRules(header)) {
+            DNP3SetEvent(dnp3, true, DNP3_DECODER_EVENT_BAD_LINK_RULE);
+            DNP3Resync(&input, &input_len, &processed);
+            continue;
+        }
         if (input_len < frame_len) {
             /* Insufficient data, just break - will wait for more data. */
             break;
@@ -1252,6 +1327,11 @@ static int DNP3HandleResponseLinkLayer(
         uint16_t frame_len = DNP3CalculateLinkLength(header->len);
         if (frame_len == 0) {
             DNP3SetEvent(dnp3, false, DNP3_DECODER_EVENT_LEN_TOO_SMALL);
+            DNP3Resync(&input, &input_len, &processed);
+            continue;
+        }
+        if (!DNP3CheckLinkRules(header)) {
+            DNP3SetEvent(dnp3, false, DNP3_DECODER_EVENT_BAD_LINK_RULE);
             DNP3Resync(&input, &input_len, &processed);
             continue;
         }

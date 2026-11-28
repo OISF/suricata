@@ -191,6 +191,12 @@ Other Changes
   from unbounded to 2048. Configuration options, ``max-tx``,
   ``max-points``, and ``max-objects`` have been added for users who
   may need to change these defaults.
+- ``dnp3`` now checks the link-layer rules when it reads a link header: the
+  function code must be defined for the PRM bit, FCV and FCB must be set as
+  the function requires, and a function without user data must have a
+  LENGTH of 5. A header with a valid CRC that breaks one of these rules
+  raises the new event ``dnp3.bad_link_rule`` and the parser resynchronizes
+  from the next octet, instead of waiting for the body the header declares.
 - Hyperscan caching (`detect.sgh-mpm-caching`), when enabled, prunes
   cache files that have not been used in the last 7 days by default.
   See :ref:`Hyperscan caching configuration
