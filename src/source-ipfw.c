@@ -93,11 +93,22 @@ TmEcode NoIPFWSupportExit(ThreadVars *tv, const void *initdata, void **data)
 #else /* We have IPFW compiled in */
 
 #include "action-globals.h"
+#include "util-misc.h"
+
+#ifdef OS_FREEBSD
+#include <sys/sysctl.h>
+#endif
 
 #define IPFW_ACCEPT 0
 #define IPFW_DROP   1
 
 #define IPFW_SOCKET_POLL_MSEC 300
+
+/* ipfw.buffer-size limits. 64 KiB is about FreeBSD's default of 65636 bytes;
+ * a smaller value is most likely a size without a unit. For the upper limit
+ * see IPFWMbufLimitOverflows(). */
+#define IPFW_BUFFER_SIZE_MIN  (64 * 1024)
+#define IPFW_BUFFER_SIZE_MAX  (64 * 1024 * 1024)
 
 extern uint32_t max_pending_packets;
 
@@ -126,6 +137,8 @@ static IPFWThreadVars ipfw_t[IPFW_MAX_QUEUE];
 static IPFWQueueVars ipfw_q[IPFW_MAX_QUEUE];
 static uint16_t receive_port_num = 0;
 static SCMutex ipfw_init_lock;
+/* ipfw.buffer-size in bytes, 0 for the kernel default; set by IPFWInitConfig() */
+static int ipfw_buffer_size = 0;
 
 /* IPFW Prototypes */
 static void *IPFWGetQueue(int number);
@@ -144,9 +157,12 @@ static TmEcode DecodeIPFWThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodeIPFWThreadDeinit(ThreadVars *tv, void *data);
 static TmEcode DecodeIPFW(ThreadVars *, Packet *, void *);
 
+#ifdef UNITTESTS
+static void SourceIPFWRegisterTests(void);
+#endif
+
 /**
  * \brief Registration Function for RecieveIPFW.
- * \todo Unit tests are needed for this module.
  */
 void TmModuleReceiveIPFWRegister (void)
 {
@@ -163,6 +179,9 @@ void TmModuleReceiveIPFWRegister (void)
                                              SC_CAP_NET_BIND_SERVICE |
                                              SC_CAP_NET_BROADCAST; /** \todo untested */
     tmm_modules[TMM_RECEIVEIPFW].flags = TM_FLAG_RECEIVE_TM;
+#ifdef UNITTESTS
+    tmm_modules[TMM_RECEIVEIPFW].RegisterTests = SourceIPFWRegisterTests;
+#endif
 }
 
 /**
@@ -316,6 +335,166 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
 }
 
 /**
+ * \brief Parse an ipfw.buffer-size value
+ *
+ * \param str size string, e.g. "4mb"
+ * \param size set on success to the size in bytes, or 0 for the kernel default
+ *
+ * \retval 0 on success
+ * \retval -1 if str is not a size, or is neither 0 nor in
+ *         IPFW_BUFFER_SIZE_MIN..IPFW_BUFFER_SIZE_MAX
+ */
+static int IPFWParseBufferSize(const char *str, int *size)
+{
+    uint32_t value = 0;
+
+    if (ParseSizeStringU32(str, &value) < 0) {
+        return -1;
+    }
+    if (value != 0 && (value < IPFW_BUFFER_SIZE_MIN || value > IPFW_BUFFER_SIZE_MAX)) {
+        return -1;
+    }
+    *size = (int)value;
+    return 0;
+}
+
+/**
+ * \brief Get ipfw.buffer-size from the configuration
+ *
+ * \retval size receive buffer size in bytes, 0 to keep the kernel default
+ */
+static int IPFWConfigGetBufferSize(void)
+{
+    const char *str = NULL;
+    int size = 0;
+
+    if (SCConfGetNonNull("ipfw.buffer-size", &str) != 1) {
+        return 0;
+    }
+    if (IPFWParseBufferSize(str, &size) < 0) {
+        SCLogWarning("invalid ipfw.buffer-size '%s', must be 0, or from 64kb to 64mb; keeping "
+                     "the kernel default",
+                str);
+        return 0;
+    }
+    return size;
+}
+
+/**
+ * \brief Check whether the kernel's mbuf limit for a buffer would overflow
+ *
+ * The kernel keeps a socket buffer's mbuf limit, its size times
+ * kern.ipc.sockbuf_waste_factor, in 32 bits and reads it as an int in
+ * sbspace(). Past INT_MAX the socket can drop every packet. The kernel's own
+ * min() with kern.ipc.maxsockbuf doesn't protect against this: the product is
+ * truncated to u_int first (min() takes u_int in sys/libkern.h), so a product
+ * of 4 GiB or more wraps to a small limit, 0 at exactly 4 GiB, whatever
+ * kern.ipc.maxsockbuf is. A kern.ipc.maxsockbuf below 2 GiB saves only the
+ * range above INT_MAX and below 4 GiB, and Suricata refuses that range too.
+ *
+ * With the default factor of 8 the product passes INT_MAX from 256 MiB.
+ * IPFW_BUFFER_SIZE_MAX, 64 MiB, stays clear of it for factors up to 31.
+ *
+ * \param size buffer size in bytes
+ * \param waste_factor kern.ipc.sockbuf_waste_factor
+ *
+ * \retval true if size * waste_factor exceeds INT_MAX
+ * \retval false otherwise
+ */
+static bool IPFWMbufLimitOverflows(uint64_t size, uint64_t waste_factor)
+{
+    return waste_factor > 0 && size > (uint64_t)INT_MAX / waste_factor;
+}
+
+/**
+ * \brief Set the receive buffer of a divert socket
+ *
+ * The kernel drops a diverted packet that doesn't fit in the socket's receive
+ * buffer, and Suricata never sees it.
+ *
+ * Errors only log a warning: divert fails closed, so failing the thread would
+ * block all diverted traffic. The socket then keeps the kernel default. The
+ * two conditions that depend on sysctls alone, not on the socket, are logged
+ * for the first listener only.
+ *
+ * \param nq queue whose socket to set up
+ * \param item index of the queue, as in the "will run on port" message
+ * \param size requested size in bytes, IPFW_BUFFER_SIZE_MIN..IPFW_BUFFER_SIZE_MAX
+ *
+ * \retval 0 if the buffer was set
+ * \retval -1 if the socket keeps the kernel default
+ */
+static int IPFWSetRecvBuffer(const IPFWQueueVars *nq, uint16_t item, int size)
+{
+#ifdef OS_FREEBSD
+    /* kern.ipc.maxsockbuf caps the buffer's mbuf memory; the user guide
+     * explains why twice the size is the least to ask for */
+    const uint64_t advised = 2 * (uint64_t)size;
+#endif
+
+    uint64_t waste_factor = 8; /* the kernel's default */
+#ifdef OS_FREEBSD
+    unsigned long sysctl_factor = 0;
+    size_t sysctl_factor_len = sizeof(sysctl_factor);
+    if (sysctlbyname("kern.ipc.sockbuf_waste_factor", &sysctl_factor, &sysctl_factor_len, NULL,
+                0) == 0) {
+        waste_factor = sysctl_factor;
+    } else {
+        SCLogDebug("can't read kern.ipc.sockbuf_waste_factor: %s; assuming 8", strerror(errno));
+    }
+#endif
+    if (IPFWMbufLimitOverflows((uint64_t)size, waste_factor)) {
+        if (item == 0) {
+            SCLogWarning("IPFW divert: kern.ipc.sockbuf_waste_factor %" PRIu64
+                         " would overflow the kernel's mbuf limit for a receive buffer of %d "
+                         "bytes; lower ipfw.buffer-size or the waste factor; keeping the kernel "
+                         "default",
+                    waste_factor, size);
+        }
+        return -1;
+    }
+
+    if (setsockopt(nq->fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size)) == -1) {
+        int err = errno;
+#ifdef OS_FREEBSD
+        /* the size is above 8/9 of kern.ipc.maxsockbuf, or over the sbsize limit */
+        if (err == ENOBUFS) {
+            SCLogWarning("IPFW divert port %" PRIu16 " (item %" PRIu16 "): failed to set receive "
+                         "buffer to %d: %s; set kern.ipc.maxsockbuf to at least %" PRIu64
+                         " or raise the sbsize resource limit; keeping the kernel default",
+                    nq->port_num, item, size, strerror(err), advised);
+            return -1;
+        }
+#endif
+        SCLogWarning("IPFW divert port %" PRIu16 " (item %" PRIu16 "): failed to set receive "
+                     "buffer to %d: %s; keeping the kernel default",
+                nq->port_num, item, size, strerror(err));
+        return -1;
+    }
+
+    int cur = 0;
+    socklen_t len = sizeof(cur);
+    if (getsockopt(nq->fd, SOL_SOCKET, SO_RCVBUF, &cur, &len) == 0) {
+        SCLogPerf("IPFW divert port %" PRIu16 " (item %" PRIu16 "): receive buffer is %d bytes",
+                nq->port_num, item, cur);
+    }
+
+#ifdef OS_FREEBSD
+    unsigned long maxsockbuf = 0;
+    size_t maxsockbuf_len = sizeof(maxsockbuf);
+    if (item == 0 &&
+            sysctlbyname("kern.ipc.maxsockbuf", &maxsockbuf, &maxsockbuf_len, NULL, 0) == 0 &&
+            (uint64_t)maxsockbuf < advised) {
+        SCLogWarning("IPFW divert: kern.ipc.maxsockbuf %" PRIu64
+                     " caps a receive buffer's mbuf memory, so it may fill before %d bytes; set "
+                     "kern.ipc.maxsockbuf to at least %" PRIu64 " and restart",
+                (uint64_t)maxsockbuf, size, advised);
+    }
+#endif
+    return 0;
+}
+
+/**
  * \brief Init function for RecieveIPFW.
  *
  * This is a setup function for receiving packets
@@ -358,6 +537,11 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, const void *initdata, void **data)
     if (setsockopt(nq->fd, SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev)) == -1) {
         SCLogError("Can't set IPFW divert socket timeout: %s", strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    /* before bind(), so no packet is queued against the default buffer */
+    if (ipfw_buffer_size > 0) {
+        (void)IPFWSetRecvBuffer(nq, ntv->ipfw_index, ipfw_buffer_size);
     }
 
     nq->ipfw_sinlen=sizeof(nq->ipfw_sin);
@@ -736,6 +920,19 @@ int IPFWRegisterQueue(char *queue)
 }
 
 /**
+ *  \brief Read the ipfw settings from the configuration
+ *
+ *  IPFWRegisterQueue() runs while the command line is parsed, before
+ *  suricata.yaml is loaded, so the ipfw section is read here instead. The
+ *  runmodes call it before they start the receive threads. Reading it once
+ *  also reports an invalid value once, not once per divert port.
+ */
+void IPFWInitConfig(void)
+{
+    ipfw_buffer_size = IPFWConfigGetBufferSize();
+}
+
+/**
  *  \brief Get a pointer to the IPFW queue at index
  *
  *  \param number idx of the queue in our array
@@ -768,6 +965,261 @@ void *IPFWGetThread(int number)
 
     return (void *)&ipfw_t[number];
 }
+
+#ifdef UNITTESTS
+#include "conf-yaml-loader.h"
+
+static int IPFWParseBufferSizeTest01(void)
+{
+    int size = -1;
+
+    FAIL_IF(IPFWParseBufferSize("0", &size) != 0);
+    FAIL_IF(size != 0);
+    FAIL_IF(IPFWParseBufferSize("0kb", &size) != 0);
+    FAIL_IF(size != 0);
+    FAIL_IF(IPFWParseBufferSize("64kb", &size) != 0);
+    FAIL_IF(size != IPFW_BUFFER_SIZE_MIN);
+    FAIL_IF(IPFWParseBufferSize("65636", &size) != 0);
+    FAIL_IF(size != 65636);
+    FAIL_IF(IPFWParseBufferSize("1MiB", &size) != 0);
+    FAIL_IF(size != 1024 * 1024);
+    FAIL_IF(IPFWParseBufferSize("1.5mb", &size) != 0);
+    FAIL_IF(size != 1536 * 1024);
+    FAIL_IF(IPFWParseBufferSize("4mb", &size) != 0);
+    FAIL_IF(size != 4 * 1024 * 1024);
+    FAIL_IF(IPFWParseBufferSize("64mb", &size) != 0);
+    FAIL_IF(size != IPFW_BUFFER_SIZE_MAX);
+
+    PASS;
+}
+
+static int IPFWParseBufferSizeTest02(void)
+{
+    int size = 1234;
+
+    /* not a size */
+    FAIL_IF(IPFWParseBufferSize("", &size) != -1);
+    FAIL_IF(IPFWParseBufferSize("abc", &size) != -1);
+    FAIL_IF(IPFWParseBufferSize("-1", &size) != -1);
+    FAIL_IF(IPFWParseBufferSize("4tb", &size) != -1);
+    /* below the minimum, e.g. a forgotten unit */
+    FAIL_IF(IPFWParseBufferSize("1", &size) != -1);
+    FAIL_IF(IPFWParseBufferSize("65535", &size) != -1);
+    /* above the maximum */
+    FAIL_IF(IPFWParseBufferSize("67108865", &size) != -1);
+    FAIL_IF(IPFWParseBufferSize("512mb", &size) != -1);
+    FAIL_IF(IPFWParseBufferSize("4gb", &size) != -1);
+    /* size is only written on success */
+    FAIL_IF(size != 1234);
+
+    PASS;
+}
+
+/**
+ * \brief Load a YAML string into a fresh configuration and get the size
+ *
+ * \retval size what IPFWConfigGetBufferSize() returned, -2 if the YAML didn't load
+ */
+static int IPFWBufferSizeFromYaml(const char *conf)
+{
+    int size = -2;
+
+    SCConfCreateContextBackup();
+    SCConfInit();
+    if (SCConfYamlLoadString(conf, strlen(conf)) == 0) {
+        size = IPFWConfigGetBufferSize();
+    }
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+    return size;
+}
+
+static int IPFWConfigGetBufferSizeTest01(void)
+{
+    FAIL_IF(IPFWBufferSizeFromYaml("%YAML 1.1\n---\nipfw:\n  buffer-size: 2mb\n") !=
+            2 * 1024 * 1024);
+    /* a dotted key, as in a file included from suricata.yaml */
+    FAIL_IF(IPFWBufferSizeFromYaml("%YAML 1.1\n---\nipfw.buffer-size: 4mb\n") != 4 * 1024 * 1024);
+
+    PASS;
+}
+
+static int IPFWConfigGetBufferSizeTest02(void)
+{
+    /* unset, empty, invalid, out of range and 0 all keep the kernel default */
+    FAIL_IF(IPFWBufferSizeFromYaml("%YAML 1.1\n---\nother: 1\n") != 0);
+    FAIL_IF(IPFWBufferSizeFromYaml("%YAML 1.1\n---\nipfw:\n") != 0);
+    FAIL_IF(IPFWBufferSizeFromYaml("%YAML 1.1\n---\nipfw:\n  buffer-size:\n") != 0);
+    FAIL_IF(IPFWBufferSizeFromYaml("%YAML 1.1\n---\nipfw:\n  buffer-size: lots\n") != 0);
+    FAIL_IF(IPFWBufferSizeFromYaml("%YAML 1.1\n---\nipfw:\n  buffer-size: 1\n") != 0);
+    FAIL_IF(IPFWBufferSizeFromYaml("%YAML 1.1\n---\nipfw:\n  buffer-size: 128mb\n") != 0);
+    FAIL_IF(IPFWBufferSizeFromYaml("%YAML 1.1\n---\nipfw:\n  buffer-size: 0\n") != 0);
+
+    PASS;
+}
+
+static int IPFWMbufLimitOverflowsTest01(void)
+{
+    /* the default factor and the largest accepted size */
+    FAIL_IF(IPFWMbufLimitOverflows(IPFW_BUFFER_SIZE_MAX, 8));
+    FAIL_IF(IPFWMbufLimitOverflows(IPFW_BUFFER_SIZE_MAX, 31));
+    /* 64 MiB * 32 = 2^31, one past INT_MAX */
+    FAIL_IF_NOT(IPFWMbufLimitOverflows(IPFW_BUFFER_SIZE_MAX, 32));
+    FAIL_IF_NOT(IPFWMbufLimitOverflows(IPFW_BUFFER_SIZE_MIN, 32768));
+    FAIL_IF(IPFWMbufLimitOverflows(IPFW_BUFFER_SIZE_MIN, 32767));
+    /* huge factors must not wrap the multiplication */
+    FAIL_IF_NOT(IPFWMbufLimitOverflows(IPFW_BUFFER_SIZE_MIN, UINT64_MAX));
+    /* a factor of 0 is no arithmetic overflow, although the kernel then gives
+     * every socket an mbuf limit of 0; that is not this check's business */
+    FAIL_IF(IPFWMbufLimitOverflows(IPFW_BUFFER_SIZE_MAX, 0));
+
+    PASS;
+}
+
+/**
+ * \brief Load a YAML string into a fresh configuration and run IPFWInitConfig()
+ *
+ * \retval size the size IPFWInitConfig() stored, -2 if the YAML didn't load
+ */
+static int IPFWInitConfigFromYaml(const char *conf)
+{
+    const int saved = ipfw_buffer_size;
+    int size = -2;
+
+    SCConfCreateContextBackup();
+    SCConfInit();
+    if (SCConfYamlLoadString(conf, strlen(conf)) == 0) {
+        IPFWInitConfig();
+        size = ipfw_buffer_size;
+    }
+    SCConfDeInit();
+    SCConfRestoreContextBackup();
+    ipfw_buffer_size = saved;
+    return size;
+}
+
+static int IPFWInitConfigTest01(void)
+{
+    /* the configured size reaches what ReceiveIPFWThreadInit() uses */
+    FAIL_IF(IPFWInitConfigFromYaml("%YAML 1.1\n---\nipfw:\n  buffer-size: 2mb\n") !=
+            2 * 1024 * 1024);
+    /* and a configuration without it means the kernel default */
+    FAIL_IF(IPFWInitConfigFromYaml("%YAML 1.1\n---\nother: 1\n") != 0);
+
+    PASS;
+}
+
+/**
+ * \brief Whether a failed socket() means this host has no IPv4 socket to test on
+ *
+ * \param err errno of the failed socket() call
+ */
+static bool IPFWTestNoSocket(int err)
+{
+    return err == EAFNOSUPPORT || err == EPROTONOSUPPORT || err == EPERM || err == EACCES;
+}
+
+static int IPFWSetRecvBufferTest01(void)
+{
+    /* a plain UDP socket stands in for the divert socket */
+    IPFWQueueVars nq;
+    memset(&nq, 0, sizeof(nq));
+    nq.port_num = 8000;
+    nq.fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (nq.fd == -1) {
+        int err = errno;
+        if (!IPFWTestNoSocket(err)) {
+            SCLogWarning("can't create an AF_INET socket: %s", strerror(err));
+            FAIL;
+        }
+        SCLogInfo("can't create an AF_INET socket: %s; nothing to test", strerror(err));
+        PASS;
+    }
+
+    int before = 0;
+    socklen_t len = sizeof(before);
+    int rc_before = getsockopt(nq.fd, SOL_SOCKET, SO_RCVBUF, &before, &len);
+    /* a size the socket doesn't have already */
+    const int size = (before == 128 * 1024) ? 256 * 1024 : 128 * 1024;
+    int set = IPFWSetRecvBuffer(&nq, 0, size);
+
+    int cur = 0;
+    len = sizeof(cur);
+    int rc = getsockopt(nq.fd, SOL_SOCKET, SO_RCVBUF, &cur, &len);
+    close(nq.fd);
+    FAIL_IF(rc_before != 0 || rc != 0);
+    FAIL_IF(set != 0);
+    FAIL_IF(cur == before);
+    /* a kernel may round the size up */
+    FAIL_IF(cur < size);
+#ifdef OS_FREEBSD
+    /* FreeBSD reports the size as it was set */
+    FAIL_IF(cur != size);
+#endif
+
+    PASS;
+}
+
+#ifdef OS_FREEBSD
+static int IPFWSetRecvBufferTest02(void)
+{
+    /* the kernel refuses a size above 8/9 of kern.ipc.maxsockbuf with ENOBUFS;
+     * that is logged, and the socket keeps its default buffer */
+    unsigned long maxsockbuf = 0;
+    size_t maxsockbuf_len = sizeof(maxsockbuf);
+    FAIL_IF(sysctlbyname("kern.ipc.maxsockbuf", &maxsockbuf, &maxsockbuf_len, NULL, 0) != 0);
+    if (maxsockbuf > IPFW_BUFFER_SIZE_MAX) {
+        /* no size in the option's range is refused on this host */
+        SCLogInfo("kern.ipc.maxsockbuf %lu is above %d: nothing to test", maxsockbuf,
+                IPFW_BUFFER_SIZE_MAX);
+        PASS;
+    }
+
+    IPFWQueueVars nq;
+    memset(&nq, 0, sizeof(nq));
+    nq.port_num = 8000;
+    nq.fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (nq.fd == -1) {
+        int err = errno;
+        if (!IPFWTestNoSocket(err)) {
+            SCLogWarning("can't create an AF_INET socket: %s", strerror(err));
+            FAIL;
+        }
+        SCLogInfo("can't create an AF_INET socket: %s; nothing to test", strerror(err));
+        PASS;
+    }
+
+    int before = 0;
+    socklen_t len = sizeof(before);
+    int rc_before = getsockopt(nq.fd, SOL_SOCKET, SO_RCVBUF, &before, &len);
+    int set = IPFWSetRecvBuffer(&nq, 0, (int)maxsockbuf);
+    int after = 0;
+    len = sizeof(after);
+    int rc_after = getsockopt(nq.fd, SOL_SOCKET, SO_RCVBUF, &after, &len);
+    close(nq.fd);
+    FAIL_IF(set != -1);
+    FAIL_IF(rc_before != 0 || rc_after != 0);
+    FAIL_IF(before <= 0);
+    FAIL_IF(after != before);
+
+    PASS;
+}
+#endif /* OS_FREEBSD */
+
+static void SourceIPFWRegisterTests(void)
+{
+    UtRegisterTest("IPFWParseBufferSizeTest01", IPFWParseBufferSizeTest01);
+    UtRegisterTest("IPFWParseBufferSizeTest02", IPFWParseBufferSizeTest02);
+    UtRegisterTest("IPFWConfigGetBufferSizeTest01", IPFWConfigGetBufferSizeTest01);
+    UtRegisterTest("IPFWConfigGetBufferSizeTest02", IPFWConfigGetBufferSizeTest02);
+    UtRegisterTest("IPFWMbufLimitOverflowsTest01", IPFWMbufLimitOverflowsTest01);
+    UtRegisterTest("IPFWInitConfigTest01", IPFWInitConfigTest01);
+    UtRegisterTest("IPFWSetRecvBufferTest01", IPFWSetRecvBufferTest01);
+#ifdef OS_FREEBSD
+    UtRegisterTest("IPFWSetRecvBufferTest02", IPFWSetRecvBufferTest02);
+#endif
+}
+#endif /* UNITTESTS */
 
 #endif /* End ifdef IPFW */
 

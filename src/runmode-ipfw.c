@@ -64,6 +64,8 @@ int RunModeIpsIPFWAutoFp(void)
 
     LiveDeviceHasNoStats();
 
+    IPFWInitConfig();
+
     ret = RunModeSetIPSAutoFp(IPFWGetThread,
             "ReceiveIPFW",
             "VerdictIPFW",
@@ -81,6 +83,8 @@ int RunModeIpsIPFWWorker(void)
     TimeModeSetLive();
 
     LiveDeviceHasNoStats();
+
+    IPFWInitConfig();
 
     ret = RunModeSetIPSWorker(IPFWGetThread,
             "ReceiveIPFW",
