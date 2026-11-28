@@ -3554,8 +3554,8 @@ jobs:
           prepare: ./qa/ci/openbsd.sh prepare
           run: ./qa/ci/openbsd.sh run
 
-  windows-msys2-mingw64-npcap:
-    name: Windows MSYS2 MINGW64 (NPcap)
+  windows-msys2-ucrt64-npcap:
+    name: Windows MSYS2 UCRT64 (NPcap)
     runs-on: windows-latest
     needs: [prepare-deps]
     defaults:
@@ -3574,13 +3574,24 @@ jobs:
           key: npcap-bin-100
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: ucrt64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-pkgconf mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-libxml2
-      # hack: install our own cbindgen system wide as we can't get the
-      # preinstalled one to be picked up by configure
-      - name: cbindgen
-        run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
+          install: |
+            autoconf
+            automake
+            git
+            make
+            mingw-w64-ucrt-x86_64-cbindgen
+            mingw-w64-ucrt-x86_64-jansson
+            mingw-w64-ucrt-x86_64-libtool
+            mingw-w64-ucrt-x86_64-libyaml
+            mingw-w64-ucrt-x86_64-pcre2
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-python-yaml
+            mingw-w64-ucrt-x86_64-rust
+            mingw-w64-ucrt-x86_64-toolchain
+            p7zip
+            unzip
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
@@ -3613,53 +3624,6 @@ jobs:
           ./src/suricata -u -l .
           # need cwd in path due to npcap dlls (see above)
           PATH="$PATH:$(pwd)" python3 ./suricata-verify/run.py -q --debug-failed
-      - run: make install
-      - run: suricata-update -V
-
-  windows-msys2-mingw64-libpcap:
-    name: Windows MSYS2 MINGW64 (libpcap)
-    runs-on: windows-latest
-    needs: [prepare-deps, ubuntu-22-04-dist]
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-      - name: Cache ~/.cargo
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: ~/.cargo/registry
-          key: cargo-registry
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-pkgconf mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
-      # hack: install our own cbindgen system wide as we can't get the
-      # preinstalled one to be picked up by configure
-      - name: cbindgen
-        run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - run: git config --global --add safe.directory /__w/suricata/suricata
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
-        with:
-          name: prep
-          path: prep
-      - name: Download suricata.tar.gz
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
-        with:
-          name: dist
-      - run: tar xvf suricata-*.tar.gz --strip-components=1
-      - run: tar xf prep/suricata-verify.tar.gz
-      - name: Build
-        run: |
-          ./autogen.sh
-          CFLAGS="-ggdb -Werror" ./configure --enable-warnings --enable-unittests --enable-gccprotect --disable-gccmarch-native --disable-shared --with-libpcap-includes=/npcap/Include --with-libpcap-libraries=/npcap/Lib/x64
-          make -j3
-      - name: Run
-        run: |
-          ./src/suricata --build-info
-          ./src/suricata -u -l .
-          python3 ./suricata-verify/run.py -q --debug-failed
       - run: make install
       - run: suricata-update -V
 
@@ -3722,8 +3686,8 @@ jobs:
       - run: make install
       - run: suricata-update -V
 
-  windows-msys2-mingw64-windivert:
-    name: Windows MSYS2 MINGW64 (WinDivert)
+  windows-msys2-ucrt64-windivert:
+    name: Windows MSYS2 UCRT64 (WinDivert)
     runs-on: windows-latest
     needs: [prepare-deps]
     defaults:
@@ -3737,13 +3701,24 @@ jobs:
           key: cargo-registry
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: ucrt64
           update: true
-          install: git mingw-w64-x86_64-toolchain automake1.16 automake-wrapper autoconf libtool libyaml-devel pcre2-devel jansson-devel make mingw-w64-x86_64-libyaml mingw-w64-x86_64-pcre2 mingw-w64-x86_64-pkgconf mingw-w64-x86_64-rust mingw-w64-x86_64-jansson unzip p7zip python-setuptools mingw-w64-x86_64-python-yaml mingw-w64-x86_64-libxml2 libpcap-devel mingw-w64-x86_64-libpcap
-      # hack: install our own cbindgen system wide as we can't get the
-      # preinstalled one to be picked up by configure
-      - name: cbindgen
-        run: cargo install --root /usr --force --debug --version 0.24.3 cbindgen
+          install: |
+            autoconf
+            automake
+            git
+            make
+            mingw-w64-ucrt-x86_64-cbindgen
+            mingw-w64-ucrt-x86_64-jansson
+            mingw-w64-ucrt-x86_64-libpcap
+            mingw-w64-ucrt-x86_64-libtool
+            mingw-w64-ucrt-x86_64-libyaml
+            mingw-w64-ucrt-x86_64-pcre2
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-python-yaml
+            mingw-w64-ucrt-x86_64-rust
+            mingw-w64-ucrt-x86_64-toolchain
+            unzip
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - run: git config --global --add safe.directory /__w/suricata/suricata
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333

@@ -34,7 +34,8 @@ First, MSYS2 must be installed. This can be done with the MSYS2
 installer from https://www.msys2.org/.
 
 Once installed, the following directions assume the default ``UCRT64``
-environment will be used.
+environment will be used. MSYS2 has deprecated ``MINGW64``; use
+``UCRT64`` instead.
 
 MSYS2 Dependencies
 ------------------
