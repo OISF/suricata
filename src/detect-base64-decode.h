@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2022 Open Information Security Foundation
+/* Copyright (C) 2015-2026 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -17,6 +17,12 @@
 
 #ifndef SURICATA_DETECT_BASE64_DECODE_H
 #define SURICATA_DETECT_BASE64_DECODE_H
+
+typedef struct DetectBase64Decode_ {
+    uint16_t bytes;
+    uint32_t offset;
+    uint8_t relative;
+} DetectBase64Decode;
 
 void DetectBase64DecodeRegister(void);
 int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *, const Signature *,
