@@ -623,11 +623,22 @@ Examples
 Event type: fileinfo
 --------------------
 
-Note that the checksum values for ``md5``, ``sha1``, and ``sha256`` are
-available when
+Checksum values (``md5``, ``sha1`` and ``sha256``) and file state
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* The command line option ``disable-hashing`` was not used
-* There are no gaps (areas missing)
+* The command line option ``disable-hashing`` disables all checksums.
+* Files with gaps (areas missing) and truncated files are reported with
+  ``state`` set to ``TRUNCATED`` and, when gaps are present, ``gaps`` set
+  to ``true``.
+* By default gapped files are **not** hashed: the ``md5``, ``sha1`` and
+  ``sha256`` values are omitted.
+* With ``force-hash`` configured, a **stored** gapped file gets a
+  ``sha256`` value. Note that the missing gap data is zero-filled before
+  hashing, so the value identifies the reconstructed byte stream, not
+  the original file. ``md5`` and ``sha1`` are not computed for gapped
+  files even when forced.
+* A gapped file that is not stored (no ``filestore`` and no
+  ``force-filestore``) gets no checksums at all, even with ``force-hash``.
 
 Fields
 ~~~~~~

@@ -40,33 +40,52 @@ impl NFSState {
 
         let mut xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
         let mut aux_file_name = Vec::new();
+        // Raised on this transaction, not on whichever one happens to be last: the tx for
+        // this record is created after the argument parse.
+        let mut malformed = false;
 
         if self.nfs_version == 0 {
             self.nfs_version = r.progver as u16;
         }
 
         if r.procedure == NFSPROC3_LOOKUP {
-            self.process_request_record_lookup(r, &mut xidmap);
+            if !self.process_request_record_lookup(r, &mut xidmap) {
+                malformed = true;
+            }
         } else if r.procedure == NFSPROC3_ACCESS {
             if let Ok((_, rd)) = parse_nfs3_request_access(r.prog_data) {
                 xidmap.file_handle = rd.handle.value.to_vec();
                 self.xidmap_handle2name(&mut xidmap);
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                malformed = true;
             };
         } else if r.procedure == NFSPROC3_GETATTR {
             if let Ok((_, rd)) = parse_nfs3_request_getattr(r.prog_data) {
                 xidmap.file_handle = rd.handle.value.to_vec();
                 self.xidmap_handle2name(&mut xidmap);
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                malformed = true;
             };
         } else if r.procedure == NFSPROC3_READDIRPLUS {
             if let Ok((_, rd)) = parse_nfs3_request_readdirplus(r.prog_data) {
                 xidmap.file_handle = rd.handle.value.to_vec();
                 self.xidmap_handle2name(&mut xidmap);
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                malformed = true;
+            };
+        } else if r.procedure == NFSPROC3_READDIR {
+            if let Ok((_, rd)) = parse_nfs3_request_readdir(r.prog_data) {
+                xidmap.file_handle = rd.handle.value.to_vec();
+                self.xidmap_handle2name(&mut xidmap);
+            } else {
+                malformed = true;
+            };
+        } else if r.procedure == NFSPROC3_SETATTR {
+            if let Ok((_, rd)) = parse_nfs3_request_setattr(r.prog_data) {
+                xidmap.file_handle = rd.handle.value.to_vec();
+                self.xidmap_handle2name(&mut xidmap);
+            } else {
+                malformed = true;
             };
         } else if r.procedure == NFSPROC3_READ {
             if let Ok((_, rd)) = parse_nfs3_request_read(r.prog_data) {
@@ -74,27 +93,28 @@ impl NFSState {
                 xidmap.file_handle = rd.handle.value.to_vec();
                 self.xidmap_handle2name(&mut xidmap);
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
             };
         } else if r.procedure == NFSPROC3_WRITE {
             if let Ok((_, rd)) = parse_nfs3_request_write(r.prog_data, true) {
+                xidmap.file_handle = rd.handle.value.to_vec();
                 self.process_write_record(flow, r, &rd);
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
             }
         } else if r.procedure == NFSPROC3_CREATE {
             if let Ok((_, rd)) = parse_nfs3_request_create(r.prog_data) {
                 xidmap.file_handle = rd.handle.value.to_vec();
                 xidmap.file_name = rd.name_vec;
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                malformed = true;
             };
         } else if r.procedure == NFSPROC3_REMOVE {
             if let Ok((_, rd)) = parse_nfs3_request_remove(r.prog_data) {
                 xidmap.file_handle = rd.handle.value.to_vec();
                 xidmap.file_name = rd.name_vec;
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                malformed = true;
             };
         } else if r.procedure == NFSPROC3_RENAME {
             if let Ok((_, rd)) = parse_nfs3_request_rename(r.prog_data) {
@@ -102,21 +122,21 @@ impl NFSState {
                 xidmap.file_name = rd.from_name_vec;
                 aux_file_name = rd.to_name_vec;
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                malformed = true;
             };
         } else if r.procedure == NFSPROC3_MKDIR {
             if let Ok((_, rd)) = parse_nfs3_request_mkdir(r.prog_data) {
                 xidmap.file_handle = rd.handle.value.to_vec();
                 xidmap.file_name = rd.name_vec;
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                malformed = true;
             };
         } else if r.procedure == NFSPROC3_RMDIR {
             if let Ok((_, rd)) = parse_nfs3_request_rmdir(r.prog_data) {
                 xidmap.file_handle = rd.handle.value.to_vec();
                 xidmap.file_name = rd.name_vec;
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                malformed = true;
             };
         } else if r.procedure == NFSPROC3_COMMIT {
             SCLogDebug!("COMMIT, closing shop");
@@ -134,11 +154,58 @@ impl NFSState {
                         tdf.file_last_xid = r.hdr.xid;
                         tx.is_last = true;
                         tx.request_done = true;
+                        // The WRITE replies carried no file data, so nothing
+                        // is left to wait for: COMMIT is the explicit "all
+                        // writes done" signal for this file and closes the
+                        // response side. A write reply that arrives after the
+                        // COMMIT is logged too late to reach the record (see
+                        // the 9.0 logging notes).
+                        tx.response_done = true;
                         tx.is_file_closed = true;
                     }
                 }
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
+            };
+        } else if r.procedure == NFSPROC3_FSSTAT
+            || r.procedure == NFSPROC3_FSINFO
+            || r.procedure == NFSPROC3_PATHCONF
+            || r.procedure == NFSPROC3_READLINK
+        {
+            // These take a bare filehandle as their only argument: wire the
+            // handle so the record carries hhash + name.
+            if let Ok((_, rd)) = parse_nfs3_handle(r.prog_data) {
+                xidmap.file_handle = rd.value.to_vec();
+                self.xidmap_handle2name(&mut xidmap);
+            } else {
+                malformed = true;
+            };
+        } else if r.procedure == NFSPROC3_MKNOD {
+            if let Ok((_, rd)) = parse_nfs3_request_mknod(r.prog_data) {
+                xidmap.file_handle = rd.handle.value.to_vec();
+                xidmap.file_name = rd.name_vec;
+            } else {
+                malformed = true;
+            };
+        } else if r.procedure == NFSPROC3_LINK {
+            if let Ok((_, rd)) = parse_nfs3_request_link(r.prog_data) {
+                // the tx identity is the new link: its name rides the
+                // request (diropargs3 link.name), the file handle is the
+                // source file
+                xidmap.file_handle = rd.handle.value.to_vec();
+                xidmap.file_name = rd.linkname;
+            } else {
+                malformed = true;
+            };
+        } else if r.procedure == NFSPROC3_SYMLINK {
+            if let Ok((_, rd)) = parse_nfs3_request_symlink(r.prog_data) {
+                // the tx identity is the new symlink (diropargs3 where:
+                // dir + name); the sattr3 + target path are consumed, not
+                // logged
+                xidmap.file_handle = rd.handle.value.to_vec();
+                xidmap.file_name = rd.name_vec;
+            } else {
+                malformed = true;
             };
         }
 
@@ -148,6 +215,9 @@ impl NFSState {
         // read handled in file tx at reply
         {
             let mut tx = self.new_tx();
+            if malformed {
+                tx.tx_data.set_event(NFSEvent::MalformedData as u8);
+            }
             tx.xid = r.hdr.xid;
             tx.procedure = r.procedure;
             tx.request_done = true;
@@ -206,7 +276,21 @@ impl NFSState {
         let mut nfs_status = 0;
         let mut resp_handle = Vec::new();
 
-        if xidmap.procedure == NFSPROC3_LOOKUP {
+        // An accepted NFS/v3 reply carries its status word first. NULL returns
+        // void (RFC 1813 3.3.0), so an empty body is only a problem for
+        // another procedure (the default 0 would read as a fake OK). Replies
+        // without a program body never reach here: the dispatcher scores them.
+        let null_call = xidmap.procedure == NFSPROC3_NULL;
+        let nfs_status_set = if null_call {
+            true
+        } else {
+            r.prog_data.len() >= 4
+        };
+        if !nfs_status_set && !null_call {
+            // no procedure parser can read a body this short: one event for
+            // the record, not a second one from the parser below
+            self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
+        } else if xidmap.procedure == NFSPROC3_LOOKUP {
             if let Ok((_, rd)) = parse_nfs3_response_lookup(r.prog_data) {
                 SCLogDebug!("LOOKUP: {:?}", rd);
                 SCLogDebug!("RESPONSE LOOKUP file_name {:?}", xidmap.file_name);
@@ -218,7 +302,7 @@ impl NFSState {
                     .put(rd.handle.value.to_vec(), xidmap.file_name.to_vec());
                 resp_handle = rd.handle.value.to_vec();
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
             };
         } else if xidmap.procedure == NFSPROC3_CREATE {
             if let Ok((_, rd)) = parse_nfs3_response_create(r.prog_data) {
@@ -233,44 +317,98 @@ impl NFSState {
                     resp_handle = h.value.to_vec();
                 }
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
             };
         } else if xidmap.procedure == NFSPROC3_READ {
             if let Ok((_, rd)) = parse_nfs3_reply_read(r.prog_data, true) {
                 self.process_read_record(flow, r, &rd, Some(xidmap), true);
                 nfs_status = rd.status;
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
             }
         } else if xidmap.procedure == NFSPROC3_READDIRPLUS {
-            if let Ok((_, rd)) = parse_nfs3_response_readdirplus(r.prog_data) {
-                nfs_status = rd.status;
-
-                // cut off final eof field
-                let d = if rd.data.len() >= 4 {
-                    &rd.data[..rd.data.len() - 4_usize]
-                } else {
-                    rd.data
-                };
-
-                // store all handle/filename mappings
-                if let Ok((_, ref entries)) = many0_nfs3_response_readdirplus_entries(d) {
-                    SCLogDebug!("READDIRPLUS ENTRIES reply {:?}", entries);
-                    for ce in entries {
-                        SCLogDebug!("ce {:?}", ce);
-                        if let Some(ref e) = ce.entry {
-                            SCLogDebug!("e {:?}", e);
-                            if let Some(ref h) = e.handle {
-                                SCLogDebug!("h {:?}", h);
-                                self.namemap.put(h.value.to_vec(), e.name_vec.to_vec());
+            // Same tolerance as READDIR: the dirlistplus3 chain, when
+            // present, must consume exactly; a truncated or spliced tail
+            // (UDP reassembly) only loses the namemap entries; the status
+            // is always taken from the record head.
+            match parse_nfs3_response_readdirplus(r.prog_data) {
+                Ok((_, rd)) => {
+                    nfs_status = rd.status;
+                    // the entry chain is only there for a successful reply
+                    let chain = if rd.status == 0 {
+                        many0_nfs3_response_readdirplus_entries(rd.data).ok()
+                    } else {
+                        None
+                    };
+                    if let Some((_, entries)) = chain {
+                        SCLogDebug!("READDIRPLUS: {} entries", entries.len());
+                        // name_handle is the entry's own handle: the follow-up
+                        // file data arrives under it
+                        for e in &entries {
+                            if let Some(nh) = e.handle.as_ref() {
+                                self.namemap.put(nh.value.to_vec(), e.name_vec.to_vec());
                             }
                         }
                     }
-                } else {
-                    self.set_event(NFSEvent::MalformedData);
+                }
+                Err(_) => {
+                    // tail tolerated (see above), but the anomaly stays
+                    // observable
+                    self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
+                    if let Ok((_, stat)) = be_u32(r.prog_data) as IResult<&[u8], _> {
+                        nfs_status = stat;
+                    }
+                }
+            }
+        } else if xidmap.procedure == NFSPROC3_READDIR {
+            // The dirlist3 chain is parsed best-effort: real servers pad
+            // error replies (e.g. JUKEBOX carries garbage), and
+            // Suricata's UDP reassembly can splice datagrams, so a
+            // tail that does not pack exactly is tolerated; the status
+            // is always taken from the record head.
+            nfs_status = match parse_nfs3_response_readdir(r.prog_data) {
+                Ok((_, rd)) => rd.status,
+                Err(_) => {
+                    // tail tolerated (see above), but the anomaly stays
+                    // observable
+                    self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
+                    match be_u32(r.prog_data) as IResult<&[u8], _> {
+                        Ok((_, stat)) => stat,
+                        _ => 0,
+                    }
+                }
+            };
+        } else if xidmap.procedure == NFSPROC3_SETATTR {
+            // wcc_data is parsed best-effort, same tolerance as READDIR
+            nfs_status = match parse_nfs3_response_setattr(r.prog_data) {
+                Ok((_, rd)) => rd.status,
+                Err(_) => {
+                    // tail tolerated (see above), but the anomaly stays
+                    // observable
+                    self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
+                    match be_u32(r.prog_data) as IResult<&[u8], _> {
+                        Ok((_, stat)) => stat,
+                        _ => 0,
+                    }
+                }
+            };
+        } else if xidmap.procedure == NFSPROC3_FSINFO {
+            if let Ok((_, rd)) = parse_nfs3_response_fsinfo(r.prog_data) {
+                nfs_status = rd.status;
+                if rd.status == 0 {
+                    self.fsinfo_max_read = rd.rtm;
+                    self.fsinfo_max_write = rd.wtm;
+                    SCLogDebug!("FSINFO: max read {} max write {}", rd.rtm, rd.wtm);
                 }
             } else {
-                self.set_event(NFSEvent::MalformedData);
+                // the reply is malformed past the status word, so report that
+                // status rather than the default 0, which reads as OK
+                if r.prog_data.len() >= 4 {
+                    if let Ok((_, stat)) = be_u32(r.prog_data) as IResult<&[u8], _> {
+                        nfs_status = stat;
+                    }
+                }
+                self.set_event_new_tx(r.hdr.xid, NFSEvent::MalformedData);
             }
         }
         // for all other record types only parse the status
@@ -289,7 +427,20 @@ impl NFSState {
         );
 
         if xidmap.procedure != NFSPROC3_READ {
-            self.mark_response_tx_done(flow, r.hdr.xid, r.reply_state, nfs_status, &resp_handle);
+            let write_handle = if xidmap.procedure == NFSPROC3_WRITE {
+                xidmap.file_handle.as_slice()
+            } else {
+                &[]
+            };
+            self.mark_response_tx_done(
+                flow,
+                r.hdr.xid,
+                r.reply_state,
+                nfs_status,
+                nfs_status_set,
+                &resp_handle,
+                write_handle,
+            );
         }
     }
 }

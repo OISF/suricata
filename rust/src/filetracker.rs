@@ -99,6 +99,14 @@ impl FileTransferTracker {
         self.file_is_truncated
     }
 
+    /// The file will receive no more data: it was either cleanly closed
+    /// or truncated. Unlike is_done(), this also covers the truncated
+    /// state: trunc() leaves file_open set (the filestore still holds
+    /// the truncated file) while no further data is accepted.
+    pub fn is_finished(&self) -> bool {
+        !self.file_open || self.file_is_truncated
+    }
+
     pub fn is_initialized(&self) -> bool {
         return self.file_open || self.file_is_truncated || self.file_closed;
     }

@@ -141,3 +141,169 @@ Example - Client Proposal
             }
           }
         }
+
+.. _9.0-nfs-logging-changes:
+
+NFS
+***
+
+nfs.status is logged only when a reply carried one
+==================================================
+
+In 8.x, ``nfs.status`` was always logged and read ``OK`` by default. In an
+``nfs`` record it is now left out when no reply status was seen; treat a
+missing ``nfs.status`` there as "no reply status". The ``nfs`` block of an
+alert and of a ``fileinfo`` record still carries ``status``, ``OK`` until a
+reply status is seen. ``status_code`` follows the record rule everywhere: it
+appears only once a reply status was seen.
+
+This happens when:
+
+* a WRITE whose last record is fully buffered is logged as the request is
+  parsed, before any reply;
+* the reply never arrives;
+* the reply is rejected at the RPC layer.
+
+When a status is logged, it is:
+
+* the first NFS error carried by any reply to the request, or else
+* the status of the first reply that carried one.
+
+A request split into several records can be answered more than once. If one
+reply reports success and another an NFS error, the record reports the error,
+whatever the order. A reply that fails at the RPC message level
+(``GARBAGE_ARGS``, ``PROC_UNAVAIL`` and the like) carries no NFS status, so it
+does not override one. ``rpc.status`` behaves the other way round: once a reply
+to the request was denied, the record reports ``DENIED`` there, whatever order
+the replies arrived in.
+
+Special cases:
+
+* A READ that stops before EOF is logged with the status of the replies that
+  did arrive.
+* An UNSTABLE WRITE closed by a COMMIT reports its own reply status only if
+  that reply arrived before the COMMIT. The COMMIT closes the record, so a
+  later reply is not logged.
+
+The ``fileinfo`` record for such a file is written when the file closes. It
+describes the file, not an RPC reply:
+
+* its ``status`` reads ``OK`` unless an error reply arrived before the file
+  closed;
+* its ``status_code`` appears only once a reply status was seen.
+
+More NFSv4 operations are logged
+================================
+
+A compound carrying any of the operations below now produces an ``nfs`` record:
+
+    - CLOSE,
+    - CREATE_SESSION,
+    - DELEGRETURN,
+    - DESTROY_CLIENTID,
+    - DESTROY_SESSION,
+    - EXCHANGE_ID,
+    - GETDEVINFO,
+    - LAYOUTGET,
+    - LAYOUTRETURN,
+    - RECLAIM_COMPLETE,
+    - SECINFO_NO_NAME
+
+In 8.x it produced none.
+
+Unchanged:
+
+* Each compound still yields one transaction, for its main operation. READ
+  and WRITE also get a file transaction.
+* A compound of only PUTFH and GETATTR yields no transaction.
+* A GETATTR after another operation stays part of that operation.
+
+Rules that use NFS transaction keywords (``nfs_version``, ``nfs_procedure``,
+the file keywords) can now alert on these compounds too. They still alert
+once per compound, not once per operation. To match a single operation, add
+``nfs_procedure``.
+
+NFS over TCP is detected on any port
+====================================
+
+NFS is no longer detected only on the configured ports. Suricata now
+recognizes NFS calls on the to-server stream by the ONC RPC call header and
+program number.
+
+NFS on an unusual port now:
+
+* gets ``app_proto: nfs``;
+* produces ``nfs`` records;
+* can match ``alert nfs`` rules.
+
+In 8.x such flows went undetected. Other ONC RPC services (mountd, rpcbind,
+nlockmgr) use a different program number and are not claimed.
+
+Size limits on logged records
+=============================
+
+RFC 1813 (section 3.2) sets no length limit on NFSv3 names, so a name can be
+as large as the reassembly buffer. The logger now caps what it writes:
+
+* Each string field: 8 KiB of the value, before JSON escaping. A shortened
+  value ends with ``[truncated N additional bytes]``; a field of control bytes
+  can take up to 48 KiB once each is escaped.
+* Each ``nfs`` record: 128 KiB. ``nfs.truncated`` (or ``rpc.truncated``) is
+  set when a value was shortened or the record limit was reached. Each field
+  left out at the limit gets a ``<field>_truncated`` key.
+
+NFSv2 names are limited to 255 bytes (RFC 1094). Only these are checked when
+parsing: a longer one raises ``malformed_data`` but is still available to
+``nfs.name`` and ``nfs.filename``.
+
+New fields and events
+=====================
+
+New fields in ``nfs`` records:
+
+* ``nfs.minorversion`` and ``nfs.client_id``: NFSv4.1 session identity.
+* ``nfs.status_code``: the numeric value of ``nfs.status``. Like
+  ``nfs.status``, it is logged only once a reply status was seen. A
+  transaction closed before its reply never shows ``0`` (OK).
+
+NFSv4 status names now come from the v4 table instead of the v3 table.
+
+New events, with default rules in ``rules/nfs-events.rules``:
+
+* ``fsinfo_too_large``
+* ``record_overflow``
+* ``file_overlap``
+* ``internal_error``
+* the direction sanity events
+* ``malformed_data``, for corrupted UDP records
+
+The same file also adds default rules for eight events that 8.x raised
+without one: ``non_existing_version``, ``read_queue_size_exceeded``,
+``read_queue_cnt_exceeded``, ``write_queue_size_exceeded``,
+``write_queue_cnt_exceeded``, ``write_request_too_large``,
+``read_response_too_large`` and ``truncated_file_data``. A configuration that
+loads this file sees alerts for them after the upgrade.
+
+Alerts for ``record_overflow`` and the direction events have no ``nfs`` or
+``rpc`` block. These transactions stand for an event, not a call, so there
+is no procedure, status or valid transaction id to report.
+
+Overlapping file data
+=====================
+
+``file_overlap`` flags a READ or WRITE chunk that starts before the end of
+the data already tracked for the file. When a flow overlaps, the two sizes
+differ:
+
+* the ``nfs`` record's ``size`` counts the bytes the calls carried, so the
+  overlap is counted twice;
+* ``fileinfo`` reports what the file tracker kept, which is the smaller
+  value.
+
+Read both together.
+
+New keywords
+============
+
+``nfs.name`` and ``nfs.handle`` match the file name and file handle of NFS
+records.

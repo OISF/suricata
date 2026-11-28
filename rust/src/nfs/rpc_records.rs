@@ -27,6 +27,8 @@ use nom7::number::streaming::be_u32;
 use nom7::sequence::tuple;
 use nom7::{Err, IResult};
 
+use crate::nfs::types::RPCMSG_DENIED;
+
 pub const RPC_MAX_MACHINE_SIZE: u32 = 256; // Linux kernel defines 64.
 pub const RPC_MAX_CREDS_SIZE: u32 = 4096; // Linux kernel defines 400.
 pub const RPC_MAX_VERIFIER_SIZE: u32 = 4096; // Linux kernel defines 400.
@@ -170,7 +172,9 @@ fn parse_bits(i: &[u8]) -> IResult<&[u8], (u8, u32)> {
 }
 
 pub fn parse_rpc_packet_header(i: &[u8]) -> IResult<&[u8], RpcPacketHeader> {
-    let (i, fraghdr) = verify(parse_bits, |v: &(u8, u32)| v.1 >= 24)(i)?;
+    // 20 is the shortest well-formed message: a denied reply carries
+    // xid, msgtype, reply_stat, reject_stat and auth_stat, and no more.
+    let (i, fraghdr) = verify(parse_bits, |v: &(u8, u32)| v.1 >= 20)(i)?;
     let (i, xid) = be_u32(i)?;
     let (i, msgtype) = verify(be_u32, |&v| v <= 1)(i)?;
     let hdr = RpcPacketHeader {
@@ -191,10 +195,81 @@ pub struct RpcReplyPacket<'a> {
     pub verifier: Option<&'a [u8]>,
 
     pub reply_state: u32,
+    /// Always 0 for a denied reply: the field does not exist there, so a
+    /// caller must branch on `reply_state`/`reject_state`, not on this.
     pub accept_state: u32,
+    /// Set only for a denied reply (RFC 5531 9): the version range the server
+    /// accepts, or the auth_stat.
+    pub reject_state: u32,
 
     pub prog_data_size: u32,
     pub prog_data: &'a [u8],
+}
+
+/// Reply body that follows `reply_stat`.
+struct RpcReplyBody<'a> {
+    verifier_flavor: u32,
+    verifier_len: u32,
+    verifier: Option<&'a [u8]>,
+    accept_state: u32,
+    reject_state: u32,
+}
+
+/// A denied reply carries a reject_stat and either the RPC version range the
+/// server accepts or an auth_stat: no verifier, no accept_stat. Reading the
+/// accept layout here consumes the deny body as a verifier and fails.
+fn parse_rpc_reply_denied(i: &[u8]) -> IResult<&[u8], u32> {
+    const RPC_REJECT_RPCMISMATCH: u32 = 0;
+
+    let (i, reject_state) = verify(be_u32, |&v| v <= 1)(i)?;
+    if reject_state == RPC_REJECT_RPCMISMATCH {
+        let (i, _) = tuple((be_u32, be_u32))(i)?; // low, high
+        Ok((i, reject_state))
+    } else {
+        let (i, _) = be_u32(i)?; // auth_stat
+        Ok((i, reject_state))
+    }
+}
+
+fn parse_rpc_reply_body(i: &[u8], reply_state: u32) -> IResult<&[u8], RpcReplyBody<'_>> {
+    if reply_state == RPCMSG_DENIED {
+        let (i, reject_state) = parse_rpc_reply_denied(i)?;
+        return Ok((
+            i,
+            RpcReplyBody {
+                verifier_flavor: 0,
+                verifier_len: 0,
+                verifier: None,
+                accept_state: 0,
+                reject_state,
+            },
+        ));
+    }
+
+    let (i, verifier_flavor) = be_u32(i)?;
+    let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
+    let (i, verifier) = cond(verifier_len > 0, take(verifier_len as usize))(i)?;
+    let (i, accept_state) = be_u32(i)?;
+    // RFC 5531 9: PROG_MISMATCH is the one accept_stat with a body, the
+    // version range the server does support. Consume it here or it is read as
+    // NFS data (and flagged) later.
+    const RPC_ACCEPT_PROG_MISMATCH: u32 = 2;
+    let i = if accept_state == RPC_ACCEPT_PROG_MISMATCH {
+        let (i, _) = tuple((be_u32, be_u32))(i)?; // low, high
+        i
+    } else {
+        i
+    };
+    Ok((
+        i,
+        RpcReplyBody {
+            verifier_flavor,
+            verifier_len,
+            verifier,
+            accept_state,
+            reject_state: 0,
+        },
+    ))
 }
 
 // top of request packet, just to get to procedure
@@ -324,12 +399,7 @@ pub fn parse_rpc_reply(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcRepl
     let rec_size = hdr.frag_len + 4;
 
     let (i, reply_state) = verify(be_u32, |&v| v <= 1)(i)?;
-
-    let (i, verifier_flavor) = be_u32(i)?;
-    let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
-    let (i, verifier) = cond(verifier_len > 0, take(verifier_len as usize))(i)?;
-
-    let (i, accept_state) = be_u32(i)?;
+    let (i, body) = parse_rpc_reply_body(i, reply_state)?;
 
     let consumed = start_i.len() - i.len();
     if consumed > rec_size as usize {
@@ -345,12 +415,13 @@ pub fn parse_rpc_reply(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcRepl
     let packet = RpcReplyPacket {
         hdr,
 
-        verifier_flavor,
-        verifier_len,
-        verifier,
+        verifier_flavor: body.verifier_flavor,
+        verifier_len: body.verifier_len,
+        verifier: body.verifier,
 
         reply_state,
-        accept_state,
+        accept_state: body.accept_state,
+        reject_state: body.reject_state,
 
         prog_data_size: data_size,
         prog_data,
@@ -358,17 +429,56 @@ pub fn parse_rpc_reply(start_i: &[u8], complete: bool) -> IResult<&[u8], RpcRepl
     Ok((i, packet))
 }
 
-pub fn parse_rpc_udp_packet_header(i: &[u8]) -> IResult<&[u8], RpcPacketHeader> {
-    let (i, xid) = be_u32(i)?;
-    let (i, msgtype) = verify(be_u32, |&v| v <= 1)(i)?;
-    let hdr = RpcPacketHeader {
-        frag_is_last: false,
-        frag_len: 0,
-
+/// Checked RFC 5531 record-marker header: the marker must claim the whole
+/// datagram (the record ends at the datagram boundary, the marker excluded)
+/// and carry the last-fragment bit; any mismatch -> None (unmarked).
+fn parse_rpc_udp_record_marked_header(i: &[u8]) -> Option<RpcPacketHeader> {
+    if i.len() < 8 {
+        return None;
+    }
+    let (rem, fraghdr) = parse_bits(i).ok()?;
+    if fraghdr.0 != 1 || fraghdr.1 < 20 || fraghdr.1 as usize != rem.len() {
+        return None;
+    }
+    let (rem, xid) = be_u32::<_, ()>(rem).ok()?;
+    let (_, msgtype) = verify(be_u32::<_, ()>, |&v| v <= 1)(rem).ok()?;
+    Some(RpcPacketHeader {
+        frag_is_last: fraghdr.0 == 1,
+        frag_len: fraghdr.1,
         xid,
         msgtype,
-    };
-    Ok((i, hdr))
+    })
+}
+
+pub fn parse_rpc_udp_packet_header(i: &[u8]) -> IResult<&[u8], RpcPacketHeader> {
+    // An ONC/UDP datagram is normally unmarked: the xid is the first word
+    // (RFC 5531 defines record marking for byte-stream transports). Some
+    // servers do mark them, so the marked layout is attempted second, only
+    // when the unmarked one fails (for a marked datagram the word at offset 4
+    // is the real xid, so it is not a valid msgtype). Trying marked first
+    // would misparse an unmarked reply whose xid equals its own length.
+    let (rem, xid) = be_u32(i)?;
+    let msgtype: IResult<&[u8], u32> = verify(be_u32, |&v| v <= 1)(rem);
+    match msgtype {
+        Ok((rem, msgtype)) => {
+            let hdr = RpcPacketHeader {
+                frag_is_last: false,
+                frag_len: 0,
+
+                xid,
+                msgtype,
+            };
+            Ok((rem, hdr))
+        }
+        Err(_) => match parse_rpc_udp_record_marked_header(i) {
+            Some(hdr) => {
+                // marker + xid + msgtype consumed; the record ends at the
+                // datagram boundary (enforced by the helper)
+                Ok((&i[12..], hdr))
+            }
+            None => Err(Err::Error(make_error(i, ErrorKind::Verify))),
+        },
+    }
 }
 
 pub fn parse_rpc_udp_request(i: &[u8]) -> IResult<&[u8], RpcPacket<'_>> {
@@ -419,24 +529,22 @@ pub fn parse_rpc_udp_request(i: &[u8]) -> IResult<&[u8], RpcPacket<'_>> {
 pub fn parse_rpc_udp_reply(i: &[u8]) -> IResult<&[u8], RpcReplyPacket<'_>> {
     let (i, hdr) = parse_rpc_udp_packet_header(i)?;
 
-    let (i, verifier_flavor) = be_u32(i)?;
-    let (i, verifier_len) = verify(be_u32, |&size| size < RPC_MAX_VERIFIER_SIZE)(i)?;
-    let (i, verifier) = cond(verifier_len > 0, take(verifier_len as usize))(i)?;
-
+    // RFC 5531 9: reply_stat comes before the verifier in either transport.
     let (i, reply_state) = verify(be_u32, |&v| v <= 1)(i)?;
-    let (i, accept_state) = be_u32(i)?;
+    let (i, body) = parse_rpc_reply_body(i, reply_state)?;
 
     let data_size: u32 = i.len() as u32;
     let (i, prog_data) = rest(i)?;
     let packet = RpcReplyPacket {
         hdr,
 
-        verifier_flavor,
-        verifier_len,
-        verifier,
+        verifier_flavor: body.verifier_flavor,
+        verifier_len: body.verifier_len,
+        verifier: body.verifier,
 
         reply_state,
-        accept_state,
+        accept_state: body.accept_state,
+        reject_state: body.reject_state,
 
         prog_data_size: data_size,
         prog_data,
@@ -579,5 +687,239 @@ mod tests {
             gss_compound_scan_data(Some((0, 2)), &envelope[..]),
             GssCompoundScan::EnvelopeMalformed
         );
+    }
+
+    #[test]
+    fn test_udp_header_unmarked_reply_claim_plausible_falls_back() {
+        // xid 0x80000030: the implied claim (48) is plausible, but the
+        // datagram is longer than the claim -> unmarked reply layout
+        // (xid 0x80000030, msgtype 1).
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&0x8000_0030u32.to_be_bytes()); // xid
+        buf.extend_from_slice(&1u32.to_be_bytes()); // msgtype 1 (reply)
+        buf.extend_from_slice(&0u32.to_be_bytes()); // reply_state OK
+        buf.extend_from_slice(&0u32.to_be_bytes()); // verf flavor
+        buf.extend_from_slice(&0u32.to_be_bytes()); // verf length
+        buf.extend_from_slice(&0u32.to_be_bytes()); // accept_stat
+        buf.extend_from_slice(&[0u8; 32]); // prog_data
+        let r = parse_rpc_udp_packet_header(&buf);
+        match r {
+            Ok((rem, hdr)) => {
+                assert_eq!(rem.len(), buf.len() - 8);
+                assert!(!hdr.frag_is_last);
+                assert_eq!(hdr.frag_len, 0);
+                assert_eq!(hdr.xid, 0x8000_0030);
+                assert_eq!(hdr.msgtype, 1);
+            }
+            _ => panic!("failed {:?}", r),
+        }
+    }
+
+    #[test]
+    fn test_udp_header_unmarked_request_claim_at_boundary_falls_back() {
+        // xid 0x80000030: the implied claim (48) ends exactly at the
+        // datagram boundary, so the marked attempt is tried; its
+        // msgtype word is the unmarked rpcvers (2) -> mismatch, fall
+        // back to the unmarked layout.
+        let mut buf: Vec<u8> = Vec::new();
+        buf.extend_from_slice(&0x8000_0030u32.to_be_bytes()); // xid
+        buf.extend_from_slice(&0u32.to_be_bytes()); // msgtype 0 (request)
+        buf.extend_from_slice(&2u32.to_be_bytes()); // rpcvers
+        buf.extend_from_slice(&100003u32.to_be_bytes()); // program
+        buf.extend_from_slice(&3u32.to_be_bytes()); // progver
+        buf.extend_from_slice(&1u32.to_be_bytes()); // procedure
+        buf.extend_from_slice(&[0u8; 28]); // auth + prog_data
+        assert_eq!(buf.len(), 52);
+        let r = parse_rpc_udp_packet_header(&buf);
+        match r {
+            Ok((rem, hdr)) => {
+                assert_eq!(rem.len(), 44);
+                assert!(!hdr.frag_is_last);
+                assert_eq!(hdr.xid, 0x8000_0030);
+                assert_eq!(hdr.msgtype, 0);
+            }
+            _ => panic!("failed {:?}", r),
+        }
+    }
+
+    #[test]
+    fn test_udp_header_marked_claim_not_at_boundary_falls_back() {
+        // claim 36 but 34 bytes follow the marker: the record does not
+        // end at the datagram boundary -> unmarked layout.
+        let buf: &[u8] = &[
+            0x80, 0x00, 0x00, 0x24, // marker, claim 36
+            0x00, 0x00, 0x00, 0x00, // msgtype 0 (unmarked)
+            0x00, 0x00, 0x00, 0x02, // rpcvers
+            0x00, 0x01, 0x86, 0xA3, // program 100003
+            0x00, 0x00, 0x00, 0x03, // progver
+            0x00, 0x00, 0x00, 0x01, // procedure
+            0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
+            0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+        ];
+        // the claim (36) does not end at the datagram boundary
+        assert_eq!(buf.len() - 4, 48);
+        let r = parse_rpc_udp_packet_header(buf);
+        match r {
+            Ok((rem, hdr)) => {
+                assert_eq!(rem.len(), buf.len() - 8);
+                assert!(!hdr.frag_is_last);
+                assert_eq!(hdr.frag_len, 0);
+                assert_eq!(hdr.xid, 0x8000_0024);
+                assert_eq!(hdr.msgtype, 0);
+            }
+            _ => panic!("failed {:?}", r),
+        }
+    }
+
+    #[test]
+    fn test_udp_header_record_marked() {
+        // RFC 5531 record marker: is_last=1, len=36 (fits the datagram),
+        // then xid + msgtype at offset 4.
+        let buf: &[u8] = &[
+            0x80, 0x00, 0x00, 0x24, // marker, claim 36
+            0x12, 0x34, 0x56, 0x78, // xid
+            0x00, 0x00, 0x00, 0x00, // msgtype 0
+            0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
+            0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66,
+            0x77, // 28 bytes after xid+msgtype
+        ];
+        let r = parse_rpc_udp_packet_header(buf);
+        match r {
+            Ok((rem, hdr)) => {
+                assert_eq!(rem.len(), 28);
+                assert!(hdr.frag_is_last);
+                assert_eq!(hdr.frag_len, 36);
+                assert_eq!(hdr.xid, 0x12345678);
+                assert_eq!(hdr.msgtype, 0);
+            }
+            _ => panic!("failed {:?}", r),
+        }
+    }
+
+    #[test]
+    fn test_udp_header_marked_claim_beyond_datagram_falls_back() {
+        // Claim of 65535 cannot be met by a 16-byte datagram: this is an
+        // unmarked datagram whose xid has the top bit set. The header
+        // must be parsed unmarked (xid at offset 0).
+        let buf: &[u8] = &[
+            0x80, 0xFF, 0xFF, 0xFE, // xid with top bit set
+            0x00, 0x00, 0x00, 0x00, // msgtype 0
+            0x00, 0x00, 0x00, 0x02, // rpcver
+            0x00, 0x01, 0x86, 0xA3, // program 100003
+        ];
+        let r = parse_rpc_udp_packet_header(buf);
+        match r {
+            Ok((rem, hdr)) => {
+                assert_eq!(rem.len(), 8);
+                assert!(!hdr.frag_is_last);
+                assert_eq!(hdr.frag_len, 0);
+                assert_eq!(hdr.xid, 0x80FFFFFE);
+                assert_eq!(hdr.msgtype, 0);
+            }
+            _ => panic!("failed {:?}", r),
+        }
+    }
+
+    #[test]
+    fn test_udp_header_unmarked_small_claim_falls_back() {
+        // xid 0x80000005: the 31-bit "claim" is 5, below the minimal
+        // record size of 24 -> unmarked layout.
+        let buf: &[u8] = &[
+            0x80, 0x00, 0x00, 0x05, // xid
+            0x00, 0x00, 0x00, 0x01, // msgtype 1
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+        ];
+        let r = parse_rpc_udp_packet_header(buf);
+        match r {
+            Ok((rem, hdr)) => {
+                assert_eq!(rem.len(), 16);
+                assert!(!hdr.frag_is_last);
+                assert_eq!(hdr.xid, 0x80000005);
+                assert_eq!(hdr.msgtype, 1);
+            }
+            _ => panic!("failed {:?}", r),
+        }
+    }
+
+    fn be32(v: u32) -> Vec<u8> {
+        v.to_be_bytes().to_vec()
+    }
+
+    /// Marker + xid + msgtype: the record-marked head both reply parsers take.
+    fn tcp_reply_head(xid: u32, body_len: u32) -> Vec<u8> {
+        let mut b = be32(0x8000_0000 | body_len);
+        b.extend(be32(xid));
+        b.extend(be32(1)); // msgtype: REPLY
+        b
+    }
+
+    #[test]
+    fn test_reply_denied_auth_error() {
+        // reply_stat 1, reject_stat AUTH_ERROR, auth_stat AUTH_BADCRED.
+        let mut b = tcp_reply_head(7, 20);
+        b.extend(be32(1)); // reply_stat: MSG_DENIED
+        b.extend(be32(1)); // reject_stat: AUTH_ERROR
+        b.extend(be32(1)); // auth_stat
+        let (rem, r) = parse_rpc_reply(&b, true).expect("denied auth_error reply");
+        assert!(rem.is_empty());
+        assert_eq!(r.reply_state, RPCMSG_DENIED);
+        assert_eq!(r.reject_state, 1);
+        assert_eq!(r.accept_state, 0);
+        assert_eq!(r.verifier_len, 0);
+        assert_eq!(r.verifier, None);
+        assert_eq!(r.prog_data_size, 0);
+    }
+
+    #[test]
+    fn test_reply_denied_version_mismatch() {
+        // reject_stat RPC_MISMATCH carries the accepted version range.
+        let mut b = tcp_reply_head(8, 24);
+        b.extend(be32(1)); // reply_stat: MSG_DENIED
+        b.extend(be32(0)); // reject_stat: RPC_MISMATCH
+        b.extend(be32(2)); // low
+        b.extend(be32(2)); // high
+        let (rem, r) = parse_rpc_reply(&b, true).expect("denied mismatch reply");
+        assert!(rem.is_empty());
+        assert_eq!(r.reject_state, 0);
+        assert_eq!(r.accept_state, 0);
+        assert_eq!(r.verifier_len, 0);
+    }
+
+    #[test]
+    fn test_reply_udp_denied_auth_error() {
+        let mut b = be32(9); // xid
+        b.extend(be32(1)); // msgtype: REPLY
+        b.extend(be32(1)); // reply_stat: MSG_DENIED
+        b.extend(be32(1)); // reject_stat: AUTH_ERROR
+        b.extend(be32(7)); // auth_stat: AUTH_REJECTEDVERF
+        let (rem, r) = parse_rpc_udp_reply(&b).expect("denied udp reply");
+        assert!(rem.is_empty());
+        assert_eq!(r.reject_state, 1);
+        assert_eq!(r.accept_state, 0);
+        assert_eq!(r.verifier, None);
+        assert_eq!(r.prog_data_size, 0);
+    }
+
+    #[test]
+    fn test_reply_udp_accepted_verifier_order() {
+        // reply_stat precedes the verifier: a nonzero verifier must not be
+        // read as a status word or vice versa.
+        let mut b = be32(10); // xid
+        b.extend(be32(1)); // msgtype: REPLY
+        b.extend(be32(0)); // reply_stat: MSG_ACCEPTED
+        b.extend(be32(1)); // verifier flavor
+        b.extend(be32(8)); // verifier len
+        b.extend_from_slice(&[0xaa; 8]);
+        b.extend(be32(0)); // accept_stat
+        b.extend(be32(0)); // status word, prog data
+        let (rem, r) = parse_rpc_udp_reply(&b).expect("accepted udp reply");
+        assert!(rem.is_empty());
+        assert_eq!(r.reply_state, 0);
+        assert_eq!(r.verifier_flavor, 1);
+        assert_eq!(r.verifier_len, 8);
+        assert_eq!(r.accept_state, 0);
+        assert_eq!(r.reject_state, 0);
+        assert_eq!(r.prog_data, &be32(0)[..]);
     }
 }
